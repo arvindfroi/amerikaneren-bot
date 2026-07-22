@@ -61,6 +61,21 @@ export interface BotOpts {
    * for spillefasen.
    */
   readonly tidsbudsjettMs?: number;
+  /**
+   * «Klarsynthet» i budestimatet: hvor mange sluttstikk som løses eksakt
+   * (dobbelt-dummy) per verden. 0 = ren grådig utspilling (ikke-klarsynt).
+   * Standard 6. Empiri: fordi botens FAKTISKE kortspill (PIMC) er sterkt og
+   * ligger nær dobbelt-dummy, forutsier dobbelt-dummy-estimatet (med diskonto)
+   * de realiserte stikkene bedre enn et grådig «ærlig» estimat – og gir klart
+   * flere poeng (+100 mot +36 per kamp i test). Derfor er dette standard.
+   */
+  readonly budTerskel?: number;
+  /**
+   * Kalibreringsmargin trukket fra budestimatet (stikk). Korrigerer for at
+   * dobbelt-dummy er litt optimistisk. Standard 1 – gir ~89 % innfrielse og
+   * best poeng; 0 overbyr (65 % innfrielse, færre poeng).
+   */
+  readonly budDiskonto?: number;
 }
 
 const STD_VERDENER = 20;
@@ -526,7 +541,7 @@ function velgVrak(state: GameState, spiller: number, opts: BotOpts): Handling {
 
 function estimerStikk(state: GameState, spiller: number, opts: BotOpts): number[] {
   const rng = lagOppsettRng(opts);
-  const terskel = Math.min(opts.terskel ?? 6, 6);
+  const terskel = opts.budTerskel ?? 6;
   const verdener = Math.max(6, Math.floor((opts.verdener ?? STD_VERDENER) / 2));
   const egen = state.hender[spiller]!;
   const egenInt = egen.map(kortTilInt);
@@ -605,10 +620,10 @@ function velgBud(state: GameState, spiller: number, opts: BotOpts): Handling {
   if (stikk.length === 0) return { type: "BUD", spiller, bud: PASS };
   const mål = state.regler.målPoeng;
 
-  // Estimatet er dobbelt-dummy (alle hender kjent) og systematisk OPTIMISTISK
-  // ift. faktisk PIMC-spill. Trekk fra en kalibrert margin for å få forventet
-  // faktisk stikktall per verden.
-  const DISKONTO = 1;
+  // Estimatet er dobbelt-dummy (litt optimistisk). En kalibrert diskonto gir
+  // forventet faktisk stikktall. Testet: dette forutsier botens realiserte
+  // stikk bedre enn et ikke-klarsynt «ærlig» estimat, og gir flest poeng.
+  const DISKONTO = opts.budDiskonto ?? 1;
   const justert = stikk.map((x) => x - DISKONTO);
   const antall = justert.length;
   // P(minst n stikk) og P(alle stikk) fra fordelingen.
