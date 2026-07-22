@@ -83,6 +83,18 @@ export interface BotOpts {
    * styrke, men ingen tidsgaranti). Se {@link MAKS_STYRKE}.
    */
   readonly nodeTak?: number;
+  /**
+   * EKSPERIMENTELL motstander-inferens: nedvekt sampla verdener der budlaget
+   * ikke kan nå budet. **Standard av** – den naive versjonen skader spillet
+   * fordi den bruker det REALISERTE DD-utfallet, mens en melder byr på HÅNDEN
+   * sin (ikke klarsynt). Den forkaster derfor «sterk hånd, uheldig fordeling»-
+   * verdener – nettopp der godt forsvar setter kontrakten. En korrekt variant
+   * må vekte på melderens håndstyrke, ikke utfallet. Beholdt som opt-in for
+   * videre arbeid. Se A/B-notat i commit-historikken.
+   */
+  readonly budInferens?: boolean;
+  /** «Mykhet» i budinferensen (stikk). Lavere = skarpere nedvekting. Standard 1,5. */
+  readonly inferensTau?: number;
 }
 
 const STD_VERDENER = 20;
@@ -195,6 +207,9 @@ interface SpillAkk {
   readonly nodeTak: number; // 0 = eksakt (ingen grådig fallback)
   readonly rng: () => number;
   readonly fast: Kort | null; // satt når bare ett lovlig kort
+  readonly inferens: boolean; // vekt verdener etter bud-rasjonalitet
+  readonly tau: number;
+  readonly målStikk: number; // budets stikkmål (for inferensvekt)
   antall: number; // antall gyldige verdener behandlet
 }
 
@@ -230,6 +245,9 @@ function nySpillAkk(state: GameState, spiller: number, opts: BotOpts): SpillAkk 
     nodeTak: opts.nodeTak ?? NODE_TAK,
     rng: lagOppsettRng(opts),
     fast: lovlige.length <= 1 ? (lovlige[0] ?? null) : null,
+    inferens: opts.budInferens ?? false,
+    tau: opts.inferensTau ?? 1.5,
+    målStikk: state.melding!.type === "tall" ? state.melding!.bud : state.giving.antallStikk,
     antall: 0,
   };
 }
@@ -238,15 +256,35 @@ function nySpillAkk(state: GameState, spiller: number, opts: BotOpts): SpillAkk 
 // slik at et helt sveip ikke sprenger tidsbudsjettet. Faller til grådig.
 const NODE_TAK = 400_000;
 
+/**
+ * Inferensvekt for en verden: budlagets DD-stikk her (`verdenDD`) sett mot
+ * budet. Når laget ikke kan nå budet, er verdenen lite forenlig med at noen
+ * meldte så høyt → mykt nedvektet. 1 hvis inferens er av eller budet nås.
+ */
+function verdenVekt(akk: SpillAkk, verdenDD: number): number {
+  if (!akk.inferens) return 1;
+  const mangler = akk.målStikk - verdenDD;
+  return mangler <= 0 ? 1 : Math.exp(-mangler / akk.tau);
+}
+
 /** Behandler én verden (uten tidssjekk innad); false hvis sampling mislyktes. */
 function utvidEn(akk: SpillAkk): boolean {
   const verden = trekkVerden(akk.state, akk.spiller, akk.rng);
   if (!verden) return false;
   const oppsett = byggDDOppsett(akk.state, verden);
-  for (let i = 0; i < akk.lovlige.length; i++) {
+  const påLag = verden.declLag[akk.spiller] === true;
+  const n = akk.lovlige.length;
+  const lags = new Array<number>(n);
+  // verdenDD = budlagets stikk ved optimalt spill = beste kandidat sett fra
+  // spilleren (maks hvis på laget, min hvis forsvarer).
+  let verdenDD = påLag ? -1 : 999;
+  for (let i = 0; i < n; i++) {
     const lag = evaluerEtterTrekk(oppsett, akk.kortInt[i]!, akk.terskel, akk.nodeTak);
-    akk.sumPoeng[i]! += observatørPoeng(lag, verden, akk.kontekst);
+    lags[i] = lag;
+    if (påLag ? lag > verdenDD : lag < verdenDD) verdenDD = lag;
   }
+  const w = verdenVekt(akk, verdenDD);
+  for (let i = 0; i < n; i++) akk.sumPoeng[i]! += w * observatørPoeng(lags[i]!, verden, akk.kontekst);
   akk.antall++;
   return true;
 }
@@ -268,20 +306,21 @@ function utvidTid(akk: SpillAkk, frist: number, maks = 100_000): void {
     }
     tomme = 0;
     const oppsett = byggDDOppsett(akk.state, verden);
+    const påLag = verden.declLag[akk.spiller] === true;
+    let verdenDD = påLag ? -1 : 999;
     let avbrutt = false;
     for (let i = 0; i < akk.lovlige.length; i++) {
       if (Date.now() >= frist) {
         avbrutt = true;
         break;
       }
-      bidrag[i] = observatørPoeng(
-        evaluerEtterTrekk(oppsett, akk.kortInt[i]!, akk.terskel, akk.nodeTak),
-        verden,
-        akk.kontekst,
-      );
+      const lag = evaluerEtterTrekk(oppsett, akk.kortInt[i]!, akk.terskel, akk.nodeTak);
+      bidrag[i] = observatørPoeng(lag, verden, akk.kontekst);
+      if (påLag ? lag > verdenDD : lag < verdenDD) verdenDD = lag;
     }
     if (avbrutt) break; // forkast den halvferdige verdenen
-    for (let i = 0; i < akk.lovlige.length; i++) akk.sumPoeng[i]! += bidrag[i]!;
+    const w = verdenVekt(akk, verdenDD);
+    for (let i = 0; i < akk.lovlige.length; i++) akk.sumPoeng[i]! += w * bidrag[i]!;
     akk.antall++;
   }
   // Garanter minst én verden slik at vi alltid gir et reelt svar.
