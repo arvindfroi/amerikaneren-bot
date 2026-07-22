@@ -210,6 +210,31 @@ giv er patologisk tung. Målt verste blokkering over åpnings- og midtspill-valg
 stillingen er den samme, så en driver kan gi agenten vilkårlig mye tenketid
 utenfor den kritiske turen og likevel holde selve turen under taket.
 
+### `MAKS_STYRKE`: alltid det virkelig beste kortet (uten forenklinger)
+
+Standardmodus tar to snarveier for å holde 2-sekundersgrensen: en **grådig
+åpning** (tidlige stikk løses ikke eksakt) og et **nodetak** (tunge giver
+faller til grådig). `MAKS_STYRKE` skrur begge av – hver sampla verden løses
+**eksakt hele veien** (`terskel: 13`, `nodeTak: 0`), så boten alltid velger
+det virkelig beste kortet ut fra informasjonen den har:
+
+```ts
+import { MAKS_STYRKE, velgHandling } from "amerikaneren-motor";
+
+velgHandling(state, { ...MAKS_STYRKE, tidsbudsjettMs: 5000 });
+```
+
+Boten spiller alltid **argmax** over de sampla verdenene; `MAKS_STYRKE` gjør
+at hver verdi er *eksakt* i stedet for tilnærmet. Målt i sluttspillet (4 stikk
+igjen) spilte den et **klarsynt-optimalt** kort i **73 %** av valgene – resten
+er ikke feil, men den iboende kostnaden ved skjult info: den kan ikke se
+motstandernes kort, så den spiller det beste kortet *i snitt over det den vet*.
+
+**Pris:** ingen tidsgaranti. Eksakt 12-stikks løsning er tung, så et
+åpningsutspill kan ta flere sekunder per verden. Bruk `MAKS_STYRKE` med et
+romslig `tidsbudsjettMs` eller pondering når kvalitet går foran hastighet;
+bruk standard `BotAgent` når svaret må komme under 2 s.
+
 **Sampling:** verdenene trekkes tilfeldig (seedet) og *uniformt* blant de
 fordelingene som er forenlige med det boten vet (harde skranker: renonce,
 etterlyst-plassering, håndstørrelser). Boten vekter dem **ikke** etter

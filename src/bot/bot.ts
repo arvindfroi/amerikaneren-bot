@@ -76,11 +76,34 @@ export interface BotOpts {
    * best poeng; 0 overbyr (65 % innfrielse, færre poeng).
    */
   readonly budDiskonto?: number;
+  /**
+   * Nodetak per enkelt-søk i dobbelt-dummy-løseren. Standard bounder verste-
+   * fall (~0,1 s) ved å falle til grådig på patologisk tunge giver – nødvendig
+   * for det harde tidstaket. Sett **0 for eksakt spill uten fallback** (maks
+   * styrke, men ingen tidsgaranti). Se {@link MAKS_STYRKE}.
+   */
+  readonly nodeTak?: number;
 }
 
 const STD_VERDENER = 20;
 const STD_TERSKEL = 7;
 const STD_MAKS_EVAL = 240; // ~kandidater × verdener-tak per spill-beslutning
+
+/**
+ * Maksimal styrke: spill alltid det virkelig beste kortet ut fra
+ * informasjonen, uten forenklinger. Løser hver sampla verden EKSAKT hele veien
+ * (terskel = alle stikk, `nodeTak: 0` – ingen grådig fallback) og velger
+ * argmax. Kombiner med `tidsbudsjettMs` eller mange `verdener` for å tenke så
+ * lenge du vil. Merk: ingen 2-sekunders-garanti – et åpningsutspill kan ta
+ * sekunder fordi 12-stikks eksaktløsning er tung.
+ */
+export const MAKS_STYRKE: BotOpts = {
+  terskel: 13,
+  nodeTak: 0,
+  budTerskel: 8,
+  budDiskonto: 1,
+  verdener: 40,
+};
 
 function lagOppsettRng(opts: BotOpts): () => number {
   if (opts.rng) return opts.rng;
@@ -144,6 +167,7 @@ interface SpillAkk {
   readonly sumPoeng: number[];
   readonly kontekst: PoengKontekst;
   readonly terskel: number;
+  readonly nodeTak: number; // 0 = eksakt (ingen grådig fallback)
   readonly rng: () => number;
   readonly fast: Kort | null; // satt når bare ett lovlig kort
   antall: number; // antall gyldige verdener behandlet
@@ -178,6 +202,7 @@ function nySpillAkk(state: GameState, spiller: number, opts: BotOpts): SpillAkk 
       N: state.antallSpillere,
     },
     terskel,
+    nodeTak: opts.nodeTak ?? NODE_TAK,
     rng: lagOppsettRng(opts),
     fast: lovlige.length <= 1 ? (lovlige[0] ?? null) : null,
     antall: 0,
@@ -194,7 +219,7 @@ function utvidEn(akk: SpillAkk): boolean {
   if (!verden) return false;
   const oppsett = byggDDOppsett(akk.state, verden);
   for (let i = 0; i < akk.lovlige.length; i++) {
-    const lag = evaluerEtterTrekk(oppsett, akk.kortInt[i]!, akk.terskel, NODE_TAK);
+    const lag = evaluerEtterTrekk(oppsett, akk.kortInt[i]!, akk.terskel, akk.nodeTak);
     akk.sumPoeng[i]! += observatørPoeng(lag, verden, akk.kontekst);
   }
   akk.antall++;
@@ -225,7 +250,7 @@ function utvidTid(akk: SpillAkk, frist: number, maks = 100_000): void {
         break;
       }
       bidrag[i] = observatørPoeng(
-        evaluerEtterTrekk(oppsett, akk.kortInt[i]!, akk.terskel, NODE_TAK),
+        evaluerEtterTrekk(oppsett, akk.kortInt[i]!, akk.terskel, akk.nodeTak),
         verden,
         akk.kontekst,
       );
@@ -369,7 +394,7 @@ function velgTrumfOgKall(state: GameState, spiller: number, opts: BotOpts): Hand
           iTur: spiller,
           totalStikk: T,
         };
-        const lag = evaluerHybrid(oppsett, terskel, NODE_TAK);
+        const lag = evaluerHybrid(oppsett, terskel, opts.nodeTak ?? NODE_TAK);
         sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker }, {
           observator: spiller,
           budvinner: spiller,
@@ -511,7 +536,7 @@ function velgVrak(state: GameState, spiller: number, opts: BotOpts): Handling {
         const lag = evaluerHybrid(
           { N, trump: trumfIdx, declLag, hender, iTur: spiller, totalStikk: T },
           terskel,
-          NODE_TAK,
+          opts.nodeTak ?? NODE_TAK,
         );
         sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker }, {
           observator: spiller,
@@ -597,7 +622,7 @@ function estimerStikk(state: GameState, spiller: number, opts: BotOpts): number[
     const lag = evaluerHybrid(
       { N, trump: trumfIdx, declLag, hender, iTur: spiller, totalStikk: T },
       terskel,
-      NODE_TAK,
+      opts.nodeTak ?? NODE_TAK,
     );
     resultater.push(lag);
   }
