@@ -603,27 +603,31 @@ function velgBud(state: GameState, spiller: number, opts: BotOpts): Handling {
   const stikk = estimerStikk(state, spiller, opts);
   if (stikk.length === 0) return { type: "BUD", spiller, bud: PASS };
   const sortert = stikk.slice().sort((a, b) => a - b);
-  const andel = (n: number): number => sortert.filter((x) => x >= n).length / sortert.length;
+  const antall = sortert.length;
+  const andel = (n: number): number => sortert.filter((x) => x >= n).length / antall;
+  const persentil = (p: number): number =>
+    sortert[Math.min(antall - 1, Math.max(0, Math.floor(p * (antall - 1))))]!;
 
-  // Høyeste tallbud vi tror vi tar med margin (andel ≥ 0.55).
-  let målBud = 0;
-  for (let n = T; n >= 5; n--) {
-    if (andel(n) >= 0.55) {
-      målBud = n;
-      break;
-    }
-  }
+  // Viktig: estimatet er dobbelt-dummy (alle hender kjent) og er systematisk
+  // OPTIMISTISK – faktisk PIMC-spill tar færre stikk. Meld derfor konservativt:
+  // et lavt persentil av fordelingen, minus en sikkerhetsmargin. Uten dette
+  // overbyr boten og taper poeng (se turneringsbenchmark).
+  const MARGIN = 1;
+  let målBud = Math.floor(persentil(0.3)) - MARGIN;
+  if (målBud > T) målBud = T;
 
   const rang = (b: Bud): number =>
     b === SOLO ? 2000 : b === AMERIKANER ? 1000 : typeof b === "number" ? b : 0;
   const nåværende = høyeste === null ? 0 : rang(høyeste);
 
-  // Amerikaner/solo bare når vi nær sikkert tar alt.
-  if (andel(T) >= 0.85 && rang(SOLO) > nåværende) {
-    return { type: "BUD", spiller, bud: SOLO };
-  }
-  if (andel(T) >= 0.6 && rang(AMERIKANER) > nåværende) {
+  // Amerikaner (alle stikk med makker) kun når det er tilnærmet sikkert.
+  if (rang(AMERIKANER) > nåværende && andel(T) >= 0.9 && persentil(0.2) >= T) {
     return { type: "BUD", spiller, bud: AMERIKANER };
+  }
+  // Solo (alle stikk ALENE) er langt hardere enn estimatet (som antar makker)
+  // tilsier – meld det bare når hver eneste sampla verden gir alle stikk.
+  if (rang(SOLO) > nåværende && andel(T) >= 0.99) {
+    return { type: "BUD", spiller, bud: SOLO };
   }
   if (målBud >= 5 && målBud > nåværende) {
     return { type: "BUD", spiller, bud: målBud };
