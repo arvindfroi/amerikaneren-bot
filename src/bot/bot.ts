@@ -53,6 +53,13 @@ export interface BotOpts {
    * tenketid. Øk for sterkere (og tregere) spill. Standard 240.
    */
   readonly maksEval?: number;
+  /**
+   * Tidsbudsjett i millisekunder for ett kortvalg. Er dette satt, trekker
+   * boten stadig nye verdener til tiden er ute (anytime), i stedet for et
+   * fast antall – «tenk lenger = sterkere». Overstyrer `verdener`/`maksEval`
+   * for spillefasen.
+   */
+  readonly tidsbudsjettMs?: number;
 }
 
 const STD_VERDENER = 20;
@@ -110,13 +117,18 @@ function observatørPoeng(lagStikk: number, verden: Verden, k: PoengKontekst): n
 
 function velgKort(state: GameState, spiller: number, opts: BotOpts): Handling {
   const rng = lagOppsettRng(opts);
-  const terskel = opts.terskel ?? STD_TERSKEL;
   const lovlige = lovligeKort(state, spiller);
   if (lovlige.length === 1) return { type: "SPILL", spiller, kort: lovlige[0]! };
 
+  // Adaptiv terskel: løs alltid resten eksakt når få stikk gjenstår (ingen
+  // grådig skjevhet i sluttspillet).
+  const gjenstår = state.giving.antallStikk - state.stikkSpilt;
+  const terskel = Math.min(opts.terskel ?? STD_TERSKEL, gjenstår);
+
   const maksEval = opts.maksEval ?? STD_MAKS_EVAL;
-  let verdener = opts.verdener ?? STD_VERDENER;
-  verdener = Math.max(6, Math.min(verdener, Math.floor(maksEval / lovlige.length)));
+  const fastVerdener = Math.max(6, Math.min(opts.verdener ?? STD_VERDENER, Math.floor(maksEval / lovlige.length)));
+  const budsjett = opts.tidsbudsjettMs ?? 0;
+  const takVerdener = budsjett > 0 ? 100_000 : fastVerdener;
 
   const kontekst: PoengKontekst = {
     observator: spiller,
@@ -131,7 +143,9 @@ function velgKort(state: GameState, spiller: number, opts: BotOpts): Handling {
   const sumPoeng = new Array<number>(lovlige.length).fill(0);
   const kortInt = lovlige.map(kortTilInt);
   let gyldige = 0;
-  for (let w = 0; w < verdener; w++) {
+  const start = budsjett > 0 ? Date.now() : 0;
+  for (let w = 0; w < takVerdener; w++) {
+    if (budsjett > 0 && w >= 4 && Date.now() - start >= budsjett) break;
     const verden = trekkVerden(state, spiller, rng);
     if (!verden) continue;
     gyldige++;

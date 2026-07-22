@@ -156,18 +156,33 @@ stikkene med en grei grådig policy og **sluttspillet (de siste `terskel`
 stikkene) løses eksakt** – der presisjon teller mest. `terskel` og `verdener`
 styrer avveiningen styrke/hastighet.
 
-### Styrke og hastighet
+### Styrke, hastighet og tenketid
 
-Målt på identiske givere (`npm run styrketest`):
+Målt på identiske givere (`npm run styrketest`). Tilfeldig spill tar ~7.1
+stikk som budlag; høyere angrep og lavere forsvar = sterkere:
 
-| Rolle | PIMC-bot | Tilfeldig | Forskjell |
-|-------|----------|-----------|-----------|
-| Budlaget angriper | **7.9** stikk/giv | 7.1 | **+0.8** |
-| PIMC forsvarer (holder budlaget nede) | **6.7** stikk/giv | 7.1 | **−0.4** |
+| Innstilling | Angrep | Forsvar | Tid/kort (snitt) | Tid/kort (verst) |
+|-------------|--------|---------|------------------|------------------|
+| `verdener:10, terskel:6` (rask) | 7.5 | 6.5 | 38 ms | 0.4 s |
+| `verdener:20, terskel:7` (**standard**) | **8.0** | **6.1** | ~0.5 s | ~4 s |
+| `verdener:30, terskel:7` | 7.6 | 5.9 | 0.7 s | 6.5 s |
 
-Én stikk avgjør ofte om en kontrakt går hjem, så dette er en tydelig
-forskjell. Typisk beslutningstid: ~50 ms (standardinnstillinger), raskere
-utover i spillet når sluttspillet løses eksakt.
+Mer tenking hjelper opp til et punkt: fra rask til standard vinner boten
+~0.5 stikk mer som angrep og gir ~0.4 mindre som forsvar. Utover standard er
+gevinsten innenfor støyen mens kostnaden øker – **`verdener:20, terskel:7` er
+et godt balansepunkt**. Åpningsutspillet er det dyre kortet (flest kort igjen
+å løse); resten går raskt når sluttspillet løses eksakt.
+
+**Vil du la den tenke lenger?** Sett et tidsbudsjett per kortvalg, så trekker
+den stadig nye verdener til tiden er ute (anytime):
+
+```ts
+velgHandling(state, { tidsbudsjettMs: 1500, terskel: 7 });
+```
+
+`terskel` styrer hvor dypt sluttspillet løses **eksakt** (og skrus automatisk
+til `min(terskel, gjenstående stikk)`, så de siste stikkene alltid er uten
+grådig skjevhet). `verdener` styrer antall determiniseringer (lavere varians).
 
 **Sampling:** verdenene trekkes tilfeldig (seedet) og *uniformt* blant de
 fordelingene som er forenlige med det boten vet (harde skranker: renonce,
