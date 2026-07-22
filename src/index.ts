@@ -18,3 +18,16 @@
 export * from "./kort.ts";
 export * from "./regler.ts";
 export * from "./motor.ts";
+
+// Bot og solver (nær-optimal spilling med den informasjonen som finnes)
+export * from "./bot/bot.ts";
+export {
+  løsDD,
+  rotVerdier,
+  evaluerHybrid,
+  evaluerEtterTrekk,
+  kortTilInt,
+  intTilKort,
+  type DDOppsett,
+} from "./solver/dds.ts";
+export { trekkVerden, byggDDOppsett, infererRenonce, type Verden } from "./solver/sampler.ts";

@@ -99,6 +99,8 @@ export interface GameState {
   readonly stikkVunnet: number[];
   readonly stikkSpilt: number;
   readonly forrigeStikk: Stikk | null;
+  /** Alle fullførte stikk denne runden (offentlig – alle ser lagte kort). */
+  readonly historikk: Stikk[];
 
   readonly sisteRunde: RundeResultat | null;
 }
@@ -205,6 +207,7 @@ export function opprettSpill(
     stikkVunnet: new Array<number>(r.antallSpillere).fill(0),
     stikkSpilt: 0,
     forrigeStikk: null,
+    historikk: [],
     sisteRunde: null,
   };
 }
@@ -355,6 +358,7 @@ function klon(state: GameState): Mutable<GameState> {
     vrak: state.vrak.slice(),
     bord: state.bord.slice(),
     stikkVunnet: state.stikkVunnet.slice(),
+    historikk: state.historikk.slice(),
   };
 }
 
@@ -500,6 +504,7 @@ function utførVelg(
   s.stikkSpilt = 0;
   s.stikkVunnet = new Array<number>(s.antallSpillere).fill(0);
   s.forrigeStikk = null;
+  s.historikk = [];
   ev.push({ type: "TRUMF_VALGT", trumf, etterlyst });
 }
 
@@ -536,6 +541,7 @@ function utførSpill(s: Mutable<GameState>, spiller: number, kort: Kort, ev: Hen
   stikkVunnet[vinner] = (stikkVunnet[vinner] ?? 0) + 1;
   s.stikkVunnet = stikkVunnet;
   s.forrigeStikk = { kort: s.bord.slice(), vinner };
+  s.historikk = s.historikk.concat({ kort: s.bord.slice(), vinner });
   ev.push({ type: "STIKK_FERDIG", vinner, stikk: s.bord.slice() });
   s.bord = [];
   s.stikkSpilt += 1;
@@ -647,6 +653,7 @@ function nyGivning(s: Mutable<GameState>, ev: Hendelse[]): void {
   s.stikkVunnet = new Array<number>(s.antallSpillere).fill(0);
   s.stikkSpilt = 0;
   s.forrigeStikk = null;
+  s.historikk = [];
   s.sisteRunde = null;
   s.fase = "BUDRUNDE";
   s.iTur = (giver + 1) % s.antallSpillere;

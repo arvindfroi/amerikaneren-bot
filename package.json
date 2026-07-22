@@ -25,7 +25,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test test/*.test.ts",
-    "selvspill": "node examples/selvspill.ts"
+    "selvspill": "node examples/selvspill.ts",
+    "styrketest": "node examples/styrketest.ts"
   },
   "keywords": [
     "amerikaner",

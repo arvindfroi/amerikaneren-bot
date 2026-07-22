@@ -9,6 +9,10 @@ Reglene er implementert nøyaktig etter [`REGLER.md`](./REGLER.md)
 (byttekort-varianten som standard, mål på 100 poeng, Amerikaner med
 hemmelig makker og egen solo-melding).
 
+Pakken inneholder også en **bot** som spiller så nær optimalt som den
+skjulte informasjonen tillater – bygd på en eksakt dobbelt-dummy-løser og
+Monte-Carlo over mulige kortfordelinger (PIMC). Se [Bot](#bot-nær-optimal-spilling-med-den-informasjonen-som-finnes).
+
 ## Hvorfor denne formen
 
 - **Ren og deterministisk.** `utfør(state, handling)` tar en tilstand og en
@@ -28,10 +32,11 @@ hemmelig makker og egen solo-melding).
 ## Kom i gang
 
 ```bash
-npm install        # kun for TypeScript-kompilatoren (dev)
-npm test           # kjører hele testsuiten (node:test)
-npm run build      # kompilerer src/ -> dist/ (ren ESM + typer)
-npm run selvspill  # fire enkle boter spiller en hel kamp
+npm install         # kun for TypeScript-kompilatoren (dev)
+npm test            # kjører hele testsuiten (node:test)
+npm run build       # kompilerer src/ -> dist/ (ren ESM + typer)
+npm run selvspill   # fire enkle heuristikk-boter spiller en hel kamp
+npm run styrketest  # måler PIMC-botens stikk-fordel mot tilfeldig spill
 ```
 
 Krever Node ≥ 20. Testene og eksempelet kjøres direkte fra `.ts`-kilden via
@@ -108,21 +113,104 @@ animasjoner og logg direkte av disse.
 - **Spillerantall:** 3–6 støttes (`antallSpillere`), med kortfordelingen fra
   reglene. Klassiske regler uten byttekort via `{ medByttekort: false }`.
 
+## Bot: nær-optimal spilling med den informasjonen som finnes
+
+Motoren avgjør bare hva som er *lovlig*. Oppå ligger en **bot** som avgjør
+hva som er *lurt* – så nær optimalt som den skjulte informasjonen tillater.
+
+```ts
+import { opprettSpill, velgHandling, utfør } from "amerikaneren-motor";
+
+let state = opprettSpill({ antallSpillere: 4 }, 12345);
+while (state.fase !== "FERDIG") {
+  const handling = velgHandling(state, { verdener: 20, terskel: 7 });
+  state = utfør(state, handling).state;
+}
+```
+
+`velgHandling(state, opts)` velger for spilleren i tur i alle faser (bud,
+byttekort, trumf/etterlys, kortspill). Den bruker **bare** informasjonen den
+spilleren faktisk har.
+
+### Metode: determinisert dobbelt-dummy (PIMC)
+
+Stikkspillet er et perfekt-informasjons nullsumspill *når alle hender er
+kjent*. Det utnytter boten:
+
+1. **Dobbelt-dummy-løser** (`src/solver/dds.ts`) – en eksakt alpha-beta-
+   søker (bitmaske-hender, ekvivalensreduksjon, null-vindu/MTD,
+   transposisjonstabell med Zobrist-hash). Den regner ut det spillteoretisk
+   korrekte antallet stikk budlaget tar.
+2. **Verdenssampler** (`src/solver/sampler.ts`) – trekker mange komplette
+   kortfordelinger som er forenlige med alt boten vet (egen hånd, spilte
+   kort, renonce-inferens, at det etterlyste kortet ligger hos en
+   motspiller, budvinnerens eget vrak).
+3. **PIMC-bot** (`src/bot/bot.ts`) – for hver mulig handling: løs mange
+   sampla verdener, og velg handlingen med best **forventet egen-poeng**
+   (budlaget maksimerer stikk, forsvaret minimerer – standard erklærer-mot-
+   forsvar). Budrunden, trumf/etterlys og vraking styres av det samme
+   sampling-drevne estimatet.
+
+Fordi en eksakt 12-stikks løsning er tung i ren JS, spilles de første
+stikkene med en grei grådig policy og **sluttspillet (de siste `terskel`
+stikkene) løses eksakt** – der presisjon teller mest. `terskel` og `verdener`
+styrer avveiningen styrke/hastighet.
+
+### Styrke og hastighet
+
+Målt på identiske givere (`npm run styrketest`):
+
+| Rolle | PIMC-bot | Tilfeldig | Forskjell |
+|-------|----------|-----------|-----------|
+| Budlaget angriper | **7.9** stikk/giv | 7.1 | **+0.8** |
+| PIMC forsvarer (holder budlaget nede) | **6.7** stikk/giv | 7.1 | **−0.4** |
+
+Én stikk avgjør ofte om en kontrakt går hjem, så dette er en tydelig
+forskjell. Typisk beslutningstid: ~50 ms (standardinnstillinger), raskere
+utover i spillet når sluttspillet løses eksakt.
+
+**Kjente begrensninger** (iboende i PIMC): «strategifusjon» (antar at skjulte
+kort blir kjent neste trekk) og at boten ikke skjuler egen informasjon. Disse
+rammer tidlig spill mer enn sluttspillet, som er eksakt.
+
+## Designnotat: hvorfor ikke nevrale nett / CFR?
+
+En lærd stakk (Deep CFR for budrunden, verdinett for talong/trumf,
+ISMCTS/ReBeL for stikkspillet) er den «maksimale» tilnærmingen, men feil for
+*dette* målet: en lettvekts, avhengighetsfri motor som kjører overalt og er
+deterministisk. Den ville krevd trening, data, GPU og et rammeverk.
+
+For et spill så lite som Amerikaner (12 stikk) er **eksakt dobbelt-dummy
+løsbart**, og da gir **PIMC nær-optimalt stikkspill uten trening** – eksakt
+per verden, ikke en rollout-approksimasjon slik ISMCTS er. ISMCTS/ReBeL
+lønner seg først når perfekt-info-delspillet er for stort til å løses eksakt,
+eller når man vil håndtere PIMC-svakhetene (strategifusjon, informasjons-
+lekkasje) direkte. Talong/trumf trenger heller ikke et *verdinett*: hver
+kandidat kan evalueres direkte med sampling + eksakt løser. Budrunden er den
+delen der CFR ville tilført mest (motstandermodellering, bløff), men et
+sampling-basert EV-estimat er mer enn nok for husbruk – og kan senere byttes
+ut bak `velgHandling` uten å røre resten.
+
 ## Filstruktur
 
 ```
 src/
-  kort.ts     Kort, farger, stokk, seedbar RNG
-  regler.ts   GameRules, kortgiving, budrangering, poengberegning
-  motor.ts    Tilstandsmaskin: lovligeHandlinger, utfør, lovligeKort, visning
-  index.ts    Offentlig API (re-eksport)
-test/         node:test-suite (kort, regler, motor)
+  kort.ts            Kort, farger, stokk, seedbar RNG
+  regler.ts          GameRules, kortgiving, budrangering, poengberegning
+  motor.ts           Tilstandsmaskin: lovligeHandlinger, utfør, lovligeKort, visning
+  solver/dds.ts      Eksakt dobbelt-dummy-løser (alpha-beta + TT)
+  solver/sampler.ts  Determinisering av skjult informasjon
+  bot/bot.ts         PIMC-bot: velgHandling for alle faser
+  index.ts           Offentlig API (re-eksport)
+test/                node:test-suite (kort, regler, motor, dds, sampler, bot)
 examples/
-  selvspill.ts  Fire heuristikk-boter spiller en hel kamp
+  selvspill.ts       Fire heuristikk-boter spiller en hel kamp
+  styrketest.ts      Måler PIMC-botens stikk-fordel mot tilfeldig spill
 ```
 
-Motoren tar ingen avgjørelser på spillernes vegne – den avgjør bare hva som
-er lovlig og hva som skjer. En AI/bot er et lag oppå (se `examples/`).
+Skillet er bevisst: **motoren** er ren regel-logikk (avgjør lovlighet og
+utfall), **boten** er et frittstående lag oppå (avgjør hva som er lurt). Vil
+du bruke en annen strategi, bytt ut `velgHandling` – motoren er uendret.
 
 ## Lisens
 
