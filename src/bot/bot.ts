@@ -89,8 +89,9 @@ export interface BotOpts {
    * fordi den bruker det REALISERTE DD-utfallet, mens en melder byr på HÅNDEN
    * sin (ikke klarsynt). Den forkaster derfor «sterk hånd, uheldig fordeling»-
    * verdener – nettopp der godt forsvar setter kontrakten. En korrekt variant
-   * må vekte på melderens håndstyrke, ikke utfallet. Beholdt som opt-in for
-   * videre arbeid. Se A/B-notat i commit-historikken.
+   * må vekte på melderens håndstyrke, ikke utfallet. A/B over 24 fulle kamper:
+   * −8,7 poeng/kamp (13/24 seiere) – uskillbart fra null / marginalt negativt.
+   * Beholdt som opt-in for videre arbeid (riktig løsning = CFR på budrunden).
    */
   readonly budInferens?: boolean;
   /** «Mykhet» i budinferensen (stikk). Lavere = skarpere nedvekting. Standard 1,5. */
