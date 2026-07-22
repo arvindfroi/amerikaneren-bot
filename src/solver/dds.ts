@@ -397,22 +397,55 @@ function grådigOgLøs(pos: DDPosisjon, terskel: number, tt: TT): number {
   return løsFra(pos, tt);
 }
 
+/** Rent grådig spill helt til slutt – brukt som fallback ved nodetak. */
+function grådigTilSlutt(pos: DDPosisjon): number {
+  while (pos.totalStikk - pos.ferdigeStikk > 0) {
+    const n = genererOgOrdne(pos, grådigBuf, grådigNøkkel);
+    if (n === 0) break;
+    gjørTrekk(pos, grådigBuf[0]!);
+  }
+  return pos.declStikk;
+}
+
+// Nodetak: bounder ett enkelt søk. 0 = ingen grense (eksakt, f.eks. løsDD).
+const AVBRUTT = Symbol("dds-avbrutt");
+let _nodeTak = 0;
+let _noder = 0;
+
 /** Team-stikk fra posisjonen: grådig til `terskel` stikk gjenstår, så eksakt. */
-export function evaluerHybrid(o: DDOppsett, terskel: number): number {
-  const pos = lagPosisjon(o);
-  if (pos.totalStikk - pos.ferdigeStikk <= terskel) return løsFra(pos, new Map());
-  return grådigOgLøs(pos, terskel, new Map());
+export function evaluerHybrid(o: DDOppsett, terskel: number, nodeTak = 0): number {
+  return medNodetak(o, null, terskel, nodeTak);
 }
 
 /** Som evaluerHybrid, men etter at spiller i tur har spilt `kort`. */
-export function evaluerEtterTrekk(o: DDOppsett, kort: number, terskel: number): number {
-  const pos = lagPosisjon(o);
-  gjørTrekk(pos, kort);
-  if (pos.totalStikk - pos.ferdigeStikk <= terskel) return løsFra(pos, new Map());
-  return grådigOgLøs(pos, terskel, new Map());
+export function evaluerEtterTrekk(o: DDOppsett, kort: number, terskel: number, nodeTak = 0): number {
+  return medNodetak(o, kort, terskel, nodeTak);
+}
+
+function medNodetak(o: DDOppsett, kort: number | null, terskel: number, nodeTak: number): number {
+  const forrige = _nodeTak;
+  _nodeTak = nodeTak;
+  _noder = 0;
+  try {
+    const pos = lagPosisjon(o);
+    if (kort !== null) gjørTrekk(pos, kort);
+    if (pos.totalStikk - pos.ferdigeStikk <= terskel) return løsFra(pos, new Map());
+    return grådigOgLøs(pos, terskel, new Map());
+  } catch (e) {
+    if (e === AVBRUTT) {
+      // Søket ble for tungt: fall tilbake til rent grådig spill (rask, robust).
+      const pos = lagPosisjon(o);
+      if (kort !== null) gjørTrekk(pos, kort);
+      return grådigTilSlutt(pos);
+    }
+    throw e;
+  } finally {
+    _nodeTak = forrige;
+  }
 }
 
 function søk(pos: DDPosisjon, alpha: number, beta: number, tt: TT): number {
+  if (_nodeTak !== 0 && ++_noder > _nodeTak) throw AVBRUTT;
   const gjenstår = pos.totalStikk - pos.ferdigeStikk;
   if (gjenstår === 0) return pos.declStikk;
   const base = pos.declStikk;

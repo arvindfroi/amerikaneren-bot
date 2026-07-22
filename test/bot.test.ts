@@ -8,7 +8,7 @@ import {
   type GameState,
   type Handling,
 } from "../src/motor.ts";
-import { velgHandling } from "../src/bot/bot.ts";
+import { velgHandling, BotAgent } from "../src/bot/bot.ts";
 import { lagRng } from "../src/kort.ts";
 
 const RASKT = { verdener: 5, terskel: 4 } as const;
@@ -85,6 +85,33 @@ function spillUt(start: GameState, pimcSeter: Set<number>, rng: () => number): n
   const sv = s.sisteRunde ? s.sisteRunde.stikkVunnet : s.stikkVunnet;
   return (sv[0] ?? 0) + (sv[2] ?? 0);
 }
+
+test("BotAgent holder hardt tidstak og akkumulerer ved pondering", () => {
+  // Kjør til åpningsutspillet (det tyngste kortvalget).
+  let s = opprettSpill({ antallSpillere: 4 }, 321);
+  let guard = 0;
+  while (s.fase !== "SPILL" && guard++ < 500) {
+    const h = velgHandling(s, RASKT);
+    s = utfør(s, h).state;
+  }
+  assert.equal(s.fase, "SPILL");
+  const plass = s.iTur!;
+
+  // Hardt tak: beslutt(maksMs) skal aldri blokkere vesentlig over taket.
+  const maks = 400;
+  const agent = new BotAgent(plass, { terskel: 7, frø: 3 });
+  const t0 = Date.now();
+  const h = agent.beslutt(s, maks);
+  const brukt = Date.now() - t0;
+  assert.equal(h.type, "SPILL");
+  assert.ok(brukt < maks + 700, `blokkerte ${brukt}ms, taket var ${maks}ms`);
+
+  // Pondering banker verdener uten å blokkere på selve turen.
+  const p = new BotAgent(plass, { terskel: 7, frø: 4 });
+  p.pondre(s, 300);
+  p.pondre(s, 300);
+  assert.ok(p.ponderetVerdener(s) >= 1, "pondering skal ha akkumulert verdener");
+});
 
 test("PIMC-boten tar flere stikk enn tilfeldig spill (samme givere)", () => {
   const rng = lagRng(31);

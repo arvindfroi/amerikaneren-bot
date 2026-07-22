@@ -184,6 +184,32 @@ velgHandling(state, { tidsbudsjettMs: 1500, terskel: 7 });
 til `min(terskel, gjenstående stikk)`, så de siste stikkene alltid er uten
 grådig skjevhet). `verdener` styrer antall determiniseringer (lavere varians).
 
+### `BotAgent`: anytime, med hardt tidstak og pondering
+
+For en app/server som spiller mot mennesker: en spillende agent per plass som
+**aldri blokkerer over et tidstak på sin egen tur** (standard 1,7 s, trygt
+under 2 s), men kan **pondre** – tenke på sitt eget kortvalg i ledige porsjoner
+mens den venter – slik at ekstra tid faktisk teller (flere verdener = sterkere).
+
+```ts
+import { BotAgent } from "amerikaneren-motor";
+
+const agent = new BotAgent(minPlass, { terskel: 7 });
+
+// Mens du har ledig tid på agentens beslutning (trygt å kalle gjentatte ganger):
+agent.pondre(state, 300);           // banker verdener, blokkerer bare 300 ms
+
+// Når svaret trengs – blokkerer aldri mer enn maksMs:
+const handling = agent.beslutt(state, 1700);
+```
+
+Garantien er hard: tiden sjekkes **mellom hver kandidat**, en halvferdig verden
+forkastes, og hvert enkelt-søk har et **nodetak** som faller til grådig hvis en
+giv er patologisk tung. Målt verste blokkering over åpnings- og midtspill-valg:
+**~1,8 s** (aldri ≥ 2 s). Pondering akkumuleres på tvers av kall så lenge
+stillingen er den samme, så en driver kan gi agenten vilkårlig mye tenketid
+utenfor den kritiske turen og likevel holde selve turen under taket.
+
 **Sampling:** verdenene trekkes tilfeldig (seedet) og *uniformt* blant de
 fordelingene som er forenlige med det boten vet (harde skranker: renonce,
 etterlyst-plassering, håndstørrelser). Boten vekter dem **ikke** etter

@@ -20,7 +20,7 @@ export * from "./regler.ts";
 export * from "./motor.ts";
 
 // Bot og solver (nær-optimal spilling med den informasjonen som finnes)
-export * from "./bot/bot.ts";
+export * from "./bot/bot.ts"; // inkl. velgHandling og BotAgent (anytime/pondering)
 export {
   løsDD,
   rotVerdier,

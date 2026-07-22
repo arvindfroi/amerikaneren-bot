@@ -112,54 +112,147 @@ function observatørPoeng(lagStikk: number, verden: Verden, k: PoengKontekst): n
 }
 
 // ---------------------------------------------------------------------------
-// Spillefase: velg kort via PIMC
+// Spillefase: PIMC som en inkrementell akkumulator (muliggjør «pondering»)
 // ---------------------------------------------------------------------------
 
-function velgKort(state: GameState, spiller: number, opts: BotOpts): Handling {
-  const rng = lagOppsettRng(opts);
+/**
+ * En pågående kort-beslutning. PIMC er inkrementell: hver ny verden legges
+ * til `sumPoeng`, så vi kan tenke i porsjoner (anytime) og gjenoppta senere.
+ */
+interface SpillAkk {
+  readonly signatur: string;
+  readonly state: GameState;
+  readonly spiller: number;
+  readonly lovlige: Kort[];
+  readonly kortInt: number[];
+  readonly sumPoeng: number[];
+  readonly kontekst: PoengKontekst;
+  readonly terskel: number;
+  readonly rng: () => number;
+  readonly fast: Kort | null; // satt når bare ett lovlig kort
+  antall: number; // antall gyldige verdener behandlet
+}
+
+/** Kompakt signatur for en spillbeslutning (samme => samme akkumulator). */
+function spillSignatur(state: GameState, spiller: number): string {
+  const hånd = (state.hender[spiller] ?? []).map(kortId).sort().join("");
+  const bord = state.bord.map((kp) => kp.spiller + kortId(kp.kort)).join(",");
+  const et = state.etterlyst ? kortId(state.etterlyst) : "-";
+  return `${state.rundeNr}|${state.stikkSpilt}|${spiller}|${state.trumf}|${et}|${state.makkerAvslørt ? 1 : 0}|${hånd}|${bord}`;
+}
+
+function nySpillAkk(state: GameState, spiller: number, opts: BotOpts): SpillAkk {
   const lovlige = lovligeKort(state, spiller);
-  if (lovlige.length === 1) return { type: "SPILL", spiller, kort: lovlige[0]! };
-
-  // Adaptiv terskel: løs alltid resten eksakt når få stikk gjenstår (ingen
-  // grådig skjevhet i sluttspillet).
   const gjenstår = state.giving.antallStikk - state.stikkSpilt;
-  const terskel = Math.min(opts.terskel ?? STD_TERSKEL, gjenstår);
-
-  const maksEval = opts.maksEval ?? STD_MAKS_EVAL;
-  const fastVerdener = Math.max(6, Math.min(opts.verdener ?? STD_VERDENER, Math.floor(maksEval / lovlige.length)));
-  const budsjett = opts.tidsbudsjettMs ?? 0;
-  const takVerdener = budsjett > 0 ? 100_000 : fastVerdener;
-
-  const kontekst: PoengKontekst = {
-    observator: spiller,
-    budvinner: state.budvinner!,
-    meldingstype: state.melding!.type,
-    bud: state.melding!.bud,
-    totalStikk: state.giving.antallStikk,
-    mål: state.regler.målPoeng,
-    N: state.antallSpillere,
+  const terskel = Math.min(opts.terskel ?? STD_TERSKEL, Math.max(1, gjenstår));
+  return {
+    signatur: spillSignatur(state, spiller),
+    state,
+    spiller,
+    lovlige,
+    kortInt: lovlige.map(kortTilInt),
+    sumPoeng: new Array<number>(lovlige.length).fill(0),
+    kontekst: {
+      observator: spiller,
+      budvinner: state.budvinner!,
+      meldingstype: state.melding!.type,
+      bud: state.melding!.bud,
+      totalStikk: state.giving.antallStikk,
+      mål: state.regler.målPoeng,
+      N: state.antallSpillere,
+    },
+    terskel,
+    rng: lagOppsettRng(opts),
+    fast: lovlige.length <= 1 ? (lovlige[0] ?? null) : null,
+    antall: 0,
   };
+}
 
-  const sumPoeng = new Array<number>(lovlige.length).fill(0);
-  const kortInt = lovlige.map(kortTilInt);
-  let gyldige = 0;
-  const start = budsjett > 0 ? Date.now() : 0;
-  for (let w = 0; w < takVerdener; w++) {
-    if (budsjett > 0 && w >= 4 && Date.now() - start >= budsjett) break;
-    const verden = trekkVerden(state, spiller, rng);
-    if (!verden) continue;
-    gyldige++;
-    const oppsett = byggDDOppsett(state, verden);
-    for (let i = 0; i < lovlige.length; i++) {
-      const lag = evaluerEtterTrekk(oppsett, kortInt[i]!, terskel);
-      sumPoeng[i]! += observatørPoeng(lag, verden, kontekst);
-    }
+// Nodetak per enkelt-evaluering – bounder verste-fall for ett kort (~0,1 s),
+// slik at et helt sveip ikke sprenger tidsbudsjettet. Faller til grådig.
+const NODE_TAK = 400_000;
+
+/** Behandler én verden (uten tidssjekk innad); false hvis sampling mislyktes. */
+function utvidEn(akk: SpillAkk): boolean {
+  const verden = trekkVerden(akk.state, akk.spiller, akk.rng);
+  if (!verden) return false;
+  const oppsett = byggDDOppsett(akk.state, verden);
+  for (let i = 0; i < akk.lovlige.length; i++) {
+    const lag = evaluerEtterTrekk(oppsett, akk.kortInt[i]!, akk.terskel, NODE_TAK);
+    akk.sumPoeng[i]! += observatørPoeng(lag, verden, akk.kontekst);
   }
-  if (gyldige === 0) return { type: "SPILL", spiller, kort: lovlige[0]! };
+  akk.antall++;
+  return true;
+}
 
+/**
+ * Tenk til `frist` (Date.now-ms). Tid sjekkes MELLOM hver kandidat, og en
+ * halvferdig verden forkastes – da er verste-fall overskuddet ett kortvalg
+ * (nodetaket holder det ~0,1 s), så blokkeringen holder seg under taket.
+ */
+function utvidTid(akk: SpillAkk, frist: number, maks = 100_000): void {
+  if (akk.fast) return;
+  const bidrag = new Array<number>(akk.lovlige.length);
+  let tomme = 0;
+  while (akk.antall < maks && Date.now() < frist) {
+    const verden = trekkVerden(akk.state, akk.spiller, akk.rng);
+    if (!verden) {
+      if (++tomme > 50) break;
+      continue;
+    }
+    tomme = 0;
+    const oppsett = byggDDOppsett(akk.state, verden);
+    let avbrutt = false;
+    for (let i = 0; i < akk.lovlige.length; i++) {
+      if (Date.now() >= frist) {
+        avbrutt = true;
+        break;
+      }
+      bidrag[i] = observatørPoeng(
+        evaluerEtterTrekk(oppsett, akk.kortInt[i]!, akk.terskel, NODE_TAK),
+        verden,
+        akk.kontekst,
+      );
+    }
+    if (avbrutt) break; // forkast den halvferdige verdenen
+    for (let i = 0; i < akk.lovlige.length; i++) akk.sumPoeng[i]! += bidrag[i]!;
+    akk.antall++;
+  }
+  // Garanter minst én verden slik at vi alltid gir et reelt svar.
+  let vakt = 0;
+  while (akk.antall < 1 && vakt++ < 300) utvidEn(akk);
+}
+
+/** Tenk til et fast antall verdener (deterministisk gitt seed). */
+function utvidAntall(akk: SpillAkk, mål: number): void {
+  if (akk.fast) return;
+  let tomme = 0;
+  while (akk.antall < mål && tomme < 300) {
+    if (!utvidEn(akk)) tomme++;
+    else tomme = 0;
+  }
+}
+
+function besteKort(akk: SpillAkk): Kort {
+  if (akk.fast) return akk.fast;
+  if (akk.antall === 0) return akk.lovlige[0]!;
   let best = 0;
-  for (let i = 1; i < lovlige.length; i++) if (sumPoeng[i]! > sumPoeng[best]!) best = i;
-  return { type: "SPILL", spiller, kort: lovlige[best]! };
+  for (let i = 1; i < akk.lovlige.length; i++) if (akk.sumPoeng[i]! > akk.sumPoeng[best]!) best = i;
+  return akk.lovlige[best]!;
+}
+
+function velgKort(state: GameState, spiller: number, opts: BotOpts): Handling {
+  const akk = nySpillAkk(state, spiller, opts);
+  if (akk.fast) return { type: "SPILL", spiller, kort: akk.fast };
+  const budsjett = opts.tidsbudsjettMs ?? 0;
+  if (budsjett > 0) {
+    utvidTid(akk, Date.now() + budsjett);
+  } else {
+    const maksEval = opts.maksEval ?? STD_MAKS_EVAL;
+    const verdener = Math.max(6, Math.min(opts.verdener ?? STD_VERDENER, Math.floor(maksEval / akk.lovlige.length)));
+    utvidAntall(akk, verdener);
+  }
+  return { type: "SPILL", spiller, kort: besteKort(akk) };
 }
 
 // ---------------------------------------------------------------------------
@@ -260,7 +353,7 @@ function velgTrumfOgKall(state: GameState, spiller: number, opts: BotOpts): Hand
           iTur: spiller,
           totalStikk: T,
         };
-        const lag = evaluerHybrid(oppsett, terskel);
+        const lag = evaluerHybrid(oppsett, terskel, NODE_TAK);
         sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker }, {
           observator: spiller,
           budvinner: spiller,
@@ -402,6 +495,7 @@ function velgVrak(state: GameState, spiller: number, opts: BotOpts): Handling {
         const lag = evaluerHybrid(
           { N, trump: trumfIdx, declLag, hender, iTur: spiller, totalStikk: T },
           terskel,
+          NODE_TAK,
         );
         sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker }, {
           observator: spiller,
@@ -487,6 +581,7 @@ function estimerStikk(state: GameState, spiller: number, opts: BotOpts): number[
     const lag = evaluerHybrid(
       { N, trump: trumfIdx, declLag, hender, iTur: spiller, totalStikk: T },
       terskel,
+      NODE_TAK,
     );
     resultater.push(lag);
   }
@@ -556,5 +651,83 @@ export function velgHandling(state: GameState, opts: BotOpts = {}): Handling {
       return { type: "NESTE" };
     case "FERDIG":
       throw new Error("Kampen er ferdig");
+  }
+}
+
+/** Standard hardt tak på blokkerende tenketid per tur (ms). Litt margin til 2 s. */
+export const STD_MAKS_MS = 1700;
+
+/**
+ * Spillende agent for én plass, med **anytime**-tenking.
+ *
+ * Kortvalg er inkrementelt (PIMC), så agenten kan «pondre» – tenke på sin
+ * egen beslutning i ledige porsjoner – og til slutt svare innenfor et hardt
+ * tidstak (`maksMs`, standard {@link STD_MAKS_MS}). Slik holdes blokkerende
+ * tid per tur under grensen, samtidig som ekstra tenketid som gis mens man
+ * venter faktisk teller (flere verdener = sterkere, lavere varians).
+ *
+ * Bruk i en driver:
+ * ```ts
+ * const agent = new BotAgent(minPlass, { terskel: 7 });
+ * // Mens du venter / har ledig tid på agentens beslutning:
+ * agent.pondre(state, 300);          // trygt å kalle gjentatte ganger
+ * // Når svaret trengs (blokkerer ≤ maksMs):
+ * const handling = agent.beslutt(state, 1800);
+ * ```
+ */
+export class BotAgent {
+  readonly plass: number;
+  private readonly opts: BotOpts;
+  private akk: SpillAkk | null = null;
+
+  constructor(plass: number, opts: BotOpts = {}) {
+    this.plass = plass;
+    this.opts = opts;
+  }
+
+  /** Er `state` en kortbeslutning for denne agenten? */
+  private erMinKortbeslutning(state: GameState): boolean {
+    return state.fase === "SPILL" && state.iTur === this.plass;
+  }
+
+  private sikreAkk(state: GameState): void {
+    const sig = spillSignatur(state, this.plass);
+    if (!this.akk || this.akk.signatur !== sig) this.akk = nySpillAkk(state, this.plass, this.opts);
+  }
+
+  /**
+   * Tenk i inntil `msBudsjett` ms på agentens nåværende kortvalg. Bruk denne
+   * mens du har ledig tid – akkumulert arbeid gjenbrukes av `beslutt` så lenge
+   * stillingen er den samme. No-op hvis det ikke er agentens kortbeslutning.
+   */
+  pondre(state: GameState, msBudsjett: number): void {
+    if (!this.erMinKortbeslutning(state)) return;
+    this.sikreAkk(state);
+    if (this.akk && !this.akk.fast) utvidTid(this.akk, Date.now() + Math.max(0, msBudsjett));
+  }
+
+  /** Hvor mange verdener som er tenkt gjennom for gjeldende beslutning. */
+  ponderetVerdener(state: GameState): number {
+    if (!this.erMinKortbeslutning(state)) return 0;
+    const sig = spillSignatur(state, this.plass);
+    return this.akk && this.akk.signatur === sig ? this.akk.antall : 0;
+  }
+
+  /**
+   * Agentens tur: returner beste handling. For kortvalg toppes akkumulert
+   * pondering opp innenfor et hardt tak `maksMs` og blokkerer aldri lenger.
+   * Andre faser (bud/byttekort/trumf) er allerede godt under grensen.
+   */
+  beslutt(state: GameState, maksMs: number = STD_MAKS_MS): Handling {
+    if (this.erMinKortbeslutning(state)) {
+      this.sikreAkk(state);
+      const akk = this.akk!;
+      if (!akk.fast) utvidTid(akk, Date.now() + Math.max(1, maksMs));
+      const kort = besteKort(akk);
+      this.akk = null;
+      return { type: "SPILL", spiller: this.plass, kort };
+    }
+    // Ikke-kortfaser: bruk fasehåndtererne (alle godt under tidsgrensen).
+    return velgHandling(state, this.opts);
   }
 }
