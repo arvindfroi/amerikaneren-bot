@@ -210,6 +210,26 @@ giv er patologisk tung. Målt verste blokkering over åpnings- og midtspill-valg
 stillingen er den samme, så en driver kan gi agenten vilkårlig mye tenketid
 utenfor den kritiske turen og likevel holde selve turen under taket.
 
+### `KVALITET_3S`: sterkest mulig under 3 s per tur (anbefalt)
+
+Ferdig innstilling for «mest mulig eksakt innenfor et hardt 3-sekunderstak, med
+pondering». Sluttspillet løses uansett eksakt; den ekstra tiden (og all
+pondering) går til **flere verdener** – som er det som faktisk hjelper tidlig,
+ikke et dypere søk:
+
+```ts
+import { BotAgent, KVALITET_3S, MAKS_MS_3S } from "amerikaneren-motor";
+
+const agent = new BotAgent(minPlass, KVALITET_3S);
+agent.pondre(state, ledigTid);        // tenk mens du venter (banker verdener)
+const handling = agent.beslutt(state, MAKS_MS_3S); // blokkerer < 3 s
+```
+
+Målt: verste blokkering **~2,7 s** (aldri ≥ 3 s), og **~38 verdener** på et
+åpningsutspill – mot bare ~4 hvis man (fristende, men feil) skrur terskelen
+opp til 9. Dypere eksaktsøk tidlig kaster bort tid på giver som uansett faller
+til grådig; flere verdener gir lavere varians og bedre valg.
+
 ### `MAKS_STYRKE`: alltid det virkelig beste kortet (uten forenklinger)
 
 Standardmodus tar to snarveier for å holde 2-sekundersgrensen: en **grådig

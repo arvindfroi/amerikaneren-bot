@@ -105,6 +105,31 @@ export const MAKS_STYRKE: BotOpts = {
   verdener: 40,
 };
 
+/**
+ * Sterkeste innstilling som fortsatt holder et hardt tidstak litt under 3 s
+ * per tur. Sluttspillet løses uansett eksakt; den ekstra tiden går til FLERE
+ * verdener (lavere varians), ikke dypere eksaktsøk – målt gir terskel 7 ~34
+ * verdener på åpningsutspillet mot bare ~4 for terskel 9 (som kaster bort tid
+ * på tunge eksaktsøk som uansett faller til grådig). Nodetaket er litt høyere
+ * enn standard, så flere 7-stikks sluttspill fullføres eksakt. Ment for
+ * {@link BotAgent} med pondering:
+ *
+ * ```ts
+ * const agent = new BotAgent(minPlass, KVALITET_3S);
+ * agent.pondre(state, ledigTid);      // tenk mens du venter (banker verdener)
+ * agent.beslutt(state, MAKS_MS_3S);   // blokkerer < 3 s
+ * ```
+ */
+export const KVALITET_3S: BotOpts = {
+  terskel: 7,
+  nodeTak: 700_000,
+  budTerskel: 8,
+  budDiskonto: 1,
+};
+
+/** Anbefalt hardt tidstak for {@link KVALITET_3S} (ms) – trygg margin til 3 s. */
+export const MAKS_MS_3S = 2650;
+
 function lagOppsettRng(opts: BotOpts): () => number {
   if (opts.rng) return opts.rng;
   return lagRng((opts.frø ?? 0x1234abcd) >>> 0);
