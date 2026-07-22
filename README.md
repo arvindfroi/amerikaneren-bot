@@ -169,9 +169,17 @@ Målt på identiske givere (`npm run styrketest`):
 forskjell. Typisk beslutningstid: ~50 ms (standardinnstillinger), raskere
 utover i spillet når sluttspillet løses eksakt.
 
+**Sampling:** verdenene trekkes tilfeldig (seedet) og *uniformt* blant de
+fordelingene som er forenlige med det boten vet (harde skranker: renonce,
+etterlyst-plassering, håndstørrelser). Boten vekter dem **ikke** etter
+sannsynlighet – den slutter f.eks. ikke «denne meldte Amerikaner, så hun har
+nok høy trumf». Flere `verdener` = lavere varians, ikke større søk.
+
 **Kjente begrensninger** (iboende i PIMC): «strategifusjon» (antar at skjulte
-kort blir kjent neste trekk) og at boten ikke skjuler egen informasjon. Disse
-rammer tidlig spill mer enn sluttspillet, som er eksakt.
+kort blir kjent neste trekk), at boten ikke skjuler egen informasjon, og
+uniform sampling uten motstander-inferens. Disse rammer tidlig spill mer enn
+sluttspillet, som er eksakt. Motstander-inferens (viktighetssampling / et
+partikkelfilter) er den mest lovende videreutviklingen.
 
 ## Designnotat: hvorfor ikke nevrale nett / CFR?
 

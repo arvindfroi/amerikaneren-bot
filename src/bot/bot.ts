@@ -16,7 +16,7 @@
  * som løses eksakt. Alt er avhengighetsfritt og deterministisk gitt seed.
  */
 
-import { FARGER, type Farge, type Kort, lagRng, likeKort } from "../kort.ts";
+import { FARGER, type Farge, type Kort, kortId, lagRng, likeKort } from "../kort.ts";
 import {
   AMERIKANER,
   type Bud,
@@ -48,11 +48,16 @@ export interface BotOpts {
   readonly rng?: () => number;
   /** Seed dersom `rng` ikke er oppgitt. */
   readonly frø?: number;
+  /**
+   * Tak på (kandidater × verdener) per spill-beslutning – styrer maksimal
+   * tenketid. Øk for sterkere (og tregere) spill. Standard 240.
+   */
+  readonly maksEval?: number;
 }
 
 const STD_VERDENER = 20;
 const STD_TERSKEL = 7;
-const MAKS_EVAL = 240; // ~kandidater × verdener-tak per spill-beslutning
+const STD_MAKS_EVAL = 240; // ~kandidater × verdener-tak per spill-beslutning
 
 function lagOppsettRng(opts: BotOpts): () => number {
   if (opts.rng) return opts.rng;
@@ -109,8 +114,9 @@ function velgKort(state: GameState, spiller: number, opts: BotOpts): Handling {
   const lovlige = lovligeKort(state, spiller);
   if (lovlige.length === 1) return { type: "SPILL", spiller, kort: lovlige[0]! };
 
+  const maksEval = opts.maksEval ?? STD_MAKS_EVAL;
   let verdener = opts.verdener ?? STD_VERDENER;
-  verdener = Math.max(6, Math.min(verdener, Math.floor(MAKS_EVAL / lovlige.length)));
+  verdener = Math.max(6, Math.min(verdener, Math.floor(maksEval / lovlige.length)));
 
   const kontekst: PoengKontekst = {
     observator: spiller,
@@ -273,38 +279,136 @@ function finnHolder(hender: number[][], callInt: number | null, erSolo: boolean)
 }
 
 // ---------------------------------------------------------------------------
-// VRAK: velg kort å vrake (koordinert med sannsynlig trumf)
+// VRAK: velg kort å vrake – søk over kandidater (ikke bare heuristikk)
 // ---------------------------------------------------------------------------
 
-function velgVrak(state: GameState, spiller: number, _opts: BotOpts): Handling {
-  const antall = state.giving.talong;
-  const hånd = state.hender[spiller]!;
-  const tel = fargeTelling(hånd);
-  const trumf = (FARGER.slice() as Farge[]).sort((a, b) => tel[b] - tel[a])[0]!;
-
-  // Behold trumf og ess; vrak lavest fra korte sidefarger først.
+/** Heuristisk vrak for én valgt trumf: vrak lavt fra korte sidefarger. */
+function heuristiskVrak(hånd: readonly Kort[], trumf: Farge, antall: number, tel: Record<Farge, number>): Kort[] {
   const kandidater = hånd
     .filter((k) => k.farge !== trumf && k.verdi < 14)
-    .map((k) => ({
-      k,
-      // prioritet: lav verdi og kort farge vrakes først
-      score: k.verdi + (tel[k.farge] > 3 ? 20 : 0),
-    }))
+    .map((k) => ({ k, score: k.verdi + (tel[k.farge]! > 3 ? 20 : 0) }))
     .sort((a, b) => a.score - b.score)
     .map((x) => x.k);
-
-  const vrak: Kort[] = kandidater.slice(0, antall);
+  const vrak = kandidater.slice(0, antall);
   if (vrak.length < antall) {
-    // Må vrake fra trumf/ess også – ta de laveste gjenværende.
-    const rest = hånd
-      .filter((k) => !vrak.some((v) => likeKort(v, k)))
-      .sort((a, b) => a.verdi - b.verdi);
+    const rest = hånd.filter((k) => !vrak.some((v) => likeKort(v, k))).sort((a, b) => a.verdi - b.verdi);
     for (const k of rest) {
       if (vrak.length >= antall) break;
       vrak.push(k);
     }
   }
-  return { type: "VRAK", spiller, kort: vrak };
+  return vrak;
+}
+
+/** Genererer noen fornuftige vrak-kandidater for en gitt trumffarge. */
+function vrakKandidater(hånd: readonly Kort[], trumf: Farge, antall: number, tel: Record<Farge, number>): Kort[][] {
+  const kandidater: Kort[][] = [];
+  const sett = new Set<string>();
+  const leggTil = (v: Kort[]): void => {
+    if (v.length !== antall) return;
+    const nøkkel = v.map(kortId).sort().join(",");
+    if (!sett.has(nøkkel)) {
+      sett.add(nøkkel);
+      kandidater.push(v);
+    }
+  };
+  const ikkeTrumf = hånd.filter((k) => k.farge !== trumf).slice().sort((a, b) => a.verdi - b.verdi);
+
+  // 1) heuristikk (kort farge først)
+  leggTil(heuristiskVrak(hånd, trumf, antall, tel));
+  // 2) rett og slett de laveste ikke-trumf-kortene
+  leggTil(ikkeTrumf.slice(0, antall));
+  // 3) laveste ikke-trumf uten ess
+  leggTil(ikkeTrumf.filter((k) => k.verdi < 14).slice(0, antall));
+  // 4) tøm de korteste sidefargene helt (skaper renonce for trumfing)
+  const sidefarger = (FARGER.slice() as Farge[])
+    .filter((f) => f !== trumf && tel[f]! > 0)
+    .sort((a, b) => tel[a]! - tel[b]!);
+  const void1: Kort[] = [];
+  for (const f of sidefarger) {
+    for (const k of hånd.filter((k) => k.farge === f).sort((a, b) => a.verdi - b.verdi)) {
+      if (void1.length < antall && k.verdi < 14) void1.push(k);
+    }
+  }
+  for (const k of ikkeTrumf) {
+    if (void1.length >= antall) break;
+    if (!void1.some((d) => likeKort(d, k))) void1.push(k);
+  }
+  leggTil(void1.slice(0, antall));
+
+  if (kandidater.length === 0) {
+    leggTil(hånd.slice().sort((a, b) => a.verdi - b.verdi).slice(0, antall));
+  }
+  return kandidater;
+}
+
+function velgVrak(state: GameState, spiller: number, opts: BotOpts): Handling {
+  const rng = lagOppsettRng(opts);
+  const terskel = opts.terskel ?? STD_TERSKEL;
+  const verdener = Math.max(6, Math.floor((opts.verdener ?? STD_VERDENER) / 2));
+  const antall = state.giving.talong;
+  const hånd = state.hender[spiller]!;
+  const N = state.antallSpillere;
+  const T = state.giving.antallStikk;
+  const kortPer = state.giving.kortPerSpiller;
+  const tel = fargeTelling(hånd);
+
+  if (antall === 0) return { type: "VRAK", spiller, kort: [] };
+
+  // Vurder de tre lengste fargene som mulig trumf, med et par vrak-kandidater hver.
+  const trumfKand = (FARGER.slice() as Farge[]).sort((a, b) => tel[b] - tel[a]).slice(0, 3);
+
+  let beste: { vrak: Kort[]; verdi: number } | null = null;
+  for (const trumf of trumfKand) {
+    const trumfIdx = FARGER.indexOf(trumf);
+    for (const vrak of vrakKandidater(hånd, trumf, antall, tel)) {
+      const beholdt = hånd.filter((k) => !vrak.some((v) => likeKort(v, k)));
+      const beholdtInt = beholdt.map(kortTilInt);
+      const vrakInt = vrak.map(kortTilInt);
+      // Antatt kall = høyeste manglende trumf (definerer makker i hver verden).
+      const beholdtSet = new Set(beholdtInt);
+      const vrakSet = new Set(vrakInt);
+      let callInt: number | null = null;
+      for (let r = 12; r >= 0; r--) {
+        const c = trumfIdx * 13 + r;
+        if (!beholdtSet.has(c) && !vrakSet.has(c)) {
+          callInt = c;
+          break;
+        }
+      }
+      let sum = 0;
+      let gyldige = 0;
+      for (let w = 0; w < verdener; w++) {
+        const hender = delMotstandere(beholdtInt, vrakInt, callInt, N, kortPer, spiller, rng);
+        if (!hender) continue;
+        const makker = finnHolder(hender, callInt, false);
+        const declLag = new Array<boolean>(N).fill(false);
+        declLag[spiller] = true;
+        if (makker !== null) declLag[makker] = true;
+        const lag = evaluerHybrid(
+          { N, trump: trumfIdx, declLag, hender, iTur: spiller, totalStikk: T },
+          terskel,
+        );
+        sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker }, {
+          observator: spiller,
+          budvinner: spiller,
+          meldingstype: state.melding!.type,
+          bud: state.melding!.bud,
+          totalStikk: T,
+          mål: state.regler.målPoeng,
+          N,
+        });
+        gyldige++;
+      }
+      const verdi = gyldige > 0 ? sum / gyldige : -Infinity;
+      if (!beste || verdi > beste.verdi) beste = { vrak, verdi };
+    }
+  }
+
+  if (!beste) {
+    return { type: "VRAK", spiller, kort: heuristiskVrak(hånd, trumfKand[0]!, antall, tel) };
+  }
+  return { type: "VRAK", spiller, kort: beste.vrak };
 }
 
 // ---------------------------------------------------------------------------
