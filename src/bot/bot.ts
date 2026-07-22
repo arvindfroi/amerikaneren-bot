@@ -20,6 +20,7 @@ import { FARGER, type Farge, type Kort, kortId, lagRng, likeKort } from "../kort
 import {
   AMERIKANER,
   type Bud,
+  MINSTE_TALLBUD,
   PASS,
   SOLO,
 } from "../regler.ts";
@@ -602,37 +603,53 @@ function velgBud(state: GameState, spiller: number, opts: BotOpts): Handling {
 
   const stikk = estimerStikk(state, spiller, opts);
   if (stikk.length === 0) return { type: "BUD", spiller, bud: PASS };
-  const sortert = stikk.slice().sort((a, b) => a - b);
-  const antall = sortert.length;
-  const andel = (n: number): number => sortert.filter((x) => x >= n).length / antall;
-  const persentil = (p: number): number =>
-    sortert[Math.min(antall - 1, Math.max(0, Math.floor(p * (antall - 1))))]!;
+  const mål = state.regler.målPoeng;
 
-  // Viktig: estimatet er dobbelt-dummy (alle hender kjent) og er systematisk
-  // OPTIMISTISK – faktisk PIMC-spill tar færre stikk. Meld derfor konservativt:
-  // et lavt persentil av fordelingen, minus en sikkerhetsmargin. Uten dette
-  // overbyr boten og taper poeng (se turneringsbenchmark).
-  const MARGIN = 1;
-  let målBud = Math.floor(persentil(0.3)) - MARGIN;
-  if (målBud > T) målBud = T;
+  // Estimatet er dobbelt-dummy (alle hender kjent) og systematisk OPTIMISTISK
+  // ift. faktisk PIMC-spill. Trekk fra en kalibrert margin for å få forventet
+  // faktisk stikktall per verden.
+  const DISKONTO = 1;
+  const justert = stikk.map((x) => x - DISKONTO);
+  const antall = justert.length;
+  // P(minst n stikk) og P(alle stikk) fra fordelingen.
+  const P = (n: number): number => justert.filter((x) => x >= n).length / antall;
+  const Pupp = (n: number): number => stikk.filter((x) => x >= n).length / antall; // udiskontert
 
   const rang = (b: Bud): number =>
     b === SOLO ? 2000 : b === AMERIKANER ? 1000 : typeof b === "number" ? b : 0;
   const nåværende = høyeste === null ? 0 : rang(høyeste);
 
-  // Amerikaner (alle stikk med makker) kun når det er tilnærmet sikkert.
-  if (rang(AMERIKANER) > nåværende && andel(T) >= 0.9 && persentil(0.2) >= T) {
-    return { type: "BUD", spiller, bud: AMERIKANER };
+  // Velg budet som MAKSIMERER forventet egen-poeng. Tallbud n: budvinner får
+  // +2n hvis klart, −2n hvis ikke → EV = 2n·(2·P(n) − 1). Symmetrien gjør at
+  // optimal terskel havner rundt 65–75 % sjanse, ikke ved «nesten sikkert».
+  let besteBud: Bud = PASS;
+  let besteEV = 0; // pass = 0
+  for (let n = MINSTE_TALLBUD; n <= T; n++) {
+    if (n <= nåværende) continue;
+    const ev = 2 * n * (2 * P(n) - 1);
+    if (ev > besteEV) {
+      besteEV = ev;
+      besteBud = n;
+    }
   }
-  // Solo (alle stikk ALENE) er langt hardere enn estimatet (som antar makker)
-  // tilsier – meld det bare når hver eneste sampla verden gir alle stikk.
-  if (rang(SOLO) > nåværende && andel(T) >= 0.99) {
-    return { type: "BUD", spiller, bud: SOLO };
+  // Amerikaner: alle stikk med makker, budvinner ±mål/2. Bruk udiskontert P
+  // (diskontoen ville gjort «alle stikk» umulig), men krev høy sjanse.
+  if (rang(AMERIKANER) > nåværende) {
+    const pAll = Pupp(T);
+    const ev = (mål / 2) * (2 * pAll - 1);
+    if (pAll >= 0.85 && ev > besteEV) {
+      besteEV = ev;
+      besteBud = AMERIKANER;
+    }
   }
-  if (målBud >= 5 && målBud > nåværende) {
-    return { type: "BUD", spiller, bud: målBud };
+  // Solo: alle stikk ALENE. Estimatet antar makker, så det overvurderer solo
+  // kraftig – meld bare når hver eneste verden gir alle stikk.
+  if (rang(SOLO) > nåværende && Pupp(T) >= 0.99) {
+    const ev = mål; // klart nær sikkert
+    if (ev > besteEV) besteBud = SOLO;
   }
-  return { type: "BUD", spiller, bud: PASS };
+
+  return { type: "BUD", spiller, bud: besteBud };
 }
 
 // ---------------------------------------------------------------------------
