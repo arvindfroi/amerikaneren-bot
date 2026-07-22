@@ -1,0 +1,40 @@
+{
+  "name": "amerikaneren-motor",
+  "version": "0.1.0",
+  "description": "Lettvekts, avhengighetsfri spillmotor for kortspillet Amerikaner. Ren logikk-backend som kan drive alle klienter (web, mobil, server).",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test test/*.test.ts",
+    "selvspill": "node examples/selvspill.ts"
+  },
+  "keywords": [
+    "amerikaner",
+    "kortspill",
+    "card-game",
+    "game-engine",
+    "norwegian"
+  ],
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
