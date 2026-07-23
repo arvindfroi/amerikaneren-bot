@@ -27,10 +27,12 @@ const posisjonelle: string[] = [];
 let maksTimer: number | null = null;
 let dir = "trening";
 let hall = 0;
+let fraFlere: string | null = null;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--maks-timer") maksTimer = Number(process.argv[++i]);
   else if (process.argv[i] === "--dir") dir = process.argv[++i] ?? "trening";
   else if (process.argv[i] === "--hall") hall = Number(process.argv[++i]);
+  else if (process.argv[i] === "--fra-flere") fraFlere = process.argv[++i] ?? null;
   else posisjonelle.push(process.argv[i]!);
 }
 const generasjoner = Number(posisjonelle[0] ?? 8000);
@@ -123,7 +125,10 @@ for (;;) {
     dir,
   ];
   if (hall > 0) argv.push("--hall", String(hall));
+  // Gjenoppta fra linjens egen mester når den finnes; ellers eventuell
+  // kombinert startpopulasjon (kun første start av en ny linje).
   if (existsSync(`${dir}/mester.json`)) argv.push("--fra", `${dir}/mester.json`);
+  else if (fraFlere !== null) argv.push("--fra-flere", fraFlere);
   if (igjenTimer !== null) argv.push("--maks-timer", igjenTimer.toFixed(3));
 
   if (omstarter > 0 || gjort > 0) {

@@ -69,6 +69,15 @@ export interface EvolusjonsOpts {
    * mester stiller igjen. Deltar først når minst 4 er samlet (grupper à 4).
    */
   readonly hallOfFame?: number;
+  /**
+   * Start populasjonen fra FLERE genomer (f.eks. beste fra to treningslinjer).
+   * Genomenes innovasjonsnumre re-nummereres kanonisk etter struktur
+   * (fra→til), så genomer fra ulike historikker kan linjeres opp, krysses
+   * og artsdeles korrekt. NB: genomer fra ULIKE familier må ha adskilte
+   * skjulte node-id-rom først (se examples/neat-kombiner.ts). Har forrang
+   * foran `startGenom`.
+   */
+  readonly startPopulasjon?: Genom[];
 }
 
 export interface GenerasjonsStat {
@@ -104,7 +113,7 @@ export class Evolusjon {
   generasjon = 0;
 
   private readonly opts: Required<
-    Omit<EvolusjonsOpts, "kampOpts" | "rater" | "startGenom">
+    Omit<EvolusjonsOpts, "kampOpts" | "rater" | "startGenom" | "startPopulasjon">
   > & { kampOpts: KampOpts; rater: MutasjonsRater };
   private readonly rng: () => number;
   private arter: Art[] = [];
@@ -132,7 +141,17 @@ export class Evolusjon {
     };
     this.rng = lagRng(this.opts.frø);
     this.bok = new Innovasjonsbok(ANTALL_INN, ANTALL_UT);
-    if (opts.startGenom !== undefined) {
+    if (opts.startPopulasjon !== undefined && opts.startPopulasjon.length > 0) {
+      const basis = opts.startPopulasjon.map((g) => this.kanoniser(g));
+      for (const g of basis) this.bok.hoppOver(g);
+      this.genomer = basis.slice(0, populasjon).map(klonGenom);
+      let i = 0;
+      while (this.genomer.length < populasjon) {
+        const mutant = klonGenom(basis[i++ % basis.length]!);
+        muter(mutant, this.bok, this.rng, this.opts.rater);
+        this.genomer.push(mutant);
+      }
+    } else if (opts.startGenom !== undefined) {
       if (opts.startGenom.antallInn !== ANTALL_INN || opts.startGenom.antallUt !== ANTALL_UT) {
         throw new Error("startGenom har feil antall inn-/utganger for denne kodingen");
       }
@@ -221,6 +240,27 @@ export class Evolusjon {
   }
 
   // -------------------------------------------------------------------------
+
+  /**
+   * Kanonisk re-nummerering: hver koblings innovasjonsnummer settes til
+   * bokas nummer for (fra→til)-paret. Samme struktur får dermed samme
+   * nummer uansett hvilken historikk genomet kommer fra – og fremtidige
+   * mutasjoner av samme par gjenbruker nummeret (bokas vanlige garanti).
+   */
+  private kanoniser(g: Genom): Genom {
+    if (g.antallInn !== ANTALL_INN || g.antallUt !== ANTALL_UT) {
+      throw new Error("Genom har feil antall inn-/utganger for denne kodingen");
+    }
+    return {
+      antallInn: g.antallInn,
+      antallUt: g.antallUt,
+      noder: g.noder.map((n) => ({ ...n })),
+      koblinger: g.koblinger.map((k) => ({
+        ...k,
+        innovasjon: this.bok.kobling(k.inn, k.ut),
+      })),
+    };
+  }
 
   /** Deler populasjonen i arter etter kompatibilitetsavstand. */
   private artsdel(fitness: readonly number[]): void {

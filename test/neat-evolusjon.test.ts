@@ -1,7 +1,14 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 
-import { genomFraJson, genomTilJson, klonGenom } from "../src/neat/genom.ts";
+import { lagRng } from "../src/kort.ts";
+import {
+  genomFraJson,
+  genomTilJson,
+  Innovasjonsbok,
+  klonGenom,
+  nyttGenom,
+} from "../src/neat/genom.ts";
 import { Evolusjon } from "../src/neat/evolusjon.ts";
 import { ANTALL_INN, ANTALL_UT } from "../src/neat/trekk.ts";
 
@@ -75,4 +82,27 @@ test("hall of fame: tidligere mestere stiller i cupen uten å endre populasjonen
     if (evo.hall.length >= 4) medHall = true; // neste turnering får 12 deltakere
   }
   assert.ok(medHall, "hallen fyltes i løpet av 8 generasjoner");
+});
+
+test("startPopulasjon: genomer fra ulike historikker kanoniseres til felles nummerering", () => {
+  // To «familier» laget med hver sin (ukoordinerte) innovasjonsbok.
+  const famA = nyttGenom(ANTALL_INN, ANTALL_UT, new Innovasjonsbok(ANTALL_INN, ANTALL_UT), lagRng(1));
+  const famB = nyttGenom(ANTALL_INN, ANTALL_UT, new Innovasjonsbok(ANTALL_INN, ANTALL_UT), lagRng(2));
+
+  const evo = new Evolusjon({ populasjon: 8, frø: 5, kampOpts: KJAPP, startPopulasjon: [famA, famB] });
+  assert.equal(evo.genomer.length, 8);
+
+  // Samme (inn→ut)-par skal ha samme innovasjonsnummer på tvers av genomene.
+  const nummerForPar = new Map<string, number>();
+  for (const g of evo.genomer.slice(0, 2)) {
+    for (const k of g.koblinger) {
+      const par = `${k.inn}>${k.ut}`;
+      const sett = nummerForPar.get(par);
+      if (sett === undefined) nummerForPar.set(par, k.innovasjon);
+      else assert.equal(k.innovasjon, sett, `paret ${par} har ulikt nummer`);
+    }
+  }
+  const stat = evo.kjørGenerasjon();
+  assert.ok(stat.besteFitness > 0);
+  assert.equal(evo.genomer.length, 8);
 });

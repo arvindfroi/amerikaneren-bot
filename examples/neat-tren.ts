@@ -35,12 +35,14 @@ import { Evolusjon, genomFraJson, genomTilJson, NeatAgent, type Genom } from "..
 // --- Argumenter -------------------------------------------------------------
 const posisjonelle: string[] = [];
 let fraFil: string | null = null;
+let fraFlereFil: string | null = null;
 let maksTimer: number | null = null;
 let genStart = 0;
 let dir = "trening";
 let hallOfFame = 0;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--fra") fraFil = process.argv[++i] ?? null;
+  else if (process.argv[i] === "--fra-flere") fraFlereFil = process.argv[++i] ?? null;
   else if (process.argv[i] === "--maks-timer") maksTimer = Number(process.argv[++i]);
   else if (process.argv[i] === "--gen-start") genStart = Number(process.argv[++i]);
   else if (process.argv[i] === "--dir") dir = process.argv[++i] ?? "trening";
@@ -62,6 +64,11 @@ let startGenom: Genom | undefined;
 if (fraFil !== null) {
   startGenom = genomFraJson(readFileSync(fraFil, "utf8"));
   console.log(`Gjenopptar fra ${fraFil} (${startGenom.noder.length} noder, ${startGenom.koblinger.length} koblinger)`);
+}
+let startPopulasjon: Genom[] | undefined;
+if (fraFlereFil !== null) {
+  startPopulasjon = JSON.parse(readFileSync(fraFlereFil, "utf8")) as Genom[];
+  console.log(`Starter fra ${startPopulasjon.length} kombinerte genomer i ${fraFlereFil}`);
 }
 
 mkdirSync(dir, { recursive: true });
@@ -180,7 +187,7 @@ console.log(
     (genStart > 0 ? ` (fortsetter fra gen ${genStart})` : "") +
     (maksTimer !== null ? `, tidstak ${maksTimer} t` : ""),
 );
-const evo = new Evolusjon({ populasjon, frø, startGenom, hallOfFame });
+const evo = new Evolusjon({ populasjon, frø, startGenom, startPopulasjon, hallOfFame });
 const t0 = performance.now();
 let sisteBenk = "";
 
