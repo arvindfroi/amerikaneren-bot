@@ -93,6 +93,8 @@ export interface EvolusjonsOpts {
    * foran `startGenom`.
    */
   readonly startPopulasjon?: Genom[];
+  /** Gjenopprett hall of fame fra en tidligere økt (kanoniseres). */
+  readonly startHall?: Genom[];
   /**
    * Antall arbeidstråder for gruppekampene. 1 (standard) = alt i
    * hovedtråden. Flere tråder spiller rundens grupper parallelt – bit-
@@ -224,7 +226,7 @@ export class Evolusjon {
   generasjon = 0;
 
   private readonly opts: Required<
-    Omit<EvolusjonsOpts, "kampOpts" | "rater" | "startGenom" | "startPopulasjon" | "pimcOpts">
+    Omit<EvolusjonsOpts, "kampOpts" | "rater" | "startGenom" | "startPopulasjon" | "startHall" | "pimcOpts">
   > & {
     kampOpts: KampOpts;
     rater: MutasjonsRater;
@@ -304,6 +306,10 @@ export class Evolusjon {
       this.genomer = Array.from({ length: populasjon }, () =>
         nyttGenom(ANTALL_INN, ANTALL_UT, this.bok, this.rng, this.opts.koblingerPerUt),
       );
+    }
+    if (opts.startHall !== undefined && opts.startHall.length > 0) {
+      this.hall = opts.startHall.map((g) => this.kanoniser(g));
+      for (const g of this.hall) this.bok.hoppOver(g);
     }
   }
 

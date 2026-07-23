@@ -18,7 +18,7 @@
  * generasjon slik at vakten (neat-vakt.ts) kan oppdage heng og omstarte.
  */
 
-import { appendFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 
 import {
   lovligeKort,
@@ -72,12 +72,23 @@ function lagreAtomisk(fil: string, innhold: string): void {
 }
 
 let startGenom: Genom | undefined;
-if (fraFil !== null) {
+let startPopulasjon: Genom[] | undefined;
+let startHall: Genom[] | undefined;
+// HELE befolkningen (populasjon + hall) lagres periodisk og har forrang ved
+// omstart: å gjenoppta fra kun mesteren kaster bort alt mangfold – hver
+// container-omstart ble en flaskehals som satte linja tilbake.
+if (existsSync(`${dir}/befolkning.json`)) {
+  const b = JSON.parse(readFileSync(`${dir}/befolkning.json`, "utf8")) as {
+    genomer: Genom[];
+    hall: Genom[];
+  };
+  startPopulasjon = b.genomer;
+  startHall = b.hall;
+  console.log(`Gjenopptar HEL befolkning: ${b.genomer.length} genomer + ${b.hall.length} i hallen`);
+} else if (fraFil !== null) {
   startGenom = genomFraJson(readFileSync(fraFil, "utf8"));
   console.log(`Gjenopptar fra ${fraFil} (${startGenom.noder.length} noder, ${startGenom.koblinger.length} koblinger)`);
-}
-let startPopulasjon: Genom[] | undefined;
-if (fraFlereFil !== null) {
+} else if (fraFlereFil !== null) {
   startPopulasjon = JSON.parse(readFileSync(fraFlereFil, "utf8")) as Genom[];
   console.log(`Starter fra ${startPopulasjon.length} kombinerte genomer i ${fraFlereFil}`);
 }
@@ -129,6 +140,7 @@ const evo = new Evolusjon({
   frø,
   startGenom,
   startPopulasjon,
+  startHall,
   hallOfFame,
   tråder,
   kampOpts: {
@@ -184,6 +196,12 @@ for (let g = 0; g < generasjoner; g++) {
     // Benk/kopi må aldri velte selve treningen – fang og fortsett.
     try {
       lagreAtomisk(`${dir}/mester-gen${gen}.json`, genomTilJson(mester));
+      // Hele befolkningen persisteres, så en omstart aldri mer koster
+      // populasjonsmangfoldet (kun opptil 10 generasjoners arbeid).
+      lagreAtomisk(
+        `${dir}/befolkning.json`,
+        JSON.stringify({ genomer: evo.genomer, hall: evo.hall }),
+      );
       // 8 frø × 4 seter = 32 kamper – tilfeldighetene kontrolleres bedre
       // (±støyen krymper ~40 % mot gamle 12).
       const benk = målMotGrådig(mester, 8);
