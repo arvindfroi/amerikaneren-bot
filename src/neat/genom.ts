@@ -212,12 +212,16 @@ export interface MutasjonsRater {
   readonly dempFaktor?: number;
 }
 
+// Strukturratene er bevisst HØYE: målt i praksis (C4, gen 400–715) frøs
+// topologien med lave rater – én ny node på 315 generasjoner – og dermed
+// også ytelsen. Ny struktur må tilføres raskere enn seleksjonen luker den
+// ut, så artsvernet faktisk får innovasjoner å beskytte.
 export const STANDARD_RATER: MutasjonsRater = {
   vekter: 0.8,
   nyVekt: 0.1,
   styrke: 0.35,
-  nyKobling: 0.35,
-  nyNode: 0.08,
+  nyKobling: 0.6,
+  nyNode: 0.2,
   veksle: 0.03,
 };
 
