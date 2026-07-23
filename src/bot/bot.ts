@@ -96,6 +96,13 @@ export interface BotOpts {
   readonly budInferens?: boolean;
   /** «Mykhet» i budinferensen (stikk). Lavere = skarpere nedvekting. Standard 1,5. */
   readonly inferensTau?: number;
+  /**
+   * ADAPTIV DYBDE for kortvalg med tidsbudsjett: 55 % av tiden rangerer
+   * kandidatene i bredden (mange verdener, basisterskel), resten re-evaluerer
+   * topp-3 på friske verdener med terskel + 2 og firedoblet nodetak.
+   * Kombinerer breddens lave varians med dybdens presisjon der det gjelder.
+   */
+  readonly adaptivDybde?: boolean;
 }
 
 const STD_VERDENER = 20;
@@ -212,6 +219,11 @@ interface SpillAkk {
   readonly tau: number;
   readonly målStikk: number; // budets stikkmål (for inferensvekt)
   antall: number; // antall gyldige verdener behandlet
+  // Adaptiv dybde (fase 2): topp-kandidatene fra breddefasen re-evalueres
+  // på friske verdener med dypere eksaktsøk. Se utvidTidAdaptivt.
+  dypSum: number[];
+  dypAntall: number;
+  dypKandidater: number[] | null;
 }
 
 /** Kompakt signatur for en spillbeslutning (samme => samme akkumulator). */
@@ -250,6 +262,9 @@ function nySpillAkk(state: GameState, spiller: number, opts: BotOpts): SpillAkk 
     tau: opts.inferensTau ?? 1.5,
     målStikk: state.melding!.type === "tall" ? state.melding!.bud : state.giving.antallStikk,
     antall: 0,
+    dypSum: new Array<number>(lovlige.length).fill(0),
+    dypAntall: 0,
+    dypKandidater: null,
   };
 }
 
@@ -339,9 +354,65 @@ function utvidAntall(akk: SpillAkk, mål: number): void {
   }
 }
 
+/**
+ * ADAPTIV DYBDE (anytime): først bredde – mange verdener på basisterskelen
+ * rangerer kandidatene (55 % av budsjettet) – deretter dybde: de 3 beste
+ * kandidatene re-evalueres på friske verdener med terskel + 2 og firedoblet
+ * nodetak (færre kandidater per verden gjør dypere søk overkommelig).
+ * Dybdefasen avgjør valget når den har nok verdener; ellers gjelder bredden.
+ */
+function utvidTidAdaptivt(akk: SpillAkk, frist: number): void {
+  if (akk.fast) return;
+  const start = Date.now();
+  // Har pondering allerede banket rikelig med breddeverdener, går hele
+  // budsjettet til dybdefasen; ellers brukes 55 % på bredden først.
+  if (akk.antall < 20) utvidTid(akk, start + (frist - start) * 0.55);
+  if (akk.antall === 0 || akk.lovlige.length < 3) {
+    utvidTid(akk, frist);
+    return;
+  }
+  const rekkefølge = akk.sumPoeng
+    .map((_, i) => i)
+    .sort((a, b) => akk.sumPoeng[b]! - akk.sumPoeng[a]!);
+  const kandidater = rekkefølge.slice(0, 3);
+  akk.dypKandidater = kandidater;
+  const gjenstår = akk.state.giving.antallStikk - akk.state.stikkSpilt;
+  const dypTerskel = Math.min(Math.max(1, gjenstår), akk.terskel + 2);
+  const dypTak = akk.nodeTak === 0 ? 0 : akk.nodeTak * 4;
+  const bidrag = new Array<number>(kandidater.length);
+  let tomme = 0;
+  while (Date.now() < frist && tomme < 50) {
+    const verden = trekkVerden(akk.state, akk.spiller, akk.rng);
+    if (!verden) {
+      tomme++;
+      continue;
+    }
+    tomme = 0;
+    const oppsett = byggDDOppsett(akk.state, verden);
+    let avbrutt = false;
+    for (let j = 0; j < kandidater.length; j++) {
+      if (Date.now() >= frist) {
+        avbrutt = true;
+        break;
+      }
+      const lag = evaluerEtterTrekk(oppsett, akk.kortInt[kandidater[j]!]!, dypTerskel, dypTak);
+      bidrag[j] = observatørPoeng(lag, verden, akk.kontekst);
+    }
+    if (avbrutt) break; // forkast halvferdig verden
+    for (let j = 0; j < kandidater.length; j++) akk.dypSum[kandidater[j]!]! += bidrag[j]!;
+    akk.dypAntall++;
+  }
+}
+
 function besteKort(akk: SpillAkk): Kort {
   if (akk.fast) return akk.fast;
   if (akk.antall === 0) return akk.lovlige[0]!;
+  // Dybdefasen overstyrer bredden når den har et minimum av verdener.
+  if (akk.dypKandidater !== null && akk.dypAntall >= 3) {
+    let best = akk.dypKandidater[0]!;
+    for (const i of akk.dypKandidater) if (akk.dypSum[i]! > akk.dypSum[best]!) best = i;
+    return akk.lovlige[best]!;
+  }
   let best = 0;
   for (let i = 1; i < akk.lovlige.length; i++) if (akk.sumPoeng[i]! > akk.sumPoeng[best]!) best = i;
   return akk.lovlige[best]!;
@@ -352,7 +423,8 @@ function velgKort(state: GameState, spiller: number, opts: BotOpts): Handling {
   if (akk.fast) return { type: "SPILL", spiller, kort: akk.fast };
   const budsjett = opts.tidsbudsjettMs ?? 0;
   if (budsjett > 0) {
-    utvidTid(akk, Date.now() + budsjett);
+    if (opts.adaptivDybde) utvidTidAdaptivt(akk, Date.now() + budsjett);
+    else utvidTid(akk, Date.now() + budsjett);
   } else {
     const maksEval = opts.maksEval ?? STD_MAKS_EVAL;
     const verdener = Math.max(6, Math.min(opts.verdener ?? STD_VERDENER, Math.floor(maksEval / akk.lovlige.length)));
@@ -848,7 +920,10 @@ export class BotAgent {
     if (this.erMinKortbeslutning(state)) {
       this.sikreAkk(state);
       const akk = this.akk!;
-      if (!akk.fast) utvidTid(akk, Date.now() + Math.max(1, maksMs));
+      if (!akk.fast) {
+        if (this.opts.adaptivDybde) utvidTidAdaptivt(akk, Date.now() + Math.max(1, maksMs));
+        else utvidTid(akk, Date.now() + Math.max(1, maksMs));
+      }
       const kort = besteKort(akk);
       this.akk = null;
       return { type: "SPILL", spiller: this.plass, kort };

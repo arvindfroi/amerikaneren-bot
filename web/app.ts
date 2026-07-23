@@ -41,12 +41,12 @@ const STYRKER = {
   },
   STERK: {
     navn: "Sterk (~3 s per trekk)",
-    spill: { verdener: 60, terskel: 7, nodeTak: 1_200_000, tidsbudsjettMs: 2_800 },
+    spill: { verdener: 60, terskel: 7, nodeTak: 1_200_000, tidsbudsjettMs: 2_800, adaptivDybde: true },
     øvrig: { verdener: 20, terskel: 6, budTerskel: 6, nodeTak: 800_000 },
   },
   MAKS: {
-    navn: "MAKS (~5 s per trekk)",
-    spill: { verdener: 200, terskel: 7, nodeTak: 2_000_000, tidsbudsjettMs: 4_800 },
+    navn: "MAKS (~5 s per trekk, pondrer)",
+    spill: { verdener: 200, terskel: 7, nodeTak: 2_000_000, tidsbudsjettMs: 4_800, adaptivDybde: true },
     øvrig: { verdener: 24, terskel: 7, budTerskel: 7, nodeTak: 1_000_000 },
   },
 } as const;
@@ -79,16 +79,34 @@ function hentWorker(): Promise<Worker> {
   return workerLast;
 }
 
+/** Initialiser workerens agenter for valgt styrke (pondering + adaptiv dybde). */
+async function initPimcWorker(): Promise<void> {
+  const nivå = STYRKER[styrke];
+  const w = await hentWorker();
+  w.postMessage({
+    type: "init",
+    spill: { ...nivå.spill, frø: (Math.random() * 1e9) >>> 0 },
+    øvrig: { ...nivå.øvrig, frø: (Math.random() * 1e9) >>> 0 },
+  });
+}
+
+/** Be workeren pondere på `s` i inntil `ms` (no-op utenfor PIMC-spillfasen). */
+function ponder(s: GameState, ms: number): void {
+  if (motstander !== "PIMC" || worker === null || ms < 120) return;
+  if (s.fase === "SPILL" && s.iTur !== null && s.iTur !== MENNESKE) {
+    worker.postMessage({ type: "pondre", state: s, ms });
+  }
+}
+
 /** PIMC-beslutning i workeren; faller tilbake til rask synkron ved feil. */
 async function pimcHandling(s: GameState): Promise<Handling> {
   const nivå = STYRKER[styrke];
-  const opts = { ...(s.fase === "SPILL" ? nivå.spill : nivå.øvrig), frø: (Math.random() * 1e9) >>> 0 };
   try {
     const w = await hentWorker();
     return await new Promise<Handling>((løs, avvis) => {
       const id = nesteWorkerId++;
       venterPåSvar.set(id, løs);
-      w.postMessage({ id, state: s, opts });
+      w.postMessage({ type: "beslutt", id, state: s, maksMs: nivå.spill.tidsbudsjettMs ?? 5000 });
       setTimeout(() => {
         if (venterPåSvar.has(id)) {
           venterPåSvar.delete(id);
@@ -178,9 +196,14 @@ async function start(navn: string): Promise<void> {
       return;
     }
   }
+  if (motstander === "PIMC") {
+    try {
+      await initPimcWorker();
+    } catch { /* faller tilbake til synkron RASK i pimcHandling */ }
+  }
   state = opprettSpill({ antallSpillere: 4 }, (Date.now() ^ (Math.random() * 1e9)) >>> 0);
   for (const a of nettAgenter ?? []) a.nyKamp();
-  logg("start", { frø: state.frø, målPoeng: state.regler.målPoeng, motstander });
+  logg("start", { frø: state.frø, målPoeng: state.regler.målPoeng, motstander, styrke });
   fortsett();
 }
 
@@ -198,6 +221,8 @@ function gjør(h: Handling): void {
     frystStikk = { kort: stikk.stikk, vinner: stikk.vinner };
     travelt = true;
     tegn();
+    // Neste stikkleder (vinneren) pondrer gjennom hele frysingen.
+    ponder(state, 2450);
     setTimeout(() => {
       frystStikk = null;
       travelt = false;
@@ -274,6 +299,10 @@ function fortsett(): void {
 
 function gjørMedPause(h: Handling, pauseMs: number): void {
   travelt = true;
+  // utfør er ren – regn ut neste stilling nå, så botene kan pondere i pausen.
+  try {
+    ponder(utfør(state, h).state, pauseMs - 40);
+  } catch { /* pondering er best-effort */ }
   setTimeout(() => {
     travelt = false;
     gjør(h);
