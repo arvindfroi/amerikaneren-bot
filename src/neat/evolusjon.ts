@@ -26,6 +26,7 @@ import {
   nyttGenom,
   STANDARD_RATER,
   type Genom,
+  type KildeBias,
   type MutasjonsRater,
 } from "./genom.ts";
 import { NeatAgent, STD_LÆRINGSRATE } from "./agent.ts";
@@ -237,6 +238,12 @@ export class Evolusjon {
   private mesterIdx: number | null = null;
   /** Antall generasjoner PÅ RAD mesteren har forsvart tittelen. */
   private forsvarsrekke = 0;
+  /**
+   * Anger-inversjon: EMA-glattet korrelasjon (per sensorgruppe) mellom
+   * antall koblinger fra gruppen og fitness i populasjonen. Styrer
+   * mutasjonene MOTSATT av de negative trekkene (se MutasjonsRater.kildeBias).
+   */
+  private gruppeKorr = new Map<string, number>();
 
   constructor(opts: EvolusjonsOpts = {}) {
     const populasjon = opts.populasjon ?? 32;
@@ -399,6 +406,7 @@ export class Evolusjon {
     // Stagnasjonsspark-telleren: sammenhengende tittelforsvar.
     this.forsvarsrekke = mesterForsvarte ? this.forsvarsrekke + 1 : 0;
 
+    this.oppdaterGruppeKorr(fitness);
     this.artsdel(fitness);
     const nesteKull = this.avle(fitness, avlsAnker, res.regretSnitt.slice(0, this.genomer.length));
 
@@ -460,6 +468,45 @@ export class Evolusjon {
         innovasjon: this.bok.kobling(k.inn, k.ut),
       })),
     };
+  }
+
+  /**
+   * Måler korrelasjonen mellom «koblinger fra sensorgruppe X» og fitness i
+   * populasjonen, og glatter den med EMA (α = 0,1) – enkeltgenerasjoner er
+   * for støyete til å styre mutasjoner alene.
+   */
+  private oppdaterGruppeKorr(fitness: readonly number[]): void {
+    const n = this.genomer.length;
+    if (n < 8) return;
+    const fSnitt = fitness.reduce((a, b) => a + b, 0) / n;
+    const fStd = Math.sqrt(fitness.reduce((a, f) => a + (f - fSnitt) ** 2, 0) / n) || 1;
+    for (const [navn, [fra, til]] of Object.entries(SENSORGRUPPER)) {
+      const teller = this.genomer.map((g) => {
+        let c = 0;
+        for (const k of g.koblinger) if (k.aktiv && k.inn >= fra && k.inn < til) c++;
+        return c;
+      });
+      const tSnitt = teller.reduce((a, b) => a + b, 0) / n;
+      const tStd = Math.sqrt(teller.reduce((a, t) => a + (t - tSnitt) ** 2, 0) / n) || 1;
+      let korr = 0;
+      for (let i = 0; i < n; i++) {
+        korr += ((teller[i]! - tSnitt) / tStd) * ((fitness[i]! - fSnitt) / fStd);
+      }
+      korr /= n;
+      const gammel = this.gruppeKorr.get(navn) ?? 0;
+      this.gruppeKorr.set(navn, gammel * 0.9 + korr * 0.1);
+    }
+  }
+
+  /** Bygger kildeBias fra de glattede korrelasjonene (skalert, klippet). */
+  private lagKildeBias(): KildeBias[] {
+    const bias: KildeBias[] = [];
+    for (const [navn, [fra, til]] of Object.entries(SENSORGRUPPER)) {
+      const korr = this.gruppeKorr.get(navn) ?? 0;
+      const score = Math.max(-0.5, Math.min(0.5, korr * 3));
+      if (Math.abs(score) > 0.02) bias.push({ fra, til, score });
+    }
+    return bias;
   }
 
   /** Deler populasjonen i arter etter kompatibilitetsavstand. */
@@ -529,14 +576,19 @@ export class Evolusjon {
     // og vektstyrken for avkommet – stillstand besvares med utforskning.
     const spark =
       this.opts.sparkEtter > 0 && this.forsvarsrekke >= this.opts.sparkEtter ? 2 : 1;
-    const kullRater: MutasjonsRater =
-      spark === 1
-        ? this.opts.rater
-        : {
-            ...this.opts.rater,
+    // Anger-inversjon: mutasjonene dyttes motsatt av trekkene som predikerer
+    // dårlig spill (og mot dem som predikerer godt).
+    const kildeBias = this.lagKildeBias();
+    const kullRater: MutasjonsRater = {
+      ...this.opts.rater,
+      ...(kildeBias.length > 0 ? { kildeBias } : {}),
+      ...(spark > 1
+        ? {
             nyKobling: Math.min(0.95, this.opts.rater.nyKobling * spark),
             nyNode: Math.min(0.6, this.opts.rater.nyNode * spark),
-          };
+          }
+        : {}),
+    };
 
     // Stagnerte arter dør – med mindre turneringsvinneren bor der.
     const levende = this.arter.filter(

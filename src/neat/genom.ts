@@ -210,6 +210,28 @@ export interface MutasjonsRater {
    */
   readonly dempedeMål?: ReadonlySet<number>;
   readonly dempFaktor?: number;
+  /**
+   * ANGER-INVERSJON i arven: sensorgrupper (inngangsintervaller) med målt
+   * score i [-0,5, 0,5]. Positiv score = gruppen predikerer godt spill i
+   * populasjonen → nye koblinger trekkes oftere derfra, og veksling skrur
+   * heller PÅ koblinger fra gruppen. Negativ score = gruppen predikerer
+   * dårlig spill → nye koblinger derfra lukes, og veksling skrur heller AV.
+   * Avkommet arver altså ikke de negative trekkene blindt – mutasjonene
+   * dyttes systematisk MOTSATT vei. Uten bias er oppførselen som før.
+   */
+  readonly kildeBias?: readonly KildeBias[];
+}
+
+export interface KildeBias {
+  readonly fra: number;
+  readonly til: number;
+  readonly score: number;
+}
+
+function kildeScore(bias: readonly KildeBias[] | undefined, id: number): number {
+  if (bias === undefined) return 0;
+  for (const b of bias) if (id >= b.fra && id < b.til) return b.score;
+  return 0;
 }
 
 // Strukturratene er bevisst HØYE: målt i praksis (C4, gen 400–715) frøs
@@ -247,12 +269,21 @@ export function muterNyKobling(
   bok: Innovasjonsbok,
   rng: () => number,
   forsøk = 30,
+  bias?: readonly KildeBias[],
 ): boolean {
   const kilder = g.noder;
   const mål = g.noder.filter((n) => n.type === "skjult" || n.type === "ut");
   const finnes = new Set(g.koblinger.map((k) => `${k.inn}>${k.ut}`));
   for (let t = 0; t < forsøk; t++) {
-    const fra = kilder[Math.floor(rng() * kilder.length)]!;
+    let fra = kilder[Math.floor(rng() * kilder.length)]!;
+    if (bias !== undefined) {
+      // Anger-inversjon: dobbelttrekk foretrekker den bedre kilden, og
+      // kilder fra negativt ladede grupper lukes proporsjonalt med scoren.
+      const alt = kilder[Math.floor(rng() * kilder.length)]!;
+      if (kildeScore(bias, alt.id) > kildeScore(bias, fra.id) && rng() < 0.75) fra = alt;
+      const s = kildeScore(bias, fra.id);
+      if (s < 0 && rng() < -s * 2) continue;
+    }
     const til = mål[Math.floor(rng() * mål.length)]!;
     if (finnes.has(`${fra.id}>${til.id}`)) continue;
     g.koblinger.push({
@@ -285,18 +316,35 @@ export function muterNyNode(g: Genom, bok: Innovasjonsbok, rng: () => number): b
   return true;
 }
 
-export function muterVeksle(g: Genom, rng: () => number): void {
+export function muterVeksle(g: Genom, rng: () => number, bias?: readonly KildeBias[]): void {
   if (g.koblinger.length === 0) return;
-  const k = g.koblinger[Math.floor(rng() * g.koblinger.length)]!;
-  k.aktiv = !k.aktiv;
+  if (bias === undefined) {
+    const k = g.koblinger[Math.floor(rng() * g.koblinger.length)]!;
+    k.aktiv = !k.aktiv;
+    return;
+  }
+  // Anger-inversjon: blant 4 kandidater veksles den mest gunstige – å skru
+  // AV en kobling fra en negativ gruppe (eller PÅ fra en positiv) foretrekkes.
+  let best: KoblingGen | null = null;
+  let bestVerdi = -Infinity;
+  for (let t = 0; t < 4; t++) {
+    const k = g.koblinger[Math.floor(rng() * g.koblinger.length)]!;
+    const s = kildeScore(bias, k.inn);
+    const verdi = k.aktiv ? -s : s;
+    if (verdi > bestVerdi) {
+      bestVerdi = verdi;
+      best = k;
+    }
+  }
+  best!.aktiv = !best!.aktiv;
 }
 
 /** Kjører hele mutasjonspakka med gitte rater. */
 export function muter(g: Genom, bok: Innovasjonsbok, rng: () => number, rater = STANDARD_RATER): void {
   if (rng() < rater.vekter) muterVekter(g, rng, rater);
-  if (rng() < rater.nyKobling) muterNyKobling(g, bok, rng);
+  if (rng() < rater.nyKobling) muterNyKobling(g, bok, rng, 30, rater.kildeBias);
   if (rng() < rater.nyNode) muterNyNode(g, bok, rng);
-  if (rng() < rater.veksle) muterVeksle(g, rng);
+  if (rng() < rater.veksle) muterVeksle(g, rng, rater.kildeBias);
 }
 
 // ---------------------------------------------------------------------------
