@@ -134,3 +134,19 @@ test("parallell cup (arbeidstråder) gir bit-identisk resultat med sekvensiell",
     await pool.lukk();
   }
 });
+
+test("kun agenter som slår mesteren (dypere i cupen) kan få høyere fitness", () => {
+  const res: TurneringsResultat = {
+    dybde: [1, 2, 1, 1],
+    poeng: [100, 150, 400, 380], // agent 2 og 3: samme dybde som mester, flere poeng
+    seire: [3, 6, 4, 4],
+    regretSnitt: [0, 0, 0, 0],
+    mesterIdx: 1,
+    runder: 2,
+  };
+  const fit = beregnFitness(res, 0); // forrige mester = agent 0, dybde 1
+  assert.ok(fit[1]! > fit[0]!, "dypere enn mesteren ⇒ høyere fitness");
+  assert.ok(fit[2]! < fit[0]!, "samme dybde, flere poeng ⇒ FORTSATT under mesteren");
+  assert.ok(fit[3]! < fit[0]!, "samme dybde ⇒ under mesteren");
+  assert.ok(fit[2]! > fit[3]!, "innbyrdes rekkefølge bevart blant de nedklemte");
+});

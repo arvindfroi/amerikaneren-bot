@@ -367,5 +367,24 @@ export function beregnFitness(
     const anger = lambda * res.regretSnitt[i]!;
     fitness[i] = Math.max(0.05, base + poengBonus - anger);
   }
+
+  // Grunnregelen: KUN agenter som SLÅR den regjerende mesteren (når lenger
+  // i cupen) får høyere fitness enn den. Poengbonusen kan ellers la en
+  // agent på SAMME dybde snike seg over – de klemmes inn rett under
+  // mesteren, med innbyrdes rekkefølge bevart.
+  if (forrigeMesterIdx !== null) {
+    const mesterFit = fitness[forrigeMesterIdx]!;
+    const mesterDybde = res.dybde[forrigeMesterIdx]!;
+    const over: number[] = [];
+    for (let i = 0; i < n; i++) {
+      if (i !== forrigeMesterIdx && res.dybde[i]! <= mesterDybde && fitness[i]! >= mesterFit) {
+        over.push(i);
+      }
+    }
+    over.sort((a, b) => fitness[b]! - fitness[a]!);
+    over.forEach((i, k) => {
+      fitness[i] = Math.max(0.05, mesterFit - 0.01 * (k + 1));
+    });
+  }
   return fitness;
 }
