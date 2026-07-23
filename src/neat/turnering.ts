@@ -65,14 +65,17 @@ export interface GruppeResultat {
 
 /**
  * Spiller en flakskontrollert gruppekamp mellom 4 agenter: samme frø i alle
- * 4 kampene, agentene roterer ett sete per kamp.
+ * 4 kampene, agentene roterer ett sete per kamp. Loddtrekningen ved full
+ * poenglikhet utledes av frøet, så resultatet er en ren funksjon av
+ * (agenter, frø) – dermed kan grupper spilles i vilkårlig rekkefølge eller
+ * parallelt i arbeidstråder med identisk utfall.
  */
 export function spillGruppekamp(
   agenter: readonly TurneringsAgent[],
   frø: number,
-  rng: () => number,
   opts: KampOpts = {},
 ): GruppeResultat {
+  const rng = lagRng((frø ^ 0x51ed270b) >>> 0);
   if (agenter.length !== 4) throw new Error("Gruppekamp krever nøyaktig 4 agenter");
   const maksRunder = opts.maksRunder ?? STD_MAKS_RUNDER;
   const maksHandlinger = opts.maksHandlinger ?? STD_MAKS_HANDLINGER;
@@ -188,15 +191,29 @@ export interface TurneringsResultat {
 }
 
 /**
- * Kjører hele cupen. `agenter.length` må være ≥ 4 og delelig med 4 (da
- * trengs aldri utfylling i første runde). Deterministisk gitt frø.
+ * En gruppespiller: avvikler kampen mellom fire deltakere (angitt ved
+ * indeks i feltet) med gitt frø. Den lokale varianten spiller selv; den
+ * parallelle (se pool.ts) sender jobben til en arbeidstråd. Grupper i
+ * samme runde er uavhengige, så resultatet er identisk uansett
+ * avviklingsrekkefølge.
  */
-export function kjørTurnering(
-  agenter: readonly TurneringsAgent[],
+export type GruppeSpiller = (
+  medlemmer: readonly number[],
+  gruppeFrø: number,
+) => Promise<GruppeResultat>;
+
+/**
+ * Kjører hele cupen med en vilkårlig gruppespiller. `antall` må være ≥ 4
+ * og delelig med 4 (da trengs aldri utfylling i første runde).
+ * Deterministisk gitt frø – også med parallell gruppespiller, siden hver
+ * gruppekamp er en ren funksjon av (deltakere, gruppeFrø).
+ */
+export async function kjørTurneringMed(
+  antall: number,
+  spillGruppe: GruppeSpiller,
   frø: number,
-  opts: KampOpts = {},
-): TurneringsResultat {
-  const n = agenter.length;
+): Promise<TurneringsResultat> {
+  const n = antall;
   if (n < 4 || n % 4 !== 0) {
     throw new Error("Turneringen krever minst 4 agenter og et antall delelig med 4");
   }
@@ -227,16 +244,21 @@ export function kjørTurnering(
       }
     }
 
-    const vinnere: number[] = [];
+    // Alle gruppene i runden avvikles samtidig (uavhengige kamper).
+    const grupper: number[][] = [];
+    const jobber: Promise<GruppeResultat>[] = [];
     for (let g = 0; g < kandidater.length; g += 4) {
       const gruppe = kandidater.slice(g, g + 4);
       const gruppeFrø = (frø + Math.imul(runde * 131 + g + 1, 0x85ebca6b)) >>> 0;
-      const res = spillGruppekamp(
-        gruppe.map((i) => agenter[i]!),
-        gruppeFrø,
-        rng,
-        opts,
-      );
+      grupper.push(gruppe);
+      jobber.push(spillGruppe(gruppe, gruppeFrø));
+    }
+    const resultater = await Promise.all(jobber);
+
+    const vinnere: number[] = [];
+    for (let g = 0; g < grupper.length; g++) {
+      const gruppe = grupper[g]!;
+      const res = resultater[g]!;
       for (let j = 0; j < 4; j++) {
         const idx = gruppe[j]!;
         poeng[idx]! += res.poeng[j]!;
@@ -264,6 +286,26 @@ export function kjørTurnering(
     mesterIdx: kandidater[0]!,
     runder: runde,
   };
+}
+
+/** Kjører cupen lokalt (én tråd) med ferdige agenter. */
+export async function kjørTurnering(
+  agenter: readonly TurneringsAgent[],
+  frø: number,
+  opts: KampOpts = {},
+): Promise<TurneringsResultat> {
+  return kjørTurneringMed(
+    agenter.length,
+    (medlemmer, gruppeFrø) =>
+      Promise.resolve(
+        spillGruppekamp(
+          medlemmer.map((i) => agenter[i]!),
+          gruppeFrø,
+          opts,
+        ),
+      ),
+    frø,
+  );
 }
 
 function stokkIndekser(n: number, rng: () => number): number[] {

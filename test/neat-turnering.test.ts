@@ -29,7 +29,7 @@ test("flakskontroll: identiske agenter får identiske duplikatpoeng", () => {
   // meningen), og da spilles rotasjonene ikke lenger identisk. Her testes
   // selve flakskontrollen, som krever frosne agenter.
   const agenter = Array.from({ length: 4 }, () => new NeatAgent(genom, { læringsrate: 0 }));
-  const res = spillGruppekamp(agenter, 12345, lagRng(1), KJAPP);
+  const res = spillGruppekamp(agenter, 12345, KJAPP);
   // Samme genom i alle seter + samme kortgiving i alle rotasjoner ⇒ hver
   // agent har spilt nøyaktig de samme fire setene i nøyaktig samme kamp.
   assert.equal(new Set(res.poeng).size, 1, `like poeng, fikk ${res.poeng.join(",")}`);
@@ -39,15 +39,15 @@ test("flakskontroll: identiske agenter får identiske duplikatpoeng", () => {
 test("gruppekamp er deterministisk gitt frø", () => {
   const a1 = nyAgenter(4);
   const a2 = nyAgenter(4);
-  const r1 = spillGruppekamp(a1, 777, lagRng(5), KJAPP);
-  const r2 = spillGruppekamp(a2, 777, lagRng(5), KJAPP);
+  const r1 = spillGruppekamp(a1, 777, KJAPP);
+  const r2 = spillGruppekamp(a2, 777, KJAPP);
   assert.deepEqual(r1.poeng, r2.poeng);
   assert.deepEqual(r1.rekkefølge, r2.rekkefølge);
 });
 
-test("cupturnering: dybder, mester og lucky losers henger sammen", () => {
+test("cupturnering: dybder, mester og lucky losers henger sammen", async () => {
   const agenter = nyAgenter(8);
-  const res = kjørTurnering(agenter, 2024, KJAPP);
+  const res = await kjørTurnering(agenter, 2024, KJAPP);
   assert.equal(res.dybde.length, 8);
   // 8 → 2 grupper → 2 vinnere → fylles til 4 med lucky losers → finale.
   assert.equal(res.runder, 2);
@@ -59,9 +59,9 @@ test("cupturnering: dybder, mester og lucky losers henger sammen", () => {
   assert.ok(res.poeng.some((p) => p !== 0));
 });
 
-test("turneringen avviser felt som ikke er delelig med 4", () => {
-  assert.throws(() => kjørTurnering(nyAgenter(6), 1));
-  assert.throws(() => kjørTurnering(nyAgenter(0), 1));
+test("turneringen avviser felt som ikke er delelig med 4", async () => {
+  await assert.rejects(() => kjørTurnering(nyAgenter(6), 1));
+  await assert.rejects(() => kjørTurnering(nyAgenter(0), 1));
 });
 
 test("fitness: dybde dominerer, poeng skiller, regret straffer", () => {
@@ -97,4 +97,40 @@ test("fitness relativt til forrige mester: å slå mesterens dybde gir mer enn m
   assert.ok(fit[2]! < fit[0]!, "grunnere enn mesteren ⇒ lavere fitness");
   // Samme dybde som mesteren rangeres via poeng, tett på mesteren.
   assert.ok(Math.abs(fit[3]! - fit[0]!) < 2);
+});
+
+test("parallell cup (arbeidstråder) gir bit-identisk resultat med sekvensiell", async () => {
+  const { GruppePool } = await import("../src/neat/pool.ts");
+  const { kjørTurneringMed } = await import("../src/neat/turnering.ts");
+  const { klonGenom } = await import("../src/neat/genom.ts");
+
+  const bok = new Innovasjonsbok(ANTALL_INN, ANTALL_UT);
+  const genomerA = Array.from({ length: 8 }, (_, i) =>
+    nyttGenom(ANTALL_INN, ANTALL_UT, bok, lagRng(500 + i)),
+  );
+  const genomerB = genomerA.map(klonGenom);
+
+  // Sekvensielt (med regret-læring, standard rate).
+  const agenter = genomerA.map((g) => new NeatAgent(g));
+  const sekvensiell = await kjørTurnering(agenter, 4242, KJAPP);
+
+  // Parallelt med 2 tråder på identiske genomkopier.
+  const pool = new GruppePool(2);
+  try {
+    const parallell = await kjørTurneringMed(
+      8,
+      (medlemmer, gruppeFrø) =>
+        pool.spill(medlemmer.map((i) => genomerB[i]!), gruppeFrø, KJAPP, 0.05),
+      4242,
+    );
+    assert.deepEqual(parallell, sekvensiell, "samme turneringsresultat");
+    // Lamarck-vektene skrives tilbake likt i begge kjøringene.
+    assert.deepEqual(
+      genomerB.map((g) => g.koblinger.map((k) => k.vekt)),
+      genomerA.map((g) => g.koblinger.map((k) => k.vekt)),
+      "samme lærte vekter",
+    );
+  } finally {
+    await pool.lukk();
+  }
 });

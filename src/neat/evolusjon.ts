@@ -28,11 +28,13 @@ import {
   type Genom,
   type MutasjonsRater,
 } from "./genom.ts";
-import { NeatAgent } from "./agent.ts";
+import { NeatAgent, STD_LÆRINGSRATE } from "./agent.ts";
+import { GruppePool } from "./pool.ts";
 import { ANTALL_INN, ANTALL_UT } from "./trekk.ts";
 import {
   beregnFitness,
   kjørTurnering,
+  kjørTurneringMed,
   type KampOpts,
   type TurneringsResultat,
 } from "./turnering.ts";
@@ -78,6 +80,12 @@ export interface EvolusjonsOpts {
    * foran `startGenom`.
    */
   readonly startPopulasjon?: Genom[];
+  /**
+   * Antall arbeidstråder for gruppekampene. 1 (standard) = alt i
+   * hovedtråden. Flere tråder spiller rundens grupper parallelt – bit-
+   * identisk resultat, men langt raskere på flerkjernede maskiner.
+   */
+  readonly tråder?: number;
 }
 
 export interface GenerasjonsStat {
@@ -118,6 +126,7 @@ export class Evolusjon {
   private readonly rng: () => number;
   private arter: Art[] = [];
   private terskel = 3.0;
+  private pool: GruppePool | null = null;
   /** Plassen i populasjonen der mesterkopien står (null før første turnering). */
   private mesterIdx: number | null = null;
 
@@ -138,7 +147,9 @@ export class Evolusjon {
       stagnasjonsGrense: opts.stagnasjonsGrense ?? 12,
       krysningsAndel: opts.krysningsAndel ?? 0.75,
       hallOfFame: opts.hallOfFame ?? 0,
+      tråder: opts.tråder ?? 1,
     };
+    if (this.opts.tråder > 1) this.pool = new GruppePool(this.opts.tråder);
     this.rng = lagRng(this.opts.frø);
     this.bok = new Innovasjonsbok(ANTALL_INN, ANTALL_UT);
     if (opts.startPopulasjon !== undefined && opts.startPopulasjon.length > 0) {
@@ -177,18 +188,39 @@ export class Evolusjon {
 
   /**
    * Spiller turneringen for nåværende populasjon (pluss hall of fame som
-   * ekstra deltakere) uten å avle nytt kull.
+   * ekstra deltakere) uten å avle nytt kull. Med `tråder > 1` avvikles
+   * rundens grupper parallelt i arbeidstråder (samme resultat, raskere);
+   * regret-læringen skrives tilbake i genomene i begge tilfeller.
    */
-  spillTurnering(): TurneringsResultat {
+  async spillTurnering(): Promise<TurneringsResultat> {
     const felt = [...this.genomer, ...this.hall.slice(0, this.antallHallDeltakere())];
-    const agenter = felt.map((g) => new NeatAgent(g));
     const frø = (this.opts.frø + Math.imul(this.generasjon + 1, 0xc2b2ae35)) >>> 0;
+    if (this.pool !== null) {
+      return kjørTurneringMed(
+        felt.length,
+        (medlemmer, gruppeFrø) =>
+          this.pool!.spill(
+            medlemmer.map((i) => felt[i]!),
+            gruppeFrø,
+            this.opts.kampOpts,
+            STD_LÆRINGSRATE,
+          ),
+        frø,
+      );
+    }
+    const agenter = felt.map((g) => new NeatAgent(g));
     return kjørTurnering(agenter, frø, this.opts.kampOpts);
   }
 
+  /** Avslutter eventuelle arbeidstråder (kall ved endt trening). */
+  async avslutt(): Promise<void> {
+    await this.pool?.lukk();
+    this.pool = null;
+  }
+
   /** Kjører én hel generasjon: turnering, fitness, artsdeling, nytt kull. */
-  kjørGenerasjon(): GenerasjonsStat {
-    const res = this.spillTurnering();
+  async kjørGenerasjon(): Promise<GenerasjonsStat> {
+    const res = await this.spillTurnering();
     const alleFitness = beregnFitness(res, this.mesterIdx, {
       lambdaRegret: this.opts.lambdaRegret,
     });

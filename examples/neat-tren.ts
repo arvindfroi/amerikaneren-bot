@@ -40,6 +40,7 @@ let maksTimer: number | null = null;
 let genStart = 0;
 let dir = "trening";
 let hallOfFame = 0;
+let tråder = 1;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--fra") fraFil = process.argv[++i] ?? null;
   else if (process.argv[i] === "--fra-flere") fraFlereFil = process.argv[++i] ?? null;
@@ -47,6 +48,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (process.argv[i] === "--gen-start") genStart = Number(process.argv[++i]);
   else if (process.argv[i] === "--dir") dir = process.argv[++i] ?? "trening";
   else if (process.argv[i] === "--hall") hallOfFame = Number(process.argv[++i]);
+  else if (process.argv[i] === "--tråder") tråder = Number(process.argv[++i]);
   else posisjonelle.push(process.argv[i]!);
 }
 const generasjoner = Number(posisjonelle[0] ?? 50);
@@ -187,12 +189,12 @@ console.log(
     (genStart > 0 ? ` (fortsetter fra gen ${genStart})` : "") +
     (maksTimer !== null ? `, tidstak ${maksTimer} t` : ""),
 );
-const evo = new Evolusjon({ populasjon, frø, startGenom, startPopulasjon, hallOfFame });
+const evo = new Evolusjon({ populasjon, frø, startGenom, startPopulasjon, hallOfFame, tråder });
 const t0 = performance.now();
 let sisteBenk = "";
 
 for (let g = 0; g < generasjoner; g++) {
-  const stat = evo.kjørGenerasjon();
+  const stat = await evo.kjørGenerasjon();
   const gen = stat.generasjon + genStart;
   const mester = evo.mester!;
   lagreAtomisk(`${dir}/mester.json`, genomTilJson(mester));
@@ -242,4 +244,5 @@ for (let g = 0; g < generasjoner; g++) {
   }
 }
 
+await evo.avslutt();
 console.log(`Ferdig på ${((performance.now() - t0) / 1000).toFixed(0)}s. Mester: ${dir}/mester.json`);

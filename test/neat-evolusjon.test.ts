@@ -19,11 +19,11 @@ test("evolusjonen avviser ugyldig populasjonsstørrelse", () => {
   assert.throws(() => new Evolusjon({ populasjon: 4 }));
 });
 
-test("to generasjoner: populasjonen består, mesteren forsvarer tittelen på plass 0", () => {
+test("to generasjoner: populasjonen består, mesteren forsvarer tittelen på plass 0", async () => {
   const evo = new Evolusjon({ populasjon: 8, frø: 7, kampOpts: KJAPP });
   assert.equal(evo.genomer.length, 8);
 
-  const stat0 = evo.kjørGenerasjon();
+  const stat0 = await evo.kjørGenerasjon();
   assert.equal(stat0.generasjon, 0);
   assert.equal(evo.genomer.length, 8);
   assert.ok(evo.mester !== null, "mester kåret i første turnering");
@@ -34,7 +34,7 @@ test("to generasjoner: populasjonen består, mesteren forsvarer tittelen på pla
   assert.deepEqual(evo.genomer[0], evo.mester);
 
   const førMester = klonGenom(evo.mester!);
-  const stat1 = evo.kjørGenerasjon();
+  const stat1 = await evo.kjørGenerasjon();
   assert.equal(stat1.generasjon, 1);
   assert.equal(evo.genomer.length, 8);
   assert.ok(evo.mester !== null);
@@ -50,9 +50,9 @@ test("to generasjoner: populasjonen består, mesteren forsvarer tittelen på pla
   }
 });
 
-test("mestergenomet overlever JSON-runden og kan så en ny populasjon", () => {
+test("mestergenomet overlever JSON-runden og kan så en ny populasjon", async () => {
   const evo = new Evolusjon({ populasjon: 8, frø: 3, kampOpts: KJAPP });
-  evo.kjørGenerasjon();
+  await evo.kjørGenerasjon();
   const json = genomTilJson(evo.mester!);
   const lastet = genomFraJson(json);
   assert.equal(lastet.antallInn, ANTALL_INN);
@@ -65,24 +65,24 @@ test("mestergenomet overlever JSON-runden og kan så en ny populasjon", () => {
     assert.equal(g.antallInn, ANTALL_INN);
     assert.equal(g.antallUt, ANTALL_UT);
   }
-  const stat = evo2.kjørGenerasjon();
+  const stat = await evo2.kjørGenerasjon();
   assert.ok(stat.besteFitness > 0);
 });
 
-test("determinisme: samme frø gir samme forløp", () => {
+test("determinisme: samme frø gir samme forløp", async () => {
   const a = new Evolusjon({ populasjon: 8, frø: 11, kampOpts: KJAPP });
   const b = new Evolusjon({ populasjon: 8, frø: 11, kampOpts: KJAPP });
-  const sa = a.kjørGenerasjon();
-  const sb = b.kjørGenerasjon();
+  const sa = await a.kjørGenerasjon();
+  const sb = await b.kjørGenerasjon();
   assert.deepEqual(sa, sb);
   assert.deepEqual(a.mester, b.mester);
 });
 
-test("hall of fame: tidligere mestere stiller i cupen uten å endre populasjonen", () => {
+test("hall of fame: tidligere mestere stiller i cupen uten å endre populasjonen", async () => {
   const evo = new Evolusjon({ populasjon: 8, frø: 21, kampOpts: KJAPP, hallOfFame: 4 });
   let medHall = false;
   for (let g = 0; g < 8; g++) {
-    evo.kjørGenerasjon();
+    await evo.kjørGenerasjon();
     assert.equal(evo.genomer.length, 8, "populasjonen holder seg");
     assert.ok(evo.hall.length <= 4, "hallen er avgrenset");
     if (evo.hall.length >= 4) medHall = true; // neste turnering får 12 deltakere
@@ -90,7 +90,7 @@ test("hall of fame: tidligere mestere stiller i cupen uten å endre populasjonen
   assert.ok(medHall, "hallen fyltes i løpet av 8 generasjoner");
 });
 
-test("startPopulasjon: genomer fra ulike historikker kanoniseres til felles nummerering", () => {
+test("startPopulasjon: genomer fra ulike historikker kanoniseres til felles nummerering", async () => {
   // To «familier» laget med hver sin (ukoordinerte) innovasjonsbok.
   const famA = nyttGenom(ANTALL_INN, ANTALL_UT, new Innovasjonsbok(ANTALL_INN, ANTALL_UT), lagRng(1));
   const famB = nyttGenom(ANTALL_INN, ANTALL_UT, new Innovasjonsbok(ANTALL_INN, ANTALL_UT), lagRng(2));
@@ -108,7 +108,7 @@ test("startPopulasjon: genomer fra ulike historikker kanoniseres til felles numm
       else assert.equal(k.innovasjon, sett, `paret ${par} har ulikt nummer`);
     }
   }
-  const stat = evo.kjørGenerasjon();
+  const stat = await evo.kjørGenerasjon();
   assert.ok(stat.besteFitness > 0);
   assert.equal(evo.genomer.length, 8);
 });
