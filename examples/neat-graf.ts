@@ -146,9 +146,9 @@ function MAL(): string {
   @media (prefers-color-scheme: dark) { body { background:#1a1a19; color:#fff; } }
   .rot { max-width:1000px; margin:0 auto; padding:20px;
     --tx2:#52514e; --grid:#e8e7e3;
-    --sA:#2a78d6; --sB:#eb6834; --sC:#1baf7a; --sC2:#eda100; --sC3:#e87ba4; --sC4:#4a3aa7; --sC5:#008300; }
+    --fokusC4:#2a78d6; --fokusD1:#d92b2b; --retirert:#a5a39c; }
   @media (prefers-color-scheme: dark) { .rot { --tx2:#c3c2b7; --grid:#33322f;
-    --sA:#3987e5; --sB:#d95926; --sC:#199e70; --sC2:#c98500; --sC3:#d55181; --sC4:#9085e9; --sC5:#008300; } }
+    --fokusC4:#4593f0; --fokusD1:#f0524a; --retirert:#6e6d67; } }
   h1 { font-size:19px; margin:0 0 2px; } .sub { color:var(--tx2); margin:0 0 12px; font-size:13px; }
   .akse { font-size:11px; fill:var(--tx2); } .merk { font-size:12px; font-weight:600; }
   .lgr { display:flex; flex-wrap:wrap; gap:14px; margin:0 0 6px; font-size:12.5px; color:var(--tx2); }
@@ -171,7 +171,9 @@ function MAL(): string {
 <script>
 const W=960,H=560,ML=56,MR=150,MT=30,MB=46,PW=W-ML-MR,PH=H-MT-MB;
 let DATA=null;
-function farge(n){return "var(--s"+n+")";}
+// C4 (blå) og D1 (rød) er i fokus; pensjonerte linjer (A, B, C, C2, C3) gråes ut.
+function farge(n){return n==="C4"?"var(--fokusC4)":n==="D1"?"var(--fokusD1)":"var(--retirert)";}
+function fokus(n){return n==="C4"||n==="D1";}
 async function last(){
   try{
     const r=await fetch("data.json?ts="+Date.now(),{cache:"no-store"});
@@ -208,12 +210,15 @@ function tegn(){
     const pp=d.proj[d.proj.length-1];
     s+='<text x="'+(X(pp.g)+6)+'" y="'+(Y(pp.v)+4)+'" class="merk" fill="var(--tx2)">forventet</text>';
   }
-  for(const serie of d.serier){
-    for(const p of serie.rå) if(p.v>=YMIN&&p.v<=YMAX)
+  // Pensjonerte serier tegnes først (bakgrunn), fokusseriene (C4/D1) sist og tykkere.
+  const rekkefølge=[...d.serier].sort((a,b)=>(fokus(a.navn)?1:0)-(fokus(b.navn)?1:0));
+  for(const serie of rekkefølge){
+    const f=fokus(serie.navn);
+    if(f) for(const p of serie.rå) if(p.v>=YMIN&&p.v<=YMAX)
       s+='<circle cx="'+X(p.g).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="2" fill="'+farge(serie.navn)+'" opacity="0.22"/>';
-    s+='<path d="'+sti(serie.glatt)+'" fill="none" stroke="'+farge(serie.navn)+'" stroke-width="2" stroke-linejoin="round"/>';
+    s+='<path d="'+sti(serie.glatt)+'" fill="none" stroke="'+farge(serie.navn)+'" stroke-width="'+(f?2.6:1.4)+'"'+(f?'':' opacity="0.55"')+' stroke-linejoin="round"/>';
     const sp=serie.glatt[serie.glatt.length-1];
-    s+='<text x="'+(X(sp.g)+7)+'" y="'+(Y(sp.v)+4)+'" class="merk" fill="'+farge(serie.navn)+'">'+serie.navn+'</text>';
+    s+='<text x="'+(X(sp.g)+7)+'" y="'+(Y(sp.v)+4)+'" class="merk"'+(f?'':' opacity="0.6" font-size="10"')+' fill="'+farge(serie.navn)+'">'+serie.navn+'</text>';
   }
   s+='<line id="kryss" y1="'+MT+'" y2="'+(MT+PH)+'" stroke="var(--tx2)" opacity="0" stroke-dasharray="3 3"/>';
   document.getElementById("graf").innerHTML=
@@ -221,8 +226,9 @@ function tegn(){
     '<line x1="'+ML+'" y1="'+MT+'" x2="'+ML+'" y2="'+(MT+PH)+'" stroke="var(--grid)"/>'+
     '<line x1="'+ML+'" y1="'+(MT+PH)+'" x2="'+(ML+PW)+'" y2="'+(MT+PH)+'" stroke="var(--grid)"/>'+
     '<text x="'+(ML+PW/2)+'" y="'+(H-8)+'" text-anchor="middle" class="akse">generasjon (per modell)</text>'+s+'</svg>';
+  const lgOrd=[...d.serier].sort((a,b)=>(fokus(b.navn)?1:0)-(fokus(a.navn)?1:0));
   document.getElementById("legend").innerHTML=
-    d.serier.map(x=>'<span class="lg"><i style="background:'+farge(x.navn)+'"></i>'+x.navn+'</span>').join("")+
+    lgOrd.map(x=>'<span class="lg"'+(fokus(x.navn)?' style="font-weight:600"':' style="opacity:.65"')+'><i style="background:'+farge(x.navn)+'"></i>'+x.navn+(fokus(x.navn)?'':' (pensjonert)')+'</span>').join("")+
     '<span class="lg"><i class="strek"></i>Forventet (trend i C-arven)</span>';
   document.getElementById("tabell").innerHTML=
     '<tr><th>Modell</th><th>Siste gen</th><th>Beste (glattet)</th><th>Nå (glattet)</th></tr>'+
