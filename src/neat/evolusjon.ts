@@ -31,7 +31,15 @@ import {
 import { NeatAgent, STD_LÆRINGSRATE } from "./agent.ts";
 import { utId } from "./genom.ts";
 import { GruppePool } from "./pool.ts";
-import { ANTALL_INN, ANTALL_UT, UT_MARGIN, UT_XT } from "./trekk.ts";
+import {
+  ANTALL_INN,
+  ANTALL_UT,
+  UT_MAKKER,
+  UT_MARGIN,
+  UT_XT,
+  UT_XT_HØY,
+  UT_XT_LAV,
+} from "./trekk.ts";
 import {
   beregnFitness,
   kjørTurnering,
@@ -145,7 +153,9 @@ export class Evolusjon {
       // skal arves – ikke viskes ut.
       rater: opts.rater ?? {
         ...STANDARD_RATER,
-        dempedeMål: new Set([utId(ANTALL_INN, UT_XT), utId(ANTALL_INN, UT_MARGIN)]),
+        dempedeMål: new Set(
+          [UT_XT, UT_MARGIN, UT_XT_LAV, UT_XT_HØY, UT_MAKKER].map((u) => utId(ANTALL_INN, u)),
+        ),
         dempFaktor: 0.3,
       },
       lambdaRegret: opts.lambdaRegret ?? 0.5,

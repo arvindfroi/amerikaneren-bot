@@ -15,7 +15,14 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { genomFraJson, utvidInnganger, ANTALL_INN, type Genom } from "../src/neat/index.ts";
+import {
+  genomFraJson,
+  utvidInnganger,
+  utvidUtganger,
+  ANTALL_INN,
+  ANTALL_UT,
+  type Genom,
+} from "../src/neat/index.ts";
 
 const fraDir = process.argv[2] ?? "trening-c2";
 const utfil = process.argv[3] ?? "trening-c3/start.json";
@@ -36,13 +43,16 @@ if (filer.size === 0) {
 
 const migrerte: Genom[] = [];
 for (const fil of filer) {
-  const g = genomFraJson(readFileSync(fil, "utf8"));
-  if (g.antallInn > ANTALL_INN) {
-    console.error(`${fil} har ${g.antallInn} innganger – nyere enn kodingen (${ANTALL_INN}); hopper over`);
+  let g = genomFraJson(readFileSync(fil, "utf8"));
+  if (g.antallInn > ANTALL_INN || g.antallUt > ANTALL_UT) {
+    console.error(`${fil} har ${g.antallInn}/${g.antallUt} inn/ut – nyere enn kodingen; hopper over`);
     continue;
   }
-  migrerte.push(g.antallInn === ANTALL_INN ? g : utvidInnganger(g, ANTALL_INN));
-  console.log(`${fil}: ${g.antallInn} → ${ANTALL_INN} innganger`);
+  const før = `${g.antallInn}/${g.antallUt}`;
+  if (g.antallUt < ANTALL_UT) g = utvidUtganger(g, ANTALL_UT);
+  if (g.antallInn < ANTALL_INN) g = utvidInnganger(g, ANTALL_INN);
+  migrerte.push(g);
+  console.log(`${fil}: ${før} → ${ANTALL_INN}/${ANTALL_UT} inn/ut`);
 }
 
 mkdirSync(dirname(utfil), { recursive: true });

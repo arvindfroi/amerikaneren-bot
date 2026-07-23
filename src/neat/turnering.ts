@@ -31,9 +31,9 @@ export interface TurneringsAgent {
   estimatFor(rundeNr: number): BudEstimat | undefined;
   /**
    * Valgfri regret-læring: kalles når agentens kontrakt er avgjort, med de
-   * faktiske lagstikkene, slik at nettet kan kalibrere seg mot fasit.
+   * faktiske lag- og makkerstikkene, slik at nettet kan kalibrere seg.
    */
-  lærAvKontrakt?(rundeNr: number, lagStikk: number): void;
+  lærAvKontrakt?(rundeNr: number, lagStikk: number, makkerStikk?: number): void;
 }
 
 export interface KampOpts {
@@ -167,7 +167,8 @@ function bokførRegret(
     regretSum[agentIdx]! += kalibrering + poengTap / (2 * antallStikk);
     regretRunder[agentIdx]!++;
     // Nettet lærer av angeren sin med en gang fasiten foreligger.
-    agent.lærAvKontrakt?.(førState.rundeNr, res.lagStikk);
+    const makkerStikk = res.makker !== null ? (res.stikkVunnet[res.makker] ?? 0) : 0;
+    agent.lærAvKontrakt?.(førState.rundeNr, res.lagStikk, makkerStikk);
   }
 }
 

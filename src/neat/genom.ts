@@ -408,6 +408,38 @@ export function utvidInnganger(g: Genom, nyAntallInn: number): Genom {
   };
 }
 
+/**
+ * Utvider genomet til flere utganger (nye hoder legges ALLTID etter de
+ * gamle). Skjulte noder forskyves; alle koblinger beholder vekt og
+ * struktur. Hver ny utgang får en bias-kobling med vekt 0, slik at
+ * regret-læringen har noe å kalibrere fra dag én (en utgang uten
+ * innkommende koblinger kan aldri lære). Innovasjonsnumrene på de nye
+ * koblingene er plassholdere – lastes genomet via `startPopulasjon`
+ * kanoniseres alle numre uansett.
+ */
+export function utvidUtganger(g: Genom, nyAntallUt: number): Genom {
+  if (nyAntallUt < g.antallUt) {
+    throw new Error("Kan bare utvide utgangslaget, ikke krympe det");
+  }
+  const skift = nyAntallUt - g.antallUt;
+  const gammelSkjult = førsteSkjulteId(g.antallInn, g.antallUt);
+  const nyId = (id: number): number => (id < gammelSkjult ? id : id + skift);
+
+  const noder: NodeGen[] = g.noder.map((n) => ({ id: nyId(n.id), type: n.type }));
+  const koblinger: KoblingGen[] = g.koblinger.map((k) => ({
+    ...k,
+    inn: nyId(k.inn),
+    ut: nyId(k.ut),
+  }));
+  for (let j = g.antallUt; j < nyAntallUt; j++) {
+    const id = utId(g.antallInn, j);
+    noder.push({ id, type: "ut" });
+    koblinger.push({ inn: biasId(g.antallInn), ut: id, vekt: 0, aktiv: true, innovasjon: -1 - j });
+  }
+  noder.sort((a, b) => a.id - b.id);
+  return { antallInn: g.antallInn, antallUt: nyAntallUt, noder, koblinger };
+}
+
 // ---------------------------------------------------------------------------
 // Serialisering
 // ---------------------------------------------------------------------------

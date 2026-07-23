@@ -59,19 +59,29 @@ export const ANTALL_INN = 280;
 const BESLUTNINGER: readonly Beslutning[] = ["BUD", "VRAK", "VELG", "SPILL"];
 
 // --- Utgangslayout ----------------------------------------------------------
-/** xT – forventet antall stikk for egen side gitt hånden (skalert av agenten). */
+/** xT-median – forventet antall lagstikk gitt hånden (skalert av agenten). */
 export const UT_XT = 0;
 /** Tilbøyelighet til å melde Amerikaner. */
 export const UT_AMERIKANER = 1;
 /** Tilbøyelighet til å melde solo-amerikaner. */
 export const UT_SOLO = 2;
-/** Budmargin: lært aggressivitet lagt til xT før budet velges. */
+/** Budmargin: lært aggressivitet (skyver EV-terskelen i budvalget). */
 export const UT_MARGIN = 3;
 /** 4 trumffarge-verdier (S,H,R,K). */
 export const UT_TRUMF = 4;
 /** 52 kortverdier: brukes til vraking, etterlysning og kortspill. */
 export const UT_KORT = 8;
-export const ANTALL_UT = 60;
+/**
+ * Fordelings-hoder: hånden ved budøyeblikket er ikke alene indikativ for
+ * lagstikkene – talongen kommer og makkeren produserer stikk. Nettet
+ * forutsier derfor en FORDELING (20 %- og 80 %-kvantil rundt medianen), og
+ * budet velges EV-maksimerende over den. UT_MAKKER lærer makkerens bidrag
+ * separat (hjelpeoppgave med egen fasit: makkerens faktiske stikk).
+ */
+export const UT_XT_LAV = 60;
+export const UT_XT_HØY = 61;
+export const UT_MAKKER = 62;
+export const ANTALL_UT = 63;
 
 /**
  * Bygger inngangsvektoren for spilleren i `visning` ved beslutningstypen

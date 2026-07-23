@@ -16,6 +16,7 @@ import {
   nyttGenom,
   STANDARD_RATER,
   utvidInnganger,
+  utvidUtganger,
 } from "../src/neat/genom.ts";
 import { Nettverk } from "../src/neat/nett.ts";
 
@@ -180,4 +181,25 @@ test("dempet vektmutasjon rører knapt koblinger inn til vernede mål", () => {
     .map((k, i) => Math.abs(k.vekt - førAndre[i]!));
   const snitt = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
   assert.ok(snitt(diffVernet) < snitt(diffAndre) * 0.5, `vernet ${snitt(diffVernet)} vs ${snitt(diffAndre)}`);
+});
+
+test("utvidUtganger bevarer gamle utganger eksakt; nye hoder starter på 0 med bias-anker", () => {
+  const bok = new Innovasjonsbok(INN, UT);
+  const rng = lagRng(41);
+  const g = nyttGenom(INN, UT, bok, rng, 3);
+  muterNyNode(g, bok, rng);
+
+  const stor = utvidUtganger(g, UT + 2);
+  assert.equal(stor.antallUt, UT + 2);
+  assert.equal(stor.noder.filter((n) => n.type === "ut").length, UT + 2);
+
+  const inn = Array.from({ length: INN }, (_, i) => Math.cos(i));
+  const gammel = new Nettverk(g).aktiver(inn);
+  const ny = new Nettverk(stor).aktiver(inn);
+  assert.deepEqual(ny.slice(0, UT), gammel, "gamle utganger uendret");
+  assert.deepEqual(ny.slice(UT), [0, 0], "nye hoder starter på tanh(0·bias)=0");
+  // Bias-ankeret finnes, så kalibrering kan lære fra dag én.
+  for (let j = UT; j < UT + 2; j++) {
+    assert.ok(stor.koblinger.some((k) => k.ut === INN + 1 + j), "ny utgang har innkommende kobling");
+  }
 });

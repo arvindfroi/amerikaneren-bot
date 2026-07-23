@@ -33,10 +33,13 @@ import {
   lagInn,
   UT_AMERIKANER,
   UT_KORT,
+  UT_MAKKER,
   UT_MARGIN,
   UT_SOLO,
   UT_TRUMF,
   UT_XT,
+  UT_XT_HØY,
+  UT_XT_LAV,
 } from "./trekk.ts";
 
 /** Terskler for de spesielle meldingene (utgangene er tanh, dvs. (-1,1)). */
@@ -81,15 +84,25 @@ export class NeatAgent {
    * arver forbedringen. Utfyller fitness-fradraget: der lukes dårlige
    * budgivere bort, her blir de gjenværende faktisk bedre.
    */
-  lærAvKontrakt(rundeNr: number, lagStikk: number): void {
+  lærAvKontrakt(rundeNr: number, lagStikk: number, makkerStikk = 0): void {
     if (this.læringsrate <= 0) return;
     const est = this.estimater.get(rundeNr);
     if (est === undefined) return;
     // Gjenskap nettets tilstand fra budøyeblikket, kalibrer mot fasit.
     this.nett.aktiver(est.inn);
-    const målXt = (2 * lagStikk) / est.antallStikk - 1; // stikk → tanh-rom
-    this.nett.kalibrerUtgang(UT_XT, målXt, this.læringsrate);
-    // Margin = utgang · 2 stikk → ideell endring (stikk − bud)/2 i tanh-rom.
+    const y = (2 * lagStikk) / est.antallStikk - 1; // stikk → tanh-rom
+    this.nett.kalibrerUtgang(UT_XT, y, this.læringsrate);
+    // Kvantilene lærer med asymmetrisk rate (pinball-prinsippet): 20 %-
+    // kvantilen dras hardt ned når fasit er under den, forsiktig opp ellers
+    // – og speilvendt for 80 %. Slik lærer nettet FORDELINGEN av lagstikk,
+    // ikke bare snittet (talong + ukjent makker gir ekte spredning).
+    const q20 = this.nett.lesUtgang(UT_XT_LAV);
+    this.nett.kalibrerUtgang(UT_XT_LAV, y, this.læringsrate * (y < q20 ? 0.8 : 0.2));
+    const q80 = this.nett.lesUtgang(UT_XT_HØY);
+    this.nett.kalibrerUtgang(UT_XT_HØY, y, this.læringsrate * (y > q80 ? 0.8 : 0.2));
+    // Makker-hodet lærer makkerens faktiske bidrag (egen fasit).
+    this.nett.kalibrerUtgang(UT_MAKKER, (2 * makkerStikk) / est.antallStikk - 1, this.læringsrate);
+    // Margin = EV-terskelskyver → dyttes i budfeilens retning.
     const m = this.nett.lesUtgang(UT_MARGIN);
     const målM = Math.max(-1, Math.min(1, m + (lagStikk - est.bud) / 2));
     this.nett.kalibrerUtgang(UT_MARGIN, målM, this.læringsrate);
@@ -134,44 +147,66 @@ export class NeatAgent {
     const visning = spillerVisning(state, spiller);
     const inn = lagInn(visning, "BUD", state.giving.antallStikk, state.regler.målPoeng);
     const ut = this.nett.aktiver(inn);
-    const antallStikk = state.giving.antallStikk;
+    const T = state.giving.antallStikk;
+    const mål = state.regler.målPoeng;
 
-    // xT: tanh (-1,1) → (0, antallStikk). Margin: lært justering ±2 stikk.
-    const xt = ((ut[UT_XT]! + 1) / 2) * antallStikk;
-    const margin = ut[UT_MARGIN]! * 2;
-    const mål = xt + margin;
+    // Nettets FORDELING av lagstikk: 20 %-kvantil, median, 80 %-kvantil
+    // (sortert – kvantilene kan krysse tidlig i treningen). Hånden alene
+    // avgjør ikke stikkene (talong + makker), så budet velges EV-
+    // maksimerende over fordelingen, ikke fra ett punktestimat.
+    const tilStikk = (v: number): number => ((v + 1) / 2) * T;
+    const [lav, med, høy] = [
+      tilStikk(ut[UT_XT_LAV]!),
+      tilStikk(ut[UT_XT]!),
+      tilStikk(ut[UT_XT_HØY]!),
+    ].sort((a, b) => a - b) as [number, number, number];
+    const margin = ut[UT_MARGIN]!; // lært aggressivitet: skyver EV-terskelen
+
+    // P(lagstikk ≥ n): stykkevis lineær gjennom (lav, 0,8), (med, 0,5), (høy, 0,2).
+    const pMinst = (n: number): number => {
+      let p: number;
+      if (n <= lav) p = 0.8 + (lav - n) * 0.05;
+      else if (n <= med) p = med === lav ? 0.65 : 0.8 - (0.3 * (n - lav)) / (med - lav);
+      else if (n <= høy) p = høy === med ? 0.35 : 0.5 - (0.3 * (n - med)) / (høy - med);
+      else p = 0.2 - (n - høy) * 0.1;
+      return Math.max(0, Math.min(1, p));
+    };
 
     const bud = (b: Bud): Handling => {
       if (b !== PASS) {
-        const tall = typeof b === "number" ? b : antallStikk;
-        this.estimater.set(state.rundeNr, { xt, bud: tall, inn, antallStikk });
+        const tall = typeof b === "number" ? b : T;
+        this.estimater.set(state.rundeNr, { xt: med, bud: tall, inn, antallStikk: T });
       }
       return { type: "BUD", spiller, bud: b };
     };
 
-    // Solo/Amerikaner: nettet må både ønske det og tro på (nesten) alle stikk.
-    if (lovlige.includes(SOLO) && ut[UT_SOLO]! > SOLO_TERSKEL && mål >= antallStikk - 0.5) {
-      return bud(SOLO);
-    }
-    if (
-      lovlige.includes(AMERIKANER) &&
-      ut[UT_AMERIKANER]! > AMERIKANER_TERSKEL &&
-      mål >= antallStikk - 1.5
-    ) {
-      return bud(AMERIKANER);
-    }
-
-    // Tallbud: by det man regner med å ta (poengene følger budet), men aldri
-    // over målestimatet og aldri lavere enn minste lovlige forhøyelse.
-    const tallbud = lovlige.filter((b): b is number => typeof b === "number");
-    if (tallbud.length > 0) {
-      const ønsket = Math.min(antallStikk, Math.floor(mål));
-      const kandidater = tallbud.filter((b) => b <= ønsket);
-      if (kandidater.length > 0) {
-        return bud(Math.max(...kandidater));
+    // EV per melding (budvinner-satser); margin·2 poeng i lært dristighet.
+    let besteBud: Bud = PASS;
+    let besteEV = 0;
+    for (const b of lovlige) {
+      if (typeof b !== "number") continue;
+      const ev = 2 * b * (2 * pMinst(b) - 1) + margin * 2;
+      if (ev > besteEV) {
+        besteEV = ev;
+        besteBud = b;
       }
     }
-    return bud(PASS);
+    const pAlle = pMinst(T);
+    if (lovlige.includes(AMERIKANER) && ut[UT_AMERIKANER]! > AMERIKANER_TERSKEL && høy >= T - 1) {
+      const ev = (mål / 2) * (2 * pAlle - 1);
+      if (ev > besteEV) {
+        besteEV = ev;
+        besteBud = AMERIKANER;
+      }
+    }
+    if (lovlige.includes(SOLO) && ut[UT_SOLO]! > SOLO_TERSKEL && lav >= T - 0.5) {
+      const ev = mål * (2 * pAlle - 1);
+      if (ev > besteEV) {
+        besteEV = ev;
+        besteBud = SOLO;
+      }
+    }
+    return bud(besteBud);
   }
 
   private velgVrak(state: GameState, spiller: number, antall: number): Handling {
