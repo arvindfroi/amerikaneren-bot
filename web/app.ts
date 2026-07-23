@@ -106,10 +106,27 @@ async function start(navn: string): Promise<void> {
   fortsett();
 }
 
+/** Ferdig stikk som holdes synlig på bordet en stund (med vinner). */
+let frystStikk: { kort: readonly { spiller: number; kort: Kort }[]; vinner: number } | null = null;
+
 function gjør(h: Handling): void {
   const res = utfør(state, h);
   state = res.state;
   håndterHendelser(res.hendelser);
+  // Fullført stikk: frys det på bordet i 2,6 s slik at alle rekker å se
+  // alle fire kortene og hvem som vant, før spillet går videre.
+  const stikk = res.hendelser.find((x) => x.type === "STIKK_FERDIG");
+  if (stikk !== undefined && stikk.type === "STIKK_FERDIG") {
+    frystStikk = { kort: stikk.stikk, vinner: stikk.vinner };
+    travelt = true;
+    tegn();
+    setTimeout(() => {
+      frystStikk = null;
+      travelt = false;
+      fortsett();
+    }, 2600);
+    return;
+  }
   fortsett();
 }
 
@@ -166,9 +183,8 @@ function fortsett(): void {
         ? nettAgenter[aktør - 1]!.velgHandling(state)
         : velgHandling(state, { ...PIMC_OPTS, frø: (Math.random() * 1e9) >>> 0 });
     travelt = false;
-    // Liten pause etter fullført stikk så alle rekker å se det.
-    const varStikkSlutt = state.bord.length === 3 && h.type === "SPILL";
-    gjørMedPause(h, varStikkSlutt ? 1400 : nettAgenter !== null ? 550 : 250);
+    // Stikk-frysingen skjer i gjør() – her bare et lite pusterom per trekk.
+    gjørMedPause(h, nettAgenter !== null ? 550 : 250);
   }, 30);
 }
 
@@ -238,9 +254,11 @@ function topplinje(): string {
       : state.fase === "BUDRUNDE"
         ? "Budrunde"
         : "";
+  // Stikkteller vises så snart runden spilles (også mens stikket er fryst).
+  const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
   return `<header>
-    <div class="poeng" role="group" aria-label="Poengstilling">
-      ${state.totalPoeng.map((p, i) => `<div class="spiller${i === MENNESKE ? " deg" : ""}"><span>${NAVN[i]}</span><b>${p}</b></div>`).join("")}
+    <div class="poeng" role="group" aria-label="Poengstilling og stikk">
+      ${state.totalPoeng.map((p, i) => `<div class="spiller${i === MENNESKE ? " deg" : ""}"><span>${NAVN[i]}</span><b>${p}</b>${iSpill ? `<span style="color:#7fe08a;font-weight:700" aria-label="stikk denne runden">${state.stikkVunnet[i]} stikk</span>` : ""}</div>`).join("")}
     </div>
     <div class="kontrakt">${kontrakt}</div>
     <div class="runde">Runde ${state.rundeNr + 1} · først til ${state.regler.målPoeng}</div>
@@ -250,11 +268,14 @@ function topplinje(): string {
 function bordet(): string {
   // bord[i] plasseres etter sete: 0 nederst, 1 venstre, 2 øverst, 3 høyre.
   const plass = ["bunn", "venstre", "topp", "høyre"];
-  const kort = state.bord
+  // Fryst stikk: alle fire kortene blir stående med vinnermarkering.
+  const påBordet = frystStikk !== null ? frystStikk.kort : state.bord;
+  const kort = påBordet
     .map((b) => `<div class="bordkort ${plass[b.spiller]}">
-      <div class="hvem">${NAVN[b.spiller]}</div>${kortKnapp(b.kort, { liten: true })}</div>`)
+      <div class="hvem">${NAVN[b.spiller]}${frystStikk !== null && b.spiller === frystStikk.vinner ? ' <span style="color:#ffd54f">★ vant stikket</span>' : ""}</div>${kortKnapp(b.kort, { liten: true })}</div>`)
     .join("");
   const tenker =
+    frystStikk === null &&
     !venterPåMenneske && state.fase === "SPILL" && state.iTur !== null && state.iTur !== MENNESKE
       ? `<div class="tenker ${plass[state.iTur]}">${NAVN[state.iTur]} tenker…</div>`
       : "";
