@@ -41,6 +41,13 @@ export interface KampOpts {
   readonly maksRunder?: number;
   /** Handlingstak per kamp (vern mot evige budrunder hos svake nett). */
   readonly maksHandlinger?: number;
+  /**
+   * Antall kortgivinger per gruppekamp (hver spilles med full sete-
+   * rotasjon → 4·frøPerKamp kamper). Flere frø = mindre trekningsstøy i
+   * seleksjonen – avgjørende når populasjonen er jevn og ekte forskjeller
+   * er små. Standard 1.
+   */
+  readonly frøPerKamp?: number;
 }
 
 const STD_MAKS_RUNDER = 40;
@@ -79,18 +86,21 @@ export function spillGruppekamp(
   if (agenter.length !== 4) throw new Error("Gruppekamp krever nøyaktig 4 agenter");
   const maksRunder = opts.maksRunder ?? STD_MAKS_RUNDER;
   const maksHandlinger = opts.maksHandlinger ?? STD_MAKS_HANDLINGER;
+  const frøPerKamp = opts.frøPerKamp ?? 1;
 
   const poeng = [0, 0, 0, 0];
   const seire = [0, 0, 0, 0];
   const regretSum = [0, 0, 0, 0];
   const regretRunder = [0, 0, 0, 0];
 
-  for (let rotasjon = 0; rotasjon < 4; rotasjon++) {
+  for (let kampNr = 0; kampNr < 4 * frøPerKamp; kampNr++) {
+    const rotasjon = kampNr % 4;
+    const kampFrø = (frø + Math.imul(Math.floor(kampNr / 4), 0x9e3779b1)) >>> 0;
     // Agent i sitter i sete (i + rotasjon) % 4.
     const agentISete = (sete: number): number => (sete - rotasjon + 4) % 4;
     for (const a of agenter) a.nyKamp();
 
-    let state = opprettSpill({ antallSpillere: 4 }, frø);
+    let state = opprettSpill({ antallSpillere: 4 }, kampFrø);
     let handlinger = 0;
     while (state.fase !== "FERDIG" && handlinger++ < maksHandlinger) {
       if (state.fase === "RUNDE_SLUTT" && state.rundeNr + 1 >= maksRunder) break;
@@ -347,7 +357,10 @@ export function beregnFitness(
   forrigeMesterIdx: number | null,
   opts: FitnessOpts = {},
 ): number[] {
-  const lambda = opts.lambdaRegret ?? 0.5;
+  // Lav vekt: angeren måles på få kontrakter per cup (høy varians) og ville
+  // ellers sprøytet støy inn i seleksjonen; selve LÆRINGEN av anger skjer nå
+  // uansett i nettet (kalibreringen), ikke via fradraget.
+  const lambda = opts.lambdaRegret ?? 0.25;
   const n = res.dybde.length;
   const maksDybde = Math.max(...res.dybde);
   const referanse = forrigeMesterIdx === null ? 0 : res.dybde[forrigeMesterIdx]!;
@@ -364,7 +377,10 @@ export function beregnFitness(
   for (let i = 0; i < n; i++) {
     const relativDybde = res.dybde[i]! - referanse + maksDybde; // ≥ 0
     const base = (relativDybde + 1) * 2;
-    const poengBonus = ((res.poeng[i]! - minP) / spenn) * 0.9;
+    // 1,8 < 2 (ett dybdesteg): dybden dominerer fortsatt, men differansen
+    // får nå reell seleksjonskraft innen samme dybde – avgjørende når
+    // populasjonen er jevn og dybden alene er nesten ren trekningsstøy.
+    const poengBonus = ((res.poeng[i]! - minP) / spenn) * 1.8;
     const anger = lambda * res.regretSnitt[i]!;
     fitness[i] = Math.max(0.05, base + poengBonus - anger);
   }
