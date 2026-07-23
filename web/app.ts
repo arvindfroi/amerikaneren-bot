@@ -282,7 +282,17 @@ function bordet(): string {
   const info = state.etterlyst
     ? `<div class="etterlyst">Etterlyst: ${kortTekst(state.etterlyst)}${state.makkerAvslørt && state.makker !== null ? ` (${NAVN[state.makker]})` : " (skjult makker)"}</div>`
     : "";
-  return `<div class="bord" aria-label="Bordet">${kort}${tenker}${info}</div>`;
+  // Forrige stikk: alltid synlig i hjørnet mens neste stikk spilles.
+  const forrige =
+    frystStikk === null && state.fase === "SPILL" && state.forrigeStikk !== null
+      ? `<div style="position:absolute;right:0.5%;top:1%;background:rgba(0,0,0,.55);border:2px solid #2c4a35;border-radius:12px;padding:0.6vh 0.8vw;text-align:center" aria-label="Forrige stikk">
+          <div style="font-size:0.7em;color:#b9c7ad;margin-bottom:0.3vh">Forrige stikk · <b style="color:#ffd54f">${NAVN[state.forrigeStikk.vinner]}</b> vant</div>
+          <div style="display:flex;gap:4px;justify-content:center">${state.forrigeStikk.kort
+            .map((b) => `<div style="zoom:0.5"><div style="font-size:1.4em;color:#b9c7ad">${NAVN[b.spiller].split(" ")[0]}</div>${kortKnapp(b.kort, { liten: true })}</div>`)
+            .join("")}</div>
+        </div>`
+      : "";
+  return `<div class="bord" aria-label="Bordet">${kort}${tenker}${info}${forrige}</div>`;
 }
 
 function håndPanel(): string {
