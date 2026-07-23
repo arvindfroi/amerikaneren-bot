@@ -46,7 +46,15 @@ const MINE_POENG = 198; //     1: egne kamppoeng (/målPoeng, klippet)
 const BESTE_MOTSTANDER = 199;//1: beste motstanders kamppoeng
 const ETTERLYST_UTE = 200; //  1: etterlyst kort ennå ikke lagt
 const ETTERLYST = 201; //     52: det etterlyste kortet
-export const ANTALL_INN = 253;
+// --- Avledede sensorer (offentlig deduksjon servert ferdig) ---
+const RENONS = 253; //        12: avslørt renons hos motspillerne (rel. sete 1–3 × farge)
+const SKJULTE_I_FARGE = 265; // 4: antall skjulte kort per farge (/13)
+const BOSS = 269; //           4: jeg holder høyeste LEVENDE kort i fargen
+const TRUMF_UTE = 273; //      1: trumf igjen utenfor egen hånd (/13)
+const BESTE_ER_TRUMF = 274; // 1: beste kort på bordet er trumf
+const KAN_SLÅ = 275; //        1: jeg har et lovlig kort som slår bordet
+const STIKKLEDER = 276; //     4: hvem vinner stikket akkurat nå (rel. sete)
+export const ANTALL_INN = 280;
 
 const BESLUTNINGER: readonly Beslutning[] = ["BUD", "VRAK", "VELG", "SPILL"];
 
@@ -156,7 +164,80 @@ export function lagInn(
     if (!settUte.has(idx)) inn[ETTERLYST_UTE] = 1;
   }
 
+  // --- Avledede sensorer -----------------------------------------------------
+
+  // Avslørt renons: fulgte en spiller ikke utspillsfargen, er hen renons i
+  // den (offentlig deduksjon). Egen renons (rel. sete 0) trengs ikke.
+  const alleStikk = visning.bord.length > 0
+    ? [...visning.historikk, { kort: visning.bord, vinner: -1 }]
+    : visning.historikk;
+  for (const stikk of alleStikk) {
+    if (stikk.kort.length === 0) continue;
+    const ledFarge = stikk.kort[0]!.kort.farge;
+    for (const kp of stikk.kort) {
+      if (kp.kort.farge !== ledFarge) {
+        const r = rel(kp.spiller);
+        if (r > 0) inn[RENONS + (r - 1) * 4 + FARGER.indexOf(ledFarge)] = 1;
+      }
+    }
+  }
+
+  // Skjulte kort og boss-kort per farge («levende» = verken på egen hånd
+  // eller ute av spill; skjult = levende og ikke min).
+  const minHøyeste: Record<Farge, number> = { S: 0, H: 0, R: 0, K: 0 };
+  const mineIFarge: Record<Farge, number> = { S: 0, H: 0, R: 0, K: 0 };
+  for (const k of visning.dinHånd) {
+    mineIFarge[k.farge]++;
+    if (k.verdi > minHøyeste[k.farge]) minHøyeste[k.farge] = k.verdi;
+  }
+  for (let f = 0; f < 4; f++) {
+    const farge = FARGER[f]!;
+    let uteAvSpill = 0;
+    let høyesteSkjulte = 0;
+    for (let v = 14; v >= 2; v--) {
+      if (settUte.has(f * 13 + (v - 2))) uteAvSpill++;
+      else if (høyesteSkjulte === 0 && v !== minHøyeste[farge] && !harVerdi(visning.dinHånd, farge, v)) {
+        høyesteSkjulte = v;
+      }
+    }
+    inn[SKJULTE_I_FARGE + f] = (13 - uteAvSpill - mineIFarge[farge]) / 13;
+    if (minHøyeste[farge] > 0 && minHøyeste[farge] > høyesteSkjulte) inn[BOSS + f] = 1;
+  }
+  if (visning.trumf !== null) {
+    const tIdx = FARGER.indexOf(visning.trumf);
+    inn[TRUMF_UTE] = inn[SKJULTE_I_FARGE + tIdx]!;
+  }
+
+  // Stikket akkurat nå: hvem leder, er lederen trumf, og kan jeg slå?
+  if (visning.bord.length > 0 && visning.trumf !== null) {
+    const trumf = visning.trumf;
+    const ledFarge = visning.bord[0]!.kort.farge;
+    let beste = visning.bord[0]!;
+    for (const kp of visning.bord) {
+      if (slårPå(kp.kort, beste.kort, trumf, ledFarge)) beste = kp;
+    }
+    inn[STIKKLEDER + rel(beste.spiller)] = 1;
+    if (beste.kort.farge === trumf) inn[BESTE_ER_TRUMF] = 1;
+    const kandidater = visning.lovligeKort.length > 0 ? visning.lovligeKort : visning.dinHånd;
+    if (kandidater.some((k) => slårPå(k, beste.kort, trumf, ledFarge))) inn[KAN_SLÅ] = 1;
+  }
+
   return inn;
+}
+
+function harVerdi(hånd: readonly Kort[], farge: Farge, verdi: number): boolean {
+  return hånd.some((k) => k.farge === farge && k.verdi === verdi);
+}
+
+/** Slår `ny` det beste kortet så langt i stikket? (Samme regel som motoren.) */
+function slårPå(ny: Kort, beste: Kort, trumf: Farge, ledFarge: Farge): boolean {
+  const nyT = ny.farge === trumf;
+  const bT = beste.farge === trumf;
+  if (nyT !== bT) return nyT;
+  if (nyT) return ny.verdi > beste.verdi;
+  if (ny.farge !== ledFarge) return false;
+  if (beste.farge !== ledFarge) return true;
+  return ny.verdi > beste.verdi;
 }
 
 function klipp01(x: number): number {

@@ -202,6 +202,14 @@ export interface MutasjonsRater {
   readonly nyNode: number;
   /** Sjanse for å skru en tilfeldig kobling av/på. */
   readonly veksle: number;
+  /**
+   * Målnoder med DEMPET vektmutasjon (f.eks. xT-hodet): koblinger inn til
+   * disse perturberes med `styrke · dempFaktor` og får sjeldnere helt ny
+   * vekt. Verner det regret-læringen har kalibrert i løpet av livet mot å
+   * bli visket ut i avkommet – uten å frata resten av nettet utforskning.
+   */
+  readonly dempedeMål?: ReadonlySet<number>;
+  readonly dempFaktor?: number;
 }
 
 export const STANDARD_RATER: MutasjonsRater = {
@@ -214,9 +222,11 @@ export const STANDARD_RATER: MutasjonsRater = {
 };
 
 export function muterVekter(g: Genom, rng: () => number, rater: MutasjonsRater): void {
+  const demp = rater.dempFaktor ?? 0.3;
   for (const k of g.koblinger) {
-    if (rng() < rater.nyVekt) k.vekt = gaussisk(rng);
-    else k.vekt += gaussisk(rng) * rater.styrke;
+    const dempet = rater.dempedeMål?.has(k.ut) ?? false;
+    if (rng() < rater.nyVekt * (dempet ? demp : 1)) k.vekt = gaussisk(rng);
+    else k.vekt += gaussisk(rng) * rater.styrke * (dempet ? demp : 1);
     if (k.vekt > 8) k.vekt = 8;
     if (k.vekt < -8) k.vekt = -8;
   }
@@ -366,6 +376,36 @@ export function avstand(a: Genom, b: Genom, k: AvstandsKoeff = STANDARD_KOEFF): 
   const normN = n < 20 ? 1 : n; // små genomer normaliseres ikke (standard praksis)
   const snittVekt = match > 0 ? vektDiff / match : 0;
   return (k.c1 * overskytende) / normN + (k.c2 * disjunkt) / normN + k.c3 * snittVekt;
+}
+
+// ---------------------------------------------------------------------------
+// Migrering: utvid inngangslaget uten å miste evolvert struktur
+// ---------------------------------------------------------------------------
+
+/**
+ * Utvider genomet til flere innganger (nye sensorer legges ALLTID etter de
+ * gamle i kodingen). Eksisterende innganger beholder id-ene sine; bias,
+ * utganger og skjulte noder forskyves, alle koblinger beholder vekt og
+ * struktur. De nye inngangsnodene starter UKOBLET – nettet regner nøyaktig
+ * som før (nye sensorer er 0-bidrag til alt) til evolusjonen kobler dem på.
+ */
+export function utvidInnganger(g: Genom, nyAntallInn: number): Genom {
+  if (nyAntallInn < g.antallInn) {
+    throw new Error("Kan bare utvide inngangslaget, ikke krympe det");
+  }
+  const skift = nyAntallInn - g.antallInn;
+  const nyId = (id: number): number => (id < g.antallInn ? id : id + skift);
+
+  const noder: NodeGen[] = g.noder.map((n) => ({ id: nyId(n.id), type: n.type }));
+  for (let i = g.antallInn; i < nyAntallInn; i++) noder.push({ id: i, type: "inn" });
+  noder.sort((a, b) => a.id - b.id);
+
+  return {
+    antallInn: nyAntallInn,
+    antallUt: g.antallUt,
+    noder,
+    koblinger: g.koblinger.map((k) => ({ ...k, inn: nyId(k.inn), ut: nyId(k.ut) })),
+  };
 }
 
 // ---------------------------------------------------------------------------

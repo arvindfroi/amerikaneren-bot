@@ -15,7 +15,9 @@ import {
   muterVekter,
   nyttGenom,
   STANDARD_RATER,
+  utvidInnganger,
 } from "../src/neat/genom.ts";
+import { Nettverk } from "../src/neat/nett.ts";
 
 const INN = 10;
 const UT = 4;
@@ -134,4 +136,48 @@ test("hoppOver lar nye innovasjoner unngå kollisjon med lastet genom", () => {
   const splitt = bok2.splitt(nyInnovasjon, 0, INN + 1);
   const maksNode = Math.max(...g.noder.map((n) => n.id));
   assert.ok(splitt.nodeId > maksNode);
+});
+
+test("utvidInnganger bevarer nettets funksjon eksakt (nye sensorer = 0)", () => {
+  const bok = new Innovasjonsbok(INN, UT);
+  const rng = lagRng(17);
+  const g = nyttGenom(INN, UT, bok, rng, 3);
+  muterNyNode(g, bok, rng);
+  muterNyKobling(g, bok, rng);
+
+  const utvidet = genomFraJson(genomTilJson(g));
+  const stor = utvidInnganger(utvidet, INN + 5);
+  assert.equal(stor.antallInn, INN + 5);
+  assert.equal(stor.noder.filter((n) => n.type === "inn").length, INN + 5);
+  assert.equal(stor.koblinger.length, g.koblinger.length);
+
+  const inn = Array.from({ length: INN }, (_, i) => Math.sin(i + 1));
+  const gammel = new Nettverk(g).aktiver(inn);
+  const ny = new Nettverk(stor).aktiver([...inn, 0, 0, 0, 0, 0]);
+  assert.deepEqual(ny, gammel, "identiske utganger når nye sensorer er 0");
+
+  assert.throws(() => utvidInnganger(g, INN - 1), /utvide/);
+});
+
+test("dempet vektmutasjon rører knapt koblinger inn til vernede mål", () => {
+  const bok = new Innovasjonsbok(INN, UT);
+  const g = nyttGenom(INN, UT, bok, lagRng(23), 5);
+  const vernet = INN + 1; // første utgang
+  const førVernet = g.koblinger.filter((k) => k.ut === vernet).map((k) => k.vekt);
+  const førAndre = g.koblinger.filter((k) => k.ut !== vernet).map((k) => k.vekt);
+  muterVekter(g, lagRng(29), {
+    ...STANDARD_RATER,
+    nyVekt: 0,
+    styrke: 1,
+    dempedeMål: new Set([vernet]),
+    dempFaktor: 0.1,
+  });
+  const diffVernet = g.koblinger
+    .filter((k) => k.ut === vernet)
+    .map((k, i) => Math.abs(k.vekt - førVernet[i]!));
+  const diffAndre = g.koblinger
+    .filter((k) => k.ut !== vernet)
+    .map((k, i) => Math.abs(k.vekt - førAndre[i]!));
+  const snitt = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  assert.ok(snitt(diffVernet) < snitt(diffAndre) * 0.5, `vernet ${snitt(diffVernet)} vs ${snitt(diffAndre)}`);
 });

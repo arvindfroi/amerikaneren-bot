@@ -112,3 +112,39 @@ test("regret-læring: xT kalibreres mot faktiske stikk og arves i genomet", () =
   }
   assert.fail("agenten bød aldri");
 });
+
+test("nye sensorer: renons, boss og kan-slå beregnes riktig fra en konstruert visning", () => {
+  const { ANTALL_INN: AI } = { ANTALL_INN };
+  // Konstruert stilling: trumf S. Spiller 1 viste renons i H i første stikk.
+  // Jeg (spiller 0) har SA (boss i spar) og H5. På bordet leder spiller 3 med HK.
+  const visning = {
+    fase: "SPILL", iTur: 0, deg: 0,
+    dinHånd: [{ farge: "S", verdi: 14 }, { farge: "H", verdi: 5 }],
+    antallKort: [2, 2, 2, 2], totalPoeng: [0, 0, 0, 0], rundeNr: 0, giver: 0,
+    budrunde: { passet: [false, false, false, false], høyeste: { spiller: 0, bud: 5 } },
+    budvinner: 0, melding: { type: "tall", bud: 5 }, trumf: "S", etterlyst: null,
+    makker: null,
+    bord: [{ spiller: 3, kort: { farge: "H", verdi: 13 } }],
+    stikkVunnet: [0, 0, 0, 0], stikkSpilt: 1, forrigeStikk: null,
+    historikk: [{ kort: [
+      { spiller: 0, kort: { farge: "H", verdi: 10 } },
+      { spiller: 1, kort: { farge: "K", verdi: 2 } }, // fulgte ikke H → renons i H
+      { spiller: 2, kort: { farge: "H", verdi: 12 } },
+      { spiller: 3, kort: { farge: "H", verdi: 14 } },
+    ], vinner: 3 }],
+    dittVrak: [], sisteRunde: null, vinner: null,
+    lovligeKort: [{ farge: "H", verdi: 5 }],
+  } as never;
+  const inn = lagInn(visning, "SPILL", 12, 100);
+  assert.equal(inn.length, AI);
+  // Renons: spiller 1 (rel. sete 1) i hjerter (indeks 1) → RENONS-blokka starter på 253.
+  assert.equal(inn[253 + 0 * 4 + 1], 1, "renons hos rel. sete 1 i hjerter");
+  // Boss i spar (SA på hånd): BOSS-blokka starter på 269, spar er indeks 0.
+  assert.equal(inn[269 + 0], 1, "SA er boss i spar");
+  assert.equal(inn[269 + 1], 0, "H5 er ikke boss i hjerter");
+  // Bordet ledes av HK (ikke trumf); jeg MÅ følge hjerter med H5 – kan ikke slå.
+  assert.equal(inn[274], 0, "beste på bordet er ikke trumf");
+  assert.equal(inn[275], 0, "H5 slår ikke HK");
+  // Stikkleder: spiller 3 = rel. sete 3 (blokka starter på 276).
+  assert.equal(inn[276 + 3], 1);
+});

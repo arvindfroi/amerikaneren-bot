@@ -29,8 +29,9 @@ import {
   type MutasjonsRater,
 } from "./genom.ts";
 import { NeatAgent, STD_LÆRINGSRATE } from "./agent.ts";
+import { utId } from "./genom.ts";
 import { GruppePool } from "./pool.ts";
-import { ANTALL_INN, ANTALL_UT } from "./trekk.ts";
+import { ANTALL_INN, ANTALL_UT, UT_XT } from "./trekk.ts";
 import {
   beregnFitness,
   kjørTurnering,
@@ -139,7 +140,13 @@ export class Evolusjon {
       populasjon,
       frø: opts.frø ?? 1,
       koblingerPerUt: opts.koblingerPerUt ?? 5,
-      rater: opts.rater ?? STANDARD_RATER,
+      // xT-hodet vernes mot mutasjonsstøy som standard: regret-læringen
+      // kalibrerer det i løpet av livet, og kalibreringen skal arves.
+      rater: opts.rater ?? {
+        ...STANDARD_RATER,
+        dempedeMål: new Set([utId(ANTALL_INN, UT_XT)]),
+        dempFaktor: 0.3,
+      },
       lambdaRegret: opts.lambdaRegret ?? 0.5,
       kampOpts: opts.kampOpts ?? {},
       målArter: opts.målArter ?? Math.max(2, Math.round(populasjon / 8)),
