@@ -31,6 +31,7 @@ import {
 import { NeatAgent, STD_LÆRINGSRATE } from "./agent.ts";
 import { utId } from "./genom.ts";
 import { GruppePool } from "./pool.ts";
+import { erPimc, PimcPortvakt, STD_PORTVAKT, type Deltaker } from "./portvakt.ts";
 import {
   ANTALL_INN,
   ANTALL_UT,
@@ -97,6 +98,22 @@ export interface EvolusjonsOpts {
    * identisk resultat, men langt raskere på flerkjernede maskiner.
    */
   readonly tråder?: number;
+  /**
+   * PIMC-portvakter (C6): så mange billige PIMC-solvere stiller i cupen
+   * som ekstra, ikke-reproduserende deltakere (rundes ned til et multiplum
+   * av 4). Seleksjonstrykket peker da direkte mot «slå solveren» – ikke
+   * bare søsknene – og selvspill-sykling får enda mindre rom. 0 = av.
+   */
+  readonly pimcPortvakter?: number;
+  /** Innstillinger for portvaktene (verdener/terskel/maksEval). */
+  readonly pimcOpts?: { verdener?: number; terskel?: number; maksEval?: number };
+  /**
+   * Stagnasjonsspark: forsvarer mesteren tittelen så mange generasjoner PÅ
+   * RAD, dobles strukturmutasjonene (nyKobling/nyNode) og vektstyrken for
+   * avkommet til tittelen ryker – stillstand besvares med utforskning.
+   * 0 = av. Standard 15.
+   */
+  readonly sparkEtter?: number;
 }
 
 /** Genom-trekk + resultat for ett individ (til forklaringsanalysen). */
@@ -197,14 +214,20 @@ export class Evolusjon {
   generasjon = 0;
 
   private readonly opts: Required<
-    Omit<EvolusjonsOpts, "kampOpts" | "rater" | "startGenom" | "startPopulasjon">
-  > & { kampOpts: KampOpts; rater: MutasjonsRater };
+    Omit<EvolusjonsOpts, "kampOpts" | "rater" | "startGenom" | "startPopulasjon" | "pimcOpts">
+  > & {
+    kampOpts: KampOpts;
+    rater: MutasjonsRater;
+    pimcOpts: { verdener: number; terskel: number; maksEval: number };
+  };
   private readonly rng: () => number;
   private arter: Art[] = [];
   private terskel = 3.0;
   private pool: GruppePool | null = null;
   /** Plassen i populasjonen der mesterkopien står (null før første turnering). */
   private mesterIdx: number | null = null;
+  /** Antall generasjoner PÅ RAD mesteren har forsvart tittelen. */
+  private forsvarsrekke = 0;
 
   constructor(opts: EvolusjonsOpts = {}) {
     const populasjon = opts.populasjon ?? 32;
@@ -233,6 +256,9 @@ export class Evolusjon {
       krysningsAndel: opts.krysningsAndel ?? 0.75,
       hallOfFame: opts.hallOfFame ?? 0,
       tråder: opts.tråder ?? 1,
+      pimcPortvakter: Math.floor((opts.pimcPortvakter ?? 0) / 4) * 4,
+      pimcOpts: { ...STD_PORTVAKT, ...opts.pimcOpts },
+      sparkEtter: opts.sparkEtter ?? 15,
     };
     if (this.opts.tråder > 1) this.pool = new GruppePool(this.opts.tråder);
     this.rng = lagRng(this.opts.frø);
@@ -278,8 +304,20 @@ export class Evolusjon {
    * regret-læringen skrives tilbake i genomene i begge tilfeller.
    */
   async spillTurnering(): Promise<TurneringsResultat> {
-    const felt = [...this.genomer, ...this.hall.slice(0, this.antallHallDeltakere())];
     const frø = (this.opts.frø + Math.imul(this.generasjon + 1, 0xc2b2ae35)) >>> 0;
+    const portvakter: Deltaker[] = Array.from(
+      { length: this.opts.pimcPortvakter },
+      (_, i) => ({
+        pimc: true,
+        frøBase: (frø ^ Math.imul(i + 1, 0x85ebca6b)) >>> 0,
+        ...this.opts.pimcOpts,
+      }),
+    );
+    const felt: Deltaker[] = [
+      ...this.genomer,
+      ...this.hall.slice(0, this.antallHallDeltakere()),
+      ...portvakter,
+    ];
     if (this.pool !== null) {
       return kjørTurneringMed(
         felt.length,
@@ -293,7 +331,7 @@ export class Evolusjon {
         frø,
       );
     }
-    const agenter = felt.map((g) => new NeatAgent(g));
+    const agenter = felt.map((d) => (erPimc(d) ? new PimcPortvakt(d) : new NeatAgent(d)));
     return kjørTurnering(agenter, frø, this.opts.kampOpts);
   }
 
@@ -313,18 +351,27 @@ export class Evolusjon {
     const fitness = alleFitness.slice(0, this.genomer.length);
 
     const mesterForsvarte = this.mesterIdx !== null && res.mesterIdx === this.mesterIdx;
-    const fraHall = res.mesterIdx >= this.genomer.length;
-    const nyMester = klonGenom(
-      fraHall ? this.hall[res.mesterIdx - this.genomer.length]! : this.genomer[res.mesterIdx]!,
-    );
+    const hallAntall = this.antallHallDeltakere();
+    const fraHall =
+      res.mesterIdx >= this.genomer.length && res.mesterIdx < this.genomer.length + hallAntall;
+    // Vinner en PIMC-portvakt hele cupen, finnes ikke noe vinnergenom –
+    // beste populasjonsmedlem (etter fitness) blir mester og avls-anker,
+    // akkurat som når en hall of fame-veteran vinner.
+    const fraPortvakt = res.mesterIdx >= this.genomer.length + hallAntall;
 
-    // Vinner en hall of fame-veteran cupen, brukes beste populasjonsmedlem
-    // som avls-anker (stagnasjonsvern og mutant-fyll).
     let avlsAnker = res.mesterIdx;
-    if (fraHall) {
+    if (fraHall || fraPortvakt) {
       avlsAnker = 0;
       for (let i = 1; i < fitness.length; i++) if (fitness[i]! > fitness[avlsAnker]!) avlsAnker = i;
     }
+    const nyMester = klonGenom(
+      fraHall
+        ? this.hall[res.mesterIdx - this.genomer.length]!
+        : this.genomer[fraPortvakt ? avlsAnker : res.mesterIdx]!,
+    );
+
+    // Stagnasjonsspark-telleren: sammenhengende tittelforsvar.
+    this.forsvarsrekke = mesterForsvarte ? this.forsvarsrekke + 1 : 0;
 
     this.artsdel(fitness);
     const nesteKull = this.avle(fitness, avlsAnker, res.regretSnitt.slice(0, this.genomer.length));
@@ -442,6 +489,19 @@ export class Evolusjon {
     const rng = this.rng;
     const antallAvkom = this.opts.populasjon - 1;
 
+    // Stagnasjonsspark: sitter mesteren for lenge, dobles strukturmutasjonene
+    // og vektstyrken for avkommet – stillstand besvares med utforskning.
+    const spark =
+      this.opts.sparkEtter > 0 && this.forsvarsrekke >= this.opts.sparkEtter ? 2 : 1;
+    const kullRater: MutasjonsRater =
+      spark === 1
+        ? this.opts.rater
+        : {
+            ...this.opts.rater,
+            nyKobling: Math.min(0.95, this.opts.rater.nyKobling * spark),
+            nyNode: Math.min(0.6, this.opts.rater.nyNode * spark),
+          };
+
     // Stagnerte arter dør – med mindre turneringsvinneren bor der.
     const levende = this.arter.filter(
       (a) =>
@@ -490,7 +550,7 @@ export class Evolusjon {
         // Regret-styrt trykk: skaler perturbasjonen med forelderens anger
         // (typisk ~0,3 på poengskalaen → faktor 1; klippet til [0,5, 2]).
         const trykk = Math.max(0.5, Math.min(2, (regretSnitt[forelder] ?? 0.3) / 0.3));
-        muter(barn, this.bok, rng, { ...this.opts.rater, styrke: this.opts.rater.styrke * trykk });
+        muter(barn, this.bok, rng, { ...kullRater, styrke: kullRater.styrke * trykk * spark });
         avkom.push(barn);
       }
     }
@@ -498,7 +558,7 @@ export class Evolusjon {
     // Avrundingssvinn (f.eks. alle kvoter 0): fyll opp med mutanter av mesteren.
     while (avkom.length < antallAvkom) {
       const barn = klonGenom(this.genomer[turneringsMester]!);
-      muter(barn, this.bok, rng, this.opts.rater);
+      muter(barn, this.bok, rng, kullRater);
       avkom.push(barn);
     }
     return avkom.slice(0, antallAvkom);

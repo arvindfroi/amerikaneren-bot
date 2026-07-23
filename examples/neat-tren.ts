@@ -43,6 +43,7 @@ let dir = "trening";
 let hallOfFame = 0;
 let tråder = 1;
 let kampFrø = 1;
+let portvakter = 0;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--fra") fraFil = process.argv[++i] ?? null;
   else if (process.argv[i] === "--fra-flere") fraFlereFil = process.argv[++i] ?? null;
@@ -52,6 +53,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (process.argv[i] === "--hall") hallOfFame = Number(process.argv[++i]);
   else if (process.argv[i] === "--tråder") tråder = Number(process.argv[++i]);
   else if (process.argv[i] === "--kampfrø") kampFrø = Number(process.argv[++i]);
+  else if (process.argv[i] === "--portvakter") portvakter = Number(process.argv[++i]);
   else posisjonelle.push(process.argv[i]!);
 }
 const generasjoner = Number(posisjonelle[0] ?? 50);
@@ -118,7 +120,17 @@ console.log(
     (genStart > 0 ? ` (fortsetter fra gen ${genStart})` : "") +
     (maksTimer !== null ? `, tidstak ${maksTimer} t` : ""),
 );
-const evo = new Evolusjon({ populasjon, frø, startGenom, startPopulasjon, hallOfFame, tråder, kampOpts: { frøPerKamp: kampFrø } });
+const evo = new Evolusjon({
+  populasjon,
+  frø,
+  startGenom,
+  startPopulasjon,
+  hallOfFame,
+  tråder,
+  kampOpts: { frøPerKamp: kampFrø },
+  pimcPortvakter: portvakter,
+});
+if (portvakter > 0) console.log(`PIMC-portvakter i cupen: ${Math.floor(portvakter / 4) * 4}`);
 const t0 = performance.now();
 let sisteBenk = "";
 

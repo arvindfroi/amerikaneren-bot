@@ -15,7 +15,7 @@
 
 import { Worker } from "node:worker_threads";
 
-import type { Genom } from "./genom.ts";
+import { erPimc, type Deltaker } from "./portvakt.ts";
 import type { GruppeResultat, KampOpts } from "./turnering.ts";
 import type { PoolJobb, PoolSvar } from "./pool-arbeider.ts";
 
@@ -79,7 +79,7 @@ export class GruppePool {
    * genomene. Returnerer kampresultatet.
    */
   async spill(
-    genomer: readonly Genom[],
+    deltakere: readonly Deltaker[],
     gruppeFrø: number,
     kampOpts: KampOpts,
     læringsrate: number,
@@ -88,11 +88,13 @@ export class GruppePool {
     const id = this.nesteId++;
     const svar = await new Promise<PoolSvar>((løs, avvis) => {
       this.venter.set(id, { løs, avvis });
-      this.kø.push({ id, genomer: genomer as Genom[], gruppeFrø, kampOpts, læringsrate });
+      this.kø.push({ id, genomer: deltakere as Deltaker[], gruppeFrø, kampOpts, læringsrate });
       this.pump();
     });
-    for (let i = 0; i < genomer.length; i++) {
-      const koblinger = genomer[i]!.koblinger;
+    for (let i = 0; i < deltakere.length; i++) {
+      const d = deltakere[i]!;
+      if (erPimc(d)) continue; // portvakter har ingen vekter å skrive tilbake
+      const koblinger = d.koblinger;
       const vekter = svar.vekter[i]!;
       if (vekter.length !== koblinger.length) {
         throw new Error("Vektlisten fra arbeideren matcher ikke genomet");

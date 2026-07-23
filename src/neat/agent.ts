@@ -268,6 +268,17 @@ export class NeatAgent {
     return { type: "VELG", spiller, trumf, etterlyst };
   }
 
+  /**
+   * Rangerer lovlige kort etter korthodets score (beste først). Brukes av
+   * hybrid-/søkeagenter som kandidatliste: nettet foreslår, søket avgjør.
+   */
+  rangerKort(state: GameState, spiller: number, lovlige: readonly Kort[]): Kort[] {
+    const ut = this.evaluer(state, spiller, "SPILL");
+    return [...lovlige].sort(
+      (a, b) => ut[UT_KORT + kortIndeks(b)]! - ut[UT_KORT + kortIndeks(a)]!,
+    );
+  }
+
   private velgKort(state: GameState, spiller: number, lovlige: Kort[]): Handling {
     if (lovlige.length === 1) {
       return { type: "SPILL", spiller, kort: lovlige[0]! };

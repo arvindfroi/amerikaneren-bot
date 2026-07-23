@@ -30,6 +30,19 @@ export interface HybridOpts {
   readonly frø?: number;
   /** Nodetak per eksaktsøk (0 = ubegrenset). */
   readonly nodeTak?: number;
+  /**
+   * MIDTSPILLSØK (C6): antall kandidatkort nettets korthode nominerer i
+   * stikk FØR sluttspillterskelen. 0 (standard) = av; da spiller nettet
+   * midtspillet alene. Med K > 0 verifiseres nettets topp-K i samplede
+   * verdener (grådig ned til `midtDybde` stikk igjen, deretter eksakt –
+   * samme regnemodell som PIMC-boten), og argmax forventet egenpoeng
+   * spilles. Nettet gir intuisjonen, søket presisjonen.
+   */
+  readonly midtKandidater?: number;
+  /** Antall samplede verdener per midtspillbeslutning. */
+  readonly midtVerdener?: number;
+  /** Stikk som løses eksakt i midtspillevalueringen (resten grådig). */
+  readonly midtDybde?: number;
 }
 
 export class HybridAgent {
@@ -38,6 +51,9 @@ export class HybridAgent {
   private readonly verdener: number;
   private readonly nodeTak: number;
   private readonly rng: () => number;
+  private readonly midtKandidater: number;
+  private readonly midtVerdener: number;
+  private readonly midtDybde: number;
 
   constructor(genom: Genom, opts: HybridOpts = {}) {
     this.nett = new NeatAgent(genom, { læringsrate: 0 });
@@ -45,6 +61,9 @@ export class HybridAgent {
     this.verdener = opts.verdener ?? 12;
     this.nodeTak = opts.nodeTak ?? 400_000;
     this.rng = lagRng((opts.frø ?? 0x7e57) >>> 0);
+    this.midtKandidater = opts.midtKandidater ?? 0;
+    this.midtVerdener = opts.midtVerdener ?? 8;
+    this.midtDybde = opts.midtDybde ?? 6;
   }
 
   nyKamp(): void {
@@ -61,9 +80,48 @@ export class HybridAgent {
       if (gjenstår <= this.stikkTerskel) {
         const valg = this.eksaktValg(state, state.iTur);
         if (valg !== null) return valg;
+      } else if (this.midtKandidater > 0) {
+        const valg = this.midtValg(state, state.iTur);
+        if (valg !== null) return valg;
       }
     }
     return this.nett.velgHandling(state);
+  }
+
+  /**
+   * Midtspillsøk: nettets korthode nominerer topp-K kandidater, som
+   * verifiseres i samplede verdener (grådig til `midtDybde` stikk igjen,
+   * så eksakt). Argmax forventet egenpoeng spilles.
+   */
+  private midtValg(state: GameState, spiller: number): Handling | null {
+    const lovlige = lovligeKort(state, spiller);
+    if (lovlige.length === 1) return { type: "SPILL", spiller, kort: lovlige[0]! };
+    const kandidater = this.nett
+      .rangerKort(state, spiller, lovlige)
+      .slice(0, this.midtKandidater);
+    if (kandidater.length < 2) return { type: "SPILL", spiller, kort: kandidater[0] ?? lovlige[0]! };
+    const kortInt = kandidater.map(kortTilInt);
+    const sum = new Array<number>(kandidater.length).fill(0);
+    let verdener = 0;
+    let tomme = 0;
+    while (verdener < this.midtVerdener && tomme < 40) {
+      const verden = trekkVerden(state, spiller, this.rng);
+      if (!verden) {
+        tomme++;
+        continue;
+      }
+      tomme = 0;
+      const oppsett = byggDDOppsett(state, verden);
+      for (let i = 0; i < kandidater.length; i++) {
+        const lag = evaluerEtterTrekk(oppsett, kortInt[i]!, this.midtDybde, this.nodeTak);
+        sum[i]! += egenPoeng(lag, verden, state, spiller);
+      }
+      verdener++;
+    }
+    if (verdener === 0) return null; // sampling feilet – fall til nettet
+    let best = 0;
+    for (let i = 1; i < kandidater.length; i++) if (sum[i]! > sum[best]!) best = i;
+    return { type: "SPILL", spiller, kort: kandidater[best]! };
   }
 
   /** Eksakt sluttspill: argmax forventet egenpoeng over samplede verdener. */

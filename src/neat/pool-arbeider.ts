@@ -9,13 +9,14 @@
 
 import { parentPort } from "node:worker_threads";
 
-import type { Genom } from "./genom.ts";
 import { NeatAgent } from "./agent.ts";
+import { erPimc, PimcPortvakt, type Deltaker } from "./portvakt.ts";
 import { spillGruppekamp, type GruppeResultat, type KampOpts } from "./turnering.ts";
 
 export interface PoolJobb {
   readonly id: number;
-  readonly genomer: Genom[];
+  /** Genomer eller PIMC-markører (portvakter uten vekter å lære). */
+  readonly genomer: Deltaker[];
   readonly gruppeFrø: number;
   readonly kampOpts: KampOpts;
   readonly læringsrate: number;
@@ -33,14 +34,15 @@ if (parentPort === null) {
 }
 
 parentPort.on("message", (jobb: PoolJobb) => {
-  const agenter = jobb.genomer.map(
-    (g) => new NeatAgent(g, { læringsrate: jobb.læringsrate }),
+  const agenter = jobb.genomer.map((d) =>
+    erPimc(d) ? new PimcPortvakt(d) : new NeatAgent(d, { læringsrate: jobb.læringsrate }),
   );
   const resultat = spillGruppekamp(agenter, jobb.gruppeFrø, jobb.kampOpts);
   const svar: PoolSvar = {
     id: jobb.id,
     resultat,
-    vekter: jobb.genomer.map((g) => g.koblinger.map((k) => k.vekt)),
+    // Portvakter har ingen vekter å lære – tom liste som plassholder.
+    vekter: jobb.genomer.map((d) => (erPimc(d) ? [] : d.koblinger.map((k) => k.vekt))),
   };
   parentPort!.postMessage(svar);
 });
