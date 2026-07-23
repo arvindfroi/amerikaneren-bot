@@ -86,3 +86,29 @@ test("agenten bruker aldri skjult informasjon (kun spillerVisning)", () => {
   const hb = agent.velgHandling(b);
   assert.deepEqual(ha, hb);
 });
+
+test("regret-læring: xT kalibreres mot faktiske stikk og arves i genomet", () => {
+  const agent = nyAgent(31);
+  // Finn en giv der agenten byr, og bokfør estimatet.
+  for (let frø = 0; frø < 40; frø++) {
+    agent.nyKamp();
+    let s = opprettSpill({ antallSpillere: 4 }, 2000 + frø);
+    let guard = 0;
+    let bydd = false;
+    while (s.fase === "BUDRUNDE" && guard++ < 100 && !bydd) {
+      const h = agent.velgHandling(s);
+      if (h.type === "BUD" && h.bud !== "PASS") bydd = true;
+      else s = utfør(s, h).state;
+    }
+    if (!bydd) continue;
+    const rundeNr = s.rundeNr;
+    const før = agent.estimatFor(rundeNr)!;
+    // Fasit langt fra estimatet → læringen skal dra xT den veien.
+    const fasit = før.xt > 6 ? 2 : 11;
+    const vektFør = JSON.stringify(agent.genom.koblinger.map((k) => k.vekt));
+    agent.lærAvKontrakt(rundeNr, fasit);
+    assert.notEqual(JSON.stringify(agent.genom.koblinger.map((k) => k.vekt)), vektFør, "genomvekter endret");
+    return;
+  }
+  assert.fail("agenten bød aldri");
+});

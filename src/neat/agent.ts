@@ -48,17 +48,43 @@ export interface BudEstimat {
   readonly xt: number;
   /** Budet som ble lagt (tall, eller antallStikk for amerikaner/solo). */
   readonly bud: number;
+  /** Inngangsvektoren ved budet (for regret-læring når fasit foreligger). */
+  readonly inn: readonly number[];
+  readonly antallStikk: number;
 }
+
+/** Standard læringsrate for regret-kalibreringen av xT-hodet. */
+export const STD_LÆRINGSRATE = 0.05;
 
 export class NeatAgent {
   readonly genom: Genom;
   private readonly nett: Nettverk;
+  private readonly læringsrate: number;
   /** xT-estimat per rundeNr for regret-beregning (nullstilles per kamp). */
   private readonly estimater = new Map<number, BudEstimat>();
 
-  constructor(genom: Genom) {
+  constructor(genom: Genom, opts: { læringsrate?: number } = {}) {
     this.genom = genom;
     this.nett = new Nettverk(genom);
+    this.læringsrate = opts.læringsrate ?? STD_LÆRINGSRATE;
+  }
+
+  /**
+   * REGRET-LÆRING: kalles når kontrakten agenten bød på er avgjort.
+   * Nettets xT-hode kalibreres mot de FAKTISKE lagstikkene (delta-regel på
+   * aktiveringene fra budøyeblikket), og de justerte vektene skrives rett
+   * i genomet (lamarckisk) – nettet lærer av angeren sin i løpet av livet,
+   * og avkommet arver kalibreringen. Utfyller fitness-fradraget: der lukes
+   * dårlige budgivere bort, her blir de gjenværende faktisk bedre.
+   */
+  lærAvKontrakt(rundeNr: number, lagStikk: number): void {
+    if (this.læringsrate <= 0) return;
+    const est = this.estimater.get(rundeNr);
+    if (est === undefined) return;
+    // Gjenskap nettets tilstand fra budøyeblikket, kalibrer mot fasit.
+    this.nett.aktiver(est.inn);
+    const mål = (2 * lagStikk) / est.antallStikk - 1; // stikk → tanh-rom
+    this.nett.kalibrerUtgang(UT_XT, mål, this.læringsrate);
   }
 
   /** Nullstiller kamp-tilstand (regret-bokføring). */
@@ -97,7 +123,9 @@ export class NeatAgent {
   }
 
   private velgBud(state: GameState, spiller: number, lovlige: Bud[]): Handling {
-    const ut = this.evaluer(state, spiller, "BUD");
+    const visning = spillerVisning(state, spiller);
+    const inn = lagInn(visning, "BUD", state.giving.antallStikk, state.regler.målPoeng);
+    const ut = this.nett.aktiver(inn);
     const antallStikk = state.giving.antallStikk;
 
     // xT: tanh (-1,1) → (0, antallStikk). Margin: lært justering ±2 stikk.
@@ -108,7 +136,7 @@ export class NeatAgent {
     const bud = (b: Bud): Handling => {
       if (b !== PASS) {
         const tall = typeof b === "number" ? b : antallStikk;
-        this.estimater.set(state.rundeNr, { xt, bud: tall });
+        this.estimater.set(state.rundeNr, { xt, bud: tall, inn, antallStikk });
       }
       return { type: "BUD", spiller, bud: b };
     };

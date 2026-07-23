@@ -11,11 +11,12 @@
  * skjulte noder slik at signaler rekker å forplante seg gjennom kjeder.
  */
 
-import { biasId, type Genom, utId } from "./genom.ts";
+import { biasId, type Genom, type KoblingGen, utId } from "./genom.ts";
 
 interface Innkommende {
   readonly fraIdx: number;
-  readonly vekt: number;
+  /** Selve koblingsGENET – vekter leses (og kalibreres) direkte i genomet. */
+  readonly gen: KoblingGen;
 }
 
 export class Nettverk {
@@ -51,7 +52,7 @@ export class Nettverk {
       const til = this.nodeIdx.get(k.ut);
       if (fra === undefined || til === undefined) continue; // gen uten node (defensivt)
       if (til < this.antallInn + 1) continue; // innganger/bias kan ikke være mål
-      this.innkommende[til]!.push({ fraIdx: fra, vekt: k.vekt });
+      this.innkommende[til]!.push({ fraIdx: fra, gen: k });
     }
 
     this.utIdx = [];
@@ -101,7 +102,7 @@ export class Nettverk {
       for (let n = this.antallInn + 1; n < this.antallNoder; n++) {
         let sum = 0;
         for (const kobling of this.innkommende[n]!) {
-          sum += les[kobling.fraIdx]! * kobling.vekt;
+          sum += les[kobling.fraIdx]! * kobling.gen.vekt;
         }
         skriv[n] = Math.tanh(sum);
       }
@@ -110,8 +111,38 @@ export class Nettverk {
       skriv = tmp;
     }
 
+    this.sisteVerdier = les;
     const ut = new Array<number>(this.antallUt);
     for (let j = 0; j < this.antallUt; j++) ut[j] = les[this.utIdx[j]!]!;
     return ut;
+  }
+
+  private sisteVerdier: Float64Array | null = null;
+
+  /**
+   * REGRET-LÆRING i selve nettet: kalibrerer utgang nr. `utNr` mot en
+   * fasitverdi med en delta-regel på utgangens innkommende koblinger,
+   * basert på aktiveringene fra SISTE `aktiver`-kall:
+   *
+   *   Δw_i = rate · (mål − ut) · (1 − ut²) · verdi_i
+   *
+   * Vektene oppdateres DIREKTE I GENOMET (lamarckisk): det nettet lærer av
+   * angeren sin i løpet av livet, arves av avkommet i neste generasjon.
+   * Returnerer feilen (mål − ut) før justeringen.
+   */
+  kalibrerUtgang(utNr: number, mål: number, rate: number): number {
+    const verdier = this.sisteVerdier;
+    if (verdier === null) throw new Error("kalibrerUtgang krever et foregående aktiver-kall");
+    const n = this.utIdx[utNr]!;
+    const ut = verdier[n]!;
+    const feil = mål - ut;
+    const faktor = rate * feil * (1 - ut * ut);
+    for (const kobling of this.innkommende[n]!) {
+      let v = kobling.gen.vekt + faktor * verdier[kobling.fraIdx]!;
+      if (v > 8) v = 8;
+      if (v < -8) v = -8;
+      kobling.gen.vekt = v;
+    }
+    return feil;
   }
 }

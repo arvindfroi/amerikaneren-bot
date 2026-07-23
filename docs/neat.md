@@ -133,19 +133,28 @@ en agent når – **cupdybden** – er grunnlaget for fitness:
 Duplikatpoengene skiller agenter på samme dybde (utslaget er < ett
 dybdesteg, dybden dominerer alltid), og angeren trekkes fra.
 
-### Anger/regret
+### Anger/regret – integrert i selve nettet
 
-For hver kontrakt bokfører agenten xT-estimatet den bød på. Etter runden
-beregnes angeren:
+For hver kontrakt bokfører agenten xT-estimatet den bød på (med
+inngangsvektoren fra budøyeblikket). Når runden er avgjort, virker
+angeren på TO nivåer:
 
-- **kalibrering**: |xT − faktiske lagstikk| – hvor feil var estimatet?
-- **utfall**: falt kontrakt koster (bud − stikk); klart med slakk koster
-  0,25 · overskuddet (poeng lagt igjen på bordet – man kunne budt høyere).
+1. **Nettet lærer selv (lamarckisk kalibrering)**: xT-hodet justeres mot
+   de faktiske lagstikkene med en delta-regel på aktiveringene fra
+   budøyeblikket (`Nettverk.kalibrerUtgang`), og de justerte vektene
+   skrives DIREKTE TILBAKE I GENOMET. Nettet lærer altså av angeren sin i
+   løpet av livet, og avkommet arver kalibreringen. Læringsrate 0,05
+   (`NeatAgent`-opsjon; 0 = av).
+2. **Seleksjon**: angeren beregnes som
+   - **kalibrering**: |xT − faktiske lagstikk| – hvor feil var estimatet?
+   - **utfall**: falt kontrakt koster (bud − stikk); klart med slakk
+     koster 0,25 · overskuddet (poeng lagt igjen på bordet).
+   Snittangeren per kontrakt trekkes fra i fitness (vekt `lambdaRegret`,
+   standard 0,5).
 
-Snittangeren per kontrakt trekkes fra i fitness (vekt `lambdaRegret`,
-standard 0,5). To agenter som når like langt i cupen rangeres altså etter
-hvem som byr mest presist – populasjonen lærer på regret, ikke bare på
-plassering.
+Fitness-fradraget luker bort dårlige budgivere; kalibreringen gjør de
+gjenværende faktisk bedre – ett og samme nettverk som både spiller hele
+spillet og lærer på regret underveis i NEAT-evolusjonen.
 
 ### Evolusjon (`evolusjon.ts`)
 

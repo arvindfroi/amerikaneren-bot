@@ -38,9 +38,15 @@ test("to generasjoner: populasjonen består, mesteren forsvarer tittelen på pla
   assert.equal(stat1.generasjon, 1);
   assert.equal(evo.genomer.length, 8);
   assert.ok(evo.mester !== null);
-  // Om tittelen ble forsvart, er mesteren fortsatt samme genom.
+  // Om tittelen ble forsvart, er mesteren samme nett STRUKTURELT – vektene
+  // kan ha flyttet seg, for nettet regret-lærer (kalibrerer xT) mens det
+  // spiller, og læringen skrives tilbake i genomet (lamarckisk).
   if (stat1.mesterForsvarte) {
-    assert.deepEqual(evo.mester, førMester);
+    assert.deepEqual(
+      evo.mester!.koblinger.map((k) => k.innovasjon),
+      førMester.koblinger.map((k) => k.innovasjon),
+    );
+    assert.deepEqual(evo.mester!.noder, førMester.noder);
   }
 });
 

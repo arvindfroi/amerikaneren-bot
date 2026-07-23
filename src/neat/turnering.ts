@@ -29,6 +29,11 @@ export interface TurneringsAgent {
   nyKamp(): void;
   velgHandling(state: GameState): Handling;
   estimatFor(rundeNr: number): BudEstimat | undefined;
+  /**
+   * Valgfri regret-læring: kalles når agentens kontrakt er avgjort, med de
+   * faktiske lagstikkene, slik at nettet kan kalibrere seg mot fasit.
+   */
+  lærAvKontrakt?(rundeNr: number, lagStikk: number): void;
 }
 
 export interface KampOpts {
@@ -128,7 +133,8 @@ function bokførRegret(
     if (h.type !== "RUNDE_SLUTT") continue;
     const res = h.resultat;
     const agentIdx = agentISete(res.budvinner);
-    const est = agenter[agentIdx]!.estimatFor(førState.rundeNr);
+    const agent = agenter[agentIdx]!;
+    const est = agent.estimatFor(førState.rundeNr);
     if (est === undefined) continue;
     const antallStikk = førState.giving.antallStikk;
     const mål = res.melding.type === "tall" ? res.melding.bud : antallStikk;
@@ -136,6 +142,8 @@ function bokførRegret(
     const utfall = res.klart ? 0.25 * Math.max(0, res.lagStikk - mål) : mål - res.lagStikk;
     regretSum[agentIdx]! += (kalibrering + utfall) / antallStikk;
     regretRunder[agentIdx]!++;
+    // Nettet lærer av angeren sin med en gang fasiten foreligger.
+    agent.lærAvKontrakt?.(førState.rundeNr, res.lagStikk);
   }
 }
 

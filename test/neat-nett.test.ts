@@ -98,3 +98,26 @@ test("feil antall innganger avvises", () => {
   const nett = new Nettverk(g);
   assert.throws(() => nett.aktiver([1, 2]));
 });
+
+test("kalibrerUtgang flytter utgangen mot fasit og skriver vektene tilbake i genomet", () => {
+  const g = tomtGenom(2, 1);
+  g.koblinger.push(
+    { inn: 0, ut: utId(2, 0), vekt: 0.5, aktiv: true, innovasjon: 0 },
+    { inn: biasId(2), ut: utId(2, 0), vekt: 0.1, aktiv: true, innovasjon: 1 },
+  );
+  const nett = new Nettverk(g);
+  const inn = [0.8, 0];
+  const [før] = nett.aktiver(inn);
+  const mål = 0.9;
+  nett.kalibrerUtgang(0, mål, 0.5);
+  // Vektene i GENOMET er endret (lamarckisk læring).
+  assert.notEqual(g.koblinger[0]!.vekt, 0.5);
+  assert.notEqual(g.koblinger[1]!.vekt, 0.1);
+  const [etter] = new Nettverk(g).aktiver(inn);
+  assert.ok(Math.abs(mål - etter!) < Math.abs(mål - før!), "utgangen nærmet seg fasit");
+});
+
+test("kalibrerUtgang krever et foregående aktiver-kall", () => {
+  const g = tomtGenom(1, 1);
+  assert.throws(() => new Nettverk(g).kalibrerUtgang(0, 0, 0.1));
+});

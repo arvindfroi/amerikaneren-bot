@@ -25,7 +25,10 @@ const KJAPP = { maksRunder: 12 } as const;
 test("flakskontroll: identiske agenter får identiske duplikatpoeng", () => {
   const bok = new Innovasjonsbok(ANTALL_INN, ANTALL_UT);
   const genom = nyttGenom(ANTALL_INN, ANTALL_UT, bok, lagRng(99));
-  const agenter = Array.from({ length: 4 }, () => new NeatAgent(genom));
+  // Regret-læring slås av: den endrer nettet UNDERVEIS i kampen (det er
+  // meningen), og da spilles rotasjonene ikke lenger identisk. Her testes
+  // selve flakskontrollen, som krever frosne agenter.
+  const agenter = Array.from({ length: 4 }, () => new NeatAgent(genom, { læringsrate: 0 }));
   const res = spillGruppekamp(agenter, 12345, lagRng(1), KJAPP);
   // Samme genom i alle seter + samme kortgiving i alle rotasjoner ⇒ hver
   // agent har spilt nøyaktig de samme fire setene i nøyaktig samme kamp.
