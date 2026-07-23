@@ -64,3 +64,15 @@ test("determinisme: samme frø gir samme forløp", () => {
   assert.deepEqual(sa, sb);
   assert.deepEqual(a.mester, b.mester);
 });
+
+test("hall of fame: tidligere mestere stiller i cupen uten å endre populasjonen", () => {
+  const evo = new Evolusjon({ populasjon: 8, frø: 21, kampOpts: KJAPP, hallOfFame: 4 });
+  let medHall = false;
+  for (let g = 0; g < 8; g++) {
+    evo.kjørGenerasjon();
+    assert.equal(evo.genomer.length, 8, "populasjonen holder seg");
+    assert.ok(evo.hall.length <= 4, "hallen er avgrenset");
+    if (evo.hall.length >= 4) medHall = true; // neste turnering får 12 deltakere
+  }
+  assert.ok(medHall, "hallen fyltes i løpet av 8 generasjoner");
+});

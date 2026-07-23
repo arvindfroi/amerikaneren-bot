@@ -5,4 +5,4 @@ dist/
 # midlertidige skrap-filer
 /_*
 # NEAT-treningsartefakter (mestergenomer m.m.)
-trening/
+trening*/

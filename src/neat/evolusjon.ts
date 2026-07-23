@@ -61,6 +61,14 @@ export interface EvolusjonsOpts {
    * mutanter av det (i stedet for ferske minimalgenomer).
    */
   readonly startGenom?: Genom;
+  /**
+   * Hall of fame: så mange TIDLIGERE mestere stiller i cupen som ekstra
+   * deltakere (uten å formere seg). Motvirker selvspill-sykling – å slå
+   * dagens felt holder ikke om man har «glemt» hvordan man slår gårsdagens
+   * mestere. 0 (standard) = av. Generalisering av regelen om at forrige
+   * mester stiller igjen. Deltar først når minst 4 er samlet (grupper à 4).
+   */
+  readonly hallOfFame?: number;
 }
 
 export interface GenerasjonsStat {
@@ -91,6 +99,8 @@ export class Evolusjon {
   genomer: Genom[];
   /** Regjerende mester (vinneren av forrige turnering). */
   mester: Genom | null = null;
+  /** Hall of fame: tidligere mestere (nyeste først), stiller i cupen. */
+  hall: Genom[] = [];
   generasjon = 0;
 
   private readonly opts: Required<
@@ -118,6 +128,7 @@ export class Evolusjon {
       andelForeldre: opts.andelForeldre ?? 0.4,
       stagnasjonsGrense: opts.stagnasjonsGrense ?? 12,
       krysningsAndel: opts.krysningsAndel ?? 0.75,
+      hallOfFame: opts.hallOfFame ?? 0,
     };
     this.rng = lagRng(this.opts.frø);
     this.bok = new Innovasjonsbok(ANTALL_INN, ANTALL_UT);
@@ -139,9 +150,19 @@ export class Evolusjon {
     }
   }
 
-  /** Spiller turneringen for nåværende populasjon uten å avle nytt kull. */
+  /** Antall hall of fame-medlemmer som stiller (holder feltet delelig med 4). */
+  private antallHallDeltakere(): number {
+    const tilgjengelig = Math.min(this.hall.length, this.opts.hallOfFame);
+    return Math.floor(tilgjengelig / 4) * 4;
+  }
+
+  /**
+   * Spiller turneringen for nåværende populasjon (pluss hall of fame som
+   * ekstra deltakere) uten å avle nytt kull.
+   */
   spillTurnering(): TurneringsResultat {
-    const agenter = this.genomer.map((g) => new NeatAgent(g));
+    const felt = [...this.genomer, ...this.hall.slice(0, this.antallHallDeltakere())];
+    const agenter = felt.map((g) => new NeatAgent(g));
     const frø = (this.opts.frø + Math.imul(this.generasjon + 1, 0xc2b2ae35)) >>> 0;
     return kjørTurnering(agenter, frø, this.opts.kampOpts);
   }
@@ -149,17 +170,35 @@ export class Evolusjon {
   /** Kjører én hel generasjon: turnering, fitness, artsdeling, nytt kull. */
   kjørGenerasjon(): GenerasjonsStat {
     const res = this.spillTurnering();
-    const fitness = beregnFitness(res, this.mesterIdx, {
+    const alleFitness = beregnFitness(res, this.mesterIdx, {
       lambdaRegret: this.opts.lambdaRegret,
     });
+    // Bare populasjonen formerer seg; hall of fame konkurrerer kun.
+    const fitness = alleFitness.slice(0, this.genomer.length);
 
     const mesterForsvarte = this.mesterIdx !== null && res.mesterIdx === this.mesterIdx;
-    const nyMester = klonGenom(this.genomer[res.mesterIdx]!);
+    const fraHall = res.mesterIdx >= this.genomer.length;
+    const nyMester = klonGenom(
+      fraHall ? this.hall[res.mesterIdx - this.genomer.length]! : this.genomer[res.mesterIdx]!,
+    );
+
+    // Vinner en hall of fame-veteran cupen, brukes beste populasjonsmedlem
+    // som avls-anker (stagnasjonsvern og mutant-fyll).
+    let avlsAnker = res.mesterIdx;
+    if (fraHall) {
+      avlsAnker = 0;
+      for (let i = 1; i < fitness.length; i++) if (fitness[i]! > fitness[avlsAnker]!) avlsAnker = i;
+    }
 
     this.artsdel(fitness);
-    const nesteKull = this.avle(fitness, res.mesterIdx);
+    const nesteKull = this.avle(fitness, avlsAnker);
 
     // Mesteren står alltid uendret på plass 0 og må forsvare tittelen.
+    // Den avgåtte mesteren går inn i hall of fame (nyeste først).
+    if (this.opts.hallOfFame > 0 && this.mester !== null && !mesterForsvarte) {
+      this.hall.unshift(klonGenom(this.mester));
+      this.hall = this.hall.slice(0, this.opts.hallOfFame);
+    }
     this.mester = nyMester;
     this.genomer = [klonGenom(nyMester), ...nesteKull];
     this.mesterIdx = 0;

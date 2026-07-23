@@ -37,10 +37,14 @@ const posisjonelle: string[] = [];
 let fraFil: string | null = null;
 let maksTimer: number | null = null;
 let genStart = 0;
+let dir = "trening";
+let hallOfFame = 0;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--fra") fraFil = process.argv[++i] ?? null;
   else if (process.argv[i] === "--maks-timer") maksTimer = Number(process.argv[++i]);
   else if (process.argv[i] === "--gen-start") genStart = Number(process.argv[++i]);
+  else if (process.argv[i] === "--dir") dir = process.argv[++i] ?? "trening";
+  else if (process.argv[i] === "--hall") hallOfFame = Number(process.argv[++i]);
   else posisjonelle.push(process.argv[i]!);
 }
 const generasjoner = Number(posisjonelle[0] ?? 50);
@@ -60,7 +64,7 @@ if (fraFil !== null) {
   console.log(`Gjenopptar fra ${fraFil} (${startGenom.noder.length} noder, ${startGenom.koblinger.length} koblinger)`);
 }
 
-mkdirSync("trening", { recursive: true });
+mkdirSync(dir, { recursive: true });
 
 // --- Grådig heuristisk motstander (samme som «GAMMEL» i turnering.ts) ------
 function fargeTelling(hånd: readonly Kort[]): Record<Farge, number> {
@@ -176,7 +180,7 @@ console.log(
     (genStart > 0 ? ` (fortsetter fra gen ${genStart})` : "") +
     (maksTimer !== null ? `, tidstak ${maksTimer} t` : ""),
 );
-const evo = new Evolusjon({ populasjon, frø, startGenom });
+const evo = new Evolusjon({ populasjon, frø, startGenom, hallOfFame });
 const t0 = performance.now();
 let sisteBenk = "";
 
@@ -184,7 +188,7 @@ for (let g = 0; g < generasjoner; g++) {
   const stat = evo.kjørGenerasjon();
   const gen = stat.generasjon + genStart;
   const mester = evo.mester!;
-  lagreAtomisk("trening/mester.json", genomTilJson(mester));
+  lagreAtomisk(`${dir}/mester.json`, genomTilJson(mester));
 
   console.log(
     `gen ${String(gen).padStart(3)}: ` +
@@ -202,7 +206,7 @@ for (let g = 0; g < generasjoner; g++) {
   if ((gen + 1) % 10 === 0 || g === generasjoner - 1 || tidsavbrudd) {
     // Benk/kopi må aldri velte selve treningen – fang og fortsett.
     try {
-      lagreAtomisk(`trening/mester-gen${gen}.json`, genomTilJson(mester));
+      lagreAtomisk(`${dir}/mester-gen${gen}.json`, genomTilJson(mester));
       const benk = målMotGrådig(mester, 3);
       sisteBenk = `mester ${benk.mester.toFixed(1)} poeng/kamp, grådig ${benk.grådig.toFixed(1)}, seire ${benk.seire}/${benk.kamper}`;
       console.log(`  benk vs grådig bot: ${sisteBenk}`);
@@ -213,7 +217,7 @@ for (let g = 0; g < generasjoner; g++) {
 
   // Hjerteslag for vakten (neat-vakt.ts): siste fullførte generasjon + tid.
   lagreAtomisk(
-    "trening/status.json",
+    `${dir}/status.json`,
     JSON.stringify({
       generasjon: gen,
       tidsstempel: Date.now(),
@@ -231,4 +235,4 @@ for (let g = 0; g < generasjoner; g++) {
   }
 }
 
-console.log(`Ferdig på ${((performance.now() - t0) / 1000).toFixed(0)}s. Mester: trening/mester.json`);
+console.log(`Ferdig på ${((performance.now() - t0) / 1000).toFixed(0)}s. Mester: ${dir}/mester.json`);

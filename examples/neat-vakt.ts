@@ -25,8 +25,12 @@ import { existsSync, readFileSync } from "node:fs";
 
 const posisjonelle: string[] = [];
 let maksTimer: number | null = null;
+let dir = "trening";
+let hall = 0;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--maks-timer") maksTimer = Number(process.argv[++i]);
+  else if (process.argv[i] === "--dir") dir = process.argv[++i] ?? "trening";
+  else if (process.argv[i] === "--hall") hall = Number(process.argv[++i]);
   else posisjonelle.push(process.argv[i]!);
 }
 const generasjoner = Number(posisjonelle[0] ?? 8000);
@@ -44,7 +48,7 @@ interface Status {
 
 function lesStatus(): Status | null {
   try {
-    const s = JSON.parse(readFileSync("trening/status.json", "utf8")) as Status;
+    const s = JSON.parse(readFileSync(`${dir}/status.json`, "utf8")) as Status;
     return typeof s.generasjon === "number" && typeof s.tidsstempel === "number" ? s : null;
   } catch {
     return null;
@@ -104,7 +108,7 @@ for (;;) {
   const igjenTimer =
     maksTimer !== null ? maksTimer - (Date.now() - t0) / 3_600_000 : null;
   if (igjenTimer !== null && igjenTimer <= 0) {
-    console.log(`[vakt] Tidstaket på ${maksTimer} t er brukt opp. Mester: trening/mester.json`);
+    console.log(`[vakt] Tidstaket på ${maksTimer} t er brukt opp. Mester: ${dir}/mester.json`);
     break;
   }
 
@@ -115,8 +119,11 @@ for (;;) {
     String(frø + omstarter), // nytt frø per omstart – unngå deterministisk krasjsløyfe
     "--gen-start",
     String(gjort),
+    "--dir",
+    dir,
   ];
-  if (existsSync("trening/mester.json")) argv.push("--fra", "trening/mester.json");
+  if (hall > 0) argv.push("--hall", String(hall));
+  if (existsSync(`${dir}/mester.json`)) argv.push("--fra", `${dir}/mester.json`);
   if (igjenTimer !== null) argv.push("--maks-timer", igjenTimer.toFixed(3));
 
   if (omstarter > 0 || gjort > 0) {
@@ -129,7 +136,7 @@ for (;;) {
     // Pent avsluttet: enten ferdig eller tidsavbrudd – begge er sluttilstander.
     const etter = lesStatus();
     console.log(
-      `[vakt] Treningen avsluttet pent ved generasjon ${etter?.generasjon ?? "ukjent"}. Mester: trening/mester.json`,
+      `[vakt] Treningen avsluttet pent ved generasjon ${etter?.generasjon ?? "ukjent"}. Mester: ${dir}/mester.json`,
     );
     break;
   }
