@@ -31,7 +31,7 @@ import {
 import { NeatAgent, STD_LÆRINGSRATE } from "./agent.ts";
 import { utId } from "./genom.ts";
 import { GruppePool } from "./pool.ts";
-import { ANTALL_INN, ANTALL_UT, UT_XT } from "./trekk.ts";
+import { ANTALL_INN, ANTALL_UT, UT_MARGIN, UT_XT } from "./trekk.ts";
 import {
   beregnFitness,
   kjørTurnering,
@@ -140,11 +140,12 @@ export class Evolusjon {
       populasjon,
       frø: opts.frø ?? 1,
       koblingerPerUt: opts.koblingerPerUt ?? 5,
-      // xT-hodet vernes mot mutasjonsstøy som standard: regret-læringen
-      // kalibrerer det i løpet av livet, og kalibreringen skal arves.
+      // xT- og margin-hodene vernes mot mutasjonsstøy som standard:
+      // regret-læringen kalibrerer dem i løpet av livet, og kalibreringen
+      // skal arves – ikke viskes ut.
       rater: opts.rater ?? {
         ...STANDARD_RATER,
-        dempedeMål: new Set([utId(ANTALL_INN, UT_XT)]),
+        dempedeMål: new Set([utId(ANTALL_INN, UT_XT), utId(ANTALL_INN, UT_MARGIN)]),
         dempFaktor: 0.3,
       },
       lambdaRegret: opts.lambdaRegret ?? 0.5,
@@ -249,7 +250,7 @@ export class Evolusjon {
     }
 
     this.artsdel(fitness);
-    const nesteKull = this.avle(fitness, avlsAnker);
+    const nesteKull = this.avle(fitness, avlsAnker, res.regretSnitt.slice(0, this.genomer.length));
 
     // Mesteren står alltid uendret på plass 0 og må forsvare tittelen.
     // Den avgåtte mesteren går inn i hall of fame (nyeste først).
@@ -344,8 +345,18 @@ export class Evolusjon {
     else if (this.arter.length < this.opts.målArter) this.terskel = Math.max(0.5, this.terskel - 0.15);
   }
 
-  /** Avler neste kull (populasjon − 1 avkom; mesterkopien kommer i tillegg). */
-  private avle(fitness: readonly number[], turneringsMester: number): Genom[] {
+  /**
+   * Avler neste kull (populasjon − 1 avkom; mesterkopien kommer i tillegg).
+   * Angeren styrer mutasjonsTRYKKET per avkom: foreldre med høy anger gir
+   * utforskende mutasjoner (de trenger endring), foreldre med lav anger gir
+   * finjustering (de er nær målet) – regret dytter mutasjonene i riktig
+   * retning i styrke, slik læringen alt gjør i fortegn.
+   */
+  private avle(
+    fitness: readonly number[],
+    turneringsMester: number,
+    regretSnitt: readonly number[],
+  ): Genom[] {
     const rng = this.rng;
     const antallAvkom = this.opts.populasjon - 1;
 
@@ -392,8 +403,12 @@ export class Evolusjon {
       }
 
       for (let k = 0; k < kvote; k++) {
+        const forelder = foreldre[Math.floor(rng() * foreldre.length)]!;
         const barn = this.lagBarn(foreldre, arter, a, fitness);
-        muter(barn, this.bok, rng, this.opts.rater);
+        // Regret-styrt trykk: skaler perturbasjonen med forelderens anger
+        // (typisk ~0,3 på poengskalaen → faktor 1; klippet til [0,5, 2]).
+        const trykk = Math.max(0.5, Math.min(2, (regretSnitt[forelder] ?? 0.3) / 0.3));
+        muter(barn, this.bok, rng, { ...this.opts.rater, styrke: this.opts.rater.styrke * trykk });
         avkom.push(barn);
       }
     }

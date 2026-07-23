@@ -119,6 +119,12 @@ export class Nettverk {
 
   private sisteVerdier: Float64Array | null = null;
 
+  /** Utgangsverdien fra SISTE aktiver-kall (for målrettet kalibrering). */
+  lesUtgang(utNr: number): number {
+    if (this.sisteVerdier === null) throw new Error("lesUtgang krever et foregående aktiver-kall");
+    return this.sisteVerdier[this.utIdx[utNr]!]!;
+  }
+
   /**
    * REGRET-LÆRING i selve nettet: kalibrerer utgang nr. `utNr` mot en
    * fasitverdi med en delta-regel på utgangens innkommende koblinger,

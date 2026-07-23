@@ -71,11 +71,15 @@ export class NeatAgent {
 
   /**
    * REGRET-LÆRING: kalles når kontrakten agenten bød på er avgjort.
-   * Nettets xT-hode kalibreres mot de FAKTISKE lagstikkene (delta-regel på
-   * aktiveringene fra budøyeblikket), og de justerte vektene skrives rett
-   * i genomet (lamarckisk) – nettet lærer av angeren sin i løpet av livet,
-   * og avkommet arver kalibreringen. Utfyller fitness-fradraget: der lukes
-   * dårlige budgivere bort, her blir de gjenværende faktisk bedre.
+   * RETNINGSSTYRT – angeren peker ut hvilken vei vektene skal:
+   *  - xT-hodet kalibreres mot de FAKTISKE lagstikkene (delta-regel på
+   *    aktiveringene fra budøyeblikket).
+   *  - margin-hodet (budaggressiviteten) dyttes i budfeilens retning:
+   *    underbud (stikk > bud) → høyere margin, overbud → lavere.
+   * Justerte vekter skrives rett i genomet (lamarckisk): arv bevarer og
+   * blander, men det er læringen som gjør genomene BEDRE – og avkommet
+   * arver forbedringen. Utfyller fitness-fradraget: der lukes dårlige
+   * budgivere bort, her blir de gjenværende faktisk bedre.
    */
   lærAvKontrakt(rundeNr: number, lagStikk: number): void {
     if (this.læringsrate <= 0) return;
@@ -83,8 +87,12 @@ export class NeatAgent {
     if (est === undefined) return;
     // Gjenskap nettets tilstand fra budøyeblikket, kalibrer mot fasit.
     this.nett.aktiver(est.inn);
-    const mål = (2 * lagStikk) / est.antallStikk - 1; // stikk → tanh-rom
-    this.nett.kalibrerUtgang(UT_XT, mål, this.læringsrate);
+    const målXt = (2 * lagStikk) / est.antallStikk - 1; // stikk → tanh-rom
+    this.nett.kalibrerUtgang(UT_XT, målXt, this.læringsrate);
+    // Margin = utgang · 2 stikk → ideell endring (stikk − bud)/2 i tanh-rom.
+    const m = this.nett.lesUtgang(UT_MARGIN);
+    const målM = Math.max(-1, Math.min(1, m + (lagStikk - est.bud) / 2));
+    this.nett.kalibrerUtgang(UT_MARGIN, målM, this.læringsrate);
   }
 
   /** Nullstiller kamp-tilstand (regret-bokføring). */

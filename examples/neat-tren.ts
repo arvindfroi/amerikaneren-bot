@@ -216,7 +216,9 @@ for (let g = 0; g < generasjoner; g++) {
     // Benk/kopi må aldri velte selve treningen – fang og fortsett.
     try {
       lagreAtomisk(`${dir}/mester-gen${gen}.json`, genomTilJson(mester));
-      const benk = målMotGrådig(mester, 3);
+      // 8 frø × 4 seter = 32 kamper – tilfeldighetene kontrolleres bedre
+      // (±støyen krymper ~40 % mot gamle 12).
+      const benk = målMotGrådig(mester, 8);
       sisteBenk = `mester ${benk.mester.toFixed(1)} poeng/kamp, grådig ${benk.grådig.toFixed(1)}, seire ${benk.seire}/${benk.kamper}`;
       console.log(`  benk vs grådig bot: ${sisteBenk}`);
     } catch (feil) {

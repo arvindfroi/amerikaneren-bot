@@ -5,7 +5,8 @@ import { lagRng } from "../src/kort.ts";
 import { opprettSpill, spillerVisning, utfør, type GameState } from "../src/motor.ts";
 import { Innovasjonsbok, nyttGenom } from "../src/neat/genom.ts";
 import { NeatAgent } from "../src/neat/agent.ts";
-import { ANTALL_INN, ANTALL_UT, kortIndeks, lagInn } from "../src/neat/trekk.ts";
+import { ANTALL_INN, ANTALL_UT, kortIndeks, lagInn, UT_MARGIN } from "../src/neat/trekk.ts";
+import { Nettverk } from "../src/neat/nett.ts";
 
 function nyAgent(frø: number): NeatAgent {
   const bok = new Innovasjonsbok(ANTALL_INN, ANTALL_UT);
@@ -147,4 +148,28 @@ test("nye sensorer: renons, boss og kan-slå beregnes riktig fra en konstruert v
   assert.equal(inn[275], 0, "H5 slår ikke HK");
   // Stikkleder: spiller 3 = rel. sete 3 (blokka starter på 276).
   assert.equal(inn[276 + 3], 1);
+});
+
+test("retningsstyrt regret: underbud dytter margin-hodet OPP", () => {
+  const agent = nyAgent(37);
+  for (let frø = 0; frø < 40; frø++) {
+    agent.nyKamp();
+    let s = opprettSpill({ antallSpillere: 4 }, 3000 + frø);
+    let guard = 0;
+    let bydd = false;
+    while (s.fase === "BUDRUNDE" && guard++ < 100 && !bydd) {
+      const h = agent.velgHandling(s);
+      if (h.type === "BUD" && h.bud !== "PASS") bydd = true;
+      else s = utfør(s, h).state;
+    }
+    if (!bydd) continue;
+    const est = agent.estimatFor(s.rundeNr)!;
+    // Simuler grovt underbud: laget tok 4 stikk mer enn budet.
+    const før = new Nettverk(agent.genom).aktiver(est.inn as number[])[UT_MARGIN]!;
+    agent.lærAvKontrakt(s.rundeNr, Math.min(12, est.bud + 4));
+    const etter = new Nettverk(agent.genom).aktiver(est.inn as number[])[UT_MARGIN]!;
+    assert.ok(etter > før, `margin økte (${før} → ${etter})`);
+    return;
+  }
+  assert.fail("agenten bød aldri");
 });
