@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amerikaneren mot PIMC</title>
+<style>
+  /* TV-først: alt skalerer med skjermhøyden, høy kontrast, store treff-flater. */
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(ellipse at 50% 30%, #14331f 0%, #0a1f12 60%, #071409 100%);
+    color: #f5f5f0;
+    font: clamp(18px, 2.9vh, 34px)/1.4 system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+  }
+  #app { display: flex; flex-direction: column; height: 100%; padding: 1vh 1.5vw; gap: 0.6vh; }
+
+  /* Skjermleser-oppleser */
+  #oppleser { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  header { display: flex; align-items: center; gap: 2vw; flex-wrap: wrap; }
+  .poeng { display: flex; gap: 1.2vw; }
+  .poeng .spiller {
+    background: rgba(0,0,0,.45); border: 2px solid #2c4a35; border-radius: 12px;
+    padding: 0.5vh 1vw; display: flex; gap: 0.8vw; align-items: baseline;
+  }
+  .poeng .spiller.deg { border-color: #ffd54f; }
+  .poeng b { font-size: 1.5em; color: #ffd54f; }
+  .kontrakt { font-size: 1.25em; font-weight: 700; }
+  .runde { margin-left: auto; color: #b9c7ad; }
+
+  .bord { position: relative; flex: 1; min-height: 0; }
+  .bordkort { position: absolute; text-align: center; }
+  .bordkort .hvem { font-weight: 700; margin-bottom: 0.4vh; text-shadow: 0 2px 4px #000; }
+  .bordkort.bunn    { bottom: 2%;  left: 50%; transform: translateX(-50%); }
+  .bordkort.topp    { top: 2%;     left: 50%; transform: translateX(-50%); }
+  .bordkort.venstre { left: 22%;   top: 50%;  transform: translateY(-50%); }
+  .bordkort.høyre   { right: 22%;  top: 50%;  transform: translateY(-50%); }
+  .tenker {
+    position: absolute; background: rgba(0,0,0,.7); border-radius: 999px;
+    padding: 0.8vh 1.6vw; font-size: 1.1em; animation: pulse 1.2s ease-in-out infinite;
+  }
+  .tenker.topp { top: 6%; left: 50%; transform: translateX(-50%); }
+  .tenker.venstre { left: 8%; top: 45%; }
+  .tenker.høyre { right: 8%; top: 45%; }
+  .tenker.bunn { bottom: 6%; left: 50%; transform: translateX(-50%); }
+  @keyframes pulse { 50% { opacity: 0.55; } }
+  @media (prefers-reduced-motion: reduce) { .tenker { animation: none; } }
+  .etterlyst {
+    position: absolute; top: 40%; left: 50%; transform: translate(-50%,-50%);
+    background: rgba(0,0,0,.55); border-radius: 10px; padding: 0.6vh 1.2vw; color: #ffd54f;
+  }
+
+  /* Kort: store, firefarget, tydelige hjørneindekser */
+  .kort {
+    --f: #111;
+    width: clamp(82px, 11.5vh, 184px); aspect-ratio: 0.72;
+    background: #fdfdf6; color: var(--f);
+    border: 3px solid #999; border-radius: 12px;
+    position: relative; cursor: pointer; padding: 0;
+    font: inherit; box-shadow: 0 4px 10px rgba(0,0,0,.5);
+    transition: transform .12s ease;
+  }
+  .kort .hjorne {
+    position: absolute; top: 5px; left: 8px; text-align: center;
+    font-weight: 800; font-size: clamp(20px, 3.4vh, 44px); line-height: 1.02;
+  }
+  .kort .midt {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font-size: clamp(34px, 6vh, 80px);
+  }
+  .kort:not([disabled]):hover, .kort:not([disabled]):focus-visible { transform: translateY(-1.4vh) scale(1.05); }
+  .kort:focus-visible { outline: 5px solid #ffd54f; outline-offset: 2px; }
+  .kort[disabled] { opacity: 0.45; cursor: default; }
+  .bordkort .kort[disabled] { opacity: 1; box-shadow: 0 6px 16px rgba(0,0,0,.6); }
+  .kort.valgt { outline: 5px solid #ffd54f; transform: translateY(-1.8vh); }
+  .kort.liten { width: clamp(72px, 10vh, 160px); }
+  .motstandere { margin-bottom: 2vh; }
+  button.motstander { background: #16232f; }
+  button.motstander.aktiv { background: #1d6b34; border-color: #ffd54f; outline: 3px solid #ffd54f; }
+
+  .hånd {
+    display: flex; justify-content: center; gap: 0.4vw;
+    padding-bottom: 0.5vh; flex-wrap: nowrap;
+  }
+  .hånd .kort { margin-left: max(-14px, -1.2vw); }
+  .hånd .kort:first-child { margin-left: 0; }
+
+  /* Paneler (bud, vrak, trumf, resultat) */
+  .panel {
+    position: absolute; left: 50%; top: 46%; transform: translate(-50%,-50%);
+    background: rgba(8, 16, 10, .94); border: 3px solid #3c5a46; border-radius: 20px;
+    padding: 2.4vh 2.4vw; max-width: 92vw; max-height: 78vh; overflow: auto;
+    box-shadow: 0 12px 60px rgba(0,0,0,.7); z-index: 5; text-align: center;
+  }
+  .panel h1 { font-size: 1.9em; margin: 0 0 1vh; }
+  .panel h2 { font-size: 1.35em; margin: 0 0 1.6vh; }
+  .knapper { display: flex; flex-wrap: wrap; gap: 1vh 0.8vw; justify-content: center; }
+  button.stor {
+    font: inherit; font-size: 1.3em; font-weight: 800;
+    min-width: 4.2em; min-height: 2.4em; padding: 0.4em 0.9em;
+    border-radius: 14px; border: 3px solid #557; cursor: pointer;
+    background: #1d2e40; color: #fff;
+  }
+  button.stor:hover, button.stor:focus-visible { background: #2c4a68; }
+  button.stor:focus-visible { outline: 5px solid #ffd54f; outline-offset: 2px; }
+  button.stor[disabled] { opacity: 0.4; cursor: default; }
+  button.pass { background: #5c1f1f; border-color: #a55; }
+  button.pass:hover, button.pass:focus-visible { background: #7c2c2c; }
+  button.spesial { background: #4a3aa7; border-color: #86c; }
+  button.bekreft { background: #1d6b34; border-color: #4a5; font-size: 1.5em; }
+  button.bekreft:hover, button.bekreft:focus-visible { background: #268a44; }
+  button.farge { background: #f5f5ee; color: var(--f); border-color: #aaa; }
+  .vrakhånd { display: flex; flex-wrap: wrap; gap: 0.6vh 0.4vw; justify-content: center; margin-bottom: 1.6vh; }
+
+  .etterlysrad { display: flex; gap: 0.3vw; align-items: center; justify-content: center; margin: 0.5vh 0; }
+  .etterlysrad > span { font-size: 1.5em; width: 1.4em; }
+  button.mini {
+    font: inherit; font-weight: 700; min-width: 2.1em; min-height: 1.9em;
+    border-radius: 8px; border: 2px solid #567; background: #16232f; color: #fff; cursor: pointer;
+  }
+  button.mini:hover, button.mini:focus-visible { background: #2c4a68; outline: 3px solid #ffd54f; }
+  button.mini[disabled] { opacity: 0.3; cursor: default; }
+
+  .resultat h2 { font-size: 1.7em; }
+  .delta { display: flex; gap: 1.6vw; justify-content: center; font-size: 1.3em; margin-bottom: 2vh; flex-wrap: wrap; }
+  .delta .pluss { color: #7fe08a; } .delta .minus { color: #ff8a80; }
+  .lite { font-size: 0.75em; color: #b9c7ad; } .lite a { color: #8ecbff; }
+
+  .start input {
+    font: inherit; font-size: 1.2em; padding: 0.5em 0.8em; border-radius: 10px;
+    border: 3px solid #3c5a46; background: #0f1d14; color: #fff; margin: 1vh 0 2vh; width: 12em; max-width: 80vw;
+  }
+  .start label { display: block; color: #b9c7ad; }
+  .start p { color: #d6e3cc; }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="oppleser" role="status" aria-live="polite"></div>
+  <script src="https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/app.js"></script>
+</body>
+</html>

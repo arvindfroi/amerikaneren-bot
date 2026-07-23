@@ -40,6 +40,8 @@
   ],
   "devDependencies": {
     "@types/node": "^26.1.1",
+    "esbuild": "^0.28.1",
+    "playwright": "^1.61.1",
     "typescript": "^5.7.0"
   }
 }
