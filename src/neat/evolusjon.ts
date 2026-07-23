@@ -547,13 +547,17 @@ export class Evolusjon {
       art.representant = klonGenom(this.genomer[rep]!);
     }
 
-    // Juster terskelen mot ønsket antall arter – med DØDSONE og små steg.
-    // Store steg fikk antallet til å flakse (2↔29 annenhver generasjon når
-    // avstandsfordelingen er bimodal); innenfor ±25 % av målet røres ikke
-    // terskelen, og utenfor justeres den forsiktig.
-    if (this.arter.length > this.opts.målArter * 1.25) this.terskel += 0.05;
-    else if (this.arter.length < this.opts.målArter * 0.75) {
-      this.terskel = Math.max(0.5, this.terskel - 0.05);
+    // Juster terskelen mot ønsket antall arter – med DØDSONE og ADAPTIVE
+    // steg. Store steg fikk antallet til å flakse (2↔29 annenhver
+    // generasjon på bimodale avstandsfordelinger), men rene småsteg gjør
+    // veien fra startterskelen for lang (arter=1 i titalls generasjoner).
+    // Derfor: grove steg langt fra målet, fine steg nær, ro i dødsonen.
+    const mål = this.opts.målArter;
+    if (this.arter.length > mål * 1.25) {
+      this.terskel += this.arter.length > mål * 2 ? 0.15 : 0.05;
+    } else if (this.arter.length < mål * 0.75) {
+      const steg = this.arter.length < mål / 4 ? 0.15 : 0.05;
+      this.terskel = Math.max(0.5, this.terskel - steg);
     }
   }
 
