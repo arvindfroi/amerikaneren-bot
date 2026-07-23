@@ -27,7 +27,79 @@ import { AMERIKANER, PASS, SOLO, type Bud } from "../src/regler.ts";
 const DATA_URL = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
 const MENNESKE = 0;
 const NAVN = ["Du", "Vest 🤖", "Nord 🤖", "Øst 🤖"];
-const PIMC_OPTS = { verdener: 8, terskel: 5, maksEval: 120, tidsbudsjettMs: 600 };
+/**
+ * Styrkenivåer for PIMC. Kortvalg (SPILL) er tidsstyrt; bud/vrak/trumf er
+ * verdenstyrt med nodetak, så «øvrig» holder seg innenfor rimelig ventetid.
+ * MAKS: dype eksaktsøk (terskel 9) med opptil ~3 min per kortvalg – kjør i
+ * Web Worker så UI-et aldri fryser.
+ */
+const STYRKER = {
+  RASK: {
+    navn: "Rask (~1 s per trekk)",
+    spill: { verdener: 12, terskel: 6, maksEval: 240, tidsbudsjettMs: 900 },
+    øvrig: { verdener: 12, terskel: 6, maksEval: 240 },
+  },
+  STERK: {
+    navn: "Sterk (~3 s per trekk)",
+    spill: { verdener: 60, terskel: 7, nodeTak: 1_200_000, tidsbudsjettMs: 2_800 },
+    øvrig: { verdener: 20, terskel: 6, budTerskel: 6, nodeTak: 800_000 },
+  },
+  MAKS: {
+    navn: "MAKS (~5 s per trekk)",
+    spill: { verdener: 200, terskel: 7, nodeTak: 2_000_000, tidsbudsjettMs: 4_800 },
+    øvrig: { verdener: 24, terskel: 7, budTerskel: 7, nodeTak: 1_000_000 },
+  },
+} as const;
+type Styrke = keyof typeof STYRKER;
+let styrke: Styrke = "MAKS";
+
+// --- Worker-kanal for PIMC (lange tenketider uten å fryse UI) ---------------
+let worker: Worker | null = null;
+let workerLast: Promise<Worker> | null = null;
+const venterPåSvar = new Map<number, (h: Handling) => void>();
+let nesteWorkerId = 1;
+let tenkStart = 0;
+
+function hentWorker(): Promise<Worker> {
+  if (worker !== null) return Promise.resolve(worker);
+  if (workerLast === null) {
+    workerLast = fetch(DATA_URL + "worker.js")
+      .then((r) => r.text())
+      .then((kode) => {
+        const w = new Worker(URL.createObjectURL(new Blob([kode], { type: "text/javascript" })));
+        w.onmessage = (e: MessageEvent<{ id: number; handling?: Handling; feil?: string }>) => {
+          const løs = venterPåSvar.get(e.data.id);
+          venterPåSvar.delete(e.data.id);
+          if (løs && e.data.handling) løs(e.data.handling);
+        };
+        worker = w;
+        return w;
+      });
+  }
+  return workerLast;
+}
+
+/** PIMC-beslutning i workeren; faller tilbake til rask synkron ved feil. */
+async function pimcHandling(s: GameState): Promise<Handling> {
+  const nivå = STYRKER[styrke];
+  const opts = { ...(s.fase === "SPILL" ? nivå.spill : nivå.øvrig), frø: (Math.random() * 1e9) >>> 0 };
+  try {
+    const w = await hentWorker();
+    return await new Promise<Handling>((løs, avvis) => {
+      const id = nesteWorkerId++;
+      venterPåSvar.set(id, løs);
+      w.postMessage({ id, state: s, opts });
+      setTimeout(() => {
+        if (venterPåSvar.has(id)) {
+          venterPåSvar.delete(id);
+          avvis(new Error("tidsavbrudd"));
+        }
+      }, 45_000);
+    });
+  } catch {
+    return velgHandling(s, { ...STYRKER.RASK.spill, frø: (Math.random() * 1e9) >>> 0 });
+  }
+}
 
 /** Motstandertype: PIMC-solver eller et av de trente NEAT-nettene. */
 type Motstander = "PIMC" | "C4" | "D1";
@@ -65,7 +137,13 @@ function si(tekst: string): void {
 
 // --- Datainnsamling ---------------------------------------------------------
 function logg(type: string, data: unknown): void {
-  const hendelse = { spillId, navn: `${spillerNavn} vs ${motstander}`, type, data, tid: new Date().toISOString() };
+  const hendelse = {
+    spillId,
+    navn: `${spillerNavn} vs ${motstander}${motstander === "PIMC" ? `/${styrke}` : ""}`,
+    type,
+    data,
+    tid: new Date().toISOString(),
+  };
   try {
     const alt = JSON.parse(localStorage.getItem("amerikaneren-logg") ?? "[]");
     alt.push(hendelse);
@@ -174,18 +252,24 @@ function fortsett(): void {
     return;
   }
 
-  // Bot i tur: la UI-et tegne seg først, tenk så (600 ms budsjett per kortvalg).
+  // Bot i tur. NEAT-nettene svarer momentant; PIMC tenker i workeren
+  // (opptil ~5 s ved MAKS) uten å blokkere UI-et.
   venterPåMenneske = false;
   travelt = true;
-  setTimeout(() => {
-    const h =
-      nettAgenter !== null
-        ? nettAgenter[aktør - 1]!.velgHandling(state)
-        : velgHandling(state, { ...PIMC_OPTS, frø: (Math.random() * 1e9) >>> 0 });
-    travelt = false;
-    // Stikk-frysingen skjer i gjør() – her bare et lite pusterom per trekk.
-    gjørMedPause(h, nettAgenter !== null ? 550 : 250);
-  }, 30);
+  tenkStart = performance.now();
+  if (nettAgenter !== null) {
+    setTimeout(() => {
+      const h = nettAgenter![aktør - 1]!.velgHandling(state);
+      travelt = false;
+      gjørMedPause(h, 550);
+    }, 30);
+  } else {
+    tegn();
+    void pimcHandling(state).then((h) => {
+      travelt = false;
+      gjørMedPause(h, 250);
+    });
+  }
 }
 
 function gjørMedPause(h: Handling, pauseMs: number): void {
@@ -277,7 +361,7 @@ function bordet(): string {
   const tenker =
     frystStikk === null &&
     !venterPåMenneske && state.fase === "SPILL" && state.iTur !== null && state.iTur !== MENNESKE
-      ? `<div class="tenker ${plass[state.iTur]}">${NAVN[state.iTur]} tenker…</div>`
+      ? `<div class="tenker ${plass[state.iTur]}">${NAVN[state.iTur]} tenker<span id="tenker-tid"></span>…</div>`
       : "";
   const info = state.etterlyst
     ? `<div class="etterlyst">Etterlyst: ${kortTekst(state.etterlyst)}${state.makkerAvslørt && state.makker !== null ? ` (${NAVN[state.makker]})` : " (skjult makker)"}</div>`
@@ -459,6 +543,15 @@ function startskjerm(): void {
           role="radio" aria-checked="${m === motstander}">${MOTSTANDER_INFO[m]}</button>`)
         .join("")}
     </div>
+    ${motstander === "PIMC"
+      ? `<p style="margin:0 0 0.6vh">Styrke:</p>
+    <div class="knapper motstandere" role="radiogroup" aria-label="Styrke">
+      ${(Object.keys(STYRKER) as Styrke[])
+        .map((s) => `<button class="stor motstander${s === styrke ? " aktiv" : ""}" data-styrke="${s}"
+          role="radio" aria-checked="${s === styrke}">${STYRKER[s].navn}</button>`)
+        .join("")}
+    </div>`
+      : ""}
     <label for="navn">Hvem spiller? (for dataloggen)</label>
     <input id="navn" type="text" placeholder="f.eks. mamma" autocomplete="off">
     <button class="stor bekreft" id="start-knapp">Start spillet</button>
@@ -469,11 +562,26 @@ function startskjerm(): void {
       startskjerm();
     };
   }
+  for (const b of rot.querySelectorAll<HTMLButtonElement>("[data-styrke]")) {
+    b.onclick = () => {
+      styrke = b.dataset["styrke"] as Styrke;
+      startskjerm();
+    };
+  }
   const knapp = document.getElementById("start-knapp")!;
   const felt = document.getElementById("navn") as HTMLInputElement;
   knapp.onclick = () => void start(felt.value.trim());
   felt.onkeydown = (e) => { if (e.key === "Enter") void start(felt.value.trim()); };
   (knapp as HTMLButtonElement).focus();
 }
+
+// Tenketid-teller i «tenker…»-boblen (oppdateres utenom re-tegning).
+setInterval(() => {
+  const el = document.getElementById("tenker-tid");
+  if (el !== null && travelt && tenkStart > 0) {
+    const s = (performance.now() - tenkStart) / 1000;
+    el.textContent = s >= 1.5 ? ` ${s.toFixed(0)} s` : "";
+  }
+}, 500);
 
 startskjerm();
