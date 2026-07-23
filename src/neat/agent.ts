@@ -281,7 +281,9 @@ export class NeatAgent {
   lærSpill(state: GameState, spiller: number, solverKort: Kort, rate: number): void {
     if (rate <= 0) return;
     this.evaluer(state, spiller, "SPILL");
-    this.nett.kalibrerUtgang(UT_KORT + kortIndeks(solverKort), 0.9, rate);
+    // Dybde 2: korreksjonen forplantes også til de skjulte nodene bak
+    // kortvalget – gradienten retter forståelsen, ikke bare valget.
+    this.nett.kalibrerUtgang(UT_KORT + kortIndeks(solverKort), 0.9, rate, 2);
   }
 
   /**

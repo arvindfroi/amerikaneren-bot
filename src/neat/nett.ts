@@ -136,18 +136,33 @@ export class Nettverk {
    * angeren sin i løpet av livet, arves av avkommet i neste generasjon.
    * Returnerer feilen (mål − ut) før justeringen.
    */
-  kalibrerUtgang(utNr: number, mål: number, rate: number): number {
+  kalibrerUtgang(utNr: number, mål: number, rate: number, dybde = 1): number {
     const verdier = this.sisteVerdier;
     if (verdier === null) throw new Error("kalibrerUtgang krever et foregående aktiver-kall");
     const n = this.utIdx[utNr]!;
     const ut = verdier[n]!;
     const feil = mål - ut;
-    const faktor = rate * feil * (1 - ut * ut);
+    const delta = feil * (1 - ut * ut);
+    const klipp = (v: number): number => (v > 8 ? 8 : v < -8 ? -8 : v);
     for (const kobling of this.innkommende[n]!) {
-      let v = kobling.gen.vekt + faktor * verdier[kobling.fraIdx]!;
-      if (v > 8) v = 8;
-      if (v < -8) v = -8;
-      kobling.gen.vekt = v;
+      // Vekten FØR justeringen brukes i tilbakeforplantningen (ekte backprop-
+      // rekkefølge); les den før vi skriver.
+      const gammelVekt = kobling.gen.vekt;
+      kobling.gen.vekt = klipp(gammelVekt + rate * delta * verdier[kobling.fraIdx]!);
+      // DYPERE KORREKSJON (dybde 2): feilen fordeles bakover til de skjulte
+      // nodene som bidro – vektene INN til kilden justeres også, skalert med
+      // kildens følsomhet (1 − h²) og halv rate. Korreksjonen retter da
+      // forståelsen som ledet til valget, ikke bare valget selv.
+      if (dybde >= 2) {
+        const s = kobling.fraIdx;
+        const h = verdier[s]!;
+        const deltaS = delta * gammelVekt * (1 - h * h);
+        if (deltaS !== 0) {
+          for (const indre of this.innkommende[s]!) {
+            indre.gen.vekt = klipp(indre.gen.vekt + rate * 0.5 * deltaS * verdier[indre.fraIdx]!);
+          }
+        }
+      }
     }
     return feil;
   }
