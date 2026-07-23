@@ -16,3 +16,4 @@ export * from "./trekk.ts";
 export * from "./agent.ts";
 export * from "./turnering.ts";
 export * from "./evolusjon.ts";
+export * from "./hybrid.ts";
