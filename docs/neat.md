@@ -39,6 +39,30 @@ selvhelbredende:
 - **Tidstak**: `--maks-timer` gjelder hele økten; treneren avslutter pent
   (lagrer alt, kode 0) når tiden er ute.
 
+### Optimalitetsporten (`neat-optimal.ts`)
+
+```bash
+node examples/neat-optimal.ts trening/mester.json --hurtig   # billig screening
+node examples/neat-optimal.ts trening/mester.json            # full port
+```
+
+Måler om mesteren spiller (målbart) optimalt gitt informasjonen sin –
+brukes som stoppkriterium for lange treninger:
+
+1. **Kortspill-anger mot eksakt løser**: ved et utvalg beslutninger fra
+   selvspill samples verdener forenlige med spillerens informasjon, hver
+   kandidat løses med dobbelt-dummy-søkeren, og angeren er
+   EV(beste) − EV(valgt) i egenpoeng. Krav: < 0,02 poeng/beslutning og
+   ≥ 99 % beslutninger uten målbar anger.
+2. **Duplikatkamp mot PIMC-boten** (seterotasjon, samme kortgiving):
+   poengdiff ≥ 0 kreves.
+3. **Budkalibrering**: treningens snittanger per kontrakt < 0,05.
+
+Exit 0 = alle tre bestått («optimal innenfor målenøyaktighet»), exit 1 =
+ikke ennå. Merk at dette er den strengeste testen spillet tillater i
+praksis: eksakt optimalitet er kun veldefinert per determinisert verden
+(dobbelt-dummy), og porten krever ~null tap mot nettopp det målet.
+
 ## Arkitekturen
 
 ### Ett nett, hele spillet (`trekk.ts`, `agent.ts`)
