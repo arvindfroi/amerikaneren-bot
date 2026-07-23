@@ -131,6 +131,19 @@ const evo = new Evolusjon({
   pimcPortvakter: portvakter,
 });
 if (portvakter > 0) console.log(`PIMC-portvakter i cupen: ${Math.floor(portvakter / 4) * 4}`);
+
+// Gullstandarden (ratchet): beste eksternt benkede genom, beskyttet i
+// populasjonen og kun byttet når en cupvinner benker bedre. Lastes ved
+// oppstart så restarts aldri mister linjens beste.
+let gullDiff = -Infinity;
+try {
+  const gull = JSON.parse(readFileSync(`${dir}/gull.json`, "utf8")) as { diff: number; genom: Genom };
+  evo.settGull(gull.genom);
+  gullDiff = gull.diff;
+  console.log(`Gullstandard lastet: benk-diff ${gullDiff.toFixed(1)}`);
+} catch {
+  /* ingen gullstandard ennå */
+}
 const t0 = performance.now();
 let sisteBenk = "";
 
@@ -162,6 +175,14 @@ for (let g = 0; g < generasjoner; g++) {
       const benk = målMotGrådig(mester, 8);
       sisteBenk = `mester ${benk.mester.toFixed(1)} poeng/kamp, grådig ${benk.grådig.toFixed(1)}, seire ${benk.seire}/${benk.kamper}`;
       console.log(`  benk vs grådig bot: ${sisteBenk}`);
+      // Ratchet: benker cupvinneren bedre enn gullstandarden, tar den over.
+      const diff = benk.mester - benk.grådig;
+      if (diff > gullDiff) {
+        gullDiff = diff;
+        evo.settGull(mester);
+        lagreAtomisk(`${dir}/gull.json`, JSON.stringify({ diff, gen, genom: JSON.parse(genomTilJson(mester)) }));
+        console.log(`  NY GULLSTANDARD: benk-diff ${diff.toFixed(1)} (gen ${gen})`);
+      }
     } catch (feil) {
       console.error(`  (benk/kopi feilet: ${String(feil)})`);
     }

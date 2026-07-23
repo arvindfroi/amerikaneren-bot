@@ -211,6 +211,15 @@ export class Evolusjon {
   mester: Genom | null = null;
   /** Hall of fame: tidligere mestere (nyeste først), stiller i cupen. */
   hall: Genom[] = [];
+  /**
+   * Gullstandarden: det beste EKSTERNT målte genomet (benk mot grådig).
+   * Cupen er for støyete til alene å identifisere det sterkeste genomet –
+   * gullstandarden står derfor beskyttet på plass 1 hver generasjon
+   * (gjenopprettes fra ankeret, upåvirket av kamplaering og avl), og byttes
+   * kun når treneren måler en cupvinner som benker BEDRE. En ratchet:
+   * linja kan utforske fritt, men aldri miste sitt beste kjente genom.
+   */
+  gull: Genom | null = null;
   generasjon = 0;
 
   private readonly opts: Required<
@@ -289,6 +298,13 @@ export class Evolusjon {
         nyttGenom(ANTALL_INN, ANTALL_UT, this.bok, this.rng, this.opts.koblingerPerUt),
       );
     }
+  }
+
+  /** Setter/erstatter gullstandarden (kanoniseres og klones). */
+  settGull(genom: Genom): void {
+    this.gull = this.kanoniser(klonGenom(genom));
+    this.bok.hoppOver(this.gull);
+    if (this.genomer.length > 1) this.genomer[1] = klonGenom(this.gull);
   }
 
   /** Antall hall of fame-medlemmer som stiller (holder feltet delelig med 4). */
@@ -395,6 +411,11 @@ export class Evolusjon {
     this.mester = nyMester;
     this.genomer = [klonGenom(nyMester), ...nesteKull];
     this.mesterIdx = 0;
+    // Gullstandarden gjenopprettes fra ankeret hver generasjon – verken
+    // kamplaering eller avl får erodere det beste kjente genomet.
+    if (this.gull !== null && this.genomer.length > 1) {
+      this.genomer[1] = klonGenom(this.gull);
+    }
 
     const individer = this.genomer.map((g, i) =>
       lagIndividData(g, fitness[i]!, res.dybde[i]!, res.regretSnitt[i]!),
