@@ -228,7 +228,10 @@ export class Evolusjon {
   generasjon = 0;
 
   private readonly opts: Required<
-    Omit<EvolusjonsOpts, "kampOpts" | "rater" | "startGenom" | "startPopulasjon" | "startHall" | "pimcOpts">
+    Omit<
+      EvolusjonsOpts,
+      "kampOpts" | "rater" | "startGenom" | "startPopulasjon" | "startHall" | "startTerskel" | "pimcOpts"
+    >
   > & {
     kampOpts: KampOpts;
     rater: MutasjonsRater;
