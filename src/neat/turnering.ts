@@ -47,7 +47,12 @@ const STD_MAKS_RUNDER = 40;
 const STD_MAKS_HANDLINGER = 20000;
 
 export interface GruppeResultat {
-  /** Sum kamppoeng per agent over alle 4 seterotasjoner. */
+  /**
+   * Sum POENGDIFFERANSE per agent over alle 4 seterotasjoner: egne
+   * kamppoeng minus snittet av motstandernes. Differansen er det som
+   * faktisk vinner kamper – og den priser budhøyden riktig (å by 6 og ta
+   * 8 gir 12, å by 8 gir 16; differansen straffer feige bud av seg selv).
+   */
   readonly poeng: number[];
   /** Antall kampseire per agent (0–4). */
   readonly seire: number[];
@@ -100,11 +105,17 @@ export function spillGruppekamp(
       state = res.state;
     }
 
+    // Differanse = egne − (sum − egne)/3. Akkumuler helttalls-telleren
+    // (4·egne − sum) og del på 3 til slutt – gir bit-identiske resultater
+    // uavhengig av seterekkefølge.
+    const sum = state.totalPoeng.reduce((a, b) => a + b, 0);
     for (let sete = 0; sete < 4; sete++) {
-      poeng[agentISete(sete)]! += state.totalPoeng[sete] ?? 0;
+      poeng[agentISete(sete)]! += 4 * (state.totalPoeng[sete] ?? 0) - sum;
     }
     if (state.vinner !== null) seire[agentISete(state.vinner)]!++;
   }
+
+  for (let i = 0; i < 4; i++) poeng[i]! /= 3;
 
   // Full likhet avgjøres av en forhåndstrukket loddtrekning (stabil komparator).
   const lodd = [rng(), rng(), rng(), rng()];
@@ -115,11 +126,15 @@ export function spillGruppekamp(
 }
 
 /**
- * Anger for budvinnerens kontrakt når en runde er ferdig:
- *  - kalibrering: |xT-estimat − faktiske lagstikk|
- *  - utfall: falt kontrakt koster (mål − stikk); klart med slakk koster
- *    0,25 · overskuddet (poeng lagt igjen på bordet).
- * Normalisert med antall stikk i runden, slik at verdien er ~[0, 2].
+ * Anger for budvinnerens kontrakt når en runde er ferdig – priset i
+ * POENGDIFFERANSE, siden det som teller hver runde er hvor mye MER poeng
+ * man får enn motstanderne:
+ *  - kalibrering: |xT-estimat − faktiske lagstikk| (per stikk)
+ *  - utfall i poeng: klart med k stikk til overs = 2k poeng lagt igjen
+ *    (kunne budt k høyere – SYMMETRISK straff, ingen rabatt for feighet);
+ *    falt = tapet mot beste etterpåklokskap (2·bud + 2·stikk hvis
+ *    stikkene bar et lovlig bud, ellers 2·bud mot å ha passet).
+ * Normalisert (poeng delt på 2·antallStikk) slik at verdien er ~[0, 2].
  */
 function bokførRegret(
   førState: GameState,
@@ -138,9 +153,15 @@ function bokførRegret(
     if (est === undefined) continue;
     const antallStikk = førState.giving.antallStikk;
     const mål = res.melding.type === "tall" ? res.melding.bud : antallStikk;
-    const kalibrering = Math.abs(est.xt - res.lagStikk);
-    const utfall = res.klart ? 0.25 * Math.max(0, res.lagStikk - mål) : mål - res.lagStikk;
-    regretSum[agentIdx]! += (kalibrering + utfall) / antallStikk;
+    const kalibrering = Math.abs(est.xt - res.lagStikk) / antallStikk;
+    let poengTap: number;
+    if (res.klart) {
+      poengTap = 2 * Math.max(0, res.lagStikk - mål);
+    } else {
+      const kunneBudt = res.lagStikk >= 5 ? 2 * res.lagStikk : 0;
+      poengTap = 2 * mål + kunneBudt;
+    }
+    regretSum[agentIdx]! += kalibrering + poengTap / (2 * antallStikk);
     regretRunder[agentIdx]!++;
     // Nettet lærer av angeren sin med en gang fasiten foreligger.
     agent.lærAvKontrakt?.(førState.rundeNr, res.lagStikk);
@@ -154,7 +175,7 @@ function bokførRegret(
 export interface TurneringsResultat {
   /** Hvor mange grupperunder agenten vant seg gjennom (0 = røk i første). */
   readonly dybde: number[];
-  /** Sum duplikatpoeng over alle gruppekamper agenten spilte. */
+  /** Sum poengDIFFERANSE (egne − snitt motstandere) over alle gruppekamper. */
   readonly poeng: number[];
   /** Sum kampseire. */
   readonly seire: number[];

@@ -130,8 +130,12 @@ en agent når – **cupdybden** – er grunnlaget for fitness:
   da dybden **relativt til mesterens dybde** – slår du mesteren, får du
   mer enn den; når du kortere, får du mindre.
 
-Duplikatpoengene skiller agenter på samme dybde (utslaget er < ett
-dybdesteg, dybden dominerer alltid), og angeren trekkes fra.
+Poengmålet i gruppekampene er **poengdifferansen** – egne kamppoeng minus
+snittet av motstandernes. Det er det viktigste målet per runde: differansen
+er det som faktisk vinner kamper, og den priser budhøyden riktig av seg
+selv (å by 6 og ta 8 gir 12, å by 8 gir 16 – feige bud taper differanse).
+Differansen skiller agenter på samme dybde (utslaget er < ett dybdesteg,
+dybden dominerer alltid), og angeren trekkes fra.
 
 ### Anger/regret – integrert i selve nettet
 
@@ -145,10 +149,12 @@ angeren på TO nivåer:
    skrives DIREKTE TILBAKE I GENOMET. Nettet lærer altså av angeren sin i
    løpet av livet, og avkommet arver kalibreringen. Læringsrate 0,05
    (`NeatAgent`-opsjon; 0 = av).
-2. **Seleksjon**: angeren beregnes som
+2. **Seleksjon**: angeren beregnes i POENG (det som teller er differansen
+   mot motstanderne):
    - **kalibrering**: |xT − faktiske lagstikk| – hvor feil var estimatet?
-   - **utfall**: falt kontrakt koster (bud − stikk); klart med slakk
-     koster 0,25 · overskuddet (poeng lagt igjen på bordet).
+   - **utfall**: klart med k stikk til overs = 2k poeng lagt igjen
+     (symmetrisk straff – ingen rabatt for feige bud); falt = tapet mot
+     beste etterpåklokskap (2·bud + det stikkene kunne båret av lovlig bud).
    Snittangeren per kontrakt trekkes fra i fitness (vekt `lambdaRegret`,
    standard 0,5).
 
