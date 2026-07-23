@@ -305,19 +305,19 @@ export class Evolusjon {
    */
   async spillTurnering(): Promise<TurneringsResultat> {
     const frø = (this.opts.frø + Math.imul(this.generasjon + 1, 0xc2b2ae35)) >>> 0;
-    const portvakter: Deltaker[] = Array.from(
-      { length: this.opts.pimcPortvakter },
-      (_, i) => ({
-        pimc: true,
-        frøBase: (frø ^ Math.imul(i + 1, 0x85ebca6b)) >>> 0,
-        ...this.opts.pimcOpts,
-      }),
-    );
+    // Målestokken: ÉN PIMC-solver som stilles i hver førsterunde-gruppe
+    // (3 konkurrenter + solver), aldri i cupen som konkurrent. Samme
+    // markør kan stå i alle gruppene – hver kamp lager sin egen agent.
+    const brukMålestokk = this.opts.pimcPortvakter > 0;
     const felt: Deltaker[] = [
       ...this.genomer,
       ...this.hall.slice(0, this.antallHallDeltakere()),
-      ...portvakter,
     ];
+    let målestokk: number | null = null;
+    if (brukMålestokk) {
+      målestokk = felt.length;
+      felt.push({ pimc: true, frøBase: frø, ...this.opts.pimcOpts });
+    }
     if (this.pool !== null) {
       return kjørTurneringMed(
         felt.length,
@@ -329,10 +329,11 @@ export class Evolusjon {
             STD_LÆRINGSRATE,
           ),
         frø,
+        målestokk,
       );
     }
     const agenter = felt.map((d) => (erPimc(d) ? new PimcPortvakt(d) : new NeatAgent(d)));
-    return kjørTurnering(agenter, frø, this.opts.kampOpts);
+    return kjørTurnering(agenter, frø, this.opts.kampOpts, målestokk);
   }
 
   /** Avslutter eventuelle arbeidstråder (kall ved endt trening). */
@@ -344,9 +345,18 @@ export class Evolusjon {
   /** Kjører én hel generasjon: turnering, fitness, artsdeling, nytt kull. */
   async kjørGenerasjon(): Promise<GenerasjonsStat> {
     const res = await this.spillTurnering();
-    const alleFitness = beregnFitness(res, this.mesterIdx, {
-      lambdaRegret: this.opts.lambdaRegret,
-    });
+    // Målestokken (siste felt-plass når portvakter er på) holdes utenfor
+    // fitness-normaliseringen – dens poengsum er ikke en konkurrent.
+    const målestokkIdx =
+      this.opts.pimcPortvakter > 0
+        ? this.genomer.length + this.antallHallDeltakere()
+        : null;
+    const alleFitness = beregnFitness(
+      res,
+      this.mesterIdx,
+      { lambdaRegret: this.opts.lambdaRegret },
+      målestokkIdx,
+    );
     // Bare populasjonen formerer seg; hall of fame konkurrerer kun.
     const fitness = alleFitness.slice(0, this.genomer.length);
 
@@ -469,9 +479,14 @@ export class Evolusjon {
       art.representant = klonGenom(this.genomer[rep]!);
     }
 
-    // Juster terskelen mot ønsket antall arter.
-    if (this.arter.length > this.opts.målArter) this.terskel += 0.15;
-    else if (this.arter.length < this.opts.målArter) this.terskel = Math.max(0.5, this.terskel - 0.15);
+    // Juster terskelen mot ønsket antall arter – med DØDSONE og små steg.
+    // Store steg fikk antallet til å flakse (2↔29 annenhver generasjon når
+    // avstandsfordelingen er bimodal); innenfor ±25 % av målet røres ikke
+    // terskelen, og utenfor justeres den forsiktig.
+    if (this.arter.length > this.opts.målArter * 1.25) this.terskel += 0.05;
+    else if (this.arter.length < this.opts.målArter * 0.75) {
+      this.terskel = Math.max(0.5, this.terskel - 0.05);
+    }
   }
 
   /**

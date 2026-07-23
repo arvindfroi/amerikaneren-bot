@@ -218,15 +218,28 @@ export type GruppeSpiller = (
  * og delelig med 4 (da trengs aldri utfylling i første runde).
  * Deterministisk gitt frø – også med parallell gruppespiller, siden hver
  * gruppekamp er en ren funksjon av (deltakere, gruppeFrø).
+ *
+ * MÅLESTOKK (C6): med `målestokk` satt (en felt-indeks, typisk en PIMC-
+ * portvakt) spilles FØRSTE runde i grupper på 3 konkurrenter + målestokken
+ * som fjerdemann i hver gruppe. Alle konkurrenter måles dermed mot samme
+ * yardstick hver generasjon – flakskontrollert differanse mot solveren er
+ * ren ferdighet, ikke trekningslykke. Målestokken AVANSERER ALDRI (den er
+ * langt sterkere enn feltet; å la den konkurrere gjorde dybden til støy) –
+ * gruppens beste konkurrent går videre, og fra runde 2 er cupen ren.
  */
 export async function kjørTurneringMed(
   antall: number,
   spillGruppe: GruppeSpiller,
   frø: number,
+  målestokk: number | null = null,
 ): Promise<TurneringsResultat> {
   const n = antall;
-  if (n < 4 || n % 4 !== 0) {
+  const konkurrenter = målestokk !== null ? n - 1 : n;
+  if (målestokk === null && (n < 4 || n % 4 !== 0)) {
     throw new Error("Turneringen krever minst 4 agenter og et antall delelig med 4");
+  }
+  if (målestokk !== null && konkurrenter < 4) {
+    throw new Error("Turneringen krever minst 4 konkurrenter i tillegg til målestokken");
   }
   const rng = lagRng(frø ^ 0x9e3779b9);
 
@@ -236,13 +249,24 @@ export async function kjørTurneringMed(
   const regretSum = new Array<number>(n).fill(0);
   const regretRunder = new Array<number>(n).fill(0);
 
-  let kandidater = stokkIndekser(n, rng);
+  let kandidater = stokkIndekser(n, rng).filter((i) => i !== målestokk);
   const utslåtte = new Set<number>();
   let runde = 0;
 
   while (kandidater.length > 1) {
+    // Gruppestørrelse denne runden: 3 + målestokk i runde 1 (når satt),
+    // ellers vanlige grupper på 4. Antall 3-grupper velges så resten går
+    // opp i 4 (n = 3a + 4b); overskytende spiller vanlig firergruppe.
+    const medMålestokk = målestokk !== null && runde === 0;
+    let treGrupper = 0;
+    if (medMålestokk) {
+      treGrupper = Math.floor(kandidater.length / 3);
+      while (treGrupper > 0 && (kandidater.length - 3 * treGrupper) % 4 !== 0) treGrupper--;
+    }
+
     // Fyll opp til delelig med 4 med de beste utslåtte («lucky losers»).
-    const mangler = (4 - (kandidater.length % 4)) % 4;
+    const rest = kandidater.length - 3 * treGrupper;
+    const mangler = (4 - (rest % 4)) % 4;
     if (mangler > 0 || kandidater.length < 4) {
       const inne = new Set(kandidater);
       const pool = [...utslåtte]
@@ -250,7 +274,7 @@ export async function kjørTurneringMed(
         .sort((a, b) => dybde[b]! - dybde[a]! || poeng[b]! - poeng[a]!);
       const behov = kandidater.length < 4 ? 4 - kandidater.length : mangler;
       for (let i = 0; i < behov && i < pool.length; i++) kandidater.push(pool[i]!);
-      if (kandidater.length % 4 !== 0) {
+      if ((kandidater.length - 3 * treGrupper) % 4 !== 0) {
         throw new Error("Klarte ikke fylle gruppene – for få agenter");
       }
     }
@@ -258,11 +282,17 @@ export async function kjørTurneringMed(
     // Alle gruppene i runden avvikles samtidig (uavhengige kamper).
     const grupper: number[][] = [];
     const jobber: Promise<GruppeResultat>[] = [];
-    for (let g = 0; g < kandidater.length; g += 4) {
-      const gruppe = kandidater.slice(g, g + 4);
-      const gruppeFrø = (frø + Math.imul(runde * 131 + g + 1, 0x85ebca6b)) >>> 0;
+    let posisjon = 0;
+    let gruppeNr = 0;
+    while (posisjon < kandidater.length) {
+      const erTre = gruppeNr < treGrupper;
+      const gruppe = kandidater.slice(posisjon, posisjon + (erTre ? 3 : 4));
+      if (erTre) gruppe.push(målestokk!);
+      posisjon += erTre ? 3 : 4;
+      const gruppeFrø = (frø + Math.imul(runde * 131 + gruppeNr * 4 + 1, 0x85ebca6b)) >>> 0;
       grupper.push(gruppe);
       jobber.push(spillGruppe(gruppe, gruppeFrø));
+      gruppeNr++;
     }
     const resultater = await Promise.all(jobber);
 
@@ -277,10 +307,12 @@ export async function kjørTurneringMed(
         regretSum[idx]! += res.regretSum[j]!;
         regretRunder[idx]! += res.regretRunder[j]!;
       }
-      const vinner = gruppe[res.rekkefølge[0]!]!;
+      // Beste KONKURRENT vinner gruppa – målestokken avanserer aldri.
+      const vinnerPlass = res.rekkefølge.find((j) => gruppe[j] !== målestokk)!;
+      const vinner = gruppe[vinnerPlass]!;
       vinnere.push(vinner);
       dybde[vinner] = runde + 1;
-      for (const idx of gruppe) if (idx !== vinner) utslåtte.add(idx);
+      for (const idx of gruppe) if (idx !== vinner && idx !== målestokk) utslåtte.add(idx);
     }
     kandidater = vinnere;
     runde++;
@@ -304,6 +336,7 @@ export async function kjørTurnering(
   agenter: readonly TurneringsAgent[],
   frø: number,
   opts: KampOpts = {},
+  målestokk: number | null = null,
 ): Promise<TurneringsResultat> {
   return kjørTurneringMed(
     agenter.length,
@@ -316,6 +349,7 @@ export async function kjørTurnering(
         ),
       ),
     frø,
+    målestokk,
   );
 }
 
@@ -356,6 +390,7 @@ export function beregnFitness(
   res: TurneringsResultat,
   forrigeMesterIdx: number | null,
   opts: FitnessOpts = {},
+  ekskluder: number | null = null,
 ): number[] {
   // Lav vekt: angeren måles på få kontrakter per cup (høy varians) og ville
   // ellers sprøytet støy inn i seleksjonen; selve LÆRINGEN av anger skjer nå
@@ -365,11 +400,14 @@ export function beregnFitness(
   const maksDybde = Math.max(...res.dybde);
   const referanse = forrigeMesterIdx === null ? 0 : res.dybde[forrigeMesterIdx]!;
 
+  // Målestokken (ekskluder) holdes utenfor normaliseringen – dens enorme
+  // poengsum ville ellers klemt sammen poengbonusen for hele feltet.
   let minP = Infinity;
   let maksP = -Infinity;
-  for (const p of res.poeng) {
-    minP = Math.min(minP, p);
-    maksP = Math.max(maksP, p);
+  for (let i = 0; i < res.poeng.length; i++) {
+    if (i === ekskluder) continue;
+    minP = Math.min(minP, res.poeng[i]!);
+    maksP = Math.max(maksP, res.poeng[i]!);
   }
   const spenn = maksP - minP || 1;
 
@@ -394,6 +432,7 @@ export function beregnFitness(
     const mesterDybde = res.dybde[forrigeMesterIdx]!;
     const over: number[] = [];
     for (let i = 0; i < n; i++) {
+      if (i === ekskluder) continue;
       if (i !== forrigeMesterIdx && res.dybde[i]! <= mesterDybde && fitness[i]! >= mesterFit) {
         over.push(i);
       }
