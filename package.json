@@ -28,7 +28,8 @@
     "selvspill": "node examples/selvspill.ts",
     "styrketest": "node examples/styrketest.ts",
     "turnering": "node examples/turnering.ts",
-    "neat-tren": "node examples/neat-tren.ts"
+    "neat-tren": "node examples/neat-tren.ts",
+    "neat-vakt": "node examples/neat-vakt.ts"
   },
   "keywords": [
     "amerikaner",

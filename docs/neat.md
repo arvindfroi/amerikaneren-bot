@@ -15,10 +15,29 @@ deterministisk gitt frø.
 npm run neat-tren                    # 50 generasjoner, populasjon 32, frø 42
 node examples/neat-tren.ts 200 64 7  # generasjoner populasjon frø
 node examples/neat-tren.ts 100 64 7 --fra trening/mester.json   # gjenoppta
+npm run neat-vakt                    # LANG trening under vakt (se under)
+node examples/neat-vakt.ts 8000 64 7 --maks-timer 10
 ```
 
 Mesteren lagres fortløpende i `trening/mester.json` og benkes hvert
 10. generasjon mot en grådig heuristisk bot i duplikatkamper.
+
+### Feilsikring for lange kjøringer (`neat-vakt.ts`)
+
+For natt-trening kjøres `neat-tren.ts` under en vakt som gjør økten
+selvhelbredende:
+
+- **Atomisk lagring**: mester/status skrives som tmp + rename – et krasj
+  midt i en skriving kan aldri korrumpere mestergenomet.
+- **Hjerteslag**: treneren skriver `trening/status.json` hver generasjon
+  (siste generasjon, tidsstempel, fitness, anger, benk).
+- **Krasj**: dør treneren, starter vakten den om fra siste mester med
+  gjenstående generasjoner, videreført generasjonsnummerering
+  (`--gen-start`) og forskjøvet frø (et deterministisk krasj skal ikke
+  reproduseres i evighet). Eksponentiell pause, maks 100 omstarter.
+- **Heng**: står hjerteslaget stille i 10 min, drepes og omstartes barnet.
+- **Tidstak**: `--maks-timer` gjelder hele økten; treneren avslutter pent
+  (lagrer alt, kode 0) når tiden er ute.
 
 ## Arkitekturen
 
