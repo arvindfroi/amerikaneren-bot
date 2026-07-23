@@ -4,3 +4,5 @@ dist/
 .DS_Store
 # midlertidige skrap-filer
 /_*
+# NEAT-treningsartefakter (mestergenomer m.m.)
+trening/

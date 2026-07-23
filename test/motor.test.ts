@@ -262,3 +262,15 @@ test("spillerVisning skjuler andres hender og makker før avsløring", () => {
   // Etterlyst kort er offentlig annonsert.
   assert.deepEqual(v.etterlyst, s.etterlyst);
 });
+
+test("spillerVisning eksponerer stikkhistorikken (offentlig informasjon)", () => {
+  let s = opprettSpill({ antallSpillere: 4 }, 22);
+  while (s.fase !== "SPILL") s = utfør(s, deterministiskHandling(s)).state;
+  // Spill til minst to stikk er fullført.
+  while (s.stikkSpilt < 2 && s.fase === "SPILL") s = utfør(s, deterministiskHandling(s)).state;
+  for (let spiller = 0; spiller < 4; spiller++) {
+    const v = spillerVisning(s, spiller);
+    assert.deepEqual(v.historikk, s.historikk, "alle ser de fullførte stikkene");
+  }
+  assert.equal(spillerVisning(s, 0).historikk.length, s.stikkSpilt);
+});

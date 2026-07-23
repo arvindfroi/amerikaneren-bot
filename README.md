@@ -285,6 +285,14 @@ delen der CFR ville tilført mest (motstandermodellering, bløff), men et
 sampling-basert EV-estimat er mer enn nok for husbruk – og kan senere byttes
 ut bak `velgHandling` uten å røre resten.
 
+**NEAT-linjen:** repoet har likevel fått en (eksperimentell, parallell)
+lærende AI: nevroevolusjon med NEAT, der ett nett lærer hele spillet –
+budrunde etter xT (forventede stikk), vraking, trumfvalg og kortspill –
+gjennom flakskontrollerte cupturneringer i grupper på 4 og læring på anger
+(regret). Se `docs/neat.md` og `npm run neat-tren`. Den bryter ikke med
+designmålet: alt er fortsatt avhengighetsfritt, deterministisk gitt frø,
+og treningen skjer lokalt uten GPU.
+
 ## Filstruktur
 
 ```
@@ -295,11 +303,13 @@ src/
   solver/dds.ts      Eksakt dobbelt-dummy-løser (alpha-beta + TT)
   solver/sampler.ts  Determinisering av skjult informasjon
   bot/bot.ts         PIMC-bot: velgHandling for alle faser
+  neat/              NEAT-nevroevolusjon: genom, nett, agent, turnering, evolusjon (docs/neat.md)
   index.ts           Offentlig API (re-eksport)
-test/                node:test-suite (kort, regler, motor, dds, sampler, bot)
+test/                node:test-suite (kort, regler, motor, dds, sampler, bot, neat)
 examples/
   selvspill.ts       Fire heuristikk-boter spiller en hel kamp
   styrketest.ts      Måler PIMC-botens stikk-fordel mot tilfeldig spill
+  neat-tren.ts       Trener NEAT-populasjonen (npm run neat-tren)
 ```
 
 Skillet er bevisst: **motoren** er ren regel-logikk (avgjør lovlighet og

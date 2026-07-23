@@ -31,3 +31,6 @@ export {
   type DDOppsett,
 } from "./solver/dds.ts";
 export { trekkVerden, byggDDOppsett, infererRenonce, type Verden } from "./solver/sampler.ts";
+
+// NEAT: nevroevolusjon – genom/nett/agent/turnering/evolusjon (docs/neat.md)
+export * as neat from "./neat/index.ts";

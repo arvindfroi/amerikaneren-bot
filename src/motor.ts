@@ -685,6 +685,8 @@ export interface SpillerVisning {
   readonly stikkVunnet: number[];
   readonly stikkSpilt: number;
   readonly forrigeStikk: Stikk | null;
+  /** Alle fullførte stikk denne runden – offentlig informasjon (alle så kortene). */
+  readonly historikk: Stikk[];
   /** Egne vrakede kort (kun budvinner ser sine). */
   readonly dittVrak: Kort[];
   readonly sisteRunde: RundeResultat | null;
@@ -718,6 +720,7 @@ export function spillerVisning(state: GameState, spiller: number): SpillerVisnin
     stikkVunnet: state.stikkVunnet.slice(),
     stikkSpilt: state.stikkSpilt,
     forrigeStikk: state.forrigeStikk,
+    historikk: state.historikk.slice(),
     dittVrak: state.budvinner === spiller ? state.vrak.slice() : [],
     sisteRunde: state.sisteRunde,
     vinner: state.vinner,
