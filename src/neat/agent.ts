@@ -268,6 +268,22 @@ export class NeatAgent {
     return { type: "VELG", spiller, trumf, etterlyst };
   }
 
+  /** Markerer at agenten kan overstyres av sluttsøk i turneringen (D1). */
+  readonly søkbar = true;
+
+  /**
+   * Spillfasit (D1): smal, lamarckisk kalibrering av KORTHODET mot
+   * solverens valg i samme stilling – kun det ene kortets utgang dyttes
+   * opp (delta-regel), resten av nettet røres ikke. Lærdommen fra det
+   * feilslåtte DAgger-forsøket: bred overskriving mot en annen spillers
+   * valg skrambler evolverte hoder; en smal dytt med lav rate gjør ikke det.
+   */
+  lærSpill(state: GameState, spiller: number, solverKort: Kort, rate: number): void {
+    if (rate <= 0) return;
+    this.evaluer(state, spiller, "SPILL");
+    this.nett.kalibrerUtgang(UT_KORT + kortIndeks(solverKort), 0.9, rate);
+  }
+
   /**
    * Rangerer lovlige kort etter korthodets score (beste først). Brukes av
    * hybrid-/søkeagenter som kandidatliste: nettet foreslår, søket avgjør.

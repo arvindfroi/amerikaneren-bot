@@ -19,10 +19,11 @@
  * lærer på regret, ikke bare på plassering.
  */
 
-import { lagRng } from "../kort.ts";
+import { lagRng, type Kort } from "../kort.ts";
 import type { GameState, Handling, Hendelse } from "../motor.ts";
 import { opprettSpill, utfør } from "../motor.ts";
 import type { BudEstimat } from "./agent.ts";
+import { solverBesteKort } from "./hybrid.ts";
 
 /** Det en agent må kunne for å delta (NeatAgent oppfyller dette). */
 export interface TurneringsAgent {
@@ -34,6 +35,10 @@ export interface TurneringsAgent {
    * faktiske lag- og makkerstikkene, slik at nettet kan kalibrere seg.
    */
   lærAvKontrakt?(rundeNr: number, lagStikk: number, makkerStikk?: number): void;
+  /** Kan overstyres av sluttsøket (KampOpts.sluttsøk). Portvakter er ikke det. */
+  readonly søkbar?: boolean;
+  /** Valgfri spillfasit-læring: smal kalibrering mot solverens kortvalg. */
+  lærSpill?(state: GameState, spiller: number, solverKort: Kort, rate: number): void;
 }
 
 export interface KampOpts {
@@ -48,6 +53,26 @@ export interface KampOpts {
    * er små. Standard 1.
    */
   readonly frøPerKamp?: number;
+  /**
+   * SLUTTSØK (D1): søkbare agenter spiller sluttspillet med eksakt søk –
+   * ved ≤ `terskel` stikk igjen erstattes nettets kortvalg av solverens
+   * (fra agentens eget informasjonsbilde). Nettet slipper å lære sluttspill
+   * og seleksjonen konsentreres om budgivning og tidlig-/midtspill.
+   */
+  readonly sluttsøk?: { readonly terskel: number; readonly verdener: number; readonly nodeTak: number };
+  /**
+   * SPILLFASIT (D1): med sannsynlighet `sjanse` per kortvalg regnes
+   * solverens beste kort ut i samme stilling, og agenten kalibrerer
+   * korthodet sitt smalt mot det (lærSpill). Agentens EGET valg spilles
+   * fortsatt (on-policy – DAgger-lærdommen).
+   */
+  readonly spillFasit?: {
+    readonly sjanse: number;
+    readonly verdener: number;
+    readonly dybde: number;
+    readonly nodeTak: number;
+    readonly rate: number;
+  };
 }
 
 const STD_MAKS_RUNDER = 40;
@@ -111,8 +136,39 @@ export function spillGruppekamp(
             ? 0
             : state.iTur!;
       const agent = agenter[agentISete(sete)]!;
-      const handling =
+      let handling: Handling =
         state.fase === "RUNDE_SLUTT" ? ({ type: "NESTE" } as const) : agent.velgHandling(state);
+      if (state.fase === "SPILL" && handling.type === "SPILL") {
+        const gjenstår = state.giving.antallStikk - state.stikkSpilt;
+        if (
+          opts.sluttsøk !== undefined &&
+          agent.søkbar === true &&
+          gjenstår <= opts.sluttsøk.terskel
+        ) {
+          // Sluttsøk: solveren spiller sluttspillet for søkbare agenter.
+          const kort = solverBesteKort(state, sete, {
+            verdener: opts.sluttsøk.verdener,
+            dybde: gjenstår,
+            nodeTak: opts.sluttsøk.nodeTak,
+            rng,
+          });
+          if (kort !== null) handling = { type: "SPILL", spiller: sete, kort };
+        } else if (
+          opts.spillFasit !== undefined &&
+          agent.lærSpill !== undefined &&
+          rng() < opts.spillFasit.sjanse
+        ) {
+          // Spillfasit: solverens valg i samme stilling som smal fasit for
+          // korthodet – agentens eget valg spilles fortsatt (on-policy).
+          const kort = solverBesteKort(state, sete, {
+            verdener: opts.spillFasit.verdener,
+            dybde: opts.spillFasit.dybde,
+            nodeTak: opts.spillFasit.nodeTak,
+            rng,
+          });
+          if (kort !== null) agent.lærSpill(state, sete, kort, opts.spillFasit.rate);
+        }
+      }
       const res = utfør(state, handling);
       bokførRegret(state, res.hendelser, agenter, agentISete, regretSum, regretRunder);
       state = res.state;

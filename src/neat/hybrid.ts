@@ -11,7 +11,7 @@
  * (der holdes nettet rent, og søket ville kostet for mye).
  */
 
-import { lagRng } from "../kort.ts";
+import { lagRng, type Kort } from "../kort.ts";
 import {
   lovligeKort,
   type GameState,
@@ -21,6 +21,56 @@ import { evaluerEtterTrekk, kortTilInt } from "../solver/dds.ts";
 import { byggDDOppsett, trekkVerden, type Verden } from "../solver/sampler.ts";
 import { NeatAgent, type BudEstimat } from "./agent.ts";
 import type { Genom } from "./genom.ts";
+
+export interface SolverKortOpts {
+  /** Antall samplede verdener forenlige med spillerens informasjon. */
+  readonly verdener: number;
+  /** Stikk som løses eksakt per verden (resten spilles grådig). */
+  readonly dybde: number;
+  readonly nodeTak: number;
+  readonly rng: () => number;
+  /** Begrens søket til disse kandidatene (ellers alle lovlige kort). */
+  readonly kandidater?: readonly Kort[];
+}
+
+/**
+ * Solverens beste kort fra SPILLERENS eget informasjonsbilde: verdener
+ * samples, hver kandidat evalueres (grådig ned til `dybde` stikk igjen, så
+ * eksakt), og argmax forventet egenpoeng returneres. null hvis samplingen
+ * feiler. Gjenbrukes av HybridAgent (sluttspill + midtspill) og av
+ * turneringens sluttsøk/spillfasit (D1-linja).
+ */
+export function solverBesteKort(
+  state: GameState,
+  spiller: number,
+  opts: SolverKortOpts,
+): Kort | null {
+  const lovlige = opts.kandidater ?? lovligeKort(state, spiller);
+  if (lovlige.length === 0) return null;
+  if (lovlige.length === 1) return lovlige[0]!;
+  const kortInt = lovlige.map(kortTilInt);
+  const sum = new Array<number>(lovlige.length).fill(0);
+  let verdener = 0;
+  let tomme = 0;
+  while (verdener < opts.verdener && tomme < 40) {
+    const verden = trekkVerden(state, spiller, opts.rng);
+    if (!verden) {
+      tomme++;
+      continue;
+    }
+    tomme = 0;
+    const oppsett = byggDDOppsett(state, verden);
+    for (let i = 0; i < lovlige.length; i++) {
+      const lag = evaluerEtterTrekk(oppsett, kortInt[i]!, opts.dybde, opts.nodeTak);
+      sum[i]! += egenPoeng(lag, verden, state, spiller);
+    }
+    verdener++;
+  }
+  if (verdener === 0) return null;
+  let best = 0;
+  for (let i = 1; i < lovlige.length; i++) if (sum[i]! > sum[best]!) best = i;
+  return lovlige[best]!;
+}
 
 export interface HybridOpts {
   /** Overtar med eksakt søk når så mange (eller færre) stikk gjenstår. */
@@ -99,58 +149,26 @@ export class HybridAgent {
     const kandidater = this.nett
       .rangerKort(state, spiller, lovlige)
       .slice(0, this.midtKandidater);
-    if (kandidater.length < 2) return { type: "SPILL", spiller, kort: kandidater[0] ?? lovlige[0]! };
-    const kortInt = kandidater.map(kortTilInt);
-    const sum = new Array<number>(kandidater.length).fill(0);
-    let verdener = 0;
-    let tomme = 0;
-    while (verdener < this.midtVerdener && tomme < 40) {
-      const verden = trekkVerden(state, spiller, this.rng);
-      if (!verden) {
-        tomme++;
-        continue;
-      }
-      tomme = 0;
-      const oppsett = byggDDOppsett(state, verden);
-      for (let i = 0; i < kandidater.length; i++) {
-        const lag = evaluerEtterTrekk(oppsett, kortInt[i]!, this.midtDybde, this.nodeTak);
-        sum[i]! += egenPoeng(lag, verden, state, spiller);
-      }
-      verdener++;
-    }
-    if (verdener === 0) return null; // sampling feilet – fall til nettet
-    let best = 0;
-    for (let i = 1; i < kandidater.length; i++) if (sum[i]! > sum[best]!) best = i;
-    return { type: "SPILL", spiller, kort: kandidater[best]! };
+    const kort = solverBesteKort(state, spiller, {
+      verdener: this.midtVerdener,
+      dybde: this.midtDybde,
+      nodeTak: this.nodeTak,
+      rng: this.rng,
+      kandidater,
+    });
+    return kort !== null ? { type: "SPILL", spiller, kort } : null;
   }
 
   /** Eksakt sluttspill: argmax forventet egenpoeng over samplede verdener. */
   private eksaktValg(state: GameState, spiller: number): Handling | null {
-    const lovlige = lovligeKort(state, spiller);
-    if (lovlige.length === 1) return { type: "SPILL", spiller, kort: lovlige[0]! };
-    const kortInt = lovlige.map(kortTilInt);
     const gjenstår = state.giving.antallStikk - state.stikkSpilt;
-    const sum = new Array<number>(lovlige.length).fill(0);
-    let verdener = 0;
-    let tomme = 0;
-    while (verdener < this.verdener && tomme < 40) {
-      const verden = trekkVerden(state, spiller, this.rng);
-      if (!verden) {
-        tomme++;
-        continue;
-      }
-      tomme = 0;
-      const oppsett = byggDDOppsett(state, verden);
-      for (let i = 0; i < lovlige.length; i++) {
-        const lag = evaluerEtterTrekk(oppsett, kortInt[i]!, gjenstår, this.nodeTak);
-        sum[i]! += egenPoeng(lag, verden, state, spiller);
-      }
-      verdener++;
-    }
-    if (verdener === 0) return null; // sampling feilet – fall til nettet
-    let best = 0;
-    for (let i = 1; i < lovlige.length; i++) if (sum[i]! > sum[best]!) best = i;
-    return { type: "SPILL", spiller, kort: lovlige[best]! };
+    const kort = solverBesteKort(state, spiller, {
+      verdener: this.verdener,
+      dybde: gjenstår,
+      nodeTak: this.nodeTak,
+      rng: this.rng,
+    });
+    return kort !== null ? { type: "SPILL", spiller, kort } : null;
   }
 }
 
