@@ -1,0 +1,111 @@
+<!doctype html><html lang="no"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Amerikaneren-NEAT: fremgang</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin:0; background:#fcfcfb; color:#0b0b0b; font:14px/1.45 system-ui,sans-serif; }
+  @media (prefers-color-scheme: dark) { body { background:#1a1a19; color:#fff; } }
+  .rot { max-width:1000px; margin:0 auto; padding:20px;
+    --tx2:#52514e; --grid:#e8e7e3;
+    --sA:#2a78d6; --sB:#eb6834; --sC:#1baf7a; --sC2:#eda100; --sC3:#e87ba4; --sC4:#4a3aa7; --sC5:#008300; }
+  @media (prefers-color-scheme: dark) { .rot { --tx2:#c3c2b7; --grid:#33322f;
+    --sA:#3987e5; --sB:#d95926; --sC:#199e70; --sC2:#c98500; --sC3:#d55181; --sC4:#9085e9; --sC5:#008300; } }
+  h1 { font-size:19px; margin:0 0 2px; } .sub { color:var(--tx2); margin:0 0 12px; font-size:13px; }
+  .akse { font-size:11px; fill:var(--tx2); } .merk { font-size:12px; font-weight:600; }
+  .lgr { display:flex; flex-wrap:wrap; gap:14px; margin:0 0 6px; font-size:12.5px; color:var(--tx2); }
+  .lg i { display:inline-block; width:14px; height:3px; border-radius:2px; margin-right:5px; vertical-align:middle; }
+  .lg i.strek { background:repeating-linear-gradient(90deg,var(--tx2) 0 5px,transparent 5px 9px); }
+  svg { width:100%; height:auto; display:block; }
+  #tt { position:fixed; pointer-events:none; background:#fcfcfb; border:1px solid var(--grid);
+    border-radius:6px; padding:6px 9px; font-size:12px; display:none; box-shadow:0 2px 8px rgb(0 0 0 / .2); color:#0b0b0b; }
+  @media (prefers-color-scheme: dark) { #tt { background:#1a1a19; color:#fff; } }
+  table { border-collapse:collapse; margin-top:8px; font-size:13px; color:var(--tx2); }
+  td,th { padding:3px 12px 3px 0; text-align:left; } th { font-weight:600; }
+</style></head><body><div class="rot">
+<h1>Amerikaneren-NEAT: kvalitet per modell</h1>
+<p class="sub">Poengdifferanse per kamp mot grådig-benken (glidende snitt over 5 målinger; prikker = enkeltmålinger).
+0-linjen = jevnt med heuristikk-boten. Stiplet = forventet videre utvikling (lineær trend i C-arven).
+<b id="stempel"></b> · siden henter nye tall hvert minutt.</p>
+<div class="lgr" id="legend"></div>
+<div id="graf"></div><div id="tt"></div>
+<table id="tabell"></table>
+<script>
+const W=960,H=560,ML=56,MR=150,MT=30,MB=46,PW=W-ML-MR,PH=H-MT-MB;
+let DATA=null;
+function farge(n){return "var(--s"+n+")";}
+async function last(){
+  try{
+    const r=await fetch("data.json?ts="+Date.now(),{cache:"no-store"});
+    DATA=await r.json(); tegn();
+  }catch(e){/* prøver igjen */}
+}
+function tegn(){
+  const d=DATA; if(!d) return;
+  const alle=[...d.serier.flatMap(s=>s.glatt.map(p=>p.v)), ...d.proj.map(p=>p.v), ...d.band.flatMap(b=>[b.lo,b.hi])];
+  const YMAX=Math.min(120,Math.max(60,Math.ceil(Math.max(...alle)/10)*10+10));
+  const YMIN=Math.max(-200,Math.min(-100,Math.floor(Math.min(...d.serier.flatMap(s=>s.glatt.map(p=>p.v)))/10)*10-10));
+  const XMAX=Math.max(...d.serier.map(s=>s.rå[s.rå.length-1].g), ...(d.proj.length?[d.proj[d.proj.length-1].g]:[0]))*1.02;
+  const X=g=>ML+PW*g/XMAX, Y=v=>MT+PH*(YMAX-v)/(YMAX-YMIN);
+  const sti=p=>"M"+p.map(q=>X(q.g).toFixed(1)+" "+Y(q.v).toFixed(1)).join(" L");
+  let s='';
+  for(let v=Math.ceil(YMIN/50)*50; v<=YMAX; v+=50){
+    const y=Y(v), tykk=v===0?'stroke="var(--tx2)" stroke-width="1.5"':'stroke="var(--grid)"';
+    s+='<line x1="'+ML+'" y1="'+y+'" x2="'+(ML+PW)+'" y2="'+y+'" '+tykk+'/>';
+    s+='<text x="'+(ML-8)+'" y="'+(y+4)+'" text-anchor="end" class="akse">'+(v>0?"+":"")+v+'</text>';
+  }
+  s+='<text x="'+(ML+PW-6)+'" y="'+(Y(0)-7)+'" text-anchor="end" class="akse">jevnt med grådig-boten</text>';
+  const steg=XMAX>4000?1000:XMAX>1500?500:200;
+  for(let g=0;g<=XMAX;g+=steg) s+='<text x="'+X(g)+'" y="'+(MT+PH+22)+'" text-anchor="middle" class="akse">'+g+'</text>';
+  if(d.band.length){
+    const poly=d.band.map(b=>X(b.g).toFixed(1)+","+Y(b.hi).toFixed(1)).join(" ")+" "+
+      [...d.band].reverse().map(b=>X(b.g).toFixed(1)+","+Y(b.lo).toFixed(1)).join(" ");
+    s+='<polygon points="'+poly+'" fill="var(--tx2)" opacity="0.10"/>';
+    s+='<path d="'+sti(d.proj)+'" fill="none" stroke="var(--tx2)" stroke-width="2" stroke-dasharray="7 5"/>';
+    const pp=d.proj[d.proj.length-1];
+    s+='<text x="'+(X(pp.g)+6)+'" y="'+(Y(pp.v)+4)+'" class="merk" fill="var(--tx2)">forventet</text>';
+  }
+  for(const serie of d.serier){
+    for(const p of serie.rå) if(p.v>=YMIN&&p.v<=YMAX)
+      s+='<circle cx="'+X(p.g).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="2" fill="'+farge(serie.navn)+'" opacity="0.22"/>';
+    s+='<path d="'+sti(serie.glatt)+'" fill="none" stroke="'+farge(serie.navn)+'" stroke-width="2" stroke-linejoin="round"/>';
+    const sp=serie.glatt[serie.glatt.length-1];
+    s+='<text x="'+(X(sp.g)+7)+'" y="'+(Y(sp.v)+4)+'" class="merk" fill="'+farge(serie.navn)+'">'+serie.navn+'</text>';
+  }
+  s+='<line id="kryss" y1="'+MT+'" y2="'+(MT+PH)+'" stroke="var(--tx2)" opacity="0" stroke-dasharray="3 3"/>';
+  document.getElementById("graf").innerHTML=
+    '<svg viewBox="0 0 '+W+' '+H+'" id="plot" role="img" aria-label="Fremgangsgraf">'+
+    '<line x1="'+ML+'" y1="'+MT+'" x2="'+ML+'" y2="'+(MT+PH)+'" stroke="var(--grid)"/>'+
+    '<line x1="'+ML+'" y1="'+(MT+PH)+'" x2="'+(ML+PW)+'" y2="'+(MT+PH)+'" stroke="var(--grid)"/>'+
+    '<text x="'+(ML+PW/2)+'" y="'+(H-8)+'" text-anchor="middle" class="akse">generasjon (per modell)</text>'+s+'</svg>';
+  document.getElementById("legend").innerHTML=
+    d.serier.map(x=>'<span class="lg"><i style="background:'+farge(x.navn)+'"></i>'+x.navn+'</span>').join("")+
+    '<span class="lg"><i class="strek"></i>Forventet (trend i C-arven)</span>';
+  document.getElementById("tabell").innerHTML=
+    '<tr><th>Modell</th><th>Siste gen</th><th>Beste (glattet)</th><th>Nå (glattet)</th></tr>'+
+    d.serier.map(x=>{
+      const beste=Math.max(...x.glatt.map(p=>p.v)), nå=x.glatt[x.glatt.length-1].v;
+      return '<tr><td>'+x.navn+'</td><td>'+x.rå[x.rå.length-1].g+'</td><td>'+(beste>0?"+":"")+beste.toFixed(0)+'</td><td>'+(nå>0?"+":"")+nå.toFixed(0)+'</td></tr>';
+    }).join("");
+  document.getElementById("stempel").textContent="Sist oppdatert "+new Date(d.oppdatert).toLocaleTimeString("nb-NO");
+  kobleHover(XMAX);
+}
+function kobleHover(XMAX){
+  const svg=document.getElementById("plot"),tt=document.getElementById("tt"),kr=document.getElementById("kryss");
+  svg.onmousemove=(e)=>{
+    const r=svg.getBoundingClientRect(),sk=r.width/W,gx=((e.clientX-r.left)/sk-ML)/PW*XMAX;
+    if(gx<0||gx>XMAX){tt.style.display="none";kr.setAttribute("opacity",0);return;}
+    const px=ML+PW*gx/XMAX; kr.setAttribute("x1",px);kr.setAttribute("x2",px);kr.setAttribute("opacity",.5);
+    let rader="";
+    for(const s of DATA.serier){
+      if(gx>s.glatt[s.glatt.length-1].g+XMAX*0.03) continue;
+      let n=s.glatt[0]; for(const p of s.glatt) if(Math.abs(p.g-gx)<Math.abs(n.g-gx)) n=p;
+      if(Math.abs(n.g-gx)<=XMAX*0.04) rader+="<div><b>"+s.navn+"</b> gen "+n.g+": "+(n.v>0?"+":"")+n.v+"</div>";
+    }
+    if(!rader){tt.style.display="none";return;}
+    tt.innerHTML="<div><b>gen ≈ "+Math.round(gx)+"</b></div>"+rader;
+    tt.style.display="block";tt.style.left=(e.clientX+14)+"px";tt.style.top=(e.clientY+10)+"px";
+  };
+  svg.onmouseleave=()=>{tt.style.display="none";kr.setAttribute("opacity",0);};
+}
+last(); setInterval(last, 60_000);
+</script></div></body></html>
