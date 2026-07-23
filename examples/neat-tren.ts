@@ -18,7 +18,7 @@
  * generasjon slik at vakten (neat-vakt.ts) kan oppdage heng og omstarte.
  */
 
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 
 import {
   lovligeKort,
@@ -151,6 +151,13 @@ for (let g = 0; g < generasjoner; g++) {
     } catch (feil) {
       console.error(`  (benk/kopi feilet: ${String(feil)})`);
     }
+  }
+
+  // Genom-trekk + fitness per individ → forklaringsanalysen (neat-forklar.ts).
+  try {
+    appendFileSync(`${dir}/analyse.jsonl`, JSON.stringify({ gen, individer: stat.individer }) + "\n");
+  } catch {
+    /* analyse er ikke kritisk */
   }
 
   // Hjerteslag for vakten (neat-vakt.ts): siste fullførte generasjon + tid.

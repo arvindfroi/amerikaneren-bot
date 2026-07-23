@@ -34,6 +34,8 @@ import { GruppePool } from "./pool.ts";
 import {
   ANTALL_INN,
   ANTALL_UT,
+  SENSORGRUPPER,
+  UT_KORT,
   UT_MAKKER,
   UT_MARGIN,
   UT_XT,
@@ -97,6 +99,24 @@ export interface EvolusjonsOpts {
   readonly tråder?: number;
 }
 
+/** Genom-trekk + resultat for ett individ (til forklaringsanalysen). */
+export interface IndividData {
+  readonly noder: number;
+  readonly koblinger: number;
+  readonly skjulte: number;
+  readonly aktivAndel: number;
+  readonly snittAbsVekt: number;
+  readonly kortInn: number;
+  readonly xtInn: number;
+  readonly fraHistorikk: number;
+  readonly fraRenons: number;
+  readonly fraBossTelling: number;
+  readonly fraTaktikk: number;
+  readonly fitness: number;
+  readonly dybde: number;
+  readonly regret: number;
+}
+
 export interface GenerasjonsStat {
   readonly generasjon: number;
   readonly antallArter: number;
@@ -111,6 +131,8 @@ export interface GenerasjonsStat {
   readonly mesterNoder: number;
   readonly mesterKoblinger: number;
   readonly turneringsRunder: number;
+  /** Trekk + resultat per populasjonsmedlem (for forklaringsanalysen). */
+  readonly individer: IndividData[];
 }
 
 interface Art {
@@ -118,6 +140,51 @@ interface Art {
   medlemmer: number[];
   besteFitness: number;
   stagnasjon: number;
+}
+
+/** Teller genom-trekk som forklaringsanalysen regresserer mot fitness. */
+function lagIndividData(g: Genom, fitness: number, dybde: number, regret: number): IndividData {
+  const iOmråde = (id: number, [fra, til]: readonly [number, number]): boolean =>
+    id >= fra && id < til;
+  const kortIder: [number, number] = [utId(ANTALL_INN, UT_KORT), utId(ANTALL_INN, UT_KORT) + 52];
+  const xtIder = new Set(
+    [UT_XT, UT_XT_LAV, UT_XT_HØY].map((u) => utId(ANTALL_INN, u)),
+  );
+  let aktive = 0;
+  let sumVekt = 0;
+  let kortInn = 0;
+  let xtInn = 0;
+  let fraHistorikk = 0;
+  let fraRenons = 0;
+  let fraBossTelling = 0;
+  let fraTaktikk = 0;
+  for (const k of g.koblinger) {
+    if (!k.aktiv) continue;
+    aktive++;
+    sumVekt += Math.abs(k.vekt);
+    if (iOmråde(k.ut, kortIder)) kortInn++;
+    if (xtIder.has(k.ut)) xtInn++;
+    if (iOmråde(k.inn, SENSORGRUPPER.historikk)) fraHistorikk++;
+    if (iOmråde(k.inn, SENSORGRUPPER.renons)) fraRenons++;
+    if (iOmråde(k.inn, SENSORGRUPPER.bossTelling)) fraBossTelling++;
+    if (iOmråde(k.inn, SENSORGRUPPER.taktikk)) fraTaktikk++;
+  }
+  return {
+    noder: g.noder.length,
+    koblinger: g.koblinger.length,
+    skjulte: g.noder.filter((n) => n.type === "skjult").length,
+    aktivAndel: g.koblinger.length > 0 ? aktive / g.koblinger.length : 0,
+    snittAbsVekt: aktive > 0 ? sumVekt / aktive : 0,
+    kortInn,
+    xtInn,
+    fraHistorikk,
+    fraRenons,
+    fraBossTelling,
+    fraTaktikk,
+    fitness,
+    dybde,
+    regret,
+  };
 }
 
 export class Evolusjon {
@@ -272,6 +339,10 @@ export class Evolusjon {
     this.genomer = [klonGenom(nyMester), ...nesteKull];
     this.mesterIdx = 0;
 
+    const individer = this.genomer.map((g, i) =>
+      lagIndividData(g, fitness[i]!, res.dybde[i]!, res.regretSnitt[i]!),
+    );
+
     const stat: GenerasjonsStat = {
       generasjon: this.generasjon,
       antallArter: this.arter.length,
@@ -284,6 +355,7 @@ export class Evolusjon {
       mesterNoder: nyMester.noder.length,
       mesterKoblinger: nyMester.koblinger.length,
       turneringsRunder: res.runder,
+      individer,
     };
     this.generasjon++;
     return stat;

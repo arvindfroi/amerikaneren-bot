@@ -58,6 +58,19 @@ export const ANTALL_INN = 280;
 
 const BESLUTNINGER: readonly Beslutning[] = ["BUD", "VRAK", "VELG", "SPILL"];
 
+/**
+ * Inngangsgrupper [fra, til) for genom-analyse: hvilke sensorfamilier et
+ * genom faktisk har koblet på, brukes til å forklare fitnessvariasjon
+ * (se examples/neat-forklar.ts).
+ */
+export const SENSORGRUPPER = {
+  hånd: [HÅND, HÅND + 52],
+  historikk: [SETT, SETT + 52],
+  renons: [RENONS, RENONS + 12],
+  bossTelling: [SKJULTE_I_FARGE, TRUMF_UTE + 1],
+  taktikk: [BESTE_ER_TRUMF, STIKKLEDER + 4],
+} as const;
+
 // --- Utgangslayout ----------------------------------------------------------
 /** xT-median – forventet antall lagstikk gitt hånden (skalert av agenten). */
 export const UT_XT = 0;
