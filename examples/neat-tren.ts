@@ -77,14 +77,20 @@ let startHall: Genom[] | undefined;
 // HELE befolkningen (populasjon + hall) lagres periodisk og har forrang ved
 // omstart: å gjenoppta fra kun mesteren kaster bort alt mangfold – hver
 // container-omstart ble en flaskehals som satte linja tilbake.
+let startTerskel: number | undefined;
 if (existsSync(`${dir}/befolkning.json`)) {
   const b = JSON.parse(readFileSync(`${dir}/befolkning.json`, "utf8")) as {
     genomer: Genom[];
     hall: Genom[];
+    terskel?: number;
   };
   startPopulasjon = b.genomer;
   startHall = b.hall;
-  console.log(`Gjenopptar HEL befolkning: ${b.genomer.length} genomer + ${b.hall.length} i hallen`);
+  startTerskel = b.terskel;
+  console.log(
+    `Gjenopptar HEL befolkning: ${b.genomer.length} genomer + ${b.hall.length} i hallen` +
+      (b.terskel !== undefined ? `, terskel ${b.terskel.toFixed(2)}` : ""),
+  );
 } else if (fraFil !== null) {
   startGenom = genomFraJson(readFileSync(fraFil, "utf8"));
   console.log(`Gjenopptar fra ${fraFil} (${startGenom.noder.length} noder, ${startGenom.koblinger.length} koblinger)`);
@@ -141,6 +147,7 @@ const evo = new Evolusjon({
   startGenom,
   startPopulasjon,
   startHall,
+  startTerskel,
   hallOfFame,
   tråder,
   kampOpts: {
@@ -200,7 +207,7 @@ for (let g = 0; g < generasjoner; g++) {
       // populasjonsmangfoldet (kun opptil 10 generasjoners arbeid).
       lagreAtomisk(
         `${dir}/befolkning.json`,
-        JSON.stringify({ genomer: evo.genomer, hall: evo.hall }),
+        JSON.stringify({ genomer: evo.genomer, hall: evo.hall, terskel: evo.terskel }),
       );
       // 8 frø × 4 seter = 32 kamper – tilfeldighetene kontrolleres bedre
       // (±støyen krymper ~40 % mot gamle 12).

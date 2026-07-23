@@ -95,6 +95,8 @@ export interface EvolusjonsOpts {
   readonly startPopulasjon?: Genom[];
   /** Gjenopprett hall of fame fra en tidligere økt (kanoniseres). */
   readonly startHall?: Genom[];
+  /** Gjenopprett artsterskelen (ellers starter den på 3,0 og må jakte). */
+  readonly startTerskel?: number;
   /**
    * Antall arbeidstråder for gruppekampene. 1 (standard) = alt i
    * hovedtråden. Flere tråder spiller rundens grupper parallelt – bit-
@@ -234,7 +236,7 @@ export class Evolusjon {
   };
   private readonly rng: () => number;
   private arter: Art[] = [];
-  private terskel = 3.0;
+  terskel = 3.0;
   private pool: GruppePool | null = null;
   /** Plassen i populasjonen der mesterkopien står (null før første turnering). */
   private mesterIdx: number | null = null;
@@ -310,6 +312,9 @@ export class Evolusjon {
     if (opts.startHall !== undefined && opts.startHall.length > 0) {
       this.hall = opts.startHall.map((g) => this.kanoniser(g));
       for (const g of this.hall) this.bok.hoppOver(g);
+    }
+    if (opts.startTerskel !== undefined && opts.startTerskel > 0) {
+      this.terskel = opts.startTerskel;
     }
   }
 
