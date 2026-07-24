@@ -21,11 +21,16 @@
   @media (prefers-color-scheme: dark) { #tt { background:#1a1a19; color:#fff; } }
   table { border-collapse:collapse; margin-top:8px; font-size:13px; color:var(--tx2); }
   td,th { padding:3px 12px 3px 0; text-align:left; } th { font-weight:600; }
+  .puls { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+  .kort { border:1px solid var(--grid); border-radius:999px; padding:3px 12px; font-size:12.5px; color:var(--tx2); }
+  .prikk { display:inline-block; width:7px; height:7px; border-radius:50%; background:#2f9e44; margin-right:6px; }
+  .prikk.stille { background:#d92b2b; }
 </style></head><body><div class="rot">
 <h1>Amerikaneren-NEAT: kvalitet per modell</h1>
 <p class="sub">Poengdifferanse per kamp mot grådig-benken (glidende snitt over 5 målinger; prikker = enkeltmålinger).
 0-linjen = jevnt med heuristikk-boten. Stiplet = forventet videre utvikling (recency-vektet trend per fokuslinje, oppdateres hver generasjon).
 <b id="stempel"></b><span id="vert"></span> · siden henter nye tall hvert minutt.</p>
+<div class="puls" id="puls"></div>
 <div class="lgr" id="legend"></div>
 <div id="graf"></div><div id="tt"></div>
 <table id="tabell"></table>
@@ -43,6 +48,15 @@ async function last(){
 }
 function tegn(){
   const d=DATA; if(!d) return;
+  // Pulsen: lever linja NÅ? Kurven flytter seg bare hver 10. generasjon.
+  document.getElementById("puls").innerHTML=(d.puls||[]).map(function(x){
+    const stille=x.hjerteslagMin>10;
+    return '<span class="kort"><i class="prikk'+(stille?' stille':'')+'"></i><b style="color:'+farge(x.navn)+'">'+x.navn+'</b>'+
+      ' gen '+x.generasjon+
+      (x.genPerTime!==null&&x.genPerTime!==undefined?' · '+x.genPerTime+' gen/t':'')+
+      (x.gullDiff!==null&&x.gullDiff!==undefined?' · gull '+(x.gullDiff>0?'+':'')+x.gullDiff:'')+
+      (stille?' · stille i '+x.hjerteslagMin+' min':'')+'</span>';
+  }).join("");
   const projs=d.projeksjoner||[];
   const alle=[...d.serier.flatMap(s=>s.glatt.map(p=>p.v)), ...projs.flatMap(p=>p.band.flatMap(b=>[b.lo,b.hi])), ...(d.pimcRef?[d.pimcRef.diff]:[])];
   const YMAX=Math.min(120,Math.max(60,Math.ceil(Math.max(...alle)/10)*10+10));
