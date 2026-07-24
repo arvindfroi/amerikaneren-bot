@@ -173,6 +173,8 @@ interface Puls {
   hjerteslagMin: number;
   gullDiff: number | null;
   gullGen: number | null;
+  /** Hvilken benk gulltallet er målt på – de to skalaene er ~100 poeng fra hverandre. */
+  gullMot: Motstander | null;
   genPerTime: number | null;
 }
 const FARTSFIL = `${REPO}/trening-felles/fart.json`;
@@ -193,7 +195,7 @@ for (const dir of readdirSync(REPO).filter((f) => /^trening-[a-z0-9]+$/.test(f))
   }
   if (status === null) continue;
   const navn = dir.replace("trening-", "").toUpperCase();
-  let gull: { diff: number; gen: number } | null = null;
+  let gull: { diff: number; gen: number; motstander?: Motstander } | null = null;
   try {
     gull = JSON.parse(readFileSync(`${REPO}/${dir}/gull.json`, "utf8"));
   } catch {
@@ -209,6 +211,7 @@ for (const dir of readdirSync(REPO).filter((f) => /^trening-[a-z0-9]+$/.test(f))
     hjerteslagMin: Math.round((nå - status.tidsstempel) / 60_000),
     gullDiff: gull !== null ? Math.round(gull.diff * 10) / 10 : null,
     gullGen: gull?.gen ?? null,
+    gullMot: gull !== null ? (gull.motstander ?? "grådig") : null,
     genPerTime: timer > 0.05 ? Math.round((status.generasjon - eldst.g) / timer) : null,
   });
 }
@@ -330,8 +333,9 @@ function MAL(): string {
   .prikk.stille { background:#d92b2b; }
 </style></head><body><div class="rot">
 <h1>Amerikaneren-NEAT: kvalitet per modell</h1>
-<p class="sub">Poengdifferanse per kamp mot grådig-benken (glidende snitt over 5 målinger; prikker = enkeltmålinger).
-0-linjen = jevnt med heuristikk-boten. Stiplet = forventet videre utvikling (recency-vektet trend per fokuslinje, oppdateres hver generasjon).
+<p class="sub">Poengdifferanse per kamp, glidende snitt over 5 målinger (prikker = enkeltmålinger).
+<b>To målestokker, aldri i samme kurve:</b> heltrukket = mot grådig-boten (historisk, og en svak motstander – den byr aldri over 5),
+stiplet tykk = mot NevroHjerne, appens ferdigtrente nett. 0 = jevnt med den motstanderen kurven måles mot.
 <b id="stempel"></b><span id="vert"></span> · siden henter nye tall hvert minutt.</p>
 <div class="puls" id="puls"></div>
 <div class="lgr" id="legend"></div>
@@ -357,7 +361,7 @@ function tegn(){
     return '<span class="kort"><i class="prikk'+(stille?' stille':'')+'"></i><b style="color:'+farge(x.navn)+'">'+x.navn+'</b>'+
       ' gen '+x.generasjon+
       (x.genPerTime!==null&&x.genPerTime!==undefined?' · '+x.genPerTime+' gen/t':'')+
-      (x.gullDiff!==null&&x.gullDiff!==undefined?' · gull '+(x.gullDiff>0?'+':'')+x.gullDiff:'')+
+      (x.gullDiff!==null&&x.gullDiff!==undefined?' · gull '+(x.gullDiff>0?'+':'')+x.gullDiff+' ('+(x.gullMot||'grådig')+')':'')+
       (stille?' · stille i '+x.hjerteslagMin+' min':'')+'</span>';
   }).join("");
   const projs=d.projeksjoner||[];
