@@ -10,7 +10,7 @@
  */
 
 import { velgHandling } from "../src/bot/bot.ts";
-import type { Farge, Kort } from "../src/kort.ts";
+import { fraKortId, kortId, type Farge, type Kort } from "../src/kort.ts";
 import {
   lovligeHandlinger,
   opprettSpill,
@@ -26,6 +26,92 @@ import { AMERIKANER, PASS, SOLO, type Bud } from "../src/regler.ts";
 // --- Oppsett ----------------------------------------------------------------
 const DATA_URL = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
 const MENNESKE = 0;
+
+// --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
+// Farmor spiller mot appens EKTE MesterAI når hele spillet serveres fra
+// laptopens bro (arena/mesterai-bro.ts) over HTTP. Da er /mester samme opphav
+// (ingen HTTPS/mixed-content-blokkering på iPad-en). På Vercel (HTTPS) er
+// LOKAL falsk, så MesterAI vises ikke og spillet er uendret.
+const LOKAL = location.protocol === "http:";
+const MESTER_URL = `${location.origin}/mester`;
+const MESTER_SETER = [1, 2, 3]; // botsetene styres av MesterAI i bro-modus
+
+/** Serialiserer en handling til adapterens JSON-format (som arena-adapteren). */
+function handlingTilAdapter(h: Handling): Record<string, unknown> {
+  switch (h.type) {
+    case "BUD":
+      return { type: "BUD", spiller: h.spiller, bud: h.bud };
+    case "VRAK":
+      return { type: "VRAK", spiller: h.spiller, kort: h.kort.map(kortId) };
+    case "VELG":
+      return {
+        type: "VELG",
+        spiller: h.spiller,
+        trumf: h.trumf,
+        etterlyst: h.etterlyst ? kortId(h.etterlyst) : null,
+      };
+    case "SPILL":
+      return { type: "SPILL", spiller: h.spiller, kort: kortId(h.kort) };
+    case "NESTE":
+      throw new Error("NESTE sendes aldri til broen");
+  }
+}
+
+interface BroSvar {
+  type: string;
+  handling?: { type: string; spiller: number; bud?: unknown; kort?: unknown; trumf?: unknown; etterlyst?: unknown };
+}
+
+// Alle bro-kall serialiseres i kall-rekkefølge, så adapterens motor holder seg
+// i eksakt synk med vår (samme mekanikk som arena-benchmarken, over HTTP).
+let broKø: Promise<unknown> = Promise.resolve();
+async function broSend(melding: object): Promise<BroSvar> {
+  const r = await fetch(MESTER_URL, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(melding),
+  });
+  return (await r.json()) as BroSvar;
+}
+function broPost(melding: object): Promise<BroSvar> {
+  const p = broKø.then(() => broSend(melding));
+  broKø = p.catch(() => undefined);
+  return p;
+}
+/** rundeStart-melding: gir broen hele givingen så motoren speiles eksakt. */
+function broRundeStart(): object {
+  return {
+    type: "rundeStart",
+    hender: state.hender.map((h) => h.map(kortId)),
+    talong: state.talong.map(kortId),
+    foersteBudgiver: state.iTur,
+  };
+}
+/** MesterAIs beslutning (adapter-JSON) → vår Handling. */
+function broHandlingFra(j: NonNullable<BroSvar["handling"]>): Handling {
+  const spiller = j.spiller;
+  switch (j.type) {
+    case "BUD":
+      return { type: "BUD", spiller, bud: j.bud as Bud };
+    case "VRAK":
+      return { type: "VRAK", spiller, kort: (j.kort as string[]).map(fraKortId) };
+    case "VELG":
+      return {
+        type: "VELG",
+        spiller,
+        trumf: j.trumf as Farge,
+        etterlyst: j.etterlyst == null ? null : fraKortId(j.etterlyst as string),
+      };
+    default:
+      return { type: "SPILL", spiller, kort: fraKortId(j.kort as string) };
+  }
+}
+/** Speiler en utført handling til broen så adapterens motor holder synk. */
+function broSpeil(h: Handling, hendelser: readonly Hendelse[]): void {
+  if (motstander !== "MesterAI") return;
+  if (h.type !== "NESTE") void broPost({ type: "handling", handling: handlingTilAdapter(h) });
+  for (const e of hendelser) if (e.type === "NY_RUNDE") void broPost(broRundeStart());
+}
 const NAVN = ["Du", "Vest 🤖", "Nord 🤖", "Øst 🤖"];
 /**
  * Styrkenivåer for PIMC. Kortvalg (SPILL) er tidsstyrt; bud/vrak/trumf er
@@ -119,13 +205,17 @@ async function pimcHandling(s: GameState): Promise<Handling> {
   }
 }
 
-/** Motstandertype: PIMC-solver eller et av de trente NEAT-nettene. */
-type Motstander = "PIMC" | "C4" | "D1";
+/** Motstandertype: PIMC-solver, et trent NEAT-nett, eller appens MesterAI. */
+type Motstander = "PIMC" | "C4" | "D1" | "MesterAI";
 const MOTSTANDER_INFO: Record<Motstander, string> = {
   PIMC: "PIMC – solveren (vanskeligst)",
   C4: "C4 – evolusjonsnettet",
   D1: "D1 – gradientnettet",
+  MesterAI: "MesterAI – appens mester 🏆",
 };
+/** MesterAI vises kun i bro-modus (spillet servert lokalt over HTTP). */
+const MOTSTANDERE = (): Motstander[] =>
+  LOKAL ? ["PIMC", "C4", "D1", "MesterAI"] : ["PIMC", "C4", "D1"];
 let motstander: Motstander = "PIMC";
 let nettAgenter: NeatAgent[] | null = null; // sete 1–3 ved C4/D1
 
@@ -183,7 +273,7 @@ async function start(navn: string): Promise<void> {
   spillerNavn = navn || "familien";
   spillId = Math.random().toString(36).slice(2, 10);
   nettAgenter = null;
-  if (motstander !== "PIMC") {
+  if (motstander === "C4" || motstander === "D1") {
     rot.innerHTML = `<div class="panel start"><h2>Laster ${motstander}-nettet…</h2></div>`;
     try {
       const svar = await fetch(DATA_URL + motstander.toLowerCase() + ".json");
@@ -195,14 +285,29 @@ async function start(navn: string): Promise<void> {
       document.getElementById("tilbake")!.onclick = () => startskjerm();
       return;
     }
-  }
-  if (motstander === "PIMC") {
+  } else if (motstander === "MesterAI") {
+    rot.innerHTML = `<div class="panel start"><h2>Kobler til MesterAI…</h2></div>`;
+    try {
+      await broSend({ type: "helse" }).catch(() => broSend({ type: "init", mesterSeter: [] }));
+    } catch {
+      rot.innerHTML = `<div class="panel start"><h2>Fikk ikke kontakt med MesterAI 😕</h2>
+        <p class="sub">Er broen startet på laptopen? (arena/mesterai-bro.ts)</p>
+        <button class="stor bekreft" id="tilbake">Tilbake</button></div>`;
+      document.getElementById("tilbake")!.onclick = () => startskjerm();
+      return;
+    }
+  } else {
     try {
       await initPimcWorker();
     } catch { /* faller tilbake til synkron RASK i pimcHandling */ }
   }
   state = opprettSpill({ antallSpillere: 4 }, (Date.now() ^ (Math.random() * 1e9)) >>> 0);
   for (const a of nettAgenter ?? []) a.nyKamp();
+  if (motstander === "MesterAI") {
+    broKø = Promise.resolve();
+    void broPost({ type: "nyKamp", mesterSeter: MESTER_SETER });
+    void broPost(broRundeStart());
+  }
   logg("start", { frø: state.frø, målPoeng: state.regler.målPoeng, motstander, styrke });
   fortsett();
 }
@@ -214,6 +319,7 @@ function gjør(h: Handling): void {
   const res = utfør(state, h);
   state = res.state;
   håndterHendelser(res.hendelser);
+  broSpeil(h, res.hendelser);
   // Fullført stikk: frys det på bordet i 2,6 s slik at alle rekker å se
   // alle fire kortene og hvem som vant, før spillet går videre.
   const stikk = res.hendelser.find((x) => x.type === "STIKK_FERDIG");
@@ -282,7 +388,20 @@ function fortsett(): void {
   venterPåMenneske = false;
   travelt = true;
   tenkStart = performance.now();
-  if (nettAgenter !== null) {
+  if (motstander === "MesterAI") {
+    tegn();
+    const reserve = (): Handling =>
+      velgHandling(state, { ...STYRKER.RASK.spill, frø: (Math.random() * 1e9) >>> 0 });
+    void broPost({ type: "beslutt", sete: aktør })
+      .then((svar) => {
+        travelt = false;
+        gjørMedPause(svar.handling ? broHandlingFra(svar.handling) : reserve(), 550);
+      })
+      .catch(() => {
+        travelt = false;
+        gjørMedPause(reserve(), 550);
+      });
+  } else if (nettAgenter !== null) {
     setTimeout(() => {
       const h = nettAgenter![aktør - 1]!.velgHandling(state);
       travelt = false;
@@ -567,7 +686,7 @@ function startskjerm(): void {
     <h1>🃏 Amerikaneren mot botene</h1>
     <p>Store kort, laget for TV-en. Velg motstander:</p>
     <div class="knapper motstandere" role="radiogroup" aria-label="Motstander">
-      ${(Object.keys(MOTSTANDER_INFO) as Motstander[])
+      ${MOTSTANDERE()
         .map((m) => `<button class="stor motstander${m === motstander ? " aktiv" : ""}" data-mot="${m}"
           role="radio" aria-checked="${m === motstander}">${MOTSTANDER_INFO[m]}</button>`)
         .join("")}

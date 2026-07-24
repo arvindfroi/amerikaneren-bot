@@ -37,56 +37,67 @@ Skriver `trening-felles/mesterai-referanse.json`. Neste graf-oppdatering
 **MesterAI**-strek på dashbordet automatisk. Kjør den gjerne på nytt av og til
 – streken oppdaterer seg.
 
-## Steg 3: Spillbar motstander (broen)
+## Steg 3: Farmor spiller mot MesterAI på iPad-en
 
-Start MesterAI-tjenesten på laptopen:
+Broen serverer **hele spillet** over HTTP – så iPad-en åpner ÉN adresse, og
+MesterAI (`/mester`) er samme opphav som spillet. Det unngår HTTPS/mixed-
+content-blokkeringen iPad-ens Safari ellers ville gitt.
 
-```bash
-node arena/mesterai-bro.ts --port 8787 --ms 450
-```
+1. Bygg spill-bundelen (én gang, eller etter kodeendring):
 
-Den skriver ut laptopens adresse. Finn LAN-IP-en (f.eks. `192.168.1.42`):
+   ```bash
+   npx esbuild web/app.ts --bundle --format=esm --charset=utf8 --minify --outfile=web/dist/app.js
+   npx esbuild web/worker.ts --bundle --format=esm --charset=utf8 --minify --outfile=web/dist/worker.js
+   ```
 
-```bash
-# macOS:   ipconfig getifaddr en0
-# Linux:   hostname -I | awk '{print $1}'
-```
+2. Start broen på laptopen (fra repo-roten):
 
-Åpne så nettspillet med bro-adressen som parameter:
+   ```bash
+   node arena/mesterai-bro.ts --port 8787 --ms 450
+   ```
 
-```
-https://project-a9l2n.vercel.app/?mester=http://192.168.1.42:8787
-```
+3. Finn laptopens LAN-IP:
 
-Chromecast/telefoner på samme wifi når laptopen på den IP-en. Med parameteren
-satt dukker **MesterAI** opp i motstander-velgeren; uten den er spillet
-uendret (PIMC/C4/D1 som før).
+   ```bash
+   # macOS:   ipconfig getifaddr en0
+   # Linux:   hostname -I | awk '{print $1}'
+   ```
 
-> **Merk:** klient-koblingen i nettspillet (motstander-valget som ruter til
-> broen) er den siste biten som kobles opp og valideres mot en kjørende bro –
-> se «Status» nederst. Broen, adapteren og protokollen (`arena/adapterklient.ts`)
-> er ferdige og testet mot motoren.
+4. På farmors iPad (samme wifi): åpne **`http://<LAN-IP>:8787`** i Safari –
+   f.eks. `http://192.168.1.42:8787`. Legg den gjerne til på Hjem-skjermen én
+   gang, så er det bare å trykke på ikonet neste gang.
+
+I motstander-velgeren dukker nå **MesterAI 🏆** opp. Velg den, og farmor spiller
+mot appens ekte mester. (PIMC/C4/D1 virker fortsatt – de laster fra nettet.)
+
+> Laptopen må stå på og være på samme wifi mens hun spiller. Broen holder én
+> kamp om gangen – rikelig for én iPad.
 
 ## Hvordan det henger sammen
 
 ```
-Nettleser (nettspillet)            Laptop
-┌────────────────────────┐        ┌─────────────────────────────┐
-│ motoren kjører spillet │  HTTP  │ mesterai-bro.ts (Node)      │
-│ speiler hver handling  │ ─────► │   └─ spawner adapteren      │
-│ spør «beslutt» på      │ ◄───── │      (Swift, appens kode)   │
-│ MesterAIs tur          │  trekk │      MesterAI + NevroHjerne  │
-└────────────────────────┘        └─────────────────────────────┘
+iPad (Safari, http://laptop:8787)     Laptop
+┌────────────────────────────┐        ┌─────────────────────────────┐
+│ spillet (servert av broen) │  HTTP  │ mesterai-bro.ts (Node)      │
+│ motoren fører spillet      │ ─────► │   ├─ serverer spillet        │
+│ speiler hver handling      │        │   └─ spawner adapteren      │
+│ spør «beslutt» på          │ ◄───── │      (Swift, appens kode)   │
+│ MesterAIs tur → /mester    │  trekk │      MesterAI + NevroHjerne  │
+└────────────────────────────┘        └─────────────────────────────┘
 ```
 
 Motoren i nettleseren er autoritet (den deler kortene og fører spillet);
 broen holder appens `GameEngine` i synk og svarer med MesterAIs trekk. Nøyaktig
 samme mekanikk som arena-benchmarken, bare over HTTP i stedet for stdin/stdout.
+Alle bro-kall serialiseres i rekkefølge, så adapterens motor aldri kommer ut
+av synk.
 
 ## Status
 
 - ✅ `arena/adapterklient.ts` – delt, testet adapterprotokoll
 - ✅ `examples/mesterai-referanse.ts` – måler dashboard-streken
-- ✅ `arena/mesterai-bro.ts` – HTTP-tjenesten nettspillet kaller
-- ⏳ Nettspillets MesterAI-motstander (guardet av `?mester=`) – kobles opp og
-  valideres mot en kjørende bro på laptopen
+- ✅ `arena/mesterai-bro.ts` – serverer spillet + MesterAI-trekk over HTTP
+- ✅ Nettspillets MesterAI-motstander (vises i bro-modus, `/mester` same-origin)
+- ⏳ Ende-til-ende-validering mot en kjørende bro (krever Swift – kjøres på
+  laptopen; deploy er trygg fordi MesterAI kun vises når spillet serveres
+  lokalt over HTTP)

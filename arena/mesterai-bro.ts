@@ -20,7 +20,7 @@
  */
 
 import { createServer } from "node:http";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { Adapter } from "./adapterklient.ts";
 
 function flagg(navn: string, standard: number): number {
@@ -53,15 +53,58 @@ const CORS = {
   "Access-Control-Allow-Headers": "content-type",
 };
 
+// Statiske spillfiler serveres lokalt over HTTP, så iPad-en åpner ÉN adresse
+// og /mester blir samme opphav (ingen HTTPS/mixed-content-blokkering).
+// index.html lastes fra disk med skript-kilden pekt til same-origin /app.js.
+const REPO = new URL("..", import.meta.url).pathname;
+function les(sti: string): string | null {
+  try {
+    return readFileSync(REPO + sti, "utf8");
+  } catch {
+    return null;
+  }
+}
+const INDEX = (les("web/index.html") ?? "").replace(
+  /<script src="https:\/\/[^"]*\/app\.js"><\/script>/,
+  '<script src="/app.js"></script>',
+);
+const STATISK: Record<string, [string, string]> = {
+  "/app.js": ["web/dist/app.js", "text/javascript; charset=utf-8"],
+  "/worker.js": ["web/dist/worker.js", "text/javascript; charset=utf-8"],
+};
+
 const server = createServer((req, res) => {
+  const sti = (req.url ?? "/").split("?")[0]!;
   if (req.method === "OPTIONS") {
     res.writeHead(204, CORS);
     res.end();
     return;
   }
   if (req.method === "GET") {
-    res.writeHead(200, { "content-type": "application/json", ...CORS });
-    res.end(JSON.stringify({ ok: true, tjeneste: "mesterai-bro", tidMs }));
+    if (sti === "/" || sti === "/index.html") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", ...CORS });
+      res.end(INDEX);
+      return;
+    }
+    const fil = STATISK[sti];
+    if (fil) {
+      const innhold = les(fil[0]);
+      if (innhold === null) {
+        res.writeHead(404, CORS);
+        res.end("bygg web-bundelen: npx esbuild web/app.ts ...");
+        return;
+      }
+      res.writeHead(200, { "content-type": fil[1], "cache-control": "no-store", ...CORS });
+      res.end(innhold);
+      return;
+    }
+    if (sti === "/helse" || sti === "/mester") {
+      res.writeHead(200, { "content-type": "application/json", ...CORS });
+      res.end(JSON.stringify({ ok: true, tjeneste: "mesterai-bro", tidMs }));
+      return;
+    }
+    res.writeHead(404, CORS);
+    res.end();
     return;
   }
   if (req.method !== "POST") {
@@ -69,11 +112,18 @@ const server = createServer((req, res) => {
     res.end();
     return;
   }
+  // POST /mester (eller /) → relé til adapteren (MesterAIs beslutninger).
   let kropp = "";
   req.on("data", (d) => (kropp += d));
   req.on("end", async () => {
     try {
-      const melding = JSON.parse(kropp) as object;
+      const melding = JSON.parse(kropp) as { type?: string };
+      // Helsesjekk fra klienten før kamp: svar uten å forstyrre adapteren.
+      if (melding.type === "helse") {
+        res.writeHead(200, { "content-type": "application/json", ...CORS });
+        res.end(JSON.stringify({ type: "ok" }));
+        return;
+      }
       const svar = await adapter.send(melding);
       res.writeHead(200, { "content-type": "application/json", ...CORS });
       res.end(JSON.stringify(svar));
