@@ -87,7 +87,10 @@ const ALLE_LINJER: Linje[] = [
     dir: "trening-d3",
     logg: "trening-d3.log",
     frø: 939393,
-    ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro"],
+    // --trumffasit MAALT +20,4 ± 4,4 i en matchet test (40 gen, samme
+    // startpopulasjon, trumffasit eneste forskjell). Loeser den maalte
+    // trumfblindsonen ved aa vise trumfhodet haandvurderingen direkte.
+    ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro", "--trumffasit", "0.5"],
   },
 ];
 const LINJER: Linje[] = linjeValg === null ? ALLE_LINJER : ALLE_LINJER.filter((l) => linjeValg.includes(l.navn));
