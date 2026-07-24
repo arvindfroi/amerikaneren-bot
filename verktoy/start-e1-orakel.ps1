@@ -20,7 +20,9 @@ param(
   [int]$Verdener = 24,
   [int]$Dybde = 7,
   [double]$Sjanse = 0.35,
-  [int]$Froe = 300000
+  [int]$Froe = 300000,
+  [string]$Mappe = "e1-data",
+  [switch]$Flatt
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,11 +36,11 @@ if ($alt) {
   exit 1
 }
 
-$data = Join-Path $repo "e1-data"
+$data = Join-Path $repo $Mappe
 if (-not (Test-Path $data)) { New-Item -ItemType Directory $data | Out-Null }
 
 for ($i = 0; $i -lt $Skard; $i++) {
-  $ut = "e1-data/skard-$i.jsonl"
+  $ut = "$Mappe/skard-$i.jsonl"
   $logg = Join-Path $data "skard-$i.ut"
   $argumenter = @(
     "examples/e1-orakel.ts",
@@ -50,6 +52,7 @@ for ($i = 0; $i -lt $Skard; $i++) {
     "--dybde", "$Dybde",
     "--sjanse", "$Sjanse"
   )
+  if ($Flatt) { $argumenter += "--flatt" }
   Start-Process -FilePath $node -ArgumentList $argumenter -WorkingDirectory $repo `
     -RedirectStandardOutput $logg -RedirectStandardError "$logg.err" -WindowStyle Hidden | Out-Null
 }
