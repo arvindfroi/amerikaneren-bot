@@ -28,7 +28,8 @@
     "selvspill": "node examples/selvspill.ts",
     "styrketest": "node examples/styrketest.ts",
     "turnering": "node examples/turnering.ts",
-    "arena": "node examples/arena.ts"
+    "arena": "node examples/arena.ts",
+    "benchmark": "node examples/benchmark.ts"
   },
   "keywords": [
     "amerikaner",
