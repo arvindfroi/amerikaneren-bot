@@ -36,14 +36,31 @@ const snapshots = alle
   .sort((a, b) => Number(b.match(/\d+/)![0]) - Number(a.match(/\d+/)![0]));
 if (snapshots[0]) filer.add(`${fraDir}/${snapshots[0]}`);
 
-if (filer.size === 0) {
+// HELE befolkningen og gullstandarden tas med. Uten dem starter den nye
+// linja fra en håndfull genomer, og mangfoldet tusen generasjoner har bygd
+// opp – som er selve kapitalen i en NEAT-populasjon – er kastet bort.
+const ekstra: Genom[] = [];
+if (existsSync(`${fraDir}/gull.json`)) {
+  const g = JSON.parse(readFileSync(`${fraDir}/gull.json`, "utf8")) as { genom?: Genom };
+  if (g.genom !== undefined) ekstra.push(genomFraJson(JSON.stringify(g.genom)));
+}
+if (existsSync(`${fraDir}/befolkning.json`)) {
+  const b = JSON.parse(readFileSync(`${fraDir}/befolkning.json`, "utf8")) as {
+    genomer?: Genom[];
+    hall?: Genom[];
+  };
+  for (const g of [...(b.genomer ?? []), ...(b.hall ?? [])]) ekstra.push(g);
+  console.log(`befolkning.json: ${b.genomer?.length ?? 0} genomer + ${b.hall?.length ?? 0} i hallen`);
+}
+
+if (filer.size === 0 && ekstra.length === 0) {
   console.error(`Fant ingen genomer i ${fraDir}`);
   process.exit(1);
 }
 
 const migrerte: Genom[] = [];
-for (const fil of filer) {
-  let g = genomFraJson(readFileSync(fil, "utf8"));
+for (const fil of [...filer, ...ekstra]) {
+  let g = typeof fil === "string" ? genomFraJson(readFileSync(fil, "utf8")) : fil;
   if (g.antallInn > ANTALL_INN || g.antallUt > ANTALL_UT) {
     console.error(`${fil} har ${g.antallInn}/${g.antallUt} inn/ut – nyere enn kodingen; hopper over`);
     continue;
@@ -52,7 +69,7 @@ for (const fil of filer) {
   if (g.antallUt < ANTALL_UT) g = utvidUtganger(g, ANTALL_UT);
   if (g.antallInn < ANTALL_INN) g = utvidInnganger(g, ANTALL_INN);
   migrerte.push(g);
-  console.log(`${fil}: ${før} → ${ANTALL_INN}/${ANTALL_UT} inn/ut`);
+  if (typeof fil === "string") console.log(`${fil}: ${før} → ${ANTALL_INN}/${ANTALL_UT} inn/ut`);
 }
 
 mkdirSync(dirname(utfil), { recursive: true });

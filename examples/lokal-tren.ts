@@ -64,6 +64,17 @@ const ALLE_LINJER: Linje[] = [
     frø: 717171,
     ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro"],
   },
+  // D2 = D1s befolkning, migrert til kodingen med håndvurderings-sensorer.
+  // Eneste forskjell fra D1 er de 14 nye inngangene (estimerStikk per farge
+  // m.m.). Obduksjonen målte trumfvalget til 32,4 ± 3,0 av et gap på 41,7 –
+  // dette gir nettet råstoffet det manglet for nettopp det valget.
+  {
+    navn: "D2",
+    dir: "trening-d2",
+    logg: "trening-d2.log",
+    frø: 828282,
+    ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro"],
+  },
 ];
 const LINJER: Linje[] = linjeValg === null ? ALLE_LINJER : ALLE_LINJER.filter((l) => linjeValg.includes(l.navn));
 if (LINJER.length === 0) {

@@ -11,6 +11,7 @@
 
 import { FARGER, type Farge, type Kort } from "../kort.ts";
 import type { SpillerVisning } from "../motor.ts";
+import { estimerStikk } from "../nevro/agent.ts";
 
 export type Beslutning = "BUD" | "VRAK" | "VELG" | "SPILL";
 
@@ -79,7 +80,23 @@ const MINE_TRUMF = 293; //        1: antall trumf på egen hånd (/antallStikk)
 const KAN_TRUMFE = 294; //        1: renons i utspillsfargen + har trumf (kan stjele stikket)
 const TRUMF_BOSS = 295; //        1: jeg holder høyeste LEVENDE trumf (topp trumfkontroll)
 const TREKK_TRUMF = 296; //       1: på budlaget OG levende trumf ute hos andre (bør trekkes)
-export const ANTALL_INN = 297;
+// --- Håndvurdering (D2): hva er hånden verdt med HVER farge som trumf? ---
+// MÅLT blindsone: å låne bort trumfvalget til NevroHjerne løftet D1s gull
+// 32,4 ± 3,0 poeng/kamp – 32 av et samlet gap på 41,7. NevroHjerne bruker
+// ikke nett til trumfvalget i det hele tatt, men en håndlagd formel
+// (estimerStikk). D1 måtte utlede det samme av 52 rå kortbiter og fire
+// fargelengder, med ~1 150 vekter delt på HELE spillet.
+// Her serveres formelen som sensorer: nettet står fritt til å bruke dem,
+// avvike fra dem eller ignorere dem – men slipper å gjenoppfinne dem.
+const EST_STIKK = 297; //         4: estimerte lagstikk med hver farge som trumf (/12)
+const EST_BESTE = 301; //         1: beste fargeestimat (/12)
+const EST_ARGMAX = 302; //        4: one-hot – hvilken farge estimatet peker på
+const ESS = 306; //               1: antall ess (/4)
+const KONGER = 307; //            1: antall konger (/4)
+const RENONS_EGEN = 308; //       1: antall egne renonsfarger (/3)
+const SINGELTON_EGEN = 309; //    1: antall egne singeltonfarger (/3)
+const LENGSTE = 310; //           1: lengste farge (/8)
+export const ANTALL_INN = 311;
 
 const BESLUTNINGER: readonly Beslutning[] = ["BUD", "VRAK", "VELG", "SPILL"];
 
@@ -98,6 +115,7 @@ export const SENSORGRUPPER = {
   budhistorikk: [BUD_HIST, BUD_HIST + 4],
   lagstikk: [MAKKER_SPILT, FIENDE_LEDER + 1],
   trumfkontroll: [MINE_TRUMF, TREKK_TRUMF + 1],
+  håndvurdering: [EST_STIKK, LENGSTE + 1],
 } as const;
 
 // --- Utgangslayout ----------------------------------------------------------
@@ -139,6 +157,37 @@ export function lagInn(
   const meg = visning.deg;
   const n = visning.antallKort.length;
   const rel = (sete: number): number => ((sete - meg) % n + n) % n;
+
+  // Håndvurdering: samme formel NevroHjerne og MesterAI bruker til trumfvalg.
+  // Beregnes én gang per beslutning – 4 farger × en håndgjennomgang.
+  {
+    const hånd = visning.dinHånd;
+    let beste = -Infinity;
+    let besteF = 0;
+    for (let f = 0; f < 4; f++) {
+      const e = estimerStikk(hånd, FARGER[f]!);
+      inn[EST_STIKK + f] = Math.min(1, e / 12);
+      if (e > beste) {
+        beste = e;
+        besteF = f;
+      }
+    }
+    inn[EST_BESTE] = Math.min(1, Math.max(0, beste) / 12);
+    inn[EST_ARGMAX + besteF] = 1;
+    let ess = 0;
+    let konger = 0;
+    const lengder = [0, 0, 0, 0];
+    for (const k of hånd) {
+      if (k.verdi === 14) ess++;
+      else if (k.verdi === 13) konger++;
+      lengder[FARGER.indexOf(k.farge)]!++;
+    }
+    inn[ESS] = ess / 4;
+    inn[KONGER] = konger / 4;
+    inn[RENONS_EGEN] = lengder.filter((x) => x === 0).length / 3;
+    inn[SINGELTON_EGEN] = lengder.filter((x) => x === 1).length / 3;
+    inn[LENGSTE] = Math.min(1, Math.max(...lengder) / 8);
+  }
 
   for (const k of visning.dinHånd) {
     inn[HÅND + kortIndeks(k)] = 1;
