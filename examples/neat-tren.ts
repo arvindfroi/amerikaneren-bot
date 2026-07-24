@@ -155,7 +155,7 @@ const evo = new Evolusjon({
   kampOpts: {
     frøPerKamp: kampFrø,
     ...(sluttsøk > 0
-      ? { sluttsøk: { terskel: sluttsøk, verdener: 3, nodeTak: 60_000 } }
+      ? { sluttsøk: { terskel: sluttsøk, verdener: 3, nodeTak: 60_000, netPrior: 5 } }
       : {}),
     ...(spillFasit
       ? { spillFasit: { sjanse: 0.08, verdener: 3, dybde: 3, nodeTak: 60_000, rate: 0.02 } }

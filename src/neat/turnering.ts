@@ -21,7 +21,7 @@
 
 import { lagRng, type Kort } from "../kort.ts";
 import type { GameState, Handling, Hendelse } from "../motor.ts";
-import { opprettSpill, utfør } from "../motor.ts";
+import { lovligeKort, opprettSpill, utfør } from "../motor.ts";
 import type { BudEstimat } from "./agent.ts";
 import { solverBesteKort } from "./hybrid.ts";
 
@@ -41,6 +41,8 @@ export interface TurneringsAgent {
   lærSpill?(state: GameState, spiller: number, solverKort: Kort, rate: number): void;
   /** Valgfri budfasit-læring: xT-kalibrering mot en utspilt rollout. */
   lærBudFasit?(state: GameState, spiller: number, lagStikk: number, makkerStikk: number, rate: number): void;
+  /** Valgfri kortrangering (nett-prior): topp-kandidater til sluttsøket. */
+  rangerKort?(state: GameState, spiller: number, lovlige: readonly Kort[]): Kort[];
 }
 
 export interface KampOpts {
@@ -61,7 +63,19 @@ export interface KampOpts {
    * (fra agentens eget informasjonsbilde). Nettet slipper å lære sluttspill
    * og seleksjonen konsentreres om budgivning og tidlig-/midtspill.
    */
-  readonly sluttsøk?: { readonly terskel: number; readonly verdener: number; readonly nodeTak: number };
+  readonly sluttsøk?: {
+    readonly terskel: number;
+    readonly verdener: number;
+    readonly nodeTak: number;
+    /**
+     * NETT-PRIOR (AlphaZero-steget): la agentens korthode nominere de K beste
+     * kandidatene, og la solveren kun bedømme dem. Nettet foreslår, søket
+     * avgjør – færre kort å løse per verden = raskere, uten å miste kvalitet
+     * så lenge K er romslig nok til å inneholde det sanne beste kortet.
+     * Utelatt = søk over alle lovlige kort (som før).
+     */
+    readonly netPrior?: number;
+  };
   /**
    * SPILLFASIT (D1): med sannsynlighet `sjanse` per kortvalg regnes
    * solverens beste kort ut i samme stilling, og agenten kalibrerer
@@ -202,11 +216,22 @@ export function spillGruppekamp(
           gjenstår <= opts.sluttsøk.terskel
         ) {
           // Sluttsøk: solveren spiller sluttspillet for søkbare agenter.
+          // Nett-prior (valgfritt): korthodet nominerer topp-K kandidater, så
+          // solveren løser færre kort per verden (raskere) uten å miste
+          // kvalitet når K er romslig. handling er allerede satt til
+          // agent.velgHandling(state), som gir kortet ved solver-svikt.
+          let kandidater: readonly Kort[] | undefined;
+          const K = opts.sluttsøk.netPrior;
+          if (K !== undefined && K > 0 && agent.rangerKort !== undefined) {
+            const rangert = agent.rangerKort(state, sete, lovligeKort(state, sete));
+            if (rangert.length > K) kandidater = rangert.slice(0, K);
+          }
           const kort = solverBesteKort(state, sete, {
             verdener: opts.sluttsøk.verdener,
             dybde: gjenstår,
             nodeTak: opts.sluttsøk.nodeTak,
             rng,
+            kandidater,
           });
           if (kort !== null) handling = { type: "SPILL", spiller: sete, kort };
         } else if (
