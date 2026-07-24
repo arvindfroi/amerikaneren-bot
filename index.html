@@ -7,9 +7,9 @@
   @media (prefers-color-scheme: dark) { body { background:#1a1a19; color:#fff; } }
   .rot { max-width:1000px; margin:0 auto; padding:20px;
     --tx2:#52514e; --grid:#e8e7e3;
-    --fokusC4:#2a78d6; --fokusD1:#d92b2b; --retirert:#a5a39c; --mester:#1f9d55; }
+    --fokusC4:#2a78d6; --fokusD1:#d92b2b; --retirert:#a5a39c; --mester:#1f9d55; --fokusE1:#7048e8; }
   @media (prefers-color-scheme: dark) { .rot { --tx2:#c3c2b7; --grid:#33322f;
-    --fokusC4:#4593f0; --fokusD1:#f0524a; --retirert:#6e6d67; --mester:#33c777; } }
+    --fokusC4:#4593f0; --fokusD1:#f0524a; --retirert:#6e6d67; --mester:#33c777; --fokusE1:#9775fa; } }
   h1 { font-size:19px; margin:0 0 2px; } .sub { color:var(--tx2); margin:0 0 12px; font-size:13px; }
   .akse { font-size:11px; fill:var(--tx2); } .merk { font-size:12px; font-weight:600; }
   .lgr { display:flex; flex-wrap:wrap; gap:14px; margin:0 0 6px; font-size:12.5px; color:var(--tx2); }
@@ -25,6 +25,10 @@
   .kort { border:1px solid var(--grid); border-radius:999px; padding:3px 12px; font-size:12.5px; color:var(--tx2); }
   .prikk { display:inline-block; width:7px; height:7px; border-radius:50%; background:#2f9e44; margin-right:6px; }
   .prikk.stille { background:#d92b2b; }
+  .e1 { border:1px solid var(--grid); border-radius:10px; padding:12px 14px; margin:0 0 14px; }
+  .e1 h2 { font-size:14px; margin:0 0 2px; } .e1 p { margin:0 0 8px; font-size:12.5px; color:var(--tx2); }
+  .e1 .tall { display:flex; flex-wrap:wrap; gap:16px; font-size:12.5px; color:var(--tx2); margin-bottom:6px; }
+  .e1 .tall b { color:var(--fokusE1); }
 </style></head><body><div class="rot">
 <h1>Amerikaneren-NEAT: kvalitet per modell</h1>
 <p class="sub">Poengdifferanse per kamp, glidende snitt over 5 målinger (prikker = enkeltmålinger).
@@ -32,6 +36,7 @@
 stiplet tykk = mot NevroHjerne, appens ferdigtrente nett. 0 = jevnt med den motstanderen kurven måles mot.
 <b id="stempel"></b><span id="vert"></span> · siden henter nye tall hvert minutt.</p>
 <div class="puls" id="puls"></div>
+<div id="e1"></div>
 <div class="lgr" id="legend"></div>
 <div id="graf"></div><div id="tt"></div>
 <table id="tabell"></table>
@@ -58,6 +63,7 @@ function tegn(){
       (x.gullDiff!==null&&x.gullDiff!==undefined?' · gull '+(x.gullDiff>0?'+':'')+x.gullDiff+' ('+(x.gullMot||'grådig')+')':'')+
       (stille?' · stille i '+x.hjerteslagMin+' min':'')+'</span>';
   }).join("");
+  tegnE1(d.e1);
   const projs=d.projeksjoner||[];
   const alle=[...d.serier.flatMap(s=>s.glatt.map(p=>p.v)), ...projs.flatMap(p=>p.band.flatMap(b=>[b.lo,b.hi])), ...(d.pimcRef?[d.pimcRef.diff]:[]), ...(d.mesterRef?[d.mesterRef.diff]:[])];
   const YMAX=Math.min(120,Math.max(60,Math.ceil(Math.max(...alle)/10)*10+10));
