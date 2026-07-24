@@ -203,16 +203,24 @@ for (let g = 0; g < generasjoner; g++) {
   const tidBrukt = performance.now() - t0;
   const tidsavbrudd = maksTimer !== null && tidBrukt > maksTimer * 3_600_000;
 
-  if ((gen + 1) % 10 === 0 || g === generasjoner - 1 || tidsavbrudd) {
-    // Benk/kopi må aldri velte selve treningen – fang og fortsett.
+  // Hele befolkningen persisteres hver 5. generasjon (halvparten av benk-
+  // intervallet): container-omstarter er utenfor vår kontroll, så det eneste
+  // vi kan styre er hvor lite arbeid en omstart koster (≤ 5 generasjoner).
+  if ((gen + 1) % 5 === 0 || g === generasjoner - 1 || tidsavbrudd) {
     try {
-      lagreAtomisk(`${dir}/mester-gen${gen}.json`, genomTilJson(mester));
-      // Hele befolkningen persisteres, så en omstart aldri mer koster
-      // populasjonsmangfoldet (kun opptil 10 generasjoners arbeid).
       lagreAtomisk(
         `${dir}/befolkning.json`,
         JSON.stringify({ genomer: evo.genomer, hall: evo.hall, terskel: evo.terskel }),
       );
+    } catch {
+      /* aldri velte treningen */
+    }
+  }
+
+  if ((gen + 1) % 10 === 0 || g === generasjoner - 1 || tidsavbrudd) {
+    // Benk/kopi må aldri velte selve treningen – fang og fortsett.
+    try {
+      lagreAtomisk(`${dir}/mester-gen${gen}.json`, genomTilJson(mester));
       // 8 frø × 4 seter = 32 kamper – tilfeldighetene kontrolleres bedre
       // (±støyen krymper ~40 % mot gamle 12).
       const benk = målMotGrådig(mester, 8);
