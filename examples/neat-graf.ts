@@ -29,10 +29,12 @@ const utMappe = medPages ? PAGES : (process.argv[2] ?? "trening-graf");
 
 // --- Parse benk-serier fra loggene -----------------------------------------
 interface Punkt { g: number; v: number }
-interface Serie { navn: string; rå: Punkt[]; glatt: Punkt[] }
+/** Hvilken motstander differansen er målt mot – de to er IKKE samme skala. */
+type Motstander = "grådig" | "nevro";
+interface Serie { navn: string; mot: Motstander; rå: Punkt[]; glatt: Punkt[] }
 
-function lesSerie(fil: string): Punkt[] {
-  const punkter: Punkt[] = [];
+function lesSerie(fil: string): Record<Motstander, Punkt[]> {
+  const ut: Record<Motstander, Punkt[]> = { grådig: [], nevro: [] };
   let gen: number | null = null;
   for (const linje of readFileSync(fil, "utf8").split("\n")) {
     const g = linje.match(/^gen\s+(\d+):/);
@@ -40,12 +42,15 @@ function lesSerie(fil: string): Punkt[] {
       gen = Number(g[1]);
       continue;
     }
-    const b = linje.match(/benk vs grådig bot: mester (-?[\d.]+) poeng\/kamp, grådig (-?[\d.]+)/);
+    const b = linje.match(
+      /benk vs (grådig bot|nevro): mester (-?[\d.]+) poeng\/kamp, (?:grådig|nevro) (-?[\d.]+)/,
+    );
     if (b && gen !== null) {
-      punkter.push({ g: gen, v: Math.round((Number(b[1]) - Number(b[2])) * 10) / 10 });
+      const mot: Motstander = b[1] === "nevro" ? "nevro" : "grådig";
+      ut[mot].push({ g: gen, v: Math.round((Number(b[2]) - Number(b[3])) * 10) / 10 });
     }
   }
-  return punkter;
+  return ut;
 }
 
 function glatt(s: Punkt[], vindu = 5): Punkt[] {
@@ -66,36 +71,44 @@ const navnFor = (fil: string): string =>
 interface Historikk {
   overgang?: Record<string, number>;
   pimcRef?: { diff: number; kamper: number } | null;
-  serier: { navn: string; rå: Punkt[] }[];
+  serier: { navn: string; mot?: Motstander; rå: Punkt[] }[];
 }
 let historikk: Historikk | null = null;
 if (existsSync(`${REPO}/trening-historikk.json`)) {
   historikk = JSON.parse(readFileSync(`${REPO}/trening-historikk.json`, "utf8")) as Historikk;
 }
 
+// Nøkkelen er «navn|motstander»: de to skalaene må aldri blandes i én kurve.
 const punktKart = new Map<string, Map<number, number>>();
 for (const s of historikk?.serier ?? []) {
-  punktKart.set(s.navn, new Map(s.rå.map((p) => [p.g, p.v])));
+  punktKart.set(`${s.navn}|${s.mot ?? "grådig"}`, new Map(s.rå.map((p) => [p.g, p.v])));
 }
 const loggfiler = readdirSync(REPO)
   .filter((f) => /^trening(-[a-z0-9]+)?\.log$/.test(f))
   .sort();
+const MOTSTANDERE: readonly Motstander[] = ["grådig", "nevro"];
 for (const fil of loggfiler) {
   const navn = navnFor(fil);
-  let m = punktKart.get(navn);
-  if (m === undefined) {
-    m = new Map();
-    punktKart.set(navn, m);
+  const lest = lesSerie(`${REPO}/${fil}`);
+  for (const mot of MOTSTANDERE) {
+    if (lest[mot].length === 0) continue;
+    const nøkkel = `${navn}|${mot}`;
+    let m = punktKart.get(nøkkel);
+    if (m === undefined) {
+      m = new Map();
+      punktKart.set(nøkkel, m);
+    }
+    for (const p of lest[mot]) m.set(p.g, p.v);
   }
-  for (const p of lesSerie(`${REPO}/${fil}`)) m.set(p.g, p.v);
 }
 const serier: Serie[] = [...punktKart]
-  .map(([navn, m]) => {
+  .map(([nøkkel, m]) => {
+    const [navn, mot] = nøkkel.split("|") as [string, Motstander];
     const rå = [...m].map(([g, v]) => ({ g, v })).sort((a, b) => a.g - b.g);
-    return { navn, rå, glatt: glatt(rå) };
+    return { navn, mot, rå, glatt: glatt(rå) };
   })
   .filter((s) => s.rå.length > 0)
-  .sort((a, b) => a.navn.localeCompare(b.navn));
+  .sort((a, b) => (a.navn === b.navn ? a.mot.localeCompare(b.mot) : a.navn.localeCompare(b.navn)));
 
 // --- Forventet utvikling: recency-vektet trend PER fokuslinje --------------
 // Oppdateres AKTIVT hver ny generasjon: bare et glidende siste-vindu teller,
@@ -105,6 +118,7 @@ const serier: Serie[] = [...punktKart]
 // (C4, D1) i linjens egen farge.
 interface Projeksjon {
   navn: string;
+  mot: Motstander;
   proj: Punkt[];
   band: { g: number; lo: number; hi: number }[];
 }
@@ -137,9 +151,15 @@ function projiser(rå: Punkt[]): Omit<Projeksjon, "navn"> {
   }
   return { proj, band };
 }
-const projeksjoner: Projeksjon[] = serier
-  .filter((s) => s.navn === "C4" || s.navn === "D1")
-  .map((s) => ({ navn: s.navn, ...projiser(s.rå) }))
+// Prognosen tegnes for fokuslinjene på den MENINGSFULLE skalaen: mot nevro
+// der den finnes, ellers mot grådig (den historiske).
+const projeksjoner: Projeksjon[] = ["C4", "D1"]
+  .flatMap((navn) => {
+    const valgt =
+      serier.find((s) => s.navn === navn && s.mot === "nevro") ??
+      serier.find((s) => s.navn === navn && s.mot === "grådig");
+    return valgt !== undefined ? [{ navn, mot: valgt.mot, ...projiser(valgt.rå) }] : [];
+  })
   .filter((p) => p.proj.length > 0);
 
 // --- Live puls per linje ----------------------------------------------------
@@ -353,11 +373,11 @@ function tegn(){
     s+='<line x1="'+ML+'" y1="'+y+'" x2="'+(ML+PW)+'" y2="'+y+'" '+tykk+'/>';
     s+='<text x="'+(ML-8)+'" y="'+(y+4)+'" text-anchor="end" class="akse">'+(v>0?"+":"")+v+'</text>';
   }
-  s+='<text x="'+(ML+PW-6)+'" y="'+(Y(0)-7)+'" text-anchor="end" class="akse">jevnt med grådig-boten</text>';
+  s+='<text x="'+(ML+PW-6)+'" y="'+(Y(0)-7)+'" text-anchor="end" class="akse">0 = jevnt med motstanderen på den kurvens målestokk</text>';
   if(d.pimcRef){
     const yp=Y(d.pimcRef.diff);
     s+='<line x1="'+ML+'" y1="'+yp+'" x2="'+(ML+PW)+'" y2="'+yp+'" stroke="var(--tx2)" stroke-width="1.5" stroke-dasharray="2 3"/>';
-    s+='<text x="'+(ML+PW-6)+'" y="'+(yp-7)+'" text-anchor="end" class="merk" fill="var(--tx2)">PIMC-solveren (+'+d.pimcRef.diff+')</text>';
+    s+='<text x="'+(ML+PW-6)+'" y="'+(yp-7)+'" text-anchor="end" class="merk" fill="var(--tx2)">PIMC mot grådig (+'+d.pimcRef.diff+')</text>';
   }
   const steg=XMAX>4000?1000:XMAX>1500?500:200;
   for(let g=0;g<=XMAX;g+=steg) s+='<text x="'+X(g)+'" y="'+(MT+PH+22)+'" text-anchor="middle" class="akse">'+g+'</text>';
@@ -379,12 +399,12 @@ function tegn(){
   // Pensjonerte serier tegnes først (bakgrunn), fokusseriene (C4/D1) sist og tykkere.
   const rekkefølge=[...d.serier].sort((a,b)=>(fokus(a.navn)?1:0)-(fokus(b.navn)?1:0));
   for(const serie of rekkefølge){
-    const f=fokus(serie.navn);
+    const f=fokus(serie.navn), n=serie.mot==="nevro";
     if(f) for(const p of serie.rå) if(p.v>=YMIN&&p.v<=YMAX)
       s+='<circle cx="'+X(p.g).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="2" fill="'+farge(serie.navn)+'" opacity="0.22"/>';
-    s+='<path d="'+sti(serie.glatt)+'" fill="none" stroke="'+farge(serie.navn)+'" stroke-width="'+(f?2.6:1.4)+'"'+(f?'':' opacity="0.55"')+' stroke-linejoin="round"/>';
+    s+='<path d="'+sti(serie.glatt)+'" fill="none" stroke="'+farge(serie.navn)+'" stroke-width="'+(f?2.6:1.4)+'"'+(f?'':' opacity="0.55"')+(n?' stroke-dasharray="6 3"':'')+' stroke-linejoin="round"/>';
     const sp=serie.glatt[serie.glatt.length-1];
-    s+='<text x="'+(X(sp.g)+7)+'" y="'+(Y(sp.v)+4)+'" class="merk"'+(f?'':' opacity="0.6" font-size="10"')+' fill="'+farge(serie.navn)+'">'+serie.navn+'</text>';
+    s+='<text x="'+(X(sp.g)+7)+'" y="'+(Y(sp.v)+4)+'" class="merk"'+(f?'':' opacity="0.6" font-size="10"')+' fill="'+farge(serie.navn)+'">'+serie.navn+(n?' ⟂nevro':'')+'</text>';
   }
   s+='<line id="kryss" y1="'+MT+'" y2="'+(MT+PH)+'" stroke="var(--tx2)" opacity="0" stroke-dasharray="3 3"/>';
   document.getElementById("graf").innerHTML=
@@ -394,14 +414,15 @@ function tegn(){
     '<text x="'+(ML+PW/2)+'" y="'+(H-8)+'" text-anchor="middle" class="akse">generasjon (per modell)</text>'+s+'</svg>';
   const lgOrd=[...d.serier].sort((a,b)=>(fokus(b.navn)?1:0)-(fokus(a.navn)?1:0));
   document.getElementById("legend").innerHTML=
-    lgOrd.map(x=>'<span class="lg"'+(fokus(x.navn)?' style="font-weight:600"':' style="opacity:.65"')+'><i style="background:'+farge(x.navn)+'"></i>'+x.navn+(fokus(x.navn)?'':' (pensjonert)')+'</span>').join("")+
+    lgOrd.map(x=>'<span class="lg"'+(fokus(x.navn)?' style="font-weight:600"':' style="opacity:.65"')+'><i style="background:'+farge(x.navn)+'"></i>'+x.navn+(x.mot==="nevro"?' mot nevro':'')+(fokus(x.navn)?'':' (pensjonert)')+'</span>').join("")+
+    '<span class="lg"><i class="strek"></i>Stiplet tykk: mot NevroHjerne (appens nett) – den harde målestokken</span>'+
     '<span class="lg"><i class="strek"></i>Forventet (recency-vektet trend, siste 24 målinger)</span>'+
     (Object.keys(d.overgang||{}).length?'<span class="lg"><i class="strek"></i>Loddrett merke: treningen flyttet fra sky til lokal maskin</span>':'');
   document.getElementById("tabell").innerHTML=
-    '<tr><th>Modell</th><th>Siste gen</th><th>Beste (glattet)</th><th>Nå (glattet)</th></tr>'+
+    '<tr><th>Modell</th><th>Målestokk</th><th>Siste gen</th><th>Beste (glattet)</th><th>Nå (glattet)</th></tr>'+
     d.serier.map(x=>{
       const beste=Math.max(...x.glatt.map(p=>p.v)), nå=x.glatt[x.glatt.length-1].v;
-      return '<tr><td>'+x.navn+'</td><td>'+x.rå[x.rå.length-1].g+'</td><td>'+(beste>0?"+":"")+beste.toFixed(0)+'</td><td>'+(nå>0?"+":"")+nå.toFixed(0)+'</td></tr>';
+      return '<tr><td>'+x.navn+'</td><td>'+(x.mot==="nevro"?"NevroHjerne":"grådig bot")+'</td><td>'+x.rå[x.rå.length-1].g+'</td><td>'+(beste>0?"+":"")+beste.toFixed(0)+'</td><td>'+(nå>0?"+":"")+nå.toFixed(0)+'</td></tr>';
     }).join("");
   document.getElementById("stempel").textContent="Sist oppdatert "+new Date(d.oppdatert).toLocaleTimeString("nb-NO");
   document.getElementById("vert").textContent=d.maskin?" (trener på "+d.maskin+")":"";
@@ -417,7 +438,7 @@ function kobleHover(XMAX){
     for(const s of DATA.serier){
       if(gx>s.glatt[s.glatt.length-1].g+XMAX*0.03) continue;
       let n=s.glatt[0]; for(const p of s.glatt) if(Math.abs(p.g-gx)<Math.abs(n.g-gx)) n=p;
-      if(Math.abs(n.g-gx)<=XMAX*0.04) rader+="<div><b>"+s.navn+"</b> gen "+n.g+": "+(n.v>0?"+":"")+n.v+"</div>";
+      if(Math.abs(n.g-gx)<=XMAX*0.04) rader+="<div><b>"+s.navn+"</b> "+(s.mot==="nevro"?"mot nevro":"mot grådig")+", gen "+n.g+": "+(n.v>0?"+":"")+n.v+"</div>";
     }
     if(!rader){tt.style.display="none";return;}
     tt.innerHTML="<div><b>gen ≈ "+Math.round(gx)+"</b></div>"+rader;

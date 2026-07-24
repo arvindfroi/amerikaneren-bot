@@ -49,14 +49,18 @@ interface Linje {
   readonly ekstra: string[];
 }
 
+// --nevro på begge: målestokken i cupen er appens NevroHjerne (sterkere enn
+// PIMC-portvakten og praktisk talt gratis), og gullstandarden avgjøres av
+// nevro-benken på roterende givere med parret bekreftelse. Uten det ble
+// gullet kåret på åtte faste givere mot en bot som aldri byr over 5.
 const LINJER: Linje[] = [
-  { navn: "C4", dir: "trening-c4", logg: "trening-c4.log", frø: 616161, ekstra: [] },
+  { navn: "C4", dir: "trening-c4", logg: "trening-c4.log", frø: 616161, ekstra: ["--nevro"] },
   {
     navn: "D1",
     dir: "trening-d1",
     logg: "trening-d1.log",
     frø: 717171,
-    ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit"],
+    ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro"],
   },
 ];
 
