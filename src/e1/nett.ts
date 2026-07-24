@@ -15,6 +15,7 @@ import { readFileSync } from "node:fs";
 
 import type { Kort } from "../kort.ts";
 import { lovligeKort, type GameState, type Handling } from "../motor.ts";
+import { velgHandling as pimcVelg } from "../bot/bot.ts";
 import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { kortIndeks, NevroAgent } from "../nevro/index.ts";
 import { e1SpillTrekk, E1_SPILL_DIM } from "./trekk.ts";
@@ -32,26 +33,54 @@ export function lesE1Nett(fil: string): NevroNett {
   return nett[0]!;
 }
 
+/** Faser E1 kan sette bort til PIMC-søket i stedet for NevroHjerne. */
+export type SøkeFase = "VRAK" | "VELG";
+
+export interface E1Opts {
+  /**
+   * Faser der PIMC-søket overtar. NevroHjernes trumfvalg er en HÅNDLAGD
+   * formel (estimerStikk), ikke et nett og ikke et søk – og fasedelingen på
+   * D1 viste at trumfvalget er den dyreste enkeltbeslutningen i spillet
+   * (32,4 ± 3,0 poeng/kamp). Da er det verdt å måle om søk slår formelen.
+   */
+  readonly søkFaser?: readonly SøkeFase[];
+  /** Verdener PIMC får per beslutning i de lånte fasene. */
+  readonly søkVerdener?: number;
+}
+
 export class E1Agent {
   private readonly nett: NevroNett;
   private readonly nevro: NevroAgent;
+  private readonly søkFaser: readonly SøkeFase[];
+  private readonly søkVerdener: number;
+  private teller = 0;
 
-  constructor(nett: NevroNett, nevro: NevroAgent = new NevroAgent()) {
+  constructor(nett: NevroNett, nevro: NevroAgent = new NevroAgent(), opts: E1Opts = {}) {
     this.nett = nett;
     this.nevro = nevro;
+    this.søkFaser = opts.søkFaser ?? [];
+    this.søkVerdener = opts.søkVerdener ?? 12;
   }
 
-  static fraFil(fil: string): E1Agent {
-    return new E1Agent(lesE1Nett(fil));
+  static fraFil(fil: string, opts: E1Opts = {}): E1Agent {
+    return new E1Agent(lesE1Nett(fil), new NevroAgent(), opts);
   }
 
   nyKamp(): void {
     this.nevro.nyKamp();
+    this.teller = 0;
   }
 
   velgHandling(state: GameState): Handling {
     if (state.fase === "SPILL" && state.iTur !== null) {
       return { type: "SPILL", spiller: state.iTur, kort: this.velgKort(state, state.iTur) };
+    }
+    if ((state.fase === "VRAK" || state.fase === "VELG") && this.søkFaser.includes(state.fase)) {
+      return pimcVelg(state, {
+        verdener: this.søkVerdener,
+        terskel: 6,
+        frø: (0x9e37 + Math.imul(this.teller++, 0x9e3779b1)) >>> 0,
+      });
     }
     return this.nevro.velgHandling(state);
   }
