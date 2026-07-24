@@ -18,7 +18,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { resolve } from "node:path";
 
@@ -222,6 +222,74 @@ try {
   /* fart er pynt, aldri kritisk */
 }
 
+// --- E1: destillasjonslinja ------------------------------------------------
+// E1 har ingen generasjoner, så den hører ikke hjemme på cupkurvens akse.
+// Her er den meningsfulle x-aksen hvor mange orakel-stillinger nettet har
+// lært av, og y-aksen den PARRET målte differansen mot NevroHjerne –
+// 0 er delmålet (jevnt med appens nett), ikke et vilkårlig nullpunkt.
+interface E1Måling {
+  kandidat: string;
+  /** Parret differanse mot NevroHjerne – det eneste tallet delmålet handler om. */
+  motNevro?: number;
+  motNevroSe?: number;
+  hybrid: boolean;
+  merke: string;
+}
+interface E1Status {
+  mb: number;
+  stillinger: number;
+  skard: number;
+  valTreff: number | null;
+  punkter: { x: number; diff: number; se: number; hybrid: boolean }[];
+}
+function lesE1(): E1Status | null {
+  let mb = 0;
+  let skard = 0;
+  try {
+    for (const f of readdirSync(`${REPO}/e1-data`)) {
+      if (!f.endsWith(".jsonl")) continue;
+      skard++;
+      mb += statSync(`${REPO}/e1-data/${f}`).size / (1024 * 1024);
+    }
+  } catch {
+    return null; // ingen E1-data ennå
+  }
+  if (skard === 0) return null;
+  // Linjene er ~736 B; å telle dem eksakt ville lest hundrevis av MB hvert
+  // 2. minutt, så tallet er et anslag – og merkes som det på siden.
+  const stillinger = Math.round((mb * 1024 * 1024) / 736);
+
+  let valTreff: number | null = null;
+  try {
+    const logg = readFileSync(`${REPO}/e1-modell/tren.log`, "utf8").trim().split("\n");
+    for (let i = logg.length - 1; i >= 0; i--) {
+      const m = logg[i]!.match(/val-treff ([\d.]+) %/);
+      if (m) {
+        valTreff = Number(m[1]);
+        break;
+      }
+    }
+  } catch {
+    /* ikke trent ennå */
+  }
+
+  const punkter: E1Status["punkter"] = [];
+  try {
+    for (const linje of readFileSync(`${REPO}/e1-maalinger.jsonl`, "utf8").split("\n")) {
+      if (linje.trim() === "") continue;
+      const m = JSON.parse(linje) as E1Måling;
+      if (!m.kandidat.startsWith("e1:") || m.motNevro === undefined) continue;
+      const x = Number(m.merke.match(/stillinger=(\d+)/)?.[1] ?? 0);
+      if (x > 0) punkter.push({ x, diff: m.motNevro, se: m.motNevroSe ?? 0, hybrid: m.hybrid });
+    }
+  } catch {
+    /* ingen målinger ennå */
+  }
+  punkter.sort((a, b) => a.x - b.x);
+  return { mb: Math.round(mb), stillinger, skard, valTreff, punkter };
+}
+const e1 = lesE1();
+
 const kjør = (cmd: string, cwd: string): string =>
   execSync(cmd, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
@@ -268,6 +336,7 @@ function skrivFiler(): void {
       maskin: hostname(),
       overgang: historikk?.overgang ?? {},
       puls,
+      e1,
       serier,
       projeksjoner,
       pimcRef,
@@ -320,9 +389,9 @@ function MAL(): string {
   @media (prefers-color-scheme: dark) { body { background:#1a1a19; color:#fff; } }
   .rot { max-width:1000px; margin:0 auto; padding:20px;
     --tx2:#52514e; --grid:#e8e7e3;
-    --fokusC4:#2a78d6; --fokusD1:#d92b2b; --retirert:#a5a39c; --mester:#1f9d55; }
+    --fokusC4:#2a78d6; --fokusD1:#d92b2b; --retirert:#a5a39c; --mester:#1f9d55; --fokusE1:#7048e8; }
   @media (prefers-color-scheme: dark) { .rot { --tx2:#c3c2b7; --grid:#33322f;
-    --fokusC4:#4593f0; --fokusD1:#f0524a; --retirert:#6e6d67; --mester:#33c777; } }
+    --fokusC4:#4593f0; --fokusD1:#f0524a; --retirert:#6e6d67; --mester:#33c777; --fokusE1:#9775fa; } }
   h1 { font-size:19px; margin:0 0 2px; } .sub { color:var(--tx2); margin:0 0 12px; font-size:13px; }
   .akse { font-size:11px; fill:var(--tx2); } .merk { font-size:12px; font-weight:600; }
   .lgr { display:flex; flex-wrap:wrap; gap:14px; margin:0 0 6px; font-size:12.5px; color:var(--tx2); }
@@ -338,6 +407,10 @@ function MAL(): string {
   .kort { border:1px solid var(--grid); border-radius:999px; padding:3px 12px; font-size:12.5px; color:var(--tx2); }
   .prikk { display:inline-block; width:7px; height:7px; border-radius:50%; background:#2f9e44; margin-right:6px; }
   .prikk.stille { background:#d92b2b; }
+  .e1 { border:1px solid var(--grid); border-radius:10px; padding:12px 14px; margin:0 0 14px; }
+  .e1 h2 { font-size:14px; margin:0 0 2px; } .e1 p { margin:0 0 8px; font-size:12.5px; color:var(--tx2); }
+  .e1 .tall { display:flex; flex-wrap:wrap; gap:16px; font-size:12.5px; color:var(--tx2); margin-bottom:6px; }
+  .e1 .tall b { color:var(--fokusE1); }
 </style></head><body><div class="rot">
 <h1>Amerikaneren-NEAT: kvalitet per modell</h1>
 <p class="sub">Poengdifferanse per kamp, glidende snitt over 5 målinger (prikker = enkeltmålinger).
@@ -345,6 +418,7 @@ function MAL(): string {
 stiplet tykk = mot NevroHjerne, appens ferdigtrente nett. 0 = jevnt med den motstanderen kurven måles mot.
 <b id="stempel"></b><span id="vert"></span> · siden henter nye tall hvert minutt.</p>
 <div class="puls" id="puls"></div>
+<div id="e1"></div>
 <div class="lgr" id="legend"></div>
 <div id="graf"></div><div id="tt"></div>
 <table id="tabell"></table>
@@ -371,6 +445,7 @@ function tegn(){
       (x.gullDiff!==null&&x.gullDiff!==undefined?' · gull '+(x.gullDiff>0?'+':'')+x.gullDiff+' ('+(x.gullMot||'grådig')+')':'')+
       (stille?' · stille i '+x.hjerteslagMin+' min':'')+'</span>';
   }).join("");
+  tegnE1(d.e1);
   const projs=d.projeksjoner||[];
   const alle=[...d.serier.flatMap(s=>s.glatt.map(p=>p.v)), ...projs.flatMap(p=>p.band.flatMap(b=>[b.lo,b.hi])), ...(d.pimcRef?[d.pimcRef.diff]:[]), ...(d.mesterRef?[d.mesterRef.diff]:[])];
   const YMAX=Math.min(120,Math.max(60,Math.ceil(Math.max(...alle)/10)*10+10));
@@ -443,6 +518,50 @@ function tegn(){
   document.getElementById("stempel").textContent="Sist oppdatert "+new Date(d.oppdatert).toLocaleTimeString("nb-NO");
   document.getElementById("vert").textContent=d.maskin?" (trener på "+d.maskin+")":"";
   kobleHover(XMAX);
+}
+// E1 destilleres fra det eksakte orakelet og har ingen generasjoner. Her er
+// x-aksen antall orakel-stillinger den har lært av, og y-aksen den PARRET
+// målte differansen mot NevroHjerne. 0 er delmålet, ikke et vilkårlig punkt.
+function tegnE1(e){
+  const boks=document.getElementById("e1");
+  if(!e){boks.innerHTML="";return;}
+  const p=e.punkter||[];
+  let graf="";
+  if(p.length>0){
+    const w=640,h=170,ml=44,mr=90,mt=14,mb=28,pw=w-ml-mr,ph=h-mt-mb;
+    const xmax=Math.max(...p.map(q=>q.x))*1.15||1;
+    const alle=p.flatMap(q=>[q.diff-q.se,q.diff+q.se]).concat([0,2]);
+    const ymax=Math.max(...alle)+3, ymin=Math.min(...alle)-3;
+    const X=x=>ml+pw*x/xmax, Y=v=>mt+ph*(ymax-v)/(ymax-ymin);
+    graf+='<line x1="'+ml+'" y1="'+Y(0)+'" x2="'+(ml+pw)+'" y2="'+Y(0)+'" stroke="var(--tx2)" stroke-width="1.5"/>';
+    graf+='<text x="'+(ml+pw+6)+'" y="'+(Y(0)+4)+'" class="merk" fill="var(--tx2)">jevnt med NevroHjerne</text>';
+    if(p.length>1){
+      const sti="M"+p.map(q=>X(q.x).toFixed(1)+" "+Y(q.diff).toFixed(1)).join(" L");
+      graf+='<path d="'+sti+'" fill="none" stroke="var(--fokusE1)" stroke-width="2.4" stroke-linejoin="round"/>';
+    }
+    for(const q of p){
+      graf+='<line x1="'+X(q.x).toFixed(1)+'" y1="'+Y(q.diff-q.se).toFixed(1)+'" x2="'+X(q.x).toFixed(1)+'" y2="'+Y(q.diff+q.se).toFixed(1)+'" stroke="var(--fokusE1)" stroke-width="1.2" opacity="0.6"/>';
+      graf+='<circle cx="'+X(q.x).toFixed(1)+'" cy="'+Y(q.diff).toFixed(1)+'" r="'+(q.hybrid?4:3)+'" fill="'+(q.hybrid?"none":"var(--fokusE1)")+'" stroke="var(--fokusE1)" stroke-width="1.6"/>';
+    }
+    const sisteP=p[p.length-1];
+    graf+='<text x="'+(X(sisteP.x)+7)+'" y="'+(Y(sisteP.diff)+4)+'" class="merk" fill="var(--fokusE1)">'+(sisteP.diff>0?"+":"")+sisteP.diff.toFixed(1)+'</text>';
+    for(const v of [ymin,0,ymax]) graf+='<text x="'+(ml-8)+'" y="'+(Y(v)+4)+'" text-anchor="end" class="akse">'+(v>0?"+":"")+v.toFixed(0)+'</text>';
+    graf+='<text x="'+(ml+pw/2)+'" y="'+(h-6)+'" text-anchor="middle" class="akse">orakel-stillinger nettet har lært av</text>';
+    graf='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="E1-fremgang">'+graf+'</svg>';
+  }
+  const k=n=>n>=1e6?(n/1e6).toFixed(2)+" mill.":n>=1e3?Math.round(n/1e3)+"k":String(n);
+  const siste=p.length>0?p[p.length-1]:null;
+  boks.innerHTML='<div class="e1"><h2 style="color:var(--fokusE1)">E1 – destillert fra det eksakte orakelet</h2>'+
+    '<p>Lærer av dobbelt-dummy-fasit uten tidspress, ikke av MesterAI – en elev når ikke forbi læreren sin. '+
+    'Budgivning og trumfvalg er identiske med NevroHjerne, så differansen under er rent kortspill.</p>'+
+    '<div class="tall">'+
+      '<span>datasett <b>≈'+k(e.stillinger)+'</b> stillinger ('+e.mb+' MB, '+e.skard+' skard)</span>'+
+      (e.valTreff!==null&&e.valTreff!==undefined?'<span>treff mot fasit <b>'+e.valTreff+' %</b></span>':'')+
+      (siste?'<span>mot NevroHjerne <b>'+(siste.diff>0?"+":"")+siste.diff.toFixed(1)+' ± '+siste.se.toFixed(1)+'</b></span>':'<span>ingen måling ennå</span>')+
+      (siste&&siste.diff>0?'<span><b>✓ delmålet er nådd</b></span>':'')+
+    '</div>'+graf+
+    (p.length>0?'<p style="margin-top:6px">Fylt punkt = rent nett · åpen ring = med eksakt sluttspill oppå. Loddrett strek = ett standardavvik.</p>':'')+
+    '</div>';
 }
 function kobleHover(XMAX){
   const svg=document.getElementById("plot"),tt=document.getElementById("tt"),kr=document.getElementById("kryss");

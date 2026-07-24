@@ -48,6 +48,9 @@ let midt = 0;
 let læringsrate = 0.05;
 let motstander: "grådig" | "pimc" = "grådig";
 let utFil: string | null = null;
+/** Én oppsummeringslinje per kandidat – grunnlaget for E1-kurven på fremgangssiden. */
+let sammendragFil: string | null = null;
+let merke = "";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--froe") frøBase = Number(process.argv[++i]);
@@ -61,6 +64,8 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--laering") læringsrate = Number(process.argv[++i]);
   else if (a === "--motstander") motstander = process.argv[++i] === "pimc" ? "pimc" : "grådig";
   else if (a === "--ut") utFil = process.argv[++i] ?? null;
+  else if (a === "--sammendrag") sammendragFil = process.argv[++i] ?? null;
+  else if (a === "--merk") merke = process.argv[++i] ?? "";
   else filer.push(a);
 }
 if (filer.length === 0) {
@@ -214,4 +219,38 @@ if (kandidater.length > 1) {
     );
   }
 }
+// Ett sammendrag per kandidat til varig fil. Motstanderen skrives med, for
+// tallene fra to ulike benker må aldri havne i samme kurve.
+if (sammendragFil !== null) {
+  // Er «nevro» med som kandidat, er den PARREDE differansen mot den det
+  // interessante tallet – ikke kandidatens egen score mot benkemotstanderen.
+  const nevroIdx = kandidater.findIndex((k) => k.referanse === "nevro");
+  for (let i = 0; i < kandidater.length; i++) {
+    const d = perGiver[i]!;
+    const parret =
+      nevroIdx >= 0 && nevroIdx !== i ? d.map((v, j) => v - perGiver[nevroIdx]![j]!) : null;
+    appendFileSync(
+      sammendragFil,
+      JSON.stringify({
+        tid: new Date().toISOString(),
+        kandidat: kandidater[i]!.navn,
+        mot: motstander,
+        diff: Math.round(snitt(d) * 100) / 100,
+        se: Math.round(se(d) * 100) / 100,
+        ...(parret !== null
+          ? {
+              motNevro: Math.round(snitt(parret) * 100) / 100,
+              motNevroSe: Math.round(se(parret) * 100) / 100,
+              motNevroTegn: tegntest(parret).plus + "/" + tegntest(parret).n,
+            }
+          : {}),
+        givere: d.length,
+        hybrid,
+        merke,
+      }) + "\n",
+    );
+  }
+  console.log(`Sammendrag lagt til ${sammendragFil}`);
+}
+
 console.log(`\nTid: ${((performance.now() - t0) / 1000).toFixed(0)}s`);
