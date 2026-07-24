@@ -4,3 +4,6 @@ dist/
 .DS_Store
 # midlertidige skrap-filer
 /_*
+# arena: byggeartefakter og kopiert appkode (hentes med arena/hent-appkode.sh)
+arena/adapter/.build/
+arena/adapter/Sources/adapter/appkode/
