@@ -54,7 +54,18 @@ const TRUMF_UTE = 273; //      1: trumf igjen utenfor egen hånd (/13)
 const BESTE_ER_TRUMF = 274; // 1: beste kort på bordet er trumf
 const KAN_SLÅ = 275; //        1: jeg har et lovlig kort som slår bordet
 const STIKKLEDER = 276; //     4: hvem vinner stikket akkurat nå (rel. sete)
-export const ANTALL_INN = 280;
+// --- Lagspill-sensorer (privat, men lovlig, lagkunnskap) ---
+// Den hemmelige makkeren VET selv at den er makker (holder det etterlyste
+// kortet) lenge før avsløringen – og alle vet med sikkerhet om de er
+// forsvarere. Uten disse eksplisitt måtte nettet komponere «etterlyst = X»
+// × «jeg holder X» over 52 kort – i praksis udiskuterbart for evolusjonen.
+const ER_HEMMELIG_MAKKER = 280; // 1: jeg er makkeren (holder etterlyst / avslørt)
+const PÅ_BUDLAGET = 281; //       1: jeg er på budlaget (budvinner eller makker)
+const ER_FORSVARER = 282; //      1: jeg er forsvarer (med visshet)
+const LAG_STIKK_PRIVAT = 283; //  1: budlagets stikk inkl. egen private kunnskap
+const MANGLER_STIKK = 284; //     1: stikk kontrakten fortsatt mangler (/antallStikk)
+const MAKKER_KJENT = 285; //      1: makkeren er offentlig avslørt
+export const ANTALL_INN = 286;
 
 const BESLUTNINGER: readonly Beslutning[] = ["BUD", "VRAK", "VELG", "SPILL"];
 
@@ -69,6 +80,7 @@ export const SENSORGRUPPER = {
   renons: [RENONS, RENONS + 12],
   bossTelling: [SKJULTE_I_FARGE, TRUMF_UTE + 1],
   taktikk: [BESTE_ER_TRUMF, STIKKLEDER + 4],
+  lagspill: [ER_HEMMELIG_MAKKER, MAKKER_KJENT + 1],
 } as const;
 
 // --- Utgangslayout ----------------------------------------------------------
@@ -185,6 +197,37 @@ export function lagInn(
     const idx = kortIndeks(visning.etterlyst);
     inn[ETTERLYST + idx] = 1;
     if (!settUte.has(idx)) inn[ETTERLYST_UTE] = 1;
+  }
+
+  // --- Lagspill: privat (men lovlig) lagkunnskap ----------------------------
+  // Den hemmelige makkeren kjenner seg selv: den holder det etterlyste
+  // kortet. Forsvarere vet med visshet at de er forsvarere (de holder det
+  // ikke og er ikke budvinner). Budvinneren vet at den har ET lag, men ikke
+  // hvem – nøyaktig som informasjonen ligger i spillet.
+  if (visning.budvinner !== null && visning.melding !== null) {
+    const erBudvinner = visning.budvinner === meg;
+    const holderEtterlyst =
+      visning.etterlyst !== null &&
+      visning.dinHånd.some(
+        (k) => k.farge === visning.etterlyst!.farge && k.verdi === visning.etterlyst!.verdi,
+      );
+    const erMakker = visning.makker === meg || (holderEtterlyst && !erBudvinner);
+    const soloUtenMakker = visning.melding.type === "solo" || visning.etterlyst === null;
+    if (erMakker) inn[ER_HEMMELIG_MAKKER] = 1;
+    if (erBudvinner || erMakker) inn[PÅ_BUDLAGET] = 1;
+    else inn[ER_FORSVARER] = 1;
+    // Lagets stikk sett med MIN kunnskap: budvinners + avslørt makkers +
+    // (mine, hvis jeg er den uavslørte makkeren).
+    let lag = visning.stikkVunnet[visning.budvinner] ?? 0;
+    if (visning.makker !== null && visning.makker !== visning.budvinner) {
+      lag += visning.stikkVunnet[visning.makker] ?? 0;
+    } else if (erMakker && !soloUtenMakker) {
+      lag += visning.stikkVunnet[meg] ?? 0;
+    }
+    inn[LAG_STIKK_PRIVAT] = lag / antallStikk;
+    const mål = visning.melding.type === "tall" ? visning.melding.bud : antallStikk;
+    inn[MANGLER_STIKK] = klipp01((mål - lag) / antallStikk);
+    if (visning.makker !== null) inn[MAKKER_KJENT] = 1;
   }
 
   // --- Avledede sensorer -----------------------------------------------------
