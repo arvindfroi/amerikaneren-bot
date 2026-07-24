@@ -24,7 +24,7 @@
 </style></head><body><div class="rot">
 <h1>Amerikaneren-NEAT: kvalitet per modell</h1>
 <p class="sub">Poengdifferanse per kamp mot grådig-benken (glidende snitt over 5 målinger; prikker = enkeltmålinger).
-0-linjen = jevnt med heuristikk-boten. Stiplet = forventet videre utvikling (lineær trend i C-arven).
+0-linjen = jevnt med heuristikk-boten. Stiplet = forventet videre utvikling (recency-vektet trend per fokuslinje, oppdateres hver generasjon).
 <b id="stempel"></b> · siden henter nye tall hvert minutt.</p>
 <div class="lgr" id="legend"></div>
 <div id="graf"></div><div id="tt"></div>
@@ -43,10 +43,11 @@ async function last(){
 }
 function tegn(){
   const d=DATA; if(!d) return;
-  const alle=[...d.serier.flatMap(s=>s.glatt.map(p=>p.v)), ...d.proj.map(p=>p.v), ...d.band.flatMap(b=>[b.lo,b.hi]), ...(d.pimcRef?[d.pimcRef.diff]:[])];
+  const projs=d.projeksjoner||[];
+  const alle=[...d.serier.flatMap(s=>s.glatt.map(p=>p.v)), ...projs.flatMap(p=>p.band.flatMap(b=>[b.lo,b.hi])), ...(d.pimcRef?[d.pimcRef.diff]:[])];
   const YMAX=Math.min(120,Math.max(60,Math.ceil(Math.max(...alle)/10)*10+10));
   const YMIN=Math.max(-200,Math.min(-100,Math.floor(Math.min(...d.serier.flatMap(s=>s.glatt.map(p=>p.v)))/10)*10-10));
-  const XMAX=Math.max(...d.serier.map(s=>s.rå[s.rå.length-1].g), ...(d.proj.length?[d.proj[d.proj.length-1].g]:[0]))*1.02;
+  const XMAX=Math.max(...d.serier.map(s=>s.rå[s.rå.length-1].g), ...projs.flatMap(p=>p.proj.length?[p.proj[p.proj.length-1].g]:[0]))*1.02;
   const X=g=>ML+PW*g/XMAX, Y=v=>MT+PH*(YMAX-v)/(YMAX-YMIN);
   const sti=p=>"M"+p.map(q=>X(q.g).toFixed(1)+" "+Y(q.v).toFixed(1)).join(" L");
   let s='';
@@ -63,13 +64,15 @@ function tegn(){
   }
   const steg=XMAX>4000?1000:XMAX>1500?500:200;
   for(let g=0;g<=XMAX;g+=steg) s+='<text x="'+X(g)+'" y="'+(MT+PH+22)+'" text-anchor="middle" class="akse">'+g+'</text>';
-  if(d.band.length){
-    const poly=d.band.map(b=>X(b.g).toFixed(1)+","+Y(b.hi).toFixed(1)).join(" ")+" "+
-      [...d.band].reverse().map(b=>X(b.g).toFixed(1)+","+Y(b.lo).toFixed(1)).join(" ");
-    s+='<polygon points="'+poly+'" fill="var(--tx2)" opacity="0.10"/>';
-    s+='<path d="'+sti(d.proj)+'" fill="none" stroke="var(--tx2)" stroke-width="2" stroke-dasharray="7 5"/>';
-    const pp=d.proj[d.proj.length-1];
-    s+='<text x="'+(X(pp.g)+6)+'" y="'+(Y(pp.v)+4)+'" class="merk" fill="var(--tx2)">forventet</text>';
+  for(const pr of projs){
+    if(!pr.proj.length) continue;
+    const col=farge(pr.navn);
+    const poly=pr.band.map(b=>X(b.g).toFixed(1)+","+Y(b.hi).toFixed(1)).join(" ")+" "+
+      [...pr.band].reverse().map(b=>X(b.g).toFixed(1)+","+Y(b.lo).toFixed(1)).join(" ");
+    s+='<polygon points="'+poly+'" fill="'+col+'" opacity="0.08"/>';
+    s+='<path d="'+sti(pr.proj)+'" fill="none" stroke="'+col+'" stroke-width="1.8" stroke-dasharray="7 5" opacity="0.85"/>';
+    const pp=pr.proj[pr.proj.length-1];
+    s+='<text x="'+(X(pp.g)+6)+'" y="'+(Y(pp.v)+4)+'" class="merk" fill="'+col+'">'+pr.navn+' forventet</text>';
   }
   // Pensjonerte serier tegnes først (bakgrunn), fokusseriene (C4/D1) sist og tykkere.
   const rekkefølge=[...d.serier].sort((a,b)=>(fokus(a.navn)?1:0)-(fokus(b.navn)?1:0));
@@ -90,7 +93,7 @@ function tegn(){
   const lgOrd=[...d.serier].sort((a,b)=>(fokus(b.navn)?1:0)-(fokus(a.navn)?1:0));
   document.getElementById("legend").innerHTML=
     lgOrd.map(x=>'<span class="lg"'+(fokus(x.navn)?' style="font-weight:600"':' style="opacity:.65"')+'><i style="background:'+farge(x.navn)+'"></i>'+x.navn+(fokus(x.navn)?'':' (pensjonert)')+'</span>').join("")+
-    '<span class="lg"><i class="strek"></i>Forventet (trend i C-arven)</span>';
+    '<span class="lg"><i class="strek"></i>Forventet (recency-vektet trend, siste 24 målinger)</span>';
   document.getElementById("tabell").innerHTML=
     '<tr><th>Modell</th><th>Siste gen</th><th>Beste (glattet)</th><th>Nå (glattet)</th></tr>'+
     d.serier.map(x=>{
