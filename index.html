@@ -25,7 +25,7 @@
 <h1>Amerikaneren-NEAT: kvalitet per modell</h1>
 <p class="sub">Poengdifferanse per kamp mot grådig-benken (glidende snitt over 5 målinger; prikker = enkeltmålinger).
 0-linjen = jevnt med heuristikk-boten. Stiplet = forventet videre utvikling (recency-vektet trend per fokuslinje, oppdateres hver generasjon).
-<b id="stempel"></b> · siden henter nye tall hvert minutt.</p>
+<b id="stempel"></b><span id="vert"></span> · siden henter nye tall hvert minutt.</p>
 <div class="lgr" id="legend"></div>
 <div id="graf"></div><div id="tt"></div>
 <table id="tabell"></table>
@@ -74,6 +74,11 @@ function tegn(){
     const pp=pr.proj[pr.proj.length-1];
     s+='<text x="'+(X(pp.g)+6)+'" y="'+(Y(pp.v)+4)+'" class="merk" fill="'+col+'">'+pr.navn+' forventet</text>';
   }
+  // Overgangen sky → lokal maskin: loddrett merke per linje.
+  for(const [navn,g] of Object.entries(d.overgang||{})){
+    const x=X(g); if(!isFinite(x)) continue;
+    s+='<line x1="'+x.toFixed(1)+'" y1="'+MT+'" x2="'+x.toFixed(1)+'" y2="'+(MT+PH)+'" stroke="'+farge(navn)+'" stroke-width="1" stroke-dasharray="2 5" opacity="0.5"/>';
+  }
   // Pensjonerte serier tegnes først (bakgrunn), fokusseriene (C4/D1) sist og tykkere.
   const rekkefølge=[...d.serier].sort((a,b)=>(fokus(a.navn)?1:0)-(fokus(b.navn)?1:0));
   for(const serie of rekkefølge){
@@ -93,7 +98,8 @@ function tegn(){
   const lgOrd=[...d.serier].sort((a,b)=>(fokus(b.navn)?1:0)-(fokus(a.navn)?1:0));
   document.getElementById("legend").innerHTML=
     lgOrd.map(x=>'<span class="lg"'+(fokus(x.navn)?' style="font-weight:600"':' style="opacity:.65"')+'><i style="background:'+farge(x.navn)+'"></i>'+x.navn+(fokus(x.navn)?'':' (pensjonert)')+'</span>').join("")+
-    '<span class="lg"><i class="strek"></i>Forventet (recency-vektet trend, siste 24 målinger)</span>';
+    '<span class="lg"><i class="strek"></i>Forventet (recency-vektet trend, siste 24 målinger)</span>'+
+    (Object.keys(d.overgang||{}).length?'<span class="lg"><i class="strek"></i>Loddrett merke: treningen flyttet fra sky til lokal maskin</span>':'');
   document.getElementById("tabell").innerHTML=
     '<tr><th>Modell</th><th>Siste gen</th><th>Beste (glattet)</th><th>Nå (glattet)</th></tr>'+
     d.serier.map(x=>{
@@ -101,6 +107,7 @@ function tegn(){
       return '<tr><td>'+x.navn+'</td><td>'+x.rå[x.rå.length-1].g+'</td><td>'+(beste>0?"+":"")+beste.toFixed(0)+'</td><td>'+(nå>0?"+":"")+nå.toFixed(0)+'</td></tr>';
     }).join("");
   document.getElementById("stempel").textContent="Sist oppdatert "+new Date(d.oppdatert).toLocaleTimeString("nb-NO");
+  document.getElementById("vert").textContent=d.maskin?" (trener på "+d.maskin+")":"";
   kobleHover(XMAX);
 }
 function kobleHover(XMAX){
