@@ -46,6 +46,8 @@ export interface KortPåBord {
 export interface Budrunde {
   readonly passet: boolean[];
   readonly høyeste: { spiller: number; bud: Exclude<Bud, typeof PASS> } | null;
+  /** Hver spillers høyeste meldte bud (null = har ikke meldt). Offentlig. */
+  readonly sisteBud: (Exclude<Bud, typeof PASS> | null)[];
 }
 
 export interface Stikk {
@@ -194,7 +196,11 @@ export function opprettSpill(
     vinner: null,
     hender,
     talong,
-    budrunde: { passet: new Array<boolean>(r.antallSpillere).fill(false), høyeste: null },
+    budrunde: {
+      passet: new Array<boolean>(r.antallSpillere).fill(false),
+      høyeste: null,
+      sisteBud: new Array<Exclude<Bud, typeof PASS> | null>(r.antallSpillere).fill(null),
+    },
     budvinner: null,
     melding: null,
     vrak: [],
@@ -354,7 +360,11 @@ function klon(state: GameState): Mutable<GameState> {
     totalPoeng: state.totalPoeng.slice(),
     hender: state.hender.map((h) => h.slice()),
     talong: state.talong.slice(),
-    budrunde: { passet: state.budrunde.passet.slice(), høyeste: state.budrunde.høyeste },
+    budrunde: {
+      passet: state.budrunde.passet.slice(),
+      høyeste: state.budrunde.høyeste,
+      sisteBud: state.budrunde.sisteBud.slice(),
+    },
     vrak: state.vrak.slice(),
     bord: state.bord.slice(),
     stikkVunnet: state.stikkVunnet.slice(),
@@ -398,12 +408,14 @@ function utførBud(s: Mutable<GameState>, spiller: number, bud: Bud, ev: Hendels
   krev(erHøyereBud(bud, høyeste, s.giving.antallStikk), `Ulovlig bud: ${String(bud)}`);
 
   const passet = s.budrunde.passet.slice();
+  const sisteBud = s.budrunde.sisteBud.slice();
   if (bud === PASS) {
     passet[spiller] = true;
-    s.budrunde = { passet, høyeste: s.budrunde.høyeste };
+    s.budrunde = { passet, høyeste: s.budrunde.høyeste, sisteBud };
     ev.push({ type: "PASS", spiller });
   } else {
-    s.budrunde = { passet, høyeste: { spiller, bud } };
+    sisteBud[spiller] = bud;
+    s.budrunde = { passet, høyeste: { spiller, bud }, sisteBud };
     ev.push({ type: "BUD", spiller, bud });
     if (bud === SOLO) {
       avsluttBudrunde(s, spiller, ev);
@@ -640,7 +652,11 @@ function nyGivning(s: Mutable<GameState>, ev: Hendelse[]): void {
   s.giver = giver;
   s.hender = hender;
   s.talong = talong;
-  s.budrunde = { passet: new Array<boolean>(s.antallSpillere).fill(false), høyeste: null };
+  s.budrunde = {
+    passet: new Array<boolean>(s.antallSpillere).fill(false),
+    høyeste: null,
+    sisteBud: new Array<Exclude<Bud, typeof PASS> | null>(s.antallSpillere).fill(null),
+  };
   s.budvinner = null;
   s.melding = null;
   s.vrak = [];
@@ -710,7 +726,11 @@ export function spillerVisning(state: GameState, spiller: number): SpillerVisnin
     totalPoeng: state.totalPoeng.slice(),
     rundeNr: state.rundeNr,
     giver: state.giver,
-    budrunde: { passet: state.budrunde.passet.slice(), høyeste: state.budrunde.høyeste },
+    budrunde: {
+      passet: state.budrunde.passet.slice(),
+      høyeste: state.budrunde.høyeste,
+      sisteBud: state.budrunde.sisteBud.slice(),
+    },
     budvinner: state.budvinner,
     melding: state.melding,
     trumf: state.trumf,

@@ -122,7 +122,7 @@ test("nye sensorer: renons, boss og kan-slå beregnes riktig fra en konstruert v
     fase: "SPILL", iTur: 0, deg: 0,
     dinHånd: [{ farge: "S", verdi: 14 }, { farge: "H", verdi: 5 }],
     antallKort: [2, 2, 2, 2], totalPoeng: [0, 0, 0, 0], rundeNr: 0, giver: 0,
-    budrunde: { passet: [false, false, false, false], høyeste: { spiller: 0, bud: 5 } },
+    budrunde: { passet: [false, false, false, false], høyeste: { spiller: 0, bud: 5 }, sisteBud: [5, null, null, null] },
     budvinner: 0, melding: { type: "tall", bud: 5 }, trumf: "S", etterlyst: null,
     makker: null,
     bord: [{ spiller: 3, kort: { farge: "H", verdi: 13 } }],
@@ -148,6 +148,13 @@ test("nye sensorer: renons, boss og kan-slå beregnes riktig fra en konstruert v
   assert.equal(inn[275], 0, "H5 slår ikke HK");
   // Stikkleder: spiller 3 = rel. sete 3 (blokka starter på 276).
   assert.equal(inn[276 + 3], 1);
+  // Budhistorikk (286+): jeg (rel. sete 0) meldte 5 av 12 stikk.
+  assert.equal(inn[286 + 0], 5 / 12, "mitt høyeste bud");
+  assert.equal(inn[286 + 1], 0, "sete 1 meldte aldri");
+  // Lag i stikket: etterlyst=null → solo uten makker → alle andre er kjente
+  // fiender for budvinneren; spiller 3 leder stikket.
+  assert.equal(inn[291], 0, "ingen lagkamerat leder");
+  assert.equal(inn[292], 1, "kjent motstander leder stikket");
 });
 
 test("retningsstyrt regret: underbud dytter margin-hodet OPP", () => {

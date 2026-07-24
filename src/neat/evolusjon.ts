@@ -134,6 +134,9 @@ export interface IndividData {
   readonly fraRenons: number;
   readonly fraBossTelling: number;
   readonly fraTaktikk: number;
+  readonly fraLagspill: number;
+  readonly fraBudhist: number;
+  readonly fraLagstikk: number;
   readonly fitness: number;
   readonly dybde: number;
   readonly regret: number;
@@ -180,6 +183,9 @@ function lagIndividData(g: Genom, fitness: number, dybde: number, regret: number
   let fraRenons = 0;
   let fraBossTelling = 0;
   let fraTaktikk = 0;
+  let fraLagspill = 0;
+  let fraBudhist = 0;
+  let fraLagstikk = 0;
   for (const k of g.koblinger) {
     if (!k.aktiv) continue;
     aktive++;
@@ -190,6 +196,9 @@ function lagIndividData(g: Genom, fitness: number, dybde: number, regret: number
     if (iOmråde(k.inn, SENSORGRUPPER.renons)) fraRenons++;
     if (iOmråde(k.inn, SENSORGRUPPER.bossTelling)) fraBossTelling++;
     if (iOmråde(k.inn, SENSORGRUPPER.taktikk)) fraTaktikk++;
+    if (iOmråde(k.inn, SENSORGRUPPER.lagspill)) fraLagspill++;
+    if (iOmråde(k.inn, SENSORGRUPPER.budhistorikk)) fraBudhist++;
+    if (iOmråde(k.inn, SENSORGRUPPER.lagstikk)) fraLagstikk++;
   }
   return {
     noder: g.noder.length,
@@ -203,6 +212,9 @@ function lagIndividData(g: Genom, fitness: number, dybde: number, regret: number
     fraRenons,
     fraBossTelling,
     fraTaktikk,
+    fraLagspill,
+    fraBudhist,
+    fraLagstikk,
     fitness,
     dybde,
     regret,

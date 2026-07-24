@@ -65,7 +65,13 @@ const ER_FORSVARER = 282; //      1: jeg er forsvarer (med visshet)
 const LAG_STIKK_PRIVAT = 283; //  1: budlagets stikk inkl. egen private kunnskap
 const MANGLER_STIKK = 284; //     1: stikk kontrakten fortsatt mangler (/antallStikk)
 const MAKKER_KJENT = 285; //      1: makkeren er offentlig avslørt
-export const ANTALL_INN = 286;
+// --- Budhistorikk: hvem meldte hva (styrkesignal rundt bordet) ---
+const BUD_HIST = 286; //          4: hver spillers høyeste bud (rel. seter, /antallStikk; am/solo=1)
+// --- Lag i stikket: hvem av oss/dem har spilt og leder akkurat nå ---
+const MAKKER_SPILT = 290; //      1: kjent lagkamerat har lagt kort i stikket
+const MAKKER_LEDER = 291; //      1: kjent lagkamerat vinner stikket akkurat nå
+const FIENDE_LEDER = 292; //      1: kjent motstander vinner stikket akkurat nå
+export const ANTALL_INN = 293;
 
 const BESLUTNINGER: readonly Beslutning[] = ["BUD", "VRAK", "VELG", "SPILL"];
 
@@ -81,6 +87,8 @@ export const SENSORGRUPPER = {
   bossTelling: [SKJULTE_I_FARGE, TRUMF_UTE + 1],
   taktikk: [BESTE_ER_TRUMF, STIKKLEDER + 4],
   lagspill: [ER_HEMMELIG_MAKKER, MAKKER_KJENT + 1],
+  budhistorikk: [BUD_HIST, BUD_HIST + 4],
+  lagstikk: [MAKKER_SPILT, FIENDE_LEDER + 1],
 } as const;
 
 // --- Utgangslayout ----------------------------------------------------------
@@ -156,6 +164,8 @@ export function lagInn(
   }
   for (let s = 0; s < n; s++) {
     if (visning.budrunde.passet[s]) inn[PASSET + rel(s)] = 1;
+    const b = visning.budrunde.sisteBud[s];
+    if (b != null) inn[BUD_HIST + rel(s)] = typeof b === "number" ? b / antallStikk : 1;
   }
 
   if (visning.budvinner !== null) {
@@ -204,6 +214,10 @@ export function lagInn(
   // kortet. Forsvarere vet med visshet at de er forsvarere (de holder det
   // ikke og er ikke budvinner). Budvinneren vet at den har ET lag, men ikke
   // hvem – nøyaktig som informasjonen ligger i spillet.
+  // Kjente lagkamerater/motstandere sett fra MEG (fylles i lagspill-blokken,
+  // brukes også av stikk-sensorene under).
+  const lagVenner = new Set<number>();
+  const lagFiender = new Set<number>();
   if (visning.budvinner !== null && visning.melding !== null) {
     const erBudvinner = visning.budvinner === meg;
     const holderEtterlyst =
@@ -216,6 +230,33 @@ export function lagInn(
     if (erMakker) inn[ER_HEMMELIG_MAKKER] = 1;
     if (erBudvinner || erMakker) inn[PÅ_BUDLAGET] = 1;
     else inn[ER_FORSVARER] = 1;
+    // Hvem vet jeg med SIKKERHET er med/mot meg? Den hemmelige makkeren vet
+    // alt; budvinneren vet først alt når makkeren er avslørt (eller ved
+    // solo); forsvarere kjenner budvinneren, og resten etter avsløring.
+    if (erMakker) {
+      lagVenner.add(visning.budvinner);
+      for (let s = 0; s < n; s++) {
+        if (s !== meg && s !== visning.budvinner) lagFiender.add(s);
+      }
+    } else if (erBudvinner) {
+      if (visning.makker !== null && visning.makker !== meg) lagVenner.add(visning.makker);
+      if (visning.makker !== null || soloUtenMakker) {
+        for (let s = 0; s < n; s++) {
+          if (s !== meg && !lagVenner.has(s)) lagFiender.add(s);
+        }
+      }
+    } else {
+      lagFiender.add(visning.budvinner);
+      if (visning.makker !== null) lagFiender.add(visning.makker);
+      if (visning.makker !== null || soloUtenMakker) {
+        for (let s = 0; s < n; s++) {
+          if (s !== meg && !lagFiender.has(s)) lagVenner.add(s);
+        }
+      }
+    }
+    for (const kp of visning.bord) {
+      if (lagVenner.has(kp.spiller)) inn[MAKKER_SPILT] = 1;
+    }
     // Lagets stikk sett med MIN kunnskap: budvinners + avslørt makkers +
     // (mine, hvis jeg er den uavslørte makkeren).
     let lag = visning.stikkVunnet[visning.budvinner] ?? 0;
@@ -284,6 +325,8 @@ export function lagInn(
     }
     inn[STIKKLEDER + rel(beste.spiller)] = 1;
     if (beste.kort.farge === trumf) inn[BESTE_ER_TRUMF] = 1;
+    if (lagVenner.has(beste.spiller)) inn[MAKKER_LEDER] = 1;
+    if (lagFiender.has(beste.spiller)) inn[FIENDE_LEDER] = 1;
     const kandidater = visning.lovligeKort.length > 0 ? visning.lovligeKort : visning.dinHånd;
     if (kandidater.some((k) => slårPå(k, beste.kort, trumf, ledFarge))) inn[KAN_SLÅ] = 1;
   }

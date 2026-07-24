@@ -26,7 +26,6 @@ import {
 } from "../src/neat/index.ts";
 
 const dir = process.argv[2] ?? "trening-c4";
-const GAMMEL_INN = 280;
 const rng = lagRng(0x1a95);
 
 function gauss(): number {
@@ -36,7 +35,8 @@ function gauss(): number {
 
 function migrer(g: Genom): Genom {
   if (g.antallInn === ANTALL_INN) return g;
-  if (g.antallInn !== GAMMEL_INN) throw new Error(`Uventet antallInn ${g.antallInn}`);
+  if (g.antallInn > ANTALL_INN) throw new Error(`Uventet antallInn ${g.antallInn}`);
+  const gammelInn = g.antallInn;
   const ny = utvidInnganger(g, ANTALL_INN);
   const koblinger: KoblingGen[] = ny.koblinger;
   const finnes = new Set(koblinger.map((k) => `${k.inn}>${k.ut}`));
@@ -59,7 +59,7 @@ function migrer(g: Genom): Genom {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 12)
     .map(([id]) => id);
-  for (let inn = GAMMEL_INN; inn < ANTALL_INN; inn++) {
+  for (let inn = gammelInn; inn < ANTALL_INN; inn++) {
     for (let t = 0; t < 2 && nav.length > 0; t++) {
       leggTil(inn, nav[Math.floor(rng() * nav.length)]!, gauss());
     }
@@ -70,7 +70,7 @@ function migrer(g: Genom): Genom {
 }
 
 function medBackup(fil: string, jobb: () => void): void {
-  copyFileSync(fil, fil.replace(/\.json$/, "-foer-lagspill.json"));
+  copyFileSync(fil, fil.replace(/\.json$/, `-foer-${ANTALL_INN}.json`));
   jobb();
   console.log(`migrerte ${fil}`);
 }
