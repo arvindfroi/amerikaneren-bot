@@ -27,8 +27,9 @@
   .prikk.stille { background:#d92b2b; }
 </style></head><body><div class="rot">
 <h1>Amerikaneren-NEAT: kvalitet per modell</h1>
-<p class="sub">Poengdifferanse per kamp mot grådig-benken (glidende snitt over 5 målinger; prikker = enkeltmålinger).
-0-linjen = jevnt med heuristikk-boten. Stiplet = forventet videre utvikling (recency-vektet trend per fokuslinje, oppdateres hver generasjon).
+<p class="sub">Poengdifferanse per kamp, glidende snitt over 5 målinger (prikker = enkeltmålinger).
+<b>To målestokker, aldri i samme kurve:</b> heltrukket = mot grådig-boten (historisk, og en svak motstander – den byr aldri over 5),
+stiplet tykk = mot NevroHjerne, appens ferdigtrente nett. 0 = jevnt med den motstanderen kurven måles mot.
 <b id="stempel"></b><span id="vert"></span> · siden henter nye tall hvert minutt.</p>
 <div class="puls" id="puls"></div>
 <div class="lgr" id="legend"></div>
@@ -54,7 +55,7 @@ function tegn(){
     return '<span class="kort"><i class="prikk'+(stille?' stille':'')+'"></i><b style="color:'+farge(x.navn)+'">'+x.navn+'</b>'+
       ' gen '+x.generasjon+
       (x.genPerTime!==null&&x.genPerTime!==undefined?' · '+x.genPerTime+' gen/t':'')+
-      (x.gullDiff!==null&&x.gullDiff!==undefined?' · gull '+(x.gullDiff>0?'+':'')+x.gullDiff:'')+
+      (x.gullDiff!==null&&x.gullDiff!==undefined?' · gull '+(x.gullDiff>0?'+':'')+x.gullDiff+' ('+(x.gullMot||'grådig')+')':'')+
       (stille?' · stille i '+x.hjerteslagMin+' min':'')+'</span>';
   }).join("");
   const projs=d.projeksjoner||[];
