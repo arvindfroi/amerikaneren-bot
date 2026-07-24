@@ -50,7 +50,13 @@ const genomFil = pos[0] ?? "trening-c4/mester.json";
 const minutter = Number(pos[1] ?? 45);
 const utfil = pos[2] ?? "trening-c4/laerling.json";
 
-const RATE = 0.1; // sterkere enn regret-læringen – dette er fasitmerket data
+// Læringsraten er MÅLT farlig: med 0,1 mot NevroHjerne i fem minutter ble
+// D1s gullgenom 44,8 ± 4,7 poeng SVAKERE (tegntest 2/40). Delta-regelen
+// deler nett med bud- og trumfhodene, så hard imitasjon river i stykker
+// struktur evolusjonen har bygget. Kan overstyres med --rate.
+const RATE = Number(flagg.includes("--rate") ? flagg[flagg.indexOf("--rate") + 1] : 0.1);
+/** Med --bare-kort læres KUN korthodet (vrak/trumf røres ikke). */
+const bareKort = flagg.includes("--bare-kort");
 const LÆRER = { verdener: 10, terskel: 6 };
 
 const genom = genomFraJson(readFileSync(genomFil, "utf8"));
@@ -109,7 +115,7 @@ while (Date.now() < frist) {
         beslutninger++;
         kampBesl++;
       }
-    } else if (s.fase === "VRAK" && handling.type === "VRAK") {
+    } else if (!bareKort && s.fase === "VRAK" && handling.type === "VRAK") {
       const lærer = lærerValg(s, lærerFrø);
       if (lærer.type === "VRAK") {
         const visning = spillerVisning(s, sete);
@@ -121,7 +127,7 @@ while (Date.now() < frist) {
           lærerNett.kalibrerUtgang(UT_KORT + idx, vrakes.has(idx) ? -0.6 : 0.3, RATE * 0.3);
         }
       }
-    } else if (s.fase === "VELG" && handling.type === "VELG") {
+    } else if (!bareKort && s.fase === "VELG" && handling.type === "VELG") {
       const lærer = lærerValg(s, lærerFrø);
       if (lærer.type === "VELG") {
         const visning = spillerVisning(s, sete);
