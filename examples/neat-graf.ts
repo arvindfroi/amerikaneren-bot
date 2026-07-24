@@ -142,6 +142,63 @@ const projeksjoner: Projeksjon[] = serier
   .map((s) => ({ navn: s.navn, ...projiser(s.rå) }))
   .filter((p) => p.proj.length > 0);
 
+// --- Live puls per linje ----------------------------------------------------
+// Kurven flytter seg bare hver 10. generasjon (benk-intervallet). For å se at
+// treningen faktisk lever mellom målingene leses hjerteslaget (status.json)
+// og gullstandarden, og farten regnes ut fra en liten ringbuffer som denne
+// kjøringen selv vedlikeholder (ett punkt per publisering, ca. 1 times minne).
+interface Puls {
+  navn: string;
+  generasjon: number;
+  hjerteslagMin: number;
+  gullDiff: number | null;
+  gullGen: number | null;
+  genPerTime: number | null;
+}
+const FARTSFIL = `${REPO}/trening-felles/fart.json`;
+let fartsminne: Record<string, { t: number; g: number }[]> = {};
+try {
+  fartsminne = JSON.parse(readFileSync(FARTSFIL, "utf8")) as typeof fartsminne;
+} catch {
+  /* første kjøring */
+}
+const nå = Date.now();
+const puls: Puls[] = [];
+for (const dir of readdirSync(REPO).filter((f) => /^trening-[a-z0-9]+$/.test(f)).sort()) {
+  let status: { generasjon: number; tidsstempel: number } | null = null;
+  try {
+    status = JSON.parse(readFileSync(`${REPO}/${dir}/status.json`, "utf8"));
+  } catch {
+    continue;
+  }
+  if (status === null) continue;
+  const navn = dir.replace("trening-", "").toUpperCase();
+  let gull: { diff: number; gen: number } | null = null;
+  try {
+    gull = JSON.parse(readFileSync(`${REPO}/${dir}/gull.json`, "utf8"));
+  } catch {
+    /* ingen gullstandard ennå */
+  }
+  const spor = [...(fartsminne[navn] ?? []), { t: nå, g: status.generasjon }].slice(-30);
+  fartsminne[navn] = spor;
+  const eldst = spor[0]!;
+  const timer = (nå - eldst.t) / 3_600_000;
+  puls.push({
+    navn,
+    generasjon: status.generasjon,
+    hjerteslagMin: Math.round((nå - status.tidsstempel) / 60_000),
+    gullDiff: gull !== null ? Math.round(gull.diff * 10) / 10 : null,
+    gullGen: gull?.gen ?? null,
+    genPerTime: timer > 0.05 ? Math.round((status.generasjon - eldst.g) / timer) : null,
+  });
+}
+try {
+  mkdirSync(`${REPO}/trening-felles`, { recursive: true });
+  writeFileSync(FARTSFIL, JSON.stringify(fartsminne));
+} catch {
+  /* fart er pynt, aldri kritisk */
+}
+
 const kjør = (cmd: string, cwd: string): string =>
   execSync(cmd, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
@@ -171,12 +228,17 @@ if (existsSync(`${REPO}/trening-felles/pimc-referanse.json`)) {
 
 function skrivFiler(): void {
   mkdirSync(utMappe, { recursive: true });
+  // Uten .nojekyll kjører GitHub Pages siden gjennom Jekyll, og det bygget
+  // feilet med jevne mellomrom ("Page build failed") på pushene våre hvert
+  // 2. minutt. Med filen kopieres filene rett ut – ingen byggsteg å feile.
+  writeFileSync(`${utMappe}/.nojekyll`, "");
   writeFileSync(
     `${utMappe}/data.json`,
     JSON.stringify({
       oppdatert: new Date().toISOString(),
       maskin: hostname(),
       overgang: historikk?.overgang ?? {},
+      puls,
       serier,
       projeksjoner,
       pimcRef,
@@ -242,11 +304,16 @@ function MAL(): string {
   @media (prefers-color-scheme: dark) { #tt { background:#1a1a19; color:#fff; } }
   table { border-collapse:collapse; margin-top:8px; font-size:13px; color:var(--tx2); }
   td,th { padding:3px 12px 3px 0; text-align:left; } th { font-weight:600; }
+  .puls { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+  .kort { border:1px solid var(--grid); border-radius:999px; padding:3px 12px; font-size:12.5px; color:var(--tx2); }
+  .prikk { display:inline-block; width:7px; height:7px; border-radius:50%; background:#2f9e44; margin-right:6px; }
+  .prikk.stille { background:#d92b2b; }
 </style></head><body><div class="rot">
 <h1>Amerikaneren-NEAT: kvalitet per modell</h1>
 <p class="sub">Poengdifferanse per kamp mot grådig-benken (glidende snitt over 5 målinger; prikker = enkeltmålinger).
 0-linjen = jevnt med heuristikk-boten. Stiplet = forventet videre utvikling (recency-vektet trend per fokuslinje, oppdateres hver generasjon).
 <b id="stempel"></b><span id="vert"></span> · siden henter nye tall hvert minutt.</p>
+<div class="puls" id="puls"></div>
 <div class="lgr" id="legend"></div>
 <div id="graf"></div><div id="tt"></div>
 <table id="tabell"></table>
@@ -264,6 +331,15 @@ async function last(){
 }
 function tegn(){
   const d=DATA; if(!d) return;
+  // Pulsen: lever linja NÅ? Kurven flytter seg bare hver 10. generasjon.
+  document.getElementById("puls").innerHTML=(d.puls||[]).map(function(x){
+    const stille=x.hjerteslagMin>10;
+    return '<span class="kort"><i class="prikk'+(stille?' stille':'')+'"></i><b style="color:'+farge(x.navn)+'">'+x.navn+'</b>'+
+      ' gen '+x.generasjon+
+      (x.genPerTime!==null&&x.genPerTime!==undefined?' · '+x.genPerTime+' gen/t':'')+
+      (x.gullDiff!==null&&x.gullDiff!==undefined?' · gull '+(x.gullDiff>0?'+':'')+x.gullDiff:'')+
+      (stille?' · stille i '+x.hjerteslagMin+' min':'')+'</span>';
+  }).join("");
   const projs=d.projeksjoner||[];
   const alle=[...d.serier.flatMap(s=>s.glatt.map(p=>p.v)), ...projs.flatMap(p=>p.band.flatMap(b=>[b.lo,b.hi])), ...(d.pimcRef?[d.pimcRef.diff]:[])];
   const YMAX=Math.min(120,Math.max(60,Math.ceil(Math.max(...alle)/10)*10+10));
