@@ -86,6 +86,12 @@ for (const s of historikk?.serier ?? []) {
 const loggfiler = readdirSync(REPO)
   .filter((f) => /^trening(-[a-z0-9]+)?\.log$/.test(f))
   .sort();
+// Aktive linjer = treningsmappene som finnes på disk akkurat nå. Alt som
+// er i fokus på siden utledes av denne – et nytt løp krever ingen kodeendring.
+const aktiveLinjer = readdirSync(REPO)
+  .filter((f) => /^trening-[a-z0-9]+$/.test(f) && existsSync(`${REPO}/${f}/status.json`))
+  .map((f) => f.replace("trening-", "").toUpperCase())
+  .sort();
 const MOTSTANDERE: readonly Motstander[] = ["grådig", "nevro"];
 for (const fil of loggfiler) {
   const navn = navnFor(fil);
@@ -153,7 +159,7 @@ function projiser(rå: Punkt[]): Omit<Projeksjon, "navn"> {
 }
 // Prognosen tegnes for fokuslinjene på den MENINGSFULLE skalaen: mot nevro
 // der den finnes, ellers mot grådig (den historiske).
-const projeksjoner: Projeksjon[] = ["C4", "D1"]
+const projeksjoner: Projeksjon[] = aktiveLinjer
   .flatMap((navn) => {
     const valgt =
       serier.find((s) => s.navn === navn && s.mot === "nevro") ??
@@ -335,6 +341,9 @@ function skrivFiler(): void {
       oppdatert: new Date().toISOString(),
       maskin: hostname(),
       overgang: historikk?.overgang ?? {},
+      // Linjene som finnes på disk akkurat nå – siden bruker denne til å
+      // avgjøre hva som er i fokus, så et nytt løp ikke krever kodeendring.
+      fokusLinjer: aktiveLinjer,
       puls,
       e1,
       serier,
@@ -389,9 +398,9 @@ function MAL(): string {
   @media (prefers-color-scheme: dark) { body { background:#1a1a19; color:#fff; } }
   .rot { max-width:1000px; margin:0 auto; padding:20px;
     --tx2:#52514e; --grid:#e8e7e3;
-    --fokusC4:#2a78d6; --fokusD1:#d92b2b; --retirert:#a5a39c; --mester:#1f9d55; --fokusE1:#7048e8; }
+    --fokusC4:#2a78d6; --fokusD1:#d92b2b; --fokusD2:#e8590c; --retirert:#a5a39c; --mester:#1f9d55; --fokusE1:#7048e8; }
   @media (prefers-color-scheme: dark) { .rot { --tx2:#c3c2b7; --grid:#33322f;
-    --fokusC4:#4593f0; --fokusD1:#f0524a; --retirert:#6e6d67; --mester:#33c777; --fokusE1:#9775fa; } }
+    --fokusC4:#4593f0; --fokusD1:#f0524a; --fokusD2:#ff922b; --retirert:#6e6d67; --mester:#33c777; --fokusE1:#9775fa; } }
   h1 { font-size:19px; margin:0 0 2px; } .sub { color:var(--tx2); margin:0 0 12px; font-size:13px; }
   .akse { font-size:11px; fill:var(--tx2); } .merk { font-size:12px; font-weight:600; }
   .lgr { display:flex; flex-wrap:wrap; gap:14px; margin:0 0 6px; font-size:12.5px; color:var(--tx2); }
@@ -426,8 +435,19 @@ stiplet tykk = mot NevroHjerne, appens ferdigtrente nett. 0 = jevnt med den mots
 const W=960,H=560,ML=56,MR=150,MT=30,MB=46,PW=W-ML-MR,PH=H-MT-MB;
 let DATA=null;
 // C4 (blå) og D1 (rød) er i fokus; pensjonerte linjer (A, B, C, C2, C3) gråes ut.
-function farge(n){return n==="C4"?"var(--fokusC4)":n==="D1"?"var(--fokusD1)":"var(--retirert)";}
-function fokus(n){return n==="C4"||n==="D1";}
+// Fokuslinjene kommer fra DATAENE (pulsen lister linjene som finnes på
+// disk), ikke fra en håndredigert liste – et nytt løp dukker opp av seg
+// selv. Farger er faste for de historiske linjene og tildeles ellers fra
+// paletten etter navn, så en linje beholder fargen sin mellom oppdateringer.
+const FASTE_FARGER={C4:"var(--fokusC4)",D1:"var(--fokusD1)",D2:"var(--fokusD2)"};
+const PALETT=["#e8590c","#0d8050","#c2255c","#1c7ed6","#5f3dc4"];
+function fokus(n){return (DATA&&DATA.fokusLinjer||[]).includes(n);}
+function farge(n){
+  if(!fokus(n)) return "var(--retirert)";
+  if(FASTE_FARGER[n]) return FASTE_FARGER[n];
+  const liste=(DATA&&DATA.fokusLinjer||[]).filter(x=>!FASTE_FARGER[x]);
+  return PALETT[liste.indexOf(n)%PALETT.length];
+}
 async function last(){
   try{
     const r=await fetch("data.json?ts="+Date.now(),{cache:"no-store"});
