@@ -63,8 +63,12 @@ function base64TilBytes(b64: string): Uint8Array {
   return ut;
 }
 
-export function hjerneFraBase64(b64: string): NevroHjerne {
-  const bytes = base64TilBytes(b64);
+/**
+ * Leser appens binærformat: antall nett, så per nett antall lag, så per lag
+ * inn/ut/vekter/bias (Int32/Float32 little-endian). Formatet rommer et
+ * vilkårlig antall nett – appen skriver tre (bud/bytt/spill), E1 skriver ett.
+ */
+export function nettFraBytes(bytes: Uint8Array): NevroNett[] {
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let p = 0;
   const lesInt = (): number => {
@@ -79,9 +83,8 @@ export function hjerneFraBase64(b64: string): NevroHjerne {
     return ut;
   };
   const antallNett = lesInt();
-  if (antallNett !== 3) throw new Error(`NevroHjerne: forventet 3 nett, fikk ${antallNett}`);
   const nett: NevroNett[] = [];
-  for (let n = 0; n < 3; n++) {
+  for (let n = 0; n < antallNett; n++) {
     const antallLag = lesInt();
     const lag: NevroLag[] = [];
     for (let l = 0; l < antallLag; l++) {
@@ -91,7 +94,15 @@ export function hjerneFraBase64(b64: string): NevroHjerne {
     }
     nett.push({ lag });
   }
-  if (p !== bytes.length) throw new Error(`NevroHjerne: leste ${p} av ${bytes.length} byte`);
+  // Et avvik her betyr at formatet er forskjøvet – da er vektene søppel, og
+  // et nett som spiller søppel er verre enn et som nekter å starte.
+  if (p !== bytes.length) throw new Error(`Vektfil: leste ${p} av ${bytes.length} byte`);
+  return nett;
+}
+
+export function hjerneFraBase64(b64: string): NevroHjerne {
+  const nett = nettFraBytes(base64TilBytes(b64));
+  if (nett.length !== 3) throw new Error(`NevroHjerne: forventet 3 nett, fikk ${nett.length}`);
   return { bud: nett[0]!, bytt: nett[1]!, spill: nett[2]! };
 }
 

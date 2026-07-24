@@ -9,6 +9,8 @@ dist/
 trening*/
 # E1: orakel-datasett (hundrevis av MB, regenereres av e1-orakel.ts)
 e1-data/
+# E1: trente vekter (regenereres av verktoy/e1-tren.py)
+e1-modell/
 # arena: byggeartefakter og kopiert appkode (hentes med arena/hent-appkode.sh)
 arena/adapter/.build/
 arena/adapter/Sources/adapter/appkode/

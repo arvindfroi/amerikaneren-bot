@@ -32,6 +32,7 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { opprettSpill, utfør, velgHandling, type GameState, type Handling } from "../src/index.ts";
 import { genomFraJson, HybridAgent, NeatAgent, type Genom } from "../src/neat/index.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
+import { E1Agent } from "../src/e1/nett.ts";
 import { grådigHandling } from "./graadig.ts";
 
 // --- Argumenter -------------------------------------------------------------
@@ -69,12 +70,17 @@ if (filer.length === 0) {
 const fra = frøFra ?? 0;
 const til = frøTil ?? kamper;
 
-/** «pimc» og «nevro» er innebygde referanser – skriv dem i stedet for en genomfil. */
-type Referanse = "pimc" | "nevro";
+/**
+ * Innebygde referanser i stedet for en genomfil: «pimc», «nevro», og
+ * «e1:<vektfil>» for et GPU-trent E1-nett.
+ */
+type Referanse = "pimc" | "nevro" | "e1";
 interface Kandidat {
   readonly navn: string;
   readonly genom: Genom | null;
   readonly referanse: Referanse | null;
+  /** Vektfil for e1-kandidater. */
+  readonly fil?: string;
 }
 /** Godtar både et rent genom (mester.json) og gull-innpakningen {diff, gen, genom}. */
 function lesGenom(fil: string): Genom {
@@ -82,16 +88,29 @@ function lesGenom(fil: string): Genom {
   const rå = JSON.parse(tekst) as { genom?: unknown };
   return genomFraJson(rå.genom !== undefined ? JSON.stringify(rå.genom) : tekst);
 }
-const kandidater: Kandidat[] = filer.map((f) =>
-  f === "pimc" || f === "nevro"
-    ? { navn: f, genom: null, referanse: f }
-    : { navn: f, genom: lesGenom(f), referanse: null },
-);
+const kandidater: Kandidat[] = filer.map((f) => {
+  if (f === "pimc" || f === "nevro") return { navn: f, genom: null, referanse: f };
+  if (f.startsWith("e1:")) return { navn: f, genom: null, referanse: "e1" as const, fil: f.slice(3) };
+  return { navn: f, genom: lesGenom(f), referanse: null };
+});
+
+// Vektfilen er et par MB – les den én gang, ikke per kamp.
+const e1Bufret = new Map<string, E1Agent>();
+function e1Agent(fil: string): E1Agent {
+  let a = e1Bufret.get(fil);
+  if (a === undefined) {
+    a = E1Agent.fraFil(fil);
+    e1Bufret.set(fil, a);
+  }
+  return a;
+}
 
 /** Én hel kamp: kandidaten i `sete`, tre motstandere. Returnerer poengdifferansen. */
 function kamp(k: Kandidat, frø: number, sete: number): number {
   const agent =
-    k.referanse === "nevro"
+    k.referanse === "e1"
+      ? e1Agent(k.fil!)
+      : k.referanse === "nevro"
       ? new NevroAgent()
       : k.genom === null
         ? null

@@ -19,7 +19,10 @@ $filer = @(Get-ChildItem (Join-Path $data "skard-*.jsonl") -ErrorAction Silently
 $sum = 0
 $mb = 0
 foreach ($f in $filer) {
-  $n = (Get-Content $f.FullName -ReadCount 0 | Measure-Object -Line).Lines
+  # ReadLines strømmer – filene blir hundrevis av MB, så de skal aldri
+  # leses inn i minnet bare for å telles.
+  $n = 0
+  foreach ($l in [System.IO.File]::ReadLines($f.FullName)) { $n++ }
   $sum += $n
   $mb += $f.Length / 1MB
 }
