@@ -4,19 +4,26 @@
  *   node examples/neat-graf.ts --pages          # oppdater + push gh-pages
  *   node examples/neat-graf.ts <utmappe>        # bare skriv filene
  *
- * Leser alle trening*-loggene (benk-målingene), beregner glidende snitt og
- * en recency-vektet forventet utvikling per fokuslinje, og skriver
- * index.html + data.json. Med --pages vedlikeholdes en git-worktree på
- * grenen gh-pages (/home/user/amerikaneren-pages) og endringer pushes –
- * siden på GitHub Pages oppdaterer seg selv (henter data.json hvert
- * minutt). Kjørres fra overvåkingskjeden hvert 10. minutt.
+ * Leser alle trening*-loggene (benk-målingene), slår dem sammen med den
+ * frosne historikken fra skykjøringen (trening-historikk.json), beregner
+ * glidende snitt og en recency-vektet forventet utvikling per fokuslinje,
+ * og skriver index.html + data.json. Med --pages vedlikeholdes en
+ * git-worktree på grenen gh-pages og endringer pushes – siden på GitHub
+ * Pages oppdaterer seg selv (henter data.json hvert minutt).
+ *
+ * Stier: repoet finnes ut fra skriptets egen plassering, worktreet legges
+ * som søskenmappe («amerikaneren-pages»). Begge kan overstyres med
+ * miljøvariablene AMB_REPO / AMB_PAGES. Fungerer på Linux, macOS og
+ * Windows (kalles av verktoy/lokal-tren.ps1 hvert 2. minutt).
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { hostname } from "node:os";
+import { resolve } from "node:path";
 
-const REPO = "/home/user/amerikaneren-bot";
-const PAGES = "/home/user/amerikaneren-pages";
+const REPO = process.env.AMB_REPO ?? resolve(import.meta.dirname, "..");
+const PAGES = process.env.AMB_PAGES ?? resolve(REPO, "..", "amerikaneren-pages");
 const medPages = process.argv.includes("--pages");
 const utMappe = medPages ? PAGES : (process.argv[2] ?? "trening-graf");
 
@@ -51,14 +58,44 @@ function glatt(s: Punkt[], vindu = 5): Punkt[] {
 const navnFor = (fil: string): string =>
   fil === "trening.log" ? "A" : fil.replace("trening-", "").replace(".log", "").toUpperCase();
 
+// --- Historikk fra skykjøringen --------------------------------------------
+// Treningen flyttet fra sky-containeren til en lokal maskin. Loggene ble
+// igjen i containeren, så kurven fram til overgangen ligger frosset i
+// trening-historikk.json (hentet fra sidens egen data.json). Lokale
+// målinger legges oppå: ved samme (linje, generasjon) vinner den lokale.
+interface Historikk {
+  overgang?: Record<string, number>;
+  pimcRef?: { diff: number; kamper: number } | null;
+  serier: { navn: string; rå: Punkt[] }[];
+}
+let historikk: Historikk | null = null;
+if (existsSync(`${REPO}/trening-historikk.json`)) {
+  historikk = JSON.parse(readFileSync(`${REPO}/trening-historikk.json`, "utf8")) as Historikk;
+}
+
+const punktKart = new Map<string, Map<number, number>>();
+for (const s of historikk?.serier ?? []) {
+  punktKart.set(s.navn, new Map(s.rå.map((p) => [p.g, p.v])));
+}
 const loggfiler = readdirSync(REPO)
   .filter((f) => /^trening(-[a-z0-9]+)?\.log$/.test(f))
   .sort();
-const serier: Serie[] = [];
 for (const fil of loggfiler) {
-  const rå = lesSerie(`${REPO}/${fil}`);
-  if (rå.length > 0) serier.push({ navn: navnFor(fil), rå, glatt: glatt(rå) });
+  const navn = navnFor(fil);
+  let m = punktKart.get(navn);
+  if (m === undefined) {
+    m = new Map();
+    punktKart.set(navn, m);
+  }
+  for (const p of lesSerie(`${REPO}/${fil}`)) m.set(p.g, p.v);
 }
+const serier: Serie[] = [...punktKart]
+  .map(([navn, m]) => {
+    const rå = [...m].map(([g, v]) => ({ g, v })).sort((a, b) => a.g - b.g);
+    return { navn, rå, glatt: glatt(rå) };
+  })
+  .filter((s) => s.rå.length > 0)
+  .sort((a, b) => a.navn.localeCompare(b.navn));
 
 // --- Forventet utvikling: recency-vektet trend PER fokuslinje --------------
 // Oppdateres AKTIVT hver ny generasjon: bare et glidende siste-vindu teller,
@@ -111,40 +148,72 @@ const kjør = (cmd: string, cwd: string): string =>
 // Worktree på gh-pages må finnes FØR filene skrives (selvhelende etter restart).
 if (medPages && !existsSync(`${PAGES}/.git`)) {
   kjør("git worktree prune", REPO);
-  const finnes = execSync("git branch --list gh-pages", { cwd: REPO, encoding: "utf8" }).trim();
-  if (finnes === "") {
-    const tomTre = kjør("git hash-object -t tree /dev/null", REPO).trim();
-    const rot = kjør(`git commit-tree ${tomTre} -m "gh-pages: fremgangsgraf"`, REPO).trim();
-    kjør(`git branch gh-pages ${rot}`, REPO);
+  if (kjør("git branch --list gh-pages", REPO).trim() === "") {
+    try {
+      kjør("git fetch origin gh-pages:gh-pages", REPO); // grenen finnes alt på GitHub
+    } catch {
+      // Helt ny side: lag en rot-commit på det tomme treet (fast SHA i git).
+      const tomTre = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+      const rot = kjør(`git commit-tree ${tomTre} -m "gh-pages: fremgangsgraf"`, REPO).trim();
+      kjør(`git branch gh-pages ${rot}`, REPO);
+    }
   }
-  kjør(`rm -rf ${PAGES}`, REPO); // evt. halvskrevne rester uten .git
-  kjør(`git worktree add ${PAGES} gh-pages`, REPO);
+  rmSync(PAGES, { recursive: true, force: true }); // evt. halvskrevne rester uten .git
+  kjør(`git worktree add "${PAGES}" gh-pages`, REPO);
 }
 
 // PIMC-referansen (målt av neat-pimc-referanse.ts) – tegnes som nivålinje.
-let pimcRef: { diff: number; kamper: number } | null = null;
+// Er den ikke målt lokalt, brukes verdien fra skykjøringen.
+let pimcRef: { diff: number; kamper: number } | null = historikk?.pimcRef ?? null;
 if (existsSync(`${REPO}/trening-felles/pimc-referanse.json`)) {
   pimcRef = JSON.parse(readFileSync(`${REPO}/trening-felles/pimc-referanse.json`, "utf8"));
 }
 
-mkdirSync(utMappe, { recursive: true });
-writeFileSync(
-  `${utMappe}/data.json`,
-  JSON.stringify({ oppdatert: new Date().toISOString(), serier, projeksjoner, pimcRef }),
-);
-writeFileSync(`${utMappe}/index.html`, MAL());
+function skrivFiler(): void {
+  mkdirSync(utMappe, { recursive: true });
+  writeFileSync(
+    `${utMappe}/data.json`,
+    JSON.stringify({
+      oppdatert: new Date().toISOString(),
+      maskin: hostname(),
+      overgang: historikk?.overgang ?? {},
+      serier,
+      projeksjoner,
+      pimcRef,
+    }),
+  );
+  writeFileSync(`${utMappe}/index.html`, MAL());
+}
+skrivFiler();
 console.log(`Skrev ${utMappe}/data.json (${serier.length} serier) + index.html`);
 
 // --- Publiser til gh-pages --------------------------------------------------
+// Taper vi kappløpet mot en annen publisist (skykjøringen pusher til samme
+// gren), tar vi deres commit som utgangspunkt, skriver filene på nytt og
+// prøver igjen – i stedet for å la pushen ryke.
 if (medPages) {
-  const status = kjør("git status --porcelain", PAGES).trim();
-  if (status.length > 0) {
-    kjør("git add -A", PAGES);
-    kjør('git commit -m "Oppdater fremgangsgraf"', PAGES);
-    kjør("git push origin gh-pages", PAGES);
-    console.log("Publiserte til gh-pages");
-  } else {
-    console.log("Ingen endringer å publisere");
+  for (let forsøk = 1; forsøk <= 3; forsøk++) {
+    try {
+      if (kjør("git status --porcelain", PAGES).trim() === "") {
+        console.log("Ingen endringer å publisere");
+        break;
+      }
+      kjør("git add -A", PAGES);
+      kjør('git commit -m "Oppdater fremgangsgraf"', PAGES);
+      kjør("git push origin gh-pages", PAGES);
+      console.log("Publiserte til gh-pages");
+      break;
+    } catch (feil) {
+      console.error(`Publisering feilet (forsøk ${forsøk}/3): ${String(feil).slice(0, 300)}`);
+      if (forsøk === 3) break;
+      try {
+        kjør("git fetch origin gh-pages", PAGES);
+        kjør("git reset --hard FETCH_HEAD", PAGES);
+        skrivFiler();
+      } catch (feil2) {
+        console.error(`Klarte ikke synkronisere gh-pages: ${String(feil2).slice(0, 300)}`);
+      }
+    }
   }
 }
 
@@ -177,7 +246,7 @@ function MAL(): string {
 <h1>Amerikaneren-NEAT: kvalitet per modell</h1>
 <p class="sub">Poengdifferanse per kamp mot grådig-benken (glidende snitt over 5 målinger; prikker = enkeltmålinger).
 0-linjen = jevnt med heuristikk-boten. Stiplet = forventet videre utvikling (recency-vektet trend per fokuslinje, oppdateres hver generasjon).
-<b id="stempel"></b> · siden henter nye tall hvert minutt.</p>
+<b id="stempel"></b><span id="vert"></span> · siden henter nye tall hvert minutt.</p>
 <div class="lgr" id="legend"></div>
 <div id="graf"></div><div id="tt"></div>
 <table id="tabell"></table>
@@ -226,6 +295,11 @@ function tegn(){
     const pp=pr.proj[pr.proj.length-1];
     s+='<text x="'+(X(pp.g)+6)+'" y="'+(Y(pp.v)+4)+'" class="merk" fill="'+col+'">'+pr.navn+' forventet</text>';
   }
+  // Overgangen sky → lokal maskin: loddrett merke per linje.
+  for(const [navn,g] of Object.entries(d.overgang||{})){
+    const x=X(g); if(!isFinite(x)) continue;
+    s+='<line x1="'+x.toFixed(1)+'" y1="'+MT+'" x2="'+x.toFixed(1)+'" y2="'+(MT+PH)+'" stroke="'+farge(navn)+'" stroke-width="1" stroke-dasharray="2 5" opacity="0.5"/>';
+  }
   // Pensjonerte serier tegnes først (bakgrunn), fokusseriene (C4/D1) sist og tykkere.
   const rekkefølge=[...d.serier].sort((a,b)=>(fokus(a.navn)?1:0)-(fokus(b.navn)?1:0));
   for(const serie of rekkefølge){
@@ -245,7 +319,8 @@ function tegn(){
   const lgOrd=[...d.serier].sort((a,b)=>(fokus(b.navn)?1:0)-(fokus(a.navn)?1:0));
   document.getElementById("legend").innerHTML=
     lgOrd.map(x=>'<span class="lg"'+(fokus(x.navn)?' style="font-weight:600"':' style="opacity:.65"')+'><i style="background:'+farge(x.navn)+'"></i>'+x.navn+(fokus(x.navn)?'':' (pensjonert)')+'</span>').join("")+
-    '<span class="lg"><i class="strek"></i>Forventet (recency-vektet trend, siste 24 målinger)</span>';
+    '<span class="lg"><i class="strek"></i>Forventet (recency-vektet trend, siste 24 målinger)</span>'+
+    (Object.keys(d.overgang||{}).length?'<span class="lg"><i class="strek"></i>Loddrett merke: treningen flyttet fra sky til lokal maskin</span>':'');
   document.getElementById("tabell").innerHTML=
     '<tr><th>Modell</th><th>Siste gen</th><th>Beste (glattet)</th><th>Nå (glattet)</th></tr>'+
     d.serier.map(x=>{
@@ -253,6 +328,7 @@ function tegn(){
       return '<tr><td>'+x.navn+'</td><td>'+x.rå[x.rå.length-1].g+'</td><td>'+(beste>0?"+":"")+beste.toFixed(0)+'</td><td>'+(nå>0?"+":"")+nå.toFixed(0)+'</td></tr>';
     }).join("");
   document.getElementById("stempel").textContent="Sist oppdatert "+new Date(d.oppdatert).toLocaleTimeString("nb-NO");
+  document.getElementById("vert").textContent=d.maskin?" (trener på "+d.maskin+")":"";
   kobleHover(XMAX);
 }
 function kobleHover(XMAX){

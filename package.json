@@ -30,6 +30,8 @@
     "turnering": "node examples/turnering.ts",
     "neat-tren": "node examples/neat-tren.ts",
     "neat-vakt": "node examples/neat-vakt.ts",
+    "lokal-tren": "node examples/lokal-tren.ts",
+    "neat-graf": "node examples/neat-graf.ts",
     "arena": "node examples/arena.ts",
     "benchmark": "node examples/benchmark.ts"
   },

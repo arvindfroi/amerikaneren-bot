@@ -42,32 +42,84 @@ git show origin/trening-snapshot:trening-d1.tar.gz > /tmp/d1.tar.gz && tar xzf /
 Hopper du over dette, starter treningen friskt fra `start.json` (mister
 skyens gull, men koden og sensorene er de samme).
 
-## Kjør
+Øyeblikksbildet inneholder befolkning, gull og mester – men ikke
+generasjonstelleren eller loggene. Skriv derfor en `status.json` per linje
+med generasjonen skyen hadde nådd, så teller loggen videre i stedet for å
+begynne på null:
 
 ```bash
-bash examples/lokal-tren.sh          # auto-kjerner, populasjon 128, begge linjer
-bash examples/lokal-tren.sh 192      # større populasjon (mer mangfold, tregere gen)
-POPP=160 TRAADER=10 bash examples/lokal-tren.sh   # full overstyring
+node -e 'require("fs").writeFileSync("trening-c4/status.json",JSON.stringify({generasjon:1649,tidsstempel:Date.now(),sisteBenk:"overtatt fra sky"}))'
+node -e 'require("fs").writeFileSync("trening-d1/status.json",JSON.stringify({generasjon:399,tidsstempel:Date.now(),sisteBenk:"overtatt fra sky"}))'
 ```
 
-Skriptet starter **begge** linjer (C4 og D1), fordeler kjernene mellom dem,
-og har en innebygd babysitter som relanserer en linje som skulle krasje.
-Treningen tåler at maskinen sover eller starter på nytt – befolkningen
-lagres hver 5. generasjon, og et nytt kjør gjenopptar automatisk.
+Selve kurven fra skyperioden ligger frosset i `trening-historikk.json` (hentet
+fra sidens egen `data.json`), og `neat-graf.ts` legger de lokale målingene
+oppå den. Derfor er grafen sammenhengende selv om skyloggene ble igjen i
+containeren.
 
-**Windows**: kjør i WSL2 (Ubuntu) eller Git Bash. Native PowerShell kan
-starte linjene hver for seg med kommandoene inni `lokal-tren.sh`.
+## Fremgangsgrafen
+
+Supervisoren kjører `node examples/neat-graf.ts --pages` hvert 2. minutt.
+Den vedlikeholder en git-worktree på grenen `gh-pages` (søskenmappa
+`../amerikaneren-pages`), skriver `data.json` + `index.html` og pusher.
+Krever at `git push` virker uten passordledetekst – på Windows ordner
+`gh auth setup-git` det (GitHub CLI som legitimasjonshjelper).
+
+Taper vi kappløpet mot en annen publisist (f.eks. en sky-container som
+fortsatt kjører), hentes deres commit, filene skrives på nytt og pushen
+prøves igjen – opptil tre ganger. **Men to samtidige publisister får grafen
+til å hoppe fram og tilbake mellom to virkelighetsbilder: stopp skyens
+graf-puls når treningen er flyttet lokalt.**
+
+## Kjør
+
+### Windows (PowerShell) – anbefalt på Legion-en
+
+```powershell
+.\verktoy\start-trening.ps1                        # auto-kjerner, populasjon 128
+.\verktoy\start-trening.ps1 -Populasjon 192        # større populasjon
+.\verktoy\start-trening.ps1 -Traader 8             # færre tråder per linje
+.\verktoy\start-trening.ps1 -UtenGraf              # tren uten å publisere grafen
+
+.\verktoy\status-trening.ps1                       # prosesser, generasjon, benk, siste push
+.\verktoy\stopp-trening.ps1                        # pen stopp (STOPP-fil)
+.\verktoy\stopp-trening.ps1 -Hardt                 # nødbrems
+```
+
+Treningen løsrives fra terminalen, så den fortsetter når vinduet lukkes.
+Alt kjører **native på Windows** – ingen WSL nødvendig.
+
+### Linux / macOS
+
+```bash
+node examples/lokal-tren.ts          # samme supervisor, kryssplattform
+POPP=160 TRAADER=10 node examples/lokal-tren.ts
+bash examples/lokal-tren.sh          # eldre bash-variant (nohup/pgrep)
+```
+
+Supervisoren starter **begge** linjer (C4 og D1), fordeler kjernene mellom
+dem, relanserer en linje som skulle krasje, og pusher fremgangsgrafen til
+GitHub Pages hvert 2. minutt. Treningen tåler at maskinen sover eller
+starter på nytt – befolkningen lagres hver 5. generasjon, og et nytt kjør
+gjenopptar automatisk fra `trening-*/befolkning.json`.
+
+Tre lag med feilsikring: treneren lagrer atomisk hver 5. generasjon →
+`neat-vakt.ts` starter treneren om ved krasj og heng (hjerteslag i
+`status.json`) → supervisoren starter vakten om hvis den selv dør.
 
 ### Følg med
+
+Grafen er den enkleste: **<https://arvindfroi.github.io/amerikaneren-bot/>**
+oppdateres hvert 2. minutt fra din egen maskin (siden viser hvilken maskin
+som trener, og et loddrett merke der treningen flyttet fra sky til lokalt).
 
 ```bash
 tail -f trening-c4.log            # C4-generasjoner + benk
 tail -f trening-d1.log            # D1
+tail -f lokal-tren.log            # supervisoren: omstarter + publiseringer
 node examples/neat-budstat.ts trening-d1/mester.json   # bud/innfrielse/overskudd
 node examples/neat-forklar.ts trening-d1 999999 0      # R²/sensorbruk
 ```
-
-Stopp med **Ctrl-C** (dreper begge linjer + babysitteren).
 
 ## Lever framgangen tilbake
 
