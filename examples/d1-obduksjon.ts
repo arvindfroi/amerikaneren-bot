@@ -34,6 +34,9 @@ let verdener = 24;
 let dybde = 7;
 let sjanse = 0.4;
 let frøBase = 600_000;
+/** Bare stikk <= denne merkes (-1 = alle). Aapningsspillet krever eget budsjett. */
+let baresStikk = -1;
+let nodeTak = 400_000;
 let utFil = "obduksjon/anger.jsonl";
 const genomFiler: string[] = [];
 let e1Fil: string | null = null;
@@ -44,6 +47,8 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--dybde") dybde = Number(process.argv[++i]);
   else if (a === "--sjanse") sjanse = Number(process.argv[++i]);
   else if (a === "--froe") frøBase = Number(process.argv[++i]);
+  else if (a === "--barestikk") baresStikk = Number(process.argv[++i]);
+  else if (a === "--nodetak") nodeTak = Number(process.argv[++i]);
   else if (a === "--ut") utFil = process.argv[++i] ?? utFil;
   else if (a === "--e1") e1Fil = process.argv[++i] ?? null;
   else genomFiler.push(a);
@@ -112,11 +117,12 @@ for (let k = 0; k < kamper; k++) {
     if (s.fase === "SPILL" && s.iTur !== null) {
       const sete = s.iTur;
       const lovlige = lovligeKort(s, sete);
-      if (lovlige.length >= 2 && rng() < sjanse) {
+      const iVindu = baresStikk < 0 || s.stikkSpilt <= baresStikk;
+      if (lovlige.length >= 2 && iVindu && rng() < sjanse) {
         const svar = orakelVerdier(s, sete, {
           verdener,
           dybde: Math.min(dybde, s.giving.antallStikk - s.stikkSpilt),
-          nodeTak: 400_000,
+          nodeTak,
           frø: (frø * 31 + guard) >>> 0,
         });
         if (svar !== null) {
