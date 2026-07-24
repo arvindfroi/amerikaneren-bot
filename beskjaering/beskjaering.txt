@@ -1,0 +1,4 @@
+10 % → fjernet 197, 1779 aktive igjen → beskjaering/beskjaert-10.json
+25 % → fjernet 494, 1482 aktive igjen → beskjaering/beskjaert-25.json
+40 % → fjernet 790, 1186 aktive igjen → beskjaering/beskjaert-40.json
+60 % → fjernet 1185, 791 aktive igjen → beskjaering/beskjaert-60.json

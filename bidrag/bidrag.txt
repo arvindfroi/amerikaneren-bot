@@ -1,0 +1,4 @@
+20 % → fjernet 395 (bidrag ≤ 0.00e+0), 1581 igjen → bidrag/bidrag-20.json
+40 % → fjernet 790 (bidrag ≤ 4.59e-5), 1186 igjen → bidrag/bidrag-40.json
+55 % → fjernet 1086 (bidrag ≤ 3.31e-4), 890 igjen → bidrag/bidrag-55.json
+70 % → fjernet 1383 (bidrag ≤ 1.13e-3), 593 igjen → bidrag/bidrag-70.json

@@ -1,0 +1,3 @@
+40 % → fjernet 763 (27 gjenopplivet), 1213 aktive igjen → beskjaering3/beskjaert-40.json
+60 % → fjernet 763 (422 gjenopplivet), 1213 aktive igjen → beskjaering3/beskjaert-60.json
+70 % → fjernet 763 (620 gjenopplivet), 1213 aktive igjen → beskjaering3/beskjaert-70.json
