@@ -188,14 +188,20 @@ def main() -> None:
     antall = sum(p.numel() for p in modell.parameters())
     print(f"Nett: {' → '.join(str(d) for d in dims)} ({antall} parametre)")
 
-    opt = torch.optim.AdamW(modell.parameters(), lr=args.lr, weight_decay=1e-4)
+    opt = torch.optim.AdamW(modell.parameters(), lr=args.lr, weight_decay=args.wd)
     plan = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epoker)
 
     os.makedirs(os.path.dirname(args.logg) or ".", exist_ok=True)
     logg = open(args.logg, "a", encoding="utf-8", buffering=1)  # linjebufret: overlever avbrudd
-    logg.write(f"=== start {time.strftime('%Y-%m-%d %H:%M:%S')} n={n} dims={dims} ===\n")
+    logg.write(f"=== start {time.strftime('%Y-%m-%d %H:%M:%S')} n={n} dims={dims} wd={args.wd} taal={args.taal} ===\n")
 
+    # TIDLIG STOPP. R1 (311k, 40 epoker) toppet val-treff paa epoke 2 og
+    # falt saa mens val-tap steg (1,45 -> 1,56) - klar overtilpasning paa et
+    # 700k-parameters nett. Vi stopper naar val-treffet ikke har blitt bedre
+    # paa `taal` epoker, saa flere epoker aldri skader; sjekkpunktet er uansett
+    # det BESTE, ikke det siste.
     beste = -1.0
+    siden_beste = 0
     for epoke in range(args.epoker):
         modell.train()
         perm = torch.randperm(Xt.shape[0], device=enhet)
@@ -223,8 +229,16 @@ def main() -> None:
         logg.write(linje + "\n")
         if val_treff > beste:
             beste = val_treff
+            siden_beste = 0
             skriv_vekter(args.ut, modell)
             logg.write(f"  lagret (beste treff {100 * beste:.1f} %)\n")
+        else:
+            siden_beste += 1
+            if siden_beste >= args.taal:
+                linje = f"tidlig stopp: {args.taal} epoker uten framgang (beste {100 * beste:.1f} %)"
+                print(linje)
+                logg.write(linje + "\n")
+                break
 
     logg.write(f"=== ferdig, beste val-treff {100 * beste:.1f} % ===\n")
     logg.close()
