@@ -30,12 +30,14 @@ import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { lagRng } from "../src/kort.ts";
-import { lovligeKort, opprettSpill, utfør, type Handling } from "../src/index.ts";
+import { lovligeKort, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
 import { e1SpillTrekk, E1_SPILL_DIM } from "../src/e1/trekk.ts";
 import { orakelBudsjett, orakelVerdier } from "../src/e1/orakel.ts";
 import { kortIndeks, NevroAgent } from "../src/nevro/index.ts";
 import { spillerVisning } from "../src/motor.ts";
 import { lagInn } from "../src/neat/trekk.ts";
+import { genomFraJson, NeatAgent } from "../src/neat/index.ts";
+import { readFileSync } from "node:fs";
 
 let utFil = "e1-data/orakel.jsonl";
 let kamper = 50;
@@ -48,6 +50,19 @@ let nodeTak = 400_000;
 let sjanse = 0.35;
 let utforsk = 0.15;
 let flatt = false;
+/**
+ * Hvem SPILLER partiene stillingene hentes fra. Standard er NevroHjerne.
+ *
+ * MÅLT PROBLEM: anger-trening på nevro-genererte stillinger gjorde D5
+ * 105 poeng SVAKERE i spill, samtidig som angeren ble 28 % bedre. D5 velger
+ * feil trumf i 61 % av rundene, vraker sin egen trumf og byr 6 – den havner
+ * altså i helt andre stillinger enn nevro. Å lære kort som er optimale i
+ * NEVROS stillinger gir kort som er feil i D5s egne. Klassisk distribution
+ * shift, og grunnen til at DAgger henter fasit fra agentens EGEN spilling.
+ *
+ * --spiller <genomfil> lar et NEAT-genom spille i stedet.
+ */
+let spillerFil: string | null = null;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--ut") utFil = process.argv[++i] ?? utFil;
@@ -63,11 +78,26 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--sjanse") sjanse = Number(process.argv[++i]);
   else if (a === "--utforsk") utforsk = Number(process.argv[++i]);
   else if (a === "--flatt") flatt = true;
+  else if (a === "--spiller") spillerFil = process.argv[++i] ?? null;
 }
 
 mkdirSync(dirname(utFil), { recursive: true });
 
-const agent = new NevroAgent();
+const nevroAgent = new NevroAgent();
+const neatAgent =
+  spillerFil !== null
+    ? new NeatAgent(
+        genomFraJson(
+          (() => {
+            const rå = JSON.parse(readFileSync(spillerFil, "utf8")) as { genom?: unknown };
+            return rå.genom !== undefined ? JSON.stringify(rå.genom) : readFileSync(spillerFil, "utf8");
+          })(),
+        ),
+        { læringsrate: 0 },
+      )
+    : null;
+const agent = { velgHandling: (s: GameState) => (neatAgent ?? nevroAgent).velgHandling(s) };
+if (spillerFil !== null) console.log(`Stillingene hentes fra ${spillerFil} sin egen spilling`);
 const rng = lagRng((frøBase + skardI * 7919) >>> 0);
 let merket = 0;
 let beslutninger = 0;
