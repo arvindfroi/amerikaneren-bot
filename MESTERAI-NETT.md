@@ -98,10 +98,12 @@ content-blokkeringen iPad-ens Safari ellers ville gitt.
    # Windows: (Get-NetIPAddress -AddressFamily IPv4 | ? IPAddress -like '192.168.*').IPAddress
    ```
 
-   På Windows må brannmuren slippe inn porten én gang (kjør som administrator):
+   På Windows må brannmuren slippe inn porten én gang (kjør som administrator).
+   `-Profile Any` fordi hjemme-wifien er klassifisert som *Public* – en regel
+   for bare *Private* ville aldri slått inn:
 
    ```powershell
-   New-NetFirewallRule -DisplayName "MesterAI-bro 8787" -Direction Inbound -Protocol TCP -LocalPort 8787 -Action Allow -Profile Private
+   New-NetFirewallRule -DisplayName "MesterAI-bro 8787" -Direction Inbound -Protocol TCP -LocalPort 8787 -Action Allow -Profile Any
    ```
 
 4. På farmors iPad (samme wifi): åpne **`http://<LAN-IP>:8787`** i Safari –
