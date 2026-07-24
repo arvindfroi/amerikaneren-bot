@@ -39,9 +39,11 @@ const TREKK = [
   "fraLagspill",
   "fraBudhist",
   "fraLagstikk",
+  "fraTrumf",
   "vektLagspill",
   "vektBudhist",
   "vektLagstikk",
+  "vektTrumf",
   "regret",
 ] as const;
 

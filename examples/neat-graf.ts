@@ -5,7 +5,7 @@
  *   node examples/neat-graf.ts <utmappe>        # bare skriv filene
  *
  * Leser alle trening*-loggene (benk-målingene), beregner glidende snitt og
- * en forventet videre utvikling (lineær trend i C-arven), og skriver
+ * en recency-vektet forventet utvikling per fokuslinje, og skriver
  * index.html + data.json. Med --pages vedlikeholdes en git-worktree på
  * grenen gh-pages (/home/user/amerikaneren-pages) og endringer pushes –
  * siden på GitHub Pages oppdaterer seg selv (henter data.json hvert
@@ -60,37 +60,50 @@ for (const fil of loggfiler) {
   if (rå.length > 0) serier.push({ navn: navnFor(fil), rå, glatt: glatt(rå) });
 }
 
-// --- Forventet utvikling: lineær trend i C-arven ---------------------------
-const arven = serier
-  .filter((s) => s.navn.startsWith("C"))
-  .sort((a, b) => a.navn.localeCompare(b.navn, "nb", { numeric: true }));
-let proj: Punkt[] = [];
-let band: { g: number; lo: number; hi: number }[] = [];
-if (arven.length > 0) {
-  const kum: Punkt[] = [];
-  let off = 0;
-  for (const s of arven) {
-    for (const p of s.rå) kum.push({ g: off + p.g, v: p.v });
-    off += s.rå[s.rå.length - 1]!.g;
-  }
-  const n = kum.length;
-  const sx = kum.reduce((a, p) => a + p.g, 0);
-  const sy = kum.reduce((a, p) => a + p.v, 0);
-  const sxx = kum.reduce((a, p) => a + p.g * p.g, 0);
-  const sxy = kum.reduce((a, p) => a + p.g * p.v, 0);
-  const stign = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1);
-  const skjær = (sy - stign * sx) / n;
-  const sigma = Math.sqrt(kum.reduce((a, p) => a + (p.v - (skjær + stign * p.g)) ** 2, 0) / n);
-  const aktiv = arven[arven.length - 1]!;
-  const x0 = aktiv.rå[aktiv.rå.length - 1]!.g;
-  const x0kum = kum[kum.length - 1]!.g;
-  for (let t = 0; t <= 800; t += 40) {
-    const v = Math.round((skjær + stign * (x0kum + t)) * 10) / 10;
-    proj.push({ g: x0 + t, v });
-    const b = sigma * (0.6 + (0.9 * t) / 800);
-    band.push({ g: x0 + t, lo: Math.round((v - b) * 10) / 10, hi: Math.round((v + b) * 10) / 10 });
-  }
+// --- Forventet utvikling: recency-vektet trend PER fokuslinje --------------
+// Oppdateres AKTIVT hver ny generasjon: bare et glidende siste-vindu teller,
+// og nyere målinger veier eksponentielt tyngre. Slik sporer prognosen farten
+// NÅ – ikke den historiske snittstigningen over hele arven (som ble dominert
+// av tidlig, rask vekst og aldri endret seg). Én prognose per fokuslinje
+// (C4, D1) i linjens egen farge.
+interface Projeksjon {
+  navn: string;
+  proj: Punkt[];
+  band: { g: number; lo: number; hi: number }[];
 }
+function projiser(rå: Punkt[]): Omit<Projeksjon, "navn"> {
+  const K = 24; //          vindusstørrelse (siste K benk-målinger)
+  const forfall = 0.88; //  nyere punkt veier mer (eksponentiell nedvekting)
+  const vindu = rå.slice(-K);
+  if (vindu.length < 4) return { proj: [], band: [] };
+  const vekt = (i: number): number => forfall ** (vindu.length - 1 - i);
+  let sw = 0, swx = 0, swy = 0, swxx = 0, swxy = 0;
+  vindu.forEach((p, i) => {
+    const w = vekt(i);
+    sw += w; swx += w * p.g; swy += w * p.v; swxx += w * p.g * p.g; swxy += w * p.g * p.v;
+  });
+  const stign = (sw * swxy - swx * swy) / (sw * swxx - swx * swx || 1);
+  const skjær = (swy - stign * swx) / sw;
+  let sws = 0;
+  vindu.forEach((p, i) => { sws += vekt(i) * (p.v - (skjær + stign * p.g)) ** 2; });
+  const sigma = Math.sqrt(sws / (sw || 1));
+  const proj: Punkt[] = [];
+  const band: { g: number; lo: number; hi: number }[] = [];
+  const nyeste = vindu[vindu.length - 1]!.g;
+  const HORISONT = 250, STEG = 25; // kortsiktig – prognosen fornyes fortløpende
+  for (let t = 0; t <= HORISONT; t += STEG) {
+    const g = nyeste + t;
+    const v = Math.round((skjær + stign * g) * 10) / 10;
+    proj.push({ g, v });
+    const b = sigma * (0.5 + t / HORISONT); // usikkerheten vokser med horisonten
+    band.push({ g, lo: Math.round((v - b) * 10) / 10, hi: Math.round((v + b) * 10) / 10 });
+  }
+  return { proj, band };
+}
+const projeksjoner: Projeksjon[] = serier
+  .filter((s) => s.navn === "C4" || s.navn === "D1")
+  .map((s) => ({ navn: s.navn, ...projiser(s.rå) }))
+  .filter((p) => p.proj.length > 0);
 
 const kjør = (cmd: string, cwd: string): string =>
   execSync(cmd, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
@@ -117,7 +130,7 @@ if (existsSync(`${REPO}/trening-felles/pimc-referanse.json`)) {
 mkdirSync(utMappe, { recursive: true });
 writeFileSync(
   `${utMappe}/data.json`,
-  JSON.stringify({ oppdatert: new Date().toISOString(), serier, proj, band, pimcRef }),
+  JSON.stringify({ oppdatert: new Date().toISOString(), serier, projeksjoner, pimcRef }),
 );
 writeFileSync(`${utMappe}/index.html`, MAL());
 console.log(`Skrev ${utMappe}/data.json (${serier.length} serier) + index.html`);
@@ -163,7 +176,7 @@ function MAL(): string {
 </style></head><body><div class="rot">
 <h1>Amerikaneren-NEAT: kvalitet per modell</h1>
 <p class="sub">Poengdifferanse per kamp mot grådig-benken (glidende snitt over 5 målinger; prikker = enkeltmålinger).
-0-linjen = jevnt med heuristikk-boten. Stiplet = forventet videre utvikling (lineær trend i C-arven).
+0-linjen = jevnt med heuristikk-boten. Stiplet = forventet videre utvikling (recency-vektet trend per fokuslinje, oppdateres hver generasjon).
 <b id="stempel"></b> · siden henter nye tall hvert minutt.</p>
 <div class="lgr" id="legend"></div>
 <div id="graf"></div><div id="tt"></div>
@@ -182,10 +195,11 @@ async function last(){
 }
 function tegn(){
   const d=DATA; if(!d) return;
-  const alle=[...d.serier.flatMap(s=>s.glatt.map(p=>p.v)), ...d.proj.map(p=>p.v), ...d.band.flatMap(b=>[b.lo,b.hi]), ...(d.pimcRef?[d.pimcRef.diff]:[])];
+  const projs=d.projeksjoner||[];
+  const alle=[...d.serier.flatMap(s=>s.glatt.map(p=>p.v)), ...projs.flatMap(p=>p.band.flatMap(b=>[b.lo,b.hi])), ...(d.pimcRef?[d.pimcRef.diff]:[])];
   const YMAX=Math.min(120,Math.max(60,Math.ceil(Math.max(...alle)/10)*10+10));
   const YMIN=Math.max(-200,Math.min(-100,Math.floor(Math.min(...d.serier.flatMap(s=>s.glatt.map(p=>p.v)))/10)*10-10));
-  const XMAX=Math.max(...d.serier.map(s=>s.rå[s.rå.length-1].g), ...(d.proj.length?[d.proj[d.proj.length-1].g]:[0]))*1.02;
+  const XMAX=Math.max(...d.serier.map(s=>s.rå[s.rå.length-1].g), ...projs.flatMap(p=>p.proj.length?[p.proj[p.proj.length-1].g]:[0]))*1.02;
   const X=g=>ML+PW*g/XMAX, Y=v=>MT+PH*(YMAX-v)/(YMAX-YMIN);
   const sti=p=>"M"+p.map(q=>X(q.g).toFixed(1)+" "+Y(q.v).toFixed(1)).join(" L");
   let s='';
@@ -202,13 +216,15 @@ function tegn(){
   }
   const steg=XMAX>4000?1000:XMAX>1500?500:200;
   for(let g=0;g<=XMAX;g+=steg) s+='<text x="'+X(g)+'" y="'+(MT+PH+22)+'" text-anchor="middle" class="akse">'+g+'</text>';
-  if(d.band.length){
-    const poly=d.band.map(b=>X(b.g).toFixed(1)+","+Y(b.hi).toFixed(1)).join(" ")+" "+
-      [...d.band].reverse().map(b=>X(b.g).toFixed(1)+","+Y(b.lo).toFixed(1)).join(" ");
-    s+='<polygon points="'+poly+'" fill="var(--tx2)" opacity="0.10"/>';
-    s+='<path d="'+sti(d.proj)+'" fill="none" stroke="var(--tx2)" stroke-width="2" stroke-dasharray="7 5"/>';
-    const pp=d.proj[d.proj.length-1];
-    s+='<text x="'+(X(pp.g)+6)+'" y="'+(Y(pp.v)+4)+'" class="merk" fill="var(--tx2)">forventet</text>';
+  for(const pr of projs){
+    if(!pr.proj.length) continue;
+    const col=farge(pr.navn);
+    const poly=pr.band.map(b=>X(b.g).toFixed(1)+","+Y(b.hi).toFixed(1)).join(" ")+" "+
+      [...pr.band].reverse().map(b=>X(b.g).toFixed(1)+","+Y(b.lo).toFixed(1)).join(" ");
+    s+='<polygon points="'+poly+'" fill="'+col+'" opacity="0.08"/>';
+    s+='<path d="'+sti(pr.proj)+'" fill="none" stroke="'+col+'" stroke-width="1.8" stroke-dasharray="7 5" opacity="0.85"/>';
+    const pp=pr.proj[pr.proj.length-1];
+    s+='<text x="'+(X(pp.g)+6)+'" y="'+(Y(pp.v)+4)+'" class="merk" fill="'+col+'">'+pr.navn+' forventet</text>';
   }
   // Pensjonerte serier tegnes først (bakgrunn), fokusseriene (C4/D1) sist og tykkere.
   const rekkefølge=[...d.serier].sort((a,b)=>(fokus(a.navn)?1:0)-(fokus(b.navn)?1:0));
@@ -229,7 +245,7 @@ function tegn(){
   const lgOrd=[...d.serier].sort((a,b)=>(fokus(b.navn)?1:0)-(fokus(a.navn)?1:0));
   document.getElementById("legend").innerHTML=
     lgOrd.map(x=>'<span class="lg"'+(fokus(x.navn)?' style="font-weight:600"':' style="opacity:.65"')+'><i style="background:'+farge(x.navn)+'"></i>'+x.navn+(fokus(x.navn)?'':' (pensjonert)')+'</span>').join("")+
-    '<span class="lg"><i class="strek"></i>Forventet (trend i C-arven)</span>';
+    '<span class="lg"><i class="strek"></i>Forventet (recency-vektet trend, siste 24 målinger)</span>';
   document.getElementById("tabell").innerHTML=
     '<tr><th>Modell</th><th>Siste gen</th><th>Beste (glattet)</th><th>Nå (glattet)</th></tr>'+
     d.serier.map(x=>{

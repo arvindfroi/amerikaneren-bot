@@ -251,14 +251,20 @@ export function spillGruppekamp(
 }
 
 /**
- * Anger for budvinnerens kontrakt når en runde er ferdig – priset i
- * POENGDIFFERANSE, siden det som teller hver runde er hvor mye MER poeng
- * man får enn motstanderne:
- *  - kalibrering: |xT-estimat − faktiske lagstikk| (per stikk)
- *  - utfall i poeng: klart med k stikk til overs = 2k poeng lagt igjen
- *    (kunne budt k høyere – SYMMETRISK straff, ingen rabatt for feighet);
- *    falt = tapet mot beste etterpåklokskap (2·bud + 2·stikk hvis
- *    stikkene bar et lovlig bud, ellers 2·bud mot å ha passet).
+ * Anger for budvinnerens kontrakt når en runde er ferdig. VIKTIG: angeren
+ * straffer BUDET, aldri spillet. Spillkvaliteten avgjøres allerede av
+ * poengdifferansen (fitness `poeng`): hvert stikk motstanderne tar er +1 til
+ * dem, så det å ta så mange stikk som mulig maksimerer differansen av seg
+ * selv. En egen overstikk-straff ville derimot premiert agenten for å ta
+ * FÆRRE stikk (spille dårlig med vilje for å treffe et lavt bud) – nettopp
+ * det reward-hacket vi må unngå. Derfor:
+ *  - kalibrering: |xT-estimat − faktiske lagstikk| (per stikk) – trener
+ *    ESTIMATET til å treffe det hånden faktisk bærer (overbud OG underbud
+ *    fanges her, som estimatfeil, ikke som spillstraff).
+ *  - klart: INGEN ekstra straff – underbud prises av differansen (bud 9 klart
+ *    = +18, bud 6 = +12) og av budfasit-rollouten, ikke av overstikk.
+ *  - falt: tapet mot beste etterpåklokskap (2·bud + 2·stikk hvis stikkene
+ *    bar et lovlig bud) – dette er budregret: budet var uklart for hånden.
  * Normalisert (poeng delt på 2·antallStikk) slik at verdien er ~[0, 2].
  */
 function bokførRegret(
@@ -281,7 +287,11 @@ function bokførRegret(
     const kalibrering = Math.abs(est.xt - res.lagStikk) / antallStikk;
     let poengTap: number;
     if (res.klart) {
-      poengTap = 2 * Math.max(0, res.lagStikk - mål);
+      // Klart: overstikk er IKKE en spillfeil (differansen belønner allerede
+      // hvert stikk), og å straffe dem ville lært agenten å sandbagge mot et
+      // lavt bud. Underbud fanges av kalibreringen (estimatfeil) og av
+      // differansen (høyere bud = mer poeng klart). Ingen ekstra straff.
+      poengTap = 0;
     } else {
       const kunneBudt = res.lagStikk >= 5 ? 2 * res.lagStikk : 0;
       poengTap = 2 * mål + kunneBudt;

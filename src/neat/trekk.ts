@@ -71,7 +71,15 @@ const BUD_HIST = 286; //          4: hver spillers høyeste bud (rel. seter, /an
 const MAKKER_SPILT = 290; //      1: kjent lagkamerat har lagt kort i stikket
 const MAKKER_LEDER = 291; //      1: kjent lagkamerat vinner stikket akkurat nå
 const FIENDE_LEDER = 292; //      1: kjent motstander vinner stikket akkurat nå
-export const ANTALL_INN = 293;
+// --- Trumfkontroll: trumfen slår alle andre farger, og lengde = kontroll ---
+// Uten disse eksplisitt måtte nettet utlede «jeg kan trumfe her» av (renons i
+// utspillsfargen) × (har trumf) over 4 farger, og «bør trekke trumf» av
+// (på budlaget) × (motstandere har trumf igjen) – dyrt å komponere.
+const MINE_TRUMF = 293; //        1: antall trumf på egen hånd (/antallStikk)
+const KAN_TRUMFE = 294; //        1: renons i utspillsfargen + har trumf (kan stjele stikket)
+const TRUMF_BOSS = 295; //        1: jeg holder høyeste LEVENDE trumf (topp trumfkontroll)
+const TREKK_TRUMF = 296; //       1: på budlaget OG levende trumf ute hos andre (bør trekkes)
+export const ANTALL_INN = 297;
 
 const BESLUTNINGER: readonly Beslutning[] = ["BUD", "VRAK", "VELG", "SPILL"];
 
@@ -89,6 +97,7 @@ export const SENSORGRUPPER = {
   lagspill: [ER_HEMMELIG_MAKKER, MAKKER_KJENT + 1],
   budhistorikk: [BUD_HIST, BUD_HIST + 4],
   lagstikk: [MAKKER_SPILT, FIENDE_LEDER + 1],
+  trumfkontroll: [MINE_TRUMF, TREKK_TRUMF + 1],
 } as const;
 
 // --- Utgangslayout ----------------------------------------------------------
@@ -329,6 +338,24 @@ export function lagInn(
     if (lagFiender.has(beste.spiller)) inn[FIENDE_LEDER] = 1;
     const kandidater = visning.lovligeKort.length > 0 ? visning.lovligeKort : visning.dinHånd;
     if (kandidater.some((k) => slårPå(k, beste.kort, trumf, ledFarge))) inn[KAN_SLÅ] = 1;
+  }
+
+  // --- Trumfkontroll ---------------------------------------------------------
+  // Trumfen slår alle andre farger; lengde og topp-trumf = kontroll over spillet.
+  if (visning.trumf !== null) {
+    const trumf = visning.trumf;
+    const tIdx = FARGER.indexOf(trumf);
+    inn[MINE_TRUMF] = klipp01(mineIFarge[trumf]! / antallStikk);
+    // Jeg holder høyeste levende trumf? (samme deduksjon som BOSS)
+    if (inn[BOSS + tIdx] === 1) inn[TRUMF_BOSS] = 1;
+    // Bør trekke trumf: på budlaget og levende trumf fortsatt ute hos andre.
+    if (inn[PÅ_BUDLAGET] === 1 && inn[TRUMF_UTE]! > 0) inn[TREKK_TRUMF] = 1;
+    // Kan trumfe: renons i utspillsfargen (som ikke er trumf) og har trumf.
+    if (visning.bord.length > 0) {
+      const ledFarge = visning.bord[0]!.kort.farge;
+      const renonsILed = !visning.dinHånd.some((k) => k.farge === ledFarge);
+      if (ledFarge !== trumf && renonsILed && mineIFarge[trumf]! > 0) inn[KAN_TRUMFE] = 1;
+    }
   }
 
   return inn;
