@@ -16,13 +16,44 @@ Begge krever at arena-adapteren er bygget – det trenger **Swift 5.9+**
 ## Steg 1: Bygg adapteren (én gang)
 
 ```bash
-bash arena/hent-appkode.sh                 # henter appens Swift-kilde
-cd arena/adapter && swift build -c release # bygger adapteren
+bash arena/hent-appkode.sh /sti/til/Amerikaneren-App   # henter appens Swift-kilde
+cd arena/adapter && swift build -c release             # bygger adapteren
 cd ../..
 ```
 
 Se `arena/README.md` for detaljer. Resultatet er
 `arena/adapter/.build/release/adapter`.
+
+### På Windows-laptopen: bygg i WSL, kjør fra Windows
+
+Windows har ingen Swift-toolchain, men WSL-en har (Swift 6.3.3 via swiftly, og
+app-repoet ligger i `~/Amerikaneren-App`). Bygg adapteren **inne i WSL** – ikke
+under `/mnt/c`, det er både tregt og unødvendig:
+
+```bash
+wsl -e bash -c 'mkdir -p ~/arena-adapter/Sources/adapter && \
+  cp /mnt/c/.../amerikaneren-bot/arena/adapter/Package.swift ~/arena-adapter/ && \
+  cp /mnt/c/.../amerikaneren-bot/arena/adapter/Sources/adapter/main.swift ~/arena-adapter/Sources/adapter/ && \
+  D=~/arena-adapter/Sources/adapter/appkode; mkdir -p $D; A=~/Amerikaneren-App/Amerikaneren; \
+  for f in Engine/GameEngine.swift Engine/Bid.swift Engine/Card.swift AI/MesterAI.swift \
+           AI/MesterSolver.swift AI/MesterVerden.swift AI/MesterVekter.swift AI/AIPlayer.swift \
+           AI/AIPersonality.swift AI/NevroNett.swift AI/NevroVekter.swift; do cp "$A/$f" "$D/"; done && \
+  export PATH=$HOME/.local/share/swiftly/bin:$PATH && \
+  export LD_LIBRARY_PATH=$HOME/.local/syslibs/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH && \
+  cd ~/arena-adapter && swift build -c release'
+```
+
+Node kjører fortsatt på Windows: begge verktøyene under tar
+`--adapter wsl:<sti-i-wsl>` og starter binæren gjennom `wsl.exe` (NDJSON går
+like fint over de rørene):
+
+```
+--adapter wsl:/home/arvind/arena-adapter/.build/release/adapter
+```
+
+> Mangler `AI/MesterVekter.swift` i kopilisten, feiler bygget med et vell av
+> «unable to type-check this expression in reasonable time» – det er Swift som
+> sier «jeg mangler en type», ikke at koden er for komplisert.
 
 ## Steg 2: Dashboard-streken
 
@@ -30,6 +61,8 @@ Mål MesterAI mot tre grådige – samme oppsett og metrikk som PIMC-streken:
 
 ```bash
 node examples/mesterai-referanse.ts 8       # 8 frø × 4 seter = 32 kamper
+# Windows: ... --adapter wsl:/home/arvind/arena-adapter/.build/release/adapter
+# Prøvekjøring? Legg på --ut prove.json så dashbordtallet ikke overskrives.
 ```
 
 Skriver `trening-felles/mesterai-referanse.json`. Neste graf-oppdatering
@@ -54,6 +87,7 @@ content-blokkeringen iPad-ens Safari ellers ville gitt.
 
    ```bash
    node arena/mesterai-bro.ts --port 8787 --ms 450
+   # Windows: ... --adapter wsl:/home/arvind/arena-adapter/.build/release/adapter
    ```
 
 3. Finn laptopens LAN-IP:
@@ -61,6 +95,13 @@ content-blokkeringen iPad-ens Safari ellers ville gitt.
    ```bash
    # macOS:   ipconfig getifaddr en0
    # Linux:   hostname -I | awk '{print $1}'
+   # Windows: (Get-NetIPAddress -AddressFamily IPv4 | ? IPAddress -like '192.168.*').IPAddress
+   ```
+
+   På Windows må brannmuren slippe inn porten én gang (kjør som administrator):
+
+   ```powershell
+   New-NetFirewallRule -DisplayName "MesterAI-bro 8787" -Direction Inbound -Protocol TCP -LocalPort 8787 -Action Allow -Profile Private
    ```
 
 4. På farmors iPad (samme wifi): åpne **`http://<LAN-IP>:8787`** i Safari –

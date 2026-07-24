@@ -41,6 +41,17 @@ inn her) og adapteren bygges:
 cd arena/adapter && swift build -c release && cd ../..
 ```
 
+**Windows:** Swift finnes bare i WSL. Bygg adapteren der (se
+[MESTERAI-NETT.md](../MESTERAI-NETT.md#på-windows-laptopen-bygg-i-wsl-kjør-fra-windows))
+og pek Node-verktøyene på den med
+`--adapter wsl:/home/<bruker>/arena-adapter/.build/release/adapter` – da
+startes binæren gjennom `wsl.exe`, og protokollen går over de samme rørene.
+
+Kopilisten i `hent-appkode.sh` må dekke **alle** typene AI-filene bruker
+(f.eks. `AI/MesterVekter.swift`). Mangler én, svarer Swift med en serie
+«unable to type-check this expression in reasonable time» i stedet for et
+ærlig «ukjent type».
+
 ## Kjøring
 
 ```bash
