@@ -7,9 +7,9 @@
   @media (prefers-color-scheme: dark) { body { background:#1a1a19; color:#fff; } }
   .rot { max-width:1000px; margin:0 auto; padding:20px;
     --tx2:#52514e; --grid:#e8e7e3;
-    --fokusC4:#2a78d6; --fokusD1:#d92b2b; --retirert:#a5a39c; --mester:#1f9d55; }
+    --fokusC4:#2a78d6; --fokusD1:#d92b2b; --retirert:#a5a39c; }
   @media (prefers-color-scheme: dark) { .rot { --tx2:#c3c2b7; --grid:#33322f;
-    --fokusC4:#4593f0; --fokusD1:#f0524a; --retirert:#6e6d67; --mester:#33c777; } }
+    --fokusC4:#4593f0; --fokusD1:#f0524a; --retirert:#6e6d67; } }
   h1 { font-size:19px; margin:0 0 2px; } .sub { color:var(--tx2); margin:0 0 12px; font-size:13px; }
   .akse { font-size:11px; fill:var(--tx2); } .merk { font-size:12px; font-weight:600; }
   .lgr { display:flex; flex-wrap:wrap; gap:14px; margin:0 0 6px; font-size:12.5px; color:var(--tx2); }
@@ -21,11 +21,16 @@
   @media (prefers-color-scheme: dark) { #tt { background:#1a1a19; color:#fff; } }
   table { border-collapse:collapse; margin-top:8px; font-size:13px; color:var(--tx2); }
   td,th { padding:3px 12px 3px 0; text-align:left; } th { font-weight:600; }
+  .puls { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+  .kort { border:1px solid var(--grid); border-radius:999px; padding:3px 12px; font-size:12.5px; color:var(--tx2); }
+  .prikk { display:inline-block; width:7px; height:7px; border-radius:50%; background:#2f9e44; margin-right:6px; }
+  .prikk.stille { background:#d92b2b; }
 </style></head><body><div class="rot">
 <h1>Amerikaneren-NEAT: kvalitet per modell</h1>
 <p class="sub">Poengdifferanse per kamp mot grådig-benken (glidende snitt over 5 målinger; prikker = enkeltmålinger).
 0-linjen = jevnt med heuristikk-boten. Stiplet = forventet videre utvikling (recency-vektet trend per fokuslinje, oppdateres hver generasjon).
-<b id="stempel"></b> · siden henter nye tall hvert minutt.</p>
+<b id="stempel"></b><span id="vert"></span> · siden henter nye tall hvert minutt.</p>
+<div class="puls" id="puls"></div>
 <div class="lgr" id="legend"></div>
 <div id="graf"></div><div id="tt"></div>
 <table id="tabell"></table>
@@ -43,8 +48,17 @@ async function last(){
 }
 function tegn(){
   const d=DATA; if(!d) return;
+  // Pulsen: lever linja NÅ? Kurven flytter seg bare hver 10. generasjon.
+  document.getElementById("puls").innerHTML=(d.puls||[]).map(function(x){
+    const stille=x.hjerteslagMin>10;
+    return '<span class="kort"><i class="prikk'+(stille?' stille':'')+'"></i><b style="color:'+farge(x.navn)+'">'+x.navn+'</b>'+
+      ' gen '+x.generasjon+
+      (x.genPerTime!==null&&x.genPerTime!==undefined?' · '+x.genPerTime+' gen/t':'')+
+      (x.gullDiff!==null&&x.gullDiff!==undefined?' · gull '+(x.gullDiff>0?'+':'')+x.gullDiff:'')+
+      (stille?' · stille i '+x.hjerteslagMin+' min':'')+'</span>';
+  }).join("");
   const projs=d.projeksjoner||[];
-  const alle=[...d.serier.flatMap(s=>s.glatt.map(p=>p.v)), ...projs.flatMap(p=>p.band.flatMap(b=>[b.lo,b.hi])), ...(d.pimcRef?[d.pimcRef.diff]:[]), ...(d.mesterRef?[d.mesterRef.diff]:[])];
+  const alle=[...d.serier.flatMap(s=>s.glatt.map(p=>p.v)), ...projs.flatMap(p=>p.band.flatMap(b=>[b.lo,b.hi])), ...(d.pimcRef?[d.pimcRef.diff]:[])];
   const YMAX=Math.min(120,Math.max(60,Math.ceil(Math.max(...alle)/10)*10+10));
   const YMIN=Math.max(-200,Math.min(-100,Math.floor(Math.min(...d.serier.flatMap(s=>s.glatt.map(p=>p.v)))/10)*10-10));
   const XMAX=Math.max(...d.serier.map(s=>s.rå[s.rå.length-1].g), ...projs.flatMap(p=>p.proj.length?[p.proj[p.proj.length-1].g]:[0]))*1.02;
@@ -62,11 +76,6 @@ function tegn(){
     s+='<line x1="'+ML+'" y1="'+yp+'" x2="'+(ML+PW)+'" y2="'+yp+'" stroke="var(--tx2)" stroke-width="1.5" stroke-dasharray="2 3"/>';
     s+='<text x="'+(ML+PW-6)+'" y="'+(yp-7)+'" text-anchor="end" class="merk" fill="var(--tx2)">PIMC-solveren (+'+d.pimcRef.diff+')</text>';
   }
-  if(d.mesterRef){
-    const ym=Y(d.mesterRef.diff);
-    s+='<line x1="'+ML+'" y1="'+ym+'" x2="'+(ML+PW)+'" y2="'+ym+'" stroke="var(--mester)" stroke-width="1.8" stroke-dasharray="2 3"/>';
-    s+='<text x="'+(ML+PW-6)+'" y="'+(ym-7)+'" text-anchor="end" class="merk" fill="var(--mester)">MesterAI (+'+d.mesterRef.diff+')</text>';
-  }
   const steg=XMAX>4000?1000:XMAX>1500?500:200;
   for(let g=0;g<=XMAX;g+=steg) s+='<text x="'+X(g)+'" y="'+(MT+PH+22)+'" text-anchor="middle" class="akse">'+g+'</text>';
   for(const pr of projs){
@@ -78,6 +87,11 @@ function tegn(){
     s+='<path d="'+sti(pr.proj)+'" fill="none" stroke="'+col+'" stroke-width="1.8" stroke-dasharray="7 5" opacity="0.85"/>';
     const pp=pr.proj[pr.proj.length-1];
     s+='<text x="'+(X(pp.g)+6)+'" y="'+(Y(pp.v)+4)+'" class="merk" fill="'+col+'">'+pr.navn+' forventet</text>';
+  }
+  // Overgangen sky → lokal maskin: loddrett merke per linje.
+  for(const [navn,g] of Object.entries(d.overgang||{})){
+    const x=X(g); if(!isFinite(x)) continue;
+    s+='<line x1="'+x.toFixed(1)+'" y1="'+MT+'" x2="'+x.toFixed(1)+'" y2="'+(MT+PH)+'" stroke="'+farge(navn)+'" stroke-width="1" stroke-dasharray="2 5" opacity="0.5"/>';
   }
   // Pensjonerte serier tegnes først (bakgrunn), fokusseriene (C4/D1) sist og tykkere.
   const rekkefølge=[...d.serier].sort((a,b)=>(fokus(a.navn)?1:0)-(fokus(b.navn)?1:0));
@@ -98,7 +112,8 @@ function tegn(){
   const lgOrd=[...d.serier].sort((a,b)=>(fokus(b.navn)?1:0)-(fokus(a.navn)?1:0));
   document.getElementById("legend").innerHTML=
     lgOrd.map(x=>'<span class="lg"'+(fokus(x.navn)?' style="font-weight:600"':' style="opacity:.65"')+'><i style="background:'+farge(x.navn)+'"></i>'+x.navn+(fokus(x.navn)?'':' (pensjonert)')+'</span>').join("")+
-    '<span class="lg"><i class="strek"></i>Forventet (recency-vektet trend, siste 24 målinger)</span>';
+    '<span class="lg"><i class="strek"></i>Forventet (recency-vektet trend, siste 24 målinger)</span>'+
+    (Object.keys(d.overgang||{}).length?'<span class="lg"><i class="strek"></i>Loddrett merke: treningen flyttet fra sky til lokal maskin</span>':'');
   document.getElementById("tabell").innerHTML=
     '<tr><th>Modell</th><th>Siste gen</th><th>Beste (glattet)</th><th>Nå (glattet)</th></tr>'+
     d.serier.map(x=>{
@@ -106,6 +121,7 @@ function tegn(){
       return '<tr><td>'+x.navn+'</td><td>'+x.rå[x.rå.length-1].g+'</td><td>'+(beste>0?"+":"")+beste.toFixed(0)+'</td><td>'+(nå>0?"+":"")+nå.toFixed(0)+'</td></tr>';
     }).join("");
   document.getElementById("stempel").textContent="Sist oppdatert "+new Date(d.oppdatert).toLocaleTimeString("nb-NO");
+  document.getElementById("vert").textContent=d.maskin?" (trener på "+d.maskin+")":"";
   kobleHover(XMAX);
 }
 function kobleHover(XMAX){
