@@ -117,8 +117,17 @@ function spill(lag: () => Velger, L: Lag, frø: number, sete: number): void {
         // --- FORSVAR ---
         if (!påBudlag && l !== null) {
           if (!kanVinne) {
-            L.fAvkastValg++;
-            if (h.kort.verdi === lavest.verdi && h.kort.farge !== s.trumf) L.fAvkastLavest++;
+            // Hva er RIKTIG avkast her? Har man kort utenom trumf, er det det
+            // laveste av dem; er man tvunget i trumf, det laveste trumfkortet.
+            // (Første versjon krevde farge !== trumf, og telte da hver tvungne
+            // trumfrunde som bom – begge botene ble kunstig lave.)
+            const kastbare = lovlige.filter((k) => k.farge !== s.trumf);
+            const pool = kastbare.length > 0 ? kastbare : lovlige;
+            const riktig = pool.reduce((a, b) => (a.verdi <= b.verdi ? a : b));
+            if (pool.length >= 2) {
+              L.fAvkastValg++;
+              if (h.kort.farge === riktig.farge && h.kort.verdi === riktig.verdi) L.fAvkastLavest++;
+            }
           }
           // Renons i utspillsfargen + har trumf = mulighet til å stjele.
           const harLed = lovlige.some((k) => k.farge === led);

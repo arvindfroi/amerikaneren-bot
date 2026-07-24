@@ -102,7 +102,10 @@ const ALLE_LINJER: Linje[] = [
     dir: "trening-d5",
     logg: "trening-d5.log",
     frø: 515151,
-    ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro", "--trumffasit", "0.5"],
+    // MAALT +35,4 ± 3,9 (tegntest 55/60): de tre nye fasitene sammen.
+    ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro",
+             "--trumffasit", "0.5", "--etterlysfasit", "0.6", "--vrakfasit", "0.6",
+             "--stikkfasit", "0.25"],
   },
 ];
 const LINJER: Linje[] = linjeValg === null ? ALLE_LINJER : ALLE_LINJER.filter((l) => linjeValg.includes(l.navn));
