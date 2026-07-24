@@ -7,6 +7,8 @@ dist/
 /_*
 # NEAT-treningsartefakter (mestergenomer m.m.)
 trening*/
+# E1: orakel-datasett (hundrevis av MB, regenereres av e1-orakel.ts)
+e1-data/
 # arena: byggeartefakter og kopiert appkode (hentes med arena/hent-appkode.sh)
 arena/adapter/.build/
 arena/adapter/Sources/adapter/appkode/
