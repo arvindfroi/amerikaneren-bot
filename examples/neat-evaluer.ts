@@ -21,6 +21,14 @@
  * | `--motstander` | grådig | `grådig` eller `pimc` |
  * | `--ut` | – | JSONL-fil: én linje per (kandidat, giver) – varig logg, tåler avbrudd |
  *
+ * VIKTIG – FORANKRE ALLTID I UTGANGSPUNKTET, IKKE I ET KONTROLLØP.
+ * Målt 2026-07-25: to treningsløp fra SAMME startpopulasjon, 90 generasjoner,
+ * ga «+35,4 ± 3,9» i favør av tiltaket. Mot utgangspunktet var tiltaket
+ * +6,8 ± 2,6 (p=0,09) mens kontrollen hadde RAST 31,1 ± 4,1. Differansen var
+ * ekte, men den målte at kontrolløpet degraderte – ikke at tiltaket virket.
+ * Løpsvariansen i NEAT er altså større enn effektene vi jakter på. Ha derfor
+ * ALLTID startgenomet med som kandidat, og les tiltaket mot DET.
+ *
  * Statistikken er parret: HVER giver spilles av ALLE kandidatene med samme
  * kort, så differansen mellom to kandidater måles på identisk materiale.
  * Uavhengighetsenheten er GIVEREN (ikke enkeltkampen – de fire setene deler
