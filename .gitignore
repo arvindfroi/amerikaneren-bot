@@ -20,6 +20,12 @@ obduksjon/
 obduksjon-eksakt/
 e1-maalinger.jsonl
 tidligspill*.txt
+beskjaering*/
+bidrag/
+plan-med/
+plan-uten/
+trening-d5/
+e1-data2/
 # arena: byggeartefakter og kopiert appkode (hentes med arena/hent-appkode.sh)
 arena/adapter/.build/
 arena/adapter/Sources/adapter/appkode/
