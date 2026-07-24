@@ -6,3 +6,6 @@ dist/
 /_*
 # NEAT-treningsartefakter (mestergenomer m.m.)
 trening*/
+# arena: byggeartefakter og kopiert appkode (hentes med arena/hent-appkode.sh)
+arena/adapter/.build/
+arena/adapter/Sources/adapter/appkode/
