@@ -58,6 +58,7 @@ let budFasit = false;
 let medNevro = false;
 /** Andel kortvalg der NevroHjerne brukes som lærer (0 = av). */
 let nevroFasit = 0;
+let trumfFasit = 0;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--fra") fraFil = process.argv[++i] ?? null;
   else if (process.argv[i] === "--fra-flere") fraFlereFil = process.argv[++i] ?? null;
@@ -73,6 +74,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (process.argv[i] === "--budfasit") budFasit = true;
   else if (process.argv[i] === "--nevro") medNevro = true;
   else if (process.argv[i] === "--nevrofasit") nevroFasit = Number(process.argv[++i]);
+  else if (process.argv[i] === "--trumffasit") trumfFasit = Number(process.argv[++i]);
   else posisjonelle.push(process.argv[i]!);
 }
 const generasjoner = Number(posisjonelle[0] ?? 50);
@@ -210,6 +212,7 @@ const evo = new Evolusjon({
       : {}),
     ...(budFasit ? { budFasit: { sjanse: 0.05, rate: 0.02 } } : {}),
     ...(nevroFasit > 0 ? { nevroFasit: { sjanse: nevroFasit, rate: 0.02 } } : {}),
+    ...(trumfFasit > 0 ? { trumfFasit: { sjanse: trumfFasit, rate: 0.03 } } : {}),
   },
   pimcPortvakter: portvakter,
   målestokkType: medNevro ? "nevro" : "pimc",
@@ -226,6 +229,8 @@ if (spillFasit) console.log(`Spillfasit på: solver-fasit for korthodet (8 % av 
 if (budFasit) console.log(`Budfasit på: rollout-fasit for xT-hodene (5 % av budvalg, rate 0.02)`);
 if (nevroFasit > 0)
   console.log(`Nevrofasit på: NevroHjerne som lærer for korthodet (${Math.round(nevroFasit * 100)} % av kortvalg, rate 0.02)`);
+if (trumfFasit > 0)
+  console.log(`Trumffasit på: håndvurderingen som lærer for trumfhodet (${Math.round(trumfFasit * 100)} % av trumfvalg, rate 0.03)`);
 
 // Gullstandarden (ratchet): beste eksternt benkede genom, beskyttet i
 // populasjonen og kun byttet når en cupvinner benker bedre. Lastes ved

@@ -18,6 +18,7 @@
  */
 
 import { FARGER, type Farge, type Kort } from "../kort.ts";
+import { estimerStikk } from "../nevro/agent.ts";
 import { AMERIKANER, PASS, SOLO, type Bud } from "../regler.ts";
 import {
   type GameState,
@@ -308,6 +309,37 @@ export class NeatAgent {
    * signal på hender der agenten ellers ville passet (dekker skjevheten i
    * lærAvKontrakt, som bare fyrer når agenten VANT budrunden).
    */
+  /**
+   * TRUMFFASIT: kalibrerer trumfhodet mot håndvurderingens rangering av de
+   * fire fargene. Rettet direkte mot den MÅLTE blindsonen – fasedelingen
+   * viste at trumfvalget er 32 av 42 poeng i gapet mot NevroHjerne, og
+   * nevros trumfvalg ER denne formelen (estimerStikk). NEAT bruker hundrevis
+   * av generasjoner på å oppdage de nye sensorene selv; dette viser den
+   * fasiten direkte.
+   *
+   * Rører KUN trumfhodet (4 utganger). Det er ikke tilfeldig: imitasjon inn
+   * i korthodet er målt skadelig (delta-regelen deler nett med bud-/
+   * trumfhodene), men trumfhodet er en egen, smal oppgave med egen fasit –
+   * samme trygge form som lærBudFasit for xT-hodet.
+   *
+   * Målet er min–max-normalisert rangering, ikke bare argmax: nettet lærer
+   * at nest beste farge også slår den verste, ikke bare hvem som vant.
+   */
+  lærTrumf(state: GameState, spiller: number, rate: number): void {
+    if (rate <= 0) return;
+    const hånd = state.hender[spiller] ?? [];
+    if (hånd.length === 0) return;
+    const est = FARGER.map((farge) => estimerStikk(hånd, farge));
+    const min = Math.min(...est);
+    const spenn = Math.max(...est) - min;
+    if (spenn < 1e-6) return; // alle farger like – ingenting å lære
+    this.evaluer(state, spiller, "VELG");
+    for (let f = 0; f < 4; f++) {
+      const y = -0.8 + 1.6 * ((est[f]! - min) / spenn); // beste +0,8, verste −0,8
+      this.nett.kalibrerUtgang(UT_TRUMF + f, y, rate);
+    }
+  }
+
   lærBudFasit(state: GameState, spiller: number, lagStikk: number, makkerStikk: number, rate: number): void {
     if (rate <= 0) return;
     this.evaluer(state, spiller, "BUD");

@@ -48,6 +48,7 @@ export interface TurneringsAgent {
   readonly søkbar?: boolean;
   /** Valgfri spillfasit-læring: smal kalibrering mot solverens kortvalg. */
   lærSpill?(state: GameState, spiller: number, solverKort: Kort, rate: number): void;
+  lærTrumf?(state: GameState, spiller: number, rate: number): void;
   /** Valgfri budfasit-læring: xT-kalibrering mot en utspilt rollout. */
   lærBudFasit?(state: GameState, spiller: number, lagStikk: number, makkerStikk: number, rate: number): void;
   /** Valgfri kortrangering (nett-prior): topp-kandidater til sluttsøket. */
@@ -124,6 +125,14 @@ export interface KampOpts {
    * er linja som skal forbi, og den lærer av det eksakte orakelet.
    */
   readonly nevroFasit?: { readonly sjanse: number; readonly rate: number };
+  /**
+   * TRUMFFASIT: med sannsynlighet `sjanse` per trumfvalg kalibreres
+   * trumfhodet mot haandvurderingens rangering av fargene (estimerStikk).
+   * Rettet mot den maalte blindsonen: fasedelingen ga trumfvalget 32 av 42
+   * poeng i D-gapet mot NevroHjerne. Roerer bare trumfhodet - trygt, i
+   * motsetning til imitasjon inn i korthodet.
+   */
+  readonly trumfFasit?: { readonly sjanse: number; readonly rate: number };
 }
 
 const STD_MAKS_RUNDER = 40;
@@ -231,6 +240,17 @@ export function spillGruppekamp(
         rng() < opts.budFasit.sjanse
       ) {
         budRollout(state, sete, agent, opts.budFasit.rate);
+      }
+      if (
+        state.fase === "VELG" &&
+        opts.trumfFasit !== undefined &&
+        agent.lærTrumf !== undefined &&
+        rng() < opts.trumfFasit.sjanse
+      ) {
+        // Trumffasit: kalibrer trumfhodet mot håndvurderingens rangering.
+        // Agentens EGET valg spilles fortsatt (on-policy). Rettet mot den
+        // målte blindsonen – trumfvalget er 32 av 42 poeng i D-gapet.
+        agent.lærTrumf(state, sete, opts.trumfFasit.rate);
       }
       if (state.fase === "SPILL" && handling.type === "SPILL") {
         const gjenstår = state.giving.antallStikk - state.stikkSpilt;
