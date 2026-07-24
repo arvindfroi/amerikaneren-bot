@@ -59,6 +59,9 @@ let medNevro = false;
 /** Andel kortvalg der NevroHjerne brukes som lærer (0 = av). */
 let nevroFasit = 0;
 let trumfFasit = 0;
+let etterlysFasit = 0;
+let vrakFasit = 0;
+let stikkFasit = 0;
 /** Læreplan: lær fasene i avhengighetsrekkefølge i stedet for alt samtidig. */
 let læreplan = false;
 let plansteg = 150;
@@ -78,6 +81,9 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (process.argv[i] === "--nevro") medNevro = true;
   else if (process.argv[i] === "--nevrofasit") nevroFasit = Number(process.argv[++i]);
   else if (process.argv[i] === "--trumffasit") trumfFasit = Number(process.argv[++i]);
+  else if (process.argv[i] === "--etterlysfasit") etterlysFasit = Number(process.argv[++i]);
+  else if (process.argv[i] === "--vrakfasit") vrakFasit = Number(process.argv[++i]);
+  else if (process.argv[i] === "--stikkfasit") stikkFasit = Number(process.argv[++i]);
   else if (process.argv[i] === "--læreplan") læreplan = true;
   else if (process.argv[i] === "--plansteg") plansteg = Number(process.argv[++i]);
   else posisjonelle.push(process.argv[i]!);
@@ -239,6 +245,9 @@ const evo = new Evolusjon({
     ...(budFasit ? { budFasit: { sjanse: 0.05, rate: 0.02 } } : {}),
     ...(nevroFasit > 0 ? { nevroFasit: { sjanse: nevroFasit, rate: 0.02 } } : {}),
     ...(trumfFasit > 0 ? { trumfFasit: { sjanse: trumfFasit, rate: 0.03 } } : {}),
+    ...(etterlysFasit > 0 ? { etterlysFasit: { sjanse: etterlysFasit, rate: 0.03 } } : {}),
+    ...(vrakFasit > 0 ? { vrakFasit: { sjanse: vrakFasit, rate: 0.03 } } : {}),
+    ...(stikkFasit > 0 ? { stikkFasit: { sjanse: stikkFasit, rate: 0.02 } } : {}),
   },
   pimcPortvakter: portvakter,
   målestokkType: medNevro ? "nevro" : "pimc",
@@ -257,6 +266,12 @@ if (nevroFasit > 0)
   console.log(`Nevrofasit på: NevroHjerne som lærer for korthodet (${Math.round(nevroFasit * 100)} % av kortvalg, rate 0.02)`);
 if (trumfFasit > 0)
   console.log(`Trumffasit på: håndvurderingen som lærer for trumfhodet (${Math.round(trumfFasit * 100)} % av trumfvalg, rate 0.03)`);
+if (etterlysFasit > 0)
+  console.log(`Etterlysfasit på: høyeste lovlige som mål (${Math.round(etterlysFasit * 100)} % av valg, rate 0.03)`);
+if (vrakFasit > 0)
+  console.log(`Vrakfasit på: behold kort i antatt beste trumffarge (${Math.round(vrakFasit * 100)} % av vrak, rate 0.03)`);
+if (stikkFasit > 0)
+  console.log(`Stikkfasit på: taktikk i forsvar/makker/budvinner (${Math.round(stikkFasit * 100)} % av kortvalg, rate 0.02)`);
 if (læreplan)
   console.log(`Læreplan på: SPILL → TRUMF → BUD → integrasjon, ${plansteg} generasjoner per fase`);
 

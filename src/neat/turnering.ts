@@ -21,7 +21,7 @@
 
 import { lagRng, type Kort } from "../kort.ts";
 import type { GameState, Handling, Hendelse } from "../motor.ts";
-import { lovligeKort, opprettSpill, utfør } from "../motor.ts";
+import { lovligeEtterlys, lovligeKort, opprettSpill, utfør } from "../motor.ts";
 import { NevroAgent } from "../nevro/agent.ts";
 import type { BudEstimat } from "./agent.ts";
 import { solverBesteKort } from "./hybrid.ts";
@@ -49,6 +49,9 @@ export interface TurneringsAgent {
   /** Valgfri spillfasit-læring: smal kalibrering mot solverens kortvalg. */
   lærSpill?(state: GameState, spiller: number, solverKort: Kort, rate: number): void;
   lærTrumf?(state: GameState, spiller: number, rate: number): void;
+  lærEtterlys?(state: GameState, spiller: number, kandidater: readonly Kort[], rate: number): void;
+  lærVrak?(state: GameState, spiller: number, rate: number): void;
+  lærStikk?(state: GameState, spiller: number, lovlige: readonly Kort[], rate: number): void;
   /** Valgfri budfasit-læring: xT-kalibrering mot en utspilt rollout. */
   lærBudFasit?(state: GameState, spiller: number, lagStikk: number, makkerStikk: number, rate: number): void;
   /** Valgfri kortrangering (nett-prior): topp-kandidater til sluttsøket. */
@@ -133,6 +136,24 @@ export interface KampOpts {
    * motsetning til imitasjon inn i korthodet.
    */
   readonly trumfFasit?: { readonly sjanse: number; readonly rate: number };
+  /**
+   * ETTERLYSFASIT: korthodet kalibreres mot hoeyeste lovlige etterlysning.
+   * Maalt: D5 ber om valoer 10,0 mot nevros 13,2 (59 % treff mot 100 %).
+   */
+  readonly etterlysFasit?: { readonly sjanse: number; readonly rate: number };
+  /**
+   * VRAKFASIT: korthodet kalibreres mot aa BEHOLDE kort i antatt beste
+   * trumffarge. Maalt: D5 vraker 22 % av kortene i egen trumffarge (nevro 0 %)
+   * og ender med 3,21 trumf mot 5,75.
+   */
+  readonly vrakFasit?: { readonly sjanse: number; readonly rate: number };
+  /**
+   * STIKKFASIT: taktisk kalibrering i stikkspillet, delt paa rolle
+   * (forsvar / makker / budvinner). Maalte hull mot NevroHjerne: avkast
+   * 31 % mot 55 %, trumfing 19 % mot 68 %, redning 53 % mot 78 %,
+   * trumfutspill 19 % mot 51 %.
+   */
+  readonly stikkFasit?: { readonly sjanse: number; readonly rate: number };
 }
 
 const STD_MAKS_RUNDER = 40;
@@ -242,6 +263,26 @@ export function spillGruppekamp(
         budRollout(state, sete, agent, opts.budFasit.rate);
       }
       if (
+        state.fase === "VRAK" &&
+        opts.vrakFasit !== undefined &&
+        agent.lærVrak !== undefined &&
+        rng() < opts.vrakFasit.sjanse
+      ) {
+        agent.lærVrak(state, sete, opts.vrakFasit.rate);
+      }
+      if (
+        state.fase === "VELG" &&
+        opts.etterlysFasit !== undefined &&
+        agent.lærEtterlys !== undefined &&
+        handling.type === "VELG" &&
+        rng() < opts.etterlysFasit.sjanse
+      ) {
+        // Kandidatene i den trumffargen agenten faktisk valgte – fasiten
+        // gjelder valget den STO overfor, ikke et hypotetisk annet.
+        const kand = lovligeEtterlys(state, handling.trumf);
+        if (kand.length > 0) agent.lærEtterlys(state, sete, kand, opts.etterlysFasit.rate);
+      }
+      if (
         state.fase === "VELG" &&
         opts.trumfFasit !== undefined &&
         agent.lærTrumf !== undefined &&
@@ -253,6 +294,14 @@ export function spillGruppekamp(
         agent.lærTrumf(state, sete, opts.trumfFasit.rate);
       }
       if (state.fase === "SPILL" && handling.type === "SPILL") {
+        if (
+          opts.stikkFasit !== undefined &&
+          agent.lærStikk !== undefined &&
+          rng() < opts.stikkFasit.sjanse
+        ) {
+          const lov = lovligeKort(state, sete);
+          if (lov.length >= 2) agent.lærStikk(state, sete, lov, opts.stikkFasit.rate);
+        }
         const gjenstår = state.giving.antallStikk - state.stikkSpilt;
         if (
           opts.sluttsøk !== undefined &&

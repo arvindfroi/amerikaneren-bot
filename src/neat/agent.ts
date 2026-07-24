@@ -340,6 +340,156 @@ export class NeatAgent {
     }
   }
 
+  /**
+   * ETTERLYSFASIT: kalibrerer korthodet mot det HØYESTE lovlige
+   * etterlysningskortet i den trumffargen agenten faktisk valgte.
+   *
+   * Målt blindsone (spillprofil): D5 ber om valør 10,0 i snitt der
+   * NevroHjerne ber om 13,2, og treffer høyeste lovlige i bare 59 % av
+   * rundene. Etterlysningen henter makkerens beste kort inn i laget – å be
+   * om et middels kort gir bort et stikk før spillet har begynt.
+   *
+   * Dette er en LÆRT fasit, ikke en regel: nettet dyttes mot det høyeste
+   * kortet og fri til å avvike der det lønner seg (ved solo skal man f.eks.
+   * be om noe man selv kan stikke over).
+   */
+  lærEtterlys(state: GameState, spiller: number, kandidater: readonly Kort[], rate: number): void {
+    if (rate <= 0 || kandidater.length === 0) return;
+    this.evaluer(state, spiller, "VELG");
+    let høyest = kandidater[0]!;
+    for (const k of kandidater) if (k.verdi > høyest.verdi) høyest = k;
+    for (const k of kandidater) {
+      // Rangeringsmål: høyeste kort dras opp, resten ned i takt med hvor
+      // langt under toppen de ligger.
+      const y = k.verdi === høyest.verdi ? 0.8 : -0.2 - 0.5 * ((høyest.verdi - k.verdi) / 12);
+      this.nett.kalibrerUtgang(UT_KORT + kortIndeks(k), y, rate);
+    }
+  }
+
+  /**
+   * VRAKFASIT: kalibrerer korthodet mot å BEHOLDE kort i den fargen
+   * håndvurderingen peker ut som beste trumf.
+   *
+   * Målt blindsone: D5 vraker 22 % av kortene sine i fargen som blir trumf –
+   * NevroHjerne gjør det aldri (0 %). Vraking skjer FØR trumfvalget, så
+   * nettet må forutse hva det kommer til å velge. Det gjør det ikke, og
+   * ender med 3,21 trumf mot nevros 5,75.
+   *
+   * Fasiten er ikke «vrak nøyaktig disse fire», men en retning: kort i den
+   * antatt beste trumffargen (og høye kort generelt) skal opp, lave kort i
+   * sidefarger ned. Nettet lærer prioriteringen, ikke et fasitsvar.
+   */
+  lærVrak(state: GameState, spiller: number, rate: number): void {
+    if (rate <= 0) return;
+    const hånd = state.hender[spiller] ?? [];
+    if (hånd.length === 0) return;
+    let besteFarge: Farge = FARGER[0]!;
+    let beste = -Infinity;
+    for (const f of FARGER) {
+      const e = estimerStikk(hånd, f);
+      if (e > beste) {
+        beste = e;
+        besteFarge = f;
+      }
+    }
+    this.evaluer(state, spiller, "VRAK");
+    for (const k of hånd) {
+      // Behold: trumffargen, og ess/konge uansett farge. Vrak: lavt i sidefarge.
+      const iTrumf = k.farge === besteFarge;
+      const høyt = k.verdi >= 13;
+      const y = iTrumf ? 0.7 : høyt ? 0.5 : -0.6 + 0.5 * ((k.verdi - 2) / 12);
+      this.nett.kalibrerUtgang(UT_KORT + kortIndeks(k), y, rate);
+    }
+  }
+
+  /**
+   * STIKKFASIT: taktisk kalibrering av korthodet i stikkspillet, delt på
+   * rolle. Rettet mot fire MÅLTE hull (lagprofil, D5 mot NevroHjerne):
+   *
+   *   avkast: la lavest når tapt   31 %  mot  55 %
+   *   trumfet inn når mulig        19 %  mot  68 %
+   *   reddet stikk makker tapte    53 %  mot  78 %
+   *   trumf ut med kontroll        19 %  mot  51 %
+   *
+   * Dette er ikke en regel som overstyrer valget – agenten spiller fortsatt
+   * sitt eget kort (on-policy). Det er en RETNING: kortene som er taktisk
+   * riktige i stillingen dras opp, de gale ned, og nettet lærer mønsteret
+   * selv. Samme form som trumffasit, som ga +20,4 ± 4,4.
+   *
+   * Målene er bevisst myke (±0,6 heller enn ±1) fordi taktikken har unntak:
+   * å holde igjen et stikk kan være riktig, og å trumfe inn er ikke alltid
+   * det. Nettet skal kunne avvike der det lønner seg.
+   */
+  lærStikk(state: GameState, spiller: number, lovlige: readonly Kort[], rate: number): void {
+    if (rate <= 0 || lovlige.length < 2 || state.trumf === null) return;
+    const påBudlag = spiller === state.budvinner || spiller === state.makker;
+    const kjentLag = state.makkerAvslørt || state.makker === spiller;
+    const trumf = state.trumf;
+
+    // Hvem vinner stikket nå?
+    const slår = (ny: Kort, best: Kort, led: Farge): boolean => {
+      const nT = ny.farge === trumf, bT = best.farge === trumf;
+      if (nT !== bT) return nT;
+      if (nT) return ny.verdi > best.verdi;
+      if (ny.farge !== led) return false;
+      if (best.farge !== led) return true;
+      return ny.verdi > best.verdi;
+    };
+    const led = state.bord[0]?.kort.farge ?? null;
+    let leder: { spiller: number; kort: Kort } | null = null;
+    if (led !== null) {
+      leder = state.bord[0]!;
+      for (const kp of state.bord) if (slår(kp.kort, leder.kort, led)) leder = kp;
+    }
+
+    const mål = new Map<number, number>();
+    const sett = (k: Kort, y: number): void => {
+      mål.set(kortIndeks(k), y);
+    };
+
+    if (leder === null) {
+      // UTSPILL. På budlaget med trumfkontroll (≥2 trumf) skal trumfen ut –
+      // det trekker motstandernes trumf og sikrer kontrakten.
+      const egneTrumf = lovlige.filter((k) => k.farge === trumf);
+      if (påBudlag && egneTrumf.length >= 2) {
+        for (const k of lovlige) sett(k, k.farge === trumf ? 0.6 : -0.3);
+      } else return;
+    } else {
+      const vinnende = lovlige.filter((k) => slår(k, leder!.kort, led!));
+      const makkerLeder =
+        kjentLag &&
+        ((spiller === state.budvinner && leder.spiller === state.makker) ||
+          (spiller === state.makker && leder.spiller === state.budvinner));
+
+      if (makkerLeder) {
+        // Makkeren vinner allerede: spar kortene, legg lavest.
+        const lavest = lovlige.reduce((a, b) => (a.verdi <= b.verdi ? a : b));
+        for (const k of lovlige) sett(k, k.verdi === lavest.verdi ? 0.5 : -0.3);
+      } else if (vinnende.length > 0) {
+        // Motstander leder og vi KAN ta stikket: ta det – med det billigste
+        // kortet som holder, ikke det høyeste (spar toppkortene).
+        const billigst = vinnende.reduce((a, b) => {
+          const v = (k: Kort): number => (k.farge === trumf ? 100 : 0) + k.verdi;
+          return v(a) <= v(b) ? a : b;
+        });
+        for (const k of lovlige) {
+          sett(k, kortIndeks(k) === kortIndeks(billigst) ? 0.6 : slår(k, leder.kort, led!) ? 0.0 : -0.4);
+        }
+      } else {
+        // Stikket er tapt: kast det laveste, og aldri trumf (den er verdt mer senere).
+        const kastbare = lovlige.filter((k) => k.farge !== trumf);
+        const pool = kastbare.length > 0 ? kastbare : lovlige;
+        const lavest = pool.reduce((a, b) => (a.verdi <= b.verdi ? a : b));
+        for (const k of lovlige) {
+          sett(k, kortIndeks(k) === kortIndeks(lavest) ? 0.6 : k.farge === trumf ? -0.5 : -0.2);
+        }
+      }
+    }
+    if (mål.size === 0) return;
+    this.evaluer(state, spiller, "SPILL");
+    for (const [idx, y] of mål) this.nett.kalibrerUtgang(UT_KORT + idx, y, rate);
+  }
+
   lærBudFasit(state: GameState, spiller: number, lagStikk: number, makkerStikk: number, rate: number): void {
     if (rate <= 0) return;
     this.evaluer(state, spiller, "BUD");

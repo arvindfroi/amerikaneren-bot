@@ -37,6 +37,9 @@ let budFasit = false;
 let medNevro = false;
 let nevroFasit = 0;
 let trumfFasit = 0;
+let etterlysFasit = 0;
+let vrakFasit = 0;
+let stikkFasit = 0;
 let læreplan = false;
 let plansteg = 150;
 for (let i = 2; i < process.argv.length; i++) {
@@ -53,6 +56,9 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (process.argv[i] === "--nevro") medNevro = true;
   else if (process.argv[i] === "--nevrofasit") nevroFasit = Number(process.argv[++i]);
   else if (process.argv[i] === "--trumffasit") trumfFasit = Number(process.argv[++i]);
+  else if (process.argv[i] === "--etterlysfasit") etterlysFasit = Number(process.argv[++i]);
+  else if (process.argv[i] === "--vrakfasit") vrakFasit = Number(process.argv[++i]);
+  else if (process.argv[i] === "--stikkfasit") stikkFasit = Number(process.argv[++i]);
   else if (process.argv[i] === "--læreplan") læreplan = true;
   else if (process.argv[i] === "--plansteg") plansteg = Number(process.argv[++i]);
   else posisjonelle.push(process.argv[i]!);
@@ -156,6 +162,9 @@ for (;;) {
   if (medNevro) argv.push("--nevro");
   if (nevroFasit > 0) argv.push("--nevrofasit", String(nevroFasit));
   if (trumfFasit > 0) argv.push("--trumffasit", String(trumfFasit));
+  if (etterlysFasit > 0) argv.push("--etterlysfasit", String(etterlysFasit));
+  if (vrakFasit > 0) argv.push("--vrakfasit", String(vrakFasit));
+  if (stikkFasit > 0) argv.push("--stikkfasit", String(stikkFasit));
   if (læreplan) argv.push("--læreplan");
   if (plansteg !== 150) argv.push("--plansteg", String(plansteg));
   // Gjenoppta fra linjens egen mester når den finnes; ellers eventuell
