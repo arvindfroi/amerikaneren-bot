@@ -112,17 +112,22 @@ node examples/benchmark.ts --kun pimc,mester --sok 24 --ms 300
 begge motorene samme tidsbudsjett i millisekunder, men Swift rekker langt
 flere samplede verdener per millisekund enn Node. Ved 50 ms er derfor vår
 **tidsbudsjetterte** PIMC verdenssultet (rekker bare noen få verdener med
-`terskel: 7`) og faller under sitt eget raske faste-verden-oppsett. Gir man
-den et realistisk budsjett løfter den seg kraftig:
+`terskel: 7`). Mer tid hjelper – men det er det **faste** verden-oppsettet
+som er den rettferdige lesningen av algoritmestyrken:
 
-| PIMC-oppsett | Snittpoeng mot 3× Vanskelig |
-|---|--:|
-| `--ms 50` (verdenssultet) | 43,1 |
-| `pimc-rask` (10 faste verdener) | 78,7 |
+| PIMC-oppsett | Snittpoeng mot 3× Vanskelig | Kamper |
+|---|--:|--:|
+| `--ms 50` (verdenssultet) | 43,1 | 16 |
+| `--ms 300` | 52,0 | 8 |
+| `pimc-rask` (10 faste verdener) | **78,7** | 16 |
 
-Med andre ord: PIMC-**algoritmen** er sterk (3.-plass som `pimc-rask`); det er
-Node-ved-50 ms som straffer den tidsbudsjetterte varianten. For en rettferdig
-sammenlikning av selve spillstyrken, bruk `pimc-rask` eller et større `--ms`.
+Med andre ord: PIMC-**algoritmen** er sterk – `pimc-rask` tar 3.-plass over
+hele heuristikk-feltet. Den tidsbudsjetterte anytime-varianten er derimot
+uheldig her: den bruker `terskel: 7` (dypt eksaktsøk) og rekker da for få
+verdener i Node til at ekstra millisekunder monner nok (43 → 52, men fortsatt
+under `pimc-rask`, og 8-kampers-tallet er støyete). For en rettferdig
+sammenlikning av spillstyrke: bruk `pimc-rask`, eller kombiner et større
+`--ms` med lavere terskel.
 
 ### Direkte oppgjør: PIMC mot MesterAI (2 mot 2, speilede par)
 
