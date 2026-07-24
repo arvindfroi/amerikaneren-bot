@@ -59,6 +59,9 @@ let medNevro = false;
 /** Andel kortvalg der NevroHjerne brukes som lærer (0 = av). */
 let nevroFasit = 0;
 let trumfFasit = 0;
+/** Læreplan: lær fasene i avhengighetsrekkefølge i stedet for alt samtidig. */
+let læreplan = false;
+let plansteg = 150;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--fra") fraFil = process.argv[++i] ?? null;
   else if (process.argv[i] === "--fra-flere") fraFlereFil = process.argv[++i] ?? null;
@@ -75,6 +78,8 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (process.argv[i] === "--nevro") medNevro = true;
   else if (process.argv[i] === "--nevrofasit") nevroFasit = Number(process.argv[++i]);
   else if (process.argv[i] === "--trumffasit") trumfFasit = Number(process.argv[++i]);
+  else if (process.argv[i] === "--læreplan") læreplan = true;
+  else if (process.argv[i] === "--plansteg") plansteg = Number(process.argv[++i]);
   else posisjonelle.push(process.argv[i]!);
 }
 const generasjoner = Number(posisjonelle[0] ?? 50);
@@ -117,6 +122,27 @@ if (existsSync(`${dir}/befolkning.json`)) {
 }
 
 mkdirSync(dir, { recursive: true });
+
+// --- Læreplan (curriculum) --------------------------------------------------
+// Amerikaneren har en avhengighetsstruktur: kortspillet er fundamentet,
+// trumfverdien ER hvor mange stikk du tar (krever spill), vraking avhenger av
+// trumf, og xT (budet) er "forventede lagstikk gitt optimal spilling" – som
+// er meningsløst før spillet er stabilt. Å kalibrere alle hodene fra gen 0
+// (som D3) lar signalene konkurrere. Læreplanen introduserer dem i rekkefølge
+// SPILL → TRUMF → BUD → integrasjon, med LAVE vedlikeholdsrater på allerede
+// lærte faser (aldri 0: evolusjonen muterer videre, og lært spill skal ikke
+// få degradere under seleksjonen). Vrak deler korthode med spill og læres
+// implisitt i fase 1; en egen vrakfasit er neste utvidelse.
+const PLANFASER = ["KORTSPILL", "TRUMF", "BUD", "INTEGRASJON"] as const;
+function planFase(gen: number): number {
+  return Math.min(3, Math.floor(gen / plansteg));
+}
+function læreplanRater(fase: number): { spill: number; trumf: number; bud: number } {
+  if (fase <= 0) return { spill: 0.15, trumf: 0.05, bud: 0.02 };
+  if (fase === 1) return { spill: 0.05, trumf: 0.6, bud: 0.02 };
+  if (fase === 2) return { spill: 0.05, trumf: 0.15, bud: 0.15 };
+  return { spill: 0.05, trumf: 0.1, bud: 0.05 };
+}
 
 /**
  * Benkemåling: kandidaten mot 3 like motstandere, duplikat (samme frø,
@@ -231,6 +257,8 @@ if (nevroFasit > 0)
   console.log(`Nevrofasit på: NevroHjerne som lærer for korthodet (${Math.round(nevroFasit * 100)} % av kortvalg, rate 0.02)`);
 if (trumfFasit > 0)
   console.log(`Trumffasit på: håndvurderingen som lærer for trumfhodet (${Math.round(trumfFasit * 100)} % av trumfvalg, rate 0.03)`);
+if (læreplan)
+  console.log(`Læreplan på: SPILL → TRUMF → BUD → integrasjon, ${plansteg} generasjoner per fase`);
 
 // Gullstandarden (ratchet): beste eksternt benkede genom, beskyttet i
 // populasjonen og kun byttet når en cupvinner benker bedre. Lastes ved
@@ -264,7 +292,25 @@ try {
 const t0 = performance.now();
 let sisteBenk = "";
 
+let sisteFase = -1;
 for (let g = 0; g < generasjoner; g++) {
+  if (læreplan) {
+    // Bestem fasen FØR generasjonen spilles, ut fra der loggen står nå.
+    const fase = planFase(genStart + g);
+    if (fase !== sisteFase) {
+      const r = læreplanRater(fase);
+      evo.settKampOpts({
+        spillFasit: { sjanse: r.spill, verdener: 3, dybde: 3, nodeTak: 60_000, rate: 0.02 },
+        trumfFasit: { sjanse: r.trumf, rate: 0.03 },
+        budFasit: { sjanse: r.bud, rate: 0.02 },
+      });
+      console.log(
+        `[læreplan] fase ${PLANFASER[fase]} fra gen ${genStart + g} ` +
+          `(spill ${r.spill}, trumf ${r.trumf}, bud ${r.bud})`,
+      );
+      sisteFase = fase;
+    }
+  }
   const stat = await evo.kjørGenerasjon();
   const gen = stat.generasjon + genStart;
   const mester = evo.mester!;

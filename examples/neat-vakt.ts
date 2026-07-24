@@ -37,6 +37,8 @@ let budFasit = false;
 let medNevro = false;
 let nevroFasit = 0;
 let trumfFasit = 0;
+let læreplan = false;
+let plansteg = 150;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--maks-timer") maksTimer = Number(process.argv[++i]);
   else if (process.argv[i] === "--dir") dir = process.argv[++i] ?? "trening";
@@ -51,6 +53,8 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (process.argv[i] === "--nevro") medNevro = true;
   else if (process.argv[i] === "--nevrofasit") nevroFasit = Number(process.argv[++i]);
   else if (process.argv[i] === "--trumffasit") trumfFasit = Number(process.argv[++i]);
+  else if (process.argv[i] === "--læreplan") læreplan = true;
+  else if (process.argv[i] === "--plansteg") plansteg = Number(process.argv[++i]);
   else posisjonelle.push(process.argv[i]!);
 }
 const generasjoner = Number(posisjonelle[0] ?? 8000);
@@ -152,6 +156,8 @@ for (;;) {
   if (medNevro) argv.push("--nevro");
   if (nevroFasit > 0) argv.push("--nevrofasit", String(nevroFasit));
   if (trumfFasit > 0) argv.push("--trumffasit", String(trumfFasit));
+  if (læreplan) argv.push("--læreplan");
+  if (plansteg !== 150) argv.push("--plansteg", String(plansteg));
   // Gjenoppta fra linjens egen mester når den finnes; ellers eventuell
   // kombinert startpopulasjon (kun første start av en ny linje).
   if (existsSync(`${dir}/mester.json`)) argv.push("--fra", `${dir}/mester.json`);

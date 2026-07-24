@@ -377,6 +377,16 @@ export class Evolusjon {
     if (this.genomer.length > 1) this.genomer[1] = klonGenom(this.gull);
   }
 
+  /**
+   * Oppdaterer kamp-opsjonene mellom generasjoner. Brukes av læreplanen
+   * (examples/neat-tren.ts --læreplan): fasit-ratene endres etter hvor langt
+   * treningen er kommet, så spillet læres i avhengighetsrekkefølge i stedet
+   * for alt på én gang.
+   */
+  settKampOpts(delvis: Partial<KampOpts>): void {
+    this.opts.kampOpts = { ...this.opts.kampOpts, ...delvis };
+  }
+
   /** Antall hall of fame-medlemmer som stiller (holder feltet delelig med 4). */
   private antallHallDeltakere(): number {
     const tilgjengelig = Math.min(this.hall.length, this.opts.hallOfFame);
