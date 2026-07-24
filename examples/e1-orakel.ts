@@ -34,6 +34,8 @@ import { lovligeKort, opprettSpill, utfør, type Handling } from "../src/index.t
 import { e1SpillTrekk, E1_SPILL_DIM } from "../src/e1/trekk.ts";
 import { orakelBudsjett, orakelVerdier } from "../src/e1/orakel.ts";
 import { kortIndeks, NevroAgent } from "../src/nevro/index.ts";
+import { spillerVisning } from "../src/motor.ts";
+import { lagInn } from "../src/neat/trekk.ts";
 
 let utFil = "e1-data/orakel.jsonl";
 let kamper = 50;
@@ -107,6 +109,14 @@ for (let k = 0; k < kamper; k++) {
             utFil,
             JSON.stringify({
               t: Array.from(e1SpillTrekk(s, sete), (x) => Math.round(x * 10_000) / 10_000),
+              // NEAT-trekkvektoren ved siden av E1-vektoren. De to kodingene
+              // er ulike (E1 arver appens 238 + 35 egne; NEAT har sine 318),
+              // og uten begge kan ikke NEAT-genomer scores på angerbenken –
+              // som er hele poenget med å måle beslutninger i stedet for
+              // kamputfall. Koster ~1,3 kB per linje, verdt det.
+              n: lagInn(spillerVisning(s, sete), "SPILL", s.giving.antallStikk, s.regler.målPoeng).map(
+                (x) => Math.round(x * 10_000) / 10_000,
+              ),
               v: verdi,
               n: svar.verdener,
               dybde: b.dybde,
