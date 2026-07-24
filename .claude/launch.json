@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "live",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["examples/live.ts", "--port", "8790"],
+      "port": 8790
+    }
+  ]
+}

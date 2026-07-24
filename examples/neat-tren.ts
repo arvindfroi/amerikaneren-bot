@@ -56,6 +56,8 @@ let budFasit = false;
  * bekreftelsesmåling. Uten flagget oppfører treningen seg som før.
  */
 let medNevro = false;
+/** Andel kortvalg der NevroHjerne brukes som lærer (0 = av). */
+let nevroFasit = 0;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--fra") fraFil = process.argv[++i] ?? null;
   else if (process.argv[i] === "--fra-flere") fraFlereFil = process.argv[++i] ?? null;
@@ -70,6 +72,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (process.argv[i] === "--spillfasit") spillFasit = true;
   else if (process.argv[i] === "--budfasit") budFasit = true;
   else if (process.argv[i] === "--nevro") medNevro = true;
+  else if (process.argv[i] === "--nevrofasit") nevroFasit = Number(process.argv[++i]);
   else posisjonelle.push(process.argv[i]!);
 }
 const generasjoner = Number(posisjonelle[0] ?? 50);
@@ -206,6 +209,7 @@ const evo = new Evolusjon({
       ? { spillFasit: { sjanse: 0.08, verdener: 3, dybde: 3, nodeTak: 60_000, rate: 0.02 } }
       : {}),
     ...(budFasit ? { budFasit: { sjanse: 0.05, rate: 0.02 } } : {}),
+    ...(nevroFasit > 0 ? { nevroFasit: { sjanse: nevroFasit, rate: 0.02 } } : {}),
   },
   pimcPortvakter: portvakter,
   målestokkType: medNevro ? "nevro" : "pimc",
@@ -220,6 +224,8 @@ if (medNevro) console.log(`Gullstandard avgjøres av nevro-benken på roterende 
 if (sluttsøk > 0) console.log(`Sluttsøk i kampene: eksakt ved ≤${sluttsøk} stikk igjen`);
 if (spillFasit) console.log(`Spillfasit på: solver-fasit for korthodet (8 % av kortvalg, rate 0.02)`);
 if (budFasit) console.log(`Budfasit på: rollout-fasit for xT-hodene (5 % av budvalg, rate 0.02)`);
+if (nevroFasit > 0)
+  console.log(`Nevrofasit på: NevroHjerne som lærer for korthodet (${Math.round(nevroFasit * 100)} % av kortvalg, rate 0.02)`);
 
 // Gullstandarden (ratchet): beste eksternt benkede genom, beskyttet i
 // populasjonen og kun byttet når en cupvinner benker bedre. Lastes ved

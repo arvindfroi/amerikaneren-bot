@@ -2,7 +2,12 @@
  * Lærlingfasen: PIMC-solveren som LÆRER for NEAT-nettet (imitasjonslæring
  * rett inn i genomet, DAgger-stil).
  *
- *   node examples/neat-laerling.ts [genomfil] [minutter=45] [utfil]
+ *   node examples/neat-laerling.ts [genomfil] [minutter=45] [utfil] [--nevro]
+ *
+ * Med --nevro er læreren appens NevroHjerne i stedet for PIMC-solveren:
+ * mikrosekunder mot millisekunder per beslutning, altså mange ganger flere
+ * fasitmerkede stillinger i samme tid – og NevroHjerne ligger over vår PIMC
+ * (parret +3,18 ± 0,60). Taket blir tilsvarende NevroHjerne selv.
  *
  * Fire kopier av genomet spiller selvspill. Ved hver kortbeslutning (og
  * vraking/trumfvalg) spør vi solveren hva DEN ville gjort, og dytter
@@ -17,6 +22,7 @@
 
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 
+import { NevroAgent } from "../src/nevro/index.ts";
 import {
   lovligeKort,
   opprettSpill,
@@ -37,15 +43,25 @@ import {
 } from "../src/neat/index.ts";
 import { FARGER } from "../src/kort.ts";
 
-const genomFil = process.argv[2] ?? "trening-c4/mester.json";
-const minutter = Number(process.argv[3] ?? 45);
-const utfil = process.argv[4] ?? "trening-c4/laerling.json";
+const flagg = process.argv.slice(2);
+const medNevro = flagg.includes("--nevro");
+const pos = flagg.filter((a) => !a.startsWith("--"));
+const genomFil = pos[0] ?? "trening-c4/mester.json";
+const minutter = Number(pos[1] ?? 45);
+const utfil = pos[2] ?? "trening-c4/laerling.json";
 
 const RATE = 0.1; // sterkere enn regret-læringen – dette er fasitmerket data
 const LÆRER = { verdener: 10, terskel: 6 };
 
 const genom = genomFraJson(readFileSync(genomFil, "utf8"));
-console.log(`Lærling: ${genomFil} (${genom.koblinger.length} koblinger), ${minutter} min med solver-lærer`);
+const nevroLærer = medNevro ? new NevroAgent() : null;
+/** Lærerens valg i stillingen – PIMC-solveren, eller NevroHjerne med --nevro. */
+const lærerValg = (s: GameState, frø: number): Handling =>
+  nevroLærer !== null ? nevroLærer.velgHandling(s) : velgHandling(s, { ...LÆRER, frø });
+console.log(
+  `Lærling: ${genomFil} (${genom.koblinger.length} koblinger), ${minutter} min med ` +
+    (medNevro ? "NevroHjerne som lærer" : "solver-lærer"),
+);
 
 // Lærernettet deler koblingsGENENE med agentene – kalibrering her er
 // umiddelbart synlig i agentenes nett (samme genomobjekter).
@@ -76,7 +92,7 @@ while (Date.now() < frist) {
     const lærerFrø = (spillFrø * 131 + guard * 17) >>> 0;
 
     if (s.fase === "SPILL" && handling.type === "SPILL" && lovligeKort(s, sete).length >= 2) {
-      const lærer = velgHandling(s, { ...LÆRER, frø: lærerFrø });
+      const lærer = lærerValg(s, lærerFrø);
       if (lærer.type === "SPILL") {
         const visning = spillerVisning(s, sete);
         const inn = lagInn(visning, "SPILL", s.giving.antallStikk, s.regler.målPoeng);
@@ -94,7 +110,7 @@ while (Date.now() < frist) {
         kampBesl++;
       }
     } else if (s.fase === "VRAK" && handling.type === "VRAK") {
-      const lærer = velgHandling(s, { ...LÆRER, frø: lærerFrø });
+      const lærer = lærerValg(s, lærerFrø);
       if (lærer.type === "VRAK") {
         const visning = spillerVisning(s, sete);
         const inn = lagInn(visning, "VRAK", s.giving.antallStikk, s.regler.målPoeng);
@@ -106,7 +122,7 @@ while (Date.now() < frist) {
         }
       }
     } else if (s.fase === "VELG" && handling.type === "VELG") {
-      const lærer = velgHandling(s, { ...LÆRER, frø: lærerFrø });
+      const lærer = lærerValg(s, lærerFrø);
       if (lærer.type === "VELG") {
         const visning = spillerVisning(s, sete);
         const inn = lagInn(visning, "VELG", s.giving.antallStikk, s.regler.målPoeng);

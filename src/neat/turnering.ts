@@ -22,8 +22,17 @@
 import { lagRng, type Kort } from "../kort.ts";
 import type { GameState, Handling, Hendelse } from "../motor.ts";
 import { lovligeKort, opprettSpill, utfør } from "../motor.ts";
+import { NevroAgent } from "../nevro/agent.ts";
 import type { BudEstimat } from "./agent.ts";
 import { solverBesteKort } from "./hybrid.ts";
+
+// Én lærer per prosess (tråd) – vektene er ~400 kB og dekodes kun ved første
+// bruk, så linjer uten nevrofasit betaler ingenting for at den finnes.
+let lærer: NevroAgent | null = null;
+function nevroLærer(): NevroAgent {
+  lærer ??= new NevroAgent();
+  return lærer;
+}
 
 /** Det en agent må kunne for å delta (NeatAgent oppfyller dette). */
 export interface TurneringsAgent {
@@ -100,6 +109,21 @@ export interface KampOpts {
    * Selve kampen påvirkes ikke: agentens egen budhandling spilles.
    */
   readonly budFasit?: { readonly sjanse: number; readonly rate: number };
+  /**
+   * NEVROFASIT: samme mekanikk som spillFasit, men læreren er appens
+   * ferdigtrente NevroHjerne i stedet for dobbelt-dummy-solveren.
+   *
+   * Hvorfor: solverfasiten er EKSAKT, men koster millisekunder per
+   * beslutning, så den har råd til å lære bare ~8 % av kortvalgene. Nettet
+   * svarer på mikrosekunder og kan derfor lære fra et mangedobbelt antall
+   * stillinger for samme CPU. Det er en bevisst bytting av presisjon mot
+   * mengde – og NevroHjerne ligger ~50 poeng over NEAT-linjene, så selv en
+   * ufullkommen etterlikning peker kraftig oppover.
+   *
+   * Taket er tilsvarende NevroHjerne selv. Det er greit for D-linja; E1
+   * er linja som skal forbi, og den lærer av det eksakte orakelet.
+   */
+  readonly nevroFasit?: { readonly sjanse: number; readonly rate: number };
 }
 
 const STD_MAKS_RUNDER = 40;
@@ -248,6 +272,15 @@ export function spillGruppekamp(
             rng,
           });
           if (kort !== null) agent.lærSpill(state, sete, kort, opts.spillFasit.rate);
+        }
+        if (
+          opts.nevroFasit !== undefined &&
+          agent.lærSpill !== undefined &&
+          rng() < opts.nevroFasit.sjanse
+        ) {
+          // Nevrofasit: NevroHjernes valg som mål. Agentens eget valg spilles
+          // fortsatt (on-policy), som for solverfasiten.
+          agent.lærSpill(state, sete, nevroLærer().velgKort(state, sete), opts.nevroFasit.rate);
         }
       }
       const res = utfør(state, handling);
