@@ -66,10 +66,23 @@ export class NeatAgent {
   /** xT-estimat per rundeNr for regret-beregning (nullstilles per kamp). */
   private readonly estimater = new Map<number, BudEstimat>();
 
-  constructor(genom: Genom, opts: { læringsrate?: number } = {}) {
+  /**
+   * Valgfri forstyrrelse av inngangsvektoren FØR nettet aktiveres. Brukes
+   * av blindsone-analysen (examples/d2-blindsoner.ts) til permutasjons-
+   * ablasjon: en sensorgruppe får verdier fra en tilfeldig annen stilling,
+   * slik at informasjonen ødelegges mens fordelingen beholdes. Er den ikke
+   * satt, koster den ingenting.
+   */
+  private readonly forstyrr: ((inn: number[], beslutning: Beslutning) => number[]) | null;
+
+  constructor(
+    genom: Genom,
+    opts: { læringsrate?: number; forstyrr?: (inn: number[], beslutning: Beslutning) => number[] } = {},
+  ) {
     this.genom = genom;
     this.nett = new Nettverk(genom);
     this.læringsrate = opts.læringsrate ?? STD_LÆRINGSRATE;
+    this.forstyrr = opts.forstyrr ?? null;
   }
 
   /**
@@ -139,13 +152,14 @@ export class NeatAgent {
 
   private evaluer(state: GameState, spiller: number, beslutning: Beslutning): number[] {
     const visning = spillerVisning(state, spiller);
-    const inn = lagInn(visning, beslutning, state.giving.antallStikk, state.regler.målPoeng);
-    return this.nett.aktiver(inn);
+    const rå = lagInn(visning, beslutning, state.giving.antallStikk, state.regler.målPoeng);
+    return this.nett.aktiver(this.forstyrr !== null ? this.forstyrr(rå, beslutning) : rå);
   }
 
   private velgBud(state: GameState, spiller: number, lovlige: Bud[]): Handling {
     const visning = spillerVisning(state, spiller);
-    const inn = lagInn(visning, "BUD", state.giving.antallStikk, state.regler.målPoeng);
+    const råInn = lagInn(visning, "BUD", state.giving.antallStikk, state.regler.målPoeng);
+    const inn = this.forstyrr !== null ? this.forstyrr(råInn, "BUD") : råInn;
     const ut = this.nett.aktiver(inn);
     const T = state.giving.antallStikk;
     const mål = state.regler.målPoeng;
