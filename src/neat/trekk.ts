@@ -96,7 +96,20 @@ const KONGER = 307; //            1: antall konger (/4)
 const RENONS_EGEN = 308; //       1: antall egne renonsfarger (/3)
 const SINGELTON_EGEN = 309; //    1: antall egne singeltonfarger (/3)
 const LENGSTE = 310; //           1: lengste farge (/8)
-export const ANTALL_INN = 311;
+// --- Sekvenser og fargefordeling (D5) --------------------------------------
+// Arvinds observasjon: i vraking og budgivning teller hvor mange SORTER man
+// har og hvor lange SERIER man sitter med. Fargelengdene fantes (164–167),
+// men sekvenser var ikke kodet i det hele tatt – og de er noe helt annet enn
+// lengde: K-Q-J er tre kort som tvinger ut esset og gir to sikre stikk,
+// mens K-8-3 er tre kort som gir ett usikkert. Uten dette måtte nettet
+// utlede «sammenhengende valører» av 52 uavhengige kortbiter, som er
+// nøyaktig den typen komposisjon evolusjonen ikke finner (jf. D2s ubrukte
+// håndvurdering).
+const SEKVENS = 311; //           4: lengste sammenhengende serie per farge (/6)
+const TOPPSEKVENS = 315; //       1: lengste serie regnet FRA esset og ned (/6)
+const ANTALL_SEKVENSER = 316; //  1: antall serier på ≥ 2 kort (/6)
+const SORTER = 317; //            1: antall farger man har kort i (/4)
+export const ANTALL_INN = 318;
 
 const BESLUTNINGER: readonly Beslutning[] = ["BUD", "VRAK", "VELG", "SPILL"];
 
@@ -116,6 +129,7 @@ export const SENSORGRUPPER = {
   lagstikk: [MAKKER_SPILT, FIENDE_LEDER + 1],
   trumfkontroll: [MINE_TRUMF, TREKK_TRUMF + 1],
   håndvurdering: [EST_STIKK, LENGSTE + 1],
+  sekvenser: [SEKVENS, SORTER + 1],
 } as const;
 
 // --- Utgangslayout ----------------------------------------------------------
@@ -187,6 +201,35 @@ export function lagInn(
     inn[RENONS_EGEN] = lengder.filter((x) => x === 0).length / 3;
     inn[SINGELTON_EGEN] = lengder.filter((x) => x === 1).length / 3;
     inn[LENGSTE] = Math.min(1, Math.max(...lengder) / 8);
+
+    // Sekvenser: sammenhengende valører i samme farge. Regnes per farge fra
+    // høyeste valør og ned, så en «serie» er kort som følger rett etter
+    // hverandre (K-Q-J), ikke bare kort i samme farge.
+    let flestSerier = 0;
+    let toppSerie = 0;
+    let sorter = 0;
+    for (let f = 0; f < 4; f++) {
+      const farge = FARGER[f]!;
+      const verdier = hånd.filter((k) => k.farge === farge).map((k) => k.verdi).sort((a, b) => b - a);
+      if (verdier.length > 0) sorter++;
+      let beste = verdier.length > 0 ? 1 : 0;
+      let løpende = beste;
+      for (let i = 1; i < verdier.length; i++) {
+        løpende = verdier[i]! === verdier[i - 1]! - 1 ? løpende + 1 : 1;
+        if (løpende > beste) beste = løpende;
+      }
+      inn[SEKVENS + f] = Math.min(1, beste / 6);
+      if (beste >= 2) flestSerier++;
+      // Topp-serien starter på esset: A-K-Q er umiddelbare stikk, K-Q-J ikke.
+      if (verdier[0] === 14) {
+        let n = 1;
+        while (n < verdier.length && verdier[n]! === verdier[n - 1]! - 1) n++;
+        if (n > toppSerie) toppSerie = n;
+      }
+    }
+    inn[TOPPSEKVENS] = Math.min(1, toppSerie / 6);
+    inn[ANTALL_SEKVENSER] = Math.min(1, flestSerier / 6);
+    inn[SORTER] = sorter / 4;
   }
 
   for (const k of visning.dinHånd) {

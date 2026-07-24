@@ -92,6 +92,18 @@ const ALLE_LINJER: Linje[] = [
     // trumfblindsonen ved aa vise trumfhodet haandvurderingen direkte.
     ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro", "--trumffasit", "0.5"],
   },
+  // D5 = D3s befolkning + SEKVENS-sensorer (Arvinds observasjon: i vrak og bud
+  // teller sorter og serier - K-Q-J er noe helt annet enn K-8-3) + fire
+  // genmodifiserte genomer fra EDA-regresjonen over 44 672 individer.
+  // Sekvensene er KOBLET fra start (D2-laerdommen), og laereplanen laerer
+  // fasene i avhengighetsrekkefoelge.
+  {
+    navn: "D5",
+    dir: "trening-d5",
+    logg: "trening-d5.log",
+    frø: 515151,
+    ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro", "--trumffasit", "0.5"],
+  },
 ];
 const LINJER: Linje[] = linjeValg === null ? ALLE_LINJER : ALLE_LINJER.filter((l) => linjeValg.includes(l.navn));
 if (LINJER.length === 0) {

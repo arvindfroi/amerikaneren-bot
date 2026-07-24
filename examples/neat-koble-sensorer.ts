@@ -28,6 +28,7 @@ import {
   Innovasjonsbok,
   SENSORGRUPPER,
   utId,
+  UT_KORT,
   UT_MARGIN,
   UT_TRUMF,
   UT_XT,
@@ -76,6 +77,17 @@ for (const g of genomer) {
   for (let f = 0; f < 4; f++) for (const ut of trumfHoder) legg(EST_STIKK + f, ut);
   // Hele håndvurderingen til bud-hodene.
   for (let i = fra; i < til; i++) for (const ut of budHoder) legg(i, ut);
+  // Sekvensene: til bud-hodene (håndstyrke) OG til korthodet, som styrer
+  // vrakingen – der en serie er avgjørende for hvilke kort som beholdes.
+  // Kortserien i farge f kobles til de 13 kortutgangene i SAMME farge, ikke
+  // til alle 52: koblingen «serien min i spar er lang» → «behold spar»
+  // er den meningsbærende, og 4×13 er langt billigere enn 7×52.
+  for (const [sFra, sTil] of [SENSORGRUPPER.sekvenser]) {
+    for (let i = sFra; i < sTil; i++) for (const ut of budHoder) legg(i, ut);
+    for (let f = 0; f < 4; f++) {
+      for (let v = 0; v < 13; v++) legg(sFra + f, utId(ANTALL_INN, UT_KORT + f * 13 + v));
+    }
+  }
 }
 
 mkdirSync(dirname(utFil), { recursive: true });
