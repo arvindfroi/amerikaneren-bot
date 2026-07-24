@@ -25,14 +25,17 @@ import { nevroHjerne } from "../src/nevro/index.ts";
 const filer: string[] = [];
 let antall = 3000;
 let mappe = "e1-data";
+/** Plukk hver n-te linje. 1 = alle (nyttig paa smaa/ferske datasett). */
+let steg = 7;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--antall") antall = Number(process.argv[++i]);
   else if (a === "--mappe") mappe = process.argv[++i] ?? mappe;
+  else if (a === "--steg") steg = Number(process.argv[++i]);
   else filer.push(a);
 }
 
-const benk: Benkstilling[] = lesBenk(mappe, antall);
+const benk: Benkstilling[] = lesBenk(mappe, antall, steg);
 if (benk.length === 0) {
   console.error(`Fant ingen stillinger i ${mappe}/*.jsonl`);
   process.exit(1);
