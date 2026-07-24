@@ -75,6 +75,20 @@ const ALLE_LINJER: Linje[] = [
     frø: 828282,
     ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro"],
   },
+  // D3 = D2s befolkning, men med haandvurderings-sensorene FAKTISK KOBLET.
+  // Maalt: etter 190 generasjoner hadde D2s gull null aktive koblinger fra
+  // dem (examples/neat-kobling.ts). NEATs nyKobling trekker tilfeldig blant
+  // 311 innganger og 63 utganger, saa sjansen for aa finne akkurat de 14 er
+  // forsvinnende. Sensorene laa der som informasjon nettet aldri naadde.
+  // D3 seedes med 72 koblinger per genom (smaa vekter, ±0,3): doeren aapnes,
+  // strategien tvinges ikke.
+  {
+    navn: "D3",
+    dir: "trening-d3",
+    logg: "trening-d3.log",
+    frø: 939393,
+    ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro"],
+  },
 ];
 const LINJER: Linje[] = linjeValg === null ? ALLE_LINJER : ALLE_LINJER.filter((l) => linjeValg.includes(l.navn));
 if (LINJER.length === 0) {
