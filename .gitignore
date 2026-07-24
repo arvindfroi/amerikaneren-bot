@@ -11,6 +11,15 @@ trening*/
 e1-data/
 # E1: trente vekter (regenereres av verktoy/e1-tren.py)
 e1-modell/
+# midlertidige eksperiment-artefakter (maalinger, ablasjoner, testkjoeringer)
+trumf-med/
+trumf-uten/
+trumftest/
+laerling-test/
+obduksjon/
+obduksjon-eksakt/
+e1-maalinger.jsonl
+tidligspill*.txt
 # arena: byggeartefakter og kopiert appkode (hentes med arena/hent-appkode.sh)
 arena/adapter/.build/
 arena/adapter/Sources/adapter/appkode/
