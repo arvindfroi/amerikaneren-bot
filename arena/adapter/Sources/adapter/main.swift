@@ -164,7 +164,64 @@ enum Handling {
     }
 }
 
-// MARK: - Broen: speilmotor + MesterAI-seter
+// MARK: - Botene adapteren kan betjene
+
+/// Én AI som adapteren spiller for et sete. Alle er appens egen kode:
+///  - `.ai`  dekker heuristikk-gradene (lett/middels/vanskelig) og
+///           President-nivået (`.president` = MesterAI + NevroHjerne).
+///  - `.nevro` er det rene nevrale nettet for bud/bytte/spill. Nettet har
+///           ingen trumf-head, så trumf/etterlysning tas av en heuristisk
+///           reserve (Vanskelig) – ellers er alle valg nettets egne.
+enum ArenaBot {
+    case ai(AIPlayer)
+    case nevro(NevroSpiller, AIPlayer)
+
+    func velgBud(_ e: GameEngine) -> BidAction {
+        switch self {
+        case .ai(let p): return p.velgBud(engine: e)
+        case .nevro(let n, _): return n.velgBud(engine: e)
+        }
+    }
+    func velgByttekort(_ e: GameEngine) -> [Card] {
+        switch self {
+        case .ai(let p): return p.velgByttekort(engine: e)
+        case .nevro(let n, _): return n.velgByttekort(engine: e)
+        }
+    }
+    func velgTrumfOgMakker(_ e: GameEngine) -> (Suit, Card?)? {
+        switch self {
+        case .ai(let p): return p.velgTrumfOgMakker(engine: e)
+        case .nevro(_, let reserve): return reserve.velgTrumfOgMakker(engine: e)
+        }
+    }
+    func velgKort(_ e: GameEngine) -> Card? {
+        switch self {
+        case .ai(let p): return p.velgKort(engine: e)
+        case .nevro(let n, _): return n.velgKort(engine: e)
+        }
+    }
+}
+
+func lagBot(type: String, sete: Int) -> ArenaBot? {
+    switch type {
+    case "mester", "president":
+        return .ai(AIPlayer(seat: sete, difficulty: .president, personality: .balansert))
+    case "vanskelig":
+        return .ai(AIPlayer(seat: sete, difficulty: .vanskelig, personality: .balansert))
+    case "middels":
+        return .ai(AIPlayer(seat: sete, difficulty: .middels, personality: .balansert))
+    case "lett":
+        return .ai(AIPlayer(seat: sete, difficulty: .lett, personality: .balansert))
+    case "nevro":
+        guard let hjerne = NevroHjerne.delt else { return nil }
+        return .nevro(NevroSpiller(sete: sete, hjerne: hjerne),
+                      AIPlayer(seat: sete, difficulty: .vanskelig, personality: .balansert))
+    default:
+        return nil
+    }
+}
+
+// MARK: - Broen: speilmotor + adapter-seter
 
 /// En ferdigspilt rundes fulle fasit, nok til å spille den av på nytt.
 struct Rundelogg {
@@ -177,8 +234,7 @@ struct Rundelogg {
 final class Bro {
     let regler = GameRules()   // 4 spillere, byttekort, mål 100 – som motoren
     var engine: GameEngine
-    var mesterSeter: [Int] = []
-    var spillere: [Int: AIPlayer] = [:]
+    var adapterBots: [Int: ArenaBot] = [:]
     var ferdigeRunder: [Rundelogg] = []
     var gjeldende: Rundelogg?
 
@@ -199,16 +255,18 @@ final class Bro {
         MesterAI.overstyrKonfig = k
     }
 
-    func nyKamp(mesterSeter: [Int]) {
-        self.mesterSeter = mesterSeter
+    /// Starter en ny kamp. `bots` kartlegger sete → bot-type for de setene
+    /// adapteren skal spille; øvrige seter drives av TypeScript-motoren.
+    func nyKamp(bots: [Int: String]) throws {
         ferdigeRunder = []
         gjeldende = nil
         engine = GameEngine(rules: regler)
-        spillere = [:]
-        for sete in mesterSeter {
-            // President-nivået: MesterAI + NevroHjerne, personlighet avskrudd –
-            // nøyaktig slik appen spiller på toppnivå.
-            spillere[sete] = AIPlayer(seat: sete, difficulty: .president, personality: .balansert)
+        adapterBots = [:]
+        for (sete, type) in bots {
+            guard let bot = lagBot(type: type, sete: sete) else {
+                throw AdapterFeil("ukjent eller utilgjengelig bot-type «\(type)» for sete \(sete)")
+            }
+            adapterBots[sete] = bot
         }
     }
 
@@ -277,23 +335,23 @@ final class Bro {
     /// her – arenaen validerer den i sin motor og sender den tilbake som en
     /// vanlig "handling"-melding, så begge motorene følger samme spor.
     func beslutt(sete: Int) throws -> Handling {
-        guard let spiller = spillere[sete] else {
-            throw AdapterFeil("sete \(sete) er ikke et MesterAI-sete")
+        guard let bot = adapterBots[sete] else {
+            throw AdapterFeil("sete \(sete) betjenes ikke av adapteren")
         }
         switch engine.phase {
         case .budrunde:
             guard engine.aktivBudgiver == sete else {
                 throw AdapterFeil("sete \(sete) er ikke i tur (budrunde)")
             }
-            return .bud(spiller: sete, action: spiller.velgBud(engine: engine))
+            return .bud(spiller: sete, action: bot.velgBud(engine))
         case .byttekort:
-            let kort = spiller.velgByttekort(engine: engine)
+            let kort = bot.velgByttekort(engine)
             guard kort.count == regler.antallByttekort else {
                 throw AdapterFeil("byttekort-valget ga \(kort.count) kort")
             }
             return .vrak(spiller: sete, kort: kort)
         case .velgTrumf:
-            guard let (trumf, etterlyst) = spiller.velgTrumfOgMakker(engine: engine) else {
+            guard let (trumf, etterlyst) = bot.velgTrumfOgMakker(engine) else {
                 throw AdapterFeil("velgTrumfOgMakker ga ikke noe valg")
             }
             return .velg(spiller: sete, trumf: trumf, etterlyst: etterlyst)
@@ -301,7 +359,7 @@ final class Bro {
             guard engine.aktivSpiller == sete else {
                 throw AdapterFeil("sete \(sete) er ikke i tur (spill)")
             }
-            guard let kort = spiller.velgKort(engine: engine) else {
+            guard let kort = bot.velgKort(engine) else {
                 throw AdapterFeil("velgKort ga ikke noe kort")
             }
             return .spill(spiller: sete, kort: kort)
@@ -333,6 +391,20 @@ func send(_ obj: [String: Any]) {
 
 let bro = Bro()
 
+/// Bot-kartet fra en melding: enten `adapterBots` ({"0":"vanskelig",...}) eller
+/// det eldre `mesterSeter` ([0,2] → alle mester). Manglende felt gir tom kamp.
+func botKart(_ json: [String: Any]) -> [Int: String] {
+    if let bots = json["adapterBots"] as? [String: String] {
+        var ut: [Int: String] = [:]
+        for (nøkkel, type) in bots { if let s = Int(nøkkel) { ut[s] = type } }
+        return ut
+    }
+    if let seter = json["mesterSeter"] as? [Int] {
+        return Dictionary(uniqueKeysWithValues: seter.map { ($0, "mester") })
+    }
+    return [:]
+}
+
 while let linje = readLine(strippingNewline: true) {
     guard !linje.isEmpty else { continue }
     do {
@@ -344,10 +416,10 @@ while let linje = readLine(strippingNewline: true) {
         switch type {
         case "init":
             bro.konfigurer(json: json)
-            bro.nyKamp(mesterSeter: json["mesterSeter"] as? [Int] ?? [])
+            try bro.nyKamp(bots: botKart(json))
             send(bro.status())
         case "nyKamp":
-            bro.nyKamp(mesterSeter: json["mesterSeter"] as? [Int] ?? [])
+            try bro.nyKamp(bots: botKart(json))
             send(bro.status())
         case "rundeStart":
             try bro.rundeStart(json: json)
