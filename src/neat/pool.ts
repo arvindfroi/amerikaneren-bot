@@ -15,7 +15,7 @@
 
 import { Worker } from "node:worker_threads";
 
-import { erPimc, type Deltaker } from "./portvakt.ts";
+import { erPortvakt, type Deltaker } from "./portvakt.ts";
 import type { GruppeResultat, KampOpts } from "./turnering.ts";
 import type { PoolJobb, PoolSvar } from "./pool-arbeider.ts";
 
@@ -93,7 +93,7 @@ export class GruppePool {
     });
     for (let i = 0; i < deltakere.length; i++) {
       const d = deltakere[i]!;
-      if (erPimc(d)) continue; // portvakter har ingen vekter å skrive tilbake
+      if (erPortvakt(d)) continue; // portvakter har ingen vekter å skrive tilbake
       const koblinger = d.koblinger;
       const vekter = svar.vekter[i]!;
       if (vekter.length !== koblinger.length) {

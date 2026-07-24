@@ -15,6 +15,7 @@
 
 import { velgHandling as pimcVelg } from "../bot/bot.ts";
 import type { GameState, Handling } from "../motor.ts";
+import { NevroAgent } from "../nevro/agent.ts";
 import type { BudEstimat } from "./agent.ts";
 import type { Genom } from "./genom.ts";
 import type { TurneringsAgent } from "./turnering.ts";
@@ -32,11 +33,35 @@ export interface PimcMarkør {
   readonly maksEval: number;
 }
 
-/** En turneringsdeltaker: et populasjons-/hallgenom eller en PIMC-portvakt. */
-export type Deltaker = Genom | PimcMarkør;
+/**
+ * NevroHjerne-portvakt: appens ferdigtrente nett som målestokk. Sterkere
+ * enn den billige PIMC-portvakten (90,1 mot 78,7 på appens stige) og flere
+ * hundre ganger raskere, siden den ikke søker – portvakten koster da
+ * praktisk talt ingenting av generasjonstiden.
+ */
+export interface NevroMarkør {
+  readonly nevro: true;
+}
+
+export type PortvaktMarkør = PimcMarkør | NevroMarkør;
+
+/** En turneringsdeltaker: et populasjons-/hallgenom eller en portvakt. */
+export type Deltaker = Genom | PortvaktMarkør;
 
 export function erPimc(d: Deltaker): d is PimcMarkør {
   return (d as PimcMarkør).pimc === true;
+}
+
+export function erNevro(d: Deltaker): d is NevroMarkør {
+  return (d as NevroMarkør).nevro === true;
+}
+
+export function erPortvakt(d: Deltaker): d is PortvaktMarkør {
+  return erPimc(d) || erNevro(d);
+}
+
+export function lagPortvakt(m: PortvaktMarkør): TurneringsAgent {
+  return erPimc(m) ? new PimcPortvakt(m) : new NevroPortvakt();
 }
 
 /** Billige standardinnstillinger: merkbar motstand uten å dominere tiden. */
@@ -71,5 +96,24 @@ export class PimcPortvakt implements TurneringsAgent {
 
   estimatFor(): BudEstimat | undefined {
     return undefined; // ingen regret-bokføring for portvakter
+  }
+}
+
+/**
+ * NevroHjerne som portvakt. Deterministisk (ren argmax, ingen sampling),
+ * så gruppekampen forblir en ren funksjon av (deltakere, gruppeFrø) – og
+ * den koster mikrosekunder per trekk i stedet for millisekunder.
+ */
+export class NevroPortvakt implements TurneringsAgent {
+  private readonly agent = new NevroAgent();
+
+  nyKamp(): void {}
+
+  velgHandling(state: GameState): Handling {
+    return this.agent.velgHandling(state);
+  }
+
+  estimatFor(): BudEstimat | undefined {
+    return undefined;
   }
 }

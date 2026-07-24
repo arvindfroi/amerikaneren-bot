@@ -32,7 +32,7 @@ import {
 import { NeatAgent, STD_LÆRINGSRATE } from "./agent.ts";
 import { utId } from "./genom.ts";
 import { GruppePool } from "./pool.ts";
-import { erPimc, PimcPortvakt, STD_PORTVAKT, type Deltaker } from "./portvakt.ts";
+import { erPortvakt, lagPortvakt, STD_PORTVAKT, type Deltaker } from "./portvakt.ts";
 import {
   ANTALL_INN,
   ANTALL_UT,
@@ -112,6 +112,13 @@ export interface EvolusjonsOpts {
   readonly pimcPortvakter?: number;
   /** Innstillinger for portvaktene (verdener/terskel/maksEval). */
   readonly pimcOpts?: { verdener?: number; terskel?: number; maksEval?: number };
+  /**
+   * Hvilken målestokk portvakten er. «pimc» (standard) er den billige
+   * PIMC-solveren; «nevro» er appens ferdigtrente NevroHjerne – sterkere
+   * (90,1 mot 78,7 på appens stige) og flere hundre ganger raskere, siden
+   * den ikke søker. Med «nevro» koster portvakten nesten ingen tid.
+   */
+  readonly målestokkType?: "pimc" | "nevro";
   /**
    * Stagnasjonsspark: forsvarer mesteren tittelen så mange generasjoner PÅ
    * RAD, dobles strukturmutasjonene (nyKobling/nyNode) og vektstyrken for
@@ -322,6 +329,7 @@ export class Evolusjon {
       tråder: opts.tråder ?? 1,
       pimcPortvakter: Math.floor((opts.pimcPortvakter ?? 0) / 4) * 4,
       pimcOpts: { ...STD_PORTVAKT, ...opts.pimcOpts },
+      målestokkType: opts.målestokkType ?? "pimc",
       sparkEtter: opts.sparkEtter ?? 15,
     };
     if (this.opts.tråder > 1) this.pool = new GruppePool(this.opts.tråder);
@@ -394,7 +402,11 @@ export class Evolusjon {
     let målestokk: number | null = null;
     if (brukMålestokk) {
       målestokk = felt.length;
-      felt.push({ pimc: true, frøBase: frø, ...this.opts.pimcOpts });
+      felt.push(
+        this.opts.målestokkType === "nevro"
+          ? { nevro: true }
+          : { pimc: true, frøBase: frø, ...this.opts.pimcOpts },
+      );
     }
     if (this.pool !== null) {
       return kjørTurneringMed(
@@ -410,7 +422,7 @@ export class Evolusjon {
         målestokk,
       );
     }
-    const agenter = felt.map((d) => (erPimc(d) ? new PimcPortvakt(d) : new NeatAgent(d)));
+    const agenter = felt.map((d) => (erPortvakt(d) ? lagPortvakt(d) : new NeatAgent(d)));
     return kjørTurnering(agenter, frø, this.opts.kampOpts, målestokk);
   }
 
