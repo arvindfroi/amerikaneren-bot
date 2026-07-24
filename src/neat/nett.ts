@@ -136,6 +136,23 @@ export class Nettverk {
    * angeren sin i løpet av livet, arves av avkommet i neste generasjon.
    * Returnerer feilen (mål − ut) før justeringen.
    */
+  /**
+   * MÅLT PROBLEM (2026-07-25): denne virker ikke på modne genomer, fordi
+   * `delta` ganges med tanh-deriverte (1 − ut²) og hodene står i METNING.
+   * Målte kortutganger på en ekte stilling: 0,932 / 0,999 / 0,906 / 0,994 /
+   * 0,962 / 1,000 → deriverte 0,131 / 0,001 / 0,179 / 0,013 / 0,074 / 0,0000.
+   * 200 kalibreringer med rate 0,1 mot et annet kort endret ÉN av 593
+   * koblinger, og valget flyttet seg ikke. Det gjelder også ubeskåret genom
+   * med 16 koblinger per kortutgang – altså ikke et beskjæringsproblem.
+   *
+   * Konsekvens: ALLE fasit-lærerne (lærSpill, lærTrumf, lærVrak, lærEtterlys,
+   * lærStikk) og MoE-forsterkningen er i praksis virkningsløse på modne nett.
+   * Det forklarer hvorfor hvert eneste kalibreringstiltak målte ~0.
+   *
+   * Høyere rate hjelper ikke – faktoren er null. Fiksen må være strukturell:
+   * lineære hoder for kortscorene, normalisering før tanh, eller å la
+   * seleksjonen (som virker) bære læringen i stedet for kalibreringen.
+   */
   kalibrerUtgang(utNr: number, mål: number, rate: number, dybde = 1): number {
     const verdier = this.sisteVerdier;
     if (verdier === null) throw new Error("kalibrerUtgang krever et foregående aktiver-kall");
