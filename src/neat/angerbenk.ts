@@ -30,7 +30,15 @@
  *     (1,11) og best kamppoeng (+36,8) – et avslått budhode slår et aktivt
  *     skadelig ett. Bruk angerbenken for kortspill, kampmålingen for
  *     helheten, og les aldri den ene som svar på den andres spørsmål.
- *  3. ORAKELETS EGET TAK. Dobbelt-dummy løser hver verden som om alt var
+ *  3. DENNE BENKEN ER OGSÅ ET LÆRESIGNAL, ikke bare et måleinstrument.
+ *     Målt 2026-07-25: kalibrering mot orakelets beste kort (6 epoker over
+ *     600 stillinger) flyttet et AVMETTET genom fra anger 1,114 til 0,990 og
+ *     optimale valg fra 46,8 % til 54,2 %. Samme trening på et METTET genom
+ *     ga ingenting (1,046 → 1,041). Og avmetning alene ga heller ingenting
+ *     når signalet var rundeutfall. BEGGE DELER MÅ VÆRE PÅ PLASS: gradienten
+ *     må kunne flyte (avmetning), og fasiten må være per beslutning – «klarte
+ *     kontrakten» sier ikke hvilket kort som var feil.
+ *  4. ORAKELETS EGET TAK. Dobbelt-dummy løser hver verden som om alt var
  *     kjent (strategifusjon), så fasiten er ikke perfekt spill under skjult
  *     informasjon. Den er likevel den sterkeste vi har, og den er ikke en
  *     bot vi allerede har slått.
