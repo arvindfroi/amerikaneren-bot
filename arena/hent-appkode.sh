@@ -19,6 +19,7 @@ FILER=(
   AI/MesterAI.swift
   AI/MesterSolver.swift
   AI/MesterVerden.swift
+  AI/MesterVekter.swift
   AI/AIPlayer.swift
   AI/AIPersonality.swift
   AI/NevroNett.swift

@@ -31,15 +31,17 @@ const OMSTART_PAUSE_MS = 15_000;
 const flagg = process.argv.slice(2);
 const medGraf = !flagg.includes("--uten-graf");
 const posisjonell = flagg.find((f) => !f.startsWith("--"));
+// --linjer C4,D1 kjører bare de navngitte linjene. Å sette en linje på is er
+// ufarlig: sjekkpunktet ligger i trening-<navn>/ og plukkes opp igjen når
+// linjen tas med på nytt.
+const linjeValg = ((): string[] | null => {
+  const i = flagg.indexOf("--linjer");
+  return i >= 0 && flagg[i + 1] !== undefined ? flagg[i + 1]!.split(",").map((s) => s.trim().toUpperCase()) : null;
+})();
 
 const KJERNER = availableParallelism();
 const POPP = Number(posisjonell ?? process.env.POPP ?? 128);
 const GENERASJONER = Number(process.env.GENERASJONER ?? 40_000);
-// To linjer deler maskinen. Fire kjerner holdes av til vaktene, grafen og
-// resten av skrivebordet – full metning gjør maskinen ubrukelig uten å gi
-// nevneverdig flere gruppekamper.
-const STD_TRÅDER = Math.max(2, Math.floor((KJERNER - 4) / 2));
-const TRÅDER = Number(process.env.TRAADER ?? STD_TRÅDER);
 
 interface Linje {
   readonly navn: string;
@@ -53,7 +55,7 @@ interface Linje {
 // PIMC-portvakten og praktisk talt gratis), og gullstandarden avgjøres av
 // nevro-benken på roterende givere med parret bekreftelse. Uten det ble
 // gullet kåret på åtte faste givere mot en bot som aldri byr over 5.
-const LINJER: Linje[] = [
+const ALLE_LINJER: Linje[] = [
   { navn: "C4", dir: "trening-c4", logg: "trening-c4.log", frø: 616161, ekstra: ["--nevro"] },
   {
     navn: "D1",
@@ -63,6 +65,16 @@ const LINJER: Linje[] = [
     ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro"],
   },
 ];
+const LINJER: Linje[] = linjeValg === null ? ALLE_LINJER : ALLE_LINJER.filter((l) => linjeValg.includes(l.navn));
+if (LINJER.length === 0) {
+  console.error(`Ingen kjente linjer i --linjer (${linjeValg?.join(",")}). Kjente: ${ALLE_LINJER.map((l) => l.navn).join(", ")}`);
+  process.exit(1);
+}
+// Linjene deler maskinen. Fire kjerner holdes av til vaktene, grafen og resten
+// av skrivebordet – full metning gjør maskinen ubrukelig uten å gi nevneverdig
+// flere gruppekamper.
+const STD_TRÅDER = Math.max(2, Math.floor((KJERNER - 4) / LINJER.length));
+const TRÅDER = Number(process.env.TRAADER ?? STD_TRÅDER);
 
 function tid(): string {
   return new Date().toLocaleTimeString("nb-NO");

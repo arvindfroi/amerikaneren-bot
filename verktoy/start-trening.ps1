@@ -12,10 +12,12 @@
   .\verktoy\start-trening.ps1
   .\verktoy\start-trening.ps1 -Populasjon 192 -Traader 8
   .\verktoy\start-trening.ps1 -UtenGraf      # tren uten å publisere
+  .\verktoy\start-trening.ps1 -Linjer D1     # bare D1 (C4 satt på is)
 #>
 param(
   [int]$Populasjon = 128,
   [int]$Traader = 0,
+  [string]$Linjer = "",
   [switch]$UtenGraf
 )
 
@@ -46,6 +48,7 @@ foreach ($f in @($logg, $feil)) {
 
 $argumenter = @("examples/lokal-tren.ts", "$Populasjon")
 if ($UtenGraf) { $argumenter += "--uten-graf" }
+if ($Linjer -ne "") { $argumenter += @("--linjer", $Linjer) }
 
 # Start-Process arver miljøet vårt, så trådtallet settes her.
 if ($Traader -gt 0) { $env:TRAADER = "$Traader" }

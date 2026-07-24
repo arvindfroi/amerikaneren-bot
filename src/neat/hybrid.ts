@@ -173,7 +173,7 @@ export class HybridAgent {
 }
 
 /** Egenpoeng gitt budlagets sluttstikk (samme rollemodell som PIMC-boten). */
-function egenPoeng(lagStikk: number, verden: Verden, s: GameState, observator: number): number {
+export function egenPoeng(lagStikk: number, verden: Verden, s: GameState, observator: number): number {
   const T = s.giving.antallStikk;
   const mål = s.regler.målPoeng;
   const melding = s.melding!;
