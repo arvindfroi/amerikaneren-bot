@@ -93,14 +93,36 @@ class E1Nett(nn.Module):
         return x
 
 
-def maskert_tap(logits, verdi, maske, tau: float):
-    """Myk kryssentropi mot softmax(v/τ), begge maskert til lovlige kort."""
+def maskert_tap(logits, verdi, maske, tau: float, vekt=None):
+    """Myk kryssentropi mot softmax(v/τ), begge maskert til lovlige kort.
+
+    `vekt` er per stilling: en beslutning der beste og verste kort skiller
+    ti poeng betyr ti ganger mer enn en der alle kortene er likeverdige.
+    Uten vekting drukner de avgjørende valgene i de likegyldige – og ~32 %
+    av stillingene er målt helt flate.
+    """
     stor_negativ = torch.finfo(logits.dtype).min
     logits = logits.masked_fill(maske == 0, stor_negativ)
     mål = (verdi / tau).masked_fill(maske == 0, stor_negativ)
     mål = F.softmax(mål, dim=1)
     logp = F.log_softmax(logits, dim=1)
-    return -(mål * logp).sum(dim=1).mean()
+    per = -(mål * logp).sum(dim=1)
+    if vekt is None:
+        return per.mean()
+    return (per * vekt).sum() / vekt.sum().clamp(min=1e-6)
+
+
+def stillingsvekt(verdi, maske, tak: float = 8.0):
+    """Vekt = spennet mellom beste og verste lovlige kort, klippet.
+
+    Klippingen hindrer at noen få runder med ±50 (amerikaner) tar over hele
+    gradienten – samme lærdom som i målemetodikken: tunge haler må temmes,
+    ikke få lov til å bestemme alt.
+    """
+    stor_negativ = torch.finfo(verdi.dtype).min
+    beste = verdi.masked_fill(maske == 0, stor_negativ).max(dim=1).values
+    verst = verdi.masked_fill(maske == 0, -stor_negativ).min(dim=1).values
+    return (beste - verst).clamp(min=0.0, max=tak) + 0.05
 
 
 @torch.no_grad()
@@ -141,6 +163,8 @@ def main() -> None:
     p.add_argument("--tau", type=float, default=1.0)
     p.add_argument("--skjult", default="512,512,256")
     p.add_argument("--maks", type=int, default=None, help="les bare de N første stillingene")
+    p.add_argument("--vekt", action="store_true", default=True, help="vekt tapet med hvor mye som staar paa spill")
+    p.add_argument("--uvektet", dest="vekt", action="store_false")
     p.add_argument("--logg", default="e1-modell/tren.log")
     args = p.parse_args()
 
@@ -156,6 +180,7 @@ def main() -> None:
     del_ = int(n * 0.95)
     Xt, Vt, Mt = X[:del_].to(enhet), V[:del_].to(enhet), M[:del_].to(enhet)
     Xv, Vv, Mv = X[del_:].to(enhet), V[del_:].to(enhet), M[del_:].to(enhet)
+    Wt = stillingsvekt(Vt, Mt) if args.vekt else None
     print(f"Trening {Xt.shape[0]}, validering {Xv.shape[0]}")
 
     dims = [TREKK_DIM] + [int(x) for x in args.skjult.split(",")] + [KORT]
@@ -178,7 +203,7 @@ def main() -> None:
         biter = 0
         for i in range(0, Xt.shape[0], args.batch):
             idx = perm[i : i + args.batch]
-            tap = maskert_tap(modell(Xt[idx]), Vt[idx], Mt[idx], args.tau)
+            tap = maskert_tap(modell(Xt[idx]), Vt[idx], Mt[idx], args.tau, None if Wt is None else Wt[idx])
             opt.zero_grad(set_to_none=True)
             tap.backward()
             opt.step()

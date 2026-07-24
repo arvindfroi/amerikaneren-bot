@@ -32,7 +32,7 @@ import { dirname } from "node:path";
 import { lagRng } from "../src/kort.ts";
 import { lovligeKort, opprettSpill, utfør, type Handling } from "../src/index.ts";
 import { e1SpillTrekk, E1_SPILL_DIM } from "../src/e1/trekk.ts";
-import { orakelVerdier } from "../src/e1/orakel.ts";
+import { orakelBudsjett, orakelVerdier } from "../src/e1/orakel.ts";
 import { kortIndeks, NevroAgent } from "../src/nevro/index.ts";
 
 let utFil = "e1-data/orakel.jsonl";
@@ -45,6 +45,7 @@ let dybde = 7;
 let nodeTak = 400_000;
 let sjanse = 0.35;
 let utforsk = 0.15;
+let flatt = false;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--ut") utFil = process.argv[++i] ?? utFil;
@@ -59,6 +60,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--nodetak") nodeTak = Number(process.argv[++i]);
   else if (a === "--sjanse") sjanse = Number(process.argv[++i]);
   else if (a === "--utforsk") utforsk = Number(process.argv[++i]);
+  else if (a === "--flatt") flatt = true;
 }
 
 mkdirSync(dirname(utFil), { recursive: true });
@@ -86,12 +88,14 @@ for (let k = 0; k < kamper; k++) {
       const lovlige = lovligeKort(s, sete);
       beslutninger++;
       if (lovlige.length >= 2 && rng() < sjanse) {
-        const svar = orakelVerdier(s, sete, {
-          verdener,
-          dybde: Math.min(dybde, s.giving.antallStikk - s.stikkSpilt),
-          nodeTak,
-          frø: (frø * 31 + guard) >>> 0,
-        });
+        // Budsjettet skaleres med stikk igjen: aapningen er rundens dyreste
+        // valg med mest skjult informasjon, sluttspillet er nesten gratis.
+        // --flatt beholder det gamle, like budsjettet (for sammenlikning).
+        const stikkIgjen = s.giving.antallStikk - s.stikkSpilt;
+        const b = flatt
+          ? { verdener, dybde: Math.min(dybde, stikkIgjen), nodeTak, kandidater: 3 }
+          : orakelBudsjett(stikkIgjen, nodeTak);
+        const svar = orakelVerdier(s, sete, { ...b, frø: (frø * 31 + guard) >>> 0 });
         if (svar !== null) {
           // Verdiene lagres per KORTINDEKS (0–51), så treneren slipper å
           // kjenne rekkefølgen lovligeKort tilfeldigvis hadde.
@@ -105,6 +109,7 @@ for (let k = 0; k < kamper; k++) {
               t: Array.from(e1SpillTrekk(s, sete), (x) => Math.round(x * 10_000) / 10_000),
               v: verdi,
               n: svar.verdener,
+              dybde: b.dybde,
               frø,
               stikk: s.stikkSpilt,
             }) + "\n",

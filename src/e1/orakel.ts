@@ -27,6 +27,30 @@ export interface OrakelOpts {
   readonly dybde: number;
   readonly nodeTak: number;
   readonly frø: number;
+  /**
+   * Kandidatverdener som trekkes og vektes mot budhistorikken per uttrekk
+   * (viktighetssampling). Høyere = skarpere tro på hvem som sitter med hva.
+   * Det betyr mest TIDLIG, der nesten alt er skjult og budrunden er den
+   * eneste informasjonen som finnes.
+   */
+  readonly kandidater?: number;
+}
+
+/**
+ * Budsjett etter hvor mange stikk som gjenstår.
+ *
+ * Flatt budsjett er feil fordeling: i stikk 10 er stillingen triviell og
+ * nesten alt er kjent, mens åpningsutspillet er rundens dyreste valg med
+ * mest skjult informasjon – og det er nettopp der fasiten vår er svakest,
+ * siden `dybde` under gjenstående stikk betyr grådig utspilling fram dit.
+ * Litteraturen på trick-taking peker på det samme: åpningen er den harde
+ * delen, og samplingnøyaktigheten er dårligst når flest kort er ukjent.
+ */
+export function orakelBudsjett(stikkIgjen: number, nodeTak = 400_000): Omit<OrakelOpts, "frø"> {
+  if (stikkIgjen >= 10) return { verdener: 48, dybde: 8, kandidater: 12, nodeTak: nodeTak * 4 };
+  if (stikkIgjen >= 7) return { verdener: 32, dybde: 8, kandidater: 8, nodeTak: nodeTak * 2 };
+  if (stikkIgjen >= 5) return { verdener: 24, dybde: stikkIgjen, kandidater: 5, nodeTak };
+  return { verdener: 16, dybde: stikkIgjen, kandidater: 3, nodeTak };
 }
 
 export interface OrakelSvar {
@@ -50,7 +74,7 @@ export function orakelVerdier(state: GameState, spiller: number, opts: OrakelOpt
   let verdener = 0;
   let tomme = 0;
   while (verdener < opts.verdener && tomme < 40) {
-    const verden = trekkVerdenBelief(state, spiller, rng);
+    const verden = trekkVerdenBelief(state, spiller, rng, opts.kandidater ?? 3);
     if (!verden) {
       tomme++;
       continue;
