@@ -107,10 +107,23 @@ function e1Målinger(): { kandidat: string; motNevro: number; se: number; merke:
   }
 }
 
+/** Linjene finnes ved å se på disk – et nytt løp dukker opp uten kodeendring. */
+function alleLinjer(): LinjeStatus[] {
+  let dirs: string[];
+  try {
+    dirs = readdirSync(REPO).filter((f) => /^trening-[a-z0-9]+$/.test(f) && existsSync(`${REPO}/${f}/status.json`));
+  } catch {
+    return [];
+  }
+  return dirs
+    .sort()
+    .map((d) => linje(d.replace("trening-", "").toUpperCase(), d, `${d}.log`));
+}
+
 function tilstand(): unknown {
   return {
     tid: new Date().toISOString(),
-    linjer: [linje("C4", "trening-c4", "trening-c4.log"), linje("D1", "trening-d1", "trening-d1.log")],
+    linjer: alleLinjer(),
     e1: { ...e1Data(), målinger: e1Målinger() },
   };
 }

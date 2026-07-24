@@ -25,11 +25,20 @@ import { grådigHandling } from "./graadig.ts";
 let kamper = 40;
 let verdener = 12;
 let dybde = 6;
+/**
+ * Motstanderen avgjoer hva maalingen betyr. Mot graadig-boten taper soeket
+ * poeng selv naar det spiller riktigere: dobbelt-dummy regner mot PERFEKT
+ * motspill, mens nettet har laert aa utnytte svakt motspill - og utnyttelse
+ * er verdt mer enn korrekthet mot en pushover. Maalt: -1,5 med soek i
+ * sluttspillet mot graadig. Bruk «nevro» naar spoersmaalet er spillestyrke.
+ */
+let motstander: "grådig" | "nevro" = "grådig";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--kamper") kamper = Number(process.argv[++i]);
   else if (a === "--verdener") verdener = Number(process.argv[++i]);
   else if (a === "--dybde") dybde = Number(process.argv[++i]);
+  else if (a === "--motstander") motstander = process.argv[++i] === "nevro" ? "nevro" : "grådig";
 }
 
 /** Vinduene som testes: hvilke stikk søket overtar. */
@@ -44,6 +53,7 @@ const VINDUER: { navn: string; fra: number; til: number }[] = [
 
 function kamp(v: { fra: number; til: number }, frø: number, sete: number): number {
   const agent = new NevroAgent();
+  const motpart = new NevroAgent();
   const rng = lagRng((frø * 31 + sete) >>> 0);
   let s = opprettSpill({ antallSpillere: 4 }, frø);
   let guard = 0;
@@ -64,7 +74,7 @@ function kamp(v: { fra: number; til: number }, frø: number, sete: number): numb
         });
         h = kort !== null ? { type: "SPILL", spiller: sete, kort } : agent.velgHandling(s);
       } else h = agent.velgHandling(s);
-    } else h = grådigHandling(s as GameState);
+    } else h = motstander === "nevro" ? motpart.velgHandling(s) : grådigHandling(s as GameState);
     s = utfør(s, h).state;
   }
   const egne = s.totalPoeng[sete] ?? 0;
@@ -93,7 +103,7 @@ const tegn = (d: readonly number[]): string => {
   return `${nz.filter((x) => x > 0).length}/${nz.length}`;
 };
 
-console.log(`\n=== NevroHjerne med lånt søk i et stikkvindu, ${kamper} givere × 4 seter mot 3× grådig ===\n`);
+console.log(`\n=== NevroHjerne med lånt søk i et stikkvindu, ${kamper} givere × 4 seter mot 3× ${motstander} ===\n`);
 console.log("vindu".padEnd(30), "poeng/kamp".padStart(15), "løft".padStart(20), "tegntest".padStart(10));
 for (let i = 0; i < VINDUER.length; i++) {
   const d = perGiver[i]!;
