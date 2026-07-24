@@ -70,11 +70,11 @@ function tegn(){
     s+='<line x1="'+ML+'" y1="'+y+'" x2="'+(ML+PW)+'" y2="'+y+'" '+tykk+'/>';
     s+='<text x="'+(ML-8)+'" y="'+(y+4)+'" text-anchor="end" class="akse">'+(v>0?"+":"")+v+'</text>';
   }
-  s+='<text x="'+(ML+PW-6)+'" y="'+(Y(0)-7)+'" text-anchor="end" class="akse">jevnt med grådig-boten</text>';
+  s+='<text x="'+(ML+PW-6)+'" y="'+(Y(0)-7)+'" text-anchor="end" class="akse">0 = jevnt med motstanderen på den kurvens målestokk</text>';
   if(d.pimcRef){
     const yp=Y(d.pimcRef.diff);
     s+='<line x1="'+ML+'" y1="'+yp+'" x2="'+(ML+PW)+'" y2="'+yp+'" stroke="var(--tx2)" stroke-width="1.5" stroke-dasharray="2 3"/>';
-    s+='<text x="'+(ML+PW-6)+'" y="'+(yp-7)+'" text-anchor="end" class="merk" fill="var(--tx2)">PIMC-solveren (+'+d.pimcRef.diff+')</text>';
+    s+='<text x="'+(ML+PW-6)+'" y="'+(yp-7)+'" text-anchor="end" class="merk" fill="var(--tx2)">PIMC mot grådig (+'+d.pimcRef.diff+')</text>';
   }
   const steg=XMAX>4000?1000:XMAX>1500?500:200;
   for(let g=0;g<=XMAX;g+=steg) s+='<text x="'+X(g)+'" y="'+(MT+PH+22)+'" text-anchor="middle" class="akse">'+g+'</text>';
@@ -96,12 +96,12 @@ function tegn(){
   // Pensjonerte serier tegnes først (bakgrunn), fokusseriene (C4/D1) sist og tykkere.
   const rekkefølge=[...d.serier].sort((a,b)=>(fokus(a.navn)?1:0)-(fokus(b.navn)?1:0));
   for(const serie of rekkefølge){
-    const f=fokus(serie.navn);
+    const f=fokus(serie.navn), n=serie.mot==="nevro";
     if(f) for(const p of serie.rå) if(p.v>=YMIN&&p.v<=YMAX)
       s+='<circle cx="'+X(p.g).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="2" fill="'+farge(serie.navn)+'" opacity="0.22"/>';
-    s+='<path d="'+sti(serie.glatt)+'" fill="none" stroke="'+farge(serie.navn)+'" stroke-width="'+(f?2.6:1.4)+'"'+(f?'':' opacity="0.55"')+' stroke-linejoin="round"/>';
+    s+='<path d="'+sti(serie.glatt)+'" fill="none" stroke="'+farge(serie.navn)+'" stroke-width="'+(f?2.6:1.4)+'"'+(f?'':' opacity="0.55"')+(n?' stroke-dasharray="6 3"':'')+' stroke-linejoin="round"/>';
     const sp=serie.glatt[serie.glatt.length-1];
-    s+='<text x="'+(X(sp.g)+7)+'" y="'+(Y(sp.v)+4)+'" class="merk"'+(f?'':' opacity="0.6" font-size="10"')+' fill="'+farge(serie.navn)+'">'+serie.navn+'</text>';
+    s+='<text x="'+(X(sp.g)+7)+'" y="'+(Y(sp.v)+4)+'" class="merk"'+(f?'':' opacity="0.6" font-size="10"')+' fill="'+farge(serie.navn)+'">'+serie.navn+(n?' ⟂nevro':'')+'</text>';
   }
   s+='<line id="kryss" y1="'+MT+'" y2="'+(MT+PH)+'" stroke="var(--tx2)" opacity="0" stroke-dasharray="3 3"/>';
   document.getElementById("graf").innerHTML=
@@ -111,14 +111,15 @@ function tegn(){
     '<text x="'+(ML+PW/2)+'" y="'+(H-8)+'" text-anchor="middle" class="akse">generasjon (per modell)</text>'+s+'</svg>';
   const lgOrd=[...d.serier].sort((a,b)=>(fokus(b.navn)?1:0)-(fokus(a.navn)?1:0));
   document.getElementById("legend").innerHTML=
-    lgOrd.map(x=>'<span class="lg"'+(fokus(x.navn)?' style="font-weight:600"':' style="opacity:.65"')+'><i style="background:'+farge(x.navn)+'"></i>'+x.navn+(fokus(x.navn)?'':' (pensjonert)')+'</span>').join("")+
+    lgOrd.map(x=>'<span class="lg"'+(fokus(x.navn)?' style="font-weight:600"':' style="opacity:.65"')+'><i style="background:'+farge(x.navn)+'"></i>'+x.navn+(x.mot==="nevro"?' mot nevro':'')+(fokus(x.navn)?'':' (pensjonert)')+'</span>').join("")+
+    '<span class="lg"><i class="strek"></i>Stiplet tykk: mot NevroHjerne (appens nett) – den harde målestokken</span>'+
     '<span class="lg"><i class="strek"></i>Forventet (recency-vektet trend, siste 24 målinger)</span>'+
     (Object.keys(d.overgang||{}).length?'<span class="lg"><i class="strek"></i>Loddrett merke: treningen flyttet fra sky til lokal maskin</span>':'');
   document.getElementById("tabell").innerHTML=
-    '<tr><th>Modell</th><th>Siste gen</th><th>Beste (glattet)</th><th>Nå (glattet)</th></tr>'+
+    '<tr><th>Modell</th><th>Målestokk</th><th>Siste gen</th><th>Beste (glattet)</th><th>Nå (glattet)</th></tr>'+
     d.serier.map(x=>{
       const beste=Math.max(...x.glatt.map(p=>p.v)), nå=x.glatt[x.glatt.length-1].v;
-      return '<tr><td>'+x.navn+'</td><td>'+x.rå[x.rå.length-1].g+'</td><td>'+(beste>0?"+":"")+beste.toFixed(0)+'</td><td>'+(nå>0?"+":"")+nå.toFixed(0)+'</td></tr>';
+      return '<tr><td>'+x.navn+'</td><td>'+(x.mot==="nevro"?"NevroHjerne":"grådig bot")+'</td><td>'+x.rå[x.rå.length-1].g+'</td><td>'+(beste>0?"+":"")+beste.toFixed(0)+'</td><td>'+(nå>0?"+":"")+nå.toFixed(0)+'</td></tr>';
     }).join("");
   document.getElementById("stempel").textContent="Sist oppdatert "+new Date(d.oppdatert).toLocaleTimeString("nb-NO");
   document.getElementById("vert").textContent=d.maskin?" (trener på "+d.maskin+")":"";
@@ -134,7 +135,7 @@ function kobleHover(XMAX){
     for(const s of DATA.serier){
       if(gx>s.glatt[s.glatt.length-1].g+XMAX*0.03) continue;
       let n=s.glatt[0]; for(const p of s.glatt) if(Math.abs(p.g-gx)<Math.abs(n.g-gx)) n=p;
-      if(Math.abs(n.g-gx)<=XMAX*0.04) rader+="<div><b>"+s.navn+"</b> gen "+n.g+": "+(n.v>0?"+":"")+n.v+"</div>";
+      if(Math.abs(n.g-gx)<=XMAX*0.04) rader+="<div><b>"+s.navn+"</b> "+(s.mot==="nevro"?"mot nevro":"mot grådig")+", gen "+n.g+": "+(n.v>0?"+":"")+n.v+"</div>";
     }
     if(!rader){tt.style.display="none";return;}
     tt.innerHTML="<div><b>gen ≈ "+Math.round(gx)+"</b></div>"+rader;
