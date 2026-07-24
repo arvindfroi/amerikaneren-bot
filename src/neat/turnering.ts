@@ -39,6 +39,8 @@ export interface TurneringsAgent {
   readonly søkbar?: boolean;
   /** Valgfri spillfasit-læring: smal kalibrering mot solverens kortvalg. */
   lærSpill?(state: GameState, spiller: number, solverKort: Kort, rate: number): void;
+  /** Valgfri budfasit-læring: xT-kalibrering mot en utspilt rollout. */
+  lærBudFasit?(state: GameState, spiller: number, lagStikk: number, makkerStikk: number, rate: number): void;
 }
 
 export interface KampOpts {
@@ -73,10 +75,56 @@ export interface KampOpts {
     readonly nodeTak: number;
     readonly rate: number;
   };
+  /**
+   * BUDFASIT: med sannsynlighet `sjanse` per budbeslutning spilles en
+   * ROLLOUT av givingen der agenten tvinges til å vinne budrunden (minste
+   * lovlige bud), og resten av runden spilles ut av kampens egne agenter.
+   * Lagstikkene derfra kalibrerer xT-hodene (lærBudFasit). Fasiten er
+   * dermed «hva laget mitt faktisk spiller hjem med MIN spillestyrke» –
+   * ikke et perfekt-spill-tall – og den dekker også hender der agenten
+   * passer (lærAvKontrakt fyrer bare når agenten vinner budrunden).
+   * Selve kampen påvirkes ikke: agentens egen budhandling spilles.
+   */
+  readonly budFasit?: { readonly sjanse: number; readonly rate: number };
 }
 
 const STD_MAKS_RUNDER = 40;
 const STD_MAKS_HANDLINGER = 20000;
+
+/**
+ * Budfasit-rollout: fra budøyeblikket tvinges `sete` til å vinne budrunden
+ * med minste lovlige tallbud (alle andre passer), og runden spilles ut med
+ * LÆRLINGENS EGET NETT på alle fire seter – fasiten er hva agentens egen
+ * spillestyrke faktisk spiller hjem, ikke et perfekt-spill-tall. Kampens
+ * ekte tilstand røres ikke (utfør kloner), og velgHandling bokfører
+ * ingenting utenfor budrunden.
+ */
+function budRollout(
+  budState: GameState,
+  sete: number,
+  agent: TurneringsAgent,
+  rate: number,
+): void {
+  const høyesteBud = budState.budrunde.høyeste?.bud ?? null;
+  if (høyesteBud !== null && typeof høyesteBud !== "number") return; // am/solo kan ikke overbys med tall
+  const bud = høyesteBud === null ? 5 : høyesteBud + 1;
+  if (bud > budState.giving.antallStikk) return;
+
+  let s = utfør(budState, { type: "BUD", spiller: sete, bud }).state;
+  let guard = 0;
+  while (s.fase === "BUDRUNDE" && guard++ < 8) {
+    s = utfør(s, { type: "BUD", spiller: s.iTur!, bud: "PASS" }).state;
+  }
+  guard = 0;
+  while ((s.fase === "VRAK" || s.fase === "VELG" || s.fase === "SPILL") && guard++ < 250) {
+    s = utfør(s, agent.velgHandling(s)).state;
+  }
+  const res = s.sisteRunde;
+  if (!res || res.budvinner !== sete) return;
+  const makkerStikk =
+    res.makker !== null && res.makker !== res.budvinner ? (res.stikkVunnet[res.makker] ?? 0) : 0;
+  agent.lærBudFasit!(budState, sete, res.lagStikk, makkerStikk, rate);
+}
 
 export interface GruppeResultat {
   /**
@@ -138,6 +186,14 @@ export function spillGruppekamp(
       const agent = agenter[agentISete(sete)]!;
       let handling: Handling =
         state.fase === "RUNDE_SLUTT" ? ({ type: "NESTE" } as const) : agent.velgHandling(state);
+      if (
+        state.fase === "BUDRUNDE" &&
+        opts.budFasit !== undefined &&
+        agent.lærBudFasit !== undefined &&
+        rng() < opts.budFasit.sjanse
+      ) {
+        budRollout(state, sete, agent, opts.budFasit.rate);
+      }
       if (state.fase === "SPILL" && handling.type === "SPILL") {
         const gjenstår = state.giving.antallStikk - state.stikkSpilt;
         if (

@@ -287,6 +287,28 @@ export class NeatAgent {
   }
 
   /**
+   * Budfasit: kalibrerer xT-hodene mot lagstikkene fra en UTSPILT rollout
+   * av samme giving med agentens EGEN spillestyrke på alle seter. Fasiten
+   * er dermed «hva jeg faktisk klarer å spille hjem», ikke hva en perfekt
+   * spiller kunne tatt – budene vokser i takt med spilleevnen. Gir også
+   * signal på hender der agenten ellers ville passet (dekker skjevheten i
+   * lærAvKontrakt, som bare fyrer når agenten VANT budrunden).
+   */
+  lærBudFasit(state: GameState, spiller: number, lagStikk: number, makkerStikk: number, rate: number): void {
+    if (rate <= 0) return;
+    this.evaluer(state, spiller, "BUD");
+    const T = state.giving.antallStikk;
+    const y = (2 * lagStikk) / T - 1;
+    // Dybde 2: retter forståelsen bak estimatet, ikke bare utgangen.
+    this.nett.kalibrerUtgang(UT_XT, y, rate, 2);
+    const q20 = this.nett.lesUtgang(UT_XT_LAV);
+    this.nett.kalibrerUtgang(UT_XT_LAV, y, rate * (y < q20 ? 0.8 : 0.2));
+    const q80 = this.nett.lesUtgang(UT_XT_HØY);
+    this.nett.kalibrerUtgang(UT_XT_HØY, y, rate * (y > q80 ? 0.8 : 0.2));
+    this.nett.kalibrerUtgang(UT_MAKKER, (2 * makkerStikk) / T - 1, rate);
+  }
+
+  /**
    * Rangerer lovlige kort etter korthodets score (beste først). Brukes av
    * hybrid-/søkeagenter som kandidatliste: nettet foreslår, søket avgjør.
    */

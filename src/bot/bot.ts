@@ -38,7 +38,7 @@ import {
   intTilKort,
   kortTilInt,
 } from "../solver/dds.ts";
-import { byggDDOppsett, trekkVerden, type Verden } from "../solver/sampler.ts";
+import { byggDDOppsett, trekkVerdenBelief, type Verden } from "../solver/sampler.ts";
 
 export interface BotOpts {
   /** Antall verdener (determiniseringer) per beslutning. */
@@ -285,7 +285,7 @@ function verdenVekt(akk: SpillAkk, verdenDD: number): number {
 
 /** Behandler én verden (uten tidssjekk innad); false hvis sampling mislyktes. */
 function utvidEn(akk: SpillAkk): boolean {
-  const verden = trekkVerden(akk.state, akk.spiller, akk.rng);
+  const verden = trekkVerdenBelief(akk.state, akk.spiller, akk.rng);
   if (!verden) return false;
   const oppsett = byggDDOppsett(akk.state, verden);
   const påLag = verden.declLag[akk.spiller] === true;
@@ -315,7 +315,7 @@ function utvidTid(akk: SpillAkk, frist: number, maks = 100_000): void {
   const bidrag = new Array<number>(akk.lovlige.length);
   let tomme = 0;
   while (akk.antall < maks && Date.now() < frist) {
-    const verden = trekkVerden(akk.state, akk.spiller, akk.rng);
+    const verden = trekkVerdenBelief(akk.state, akk.spiller, akk.rng);
     if (!verden) {
       if (++tomme > 50) break;
       continue;
@@ -382,7 +382,7 @@ function utvidTidAdaptivt(akk: SpillAkk, frist: number): void {
   const bidrag = new Array<number>(kandidater.length);
   let tomme = 0;
   while (Date.now() < frist && tomme < 50) {
-    const verden = trekkVerden(akk.state, akk.spiller, akk.rng);
+    const verden = trekkVerdenBelief(akk.state, akk.spiller, akk.rng);
     if (!verden) {
       tomme++;
       continue;

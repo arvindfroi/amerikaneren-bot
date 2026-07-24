@@ -46,6 +46,7 @@ let kampFrø = 1;
 let portvakter = 0;
 let sluttsøk = 0;
 let spillFasit = false;
+let budFasit = false;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--fra") fraFil = process.argv[++i] ?? null;
   else if (process.argv[i] === "--fra-flere") fraFlereFil = process.argv[++i] ?? null;
@@ -58,6 +59,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (process.argv[i] === "--portvakter") portvakter = Number(process.argv[++i]);
   else if (process.argv[i] === "--sluttsøk") sluttsøk = Number(process.argv[++i]);
   else if (process.argv[i] === "--spillfasit") spillFasit = true;
+  else if (process.argv[i] === "--budfasit") budFasit = true;
   else posisjonelle.push(process.argv[i]!);
 }
 const generasjoner = Number(posisjonelle[0] ?? 50);
@@ -158,12 +160,14 @@ const evo = new Evolusjon({
     ...(spillFasit
       ? { spillFasit: { sjanse: 0.08, verdener: 3, dybde: 3, nodeTak: 60_000, rate: 0.02 } }
       : {}),
+    ...(budFasit ? { budFasit: { sjanse: 0.05, rate: 0.02 } } : {}),
   },
   pimcPortvakter: portvakter,
 });
 if (portvakter > 0) console.log(`PIMC-portvakter i cupen: ${Math.floor(portvakter / 4) * 4}`);
 if (sluttsøk > 0) console.log(`Sluttsøk i kampene: eksakt ved ≤${sluttsøk} stikk igjen`);
 if (spillFasit) console.log(`Spillfasit på: solver-fasit for korthodet (8 % av kortvalg, rate 0.02)`);
+if (budFasit) console.log(`Budfasit på: rollout-fasit for xT-hodene (5 % av budvalg, rate 0.02)`);
 
 // Gullstandarden (ratchet): beste eksternt benkede genom, beskyttet i
 // populasjonen og kun byttet når en cupvinner benker bedre. Lastes ved

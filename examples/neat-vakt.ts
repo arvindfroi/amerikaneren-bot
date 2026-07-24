@@ -33,6 +33,7 @@ let kampFrø = 1;
 let portvakter = 0;
 let sluttsøk = 0;
 let spillFasit = false;
+let budFasit = false;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--maks-timer") maksTimer = Number(process.argv[++i]);
   else if (process.argv[i] === "--dir") dir = process.argv[++i] ?? "trening";
@@ -43,6 +44,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (process.argv[i] === "--portvakter") portvakter = Number(process.argv[++i]);
   else if (process.argv[i] === "--sluttsøk") sluttsøk = Number(process.argv[++i]);
   else if (process.argv[i] === "--spillfasit") spillFasit = true;
+  else if (process.argv[i] === "--budfasit") budFasit = true;
   else posisjonelle.push(process.argv[i]!);
 }
 const generasjoner = Number(posisjonelle[0] ?? 8000);
@@ -140,6 +142,7 @@ for (;;) {
   if (portvakter > 0) argv.push("--portvakter", String(portvakter));
   if (sluttsøk > 0) argv.push("--sluttsøk", String(sluttsøk));
   if (spillFasit) argv.push("--spillfasit");
+  if (budFasit) argv.push("--budfasit");
   // Gjenoppta fra linjens egen mester når den finnes; ellers eventuell
   // kombinert startpopulasjon (kun første start av en ny linje).
   if (existsSync(`${dir}/mester.json`)) argv.push("--fra", `${dir}/mester.json`);

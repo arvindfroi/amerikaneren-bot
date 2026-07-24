@@ -18,7 +18,7 @@ import {
   type Handling,
 } from "../motor.ts";
 import { evaluerEtterTrekk, kortTilInt } from "../solver/dds.ts";
-import { byggDDOppsett, trekkVerden, type Verden } from "../solver/sampler.ts";
+import { byggDDOppsett, trekkVerdenBelief, type Verden } from "../solver/sampler.ts";
 import { NeatAgent, type BudEstimat } from "./agent.ts";
 import type { Genom } from "./genom.ts";
 
@@ -53,7 +53,7 @@ export function solverBesteKort(
   let verdener = 0;
   let tomme = 0;
   while (verdener < opts.verdener && tomme < 40) {
-    const verden = trekkVerden(state, spiller, opts.rng);
+    const verden = trekkVerdenBelief(state, spiller, opts.rng);
     if (!verden) {
       tomme++;
       continue;

@@ -189,6 +189,82 @@ function forbudtAntall(bins: Bin[], c: number): number {
   return n;
 }
 
+// --- Belief-vektet sampling (budhistorikken avslører håndstyrke) -----------
+
+/** Honnørpoeng (E=4,K=3,D=2,Kn=1) + lengste farge − 3: grov håndstyrke. */
+function styrkeFraInt(kort: readonly number[]): number {
+  let hcp = 0;
+  const lengder = [0, 0, 0, 0];
+  for (const c of kort) {
+    lengder[Math.floor(c / 13)]!++;
+    const verdi = (c % 13) + 2;
+    if (verdi >= 11) hcp += verdi - 10;
+  }
+  return hcp + Math.max(...lengder) - 3;
+}
+
+/**
+ * Log-vekt for hvor forenlig en verden er med budhistorikken: spillere som
+ * bød høyt skal ha sterke ORIGINALHÅNDER (rest + egne spilte kort), spillere
+ * som passet uten å by skal ikke ha dem. Snitthånd ≈ styrke 12.
+ */
+function budForenlighet(state: GameState, verden: Verden, observator: number): number {
+  const spilteAv: number[][] = [];
+  for (let p = 0; p < state.antallSpillere; p++) spilteAv.push([]);
+  for (const s of state.historikk) for (const kp of s.kort) spilteAv[kp.spiller]!.push(kortTilInt(kp.kort));
+  for (const kp of state.bord) spilteAv[kp.spiller]!.push(kortTilInt(kp.kort));
+
+  let logW = 0;
+  for (let p = 0; p < state.antallSpillere; p++) {
+    if (p === observator) continue;
+    const bud = state.budrunde.sisteBud[p];
+    if (bud === undefined || (bud === null && !state.budrunde.passet[p])) continue;
+    const st = styrkeFraInt([...verden.hender[p]!, ...spilteAv[p]!]);
+    if (typeof bud === "number") {
+      logW -= ((st - (12 + 2 * (bud - 5))) / 5) ** 2;
+    } else if (bud === "AMERIKANER" || bud === "SOLO") {
+      logW -= ((Math.min(0, st - 24)) / 6) ** 2;
+    } else {
+      // Passet uten å by: neppe en sterk hånd.
+      logW -= (Math.max(0, st - 14) / 5) ** 2;
+    }
+  }
+  return logW;
+}
+
+/**
+ * Som `trekkVerden`, men vekter mellom flere kandidatverdener etter hvor
+ * godt de stemmer med budhistorikken (Belief-MC-idéen fra bridge-AI:
+ * verdener samples ikke uniformt, men etter hva budene har avslørt).
+ */
+export function trekkVerdenBelief(
+  state: GameState,
+  observator: number,
+  rng: () => number,
+  kandidater = 3,
+): Verden | null {
+  // Uten budinformasjon om noen andre er vektingen et nullbidrag.
+  const harInfo = state.budrunde.sisteBud.some(
+    (b, p) => p !== observator && (b !== null || state.budrunde.passet[p]),
+  );
+  if (!harInfo || kandidater <= 1) return trekkVerden(state, observator, rng);
+
+  const utvalg: { verden: Verden; logW: number }[] = [];
+  for (let i = 0; i < kandidater; i++) {
+    const v = trekkVerden(state, observator, rng);
+    if (v) utvalg.push({ verden: v, logW: budForenlighet(state, v, observator) });
+  }
+  if (utvalg.length === 0) return null;
+  const maks = Math.max(...utvalg.map((u) => u.logW));
+  const vekter = utvalg.map((u) => Math.exp(u.logW - maks));
+  let r = rng() * vekter.reduce((a, b) => a + b, 0);
+  for (const [i, u] of utvalg.entries()) {
+    r -= vekter[i]!;
+    if (r < 0) return u.verden;
+  }
+  return utvalg[utvalg.length - 1]!.verden;
+}
+
 /** Bygger et DD-oppsett for stillingen NÅ (før spiller i tur har lagt kort). */
 export function byggDDOppsett(state: GameState, verden: Verden): DDOppsett {
   const trump = state.trumf ? FARGER.indexOf(state.trumf) : 0;
