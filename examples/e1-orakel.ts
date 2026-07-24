@@ -114,7 +114,10 @@ for (let k = 0; k < kamper; k++) {
               // og uten begge kan ikke NEAT-genomer scores på angerbenken –
               // som er hele poenget med å måle beslutninger i stedet for
               // kamputfall. Koster ~1,3 kB per linje, verdt det.
-              n: lagInn(spillerVisning(s, sete), "SPILL", s.giving.antallStikk, s.regler.målPoeng).map(
+              // Feltnavnet er «nt», ikke «n»: «n» var allerede tatt av
+              // antall verdener, og JSON beholder bare det siste feltet med
+              // samme navn – den første versjonen ble stille overskrevet.
+              nt: lagInn(spillerVisning(s, sete), "SPILL", s.giving.antallStikk, s.regler.målPoeng).map(
                 (x) => Math.round(x * 10_000) / 10_000,
               ),
               v: verdi,

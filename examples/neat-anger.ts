@@ -104,7 +104,7 @@ if (kandidater.length === 0 && neatKandidater.length === 0) {
   console.error("Ingen scorbare kandidater.");
   process.exit(1);
 }
-const medNeat = benk.filter((b) => b.n !== undefined).length;
+const medNeat = benk.filter((b) => b.nt !== undefined).length;
 if (neatKandidater.length > 0) {
   console.log(`NEAT-vektor finnes i ${medNeat} av ${benk.length} stillinger.
 `);

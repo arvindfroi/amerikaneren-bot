@@ -36,7 +36,7 @@ export interface Benkstilling {
   /** E1-trekkvektoren (273 tall) – de 238 første er appens koding. */
   readonly t: readonly number[];
   /** NEAT-trekkvektoren (318 tall). Finnes bare i data skrevet etter 2026-07-25. */
-  readonly n?: readonly number[];
+  readonly nt?: readonly number[];
   /** kortindeks → forventet egenpoeng. */
   readonly v: Readonly<Record<string, number>>;
   readonly stikk: number;
@@ -104,7 +104,7 @@ export function scoreBenk(
     if (lovlige.length < 2) continue;
     let beste = -Infinity;
     for (const k of lovlige) beste = Math.max(beste, s.v[String(k)]!);
-    const trekk = format === "neat" ? s.n : s.t;
+    const trekk = format === "neat" ? s.nt : s.t;
     if (trekk === undefined) continue;
     const valgt = velg(trekk, lovlige);
     const verdi = s.v[String(valgt)];
