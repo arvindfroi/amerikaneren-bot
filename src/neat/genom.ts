@@ -198,6 +198,8 @@ export interface MutasjonsRater {
   readonly styrke: number;
   /** Sjanse for å legge til en ny kobling. */
   readonly nyKobling: number;
+  /** Sannsynlighet for å BESKJÆRE bort den svakeste koblingen. */
+  readonly beskjær?: number;
   /** Sjanse for å splitte en kobling med en ny node. */
   readonly nyNode: number;
   /** Sjanse for å skru en tilfeldig kobling av/på. */
@@ -245,6 +247,12 @@ export const STANDARD_RATER: MutasjonsRater = {
   nyKobling: 0.6,
   nyNode: 0.2,
   veksle: 0.03,
+  // MÅLT: å fjerne 60 % av de svakeste koblingene i D5s gull ga +25,5 ± 3,6
+  // (tegntest 39/50). NEAT vokser monotont – nyKobling 0,6 legger til, og
+  // ingenting tok bort. Uten en motkraft samler genomet opp koblinger som
+  // bare legger støy på aktiveringene. Raten er lav: beskjæring skal være en
+  // jevn motvekt, ikke en saks som river ut struktur som nettopp ble født.
+  beskjær: 0.25,
 };
 
 export function muterVekter(g: Genom, rng: () => number, rater: MutasjonsRater): void {
@@ -340,8 +348,30 @@ export function muterVeksle(g: Genom, rng: () => number, bias?: readonly KildeBi
 }
 
 /** Kjører hele mutasjonspakka med gitte rater. */
+/**
+ * Beskjæringsmutasjon: deaktiverer den svakeste aktive koblingen, men aldri
+ * den siste inn til en node (da ville hodet blitt dødt).
+ */
+export function muterBeskjær(g: Genom, rng: () => number): boolean {
+  const aktive = g.koblinger.filter((k) => k.aktiv);
+  if (aktive.length < 20) return false;
+  const innTil = new Map<number, number>();
+  for (const k of aktive) innTil.set(k.ut, (innTil.get(k.ut) ?? 0) + 1);
+  // Blant de 10 % svakeste, velg én tilfeldig – deterministisk «alltid den
+  // aller svakeste» ville fjernet samme kobling i hele populasjonen.
+  const sortert = aktive
+    .filter((k) => (innTil.get(k.ut) ?? 0) > 1)
+    .sort((a, b) => Math.abs(a.vekt) - Math.abs(b.vekt));
+  if (sortert.length === 0) return false;
+  const tak = Math.max(1, Math.floor(sortert.length * 0.1));
+  const valgt = sortert[Math.floor(rng() * tak)]!;
+  valgt.aktiv = false;
+  return true;
+}
+
 export function muter(g: Genom, bok: Innovasjonsbok, rng: () => number, rater = STANDARD_RATER): void {
   if (rng() < rater.vekter) muterVekter(g, rng, rater);
+  if (rng() < (rater.beskjær ?? 0)) muterBeskjær(g, rng);
   if (rng() < rater.nyKobling) muterNyKobling(g, bok, rng, 30, rater.kildeBias);
   if (rng() < rater.nyNode) muterNyNode(g, bok, rng);
   if (rng() < rater.veksle) muterVeksle(g, rng, rater.kildeBias);
