@@ -22,7 +22,15 @@
  *     havner i. Et genom som spiller helt annerledes møter andre stillinger
  *     i praksis (distribution shift). Motmiddelet er å blande inn stillinger
  *     fra kandidatens EGEN spilling – se `--egne` i examples/neat-anger.ts.
- *  2. ORAKELETS EGET TAK. Dobbelt-dummy løser hver verden som om alt var
+ *  2. BENKEN MÅLER BARE KORTSPILL. Kampmålingen måler bud + vrak + trumf +
+ *     kort. De to kan peke motsatt vei uten at noen av dem tar feil: målt
+ *     2026-07-25 ga beskjæring monotont DÅRLIGERE anger (0,87 → 1,09) men
+ *     +21 kamppoeng, fordi den skadet kortspillet mindre enn den hjalp i
+ *     budgivningen. Ytterpunktet: genomet med dødt xT-hode har verst anger
+ *     (1,11) og best kamppoeng (+36,8) – et avslått budhode slår et aktivt
+ *     skadelig ett. Bruk angerbenken for kortspill, kampmålingen for
+ *     helheten, og les aldri den ene som svar på den andres spørsmål.
+ *  3. ORAKELETS EGET TAK. Dobbelt-dummy løser hver verden som om alt var
  *     kjent (strategifusjon), så fasiten er ikke perfekt spill under skjult
  *     informasjon. Den er likevel den sterkeste vi har, og den er ikke en
  *     bot vi allerede har slått.
