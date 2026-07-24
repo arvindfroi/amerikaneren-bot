@@ -137,6 +137,10 @@ export interface IndividData {
   readonly fraLagspill: number;
   readonly fraBudhist: number;
   readonly fraLagstikk: number;
+  /** Vektmasse (sum |vekt|) fra de nye gruppene: bruksSTYRKE, ikke bare -tall. */
+  readonly vektLagspill: number;
+  readonly vektBudhist: number;
+  readonly vektLagstikk: number;
   readonly fitness: number;
   readonly dybde: number;
   readonly regret: number;
@@ -186,6 +190,9 @@ function lagIndividData(g: Genom, fitness: number, dybde: number, regret: number
   let fraLagspill = 0;
   let fraBudhist = 0;
   let fraLagstikk = 0;
+  let vektLagspill = 0;
+  let vektBudhist = 0;
+  let vektLagstikk = 0;
   for (const k of g.koblinger) {
     if (!k.aktiv) continue;
     aktive++;
@@ -196,9 +203,18 @@ function lagIndividData(g: Genom, fitness: number, dybde: number, regret: number
     if (iOmråde(k.inn, SENSORGRUPPER.renons)) fraRenons++;
     if (iOmråde(k.inn, SENSORGRUPPER.bossTelling)) fraBossTelling++;
     if (iOmråde(k.inn, SENSORGRUPPER.taktikk)) fraTaktikk++;
-    if (iOmråde(k.inn, SENSORGRUPPER.lagspill)) fraLagspill++;
-    if (iOmråde(k.inn, SENSORGRUPPER.budhistorikk)) fraBudhist++;
-    if (iOmråde(k.inn, SENSORGRUPPER.lagstikk)) fraLagstikk++;
+    if (iOmråde(k.inn, SENSORGRUPPER.lagspill)) {
+      fraLagspill++;
+      vektLagspill += Math.abs(k.vekt);
+    }
+    if (iOmråde(k.inn, SENSORGRUPPER.budhistorikk)) {
+      fraBudhist++;
+      vektBudhist += Math.abs(k.vekt);
+    }
+    if (iOmråde(k.inn, SENSORGRUPPER.lagstikk)) {
+      fraLagstikk++;
+      vektLagstikk += Math.abs(k.vekt);
+    }
   }
   return {
     noder: g.noder.length,
@@ -215,6 +231,9 @@ function lagIndividData(g: Genom, fitness: number, dybde: number, regret: number
     fraLagspill,
     fraBudhist,
     fraLagstikk,
+    vektLagspill,
+    vektBudhist,
+    vektLagstikk,
     fitness,
     dybde,
     regret,

@@ -1,7 +1,7 @@
 /**
  * Forklaringsanalyse: hvilke genom-trekk forklarer godt/dårlig spill?
  *
- *   node examples/neat-forklar.ts [dir=trening-c4] [sisteGen=alle]
+ *   node examples/neat-forklar.ts [dir=trening-c4] [sisteGen=alle] [fraGen=0]
  *
  * Leser analyse.jsonl (trekk + fitness per individ per generasjon, skrevet
  * av treneren), standardiserer trekkene og kjører multippel lineær
@@ -14,6 +14,9 @@ import { existsSync, readFileSync } from "node:fs";
 
 const dir = process.argv[2] ?? "trening-c4";
 const sisteGen = process.argv[3] !== undefined ? Number(process.argv[3]) : Infinity;
+// Nedre grense: mål kun på generasjoner ETTER en migrering/omlegging, så
+// rader uten de nye trekk-kolonnene (implisitt 0) ikke forurenser bildet.
+const fraGen = process.argv[4] !== undefined ? Number(process.argv[4]) : 0;
 
 const fil = `${dir}/analyse.jsonl`;
 if (!existsSync(fil)) {
@@ -36,6 +39,9 @@ const TREKK = [
   "fraLagspill",
   "fraBudhist",
   "fraLagstikk",
+  "vektLagspill",
+  "vektBudhist",
+  "vektLagstikk",
   "regret",
 ] as const;
 
@@ -49,7 +55,7 @@ let generasjoner = 0;
 for (const linje of readFileSync(fil, "utf8").split("\n")) {
   if (linje.trim() === "") continue;
   const d = JSON.parse(linje) as { gen: number; individer: Record<string, number>[] };
-  if (d.gen > sisteGen) continue;
+  if (d.gen > sisteGen || d.gen < fraGen) continue;
   generasjoner++;
   for (const ind of d.individer) {
     rader.push({ x: TREKK.map((t) => ind[t] ?? 0), y: ind["fitness"] ?? 0 });
