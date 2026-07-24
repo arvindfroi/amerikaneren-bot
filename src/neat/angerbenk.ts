@@ -38,6 +38,14 @@
  *     når signalet var rundeutfall. BEGGE DELER MÅ VÆRE PÅ PLASS: gradienten
  *     må kunne flyte (avmetning), og fasiten må være per beslutning – «klarte
  *     kontrakten» sier ikke hvilket kort som var feil.
+ *
+ *     HOLD-OUT BEKREFTET (3 000 usette stillinger, disjunkt fra treningen):
+ *       før   anger 1,0848   optimalt 50,6 %
+ *       etter anger 0,8580   optimalt 54,5 %   (treningssett: 0,7670 / 56,9 %)
+ *     Læringen generaliserer altså – moderat overtilpasning, og kurven flater
+ *     ut etter epoke 3, så datamengden er begrensningen, ikke metoden.
+ *     NevroHjerne ligger på ~0,94 på tilsvarende data: dette er første gang
+ *     en D-linje slår nevro på kortvalg.
  *  4. ORAKELETS EGET TAK. Dobbelt-dummy løser hver verden som om alt var
  *     kjent (strategifusjon), så fasiten er ikke perfekt spill under skjult
  *     informasjon. Den er likevel den sterkeste vi har, og den er ikke en
