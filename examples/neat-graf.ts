@@ -342,7 +342,12 @@ function lesDestillasjon(dataPrefiks: string, kandidatPrefiks: string): E1Status
       if (linje.trim() === "") continue;
       const m = JSON.parse(linje) as E1Måling;
       if (!m.kandidat.startsWith(kandidatPrefiks) || m.motNevro === undefined) continue;
-      const x = Number(m.merke.match(/stillinger=(\d+)/)?.[1] ?? 0);
+      // X-aksen er hvor mange stillinger nettet laerte av. Den staar normalt i
+      // merkelappen som «stillinger=N», men ikke alle maalinger skriver den.
+      // Uten en reserve faller punktet stille ut av grafen - SD-linja hadde
+      // null punkter paa siden mens maalingen laa i loggen.
+      const fraMerke = Number(m.merke.match(/stillinger=(\d+)/)?.[1] ?? 0);
+      const x = fraMerke > 0 ? fraMerke : stillinger;
       if (x > 0) punkter.push({ x, diff: m.motNevro, se: m.motNevroSe ?? 0, hybrid: m.hybrid });
     }
   } catch {
