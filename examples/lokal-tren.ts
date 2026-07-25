@@ -36,7 +36,18 @@ const posisjonell = flagg.find((f) => !f.startsWith("--"));
 // linjen tas med på nytt.
 const linjeValg = ((): string[] | null => {
   const i = flagg.indexOf("--linjer");
-  return i >= 0 && flagg[i + 1] !== undefined ? flagg[i + 1]!.split(",").map((s) => s.trim().toUpperCase()) : null;
+  if (i < 0) return null;
+  // Tåler både «--linjer D5,D6» og «--linjer D5 D6»: PowerShell splitter en
+  // kommaseparert streng til flere argumenter, og da ble bare den første
+  // linjen startet uten at noe klaget.
+  const navn: string[] = [];
+  for (let j = i + 1; j < flagg.length && !flagg[j]!.startsWith("--"); j++) {
+    // Splitt på både komma og mellomrom: PowerShell kan levere «D5,D6»,
+    // «D5 D6» (komma splittet til to argumenter) eller «"D5,D6"» (ett
+    // argument med mellomrom etter at anførselstegnene er strippet).
+    for (const del of flagg[j]!.split(/[,\s]+/)) if (del.trim() !== "") navn.push(del.trim().toUpperCase());
+  }
+  return navn.length > 0 ? navn : null;
 })();
 
 const KJERNER = availableParallelism();
@@ -103,6 +114,22 @@ const ALLE_LINJER: Linje[] = [
     logg: "trening-d5.log",
     frø: 515151,
     // MAALT +35,4 ± 3,9 (tegntest 55/60): de tre nye fasitene sammen.
+    ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro",
+             "--trumffasit", "0.5", "--etterlysfasit", "0.6", "--vrakfasit", "0.6",
+             "--stikkfasit", "0.25"],
+  },
+  // D6 = D5s befolkning, men AVMETTET og anger-trent. Det er de to tingene
+  // som maalt gjoer et NEAT-genom laerbart: gradienten maa kunne flyte
+  // (utgangshodene sto i metning, derivert ~0), og fasiten maa vaere per
+  // BESLUTNING (rundeutfall sier ikke hvilket kort som var feil).
+  // Hold-out bekreftet: anger 1,085 -> 0,858 paa 3 000 usette stillinger,
+  // altsaa bedre enn NevroHjernes ~0,94. D5s fasit-laerere sto paa hele
+  // tiden, men var virkningsloese paa et mettet nett.
+  {
+    navn: "D6",
+    dir: "trening-d6",
+    logg: "trening-d6.log",
+    frø: 626262,
     ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro",
              "--trumffasit", "0.5", "--etterlysfasit", "0.6", "--vrakfasit", "0.6",
              "--stikkfasit", "0.25"],

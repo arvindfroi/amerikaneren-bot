@@ -48,7 +48,10 @@ foreach ($f in @($logg, $feil)) {
 
 $argumenter = @("examples/lokal-tren.ts", "$Populasjon")
 if ($UtenGraf) { $argumenter += "--uten-graf" }
-if ($Linjer -ne "") { $argumenter += @("--linjer", $Linjer) }
+# PowerShell splitter en streng med komma til FLERE argumenter i
+# -ArgumentList, saa "D5,D6" ble sendt som «--linjer D5 D6» og bare D5 ble
+# matchet. Anfoerselstegn rundt verdien holder den samlet.
+if ($Linjer -ne "") { $argumenter += @("--linjer", "`"$Linjer`"") }
 
 # Start-Process arver miljøet vårt, så trådtallet settes her.
 if ($Traader -gt 0) { $env:TRAADER = "$Traader" }
