@@ -120,13 +120,14 @@ function tekstFlagg(navn: string, standard: string): string {
 }
 const harFlagg = (navn: string): boolean => process.argv.includes(`--${navn}`);
 
-const antallBlokker = tallFlagg("blokker", 8);
+// Kan overstyres av --fra (reanalyse leser oppsettet fra fila).
+let antallBlokker = tallFlagg("blokker", 8);
 const frøBase = tallFlagg("froe", 90000);
 const verdener = tallFlagg("verdener", 28);
 const terskel = tallFlagg("terskel", 6);
 const tidMs = tallFlagg("ms", 0);
 const gjenta = harFlagg("gjenta");
-const ankerId = tekstFlagg("anker", "vanskelig");
+let ankerId = tekstFlagg("anker", "vanskelig");
 const jsonUt = tekstFlagg("json", "");
 const adapterSti = tekstFlagg("adapter", "arena/adapter/.build/release/adapter");
 const kunArg = tekstFlagg("kun", "");
@@ -215,12 +216,13 @@ for (const par of nettArg.split(",").filter(Boolean)) {
 
 const kun = kunArg ? new Set(kunArg.split(",")) : null;
 const valgte = KANDIDATER.filter((k) => !kun || kun.has(k.id));
+const reanalyse = tekstFlagg("fra", "");
 const anker = KANDIDATER.find((k) => k.id === ankerId);
-if (!anker) throw new Error(`Ukjent anker «${ankerId}»`);
-if (kun && !kun.has(ankerId)) valgte.push(anker); // ankeret må alltid måles selv
-if (valgte.length === 0) throw new Error("Ingen kandidater valgt");
+if (!anker && !reanalyse) throw new Error(`Ukjent anker «${ankerId}»`);
+if (kun && !kun.has(ankerId) && anker) valgte.push(anker); // ankeret må alltid måles selv
+if (valgte.length === 0 && !reanalyse) throw new Error("Ingen kandidater valgt");
 
-if (!existsSync(adapterSti)) {
+if (!reanalyse && !existsSync(adapterSti)) {
   console.error(`Fant ikke adapteren på ${adapterSti}. Bygg den – se arena/README.md.`);
   process.exit(1);
 }
@@ -243,6 +245,9 @@ interface KampStat {
   readonly budKlart: number;
   readonly beslutninger: number;
   readonly sekunder: number;
+  /** Poeng gitt i hver runde, per sete. Lar metrikken avkortes til en
+   *  felles horisont, se `horisontDiff`. */
+  readonly rundeDelta: number[][];
 }
 
 const FASE_PAR: Record<string, string[]> = {
@@ -296,6 +301,7 @@ async function spillKamp(
 
   const budVunnet = [0, 0, 0, 0];
   const budKlart = [0, 0, 0, 0];
+  const rundeDelta: number[][] = [];
   let runder = 0;
   let beslutninger = 0;
   const start = Date.now();
@@ -304,6 +310,7 @@ async function spillKamp(
     for (const h of hendelser) {
       if (h.type === "RUNDE_SLUTT") {
         runder++;
+        rundeDelta.push(h.resultat.delta.slice());
         budVunnet[h.resultat.budvinner]!++;
         if (h.resultat.klart) budKlart[h.resultat.budvinner]!++;
       }
@@ -352,7 +359,33 @@ async function spillKamp(
     budKlart: budKlart[sete] ?? 0,
     beslutninger,
     sekunder: (Date.now() - start) / 1000,
+    rundeDelta,
   };
+}
+
+/**
+ * DEN LENGDEUAVHENGIGE METRIKKEN.
+ *
+ * I et parti til 100 poeng er ALLE per-kamp-mål en funksjon av kamplengden:
+ * kampen slutter nettopp når noen har nådd 100, så runder ≈ 100 / egen
+ * poengrate. Det gjelder sluttpoeng OG poeng per runde – det er innebygd i
+ * formatet, ikke en feil i metrikken.
+ *
+ * Kuttet her fjerner koblingen helt: hver kamp avkortes til de K FØRSTE
+ * rundene, der K er det laveste rundetallet noen kamp i kjøringen hadde. Da
+ * er nevneren identisk for alle kamper og alle boter, ingen kamp forkastes
+ * (K er et minimum), og målstreken på 100 poeng rekker aldri å påvirke
+ * tallet. Driftseksjonen viser korrelasjonen mot kamplengde for begge mål:
+ * `diff/runde` ligger nær −1, `diff@K` skal ligge nær 0.
+ */
+function horisontDiff(k: KampStat, sete: number, K: number): number {
+  const sum = [0, 0, 0, 0];
+  for (let r = 0; r < Math.min(K, k.rundeDelta.length); r++) {
+    for (let s = 0; s < 4; s++) sum[s]! += k.rundeDelta[r]![s] ?? 0;
+  }
+  const andre = [0, 1, 2, 3].filter((s) => s !== sete);
+  const motstand = andre.reduce((a, s) => a + sum[s]!, 0) / andre.length;
+  return (sum[sete]! - motstand) / K;
 }
 
 // ---------------------------------------------------------------------------
@@ -482,13 +515,38 @@ async function kjørRutenett(adapter: Adapter, merkelapp: string): Promise<BotRe
   return ut;
 }
 
+/** Felles horisont K = korteste kamp i kjøringen (0 hvis rådata mangler). */
+function finnHorisont(res: readonly BotResultat[]): number {
+  let K = Infinity;
+  for (const r of res) {
+    for (const k of r.kamper) {
+      const n = k.rundeDelta?.length ?? 0;
+      if (n < K) K = n;
+    }
+  }
+  return Number.isFinite(K) ? K : 0;
+}
+
+/** Blokksnitt av diff@K – analyse-enheten, som for de andre metrikkene. */
+function blokkHorisont(r: BotResultat, K: number, blokker: number): number[] {
+  const ut: number[] = [];
+  for (let b = 0; b < blokker; b++) {
+    const i = r.kamper.filter((k) => k.blokk === b);
+    if (i.length === 0) continue;
+    ut.push(i.reduce((a, k) => a + horisontDiff(k, k.sete, K), 0) / i.length);
+  }
+  return ut;
+}
+
 const pad = (s: string, n: number): string => (s.length >= n ? s.slice(0, n) : s + " ".repeat(n - s.length));
 const padV = (s: string, n: number): string => (s.length >= n ? s : " ".repeat(n - s.length) + s);
 
 function skrivRangering(res: readonly BotResultat[]): void {
   const ankerRes = res.find((r) => r.kandidat.id === ankerId)!;
+  const K = finnHorisont(res);
 
   const rader = res.map((r) => {
+    const hor = K > 0 ? anslå(blokkHorisont(r, K, antallBlokker)) : null;
     const dpr = anslå(r.blokkDiffPerRunde);
     const ppr = anslå(r.blokkPoengPerRunde);
     const vin = anslå(r.blokkVinnerandel);
@@ -497,13 +555,13 @@ function skrivRangering(res: readonly BotResultat[]): void {
     const paret = anslå(r.blokkDiffPerRunde.map((v, i) => v - (ankerRes.blokkDiffPerRunde[i] ?? 0)));
     const budV = r.kamper.reduce((a, k) => a + k.budVunnet, 0);
     const budK = r.kamper.reduce((a, k) => a + k.budKlart, 0);
-    return { r, dpr, ppr, vin, slutt, paret, budV, budK };
+    return { r, dpr, ppr, vin, slutt, paret, budV, budK, hor };
   });
   rader.sort((a, b) => b.dpr.snitt - a.dpr.snitt);
 
   console.log(`\n=== Rangering: differanse per runde mot 3× ${ankerId} (95 % KI) ===`);
   console.log(
-    `${pad("Bot", 24)} ${pad("Kilde", 6)} ${padV("diff/runde", 16)} ${padV("poeng/runde", 12)} ` +
+    `${pad("Bot", 24)} ${pad("Kilde", 6)} ${padV("diff/runde", 16)} ${padV(`diff@${K}r`, 16)} ` +
       `${padV("Vinn%", 7)} ${padV("Sluttp.", 8)} ${padV("Budtreff", 9)}`,
   );
   for (const x of rader) {
@@ -511,14 +569,17 @@ function skrivRangering(res: readonly BotResultat[]): void {
     console.log(
       `${pad(x.r.kandidat.navn, 24)} ${pad(x.r.kandidat.kilde, 6)} ` +
         `${padV(`${x.dpr.snitt >= 0 ? "+" : ""}${x.dpr.snitt.toFixed(3)} ± ${x.dpr.ci.toFixed(3)}`, 16)} ` +
-        `${padV(x.ppr.snitt.toFixed(3), 12)} ${padV(`${(100 * x.vin.snitt).toFixed(0)}`, 7)} ` +
+        `${padV(x.hor ? `${x.hor.snitt >= 0 ? "+" : ""}${x.hor.snitt.toFixed(3)} ± ${x.hor.ci.toFixed(3)}` : "–", 16)} ` +
+      `${padV(`${(100 * x.vin.snitt).toFixed(0)}`, 7)} ` +
         `${padV(x.slutt.snitt.toFixed(1), 8)} ${padV(treff, 9)}`,
     );
   }
   console.log(
     `\n  Analyse-enhet: ${antallBlokker} duplikatblokker à 4 kamper ` +
       `(kandidaten i hvert sete, samme kort). n = ${antallBlokker} per bot.\n` +
-      "  Vinn% er kandidatens andel av 4 seter – nøytralt nivå er 25 %.",
+      "  Vinn% er kandidatens andel av 4 seter – nøytralt nivå er 25 %.\n" +
+      `  diff@${K}r er samme differanse, men avkortet til de ${K} første rundene av\n` +
+      "  hver kamp – felles nevner, så tallet kan ikke drive med kamplengden.",
   );
 
   console.log(`\n=== Paret mot ankeret (samme blokker – langt strammere KI) ===`);
@@ -538,20 +599,56 @@ function skrivRangering(res: readonly BotResultat[]): void {
 function skrivDrift(res: readonly BotResultat[]): void {
   console.log("\n=== Driftkontroll ===");
 
-  // 1) Poengdrift: sluttpoeng henger på kamplengden.
+  // 1) Poengdrift. Testen må gjøres INNENFOR hver bot. På tvers av boter er
+  //    både sluttpoeng og kamplengde drevet av styrke (en sterk bot vinner
+  //    fort), så en korrelasjon der er ekte årsakssammenheng, ikke drift.
+  //    Innenfor én bot er variasjonen i kamplengde derimot ren flaks – og da
+  //    er korrelasjon med metrikken nettopp den driften vi vil unngå.
   const alle = res.flatMap((r) => r.kamper);
-  const rPoengRunder = korrelasjon(alle.map((k) => k.poeng), alle.map((k) => k.runder));
-  const rDiffRunder = korrelasjon(
-    alle.map((k) => (k.poeng - k.motstandPoeng) / k.runder),
-    alle.map((k) => k.runder),
-  );
   const runder = anslå(alle.map((k) => k.runder));
   console.log(
-    `\n1) Poengdrift (metrikken mot kamplengden)\n` +
+    `\n1) Poengdrift: henger metrikken på kamplengden når styrken holdes fast?\n` +
       `   Kamplengde: ${runder.snitt.toFixed(1)} runder i snitt ` +
       `(${Math.min(...alle.map((k) => k.runder))}–${Math.max(...alle.map((k) => k.runder))}).\n` +
-      `   korr(sluttpoeng, runder)   = ${rPoengRunder.toFixed(3)}   ← sluttpoeng driver med kamplengden\n` +
-      `   korr(diff/runde, runder)   = ${rDiffRunder.toFixed(3)}   ← primærmetrikken skal ligge nær 0`,
+      `   Korrelasjonene under er regnet INNENFOR hver bot, der variasjonen i\n` +
+      `   kamplengde er flaks. Sluttpoeng skal drive med lengden; diff/runde\n` +
+      `   skal ikke.\n`,
+  );
+  const K = finnHorisont(res);
+  console.log(
+    `   ${pad("Bot", 24)} ${padV("korr(sluttp., R)", 18)} ${padV("korr(diff/runde, R)", 21)} ${padV(`korr(diff@${K}r, R)`, 20)}`,
+  );
+  let sumSlutt = 0, sumDiff = 0, sumHor = 0, antall = 0;
+  for (const r of res) {
+    const R = r.kamper.map((k) => k.runder);
+    const rs = korrelasjon(r.kamper.map((k) => k.poeng), R);
+    const rd = korrelasjon(r.kamper.map((k) => (k.poeng - k.motstandPoeng) / k.runder), R);
+    const rh = K > 0 ? korrelasjon(r.kamper.map((k) => horisontDiff(k, k.sete, K)), R) : NaN;
+    if (Number.isFinite(rs) && Number.isFinite(rd)) {
+      sumSlutt += rs; sumDiff += rd; sumHor += Number.isFinite(rh) ? rh : 0; antall++;
+    }
+    console.log(
+      `   ${pad(r.kandidat.navn, 24)} ${padV(rs.toFixed(3), 18)} ${padV(rd.toFixed(3), 21)} ${padV(Number.isFinite(rh) ? rh.toFixed(3) : "–", 20)}`,
+    );
+  }
+  if (antall > 0) {
+    console.log(
+      `   ${pad("SNITT", 24)} ${padV((sumSlutt / antall).toFixed(3), 18)} ${padV((sumDiff / antall).toFixed(3), 21)} ${padV((sumHor / antall).toFixed(3), 20)}`,
+    );
+  }
+  console.log(
+    "\n   Å lese ut av tabellen – de to fortegnene betyr ikke det samme:\n" +
+      "   * korr(sluttpoeng, R) POSITIV = poengdriften. Jo lengre kampen varer,\n" +
+      "     jo mer samler alle opp, uansett hvor godt de spiller. En bot som\n" +
+      "     drar ut kamper får uttelling den ikke har spilt seg til.\n" +
+      "   * korr(diff/runde, R) NEGATIV er derimot ikke drift, men innebygd i\n" +
+      "     formatet: kampen slutter nettopp når noen når 100, så runder ≈\n" +
+      `     100 / egen poengrate. Går det bra, blir kampen kort.\n` +
+      `   * diff@${K}r har FAST nevner (${K} runder for alle kamper og alle boter), så\n` +
+      "     kamplengden kan ikke blåse opp tallet – der er driften borte ved\n" +
+      "     konstruksjon. At den fortsatt samvarierer med R er samme\n" +
+      "     årsaksretning som over: god start ⇒ kort kamp.\n" +
+      `   Rangeringen bør derfor leses av diff@${K}r, med diff/runde som støtte.`,
   );
 
   // Rangeringen med gammel metrikk vs. ny – flytter noen på seg?
@@ -559,11 +656,22 @@ function skrivDrift(res: readonly BotResultat[]): void {
   const ny = [...res].sort((a, b) => anslå(b.blokkDiffPerRunde).snitt - anslå(a.blokkDiffPerRunde).snitt);
   const flyttet = ny.filter((r, i) => gammel[i]!.kandidat.id !== r.kandidat.id);
   console.log(
-    `   Rangering etter sluttpoeng vs. etter diff/runde: ` +
+    `\n   Rangering etter sluttpoeng vs. etter diff/runde: ` +
       (flyttet.length === 0
         ? "identisk (metrikkvalget endrer ikke rekkefølgen her)."
         : `${flyttet.length} bot(er) bytter plass – sluttpoeng er ikke til å stole på.`),
   );
+
+  // 1b) Metningskontroll: et anker som taper alt kan ikke skille i toppen.
+  const mettet = res.filter((r) => r.kandidat.id !== ankerId && anslå(r.blokkVinnerandel).snitt >= 0.95);
+  if (mettet.length > 0) {
+    console.log(
+      `\n   METNING: ${mettet.length} bot(er) vinner ≥ 95 % av setene mot ankeret\n` +
+        `   (${mettet.map((r) => r.kandidat.navn).join(", ")}).\n` +
+        `   Ankeret er for svakt til å skille dem – rangeringen i toppen er da\n` +
+        `   et gulv-effekt-artefakt, ikke en måling. Bruk et sterkere anker.`,
+    );
+  }
 
   // 2) Tidsdrift: blokkmetrikken mot blokknummer.
   console.log("\n2) Tidsdrift gjennom kjøringen (OLS-helling mot blokknummer)");
@@ -625,7 +733,46 @@ function skrivStøygulv(a: readonly BotResultat[], b: readonly BotResultat[]): v
   }
 }
 
+/**
+ * Bygger BotResultat på nytt fra rådataene i en --json-fil, så rapporten kan
+ * regnes om (nye metrikker, ny driftanalyse) uten å spille kampene igjen.
+ */
+function lesFraFil(sti: string): BotResultat[][] {
+  const rå = JSON.parse(readFileSync(sti, "utf8")) as {
+    oppsett: { antallBlokker: number; ankerId: string };
+    kjøringer: { id: string; navn: string; kamper: KampStat[] }[][];
+  };
+  antallBlokker = rå.oppsett.antallBlokker;
+  ankerId = rå.oppsett.ankerId;
+  return rå.kjøringer.map((kjøring) =>
+    kjøring.map((b) => {
+      const [ppr, dpr, vin, slutt] = blokkAggreger(b.kamper, rå.oppsett.antallBlokker);
+      const kandidat = KANDIDATER.find((k) => k.id === b.id) ?? {
+        id: b.id, navn: b.navn, kilde: "motor" as const, søk: false, appType: null, lag: null,
+      };
+      return {
+        kandidat,
+        kamper: b.kamper,
+        blokkPoengPerRunde: ppr!,
+        blokkDiffPerRunde: dpr!,
+        blokkVinnerandel: vin!,
+        blokkSluttpoeng: slutt!,
+      };
+    }),
+  );
+}
+
 async function hoved(): Promise<void> {
+  // --fra <json>: regn rapporten om fra en tidligere kjøring, ikke spill på nytt.
+  if (reanalyse) {
+    const kjøringer = lesFraFil(reanalyse);
+    console.log(`Reanalyse av ${reanalyse} (${kjøringer.length} kjøring(er), ingen kamper spilt på nytt).\n`);
+    skrivRangering(kjøringer[0]!);
+    skrivDrift(kjøringer[0]!);
+    if (kjøringer.length > 1) skrivStøygulv(kjøringer[0]!, kjøringer[1]!);
+    return;
+  }
+
   const adapter = new Adapter(adapterSti);
   // Alle søkeknappene settes eksplisitt: MesterKonfig.automatisk() skalerer
   // ellers etter maskinvaren, og da er kjøringen ikke reproduserbar.
