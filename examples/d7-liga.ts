@@ -171,19 +171,34 @@ for (let g = 0; g < generasjoner; g++) {
     writeFileSync(`${dir}/mester.json`, genomTilJson(evo.genomer[beste]!));
     writeFileSync(
       `${dir}/status.json`,
-      JSON.stringify({ generasjon: g + 1, rating: mesterRating, populasjon: popp }, null, 2),
+      // `tidsstempel` er IKKE pynt: grafen regner hjerteslaget fra det, og en
+      // linje uten hjerteslag faller ut av «levende» og graes ut som pensjonert.
+      JSON.stringify({
+        generasjon: g + 1,
+        tidsstempel: Date.now(),
+        rating: mesterRating,
+        populasjon: popp,
+        koblinger: evo.genomer[beste]!.koblinger.length,
+      }),
     );
   }
 
   // Ekstern benk med jevne mellomrom: grafen leser denne, og den er det
   // eneste tallet som er sammenlignbart paa tvers av skaar.
-  if ((g + 1) % 50 === 0) {
+  if (g + 1 === 10 || (g + 1) % 25 === 0) {
     const b = benk(evo.genomer[beste]!);
-    const linje =
-      `[gen ${g + 1}] benk vs nevro: mester ${b.egne.toFixed(1)} poeng/kamp, ` +
+    // FORMATET ER IKKE FRITT. neat-graf.ts leser generasjonen fra en EGEN
+    // linje som starter med «gen N:», og knytter den neste benk-linja til
+    // den. Skrev vi «[gen N] benk vs nevro: ...» paa én linje – slik det
+    // stod foer – matchet generasjonsregexen aldri, og hvert eneste D7-punkt
+    // ble stille forkastet av grafen.
+    const linjer =
+      `gen ${g + 1}: rating ${mesterRating.toFixed(0)} pop ${popp}` +
+      NL +
+      `benk vs nevro: mester ${b.egne.toFixed(1)} poeng/kamp, ` +
       `nevro ${b.nevro.toFixed(1)}, seire ${b.seire}/24`;
-    si(linje);
-    appendFileSync(`${dir}.log`, linje + NL);
+    si(linjer);
+    appendFileSync(`${dir}.log`, linjer + NL);
   }
 
   evo.nesteGenerasjonMed(fitness);

@@ -38,7 +38,14 @@ function nevroLærer(): NevroAgent {
 export interface TurneringsAgent {
   nyKamp(): void;
   velgHandling(state: GameState): Handling;
-  estimatFor(rundeNr: number): BudEstimat | undefined;
+  /**
+   * Valgfritt budestimat. NeatAgent har det; NevroAgent har det IKKE, og
+   * appens nett er en legitim motstander i en gruppekamp (D7 benker mot den).
+   * Var feltet påkrevd krasjet benken med «estimatFor is not a function»
+   * første gang den kjørte – regretbokføringen hopper nå bare over agenter
+   * som ikke estimerer, akkurat som den alt gjorde for `lærAvKontrakt`.
+   */
+  estimatFor?(rundeNr: number): BudEstimat | undefined;
   /**
    * Valgfri regret-læring: kalles når agentens kontrakt er avgjort, med de
    * faktiske lag- og makkerstikkene, slik at nettet kan kalibrere seg.
@@ -113,6 +120,35 @@ export interface KampOpts {
    * Selve kampen påvirkes ikke: agentens egen budhandling spilles.
    */
   readonly budFasit?: { readonly sjanse: number; readonly rate: number };
+  /**
+   * DD-FORANKRET BUDFASIT (D7-2). Samme kalibreringssted som `budFasit`, men
+   * fasiten kommer UTENFRA i stedet for fra en rollout med agentens eget
+   * nett.
+   *
+   * HVORFOR: `budRollout` under setter budmaalet til det agentens EGEN
+   * spillestyrke faktisk henter hjem – kommentaren der sier det rett ut,
+   * «budene vokser i takt med spilleevnen». Det er en selvbekreftende
+   * sloeyfe: et svakt korthode gir et lavt budmaal, det lave budmaalet
+   * fjerner presset paa korthodet, og linja stabiliserer seg paa sin egen
+   * svakhet. Maalt paa D-linja: xT-hodet endte med utgang eksakt 0, altsaa
+   * alltid bud 6, mens NevroHjerne byr 9,3 i snitt og klarer 68 %.
+   *
+   * `mål` faar budstillingen og setet, og returnerer lagstikk-/makkerstikk-
+   * fasiten (eller null for aa hoppe over denne beslutningen). Kalleren
+   * bestemmer selv forankringen – examples/d7-liga2.ts bruker en
+   * dobbelt-dummy-loesning av giva minus en MAALT informasjonsdifferanse.
+   *
+   * NB: feltet er en FUNKSJON og kan derfor ikke krysse traadgrensa
+   * (postMessage kloner strukturelt). Bare for éntraadede kallere.
+   */
+  readonly budFasitDD?: {
+    readonly sjanse: number;
+    readonly rate: number;
+    readonly mål: (
+      budState: GameState,
+      sete: number,
+    ) => { readonly lagStikk: number; readonly makkerStikk: number } | null;
+  };
   /**
    * NEVROFASIT: samme mekanikk som spillFasit, men læreren er appens
    * ferdigtrente NevroHjerne i stedet for dobbelt-dummy-solveren.
@@ -261,6 +297,20 @@ export function spillGruppekamp(
         rng() < opts.budFasit.sjanse
       ) {
         budRollout(state, sete, agent, opts.budFasit.rate);
+      }
+      if (
+        state.fase === "BUDRUNDE" &&
+        opts.budFasitDD !== undefined &&
+        agent.lærBudFasit !== undefined &&
+        rng() < opts.budFasitDD.sjanse
+      ) {
+        // DD-forankret budfasit: ingen rollout her – fasiten kommer utenfra
+        // (typisk hentet fra en giv-cache), saa kostnaden deles av hele
+        // populasjonen i stedet for aa betales per genom.
+        const fasit = opts.budFasitDD.mål(state, sete);
+        if (fasit !== null) {
+          agent.lærBudFasit(state, sete, fasit.lagStikk, fasit.makkerStikk, opts.budFasitDD.rate);
+        }
       }
       if (
         state.fase === "VRAK" &&
@@ -437,7 +487,7 @@ function bokførRegret(
     const res = h.resultat;
     const agentIdx = agentISete(res.budvinner);
     const agent = agenter[agentIdx]!;
-    const est = agent.estimatFor(førState.rundeNr);
+    const est = agent.estimatFor?.(førState.rundeNr);
     if (est === undefined) continue;
     const antallStikk = førState.giving.antallStikk;
     const mål = res.melding.type === "tall" ? res.melding.bud : antallStikk;

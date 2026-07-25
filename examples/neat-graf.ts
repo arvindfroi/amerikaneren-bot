@@ -251,29 +251,46 @@ interface E1Status {
 function lesE1(): E1Status | null {
   let mb = 0;
   let skard = 0;
-  try {
-    for (const f of readdirSync(`${REPO}/e1-data`)) {
-      if (!f.endsWith(".jsonl")) continue;
-      skard++;
-      mb += statSync(`${REPO}/e1-data/${f}`).size / (1024 * 1024);
+  // Orakelet har byttet utmappe flere ganger (e1-data → e1-data2 → e1-data3),
+  // og siden viste derfor et tall som sluttet å vokse: den leste bare den
+  // FØRSTE mappa. Alle generasjonsmappene telles nå. `e1-frys` holdes utenfor
+  // med vilje – den er den frosne benken, ikke treningsdata, og å blande den
+  // inn ville blåst opp tallet med stillinger nettet aldri skal lære av.
+  const dataMapper = readdirSync(REPO)
+    .filter((f) => /^e1-data\d*$/.test(f))
+    .sort();
+  for (const mappe of dataMapper) {
+    try {
+      for (const f of readdirSync(`${REPO}/${mappe}`)) {
+        if (!f.endsWith(".jsonl")) continue;
+        skard++;
+        mb += statSync(`${REPO}/${mappe}/${f}`).size / (1024 * 1024);
+      }
+    } catch {
+      /* mappa forsvant mens vi leste – hopp over */
     }
-  } catch {
-    return null; // ingen E1-data ennå
   }
   if (skard === 0) return null;
   // Linjene er ~736 B; å telle dem eksakt ville lest hundrevis av MB hvert
   // 2. minutt, så tallet er et anslag – og merkes som det på siden.
   const stillinger = Math.round((mb * 1024 * 1024) / 736);
 
+  // Treningsloggen het `tren.log` i røykprøven, men hver kjøring skriver nå
+  // sin egen (`r1.log`, `r2.log`, …). Vi tar val-treffet fra den SIST endrede
+  // loggen i stedet for et fast filnavn som sluttet å finnes.
   let valTreff: number | null = null;
   try {
-    const logg = readFileSync(`${REPO}/e1-modell/tren.log`, "utf8").trim().split("\n");
-    for (let i = logg.length - 1; i >= 0; i--) {
-      const m = logg[i]!.match(/val-treff ([\d.]+) %/);
-      if (m) {
-        valTreff = Number(m[1]);
-        break;
+    const logger = readdirSync(`${REPO}/e1-modell`)
+      .filter((f) => f.endsWith(".log"))
+      .map((f) => ({ f, t: statSync(`${REPO}/e1-modell/${f}`).mtimeMs }))
+      .sort((a, b) => b.t - a.t);
+    for (const { f } of logger) {
+      const logg = readFileSync(`${REPO}/e1-modell/${f}`, "utf8").trim().split("\n");
+      for (let i = logg.length - 1; i >= 0 && valTreff === null; i--) {
+        const m = logg[i]!.match(/val-treff ([\d.]+) %/);
+        if (m) valTreff = Number(m[1]);
       }
+      if (valTreff !== null) break;
     }
   } catch {
     /* ikke trent ennå */
