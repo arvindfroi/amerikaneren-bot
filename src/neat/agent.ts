@@ -293,12 +293,20 @@ export class NeatAgent {
    * feilslåtte DAgger-forsøket: bred overskriving mot en annen spillers
    * valg skrambler evolverte hoder; en smal dytt med lav rate gjør ikke det.
    */
-  lærSpill(state: GameState, spiller: number, solverKort: Kort, rate: number): void {
+  lærSpill(state: GameState, spiller: number, solverKort: Kort, rate: number, mål = 0.9): void {
     if (rate <= 0) return;
     this.evaluer(state, spiller, "SPILL");
     // Dybde 2: korreksjonen forplantes også til de skjulte nodene bak
     // kortvalget – gradienten retter forståelsen, ikke bare valget.
-    this.nett.kalibrerUtgang(UT_KORT + kortIndeks(solverKort), 0.9, rate, 2);
+    //
+    // `mål` er normalt 0,9: «dette kortet var riktig». Ved FORSTERKNING på
+    // utfall må den kunne være NEGATIV. Uten det finnes det ikke noe
+    // straffesignal: moe-roller.ts dyttet lenge de kortene som tapte
+    // kontrakten oppover, bare på lavere rate, og siden velgHandling er ren
+    // argmax uten utforskning ble resultatet selv-imitasjon – nettet
+    // skjerpet det det alt gjorde i stedet for å lære noe nytt. Målt på
+    // forsvarseksperten: 12 % → 19 % og så flatt.
+    this.nett.kalibrerUtgang(UT_KORT + kortIndeks(solverKort), mål, rate, 2);
   }
 
   /**

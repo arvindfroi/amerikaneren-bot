@@ -32,11 +32,19 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { lagRng, type Kort } from "../src/kort.ts";
-import { opprettSpill, utfør, type GameState } from "../src/index.ts";
-import { genomFraJson, klonGenom, NeatAgent, type Genom } from "../src/neat/index.ts";
+import { lovligeHandlinger, opprettSpill, utfør, type GameState } from "../src/index.ts";
+import { genomFraJson, klonGenom, NeatAgent, nyttGenom, Innovasjonsbok, type Genom } from "../src/neat/index.ts";
+import { ANTALL_INN, ANTALL_UT } from "../src/neat/trekk.ts";
 import { besteTrumf, NevroAgent } from "../src/nevro/index.ts";
 
 type Rolle = "budvinner" | "makker" | "forsvar";
+
+/** Andel kortvalg som byttes ut med et tilfeldig lovlig kort under trening. */
+const EPSILON = Number(process.env.EPSILON ?? 0.08);
+const utforskRng = lagRng(0x5ea1);
+/** Løpende suksessrate – baseline for fordelsestimatet i forsterkningen. */
+let baseline = 0;
+let baselineN = 0;
 
 const filer: string[] = [];
 let rolle: Rolle = "budvinner";
@@ -45,6 +53,10 @@ let generasjoner = 200;
 let kamperPerGen = 40;
 let målKamper = 250;
 let utMappe = "moe";
+// Arvinds spoersmaal: er grunngenomet for dominerende? Med --fersk starter
+// eksperten fra et minimalt, utrent genom som ALDRI har spilt annet enn sin
+// egen rolle - ingen arvet politikk aa skjerpe, bare rollen aa laere.
+let fersk = false;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--rolle") rolle = process.argv[++i] as Rolle;
@@ -53,11 +65,17 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--kamper") kamperPerGen = Number(process.argv[++i]);
   else if (a === "--maal") målKamper = Number(process.argv[++i]);
   else if (a === "--ut") utMappe = process.argv[++i] ?? utMappe;
+  else if (a === "--fersk") fersk = true;
   else filer.push(a);
 }
 const grunnFil = filer[0] ?? "bidrag/d5-adoptert.json";
-const rå = JSON.parse(readFileSync(grunnFil, "utf8")) as { genom?: unknown };
-const grunn: Genom = genomFraJson(rå.genom !== undefined ? JSON.stringify(rå.genom) : readFileSync(grunnFil, "utf8"));
+let grunn: Genom;
+if (fersk) {
+  grunn = nyttGenom(ANTALL_INN, ANTALL_UT, new Innovasjonsbok(ANTALL_INN, ANTALL_UT), lagRng(0xfe25));
+} else {
+  const rå = JSON.parse(readFileSync(grunnFil, "utf8")) as { genom?: unknown };
+  grunn = genomFraJson(rå.genom !== undefined ? JSON.stringify(rå.genom) : readFileSync(grunnFil, "utf8"));
+}
 mkdirSync(utMappe, { recursive: true });
 
 /**
@@ -130,7 +148,20 @@ function spill(
   guard = 0;
   while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && guard++ < 400) {
     const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner! : s.iTur!;
-    const h = iTur === agentSete ? agent.velgHandling(s) : nevro.velgHandling(s);
+    let h = iTur === agentSete ? agent.velgHandling(s) : nevro.velgHandling(s);
+    // UTFORSKNING: velgHandling er ren argmax, så uten dette spiller agenten
+    // nøyaktig de samme kortene hver eneste gang. Da har forsterkningen
+    // ingenting å sammenligne med, og det eneste den kan gjøre er å skjerpe
+    // den politikken som allerede finnes. Under trening (lærRate > 0) byttes
+    // derfor et kortvalg av og til ut med et tilfeldig lovlig kort, slik at
+    // det finnes alternative linjer å tilskrive utfall til.
+    if (lærRate > 0 && iTur === agentSete && h.type === "SPILL" && utforskRng() < EPSILON) {
+      const lov = lovligeHandlinger(s);
+      if (lov.fase === "SPILL" && lov.kort.length > 1) {
+        const valgt = lov.kort[Math.floor(utforskRng() * lov.kort.length)]!;
+        h = { type: "SPILL", spiller: agentSete, kort: valgt };
+      }
+    }
     if (iTur === agentSete && h.type === "SPILL") spilte.push({ state: s, kort: h.kort });
     s = utfør(s, h).state;
   }
@@ -141,14 +172,27 @@ function spill(
   const suksess = rolle === "forsvar" ? !klart : klart;
 
   if (lærRate > 0 && spilte.length > 0) {
-    // Gradert forsterkning: hvor nær kom vi målet? For budlaget er det
-    // stikkene mot kontrakten; for forsvaret er det hvor mye vi holdt dem
-    // UNDER den. Nær-treff fortjener nesten full forsterkning – ellers
-    // lærer vi bare av de sjeldne fulltrefferne (målt: da skjedde ingenting).
-    const avstand = rolle === "forsvar" ? kontrakt - res.lagStikk : res.lagStikk - kontrakt;
-    const nærhet = Math.max(0, Math.min(1, (avstand + 4) / 4));
-    const rate = lærRate * (suksess ? 1 : nærhet * 0.5);
-    if (rate > 1e-4) for (const { state, kort } of spilte) agent.lærSpill(state, agentSete, kort, rate);
+    // FORSTERKNING MED FORTEGN OG BASELINE.
+    //
+    // Den gamle regelen hadde ingen straff: ved tap dyttet den de kortene
+    // som nettopp tapte kontrakten OPPOVER, bare på 38 % rate. Kombinert med
+    // argmax uten utforskning ble det ren selv-imitasjon – nettet skjerpet
+    // sin egen tapende politikk. Målt på forsvarseksperten: 12 % → 19 % og
+    // så flatt.
+    //
+    // Nå settes FORTEGNET av utfallet og STYRKEN av fordelen over en løpende
+    // baseline. Baselinen er nødvendig: forsvaret lykkes bare ~12 % av
+    // gangene, så uten den ville 88 % av rundene dyttet alt nedover og
+    // kollapset politikken. Med baseline blir en seier et stort positivt
+    // dytt og et tap et lite negativt – som i REINFORCE.
+    baselineN++;
+    baseline += ((suksess ? 1 : 0) - baseline) / Math.min(baselineN, 200);
+    const fordel = (suksess ? 1 : 0) - baseline;
+    const rate = lærRate * Math.min(1, Math.abs(fordel) * 2);
+    if (rate > 1e-4) {
+      const mål = fordel > 0 ? 0.9 : -0.9;
+      for (const { state, kort } of spilte) agent.lærSpill(state, agentSete, kort, rate, mål);
+    }
   }
   return { suksess, lagStikk: res.lagStikk };
 }
@@ -200,7 +244,7 @@ for (let g = 0; g < generasjoner; g++) {
   }
 }
 
-const fil = `${utMappe}/ekspert-${rolle}${rolle === "budvinner" ? `-${bud}` : ""}.json`;
+const fil = `${utMappe}/ekspert-${rolle}${rolle === "budvinner" ? `-${bud}` : ""}${fersk ? "-fersk" : ""}.json`;
 writeFileSync(fil, JSON.stringify(ekspert));
 const etter = mål(ekspert, målKamper);
 console.log(
