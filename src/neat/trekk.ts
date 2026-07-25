@@ -111,6 +111,76 @@ const ANTALL_SEKVENSER = 316; //  1: antall serier på ≥ 2 kort (/6)
 const SORTER = 317; //            1: antall farger man har kort i (/4)
 export const ANTALL_INN = 318;
 
+/**
+ * Inngangsoffsetene som ÉN kilde til sannhet.
+ *
+ * Offsetene over er lokale konstanter, og MoE2 måtte ellers duplisert dem for
+ * å bygge sensorutvalg per ekspert. To lister med de samme tallene er en
+ * feilkilde som ikke gir seg til kjenne: kodingen ville fortsatt kjørt, bare
+ * med feil sensorer koblet. Derfor eksporteres de her i stedet.
+ */
+export const INNGANG = {
+  HÅND,
+  SETT,
+  BORD,
+  TRUMF,
+  BESLUTNING,
+  FARGELENGDER,
+  BUD_HØYESTE,
+  BUD_AMERIKANER,
+  BUD_SOLO,
+  BUD_MEG,
+  PASSET,
+  BUDVINNER,
+  MELDING,
+  KONTRAKT,
+  ER_BUDVINNER,
+  ER_MAKKER,
+  MAKKER_SETE,
+  STIKK_SPILT,
+  MINE_STIKK,
+  LAG_STIKK,
+  BORD_ANTALL,
+  UTSPILLER,
+  MINE_POENG,
+  BESTE_MOTSTANDER,
+  ETTERLYST_UTE,
+  ETTERLYST,
+  RENONS,
+  SKJULTE_I_FARGE,
+  BOSS,
+  TRUMF_UTE,
+  BESTE_ER_TRUMF,
+  KAN_SLÅ,
+  STIKKLEDER,
+  ER_HEMMELIG_MAKKER,
+  PÅ_BUDLAGET,
+  ER_FORSVARER,
+  LAG_STIKK_PRIVAT,
+  MANGLER_STIKK,
+  MAKKER_KJENT,
+  BUD_HIST,
+  MAKKER_SPILT,
+  MAKKER_LEDER,
+  FIENDE_LEDER,
+  MINE_TRUMF,
+  KAN_TRUMFE,
+  TRUMF_BOSS,
+  TREKK_TRUMF,
+  EST_STIKK,
+  EST_BESTE,
+  EST_ARGMAX,
+  ESS,
+  KONGER,
+  RENONS_EGEN,
+  SINGELTON_EGEN,
+  LENGSTE,
+  SEKVENS,
+  TOPPSEKVENS,
+  ANTALL_SEKVENSER,
+  SORTER,
+} as const;
+
 const BESLUTNINGER: readonly Beslutning[] = ["BUD", "VRAK", "VELG", "SPILL"];
 
 /**
