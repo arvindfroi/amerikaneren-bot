@@ -35,3 +35,4 @@ e1-data3/
 # arena: byggeartefakter og kopiert appkode (hentes med arena/hent-appkode.sh)
 arena/adapter/.build/
 arena/adapter/Sources/adapter/appkode/
+e1-frys/
