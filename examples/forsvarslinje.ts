@@ -179,8 +179,31 @@ function fitnessFor(genom: Genom | null, sett: readonly Stilling[]): { fit: numb
  * mette genomet.» Et mettet nett har kortutganger paa ±1, der tanh-deriverte
  * 1-v^2 er ~0 - da fester verken kalibrering eller vektmutasjon, og linja
  * ser levende ut mens den staar helt stille. Det var rotaarsaken bak at D5
- * ikke kunne laere. Maales derfor hver sjekkpunkt og varsles om den faller.
+ * ikke kunne laere.
+ *
+ * MEN SNITT-DERIVERTEN ER EN SVAK INDIKATOR, og det er MAALT: det
+ * destillerte forsprangsgenomet hadde snittderivert 0,55 og bare 1 % av
+ * utgangene under 0,05 - og likevel FESTET IKKE kalibreringen i det hele
+ * tatt (neat-avmett.ts, kalibreringFester). En terskel paa snittet ville
+ * aldri utloest. Derfor kjoeres i tillegg den FUNKSJONELLE testen under:
+ * klarer 50 kalibreringssteg aa flytte kortvalget til et annet lovlig kort?
+ * Svarer den NEI, er genomet ulaerbart uansett hva snittet sier.
  */
+function kalibreringFester(genom: Genom, st: Stilling): boolean {
+  const g1 = klonGenom(genom);
+  const a1 = new NeatAgent(g1, { læringsrate: 0 });
+  a1.nyKamp();
+  const lov = lovligeHandlinger(st.start);
+  if (lov.fase !== "SPILL" || lov.kort.length < 2) return true;
+  const før = a1.velgHandling(st.start);
+  if (før.type !== "SPILL") return true;
+  const mål = lov.kort.find((k) => k.farge !== før.kort.farge || k.verdi !== før.kort.verdi);
+  if (mål === undefined) return true;
+  for (let i = 0; i < 50; i++) a1.lærSpill(st.start, st.sete, mål, 0.1);
+  const etter = a1.velgHandling(st.start);
+  return etter.type === "SPILL" && etter.kort.farge === mål.farge && etter.kort.verdi === mål.verdi;
+}
+
 function derivert(genom: Genom, sett: readonly Stilling[], prøver = 80): number {
   const nett = new Nettverk(genom);
   let sum = 0;
@@ -256,11 +279,13 @@ for (let g = 0; g < generasjoner; g++) {
       writeFileSync(`${dir}/ekspert-forsvar.json`, genomTilJson(evo.mester!));
     }
     const d = derivert(evo.mester!, OVERVAAK);
+    // Den funksjonelle testen er fasit; snittet er bare et hint.
+    const fester = OVERVAAK.some((st) => kalibreringFester(evo.mester!, st));
     console.log(
       `gen ${String(g + 1).padStart(4)}: feller ${(m.falt * 100).toFixed(1)} % ` +
         `(nevro ${(nevroRef.falt * 100).toFixed(1)} %), egne stikk ${m.stikk.toFixed(2)} ` +
         `(nevro ${nevroRef.stikk.toFixed(2)}), |tanh'| ${d.toFixed(3)}` +
-        `${d < 0.05 ? " METTET!" : ""}${merke}`,
+        `${fester ? "" : "  KALIBRERING FESTER IKKE - METTET!"}${merke}`,
     );
   }
 }
