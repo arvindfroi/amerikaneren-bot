@@ -54,6 +54,12 @@ let popp = 96;
 let generasjoner = 100000;
 let dir = "trening-d8";
 let fraFil: string | null = null;
+/**
+ * Genomet benken parrer mot. Standard er startgenomet, men et FERSKT loep har
+ * ikke noe - og uten referanse er den parrede differansen udefinert, altsaa
+ * kan skaaret ikke doemmes i det hele tatt. Da maa referansen oppgis utenfra.
+ */
+let refFil: string | null = null;
 let givere = 4;
 let evoFrø = 0xd8;
 for (let i = 2; i < process.argv.length; i++) {
@@ -63,17 +69,19 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--dir") dir = process.argv[++i]!;
   else if (a === "--fra") fraFil = process.argv[++i]!;
   else if (a === "--givere") givere = Number(process.argv[++i]);
+  else if (a === "--ref") refFil = process.argv[++i]!;
   else if (a === "--fro") evoFrø = Number(process.argv[++i]);
 }
 mkdirSync(dir, { recursive: true });
 
-let startGenom: Genom | undefined;
-if (fraFil !== null) {
-  const rå = JSON.parse(readFileSync(fraFil, "utf8")) as { genom?: unknown };
-  startGenom = genomFraJson(
-    rå.genom !== undefined ? JSON.stringify(rå.genom) : readFileSync(fraFil, "utf8"),
-  );
-}
+const lesGenom = (fil: string): Genom => {
+  const rå = JSON.parse(readFileSync(fil, "utf8")) as { genom?: unknown };
+  return genomFraJson(rå.genom !== undefined ? JSON.stringify(rå.genom) : readFileSync(fil, "utf8"));
+};
+
+const startGenom: Genom | undefined = fraFil !== null ? lesGenom(fraFil) : undefined;
+const refGenom: Genom | undefined =
+  refFil !== null ? lesGenom(refFil) : startGenom;
 
 const nevro = new NevroAgent();
 const motNevro = (s: Parameters<typeof grådigHandling>[0]): ReturnType<typeof grådigHandling> =>
@@ -194,8 +202,8 @@ for (let g = 0; g < generasjoner; g++) {
     // rolle - differansen er parret, og den er det ENESTE tallet jeg vil
     // laane oere til naar jeg avgjoer om linja gaar framover.
     const ref =
-      startGenom !== undefined
-        ? målAnkret(() => new NeatAgent(startGenom, { læringsrate: 0 }), motNevro, 16, frø, 40)
+      refGenom !== undefined
+        ? målAnkret(() => new NeatAgent(refGenom, { læringsrate: 0 }), motNevro, 16, frø, 40)
         : null;
     const linjer = benkelinjer(g + 1, "nevro", nb);
     si(linjer);
