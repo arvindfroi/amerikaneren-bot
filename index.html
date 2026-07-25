@@ -56,7 +56,9 @@ let DATA=null;
 // på tvers. Rekkefølgen er valgt for kontrast også i mørk modus.
 const LINJEFARGER={C4:"#1c7ed6",D1:"#e8590c",D2:"#0d8050",D3:"#c2255c",D5:"#7048e8",D6:"#f59f00",A:"#868e96",B:"#868e96",C:"#868e96",C2:"#868e96",C3:"#868e96"};
 const PALETT=["#12b886","#4c6ef5","#e64980","#fd7e14","#15aabf"];
-function fokus(n){return (DATA&&DATA.fokusLinjer||[]).includes(n);}
+// «Fokus» = linjen KJØRER nå. Stoppede linjer tegnes grå og tynne, selv om
+// de fortsatt har en kurve i historikken.
+function fokus(n){return (DATA&&DATA.levende||DATA&&DATA.fokusLinjer||[]).includes(n);}
 function farge(n){
   if(!fokus(n)) return "var(--retirert)";
   if(LINJEFARGER[n]) return LINJEFARGER[n];
@@ -138,16 +140,19 @@ function tegn(){
   tegnRute("grafNevro","nevro",XMAX);
   tegnRute("grafGraadig","grådig",XMAX);
 
-  const aktive=(d.fokusLinjer||[]);
+  const lever=(d.levende||[]);
+  const stoppet=(d.fokusLinjer||[]).filter(n=>!lever.includes(n));
   document.getElementById("legend").innerHTML=
-    aktive.map(n=>'<span class="lg" style="font-weight:600"><i style="background:'+farge(n)+'"></i>'+n+'</span>').join("")+
-    '<span class="lg" style="opacity:.6"><i style="background:#868e96"></i>pensjonerte linjer</span>'+
+    lever.map(n=>'<span class="lg" style="font-weight:600"><i style="background:'+farge(n)+'"></i>'+n+' <span style="color:#2f9e44">●</span></span>').join("")+
+    (stoppet.length?'<span class="lg" style="opacity:.55"><i style="background:#868e96"></i>stoppet: '+stoppet.join(", ")+'</span>':'')+
+    '<span class="lg" style="opacity:.55"><i style="background:#868e96"></i>pensjonerte</span>'+
     '<span class="lg"><i class="strek"></i>stiplet: forventet utvikling · referansenivåer</span>';
   document.getElementById("tabell").innerHTML=
     '<tr><th>Modell</th><th>Målestokk</th><th>Siste gen</th><th>Beste</th><th>Nå</th></tr>'+
-    d.serier.filter(x=>fokus(x.navn)).map(x=>{
+    d.serier.filter(x=>(d.fokusLinjer||[]).includes(x.navn)).map(x=>{
       const beste=Math.max(...x.glatt.map(p=>p.v)), nå=x.glatt[x.glatt.length-1].v;
-      return '<tr><td style="color:'+farge(x.navn)+';font-weight:600">'+x.navn+'</td><td>'+(x.mot==="nevro"?"NevroHjerne":"grådig")+'</td><td>'+x.rå[x.rå.length-1].g+'</td><td>'+(beste>0?"+":"")+beste.toFixed(0)+'</td><td>'+(nå>0?"+":"")+nå.toFixed(0)+'</td></tr>';
+      const lev=fokus(x.navn);
+      return '<tr'+(lev?'':' style="opacity:.5"')+'><td style="color:'+farge(x.navn)+';font-weight:600">'+x.navn+(lev?' ●':'')+'</td><td>'+(x.mot==="nevro"?"NevroHjerne":"grådig")+'</td><td>'+x.rå[x.rå.length-1].g+'</td><td>'+(beste>0?"+":"")+beste.toFixed(0)+'</td><td>'+(nå>0?"+":"")+nå.toFixed(0)+'</td></tr>';
     }).join("");
   document.getElementById("stempel").textContent="Sist oppdatert "+new Date(d.oppdatert).toLocaleTimeString("nb-NO");
   document.getElementById("vert").textContent=d.maskin?" (trener på "+d.maskin+")":"";
