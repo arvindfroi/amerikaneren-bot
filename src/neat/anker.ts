@@ -28,7 +28,15 @@
  * ble kurven på siden uforenlig med D5/D6 uten at noe så galt ut.
  */
 
-import { opprettSpill, utfør, type GameState, type Handling } from "../index.ts";
+import {
+  lovligeHandlinger,
+  opprettSpill,
+  utfør,
+  type Bud,
+  type GameState,
+  type Handling,
+} from "../index.ts";
+import { analyserGiv, flaksVekt, sdBud, type Rollout } from "./singledummy.ts";
 
 /** Det målingen trenger av en kandidat. NeatAgent oppfyller det. */
 export interface MålbarAgent {
@@ -159,4 +167,93 @@ export function benkelinjer(gen: number, mot: "grådig" | "nevro", m: Måling): 
     `benk vs ${navn}: mester ${m.mester.toFixed(1)} poeng/kamp, ` +
     `${mot} ${m.motstander.toFixed(1)}, seire ${m.seire}/${m.kamper}`
   );
+}
+
+// ---------------------------------------------------------------------------
+// SD-ANKRET RUNDEMAALING
+// ---------------------------------------------------------------------------
+
+/**
+ * Én RUNDE av gangen, med single-dummy-orakelet som budgiver.
+ *
+ * ROLLEFORDELINGEN, som er hele poenget:
+ *   BUDRUNDE  – SD-orakelet. Budet er det haanden faktisk baerer, ikke det
+ *               nevros budnett toer aa si (det underbyr med over tre stikk).
+ *   VRAK/VELG – NevroHjerne. Kontraktvalget skal vaere kompetent, men det er
+ *               ikke det vi trener.
+ *   SPILL     – kandidaten. Det ENESTE den eier, og det eneste som maales.
+ *
+ * FLAKSVEKTEN. Hver runde teller `flaksVekt(std)`, der std er spredningen i
+ * SD-rolloutene over de fire setene. Laa kortene skjevt, slaar det mindre ut
+ * baade i ros og ris: «det gikk ikke, men giva var et lotteri». Uten dette
+ * straffes agenten like hardt for en umulig giv som for en den bommet paa.
+ *
+ * MAKSRUNDER ER 1 MED VILJE: vekten gjelder ÉN giv, og en kamp over flere
+ * runder ville blandet giv med hver sin spredning til ett poengtall som ikke
+ * kan vektes per giv.
+ */
+export function målSDRunder(
+  lagAgent: () => MålbarAgent,
+  motstander: MotstanderTrekk,
+  kontraktfører: MotstanderTrekk,
+  orakel: Rollout,
+  antallFrø: number,
+  frøBase: number,
+  alfa = 1,
+): Måling {
+  const agent = lagAgent();
+  let mesterPoeng = 0;
+  let andresPoeng = 0;
+  let seire = 0;
+  let vektSum = 0;
+  let kamper = 0;
+  const differ: number[] = [];
+  for (let f = 0; f < antallFrø; f++) {
+    for (let sete = 0; sete < 4; sete++) {
+      agent.nyKamp();
+      let s = opprettSpill({ antallSpillere: 4 }, frøBase + f);
+      // Analysen gjoeres paa den ferske budrunden og caches paa (froe,
+      // rundeNr), saa hele populasjonen deler kostnaden.
+      const analyse = analyserGiv(s, orakel);
+      const vekt = flaksVekt(analyse.std, alfa);
+      let vakt = 0;
+      while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && vakt++ < 20_000) {
+        const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner! : s.iTur;
+        let h: Handling;
+        if (iTur !== sete) h = motstander(s);
+        else if (s.fase === "BUDRUNDE") {
+          // Estimatet maa gjennom LOVLIGHETSFILTERET. Har noen alt bydd
+          // hoeyere enn haanden baerer, er det riktige svaret PASS - ikke et
+          // ulovlig bud, og heller ikke et overbud orakelet ikke staar inne
+          // for. Vi tar det hoeyeste lovlige budet som ikke overstiger
+          // estimatet.
+          const lov = lovligeHandlinger(s);
+          const mål = sdBud(analyse, sete, s.giving.antallStikk);
+          let valgt: Bud = "PASS";
+          if (lov.fase === "BUDRUNDE") {
+            for (const b of lov.bud) {
+              if (typeof b === "number" && b <= mål && (valgt === "PASS" || b > valgt)) valgt = b;
+            }
+          }
+          h = { type: "BUD", spiller: sete, bud: valgt };
+        } else if (s.fase === "VRAK" || s.fase === "VELG") h = kontraktfører(s);
+        else h = agent.velgHandling(s);
+        s = utfør(s, h).state;
+      }
+      const egne = s.totalPoeng[sete] ?? 0;
+      const andre = (s.totalPoeng.reduce((a, b) => a + b, 0) - egne) / 3;
+      mesterPoeng += egne * vekt;
+      andresPoeng += andre * vekt;
+      differ.push((egne - andre) * vekt);
+      vektSum += vekt;
+      if (egne > andre) seire++;
+      kamper++;
+    }
+  }
+  const v = vektSum || 1;
+  const snittDiff = mesterPoeng / v - andresPoeng / v;
+  let sq = 0;
+  for (const d of differ) sq += (d - snittDiff) * (d - snittDiff);
+  const se = kamper > 1 ? Math.sqrt(sq / (kamper - 1) / kamper) : 0;
+  return { mester: mesterPoeng / v, motstander: andresPoeng / v, diff: snittDiff, seire, kamper, se };
 }

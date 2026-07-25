@@ -46,7 +46,7 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { lagRng } from "../src/kort.ts";
 import { Evolusjon, genomFraJson, genomTilJson, NeatAgent, type Genom } from "../src/neat/index.ts";
 import { dommenOverBarnet, STANDARD_RATER } from "../src/neat/genom.ts";
-import { benkelinjer, målAnkret } from "../src/neat/anker.ts";
+import { benkelinjer, målSDRunder } from "../src/neat/anker.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 import { grådigHandling } from "./graadig.ts";
 
@@ -69,6 +69,8 @@ let finGivere = 12;
 let relativDom = true;
 /** NevroHjerne byr/vraker/etterlyser i kandidatens sete (av = kandidaten byr selv). */
 let medBudfører = true;
+/** Skalaen i flaksvekten. Hoeyere alfa = flatere vekting. */
+let alfa = 1;
 let evoFrø = 0xd8;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
@@ -82,6 +84,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--fingivere") finGivere = Number(process.argv[++i]);
   else if (a === "--relativdom") relativDom = process.argv[++i] !== "0";
   else if (a === "--budfoerer") medBudfører = process.argv[++i] !== "0";
+  else if (a === "--alfa") alfa = Number(process.argv[++i]);
   else if (a === "--fro") evoFrø = Number(process.argv[++i]);
 }
 mkdirSync(dir, { recursive: true });
@@ -100,18 +103,22 @@ const motNevro = (s: Parameters<typeof grådigHandling>[0]): ReturnType<typeof g
   nevro.velgHandling(s);
 
 /**
- * BUDFOERER I KANDIDATENS EGET SETE. NevroHjerne byr, vraker og etterlyser;
- * genomet spiller bare kortene.
+ * ROLLEFORDELINGEN, avgjort av maalingen og ikke av bekvemmelighet:
  *
- * Uten dette maalte fitness unnvikelse i stedet for spilleevne: D5 endte som
- * spillefoerer i 6 % av rundene, D6 i 2 %, D8b i 0,3 %. Aa passe er den
- * billigste maaten aa slippe unna en kontrakt man ikke kan spille hjem, og
- * seleksjonen fant den utveien hver gang. Naa er rollen paatvunget.
+ *   BUDRUNDE  - SD-orakelet (src/neat/singledummy.ts). Maalt byr det 8,78 i
+ *               snitt med ekte spredning 5-12, mot NevroHjernes budnett paa
+ *               5,66. Nevro underbyr med over tre stikk, og hadde det bestemt
+ *               kontrakten ville agenten aldri moett en ambisioes kontrakt.
+ *   VRAK/VELG - NevroHjerne. Kompetent kontraktvalg, men ikke det vi trener.
+ *   SPILL     - genomet. Det eneste det eier, og det eneste som maales.
  *
- * Dette er halve koevolusjonen. Budagenten er foreloepig FROSSEN (nevro), ikke
- * en egen populasjon som laerer - det staar igjen.
+ * Uten denne delingen maalte fitness UNNVIKELSE: D5 endte som spillefoerer i
+ * 6 % av rundene, D6 i 2 %, D8b i 0,3 % - én runde av 320. Aa passe er den
+ * billigste maaten aa slippe unna en kontrakt man ikke kan spille hjem.
+ *
+ * `medBudfører` 0 gir genomet budet tilbake, som kontrollarm.
  */
-const budfører = medBudfører ? motNevro : undefined;
+void medBudfører;
 
 /**
  * Fitness for hele populasjonen på ETT delt frøsett.
@@ -123,13 +130,14 @@ const budfører = medBudfører ? motNevro : undefined;
 function målPopulasjon(genomer: readonly Genom[], frøBase: number): number[] {
   return genomer.map(
     (g) =>
-      målAnkret(
+      målSDRunder(
         () => new NeatAgent(g, { læringsrate: 0 }),
         grådigHandling,
+        motNevro,
+        nevro,
         givere,
         frøBase,
-        8,
-        budfører,
+        alfa,
       ).diff,
   );
 }
@@ -181,13 +189,14 @@ for (let g = 0; g < generasjoner; g++) {
     for (const i of topp) {
       // +16 holder oss innenfor generasjonens egen 64-brede froeblokk, saa
       // semifinalen aldri laaner giver fra en annen generasjon.
-      const fin = målAnkret(
+      const fin = målSDRunder(
         () => new NeatAgent(evo.genomer[i]!, { læringsrate: 0 }),
         grådigHandling,
+        motNevro,
+        nevro,
         finGivere,
         frøBase + 16,
-        8,
-        budfører,
+        alfa,
       ).diff;
       skjerpet[i] = (givere * fitness[i]! + finGivere * fin) / (givere + finGivere);
     }
@@ -230,24 +239,16 @@ for (let g = 0; g < generasjoner; g++) {
   // positiv differanse DER bytter gullet.
   if ((g + 1) % 25 === 0) {
     const friskt = 2_000_000 + Math.floor(rng() * 100_000);
-    const u = målAnkret(
+    const u = målSDRunder(
       () => new NeatAgent(evo.genomer[beste]!, { læringsrate: 0 }),
-      grådigHandling,
-      24,
-      friskt,
-      8,
-      budfører,
+      grådigHandling, motNevro, nevro, 24, friskt, alfa,
     );
     const s =
       gull === null
         ? null
-        : målAnkret(
+        : målSDRunder(
             () => new NeatAgent(gull!, { læringsrate: 0 }),
-            grådigHandling,
-            24,
-            friskt,
-            8,
-            budfører,
+            grådigHandling, motNevro, nevro, 24, friskt, alfa,
           );
     if (s === null || u.diff > s.diff) {
       gull = evo.genomer[beste]!;
@@ -270,13 +271,9 @@ for (let g = 0; g < generasjoner; g++) {
     // Benken bruker SAMME oppsett som treningen. Maalte vi hele botten mens vi
     // trente bare kortspillet, ville tallet blandet inn en budagent genomet
     // ikke lenger eier.
-    const nb = målAnkret(
+    const nb = målSDRunder(
       () => new NeatAgent(kandidat, { læringsrate: 0 }),
-      motNevro,
-      16,
-      frø,
-      40,
-      budfører,
+      motNevro, motNevro, nevro, 16, frø, alfa,
     );
 
     // UTGANGSPUNKTET MAALES PAA DE SAMME GIVERNE, hver gang.
@@ -289,13 +286,9 @@ for (let g = 0; g < generasjoner; g++) {
     // laane oere til naar jeg avgjoer om linja gaar framover.
     const ref =
       refGenom !== undefined
-        ? målAnkret(
+        ? målSDRunder(
             () => new NeatAgent(refGenom, { læringsrate: 0 }),
-            motNevro,
-            16,
-            frø,
-            40,
-            budfører,
+            motNevro, motNevro, nevro, 16, frø, alfa,
           )
         : null;
     const linjer = benkelinjer(g + 1, "nevro", nb);
