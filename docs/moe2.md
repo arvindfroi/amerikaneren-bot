@@ -183,12 +183,113 @@ ikke brukes til forfremmelse før det er avklart.
 
 ---
 
+## RETTELSE 2026-07-25 (2): vrakfasiten og trumffasiten er AVVIST
+
+Porten er nå kjørt på begge, med samme metode som ga budfasiten dom: **bare
+den ene beslutningen varieres**, alt annet – budet, det andre kontraktvalget,
+hele kortspillet, alle fire seter – er NevroHjerne. Budrunden (og for trumf
+også vraket) er deterministisk og skjer før valget, så hver policy måles på
+nøyaktig de samme stillingene. Poeng måles to ganger på uavhengige giversett.
+
+Skript: `examples/moe2-port-vrak.ts`, `examples/moe2-port-trumf.ts`.
+Tall: `analyse/moe2-port-{vrak,trumf}.{txt,json}`.
+
+| fasit | n giver | pålitelighet | korrigert, BREDT | korrigert, SMALT | dom |
+|---|---|---|---|---|---|
+| bud (SD) | 240 | 0,947 | 0,485 godkjent | **0,925 godkjent** | godkjent |
+| vrak (DD) | 700 | 0,982 | 0,784 godkjent | **0,144** | **avvist** |
+| trumf (DD) | 4 000 | 0,992 | 0,680 godkjent | **0,234** | **avvist** |
+
+Referansen er altså ikke problemet: påliteligheten er 0,98–0,99 i begge de
+smale utvalgene. Fasiten er problemet.
+
+### Utvalget avgjør dommen, så utvalget må være en regel
+
+Begge fasiter passerer bredt og faller smalt. «Smalt» er her definert av en
+regel skrevet ned sammen med policyene, ikke plukket etterpå: *alle policyer
+unntatt de som er konstruert for å være dårlige*. Det er nødvendig, for
+dommen er sterkt utvalgsavhengig:
+
+| utvalg (vrak) | korrigert | dom |
+|---|---|---|
+| bare DD-rangfamilien (fasit, nr. 6, 26, 101) | 1,000 | godkjent |
+| DD-familien + NevroHjerne | 0,000 | avvist |
+| alle unntatt de bevisst dårlige | 0,144 | avvist |
+
+Det er **nøyaktig mønsteret fra E1-målingen**: innen én familie rangerer
+anger poeng perfekt; på tvers av familier faller den fra hverandre. En port
+som bare kjøres innen én familie godkjenner en fasit som ikke generaliserer.
+
+### Fasitens eget optimum taper mot enkle heuristikker
+
+| vrakpolicy | DD-anger | poeng/runde |
+|---|---|---|
+| NevroHjerne | 1,156 | **+6,19** |
+| tøm korteste farge | 1,261 | +6,03 |
+| **DD (fasiten)** | **0,000** | +4,65 |
+| DD nr. 101 av 1 820 | 0,883 | −0,03 |
+
+| trumfpolicy | DD-anger | etterlyst valør | poeng/runde |
+|---|---|---|---|
+| lengste farge, høyeste etterlysning | 0,857 | 12,9 | **+6,02** |
+| NevroHjerne | 0,860 | 12,9 | +5,93 |
+| DD-fargen, men høyeste etterlysning | 0,749 | 13,0 | +4,83 |
+| **DD (fasiten)** | **0,000** | **4,3** | +4,11 |
+
+Mekanismen er synlig i én kolonne: **fasiten etterlyser valør 4,3 i snitt**,
+nevro 12,9. Etterlysningen bestemmer hvem makkeren blir, og dobbelt dummy vet
+hvor kortet ligger. Orakelet plukker en lav toer fordi det ser at den sitter
+hos riktig mann; spilleren som gjør det samme uten å se, plukker en tilfeldig
+makker og gir bort et trumfkort. Å beholde fargevalget fra fasiten og bare
+bytte etterlysningen til det høyeste lovlige kortet er verdt **+0,72 poeng**.
+
+### Asymmetrien, som er den praktiske gevinsten
+
+Budfasiten viste at feilen er retningsbestemt (ett bud for mye koster 14,75,
+ett for lite 1,51). Det gjentar seg, målt paret mot fasitens eget valg på
+samme giv, i poeng per enhet DD-anger:
+
+| beslutning | retning | poeng per anger |
+|---|---|---|
+| vrak | kastet høyere kort enn fasiten | −4,03 |
+| vrak | kastet lavere kort enn fasiten | −1,78 |
+| vrak | tømte færre farger enn fasiten | −4,64 |
+| vrak | tømte flere farger enn fasiten | **+0,34** |
+| trumf | kortere trumffarge enn fasiten | −3,80 |
+| trumf | lengre trumffarge enn fasiten | **+1,41** |
+| trumf | lavere etterlysning (samme farge) | −4,26 |
+| trumf | høyere etterlysning (samme farge) | **+0,93** |
+
+De positive tallene er poenget: i tre av fire retninger **tjener** man poeng
+på å avvike fra fasiten. En kvadratisk tapsfunksjon på DD-anger straffer
+begge retninger likt og er derfor feil i seg selv, uavhengig av om fasiten
+hadde bestått porten.
+
+### Hva som endres
+
+1. **Vrakeksperten og trumfeksperten skal ikke selekteres på DD-verdi.** Fire
+   av seks fasiter er nå prøvd: bud godkjent, kort motbevist, vrak avvist,
+   trumf avvist.
+2. **Anger kan fortsatt brukes som gradient innen familie** – rangeringen er
+   perfekt der (1,000 på DD-rangfamilien) – men aldri til forfremmelse.
+3. **Gulvet og taket må måles hver gang.** NevroHjerne er ikke automatisk et
+   tak, men her er den det: den slår fasiten på poeng i begge beslutninger,
+   samtidig som den ligger 1,16 og 0,86 anger *under* den. Tilfeldig vrak er
+   et ekte gulv (−6,04); tilfeldig trumfvalg likeså (−9,34).
+4. **Retningen skal inn i tapsfunksjonen, ikke bare størrelsen.** Konkret,
+   målt her: tøm korte farger, ikke kast høye kort, velg den lange trumfen,
+   og etterlys høyt.
+
+---
+
 ## Portresultatene, og mønsteret de danner
 
 | fasit | dom | pålitelighet | korrigert korrelasjon |
 |---|---|---|---|
 | **bud** (avvik fra SD-orakelet) | **godkjent** | 0,947 (smalt utvalg) | **+0,925** |
 | **kortspill** (følge DD-solveren) | **avvist** | 0,880 | **−0,609** |
+| **vrak** (DD-verdi etter vrak) | **avvist** | 0,982 (smalt utvalg) | **+0,144** |
+| **trumf** (DD-verdi av kontrakten) | **avvist** | 0,992 (smalt utvalg) | **+0,234** |
 
 ### Skillet er ikke tilfeldig: SD mot DD
 
@@ -201,7 +302,13 @@ hender åpne. Den strøk med −0,609 – å følge den gjør spillet *verre*, o
 verre jo mer man følger den (stikk 0–5: −1,20 poeng per runde mot å la
 NevroHjerne spille).
 
-Det er den samme skillelinjen begge steder: **en fasit som forutsetter
+Vrak- og trumffasiten er **også double dummy**, og begge strøk. Fire fasiter
+er nå prøvd, og skillet går rent: den ene SD-fasiten bestod, alle tre
+DD-fasitene falt. Trumffasiten viser mekanismen tydeligst av alle – den
+etterlyser valør 4,3 i snitt mot nevros 12,9, fordi solveren *ser* hvem som
+sitter med toeren og dermed hvem som blir makker. Spilleren ser det ikke.
+
+Det er den samme skillelinjen alle fire steder: **en fasit som forutsetter
 informasjon du ikke har, er ikke et mål – den er en felle.** DD-kortet er
 optimalt mot et motspill som ser like mye som deg selv. Mot en motstander med
 skjult informasjon setter det opp linjer som bare virker mot perfekt forsvar,
@@ -211,7 +318,7 @@ Det forklarer også E1: E1 er destillert fra DD-orakelet, treffer det 61,4 %
 mot nevros 58,7 %, og taper likevel 2,91 poeng. Den har lært å ligne på en
 fasit som ikke vinner.
 
-### Konsekvens for de tre spillekspertene
+### Konsekvens for de tre spillekspertene – og for vrak og trumf
 
 De kan ikke trenes på DD-enighet. Fasiten må bygges om etter samme prinsipp
 som budet: for hvert kandidatkort spilles resten ut med en realistisk
@@ -221,6 +328,15 @@ ikke double-dummy.
 
 Det er dyrere per beslutning enn DD-oppslaget. Til gjengjeld er det den eneste
 av de to som har bestått porten.
+
+**Det samme gjelder vrak og trumf.** `analyserGiv` i
+`src/neat/singledummy.ts` gjør allerede nøyaktig dette for budet: den spiller
+giva ut fra hvert sete med NevroHjerne i alle fire. Vrakfasiten kan bygges av
+samme maskineri – spill giva ut etter hvert kandidatvrak i stedet for å slå
+opp DD-verdien – og trumffasiten likeså. Kostnaden er den samme rolloutet
+budet allerede betaler; C(16,4) = 1 820 rolloutene per vrakstilling er
+derimot uoverkommelig, så vrakeksperten må enumerere færre kandidater
+(for eksempel de 20 DD-beste, som er billige å finne) og rangere dem med SD.
 
 ### Hva som IKKE er avgjort
 

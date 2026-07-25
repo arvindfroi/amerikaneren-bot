@@ -1,0 +1,52 @@
+=== Trumfpolicyer, 4000 giver (0 hoppet over), DD-dybde 6 ===
+Bare trumffarge og etterlysning varieres. Bud, vrak og hele kortspillet i
+alle fire seter er NevroHjerne. Poeng er budvinnersetets differanse mot
+snittet av de tre andre, i den ene runden valget gjelder.
+
+policy                DD-anger  DD-verdi  lengde  valør  =farge  =fasit  poeng/runde
+------------------------------------------------------------------------------------
+lengste farge            0.857     9.614    6.04   12.9    69 %     1 %         6.02
+nevro selv               0.860     9.611    6.04   12.9    67 %     1 %         5.93
+nevrofarge, høyest       0.860     9.611    6.04   12.9    67 %     1 %         5.93
+lengde+serie             0.946     9.525    5.92   12.7    66 %     1 %         5.24
+DD-farge, høyest         0.749     9.722    5.45   13.0   100 %     1 %         4.83
+DD nr. 3                 0.156    10.315    5.24    9.1    92 %     0 %         4.21
+DD (fasiten)             0.000    10.471    5.45    4.3   100 %   100 %         4.11
+nevrofarge, lavest       1.316     9.155    6.04    2.6    67 %    32 %        -0.72
+DD-farge, lavest         1.530     8.941    5.45    2.6   100 %    46 %        -2.08
+tilfeldig                3.349     7.122    2.63    7.8    21 %     3 %        -9.34
+DD median                3.403     7.068    2.20    7.9    11 %     0 %       -11.76
+DD verste                7.064     3.407    0.85   10.1     5 %     0 %       -17.23
+
+=== GODKJENNINGSPORTEN, bredt utvalg (n=12) ===
+  splitt-halv paalitelighet   0.996 (splitt 0.993)
+  observert korrelasjon       0.678
+  dempingskorrigert           0.680
+  DOM: GODKJENT
+  Referansen er pålitelig (0.996) og fasiten henger sammen med den (korrigert 0.680 over 12 kandidater).
+
+=== SMAL PORT – den som teller (n=9) ===
+  splitt-halv paalitelighet   0.992 (splitt 0.983)
+  observert korrelasjon       0.233
+  dempingskorrigert           0.234
+  DOM: AVVIST
+  Referansen er pålitelig (0.992), men fasiten henger ikke sammen med den (korrigert 0.234). Å selektere på denne fasiten er da ikke bedre begrunnet enn Elo var: støyfritt, men på feil akse.
+
+=== SENSITIVITET: dommen som funksjon av utvalget ===
+Utvalget er ikke en detalj. Faller dommen naar de bevisst daarlige tas ut,
+er det fordi fasiten bare klarer aa skille fornuftig fra vanvittig.
+utvalg                               n  paalitelighet  korrigert        dom
+---------------------------------------------------------------------------
+bredt – alle policyer               12          0.996      0.680   godkjent
+SMALT – uten de bevisst dårlige      9          0.992      0.234     avvist
+bare DD-familien                     4          0.889      0.212     avvist
+DD-familien + nevro                  5          0.947      0.000     avvist
+bare ikke-DD                         6          1.000      1.000   godkjent
+
+=== ASYMMETRI I TAPSFUNKSJONEN (paret mot DD-fasiten paa samme giv) ===
+retning                         n  snitt anger   d poeng  poeng per anger
+-------------------------------------------------------------------------
+KORTERE farge enn fasit      9962        4.967    -18.85            -3.80
+LENGRE farge enn fasit       5821        1.328      1.87             1.41
+HOEYERE valoer (samme farge)  19145        0.711      0.66             0.93
+LAVERE valoer (samme farge)   3987        2.621    -11.16            -4.26

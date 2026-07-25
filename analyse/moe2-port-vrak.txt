@@ -1,0 +1,51 @@
+=== Vrakpolicyer, 700 giver (0 hoppet over), DD-dybde 6 ===
+Bare vraket varieres. Bud, trumf, etterlysning og hele kortspillet i alle
+fire seter er NevroHjerne. Poeng er budvinnersetets differanse mot snittet
+av de tre andre, i den ene runden vraket gjelder.
+
+policy            DD-anger  DD-verdi  snittvalør  = fasit  poeng/runde
+----------------------------------------------------------------------
+nevro selv           1.156     9.610        6.21      6 %         6.19
+korteste farge       1.261     9.504        6.95      7 %         6.03
+DD (fasiten)         0.000    10.766        6.77    100 %         4.65
+DD nr. 6             0.157    10.609        7.12      0 %         3.10
+DD nr. 26            0.453    10.313        7.44      0 %         1.24
+DD nr. 101           0.883     9.883        7.61      0 %        -0.03
+lavest valør         2.109     8.657        3.53      1 %        -1.23
+DD median            2.459     8.307        8.46      0 %        -5.90
+tilfeldig            2.517     8.249        8.38      0 %        -6.04
+høyest valør         3.554     7.211       13.04      0 %       -12.48
+DD verste            5.824     4.941       11.40      0 %       -14.11
+
+=== GODKJENNINGSPORTEN, bredt utvalg (n=11) ===
+  splitt-halv paalitelighet   0.995 (splitt 0.991)
+  observert korrelasjon       0.782
+  dempingskorrigert           0.784
+  DOM: GODKJENT
+  Referansen er pålitelig (0.995) og fasiten henger sammen med den (korrigert 0.784 over 11 kandidater).
+
+=== SMAL PORT – den som teller (n=7) ===
+  splitt-halv paalitelighet   0.982 (splitt 0.964)
+  observert korrelasjon       0.143
+  dempingskorrigert           0.144
+  DOM: AVVIST
+  Referansen er pålitelig (0.982), men fasiten henger ikke sammen med den (korrigert 0.144). Å selektere på denne fasiten er da ikke bedre begrunnet enn Elo var: støyfritt, men på feil akse.
+
+=== SENSITIVITET: dommen som funksjon av utvalget ===
+Utvalget er ikke en detalj. Faller dommen naar de bevisst daarlige tas ut,
+er det fordi fasiten bare klarer aa skille fornuftig fra vanvittig.
+utvalg                               n  paalitelighet  korrigert        dom
+---------------------------------------------------------------------------
+bredt – alle policyer               11          0.995      0.784   godkjent
+SMALT – uten de bevisst dårlige      7          0.982      0.144     avvist
+bare DD-rangfamilien                 4          1.000      1.000   godkjent
+DD-familien + nevro                  5          1.000      0.000     avvist
+bare ikke-DD                         5          0.947      1.027   godkjent
+
+=== ASYMMETRI I TAPSFUNKSJONEN (paret mot DD-fasiten paa samme giv) ===
+retning                       n  snitt anger   d poeng  poeng per anger
+-----------------------------------------------------------------------
+kastet HØYERE enn fasit    4305        2.404     -9.70            -4.03
+kastet LAVERE enn fasit    2367        1.533     -2.73            -1.78
+toemte FLERE farger         850        1.446      0.50             0.34
+toemte FAERRE farger       2309        2.437    -11.30            -4.64

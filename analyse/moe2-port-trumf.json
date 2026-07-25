@@ -1,0 +1,317 @@
+{
+  "givere": 4000,
+  "brukte": 4000,
+  "hoppet": 0,
+  "dybde": 6,
+  "rader": [
+    {
+      "navn": "DD (fasiten)",
+      "anger": 0,
+      "ddVerdi": 10.471,
+      "poengA": 4.183333333333327,
+      "poengB": 4.0431666666666635,
+      "poeng": 4.113249999999995,
+      "lengde": 5.45075,
+      "valør": 4.2975,
+      "likFasit": 1,
+      "likFarge": 1
+    },
+    {
+      "navn": "DD nr. 3",
+      "anger": 0.156,
+      "ddVerdi": 10.315,
+      "poengA": 4.137666666666655,
+      "poengB": 4.272499999999989,
+      "poeng": 4.205083333333321,
+      "lengde": 5.24125,
+      "valør": 9.06275,
+      "likFasit": 0,
+      "likFarge": 0.919
+    },
+    {
+      "navn": "DD-farge, høyest",
+      "anger": 0.749,
+      "ddVerdi": 9.722,
+      "poengA": 5.080666666666676,
+      "poengB": 4.583500000000003,
+      "poeng": 4.8320833333333395,
+      "lengde": 5.45075,
+      "valør": 13.00225,
+      "likFasit": 0.01,
+      "likFarge": 1
+    },
+    {
+      "navn": "DD-farge, lavest",
+      "anger": 1.53,
+      "ddVerdi": 8.941,
+      "poengA": -1.7313333333333307,
+      "poengB": -2.4295000000000058,
+      "poeng": -2.080416666666668,
+      "lengde": 5.45075,
+      "valør": 2.58225,
+      "likFasit": 0.46475,
+      "likFarge": 1
+    },
+    {
+      "navn": "DD median",
+      "anger": 3.40275,
+      "ddVerdi": 7.06825,
+      "poengA": -11.783333333333335,
+      "poengB": -11.736999999999977,
+      "poeng": -11.760166666666658,
+      "lengde": 2.203,
+      "valør": 7.94475,
+      "likFasit": 0,
+      "likFarge": 0.114
+    },
+    {
+      "navn": "DD verste",
+      "anger": 7.06425,
+      "ddVerdi": 3.40675,
+      "poengA": -17.268999999999988,
+      "poengB": -17.19050000000002,
+      "poeng": -17.229750000000006,
+      "lengde": 0.85425,
+      "valør": 10.081,
+      "likFasit": 0,
+      "likFarge": 0.0465
+    },
+    {
+      "navn": "nevro selv",
+      "anger": 0.86025,
+      "ddVerdi": 9.61075,
+      "poengA": 6.080500000000005,
+      "poengB": 5.78916666666668,
+      "poeng": 5.934833333333343,
+      "lengde": 6.03575,
+      "valør": 12.86275,
+      "likFasit": 0.00975,
+      "likFarge": 0.66825
+    },
+    {
+      "navn": "nevrofarge, høyest",
+      "anger": 0.86025,
+      "ddVerdi": 9.61075,
+      "poengA": 6.080500000000005,
+      "poengB": 5.78916666666668,
+      "poeng": 5.934833333333343,
+      "lengde": 6.03575,
+      "valør": 12.86275,
+      "likFasit": 0.00975,
+      "likFarge": 0.66825
+    },
+    {
+      "navn": "nevrofarge, lavest",
+      "anger": 1.31575,
+      "ddVerdi": 9.15525,
+      "poengA": -0.35133333333333255,
+      "poengB": -1.0923333333333325,
+      "poeng": -0.7218333333333325,
+      "lengde": 6.03575,
+      "valør": 2.647,
+      "likFasit": 0.32375,
+      "likFarge": 0.66825
+    },
+    {
+      "navn": "lengste farge",
+      "anger": 0.85675,
+      "ddVerdi": 9.61425,
+      "poengA": 6.215333333333344,
+      "poengB": 5.831833333333346,
+      "poeng": 6.023583333333345,
+      "lengde": 6.03575,
+      "valør": 12.94025,
+      "likFasit": 0.00975,
+      "likFarge": 0.691
+    },
+    {
+      "navn": "lengde+serie",
+      "anger": 0.94575,
+      "ddVerdi": 9.52525,
+      "poengA": 5.421000000000001,
+      "poengB": 5.056333333333335,
+      "poeng": 5.238666666666668,
+      "lengde": 5.9175,
+      "valør": 12.66675,
+      "likFasit": 0.00975,
+      "likFarge": 0.661
+    },
+    {
+      "navn": "tilfeldig",
+      "anger": 3.3495,
+      "ddVerdi": 7.1215,
+      "poengA": -9.37400000000002,
+      "poengB": -9.297666666666647,
+      "poeng": -9.335833333333332,
+      "lengde": 2.6265,
+      "valør": 7.79325,
+      "likFasit": 0.0265,
+      "likFarge": 0.21075
+    }
+  ],
+  "dommer": [
+    {
+      "navn": "bredt – alle policyer",
+      "policyer": [
+        "DD (fasiten)",
+        "DD nr. 3",
+        "DD-farge, høyest",
+        "DD-farge, lavest",
+        "DD median",
+        "DD verste",
+        "nevro selv",
+        "nevrofarge, høyest",
+        "nevrofarge, lavest",
+        "lengste farge",
+        "lengde+serie",
+        "tilfeldig"
+      ],
+      "dom": "godkjent",
+      "splitt": 0.993006993006993,
+      "paalitelighet": 0.9964912280701755,
+      "observert": 0.6783216783216783,
+      "korrigert": 0.6795148572180123,
+      "n": 12,
+      "begrunnelse": "Referansen er pålitelig (0.996) og fasiten henger sammen med den (korrigert 0.680 over 12 kandidater)."
+    },
+    {
+      "navn": "SMALT – uten de bevisst dårlige",
+      "policyer": [
+        "DD (fasiten)",
+        "DD nr. 3",
+        "DD-farge, høyest",
+        "DD-farge, lavest",
+        "nevro selv",
+        "nevrofarge, høyest",
+        "nevrofarge, lavest",
+        "lengste farge",
+        "lengde+serie"
+      ],
+      "dom": "avvist",
+      "splitt": 0.9833333333333333,
+      "paalitelighet": 0.9915966386554621,
+      "observert": 0.23333333333333328,
+      "korrigert": 0.23431994802285025,
+      "n": 9,
+      "begrunnelse": "Referansen er pålitelig (0.992), men fasiten henger ikke sammen med den (korrigert 0.234). Å selektere på denne fasiten er da ikke bedre begrunnet enn Elo var: støyfritt, men på feil akse."
+    },
+    {
+      "navn": "bare DD-familien",
+      "policyer": [
+        "DD (fasiten)",
+        "DD nr. 3",
+        "DD-farge, høyest",
+        "DD-farge, lavest"
+      ],
+      "dom": "avvist",
+      "splitt": 0.8,
+      "paalitelighet": 0.888888888888889,
+      "observert": 0.19999999999999996,
+      "korrigert": 0.2121320343559642,
+      "n": 4,
+      "begrunnelse": "Referansen er pålitelig (0.889), men fasiten henger ikke sammen med den (korrigert 0.212). Å selektere på denne fasiten er da ikke bedre begrunnet enn Elo var: støyfritt, men på feil akse."
+    },
+    {
+      "navn": "DD-familien + nevro",
+      "policyer": [
+        "DD (fasiten)",
+        "DD nr. 3",
+        "DD-farge, høyest",
+        "DD-farge, lavest",
+        "nevro selv"
+      ],
+      "dom": "avvist",
+      "splitt": 0.9,
+      "paalitelighet": 0.9473684210526316,
+      "observert": 0,
+      "korrigert": 0,
+      "n": 5,
+      "begrunnelse": "Referansen er pålitelig (0.947), men fasiten henger ikke sammen med den (korrigert 0.000). Å selektere på denne fasiten er da ikke bedre begrunnet enn Elo var: støyfritt, men på feil akse."
+    },
+    {
+      "navn": "bare ikke-DD",
+      "policyer": [
+        "nevro selv",
+        "nevrofarge, høyest",
+        "nevrofarge, lavest",
+        "lengste farge",
+        "lengde+serie",
+        "tilfeldig"
+      ],
+      "dom": "godkjent",
+      "splitt": 1,
+      "paalitelighet": 1,
+      "observert": 1,
+      "korrigert": 1,
+      "n": 6,
+      "begrunnelse": "Referansen er pålitelig (1.000) og fasiten henger sammen med den (korrigert 1.000 over 6 kandidater)."
+    }
+  ],
+  "dom": {
+    "navn": "bredt – alle policyer",
+    "policyer": [
+      "DD (fasiten)",
+      "DD nr. 3",
+      "DD-farge, høyest",
+      "DD-farge, lavest",
+      "DD median",
+      "DD verste",
+      "nevro selv",
+      "nevrofarge, høyest",
+      "nevrofarge, lavest",
+      "lengste farge",
+      "lengde+serie",
+      "tilfeldig"
+    ],
+    "dom": "godkjent",
+    "splitt": 0.993006993006993,
+    "paalitelighet": 0.9964912280701755,
+    "observert": 0.6783216783216783,
+    "korrigert": 0.6795148572180123,
+    "n": 12,
+    "begrunnelse": "Referansen er pålitelig (0.996) og fasiten henger sammen med den (korrigert 0.680 over 12 kandidater)."
+  },
+  "domSmal": {
+    "navn": "SMALT – uten de bevisst dårlige",
+    "policyer": [
+      "DD (fasiten)",
+      "DD nr. 3",
+      "DD-farge, høyest",
+      "DD-farge, lavest",
+      "nevro selv",
+      "nevrofarge, høyest",
+      "nevrofarge, lavest",
+      "lengste farge",
+      "lengde+serie"
+    ],
+    "dom": "avvist",
+    "splitt": 0.9833333333333333,
+    "paalitelighet": 0.9915966386554621,
+    "observert": 0.23333333333333328,
+    "korrigert": 0.23431994802285025,
+    "n": 9,
+    "begrunnelse": "Referansen er pålitelig (0.992), men fasiten henger ikke sammen med den (korrigert 0.234). Å selektere på denne fasiten er da ikke bedre begrunnet enn Elo var: støyfritt, men på feil akse."
+  },
+  "asym": {
+    "fargeKortere": {
+      "n": 9962,
+      "anger": 49477,
+      "dPoeng": -187825.6666666659
+    },
+    "fargeLengre": {
+      "n": 5821,
+      "anger": 7728,
+      "dPoeng": 10870.000000000045
+    },
+    "valørHøyere": {
+      "n": 19145,
+      "anger": 13613,
+      "dPoeng": 12724.00000000007
+    },
+    "valørLavere": {
+      "n": 3987,
+      "anger": 10451,
+      "dPoeng": -44485.66666666648
+    }
+  }
+}

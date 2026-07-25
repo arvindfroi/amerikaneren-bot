@@ -1,0 +1,276 @@
+{
+  "givere": 700,
+  "brukte": 700,
+  "hoppet": 0,
+  "dybde": 6,
+  "rader": [
+    {
+      "navn": "DD (fasiten)",
+      "anger": 0,
+      "ddVerdi": 10.765714285714285,
+      "poengA": 4.170476190476186,
+      "poengB": 5.12761904761904,
+      "poeng": 4.6490476190476135,
+      "valørSnitt": 6.767142857142857,
+      "likFasit": 1
+    },
+    {
+      "navn": "DD nr. 6",
+      "anger": 0.15714285714285714,
+      "ddVerdi": 10.608571428571429,
+      "poengA": 2.617142857142859,
+      "poengB": 3.580952380952379,
+      "poeng": 3.0990476190476186,
+      "valørSnitt": 7.124642857142857,
+      "likFasit": 0
+    },
+    {
+      "navn": "DD nr. 26",
+      "anger": 0.45285714285714285,
+      "ddVerdi": 10.312857142857142,
+      "poengA": 1.2428571428571429,
+      "poengB": 1.241904761904761,
+      "poeng": 1.242380952380952,
+      "valørSnitt": 7.436071428571428,
+      "likFasit": 0
+    },
+    {
+      "navn": "DD nr. 101",
+      "anger": 0.8828571428571429,
+      "ddVerdi": 9.882857142857143,
+      "poengA": 0.16000000000000017,
+      "poengB": -0.21238095238095242,
+      "poeng": -0.02619047619047612,
+      "valørSnitt": 7.614642857142857,
+      "likFasit": 0
+    },
+    {
+      "navn": "DD median",
+      "anger": 2.4585714285714286,
+      "ddVerdi": 8.307142857142857,
+      "poengA": -6.189523809523808,
+      "poengB": -5.620000000000001,
+      "poeng": -5.904761904761904,
+      "valørSnitt": 8.460714285714285,
+      "likFasit": 0
+    },
+    {
+      "navn": "DD verste",
+      "anger": 5.824285714285714,
+      "ddVerdi": 4.941428571428571,
+      "poengA": -14.1704761904762,
+      "poengB": -14.040952380952383,
+      "poeng": -14.10571428571429,
+      "valørSnitt": 11.40392857142857,
+      "likFasit": 0
+    },
+    {
+      "navn": "nevro selv",
+      "anger": 1.1557142857142857,
+      "ddVerdi": 9.61,
+      "poengA": 6.220952380952381,
+      "poengB": 6.151428571428565,
+      "poeng": 6.186190476190474,
+      "valørSnitt": 6.213214285714286,
+      "likFasit": 0.06428571428571428
+    },
+    {
+      "navn": "lavest valør",
+      "anger": 2.1085714285714285,
+      "ddVerdi": 8.657142857142857,
+      "poengA": -0.23999999999999944,
+      "poengB": -2.2123809523809532,
+      "poeng": -1.2261904761904763,
+      "valørSnitt": 3.527142857142857,
+      "likFasit": 0.005714285714285714
+    },
+    {
+      "navn": "korteste farge",
+      "anger": 1.2614285714285713,
+      "ddVerdi": 9.504285714285714,
+      "poengA": 6.428571428571426,
+      "poengB": 5.636190476190469,
+      "poeng": 6.032380952380947,
+      "valørSnitt": 6.951428571428571,
+      "likFasit": 0.07142857142857142
+    },
+    {
+      "navn": "høyest valør",
+      "anger": 3.5542857142857143,
+      "ddVerdi": 7.211428571428572,
+      "poengA": -12.753333333333332,
+      "poengB": -12.204761904761906,
+      "poeng": -12.479047619047618,
+      "valørSnitt": 13.043571428571429,
+      "likFasit": 0
+    },
+    {
+      "navn": "tilfeldig",
+      "anger": 2.5171428571428573,
+      "ddVerdi": 8.248571428571429,
+      "poengA": -6.448571428571426,
+      "poengB": -5.6352380952380985,
+      "poeng": -6.041904761904763,
+      "valørSnitt": 8.378928571428572,
+      "likFasit": 0.0014285714285714286
+    }
+  ],
+  "dommer": [
+    {
+      "navn": "bredt – alle policyer",
+      "policyer": [
+        "DD (fasiten)",
+        "DD nr. 6",
+        "DD nr. 26",
+        "DD nr. 101",
+        "DD median",
+        "DD verste",
+        "nevro selv",
+        "lavest valør",
+        "korteste farge",
+        "høyest valør",
+        "tilfeldig"
+      ],
+      "dom": "godkjent",
+      "splitt": 0.990909090909091,
+      "paalitelighet": 0.995433789954338,
+      "observert": 0.7818181818181819,
+      "korrigert": 0.7836092911113813,
+      "n": 11,
+      "begrunnelse": "Referansen er pålitelig (0.995) og fasiten henger sammen med den (korrigert 0.784 over 11 kandidater)."
+    },
+    {
+      "navn": "SMALT – uten de bevisst dårlige",
+      "policyer": [
+        "DD (fasiten)",
+        "DD nr. 6",
+        "DD nr. 26",
+        "DD nr. 101",
+        "nevro selv",
+        "lavest valør",
+        "korteste farge"
+      ],
+      "dom": "avvist",
+      "splitt": 0.9642857142857143,
+      "paalitelighet": 0.9818181818181818,
+      "observert": 0.1428571428571429,
+      "korrigert": 0.1441738263855949,
+      "n": 7,
+      "begrunnelse": "Referansen er pålitelig (0.982), men fasiten henger ikke sammen med den (korrigert 0.144). Å selektere på denne fasiten er da ikke bedre begrunnet enn Elo var: støyfritt, men på feil akse."
+    },
+    {
+      "navn": "bare DD-rangfamilien",
+      "policyer": [
+        "DD (fasiten)",
+        "DD nr. 6",
+        "DD nr. 26",
+        "DD nr. 101"
+      ],
+      "dom": "godkjent",
+      "splitt": 1,
+      "paalitelighet": 1,
+      "observert": 1,
+      "korrigert": 1,
+      "n": 4,
+      "begrunnelse": "Referansen er pålitelig (1.000) og fasiten henger sammen med den (korrigert 1.000 over 4 kandidater)."
+    },
+    {
+      "navn": "DD-familien + nevro",
+      "policyer": [
+        "DD (fasiten)",
+        "DD nr. 6",
+        "DD nr. 26",
+        "DD nr. 101",
+        "nevro selv"
+      ],
+      "dom": "avvist",
+      "splitt": 1,
+      "paalitelighet": 1,
+      "observert": 0,
+      "korrigert": 0,
+      "n": 5,
+      "begrunnelse": "Referansen er pålitelig (1.000), men fasiten henger ikke sammen med den (korrigert 0.000). Å selektere på denne fasiten er da ikke bedre begrunnet enn Elo var: støyfritt, men på feil akse."
+    },
+    {
+      "navn": "bare ikke-DD",
+      "policyer": [
+        "nevro selv",
+        "lavest valør",
+        "korteste farge",
+        "høyest valør",
+        "tilfeldig"
+      ],
+      "dom": "godkjent",
+      "splitt": 0.9,
+      "paalitelighet": 0.9473684210526316,
+      "observert": 1,
+      "korrigert": 1.0274023338281626,
+      "n": 5,
+      "begrunnelse": "Referansen er pålitelig (0.947) og fasiten henger sammen med den (korrigert 1.027 over 5 kandidater)."
+    }
+  ],
+  "dom": {
+    "navn": "bredt – alle policyer",
+    "policyer": [
+      "DD (fasiten)",
+      "DD nr. 6",
+      "DD nr. 26",
+      "DD nr. 101",
+      "DD median",
+      "DD verste",
+      "nevro selv",
+      "lavest valør",
+      "korteste farge",
+      "høyest valør",
+      "tilfeldig"
+    ],
+    "dom": "godkjent",
+    "splitt": 0.990909090909091,
+    "paalitelighet": 0.995433789954338,
+    "observert": 0.7818181818181819,
+    "korrigert": 0.7836092911113813,
+    "n": 11,
+    "begrunnelse": "Referansen er pålitelig (0.995) og fasiten henger sammen med den (korrigert 0.784 over 11 kandidater)."
+  },
+  "domSmal": {
+    "navn": "SMALT – uten de bevisst dårlige",
+    "policyer": [
+      "DD (fasiten)",
+      "DD nr. 6",
+      "DD nr. 26",
+      "DD nr. 101",
+      "nevro selv",
+      "lavest valør",
+      "korteste farge"
+    ],
+    "dom": "avvist",
+    "splitt": 0.9642857142857143,
+    "paalitelighet": 0.9818181818181818,
+    "observert": 0.1428571428571429,
+    "korrigert": 0.1441738263855949,
+    "n": 7,
+    "begrunnelse": "Referansen er pålitelig (0.982), men fasiten henger ikke sammen med den (korrigert 0.144). Å selektere på denne fasiten er da ikke bedre begrunnet enn Elo var: støyfritt, men på feil akse."
+  },
+  "asym": {
+    "valørHøyere": {
+      "n": 4305,
+      "anger": 10348,
+      "dPoeng": -41737.99999999988
+    },
+    "valørLavere": {
+      "n": 2367,
+      "anger": 3629,
+      "dPoeng": -6451.333333333343
+    },
+    "renonsFlere": {
+      "n": 850,
+      "anger": 1229,
+      "dPoeng": 423.3333333333333
+    },
+    "renonsFærre": {
+      "n": 2309,
+      "anger": 5628,
+      "dPoeng": -26096.33333333335
+    }
+  }
+}
