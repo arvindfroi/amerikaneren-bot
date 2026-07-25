@@ -415,3 +415,25 @@ Perfekt innen familie, faller fra hverandre på tvers – nøyaktig E1-mønstere
 **Utvalgsregelen skal skrives ned før tallene foreligger.** Sensitivitets-
 tabellen står nå i utdataene til hver port, så et enkelt utvalg ikke kan
 bære en konklusjon alene.
+
+---
+
+## Ressursrydding 2026-07-25
+
+Da portene var kjørt, gikk 218 CPU-timer inn i mål som samme dag var målt
+motbevist:
+
+| kjørte | antall | CPU-timer | status |
+|---|---|---|---|
+| e1-orakel | 10 | 185,2 | DD-data; læringskurven flat fra 100k, vi har 400k+ |
+| kontraktslinje | 2 | 24,2 | gammel poengfitness |
+| d8-anker `anger` | 3 | 6,6 | kriteriet målt til −0,609 mot poeng |
+| d8-anker `poeng` | 1 | 2,2 | kan ikke rangere: SE 3,05 > spredning 2,7 |
+
+Alle stoppet, unntatt to orakelskår som holdes som tynn strøm. Stillingene
+ligger på disk; ingenting er tapt, og generering kan startes igjen når som
+helst.
+
+Grunnen til at dette står dokumentert: å la maskinen jobbe føles som
+framdrift, og gjorde det ikke. Tre av fire skår selekterte aktivt i feil
+retning mens portene som motbeviste kriteriet allerede var kjørt.
