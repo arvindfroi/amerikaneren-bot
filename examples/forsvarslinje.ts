@@ -32,11 +32,13 @@
  *   endelig dom   1 400 000+ via senat-maal.ts – RØRES ALDRI HER
  */
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { lagRng } from "../src/kort.ts";
 import { opprettSpill, utfør, type GameState } from "../src/index.ts";
-import { Evolusjon, genomTilJson, NeatAgent, type Genom } from "../src/neat/index.ts";
+import { Evolusjon, genomFraJson, genomTilJson, NeatAgent, Nettverk, type Genom } from "../src/neat/index.ts";
+import { lagInn, UT_KORT } from "../src/neat/trekk.ts";
+import { spillerVisning } from "../src/motor.ts";
 import { besteTrumf, NevroAgent } from "../src/nevro/index.ts";
 
 let popp = 64;
@@ -60,6 +62,8 @@ let evoFrø = 0xf0f5;
  * aa trenge flere givere, og det er samme duplikatprinsipp cupen bruker.
  */
 const DUPLIKAT = true;
+/** Forsprangsgenom aa seede populasjonen med (--fra). */
+let fraFil: string | null = null;
 /** Hvor mange toppgenomer som bedoemmes paa nytt foer mesteren kaares. */
 const FINALISTER = 8;
 for (let i = 2; i < process.argv.length; i++) {
@@ -70,6 +74,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--givere") giverePerGen = Number(process.argv[++i]);
   else if (a === "--stikkvekt") stikkVekt = Number(process.argv[++i]);
   else if (a === "--fro") evoFrø = Number(process.argv[++i]);
+  else if (a === "--fra") fraFil = process.argv[++i]!;
 }
 mkdirSync(dir, { recursive: true });
 
@@ -169,12 +174,47 @@ function fitnessFor(genom: Genom | null, sett: readonly Stilling[]): { fit: numb
   return { fit: faltAndel + stikkVekt * stikkAndel, falt: faltAndel, stikk: stikk / n };
 }
 
-const evo = new Evolusjon({ populasjon: popp, frø: evoFrø });
+/**
+ * METNINGSVAKT. Arvind: «pass paa at avl fungerer og at det ikke gaar an aa
+ * mette genomet.» Et mettet nett har kortutganger paa ±1, der tanh-deriverte
+ * 1-v^2 er ~0 - da fester verken kalibrering eller vektmutasjon, og linja
+ * ser levende ut mens den staar helt stille. Det var rotaarsaken bak at D5
+ * ikke kunne laere. Maales derfor hver sjekkpunkt og varsles om den faller.
+ */
+function derivert(genom: Genom, sett: readonly Stilling[], prøver = 80): number {
+  const nett = new Nettverk(genom);
+  let sum = 0;
+  let n = 0;
+  for (const st of sett.slice(0, prøver)) {
+    const inn = lagInn(
+      spillerVisning(st.start, st.sete),
+      "SPILL",
+      st.start.giving.antallStikk,
+      st.start.regler.målPoeng,
+    );
+    const u = nett.aktiver(inn);
+    for (let i = 0; i < 52; i++) {
+      const v = u[UT_KORT + i]!;
+      sum += 1 - v * v;
+    }
+    n++;
+  }
+  return n === 0 ? NaN : sum / (n * 52);
+}
+
+let startGenom: Genom | undefined;
+if (fraFil !== null) {
+  const rå = JSON.parse(readFileSync(fraFil, "utf8")) as { genom?: unknown };
+  startGenom = genomFraJson(rå.genom !== undefined ? JSON.stringify(rå.genom) : readFileSync(fraFil, "utf8"));
+}
+// startGenom gir én klon + (popp-1) MUTERTE kopier, saa forspranget koster
+// ikke variasjon i populasjonen - avlen har fortsatt noe aa jobbe med.
+const evo = new Evolusjon({ populasjon: popp, frø: evoFrø, startGenom });
 const OVERVAAK = byggSett(2_500_000, 200);
 const rng = lagRng(evoFrø ^ 0xd1e5);
 
 const nevroRef = fitnessFor(null, OVERVAAK);
-console.log(`Forsvarslinja: populasjon ${popp}, ${giverePerGen} givere/gen, kontrakt 8-10, duplikat: begge forsvarsseter`);
+console.log(`Forsvarslinja: ${fraFil !== null ? `fra ${fraFil}` : "fersk"}, populasjon ${popp}, ${giverePerGen} givere/gen, kontrakt 8-10, duplikat: begge forsvarsseter`);
 console.log(
   `NevroHjerne paa overvaakningssettet (n=${OVERVAAK.length}): ` +
     `feller ${(nevroRef.falt * 100).toFixed(1)} %, egne stikk ${nevroRef.stikk.toFixed(2)}\n`,
@@ -215,10 +255,12 @@ for (let g = 0; g < generasjoner; g++) {
       beste = evo.mester;
       writeFileSync(`${dir}/ekspert-forsvar.json`, genomTilJson(evo.mester!));
     }
+    const d = derivert(evo.mester!, OVERVAAK);
     console.log(
       `gen ${String(g + 1).padStart(4)}: feller ${(m.falt * 100).toFixed(1)} % ` +
         `(nevro ${(nevroRef.falt * 100).toFixed(1)} %), egne stikk ${m.stikk.toFixed(2)} ` +
-        `(nevro ${nevroRef.stikk.toFixed(2)})${merke}`,
+        `(nevro ${nevroRef.stikk.toFixed(2)}), |tanh'| ${d.toFixed(3)}` +
+        `${d < 0.05 ? " METTET!" : ""}${merke}`,
     );
   }
 }
