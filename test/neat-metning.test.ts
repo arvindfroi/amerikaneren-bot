@@ -13,6 +13,7 @@ import {
   type Genom,
 } from "../src/neat/genom.ts";
 import { Nettverk } from "../src/neat/nett.ts";
+import { utId } from "../src/neat/genom.ts";
 import { ANTALL_INN, ANTALL_UT, FORSVARSSENSORER, UT_KORT } from "../src/neat/trekk.ts";
 
 /**
@@ -189,4 +190,42 @@ test("momentum: gjentatt mutering uten dom drar samme vei, ikke frem og tilbake"
   }
   assert.ok(n > 20, "for faa koblinger til aa maale");
   assert.ok(samme / n > 0.55, `bare ${((100 * samme) / n).toFixed(0)} % av skrittene gikk samme vei`);
+});
+
+test("kalibrering kan ikke mette nettet – tusenvis av steg endrer aldri skalaen", () => {
+  // Arvind: «jeg trodde vi hadde gjort det relativt slik at den ikke kunne
+  // mette seg lenger.» Normaliseringen i muter() dekket bare MUTASJON.
+  // Laeringen gikk fri – og for linjer med fasit-trening er det laeringen som
+  // dominerer: D5/D6 kaller kalibrerUtgang tusenvis av ganger per generasjon
+  // mot én mutasjonsrunde. Det er den veien D6s mester ble ulaerbar.
+  const bok = new Innovasjonsbok(ANTALL_INN, ANTALL_UT);
+  const rng = lagRng(1234);
+  const g = nyttGenom(ANTALL_INN, ANTALL_UT, bok, rng);
+  const nett = new Nettverk(g);
+
+  const lengde = (): number => {
+    let sum = 0;
+    for (const k of g.koblinger) if (k.aktiv && k.ut === utId(ANTALL_INN, UT_KORT)) sum += k.vekt * k.vekt;
+    return Math.sqrt(sum);
+  };
+
+  const inn = Array.from({ length: ANTALL_INN }, () => (rng() < 0.15 ? 1 : 0));
+  nett.aktiver(inn);
+  const foer = lengde();
+  // Hardt, ensrettet press mot samme utgang – nettopp det som blaaser opp
+  // vektene i en fasit-linje.
+  for (let i = 0; i < 3000; i++) {
+    nett.aktiver(inn);
+    nett.kalibrerUtgang(UT_KORT, 0.95, 0.2);
+  }
+  const etter = lengde();
+  assert.ok(
+    Math.abs(etter - foer) < 1e-6,
+    `vektlengden vokste fra ${foer.toFixed(4)} til ${etter.toFixed(4)} etter 3000 kalibreringssteg`,
+  );
+
+  // Og nettet skal fortsatt vaere responsivt etterpaa.
+  const u = nett.aktiver(inn);
+  const d = 1 - u[UT_KORT]! * u[UT_KORT]!;
+  assert.ok(d > 0.05, `utgangen mettet likevel: tanh-derivert ${d.toFixed(5)}`);
 });

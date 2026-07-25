@@ -236,10 +236,52 @@ export class Nettverk {
    * lineære hoder for kortscorene, normalisering før tanh, eller å la
    * seleksjonen (som virker) bære læringen i stedet for kalibreringen.
    */
+  /**
+   * Gjenoppretter lengden på en nodes innkommende vektvektor til det den var
+   * FØR en oppdatering. Kalibreringen får da endre RETNING fritt, men aldri
+   * SKALA – og uten skala-vekst kan noden ikke mette seg.
+   *
+   * Arvind: «jeg trodde vi hadde gjort det relativt slik at den ikke kunne
+   * mette seg lenger.» Normaliseringen i muter() dekket bare MUTASJON.
+   * Læringen gikk fri, og for linjer med fasit-trening er det læringen som
+   * dominerer: D5/D6 kjører fire fasit-lærere som kaller kalibrerUtgang
+   * tusenvis av ganger per generasjon, mot én mutasjonsrunde. Det forklarer
+   * hvorfor D6s mester ble ulærbar (kalibrering fester: NEI) til tross for
+   * at snittderiverten så frisk ut på 0,82.
+   */
+  private bevarLengde(idx: number, førLengde: number): void {
+    if (førLengde <= 1e-12) return;
+    const kob = this.innkommende[idx];
+    if (kob === undefined || kob.length === 0) return;
+    let sum = 0;
+    for (const k of kob) sum += k.gen.vekt * k.gen.vekt;
+    if (sum <= 1e-12) return;
+    const s = førLengde / Math.sqrt(sum);
+    for (const k of kob) k.gen.vekt *= s;
+  }
+
+  private lengdeAv(idx: number): number {
+    const kob = this.innkommende[idx];
+    if (kob === undefined) return 0;
+    let sum = 0;
+    for (const k of kob) sum += k.gen.vekt * k.gen.vekt;
+    return Math.sqrt(sum);
+  }
+
   kalibrerUtgang(utNr: number, mål: number, rate: number, dybde = 1): number {
     const verdier = this.sisteVerdier;
     if (verdier === null) throw new Error("kalibrerUtgang krever et foregående aktiver-kall");
     const n = this.utIdx[utNr]!;
+    // Lengdene måles FØR oppdateringen og gjenopprettes etter, både for
+    // utgangsnoden og for de skjulte nodene dybde 2 rører.
+    const førUt = this.lengdeAv(n);
+    const førSkjult = new Map<number, number>();
+    if (dybde >= 2) {
+      for (const kobling of this.innkommende[n]!) {
+        const s = kobling.fraIdx;
+        if (!førSkjult.has(s)) førSkjult.set(s, this.lengdeAv(s));
+      }
+    }
     const ut = verdier[n]!;
     const feil = mål - ut;
     const delta = feil * (1 - ut * ut);
@@ -264,6 +306,8 @@ export class Nettverk {
         }
       }
     }
+    this.bevarLengde(n, førUt);
+    for (const [s, l] of førSkjult) this.bevarLengde(s, l);
     return feil;
   }
 }
