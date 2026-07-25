@@ -1,0 +1,23 @@
+  1/8 maalt     2/8 maalt     3/8 maalt     4/8 maalt     5/8 maalt     6/8 maalt     7/8 maalt     8/8 maalt   
+
+=== Aa foelge SD-evalueringen i ulike stikk, 120 givere x 4 seter ===
+Alt annet er NevroHjerne. Baseline «aldri» = -0.00 poeng/runde.
+
+vindu             orakelvalg/runde  poeng/runde  mot baseline
+-------------------------------------------------------------
+stikk 6+                      6.00         0.78         +0.78
+stikk 0-5                     6.00         0.63         +0.63
+stikk 3-5                     3.00         0.53         +0.53
+stikk 6-8                     3.00         0.48         +0.48
+alltid                       12.00         0.29         +0.29
+stikk 9+                      3.00         0.26         +0.26
+aldri (nevro)                 0.00        -0.00         +0.00
+stikk 0-2                     3.00        -0.88         -0.88
+
+=== GODKJENNINGSPORTEN ===
+  paalitelighet 0.688 (splitt 0.524)
+  observert 0.595, korrigert 0.718
+  DOM: GODKJENT
+  Referansen er pålitelig (0.688) og fasiten henger sammen med den (korrigert 0.718 over 8 kandidater).
+
+Skrev analyse/moe2-port-spill-sd.json

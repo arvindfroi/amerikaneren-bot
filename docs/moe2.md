@@ -437,3 +437,50 @@ helst.
 Grunnen til at dette står dokumentert: å la maskinen jobbe føles som
 framdrift, og gjorde det ikke. Tre av fire skår selekterte aktivt i feil
 retning mens portene som motbeviste kriteriet allerede var kjørt.
+
+---
+
+## SD-kortfasiten GODKJENT – hypotesen holdt
+
+Samme test, samme mal, eneste forskjell er hvordan kortet vurderes:
+
+| vindu | DD (avvist) | SD (godkjent) | endring |
+|---|---|---|---|
+| aldri (nevro) | 0,00 | 0,00 | – |
+| stikk 0–2 | −0,62 | −0,88 | −0,26 |
+| stikk 3–5 | −0,10 | **+0,53** | +0,63 |
+| stikk 6–8 | +0,15 | **+0,48** | +0,33 |
+| stikk 9+ | −0,16 | **+0,26** | +0,42 |
+| stikk 0–5 | −1,20 | **+0,63** | **+1,83** |
+| stikk 6+ | −0,35 | **+0,78** | +1,13 |
+| alltid | −0,95 | **+0,29** | +1,24 |
+
+| | korrigert korrelasjon | pålitelighet | dom |
+|---|---|---|---|
+| DD | −0,609 | 0,880 | avvist |
+| **SD** | **+0,718** | 0,688 | **godkjent** |
+
+Fortegnet snur i syv av åtte vinduer. Det er den samme beslutningen,
+evaluert med og uten informasjon agenten faktisk har.
+
+### Men det finnes ett unntak, og det gjelder begge
+
+**Stikk 0–2 er negativt for både DD (−0,62) og SD (−0,88).** Å følge en
+orakelevaluering i de tre første stikkene koster poeng uansett metode. Det er
+også derfor «alltid» (+0,29) er dårligere enn «stikk 6+» (+0,78): den drar med
+seg de tidlige stikkene.
+
+Tolkningen som passer med alt annet vi har målt: tidlig i runden er så mye
+skjult at fire samplede verdener ikke dekker mulighetsrommet. Evalueringen
+blir da et presist svar på feil spørsmål.
+
+**Designkonsekvens:** spilleksperten bruker SD-fasit fra stikk 3 og utover.
+I stikk 0–2 har vi ingen validert fasit, og det skal stå slik til noe består
+porten – ikke fylles med DD fordi det er det vi har.
+
+### Forbehold
+
+Påliteligheten er 0,688, over terskelen på 0,3 men ikke høy, og effektene er
+mindre i absoluttverdi enn i DD-kjøringen. Retningen er entydig; størrelsen
+er det ikke. Før SD-fasiten brukes til å forfremme noe, skal den måles på
+flere givere.

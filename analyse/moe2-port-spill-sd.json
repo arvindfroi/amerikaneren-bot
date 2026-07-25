@@ -1,0 +1,70 @@
+{
+  "givere": 120,
+  "rader": [
+    {
+      "navn": "aldri (nevro)",
+      "orakelvalg": 0,
+      "poengA": -5.921189464667501e-17,
+      "poengB": 3.3306690738754695e-17,
+      "poeng": -1.295260195396016e-17
+    },
+    {
+      "navn": "stikk 0-2",
+      "orakelvalg": 3,
+      "poengA": -0.5986111111111112,
+      "poengB": -1.1555555555555548,
+      "poeng": -0.877083333333333
+    },
+    {
+      "navn": "stikk 3-5",
+      "orakelvalg": 3,
+      "poengA": 0.26111111111111107,
+      "poengB": 0.7958333333333335,
+      "poeng": 0.5284722222222222
+    },
+    {
+      "navn": "stikk 6-8",
+      "orakelvalg": 3,
+      "poengA": 0.1291666666666667,
+      "poengB": 0.8250000000000001,
+      "poeng": 0.4770833333333334
+    },
+    {
+      "navn": "stikk 9+",
+      "orakelvalg": 3,
+      "poengA": 0.2305555555555555,
+      "poengB": 0.29305555555555574,
+      "poeng": 0.26180555555555557
+    },
+    {
+      "navn": "stikk 0-5",
+      "orakelvalg": 6,
+      "poengA": 0.8333333333333334,
+      "poengB": 0.4291666666666669,
+      "poeng": 0.6312500000000001
+    },
+    {
+      "navn": "stikk 6+",
+      "orakelvalg": 6,
+      "poengA": 0.404166666666667,
+      "poengB": 1.1555555555555557,
+      "poeng": 0.7798611111111114
+    },
+    {
+      "navn": "alltid",
+      "orakelvalg": 12,
+      "poengA": -0.022222222222222296,
+      "poengB": 0.6111111111111112,
+      "poeng": 0.29444444444444445
+    }
+  ],
+  "dom": {
+    "dom": "godkjent",
+    "splitt": 0.5238095238095238,
+    "paalitelighet": 0.6875000000000001,
+    "observert": 0.5952380952380952,
+    "korrigert": 0.71788415375658,
+    "n": 8,
+    "begrunnelse": "Referansen er pålitelig (0.688) og fasiten henger sammen med den (korrigert 0.718 over 8 kandidater)."
+  }
+}
