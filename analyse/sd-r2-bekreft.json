@@ -1,0 +1,181 @@
+{
+  "tid": "2026-07-25T23:51:15.357Z",
+  "merke": "sd-r2 BEKREFTELSE paa ferske givere 34000000, 2000 givere",
+  "kilder": [
+    "analyse/sd-r2-bekreft-s0.jsonl",
+    "analyse/sd-r2-bekreft-s1.jsonl",
+    "analyse/sd-r2-bekreft-s10.jsonl",
+    "analyse/sd-r2-bekreft-s11.jsonl",
+    "analyse/sd-r2-bekreft-s12.jsonl",
+    "analyse/sd-r2-bekreft-s13.jsonl",
+    "analyse/sd-r2-bekreft-s2.jsonl",
+    "analyse/sd-r2-bekreft-s3.jsonl",
+    "analyse/sd-r2-bekreft-s4.jsonl",
+    "analyse/sd-r2-bekreft-s5.jsonl",
+    "analyse/sd-r2-bekreft-s6.jsonl",
+    "analyse/sd-r2-bekreft-s7.jsonl",
+    "analyse/sd-r2-bekreft-s8.jsonl",
+    "analyse/sd-r2-bekreft-s9.jsonl"
+  ],
+  "givere": 2000,
+  "frøFra": 34000000,
+  "frøTil": 34001999,
+  "grunnlinje": "nevro",
+  "raa": [
+    {
+      "kandidat": "nevro",
+      "diff": 75.43208333333334,
+      "se": 0.029402928073307393
+    },
+    {
+      "kandidat": "e1:e1-modell/sd-r1.bin",
+      "diff": 75.31566666666659,
+      "se": 0.0307946047485365
+    },
+    {
+      "kandidat": "e1:e1-modell/sd-r2-begge-384.bin",
+      "diff": 75.71783333333332,
+      "se": 0.02969088120940961
+    },
+    {
+      "kandidat": "e1:e1-modell/sd-r2-begge-256.bin",
+      "diff": 75.78337500000015,
+      "se": 0.029439609985811098
+    },
+    {
+      "kandidat": "e1:e1-modell/sd-r2-begge-512.bin",
+      "diff": 75.80320833333337,
+      "se": 0.029424426059743512
+    }
+  ],
+  "motGrunnlinje": [
+    {
+      "a": "e1:e1-modell/sd-r1.bin",
+      "b": "nevro",
+      "diff": -0.11641666666666703,
+      "se": 0.02528019507206065,
+      "tegn": "905/1943",
+      "p": 0.0025507013986696414,
+      "sigma": -4.605054127740068
+    },
+    {
+      "a": "e1:e1-modell/sd-r2-begge-384.bin",
+      "b": "nevro",
+      "diff": 0.28575,
+      "se": 0.024160488866122178,
+      "tegn": "1239/1961",
+      "p": 0,
+      "sigma": 11.827161345260627
+    },
+    {
+      "a": "e1:e1-modell/sd-r2-begge-256.bin",
+      "b": "nevro",
+      "diff": 0.35129166666666617,
+      "se": 0.02410738041265487,
+      "tegn": "1275/1965",
+      "p": 0,
+      "sigma": 14.5719551711334
+    },
+    {
+      "a": "e1:e1-modell/sd-r2-begge-512.bin",
+      "b": "nevro",
+      "diff": 0.37112499999999987,
+      "se": 0.02387219302146312,
+      "tegn": "1311/1967",
+      "p": 0,
+      "sigma": 15.546330396471205
+    }
+  ],
+  "innbyrdes": [
+    {
+      "a": "e1:e1-modell/sd-r1.bin",
+      "b": "nevro",
+      "diff": -0.11641666666666703,
+      "se": 0.02528019507206065,
+      "tegn": "905/1943",
+      "p": 0.0025507013986696414,
+      "sigma": -4.605054127740068
+    },
+    {
+      "a": "e1:e1-modell/sd-r2-begge-384.bin",
+      "b": "nevro",
+      "diff": 0.28575,
+      "se": 0.024160488866122178,
+      "tegn": "1239/1961",
+      "p": 0,
+      "sigma": 11.827161345260627
+    },
+    {
+      "a": "e1:e1-modell/sd-r2-begge-256.bin",
+      "b": "nevro",
+      "diff": 0.35129166666666617,
+      "se": 0.02410738041265487,
+      "tegn": "1275/1965",
+      "p": 0,
+      "sigma": 14.5719551711334
+    },
+    {
+      "a": "e1:e1-modell/sd-r2-begge-512.bin",
+      "b": "nevro",
+      "diff": 0.37112499999999987,
+      "se": 0.02387219302146312,
+      "tegn": "1311/1967",
+      "p": 0,
+      "sigma": 15.546330396471205
+    },
+    {
+      "a": "e1:e1-modell/sd-r2-begge-384.bin",
+      "b": "e1:e1-modell/sd-r1.bin",
+      "diff": 0.40216666666666684,
+      "se": 0.021718099636358502,
+      "tegn": "1362/1954",
+      "p": 0,
+      "sigma": 18.517580884167018
+    },
+    {
+      "a": "e1:e1-modell/sd-r2-begge-256.bin",
+      "b": "e1:e1-modell/sd-r1.bin",
+      "diff": 0.46770833333333367,
+      "se": 0.022347341524010415,
+      "tegn": "1408/1967",
+      "p": 0,
+      "sigma": 20.929036808732654
+    },
+    {
+      "a": "e1:e1-modell/sd-r2-begge-512.bin",
+      "b": "e1:e1-modell/sd-r1.bin",
+      "diff": 0.48754166666666654,
+      "se": 0.021371785187997122,
+      "tegn": "1426/1952",
+      "p": 0,
+      "sigma": 22.812397859046467
+    },
+    {
+      "a": "e1:e1-modell/sd-r2-begge-256.bin",
+      "b": "e1:e1-modell/sd-r2-begge-384.bin",
+      "diff": 0.0655416666666664,
+      "se": 0.0190782681519752,
+      "tegn": "1044/1932",
+      "p": 0.0003865981370743121,
+      "sigma": 3.435409657971538
+    },
+    {
+      "a": "e1:e1-modell/sd-r2-begge-512.bin",
+      "b": "e1:e1-modell/sd-r2-begge-384.bin",
+      "diff": 0.08537499999999991,
+      "se": 0.019445021090788796,
+      "tegn": "1040/1925",
+      "p": 0.0004113016715190376,
+      "sigma": 4.390584078123858
+    },
+    {
+      "a": "e1:e1-modell/sd-r2-begge-512.bin",
+      "b": "e1:e1-modell/sd-r2-begge-256.bin",
+      "diff": 0.019833333333333442,
+      "se": 0.018686618738014922,
+      "tegn": "976/1925",
+      "p": 0.5382989936947262,
+      "sigma": 1.0613655477962802
+    }
+  ]
+}

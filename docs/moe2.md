@@ -1472,3 +1472,187 @@ Bruk det når målingen skal være en varig målestokk.
    på en ledig maskin for et lastuavhengig tall, og bruk MesterAI som
    motstandermodell i SD-rolloutene hvis overføringstapet skal fjernes ved
    roten i stedet for måles.
+
+---
+
+## DAgger-runde 2: sd-r2 SLÅR NevroHjerne – første gang i prosjektet
+
+Hypotesen fra forrige avsnitt er testet direkte. sd-r1 er trent på stillinger
+**nevro** spilte; når den spiller selv møter den andre stillinger. Runde 2 av
+dataene er hentet fra sd-r1s EGEN spilling (`--spiller e1-modell/sd-r1.bin`,
+frøbånd 80 mill., 16 skår), som er kuren `sd-orakel.ts` selv peker på.
+
+**Den hjalp. +0,49 poeng per kamp, og NevroHjerne er passert.**
+
+Skript: `verktoy/sd-tren.py` (ny), `examples/sd-parret-rapport.ts` (ny).
+Tall: `analyse/sd-r2-oppsummering.txt`, `analyse/sd-r2-kurver.txt`,
+`analyse/sd-r2-lekkasje.txt`, `analyse/sd-r2-poeng.{txt,json}`,
+`analyse/sd-r2-bekreft.{txt,json}`, `analyse/sd-r2-tren.jsonl`,
+`e1-maalinger.jsonl`, `e1-frysmaal.jsonl`.
+
+### Poeng, 2000 givere × 4 seter, parret på giver – og bekreftet på et nytt bånd
+
+| kandidat | data | arkitektur | mot nevro (frø 33M) | mot nevro (frø 34M) |
+|---|---|---|---|---|
+| sd-r1 | sd-data | 384–256 | −0,1150 ± 0,0257 | −0,1164 ± 0,0253 |
+| sd-r2-d2-384 | sd-data2 | 384–256 | +0,0615 ± 0,0255 | – |
+| sd-r2-d2-192 | sd-data2 | 192–128 | +0,1150 ± 0,0257 | – |
+| sd-r2-d2-256 | sd-data2 | 256–256 | +0,1619 ± 0,0254 | – |
+| sd-r2-begge-384 | begge | 384–256 | +0,2795 ± 0,0248 | +0,2858 ± 0,0242 |
+| sd-r2-begge-256 | begge | 256–256 | +0,3456 ± 0,0245 | +0,3513 ± 0,0241 |
+| **sd-r2-begge-512** | **begge** | **512–384–256** | **+0,3725 ± 0,0246** | **+0,3711 ± 0,0239** |
+
+De fire kandidatene som ble målt på begge bånd reproduseres innenfor **0,007
+poeng**, med samme rekkefølge. Vinneren ble plukket blant seks på det første
+båndet, så bekreftelsen på ferske givere er ikke pynt – den er kontrollen mot
+å ha valgt støy.
+
+**DAgger-gevinsten:** `sd-r2 − sd-r1 = +0,4875 ± 0,0215` (tegntest 1411/1961)
+på 33M og `+0,4875 ± 0,0214` (1426/1952) på 34M. Identisk til fjerde desimal
+på to uavhengige frøbånd.
+
+sd-r1s eget tall reproduseres på siste siffer mot målingen 25. juli
+(−0,1150 ± 0,0257, tegntest 908/1964). Det er kontrollen på at den nye,
+shardede måleveien via `sd-parret-rapport.ts` gir samme svar som den gamle.
+
+### Behold de tidligere rundene – målt, ikke antatt
+
+| parret, samme givere | differanse |
+|---|---|
+| begge − bare sd-data2, 384–256 | **+0,2180 ± 0,0212** |
+| begge − bare sd-data2, 256–256 | **+0,1837 ± 0,0199** |
+
+DAgger-litteraturen sier at man skal beholde runde 1. Her er det målt: 9–10
+standardfeil. Og det er ikke bare datamengde – sd-data2 alene er 1,73 mill.
+stillinger mot sd-r1s 619 000, altså 2,8× så mye data, og lander likevel på
++0,06 til +0,16. Det er **blandingen** som gir resten.
+
+### Arkitektur: ingen vinner innenfor støyen, og «minst vinner» replikerer ikke
+
+| | 33M | 34M | vektet |
+|---|---|---|---|
+| begge-512 − begge-256 | +0,0269 ± 0,0182 | +0,0198 ± 0,0187 | **+0,023 ± 0,013** |
+
+1,8 SE – ikke etablert. Begge slår 384–256 med 4 SE, men effekten er
+**ikke monoton i størrelse** (256 og 512 slår 384), og en ikke-monoton effekt
+over tre størrelser er kjørevariasjon, ikke kapasitet. Mønsteret «det minste
+nettet vinner» fra begge de foregående kjøringene holder innenfor
+sd-data2-blandingen, men brytes i den blandede. `sd-r2` er satt til
+`begge-512` fordi poeng avgjør; valget er ikke bærende.
+
+### Overtilpasningskontrollen: holdout delt på GIV
+
+`verktoy/e1-tren.py` tar de siste 5 % av LINJENE. To stillinger fra samme parti
+deler alle fire hender, hele budrunden og hele kontrakten – en stillingsdeling
+lekker på giv-nivå. `verktoy/sd-tren.py` hasher `frø` og legger hele partier i
+én del; invarianten «ingen giv i to deler» **avbryter kjøringen** hvis den
+brytes. Holdouten er trukket bare fra sd-data2, som sd-r1 aldri har sett, så
+nøyaktig samme utvalg er rent for både sd-r1 og sd-r2.
+
+Treneren leser dessuten strømmende inn i ferdigallokerte numpy-array: 3,1 mill.
+stillinger som Python-lister ville vært ~27 GB, som numpy er de 4,7. Og alle
+seks kjøringene deler ÉN innlesing, så to konfigurasjoner ikke kan komme til å
+se ulike holdouts.
+
+### Kurvene skiller lag fra epoke 2 – og de to kriteriene er uenige
+
+Hele tabellen står i `analyse/sd-r2-kurver.txt`.
+
+| kjøring | hold-tap bunner | hold-anger bunner | gap ved slutt |
+|---|---|---|---|
+| sd-r2-d2-384 | epoke 2 | epoke 8 | +0,0451 (ep 14) |
+| sd-r2-d2-256 | epoke 1 | epoke 8 | +0,0315 (ep 14) |
+| sd-r2-d2-192 | epoke 4 | epoke 9 | +0,0221 (ep 15) |
+| sd-r2-begge-384 | epoke 2 | epoke 6 | +0,0258 (ep 12) |
+| sd-r2-begge-256 | epoke 1 | epoke 7 | +0,0209 (ep 13) |
+| sd-r2-begge-512 | epoke 3 | epoke 4 | +0,0309 (ep 10) |
+
+Tre ting det beste tallet alene ikke ville sagt:
+
+1. **Gapet vokser monotont fra epoke 2 i alle seks.** Overtilpasningen er i
+   gang lenge før treningen stoppes.
+2. **Hold-tapet bunner 4–6 epoker FØR hold-angeren.** De to kriteriene er ikke
+   enige om når nettet er best. Sjekkpunktet velges på anger for å være
+   sammenlignbart med sd-r1, men hvilket av dem som gir best POENG er ikke
+   målt – og det er en åpen mulighet, ikke en avklart sak.
+3. **Gapet vokser raskere med mindre data og med større nett**, begge deler i
+   forventet retning: d2-384 når +0,045 på 14 epoker der begge-384 ligger på
+   +0,026 på 12; begge-512 når +0,031 på 10 der begge-256 ligger på +0,016.
+
+### Overlappet, rapportert også der det er null
+
+| par | felles givere | felles linjer |
+|---|---|---|
+| sd-data ∩ sd-data2 | 0 | 0 |
+| sd-data ∩ e1-frys | 0 | 0 |
+| sd-data2 ∩ e1-frys | 0 | 0 |
+| sd-data2 ∩ sd-frys | 0 | 0 |
+| **sd-data ∩ sd-frys** | **48** | **8 382** |
+
+Frøbåndene: e1-frys 0,7–9,7 mill., sd-data 50–65 mill., sd-data2 80–95 mill.,
+målingene 33 og 34 mill. Disjunkte, og nøkkelsettene er dessuten ulike
+(`dybde` mot `sdVerdener`), så md5-signaturene kan ikke kollidere.
+
+**Den ene raden som ikke er null gjelder den gamle benken.** `sd-frys` er per
+konstruksjon en delmengde av sd-data, og kontrollen mot `analyse/sd-grense.txt`
+viser at **16 av dens 48 givere lå i sd-r1s treningssett** – ett frø per skard,
+nøyaktig partiet som lå på lesegrensen. Linjene var nye, givene var det ikke.
+
+To konsekvenser, begge i `analyse/sd-r2-lekkasje.txt`:
+
+- Finrangeringen av nære kandidater på `sd-frys` i avsnittet over er ikke et
+  rent holdout-tall. Det store funnet (sd-r1 langt foran e1-r2) tåler det;
+  arkitekturrangeringen gjør det ikke.
+- `sd-frys` har **48 uavhengige enheter**, ikke 8 382. «n = 4 191» leser langt
+  flere frihetsgrader inn i benken enn den har, og det er en like viktig del av
+  forklaringen på at SD-anger ikke kunne rangere de fire arkitekturene som
+  lekkasjen er.
+
+### For første gang på tre dager peker fasit og poeng samme vei
+
+`examples/e1-frysmaal.ts --mappe sd-frys2`, 87 964 stillinger fra 335 partier
+ingen kandidat har sett, gulv og tak fra samme utvalg.
+
+| kandidat | anger | gulv | tak (nevro) | framdrift | poeng mot nevro |
+|---|---|---|---|---|---|
+| sd-r2-begge-256 | **0,8139** | 1,3809 | 1,0273 | 160,4 % | +0,346 |
+| sd-r2-begge-512 | 0,8151 | 1,3809 | 1,0273 | 160,0 % | **+0,373** |
+| sd-r2-begge-384 | 0,8159 | 1,3809 | 1,0273 | 159,8 % | +0,280 |
+| sd-r2-d2-192 | 0,8400 | 1,3809 | 1,0273 | 153,0 % | +0,115 |
+| sd-r2-d2-256 | 0,8410 | 1,3809 | 1,0273 | 152,7 % | +0,162 |
+| sd-r2-d2-384 | 0,8425 | 1,3809 | 1,0273 | 152,3 % | +0,061 |
+| sd-r1 | 0,9174 | 1,3809 | 1,0273 | 131,1 % | −0,115 |
+| nevro | 1,0273 | 1,3809 | 1,0273 | 100,0 % | 0,000 |
+| e1-r2 (DD-lærer) | 1,2211 | 1,3809 | 1,0273 | 45,2 % | −2,96 |
+
+Spearman mellom anger og poeng over de seks sd-r2-nettene: **+0,886**. De to
+eneste ombyttingene er nøyaktig de to parene som ikke er til å skille fra
+hverandre på poeng. Seks ganger på to dager har de to målestokkene rangert par
+motsatt; på en giv-delt holdout fra den fordelingen nettene faktisk møter, gjør
+de det ikke.
+
+**Men oppløsningen er fortsatt for grov for nære kandidater.** Halveres den
+samme benken (`--del holdout`, n = 43 982, samme 335 partier), bytter d2-384 og
+d2-256 plass – 0,8366 mot 0,8482, motsatt av på hele benken. Mikserforskjellen
+(0,814 mot 0,841) er stabil i begge halvdeler. Presist sagt: **SD-anger på en
+giv-delt holdout skiller DATABLANDINGER, ikke ARKITEKTURER.**
+
+Kryssjekk verdt å notere: treneren (Python) og `e1-frysmaal.ts` (TypeScript)
+regner samme anger på samme stillinger til fjerde desimal. To uavhengige
+implementasjoner, samme tall.
+
+### Dommen
+
+1. **DAgger hjalp.** +0,49 ± 0,02 poeng per kamp, reprodusert på to uavhengige
+   frøbånd. Fordelingsskiftet var en ekte del av restgapet.
+2. **NevroHjerne er slått.** +0,371 ± 0,024, 15,5 SE, 67 % av giverne. Første
+   gang i prosjektet et trent nett ligger over appens eget nett på
+   poengbenken. Delmålet er nådd – men det er NevroHjerne, ikke MesterAI, og
+   nevro taper selv 1,07 poeng/runde/sete til den.
+3. **Behold de tidligere DAgger-rundene.** +0,18 til +0,22 poeng.
+4. **Arkitektur er ikke flaskehalsen, fjerde gang.** Spennet mellom 84 000 og
+   449 000 parametre er 0,09 poeng; mellom datablandingene 0,22; mellom
+   DAgger-rundene 0,49.
+5. **Restgapet er ikke uttømt.** Kurvene skiller lag fra epoke 2, og hold-tapet
+   bunner før hold-angeren. Regularisering og valg av sjekkpunktkriterium er
+   ikke prøvd, og runde 3 fra sd-r2s egen spilling er den neste åpenbare.

@@ -1,0 +1,185 @@
+Enhet: cuda (NVIDIA GeForce RTX 5080 Laptop GPU)
+Teller 3087860 linjer i 32 filer (28s)
+  sd-data/skard-0.jsonl: 80008 stillinger (totalt 80008)
+  sd-data/skard-1.jsonl: 79903 stillinger (totalt 159911)
+  sd-data/skard-10.jsonl: 79001 stillinger (totalt 238912)
+  sd-data/skard-11.jsonl: 79724 stillinger (totalt 318636)
+  sd-data/skard-12.jsonl: 79713 stillinger (totalt 398349)
+  sd-data/skard-13.jsonl: 79827 stillinger (totalt 478176)
+  sd-data/skard-14.jsonl: 80026 stillinger (totalt 558202)
+  sd-data/skard-15.jsonl: 79168 stillinger (totalt 637370)
+  sd-data/skard-2.jsonl: 79416 stillinger (totalt 716786)
+  sd-data/skard-3.jsonl: 79794 stillinger (totalt 796580)
+  sd-data/skard-4.jsonl: 79866 stillinger (totalt 876446)
+  sd-data/skard-5.jsonl: 79374 stillinger (totalt 955820)
+  sd-data/skard-6.jsonl: 79499 stillinger (totalt 1035319)
+  sd-data/skard-7.jsonl: 79419 stillinger (totalt 1114738)
+  sd-data/skard-8.jsonl: 79377 stillinger (totalt 1194115)
+  sd-data/skard-9.jsonl: 79476 stillinger (totalt 1273591)
+  sd-data2/skard-0.jsonl: 114386 stillinger (totalt 1387977)
+  sd-data2/skard-1.jsonl: 113665 stillinger (totalt 1501642)
+  sd-data2/skard-10.jsonl: 113950 stillinger (totalt 1615592)
+  sd-data2/skard-11.jsonl: 113604 stillinger (totalt 1729196)
+  sd-data2/skard-12.jsonl: 113423 stillinger (totalt 1842619)
+  sd-data2/skard-13.jsonl: 113214 stillinger (totalt 1955833)
+  sd-data2/skard-14.jsonl: 112955 stillinger (totalt 2068788)
+  sd-data2/skard-15.jsonl: 113566 stillinger (totalt 2182354)
+  sd-data2/skard-2.jsonl: 113451 stillinger (totalt 2295805)
+  sd-data2/skard-3.jsonl: 113050 stillinger (totalt 2408855)
+  sd-data2/skard-4.jsonl: 113020 stillinger (totalt 2521875)
+  sd-data2/skard-5.jsonl: 113536 stillinger (totalt 2635411)
+  sd-data2/skard-6.jsonl: 113409 stillinger (totalt 2748820)
+  sd-data2/skard-7.jsonl: 113155 stillinger (totalt 2861975)
+  sd-data2/skard-8.jsonl: 112631 stillinger (totalt 2974606)
+  sd-data2/skard-9.jsonl: 113254 stillinger (totalt 3087860)
+Leste 3087860 stillinger, hoppet over 0 dubletter og 0 ugyldige (170s)
+
+=== OVERLAPP ===
+{
+  "mapper": {
+    "sd-data": {
+      "stillinger": 1273591,
+      "givere": 4735
+    },
+    "sd-data2": {
+      "stillinger": 1814269,
+      "givere": 6890
+    }
+  },
+  "overlapp": {
+    "sd-data ∩ sd-data2": {
+      "givere": 0,
+      "linjer": 0
+    },
+    "sd-data ∩ e1-frys": {
+      "givere": 0,
+      "linjer": 0
+    },
+    "sd-data2 ∩ e1-frys": {
+      "givere": 0,
+      "linjer": 0
+    },
+    "sd-data ∩ sd-frys": {
+      "givere": 48,
+      "linjer": 8382
+    },
+    "sd-data2 ∩ sd-frys": {
+      "givere": 0,
+      "linjer": 0
+    }
+  },
+  "froebaand": {
+    "sd-data": [
+      50000000,
+      65000305
+    ],
+    "sd-data2": [
+      80000000,
+      95000425
+    ]
+  }
+}
+
+Giv-deling: 335 av 6890 givere i sd-data2 → holdout (87964 stillinger). Ingen giver i to deler.
+
+=== sd-r2-d2-384: sd-data2, 273 → 384 → 256 → 52 (217140 parametre) – trening 1726305, holdout 87964 ===
+epoke 1/40: tren-tap 1.3667 hold-tap 1.3714 (gap +0.0047)  tren-anger 0.8684 hold-anger 0.8847 hold-treff 51.1 %
+epoke 2/40: tren-tap 1.3634 hold-tap 1.3704 (gap +0.0070)  tren-anger 0.8321 hold-anger 0.8598 hold-treff 51.5 %
+epoke 3/40: tren-tap 1.3615 hold-tap 1.3710 (gap +0.0095)  tren-anger 0.8036 hold-anger 0.8491 hold-treff 51.7 %
+epoke 4/40: tren-tap 1.3585 hold-tap 1.3704 (gap +0.0119)  tren-anger 0.7887 hold-anger 0.8490 hold-treff 51.6 %
+epoke 5/40: tren-tap 1.3612 hold-tap 1.3766 (gap +0.0154)  tren-anger 0.7682 hold-anger 0.8431 hold-treff 51.8 %
+epoke 6/40: tren-tap 1.3563 hold-tap 1.3748 (gap +0.0185)  tren-anger 0.7517 hold-anger 0.8442 hold-treff 51.8 %
+epoke 7/40: tren-tap 1.3555 hold-tap 1.3778 (gap +0.0223)  tren-anger 0.7431 hold-anger 0.8425 hold-treff 51.8 %
+epoke 8/40: tren-tap 1.3588 hold-tap 1.3843 (gap +0.0255)  tren-anger 0.7333 hold-anger 0.8425 hold-treff 51.8 %
+epoke 9/40: tren-tap 1.3565 hold-tap 1.3853 (gap +0.0288)  tren-anger 0.7171 hold-anger 0.8477 hold-treff 51.6 %
+epoke 10/40: tren-tap 1.3550 hold-tap 1.3869 (gap +0.0319)  tren-anger 0.7042 hold-anger 0.8457 hold-treff 51.4 %
+epoke 11/40: tren-tap 1.3525 hold-tap 1.3867 (gap +0.0342)  tren-anger 0.6991 hold-anger 0.8484 hold-treff 51.6 %
+epoke 12/40: tren-tap 1.3527 hold-tap 1.3907 (gap +0.0380)  tren-anger 0.6829 hold-anger 0.8517 hold-treff 51.5 %
+epoke 13/40: tren-tap 1.3555 hold-tap 1.3974 (gap +0.0419)  tren-anger 0.6756 hold-anger 0.8543 hold-treff 51.3 %
+epoke 14/40: tren-tap 1.3540 hold-tap 1.3991 (gap +0.0451)  tren-anger 0.6733 hold-anger 0.8611 hold-treff 51.2 %
+tidlig stopp: 6 epoker uten framgang (beste 0.8425)
+sd-r2-d2-384 ferdig: beste hold-anger 0.8425 på epoke 8 → e1-modell/sd-r2-d2-384.bin
+
+=== sd-r2-d2-256: sd-data2, 273 → 256 → 256 → 52 (149300 parametre) – trening 1726305, holdout 87964 ===
+epoke 1/40: tren-tap 1.3656 hold-tap 1.3697 (gap +0.0041)  tren-anger 0.8699 hold-anger 0.8856 hold-treff 50.9 %
+epoke 2/40: tren-tap 1.3645 hold-tap 1.3710 (gap +0.0065)  tren-anger 0.8481 hold-anger 0.8732 hold-treff 51.4 %
+epoke 3/40: tren-tap 1.3643 hold-tap 1.3725 (gap +0.0082)  tren-anger 0.8204 hold-anger 0.8549 hold-treff 51.8 %
+epoke 4/40: tren-tap 1.3640 hold-tap 1.3739 (gap +0.0098)  tren-anger 0.8042 hold-anger 0.8503 hold-treff 51.8 %
+epoke 5/40: tren-tap 1.3603 hold-tap 1.3721 (gap +0.0118)  tren-anger 0.7934 hold-anger 0.8525 hold-treff 52.0 %
+epoke 6/40: tren-tap 1.3598 hold-tap 1.3735 (gap +0.0136)  tren-anger 0.7738 hold-anger 0.8422 hold-treff 52.0 %
+epoke 7/40: tren-tap 1.3567 hold-tap 1.3724 (gap +0.0157)  tren-anger 0.7675 hold-anger 0.8486 hold-treff 51.7 %
+epoke 8/40: tren-tap 1.3563 hold-tap 1.3751 (gap +0.0187)  tren-anger 0.7496 hold-anger 0.8410 hold-treff 51.8 %
+epoke 9/40: tren-tap 1.3615 hold-tap 1.3824 (gap +0.0209)  tren-anger 0.7429 hold-anger 0.8418 hold-treff 52.0 %
+epoke 10/40: tren-tap 1.3572 hold-tap 1.3799 (gap +0.0226)  tren-anger 0.7359 hold-anger 0.8434 hold-treff 51.7 %
+epoke 11/40: tren-tap 1.3601 hold-tap 1.3856 (gap +0.0255)  tren-anger 0.7257 hold-anger 0.8489 hold-treff 51.6 %
+epoke 12/40: tren-tap 1.3573 hold-tap 1.3848 (gap +0.0276)  tren-anger 0.7163 hold-anger 0.8459 hold-treff 51.5 %
+epoke 13/40: tren-tap 1.3582 hold-tap 1.3882 (gap +0.0300)  tren-anger 0.7125 hold-anger 0.8478 hold-treff 51.6 %
+epoke 14/40: tren-tap 1.3590 hold-tap 1.3905 (gap +0.0315)  tren-anger 0.7049 hold-anger 0.8547 hold-treff 51.4 %
+tidlig stopp: 6 epoker uten framgang (beste 0.8410)
+sd-r2-d2-256 ferdig: beste hold-anger 0.8410 på epoke 8 → e1-modell/sd-r2-d2-256.bin
+
+=== sd-r2-begge-384: sd-data+sd-data2, 273 → 384 → 256 → 52 (217140 parametre) – trening 2999896, holdout 87964 ===
+epoke 1/40: tren-tap 1.3665 hold-tap 1.3692 (gap +0.0027)  tren-anger 0.8665 hold-anger 0.8607 hold-treff 51.2 %
+epoke 2/40: tren-tap 1.3612 hold-tap 1.3667 (gap +0.0054)  tren-anger 0.8354 hold-anger 0.8400 hold-treff 52.0 %
+epoke 3/40: tren-tap 1.3594 hold-tap 1.3668 (gap +0.0074)  tren-anger 0.8133 hold-anger 0.8303 hold-treff 52.1 %
+epoke 4/40: tren-tap 1.3573 hold-tap 1.3670 (gap +0.0096)  tren-anger 0.7950 hold-anger 0.8209 hold-treff 52.3 %
+epoke 5/40: tren-tap 1.3598 hold-tap 1.3721 (gap +0.0123)  tren-anger 0.7862 hold-anger 0.8183 hold-treff 52.4 %
+epoke 6/40: tren-tap 1.3587 hold-tap 1.3718 (gap +0.0131)  tren-anger 0.7762 hold-anger 0.8159 hold-treff 52.3 %
+epoke 7/40: tren-tap 1.3564 hold-tap 1.3730 (gap +0.0166)  tren-anger 0.7608 hold-anger 0.8176 hold-treff 52.3 %
+epoke 8/40: tren-tap 1.3538 hold-tap 1.3721 (gap +0.0183)  tren-anger 0.7563 hold-anger 0.8199 hold-treff 52.3 %
+epoke 9/40: tren-tap 1.3559 hold-tap 1.3757 (gap +0.0198)  tren-anger 0.7473 hold-anger 0.8254 hold-treff 52.2 %
+epoke 10/40: tren-tap 1.3564 hold-tap 1.3794 (gap +0.0230)  tren-anger 0.7375 hold-anger 0.8239 hold-treff 52.1 %
+epoke 11/40: tren-tap 1.3547 hold-tap 1.3791 (gap +0.0243)  tren-anger 0.7320 hold-anger 0.8175 hold-treff 52.2 %
+epoke 12/40: tren-tap 1.3548 hold-tap 1.3806 (gap +0.0258)  tren-anger 0.7245 hold-anger 0.8267 hold-treff 52.1 %
+tidlig stopp: 6 epoker uten framgang (beste 0.8159)
+sd-r2-begge-384 ferdig: beste hold-anger 0.8159 på epoke 6 → e1-modell/sd-r2-begge-384.bin
+
+=== sd-r2-begge-256: sd-data+sd-data2, 273 → 256 → 256 → 52 (149300 parametre) – trening 2999896, holdout 87964 ===
+epoke 1/40: tren-tap 1.3650 hold-tap 1.3672 (gap +0.0022)  tren-anger 0.8752 hold-anger 0.8631 hold-treff 51.3 %
+epoke 2/40: tren-tap 1.3651 hold-tap 1.3700 (gap +0.0049)  tren-anger 0.8472 hold-anger 0.8500 hold-treff 51.6 %
+epoke 3/40: tren-tap 1.3637 hold-tap 1.3698 (gap +0.0061)  tren-anger 0.8261 hold-anger 0.8363 hold-treff 52.0 %
+epoke 4/40: tren-tap 1.3602 hold-tap 1.3680 (gap +0.0078)  tren-anger 0.8038 hold-anger 0.8231 hold-treff 52.3 %
+epoke 5/40: tren-tap 1.3589 hold-tap 1.3685 (gap +0.0095)  tren-anger 0.7919 hold-anger 0.8169 hold-treff 52.2 %
+epoke 6/40: tren-tap 1.3595 hold-tap 1.3702 (gap +0.0107)  tren-anger 0.7868 hold-anger 0.8183 hold-treff 52.4 %
+epoke 7/40: tren-tap 1.3599 hold-tap 1.3724 (gap +0.0125)  tren-anger 0.7745 hold-anger 0.8139 hold-treff 52.4 %
+epoke 8/40: tren-tap 1.3615 hold-tap 1.3751 (gap +0.0136)  tren-anger 0.7728 hold-anger 0.8149 hold-treff 52.5 %
+epoke 9/40: tren-tap 1.3584 hold-tap 1.3728 (gap +0.0145)  tren-anger 0.7647 hold-anger 0.8159 hold-treff 52.3 %
+epoke 10/40: tren-tap 1.3594 hold-tap 1.3751 (gap +0.0157)  tren-anger 0.7690 hold-anger 0.8234 hold-treff 52.3 %
+epoke 11/40: tren-tap 1.3569 hold-tap 1.3743 (gap +0.0175)  tren-anger 0.7545 hold-anger 0.8225 hold-treff 52.2 %
+epoke 12/40: tren-tap 1.3586 hold-tap 1.3779 (gap +0.0192)  tren-anger 0.7488 hold-anger 0.8154 hold-treff 52.4 %
+epoke 13/40: tren-tap 1.3584 hold-tap 1.3793 (gap +0.0209)  tren-anger 0.7428 hold-anger 0.8201 hold-treff 52.2 %
+tidlig stopp: 6 epoker uten framgang (beste 0.8139)
+sd-r2-begge-256 ferdig: beste hold-anger 0.8139 på epoke 7 → e1-modell/sd-r2-begge-256.bin
+
+=== sd-r2-begge-512: sd-data+sd-data2, 273 → 512 → 384 → 256 → 52 (449204 parametre) – trening 2999896, holdout 87964 ===
+epoke 1/40: tren-tap 1.3717 hold-tap 1.3756 (gap +0.0038)  tren-anger 0.8660 hold-anger 0.8713 hold-treff 51.1 %
+epoke 2/40: tren-tap 1.3624 hold-tap 1.3680 (gap +0.0056)  tren-anger 0.8324 hold-anger 0.8391 hold-treff 51.7 %
+epoke 3/40: tren-tap 1.3593 hold-tap 1.3679 (gap +0.0086)  tren-anger 0.7986 hold-anger 0.8197 hold-treff 52.3 %
+epoke 4/40: tren-tap 1.3593 hold-tap 1.3700 (gap +0.0108)  tren-anger 0.7785 hold-anger 0.8151 hold-treff 52.4 %
+epoke 5/40: tren-tap 1.3578 hold-tap 1.3712 (gap +0.0134)  tren-anger 0.7730 hold-anger 0.8193 hold-treff 52.2 %
+epoke 6/40: tren-tap 1.3561 hold-tap 1.3729 (gap +0.0168)  tren-anger 0.7568 hold-anger 0.8155 hold-treff 52.4 %
+epoke 7/40: tren-tap 1.3570 hold-tap 1.3769 (gap +0.0199)  tren-anger 0.7497 hold-anger 0.8172 hold-treff 52.3 %
+epoke 8/40: tren-tap 1.3558 hold-tap 1.3796 (gap +0.0238)  tren-anger 0.7337 hold-anger 0.8200 hold-treff 52.4 %
+epoke 9/40: tren-tap 1.3566 hold-tap 1.3847 (gap +0.0281)  tren-anger 0.7231 hold-anger 0.8245 hold-treff 52.2 %
+epoke 10/40: tren-tap 1.3524 hold-tap 1.3833 (gap +0.0309)  tren-anger 0.7101 hold-anger 0.8249 hold-treff 52.1 %
+tidlig stopp: 6 epoker uten framgang (beste 0.8151)
+sd-r2-begge-512 ferdig: beste hold-anger 0.8151 på epoke 4 → e1-modell/sd-r2-begge-512.bin
+
+=== sd-r2-d2-192: sd-data2, 273 → 192 → 128 → 52 (84020 parametre) – trening 1726305, holdout 87964 ===
+epoke 1/40: tren-tap 1.3670 hold-tap 1.3710 (gap +0.0040)  tren-anger 0.8878 hold-anger 0.9116 hold-treff 50.6 %
+epoke 2/40: tren-tap 1.3670 hold-tap 1.3728 (gap +0.0058)  tren-anger 0.8648 hold-anger 0.8793 hold-treff 51.3 %
+epoke 3/40: tren-tap 1.3622 hold-tap 1.3695 (gap +0.0073)  tren-anger 0.8298 hold-anger 0.8625 hold-treff 51.3 %
+epoke 4/40: tren-tap 1.3597 hold-tap 1.3682 (gap +0.0085)  tren-anger 0.8169 hold-anger 0.8652 hold-treff 51.3 %
+epoke 5/40: tren-tap 1.3596 hold-tap 1.3695 (gap +0.0099)  tren-anger 0.8073 hold-anger 0.8539 hold-treff 51.5 %
+epoke 6/40: tren-tap 1.3663 hold-tap 1.3779 (gap +0.0116)  tren-anger 0.7999 hold-anger 0.8488 hold-treff 51.7 %
+epoke 7/40: tren-tap 1.3611 hold-tap 1.3740 (gap +0.0129)  tren-anger 0.7900 hold-anger 0.8484 hold-treff 51.6 %
+epoke 8/40: tren-tap 1.3625 hold-tap 1.3769 (gap +0.0144)  tren-anger 0.7804 hold-anger 0.8434 hold-treff 51.8 %
+epoke 9/40: tren-tap 1.3592 hold-tap 1.3743 (gap +0.0151)  tren-anger 0.7741 hold-anger 0.8400 hold-treff 51.6 %
+epoke 10/40: tren-tap 1.3592 hold-tap 1.3753 (gap +0.0161)  tren-anger 0.7661 hold-anger 0.8426 hold-treff 51.6 %
+epoke 11/40: tren-tap 1.3598 hold-tap 1.3771 (gap +0.0172)  tren-anger 0.7685 hold-anger 0.8444 hold-treff 51.8 %
+epoke 12/40: tren-tap 1.3587 hold-tap 1.3763 (gap +0.0177)  tren-anger 0.7571 hold-anger 0.8428 hold-treff 51.6 %
+epoke 13/40: tren-tap 1.3606 hold-tap 1.3800 (gap +0.0194)  tren-anger 0.7560 hold-anger 0.8417 hold-treff 51.6 %
+epoke 14/40: tren-tap 1.3600 hold-tap 1.3806 (gap +0.0206)  tren-anger 0.7573 hold-anger 0.8499 hold-treff 51.4 %
+epoke 15/40: tren-tap 1.3626 hold-tap 1.3847 (gap +0.0221)  tren-anger 0.7533 hold-anger 0.8480 hold-treff 51.5 %
+tidlig stopp: 6 epoker uten framgang (beste 0.8400)
+sd-r2-d2-192 ferdig: beste hold-anger 0.8400 på epoke 9 → e1-modell/sd-r2-d2-192.bin

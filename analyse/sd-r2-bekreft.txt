@@ -1,0 +1,31 @@
+PARRET POENGRAPPORT
+===================
+Kilder: analyse/sd-r2-bekreft-s0.jsonl, analyse/sd-r2-bekreft-s1.jsonl, analyse/sd-r2-bekreft-s10.jsonl, analyse/sd-r2-bekreft-s11.jsonl, analyse/sd-r2-bekreft-s12.jsonl, analyse/sd-r2-bekreft-s13.jsonl, analyse/sd-r2-bekreft-s2.jsonl, analyse/sd-r2-bekreft-s3.jsonl, analyse/sd-r2-bekreft-s4.jsonl, analyse/sd-r2-bekreft-s5.jsonl, analyse/sd-r2-bekreft-s6.jsonl, analyse/sd-r2-bekreft-s7.jsonl, analyse/sd-r2-bekreft-s8.jsonl, analyse/sd-r2-bekreft-s9.jsonl
+Leste 10000 linjer, 5 kandidater, 2000 FELLES givere
+Frøbånd: 34000000–34001999
+Merke: sd-r2 BEKREFTELSE paa ferske givere 34000000, 2000 givere
+
+Rå score mot benkemotstanderen (poeng/kamp, snitt over de 4 setene):
+  nevro                            +75.432 ± 0.029
+  e1:e1-modell/sd-r1.bin           +75.316 ± 0.031
+  e1:e1-modell/sd-r2-begge-384.bin +75.718 ± 0.030
+  e1:e1-modell/sd-r2-begge-256.bin +75.783 ± 0.029
+  e1:e1-modell/sd-r2-begge-512.bin +75.803 ± 0.029
+
+Parret mot nevro (samme givere):
+  e1:e1-modell/sd-r1.bin           -0.1164 ± 0.0253   -4.6 SE   tegntest 905/1943   p=0.0026
+  e1:e1-modell/sd-r2-begge-384.bin +0.2858 ± 0.0242   11.8 SE   tegntest 1239/1961   p=<1e-6
+  e1:e1-modell/sd-r2-begge-256.bin +0.3513 ± 0.0241   14.6 SE   tegntest 1275/1965   p=<1e-6
+  e1:e1-modell/sd-r2-begge-512.bin +0.3711 ± 0.0239   15.5 SE   tegntest 1311/1967   p=<1e-6
+
+Alle par innbyrdes (B − A, positivt = B best):
+  e1:e1-modell/sd-r1.bin       − nevro                        -0.1164 ± 0.0253   tegntest 905/1943   p=0.0026
+  e1:e1-modell/sd-r2-begge-384.bin − nevro                        +0.2858 ± 0.0242   tegntest 1239/1961   p=<1e-6
+  e1:e1-modell/sd-r2-begge-256.bin − nevro                        +0.3513 ± 0.0241   tegntest 1275/1965   p=<1e-6
+  e1:e1-modell/sd-r2-begge-512.bin − nevro                        +0.3711 ± 0.0239   tegntest 1311/1967   p=<1e-6
+  e1:e1-modell/sd-r2-begge-384.bin − e1:e1-modell/sd-r1.bin       +0.4022 ± 0.0217   tegntest 1362/1954   p=<1e-6
+  e1:e1-modell/sd-r2-begge-256.bin − e1:e1-modell/sd-r1.bin       +0.4677 ± 0.0223   tegntest 1408/1967   p=<1e-6
+  e1:e1-modell/sd-r2-begge-512.bin − e1:e1-modell/sd-r1.bin       +0.4875 ± 0.0214   tegntest 1426/1952   p=<1e-6
+  e1:e1-modell/sd-r2-begge-256.bin − e1:e1-modell/sd-r2-begge-384.bin +0.0655 ± 0.0191   tegntest 1044/1932   p=0.0004
+  e1:e1-modell/sd-r2-begge-512.bin − e1:e1-modell/sd-r2-begge-384.bin +0.0854 ± 0.0194   tegntest 1040/1925   p=0.0004
+  e1:e1-modell/sd-r2-begge-512.bin − e1:e1-modell/sd-r2-begge-256.bin +0.0198 ± 0.0187   tegntest 976/1925   p=0.5383

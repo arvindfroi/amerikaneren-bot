@@ -1,0 +1,200 @@
+sd-r2: DAgger-RUNDE 2 – samlet, 2026-07-26
+==========================================
+
+SPØRSMÅLET. sd-r1 er destillert fra SD-orakelet, men på stillinger NEVRO
+spilte. Når nettet spiller selv, møter det andre stillinger enn dem det er
+trent på. Det er fordelingsskiftet `sd-orakel.ts` selv advarer om, og
+hypotesen var at det forklarer restgapet: sd-r1 måler −0,115 ± 0,026 poeng
+mot NevroHjerne. Runde 2 av dataene er hentet fra sd-r1s EGEN spilling
+(`--spiller e1-modell/sd-r1.bin`, frøbånd 80 mill.), som er kuren DAgger
+foreskriver. Denne kjøringen tester om det hjalp.
+
+SVARET: JA. sd-r2 slår NevroHjerne med +0,371 ± 0,024 poeng per kamp, mot
+sd-r1s −0,115 ± 0,026. DAgger-runden er verdt +0,49 poeng, og for første gang
+i prosjektet ligger et trent nett OVER appens eget nett på poengbenken.
+
+Skript: `verktoy/sd-tren.py` (ny), `examples/sd-parret-rapport.ts` (ny),
+`examples/neat-evaluer.ts`, `examples/e1-frysmaal.ts`.
+Tall: `analyse/sd-r2-tren.jsonl`, `analyse/sd-r2-kurver.txt`,
+`analyse/sd-r2-lekkasje.txt`, `analyse/sd-r2-poeng.{txt,json}`,
+`analyse/sd-r2-bekreft.{txt,json}`, `e1-maalinger.jsonl`, `e1-frysmaal.jsonl`.
+
+
+1. OVERTILPASNINGSKONTROLLEN – det som ble gjort annerledes
+----------------------------------------------------------
+a) HOLDOUT DELT PÅ GIV. `verktoy/e1-tren.py` tar de siste 5 % av LINJENE. To
+   stillinger fra samme parti deler alle fire hender, hele budrunden og hele
+   kontrakten, så en stillingsdeling lekker. `sd-tren.py` hasher `frø` og
+   legger hele partier i én del. Invarianten «ingen giv i to deler» sjekkes i
+   koden og avbryter kjøringen hvis den brytes.
+b) HOLDOUTEN ER TRUKKET BARE FRA sd-data2, som sd-r1 aldri har sett. Dermed er
+   nøyaktig samme utvalg et rent holdout for BÅDE sd-r1 og sd-r2.
+c) OVERLAPPET ER RAPPORTERT, også der det er null – se
+   `analyse/sd-r2-lekkasje.txt`. Ett tall er ikke null, og det gjelder den
+   GAMLE benken: `sd-frys` er en delmengde av sd-data, og 16 av dens 48 givere
+   lå i sd-r1s treningssett.
+d) TRENINGSTAP OG HOLDOUT-TAP LOGGES PER EPOKE, ikke bare det beste – samme
+   uvektede tap på begge sider, så de kan stå i samme kurve.
+e) TO DATABLANDINGER OG FIRE ARKITEKTURER er kjørt, ikke antatt.
+f) VINNEREN ER BEKREFTET PÅ ET FERSKT FRØBÅND, fordi den ble valgt blant seks
+   på det første.
+
+
+2. TAPSKURVENE – de skiller lag, og tidlig
+------------------------------------------
+Hele tabellen står i `analyse/sd-r2-kurver.txt`. Sammendraget:
+
+  kjøring          hold-tap bunner   hold-anger bunner   gap ved slutt
+  sd-r2-d2-384        epoke 2            epoke 8           +0,0451 (ep 14)
+  sd-r2-d2-256        epoke 1            epoke 8           +0,0315 (ep 14)
+  sd-r2-d2-192        epoke 4            epoke 9           +0,0221 (ep 15)
+  sd-r2-begge-384     epoke 2            epoke 6           +0,0258 (ep 12)
+  sd-r2-begge-256     epoke 1            epoke 7           +0,0209 (ep 13)
+  sd-r2-begge-512     epoke 3            epoke 4           +0,0309 (ep 10)
+
+Tre ting kurvene sier som det beste tallet alene ikke ville sagt:
+
+  * Gapet vokser MONOTONT fra epoke 2 i alle seks kjøringene. Overtilpasningen
+    er i gang lenge før treningen stoppes.
+  * Hold-tapet bunner 4–6 epoker FØR hold-angeren. De to kriteriene er ikke
+    enige om når nettet er best. Sjekkpunktet velges på anger (som i sd-r1, for
+    sammenlignbarhetens skyld), men et tapsvalgt sjekkpunkt ville ligget mye
+    tidligere – og hvilket av dem som gir best POENG er ikke målt her.
+  * Gapet vokser raskere med mindre data (d2-384: +0,045 på 14 epoker mot
+    begge-384: +0,026 på 12) og raskere med større nett (begge-512: +0,031 på
+    10 epoker mot begge-256: +0,016). Begge retninger er som forventet, og de
+    er målt, ikke antatt.
+
+
+3. POENG – DET AVGJØRENDE MÅLET
+-------------------------------
+`examples/neat-evaluer.ts`, 2000 givere × 4 seter per kandidat, parret på
+giver, motstander 3× grådig, rent nett. Samme oppsett som sd-r1 ble målt med.
+Uavhengighetsenheten er GIVEREN.
+
+FRØBÅND 33 000 000 (samme som sd-r1-målingen), parret mot nevro:
+
+  kandidat            data          arkitektur     mot nevro          SE     tegntest
+  sd-r1               sd-data       384–256        −0,1150 ± 0,0257  −4,5    908/1964
+  sd-r2-d2-384        sd-data2      384–256        +0,0615 ± 0,0255  +2,4   1058/1971
+  sd-r2-d2-192        sd-data2      192–128        +0,1150 ± 0,0257  +4,5   1093/1961
+  sd-r2-d2-256        sd-data2      256–256        +0,1619 ± 0,0254  +6,4   1126/1961
+  sd-r2-begge-384     begge         384–256        +0,2795 ± 0,0248 +11,3   1212/1964
+  sd-r2-begge-256     begge         256–256        +0,3456 ± 0,0245 +14,1   1287/1962
+  sd-r2-begge-512     begge         512–384–256    +0,3725 ± 0,0246 +15,1   1288/1963
+
+BEKREFTELSE PÅ FERSKE GIVERE, frøbånd 34 000 000, 2000 nye givere:
+
+  kandidat            mot nevro           SE     tegntest    avvik fra 33M
+  sd-r1               −0,1164 ± 0,0253   −4,6    905/1943    −0,001
+  sd-r2-begge-384     +0,2858 ± 0,0242  +11,8   1239/1961    +0,006
+  sd-r2-begge-256     +0,3513 ± 0,0241  +14,6   1275/1965    +0,006
+  sd-r2-begge-512     +0,3711 ± 0,0239  +15,5   1311/1967    −0,001
+
+Alle fire reproduseres innenfor 0,007 poeng på et helt uavhengig frøbånd.
+Rekkefølgen er den samme. Effekten er ikke et utvalgsartefakt.
+
+DAgger-GEVINSTEN, parret på samme givere:
+
+  sd-r2-begge-512 − sd-r1 :  +0,4875 ± 0,0215   tegntest 1411/1961 (72 %)   33M
+  sd-r2-begge-512 − sd-r1 :  +0,4875 ± 0,0214   tegntest 1426/1952 (73 %)   34M
+
++0,49 poeng per kamp, 23 standardfeil fra null, identisk på to uavhengige
+frøbånd. Til sammenligning var lærerbyttet DD→SD verdt +2,85.
+
+sd-r1s tall (−0,1150 ± 0,0257, tegntest 908/1964) reproduseres på SISTE SIFFER
+mot målingen fra 25. juli. Det er kontrollen på at den nye, shardede
+måleveien gir nøyaktig samme svar som den gamle enprosessveien.
+
+
+4. HVILKEN DATABLANDING VANT: BEGGE RUNDENE, TYDELIG
+-----------------------------------------------------
+Parret, samme givere, 33M-båndet:
+
+  begge − bare sd-data2, 384–256 :  +0,2180 ± 0,0212
+  begge − bare sd-data2, 256–256 :  +0,1837 ± 0,0199
+
+Å beholde runde 1 er verdt +0,18 til +0,22 poeng, 9–10 SE. DAgger-litteraturen
+sier at man skal beholde de tidligere rundene; her er det målt, ikke antatt, og
+den sier det samme. Holdout-angeren er enig og med god margin: 0,814 for de
+blandede mot 0,841 for de rene sd-data2-nettene.
+
+Merk hva dette IKKE er: det er ikke bare et datamengdeargument. sd-data2 alene
+er 1,73 mill. stillinger, sd-r1 ble trent på 619 000, og et sd-data2-nett med
+2,8 ganger så mye data som sd-r1 lander på +0,06 til +0,16. Det er
+BLANDINGEN som gir resten.
+
+
+5. HVILKEN ARKITEKTUR VANT: INGEN, INNENFOR STØYEN
+---------------------------------------------------
+  begge-512 − begge-256 :  +0,0269 ± 0,0182   (33M, p = 0,27)
+  begge-512 − begge-256 :  +0,0198 ± 0,0187   (34M, p = 0,54)
+  vektet sammen         :  +0,023  ± 0,013    (1,8 SE – ikke etablert)
+
+512–384–256 har høyest punktanslag på begge bånd, men forskjellen til
+256–256 er ikke til å skille fra null på 4000 givere. Begge slår 384–256
+klart (+0,07 til +0,09, 4 SE), og DET er den eneste arkitekturforskjellen som
+er etablert – og den er ikke monoton i størrelse. En ikke-monoton effekt over
+tre størrelser er kjørevariasjon, ikke kapasitet.
+
+Mønsteret «det minste nettet vinner» fra de to forrige kjøringene REPLIKERER
+IKKE her. Det holder innenfor sd-data2-blandingen (256–256 og 192–128 slår
+384–256), men brytes i den blandede (512–384–256 er best på poeng).
+
+`sd-r2` er satt til `begge-512` fordi poeng avgjør og den har høyest anslag på
+begge bånd. Valget er ikke bærende: `begge-256` er tre ganger mindre og like
+god innenfor målenøyaktigheten.
+
+
+6. ANGER PÅ DEN GIV-DELTE HOLDOUTEN – og for første gang peker den samme vei
+-----------------------------------------------------------------------------
+`examples/e1-frysmaal.ts --mappe sd-frys2`, 87 964 stillinger fra 335 partier
+ingen kandidat har sett. Gulv og tak målt på nøyaktig samme utvalg.
+
+  kandidat           anger    gulv     tak(nevro)  framdrift   poeng mot nevro
+  sd-r2-begge-256   0,8139   1,3809     1,0273      160,4 %      +0,346
+  sd-r2-begge-512   0,8151   1,3809     1,0273      160,0 %      +0,373
+  sd-r2-begge-384   0,8159   1,3809     1,0273      159,8 %      +0,280
+  sd-r2-d2-192      0,8400   1,3809     1,0273      153,0 %      +0,115
+  sd-r2-d2-256      0,8410   1,3809     1,0273      152,7 %      +0,162
+  sd-r2-d2-384      0,8425   1,3809     1,0273      152,3 %      +0,061
+  sd-r1             0,9174   1,3809     1,0273      131,1 %      −0,115
+  nevro             1,0273   1,3809     1,0273      100,0 %       0,000
+  e1-r2 (DD-lærer)  1,2211   1,3809     1,0273       45,2 %      −2,96
+
+Rangkorrelasjonen mellom anger og poeng over de seks sd-r2-nettene er
+Spearman +0,886. Alle seks nettene rangeres riktig relativt til sd-r1, nevro
+og e1-r2, og de to eneste ombyttingene er nøyaktig de to parene som IKKE er
+til å skille fra hverandre på poeng (512/256 og 256/192).
+
+DET ER NYTT. Seks ganger på to dager har fasit og poeng rangert par motsatt.
+Her, på en holdout som er delt på giv og trukket fra den fordelingen nettene
+faktisk møter, gjør de det ikke.
+
+MEN OPPLØSNINGEN ER FORTSATT FOR GROV FOR NÆRE KANDIDATER. Halveres den samme
+benken (`--del holdout`, n = 43 982, samme 335 partier), bytter d2-384 og
+d2-256 plass: 0,8366 mot 0,8482, motsatt av på hele benken. Mikserforskjellen
+(0,814 mot 0,841) er stabil i begge halvdeler. Konklusjonen er derfor presis:
+SD-anger på en giv-delt holdout skiller DATABLANDINGER, ikke ARKITEKTURER.
+Til det siste kreves fortsatt poengbenken.
+
+Forklaringen på hvorfor den gamle benken var verre står i
+`analyse/sd-r2-lekkasje.txt`: `sd-frys` har 48 givere, ikke 8 382 uavhengige
+stillinger, og 16 av de 48 lå i sd-r1s treningssett.
+
+
+7. DOMMEN
+---------
+1. DAgger HJALP, og hjalp mye. +0,49 ± 0,02 poeng per kamp, reprodusert på to
+   uavhengige frøbånd. Fordelingsskiftet var altså en ekte del av restgapet.
+2. NevroHjerne ER SLÅTT. +0,371 ± 0,024, 15,5 SE, sd-r2 vinner 67 % av
+   giverne. Det er første gang i prosjektet et trent nett ligger over appens
+   eget nett på poengbenken. Merk at dette er NevroHjerne, ikke MesterAI –
+   avstanden dit er en helt annen sak (nevro taper 1,07 poeng/runde/sete).
+3. BEHOLD DE TIDLIGERE DAgger-RUNDENE. +0,18 til +0,22 poeng målt.
+4. ARKITEKTUR ER IKKE FLASKEHALSEN, fjerde gang. Spennet mellom 84 000 og
+   449 000 parametre er 0,09 poeng; spennet mellom datablandingene er 0,22 og
+   mellom DAgger-rundene 0,49.
+5. RESTGAPET ER IKKE UTTØMT: kurvene skiller lag fra epoke 2, og hold-tapet
+   bunner før hold-angeren. Det er rom igjen i regularisering og i valg av
+   sjekkpunktkriterium som ikke er prøvd her.

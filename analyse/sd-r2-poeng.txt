@@ -1,0 +1,55 @@
+PARRET POENGRAPPORT
+===================
+Kilder: analyse/sd-r2-poeng-s0.jsonl, analyse/sd-r2-poeng-s1.jsonl, analyse/sd-r2-poeng-s10.jsonl, analyse/sd-r2-poeng-s11.jsonl, analyse/sd-r2-poeng-s12.jsonl, analyse/sd-r2-poeng-s13.jsonl, analyse/sd-r2-poeng-s2.jsonl, analyse/sd-r2-poeng-s3.jsonl, analyse/sd-r2-poeng-s4.jsonl, analyse/sd-r2-poeng-s5.jsonl, analyse/sd-r2-poeng-s6.jsonl, analyse/sd-r2-poeng-s7.jsonl, analyse/sd-r2-poeng-s8.jsonl, analyse/sd-r2-poeng-s9.jsonl
+Leste 16000 linjer, 8 kandidater, 2000 FELLES givere
+Frøbånd: 33000000–33001999
+Merke: sd-r2 (DAgger-runde 2) mot sd-r1 mot nevro, 6 varianter, froe 33000000, 2000 givere
+
+Rå score mot benkemotstanderen (poeng/kamp, snitt over de 4 setene):
+  nevro                            +75.400 ± 0.031
+  e1:e1-modell/sd-r1.bin           +75.285 ± 0.031
+  e1:e1-modell/sd-r2-d2-384.bin    +75.461 ± 0.032
+  e1:e1-modell/sd-r2-d2-256.bin    +75.562 ± 0.031
+  e1:e1-modell/sd-r2-d2-192.bin    +75.515 ± 0.031
+  e1:e1-modell/sd-r2-begge-384.bin +75.679 ± 0.030
+  e1:e1-modell/sd-r2-begge-256.bin +75.746 ± 0.031
+  e1:e1-modell/sd-r2-begge-512.bin +75.772 ± 0.030
+
+Parret mot nevro (samme givere):
+  e1:e1-modell/sd-r1.bin           -0.1150 ± 0.0257   -4.5 SE   tegntest 908/1964   p=0.0008
+  e1:e1-modell/sd-r2-d2-384.bin    +0.0615 ± 0.0255   2.4 SE   tegntest 1058/1971   p=0.0011
+  e1:e1-modell/sd-r2-d2-256.bin    +0.1619 ± 0.0254   6.4 SE   tegntest 1126/1961   p=<1e-6
+  e1:e1-modell/sd-r2-d2-192.bin    +0.1150 ± 0.0257   4.5 SE   tegntest 1093/1961   p=<1e-6
+  e1:e1-modell/sd-r2-begge-384.bin +0.2795 ± 0.0248   11.3 SE   tegntest 1212/1964   p=<1e-6
+  e1:e1-modell/sd-r2-begge-256.bin +0.3456 ± 0.0245   14.1 SE   tegntest 1287/1962   p=<1e-6
+  e1:e1-modell/sd-r2-begge-512.bin +0.3725 ± 0.0246   15.1 SE   tegntest 1288/1963   p=<1e-6
+
+Alle par innbyrdes (B − A, positivt = B best):
+  e1:e1-modell/sd-r1.bin       − nevro                        -0.1150 ± 0.0257   tegntest 908/1964   p=0.0008
+  e1:e1-modell/sd-r2-d2-384.bin − nevro                        +0.0615 ± 0.0255   tegntest 1058/1971   p=0.0011
+  e1:e1-modell/sd-r2-d2-256.bin − nevro                        +0.1619 ± 0.0254   tegntest 1126/1961   p=<1e-6
+  e1:e1-modell/sd-r2-d2-192.bin − nevro                        +0.1150 ± 0.0257   tegntest 1093/1961   p=<1e-6
+  e1:e1-modell/sd-r2-begge-384.bin − nevro                        +0.2795 ± 0.0248   tegntest 1212/1964   p=<1e-6
+  e1:e1-modell/sd-r2-begge-256.bin − nevro                        +0.3456 ± 0.0245   tegntest 1287/1962   p=<1e-6
+  e1:e1-modell/sd-r2-begge-512.bin − nevro                        +0.3725 ± 0.0246   tegntest 1288/1963   p=<1e-6
+  e1:e1-modell/sd-r2-d2-384.bin − e1:e1-modell/sd-r1.bin       +0.1764 ± 0.0237   tegntest 1137/1958   p=<1e-6
+  e1:e1-modell/sd-r2-d2-256.bin − e1:e1-modell/sd-r1.bin       +0.2768 ± 0.0221   tegntest 1257/1961   p=<1e-6
+  e1:e1-modell/sd-r2-d2-192.bin − e1:e1-modell/sd-r1.bin       +0.2300 ± 0.0234   tegntest 1179/1945   p=<1e-6
+  e1:e1-modell/sd-r2-begge-384.bin − e1:e1-modell/sd-r1.bin       +0.3945 ± 0.0223   tegntest 1309/1953   p=<1e-6
+  e1:e1-modell/sd-r2-begge-256.bin − e1:e1-modell/sd-r1.bin       +0.4606 ± 0.0217   tegntest 1397/1950   p=<1e-6
+  e1:e1-modell/sd-r2-begge-512.bin − e1:e1-modell/sd-r1.bin       +0.4875 ± 0.0215   tegntest 1411/1961   p=<1e-6
+  e1:e1-modell/sd-r2-d2-256.bin − e1:e1-modell/sd-r2-d2-384.bin +0.1004 ± 0.0215   tegntest 1065/1943   p=0.0000
+  e1:e1-modell/sd-r2-d2-192.bin − e1:e1-modell/sd-r2-d2-384.bin +0.0535 ± 0.0219   tegntest 1030/1933   p=0.0039
+  e1:e1-modell/sd-r2-begge-384.bin − e1:e1-modell/sd-r2-d2-384.bin +0.2180 ± 0.0212   tegntest 1181/1951   p=<1e-6
+  e1:e1-modell/sd-r2-begge-256.bin − e1:e1-modell/sd-r2-d2-384.bin +0.2842 ± 0.0213   tegntest 1236/1948   p=<1e-6
+  e1:e1-modell/sd-r2-begge-512.bin − e1:e1-modell/sd-r2-d2-384.bin +0.3110 ± 0.0209   tegntest 1280/1950   p=<1e-6
+  e1:e1-modell/sd-r2-d2-192.bin − e1:e1-modell/sd-r2-d2-256.bin -0.0469 ± 0.0215   tegntest 925/1943   p=0.0349
+  e1:e1-modell/sd-r2-begge-384.bin − e1:e1-modell/sd-r2-d2-256.bin +0.1176 ± 0.0200   tegntest 1070/1935   p=0.0000
+  e1:e1-modell/sd-r2-begge-256.bin − e1:e1-modell/sd-r2-d2-256.bin +0.1837 ± 0.0199   tegntest 1180/1946   p=<1e-6
+  e1:e1-modell/sd-r2-begge-512.bin − e1:e1-modell/sd-r2-d2-256.bin +0.2106 ± 0.0199   tegntest 1206/1940   p=<1e-6
+  e1:e1-modell/sd-r2-begge-384.bin − e1:e1-modell/sd-r2-d2-192.bin +0.1645 ± 0.0213   tegntest 1093/1937   p=<1e-6
+  e1:e1-modell/sd-r2-begge-256.bin − e1:e1-modell/sd-r2-d2-192.bin +0.2306 ± 0.0210   tegntest 1193/1947   p=<1e-6
+  e1:e1-modell/sd-r2-begge-512.bin − e1:e1-modell/sd-r2-d2-192.bin +0.2575 ± 0.0210   tegntest 1205/1931   p=<1e-6
+  e1:e1-modell/sd-r2-begge-256.bin − e1:e1-modell/sd-r2-begge-384.bin +0.0661 ± 0.0193   tegntest 1063/1934   p=0.0000
+  e1:e1-modell/sd-r2-begge-512.bin − e1:e1-modell/sd-r2-begge-384.bin +0.0930 ± 0.0194   tegntest 1089/1934   p=<1e-6
+  e1:e1-modell/sd-r2-begge-512.bin − e1:e1-modell/sd-r2-begge-256.bin +0.0269 ± 0.0182   tegntest 992/1935   p=0.2653

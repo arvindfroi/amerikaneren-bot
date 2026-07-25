@@ -1,0 +1,97 @@
+LEKKASJEKONTROLL FOR sd-r2 – overlapp mellom datasett og benker
+================================================================
+Kjørt 2026-07-26 av `verktoy/sd-tren.py` (overlappsrapporten skrives også til
+analyse/sd-r2-tren.jsonl som første linje) og av et engangsskript for
+sd-frys-kontrollen nederst.
+
+Arvind ba eksplisitt om at overlappet skulle rapporteres, OGSÅ når det er null.
+Det gjøres her på to nivåer: GIVER (feltet `frø`, altså partiet – to stillinger
+med samme frø deler alle fire hender, hele budrunden og hele kontrakten) og
+LINJE (md5-signatur av den rå jsonl-linjen).
+
+
+1. DATASETTENE
+--------------
+  mappe      stillinger    givere    frøbånd
+  sd-data     1 273 591     4 735    50 000 000 – 65 000 305
+  sd-data2    1 814 269     6 890    80 000 000 – 95 000 425
+
+  totalt      3 087 860 linjer lest, 0 dubletter, 0 ugyldige
+
+
+2. OVERLAPP – ALLE PAR
+----------------------
+  par                       felles givere    felles linjer
+  sd-data  ∩ sd-data2                   0                0
+  sd-data  ∩ e1-frys                    0                0
+  sd-data2 ∩ e1-frys                    0                0
+  sd-data2 ∩ sd-frys                    0                0
+  sd-data  ∩ sd-frys                   48            8 382    ← ikke null
+
+Frøbåndene forklarer de fire nullene: e1-frys ligger på 700 000 – 9 700 015,
+sd-data på 50–65 mill., sd-data2 på 80–95 mill. Båndene er disjunkte, og
+nøkkelsettene i linjene er dessuten ulike (`dybde` mot `sdVerdener`), så
+md5-signaturene kan ikke kollidere heller.
+
+Måleoppsettet ligger på frø 33 000 000 – 33 001 999 (og bekreftelsen på
+34 000 000 – 34 001 999). Begge bånd ligger utenfor alle datasettene, så ingen
+kandidat måles på givere den er trent på.
+
+
+3. sd-frys ER IKKE EN HOLDOUT FOR sd-r1 – det er den ene raden som ikke er null
+------------------------------------------------------------------------------
+`sd-frys` er de linjene sd-orakel-skårene skrev ETTER at treneren til sd-r1 var
+ferdig å lese, klippet ut av sd-data. Den er derfor per konstruksjon en ekte
+delmengde av sd-data (48 givere, 8 382 linjer), og det er nettopp det raden
+over viser.
+
+Det avgjørende er om sd-r1 hadde sett de GIVERNE. Kontrollen (`analyse/
+sd-grense.txt` gir grensen treneren leste til, 726 306 linjer):
+
+  sd-r1s treningsgivere (sd-data, de første 726 306 linjene) :  2 718
+  sd-frys' givere                                            :     48
+  OVERLAPP PÅ GIV                                            :     16 av 48
+
+  felles frø: 50000175 51000170 52000172 53000174 54000162 55000166 56000162
+              57000167 58000170 59000167 60000169 61000169 62000170 63000170
+              64000165 65000174
+
+Ett frø per skard: nøyaktig det partiet som lå på lesegrensen. sd-r1 hadde
+altså trent på andre stillinger fra 16 av de 48 partiene den senere ble målt
+på. Linjene var nye, givene var det ikke.
+
+To ting følger:
+
+  a) Tallene i docs/moe2.md som er målt på `sd-frys` (anger 0,9360 for sd-r1
+     osv.) er ikke rene holdout-tall. Fortegnet på det STORE funnet der
+     (sd-r1 langt foran e1-r2) tåler det utvilsomt; finrangeringen av nære
+     kandidater gjør det ikke.
+  b) `sd-frys` har bare 48 UAVHENGIGE enheter, ikke 8 382. «n = 4 191 på
+     holdout-halvdelen» leser altså langt flere frihetsgrader inn i benken enn
+     den har. Det er en like viktig del av forklaringen på at SD-anger ikke
+     kunne rangere de fire arkitekturene som lekkasjen er.
+
+
+4. DEN NYE HOLDOUTEN: sd-frys2
+------------------------------
+Delt på GIV, ikke på stilling:
+
+  kilde                   sd-data2 (kun)
+  regel                   md5("20260726:<frø>")[:4] < 0,05 · 2^32
+  givere i holdout        335 av 6 890
+  stillinger i holdout    87 964
+  giv i to deler          0   (håndhevet i koden – `sd-tren.py` avbryter ellers)
+
+Holdouten er trukket BARE fra sd-data2. Grunnen er at sd-r1 aldri har sett
+sd-data2, så nøyaktig det samme utvalget er et rent holdout også for sd-r1 –
+og dermed kan sd-r1, sd-r2 og alle mellomvariantene måles på samme stillinger
+uten at noen av dem har et forsprang.
+
+Benken er skrevet ut som mappe med
+`verktoy/sd-tren.py --dumpholdout sd-frys2`, slik at `examples/e1-frysmaal.ts`
+kan måle gulv (uniformt lovlig valg) og tak (NevroHjerne) på nøyaktig de samme
+stillingene – målekontrakten i docs/moe2.md.
+
+Kryssjekk: treneren (Python) og `e1-frysmaal.ts` (TypeScript) regner samme
+anger på samme stillinger til fjerde desimal (0,8425 / 0,8410 / 0,8400 /
+0,8159 / 0,8139 / 0,8151). To uavhengige implementasjoner, samme tall.

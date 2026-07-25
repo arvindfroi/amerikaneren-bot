@@ -2,6 +2,8 @@ node_modules/
 dist/
 *.log
 *.log.*
+# stderr fra bakgrunnsprosesser (tomme naar alt gikk bra)
+*.err
 .DS_Store
 # midlertidige skrap-filer
 /_*
@@ -35,9 +37,16 @@ e1-data3/
 # SD: kortdatasettet fra sd-orakel.ts (samme format som e1-data, egen mappe
 # fordi treneren blander alt som ligger i samme mappe)
 sd-data/
+# SD runde 2 (DAgger): stillingene fra sd-r1s EGEN spilling, samme format og
+# samme grunn til å ligge i egen mappe. 2,8 GB.
+sd-data2/
 # SD-holdouten: linjer sd-orakel-skårene skrev ETTER at treneren leste ferdig,
 # klippet ut av sd-data. Regenereres av kommandoen i docs/moe2.md.
 sd-frys/
+# SD-holdouten for runde 2: delt paa GIV, ikke paa stilling. Skrives av
+# `verktoy/sd-tren.py --dumpholdout sd-frys2` og er nøyaktig de partiene
+# treneren holdt utenfor.
+sd-frys2/
 # arena: byggeartefakter og kopiert appkode (hentes med arena/hent-appkode.sh)
 arena/adapter/.build/
 arena/adapter/Sources/adapter/appkode/
