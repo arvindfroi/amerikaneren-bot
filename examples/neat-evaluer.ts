@@ -38,7 +38,7 @@
 import { appendFileSync, readFileSync } from "node:fs";
 
 import { opprettSpill, utfør, velgHandling, type GameState, type Handling } from "../src/index.ts";
-import { genomFraJson, HybridAgent, NeatAgent, type Genom } from "../src/neat/index.ts";
+import { genomFraJson, HybridAgent, NeatAgent, ROLLER, SenatAgent, type Genom, type Rolle, type SenatOpts } from "../src/neat/index.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { grådigHandling } from "./graadig.ts";
@@ -87,7 +87,7 @@ const til = frøTil ?? kamper;
  * Innebygde referanser i stedet for en genomfil: «pimc», «nevro», og
  * «e1:<vektfil>» for et GPU-trent E1-nett.
  */
-type Referanse = "pimc" | "nevro" | "e1";
+type Referanse = "pimc" | "nevro" | "e1" | "senat";
 interface Kandidat {
   readonly navn: string;
   readonly genom: Genom | null;
@@ -104,10 +104,32 @@ function lesGenom(fil: string): Genom {
 const kandidater: Kandidat[] = filer.map((f) => {
   if (f === "pimc" || f === "nevro") return { navn: f, genom: null, referanse: f };
   if (f.startsWith("e1:")) return { navn: f, genom: null, referanse: "e1" as const, fil: f.slice(3) };
+  // «senat:<grunngenom>» – nevros budgivning/trumf + senatorenes kortspill.
+  // Eksperter lastes fra moe/ekspert-<rolle>.json når de finnes.
+  if (f.startsWith("senat:")) return { navn: f, genom: null, referanse: "senat" as const, fil: f.slice(6) };
   return { navn: f, genom: lesGenom(f), referanse: null };
 });
 
 // Vektfilen er et par MB – les den én gang, ikke per kamp.
+const senatBufret = new Map<string, SenatOpts>();
+function senatOpts(fil: string): SenatOpts {
+  let o = senatBufret.get(fil);
+  if (o === undefined) {
+    const eksperter: Partial<Record<Rolle, Genom>> = {};
+    for (const r of ROLLER) {
+      const sti = `moe/ekspert-${r}.json`;
+      try {
+        eksperter[r] = lesGenom(sti);
+      } catch {
+        /* eksperten finnes ikke ennå – fallback til grunngenomet */
+      }
+    }
+    o = { grunn: lesGenom(fil), eksperter, nevroBud: true };
+    senatBufret.set(fil, o);
+  }
+  return o;
+}
+
 const e1Bufret = new Map<string, E1Agent>();
 function e1Agent(fil: string): E1Agent {
   let a = e1Bufret.get(fil);
@@ -121,7 +143,9 @@ function e1Agent(fil: string): E1Agent {
 /** Én hel kamp: kandidaten i `sete`, tre motstandere. Returnerer poengdifferansen. */
 function kamp(k: Kandidat, frø: number, sete: number): number {
   const agent =
-    k.referanse === "e1"
+    k.referanse === "senat"
+      ? new SenatAgent(senatOpts(k.fil!))
+      : k.referanse === "e1"
       ? e1Agent(k.fil!)
       : k.referanse === "nevro"
       ? new NevroAgent()

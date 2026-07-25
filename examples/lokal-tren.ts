@@ -130,9 +130,18 @@ const ALLE_LINJER: Linje[] = [
     dir: "trening-d6",
     logg: "trening-d6.log",
     frø: 626262,
+    // --angervekt 0.2: 20 % av fitness fra BESLUTNINGSKVALITET mot
+    // det eksakte orakelet, ikke kamputfall. Det er svaret paa at
+    // kampfitness har ±50 poeng kortflaks-stoey mot et signal paa ~0,3 per
+    // beslutning. Alle genomer moeter samme stillinger, saa variansen mellom
+    // dem er null. SATT NED FRA 0,4: populasjonen inneholder 20 anger-trente
+    // genomer med god benkescore (0,82 mot 1,15) men 105 poeng daarligere
+    // SPILL. Ved hoey vekt ville seleksjonen kjoept benkescore for
+    // spillestyrke - samme feil som «+35,4»-maalingen, bare bygget inn i
+    // fitness. 0,2 gir signalet plass uten aa la det overstyre utfallet.
     ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro",
              "--trumffasit", "0.5", "--etterlysfasit", "0.6", "--vrakfasit", "0.6",
-             "--stikkfasit", "0.25"],
+             "--stikkfasit", "0.25", "--angervekt", "0.2"],
   },
 ];
 const LINJER: Linje[] = linjeValg === null ? ALLE_LINJER : ALLE_LINJER.filter((l) => linjeValg.includes(l.navn));

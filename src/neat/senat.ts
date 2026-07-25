@@ -28,6 +28,7 @@
 
 import type { GameState, Handling } from "../motor.ts";
 import { lovligeHandlinger } from "../motor.ts";
+import { NevroAgent } from "../nevro/agent.ts";
 import { NeatAgent } from "./agent.ts";
 import type { Genom } from "./genom.ts";
 
@@ -45,6 +46,20 @@ export interface SenatOpts {
   readonly grunn: Genom;
   readonly eksperter: Partial<Record<Rolle, Genom>>;
   readonly læringsrate?: number;
+  /**
+   * BUDGIVNING OG TRUMFVALG fra NevroHjerne i stedet for egne nett.
+   *
+   * Arvinds forslag, og det er godt begrunnet: nevros budgivning er solid
+   * (byr 9,3 i snitt, klarer 68 %) mens D-linjenes xT-hode er målt ødelagt
+   * (utgang eksakt 0 → alltid bud 6). Fasedelingen ga trumfvalget 32 av 42
+   * poeng i gapet. Å låne begge fjerner de to største feilkildene med det
+   * samme, så senatorene kan trenes på det de faktisk skal bli gode på:
+   * å FØRE kontrakten, støtte den, eller felle den.
+   *
+   * Senere kan dette erstattes av en ekspert som leser hver senators
+   * tillit og velger ut fra konteksten (andre bud, poengstilling).
+   */
+  readonly nevroBud?: boolean;
 }
 
 export class SenatAgent {
@@ -53,8 +68,11 @@ export class SenatAgent {
   /** Hvilken rolle som faktisk spilte sist – for måling og feilsøking. */
   sisteRolle: Rolle | "grunn" = "grunn";
 
+  private readonly nevro: NevroAgent | null;
+
   constructor(opts: SenatOpts) {
     const lr = opts.læringsrate ?? 0;
+    this.nevro = opts.nevroBud === true ? new NevroAgent() : null;
     this.grunnAgent = new NeatAgent(opts.grunn, { læringsrate: lr });
     for (const r of ROLLER) {
       const g = opts.eksperter[r];
@@ -101,6 +119,13 @@ export class SenatAgent {
     const spiller =
       state.fase === "VRAK" || state.fase === "VELG" ? (state.budvinner ?? 0) : (state.iTur ?? 0);
 
+    // Budrunde, vraking og trumfvalg: NevroHjerne når den er lånt inn.
+    // Senatorene overtar fra første kortvalg – det er der rollene skiller
+    // seg, og det er der de er trent.
+    if (this.nevro !== null && state.fase !== "SPILL") {
+      this.sisteRolle = "grunn";
+      return this.nevro.velgHandling(state);
+    }
     if (state.fase === "BUDRUNDE") {
       this.sisteRolle = "grunn";
       return this.velgBudSenat(state, lov);
