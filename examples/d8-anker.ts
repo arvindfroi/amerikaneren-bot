@@ -47,6 +47,7 @@ import { lagRng } from "../src/kort.ts";
 import { Evolusjon, genomFraJson, genomTilJson, NeatAgent, type Genom } from "../src/neat/index.ts";
 import { dommenOverBarnet, STANDARD_RATER } from "../src/neat/genom.ts";
 import { benkelinjer, målSDRunder } from "../src/neat/anker.ts";
+import { anger, gulv, lesAngerbenk, nevroAnger, vindu } from "../src/neat/angerfitness.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 import { grådigHandling } from "./graadig.ts";
 
@@ -82,6 +83,17 @@ let alfa = 1;
  * d6-klar 1,1446 -> 1,1343. Det hjelper, men det er ikke nok alene.
  */
 let spillFasit = 0.15;
+/**
+ * SELEKSJONSKRITERIUM: "anger" eller "poeng".
+ *
+ * Poeng har parret SE 3,05 mot en typisk genomforskjell paa 1,37 - riktig
+ * rangering i 67 % av tilfellene. Anger maales paa forhaandsloeste stillinger
+ * og er deterministisk, saa giverstoeyen forsvinner helt. Holdout-maalt gevinst
+ * ved aa velge paa anger: 0,050 (valgt 0,8777 mot median 0,9282).
+ */
+let kriterium = "anger";
+/** Antall stillinger i det roterende treningsvinduet. */
+let vindusbredde = 1500;
 let evoFrø = 0xd8;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
@@ -97,6 +109,8 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--budfoerer") medBudfører = process.argv[++i] !== "0";
   else if (a === "--alfa") alfa = Number(process.argv[++i]);
   else if (a === "--spillfasit") spillFasit = Number(process.argv[++i]);
+  else if (a === "--kriterium") kriterium = process.argv[++i]!;
+  else if (a === "--vindu") vindusbredde = Number(process.argv[++i]);
   else if (a === "--fro") evoFrø = Number(process.argv[++i]);
 }
 mkdirSync(dir, { recursive: true });
@@ -154,6 +168,19 @@ const fasit =
       }
     : undefined;
 
+const angerbenk = kriterium === "anger" ? lesAngerbenk("e1-frys", 42000) : null;
+
+/**
+ * Fitness paa ANGER. Fortegnet snus fordi resten av maskineriet maksimerer,
+ * og lav anger er bra. Vinduet roterer med generasjonen - et fast utvalg ville
+ * gjort «beste noensinne» til «best tilpasset akkurat de stillingene», som er
+ * nøyaktig den feilen det faste froesettet gjorde paa poengsiden.
+ */
+function målAnger(genomer: readonly Genom[], gen: number): number[] {
+  const sett = vindu(angerbenk!, gen, vindusbredde);
+  return genomer.map((g) => -anger(g, sett));
+}
+
 function målPopulasjon(genomer: readonly Genom[], frøBase: number): number[] {
   return genomer.map(
     (g) =>
@@ -187,9 +214,22 @@ const si = (s: string): void => {
 };
 
 si(
-  `D8-anker: popp ${popp}, ${givere} givere x4 seter per genom, ` +
+  `D8-anker: popp ${popp}, kriterium ${kriterium}, ${givere} givere x4 seter, ` +
     `fra ${fraFil ?? "ferskt"}`,
 );
+if (angerbenk !== null) {
+  si(
+    `angerbenk: ${angerbenk.trening.length} stillinger til seleksjon (vindu ${vindusbredde}), ` +
+      `${angerbenk.holdout.length} holdt HELT utenfor.`,
+  );
+  // Gulv og nevro maales paa NOEYAKTIG samme holdout som genomene rapporteres
+  // paa. Laanes de fra en annen kjoering blir sammenligningen meningsloes -
+  // benken er ikke homogen.
+  si(
+    `  holdout: gulv (tilfeldig) ${gulv(angerbenk.holdout).toFixed(4)}, ` +
+      `NevroHjerne ${nevroAnger(angerbenk.holdout).toFixed(4)} <- maalet`,
+  );
+}
 
 /** Sittende gull – byttes bare etter en bekreftet, parret forbedring. */
 let gull: Genom | null = startGenom !== undefined ? startGenom : null;
@@ -199,7 +239,8 @@ for (let g = 0; g < generasjoner; g++) {
   // Roterende frøbase: fast frøsett ville gjort «beste noensinne» til
   // «heldigst paa akkurat de giverne».
   const frøBase = 1_000_000 + (g % 500) * 64;
-  const fitness = målPopulasjon(evo.genomer, frøBase);
+  const fitness =
+    angerbenk !== null ? målAnger(evo.genomer, g) : målPopulasjon(evo.genomer, frøBase);
 
   // SEMIFINALE MOT VINNERENS FORBANNELSE. argmax over 96 tall med SE ~7 er
   // systematisk for hoey, og det var synlig: `beste` hoppet 46,7 -> 32,1 ->
@@ -245,10 +286,14 @@ for (let g = 0; g < generasjoner; g++) {
       fitness.reduce((a, b) => a + (b - snitt) * (b - snitt), 0) / fitness.length,
     );
     si(
-      `gen ${String(g + 1).padStart(5)}: beste ${fitness[beste]!.toFixed(1)}, ` +
-        `snitt ${snitt.toFixed(1)}, spredning ${spredning.toFixed(1)}, ` +
+      `gen ${String(g + 1).padStart(5)}: beste ${fitness[beste]!.toFixed(angerbenk !== null ? 4 : 1)}, ` +
+        `snitt ${snitt.toFixed(angerbenk !== null ? 4 : 1)}, ` +
+        `spredning ${spredning.toFixed(angerbenk !== null ? 4 : 1)}, ` +
         `koblinger ${evo.genomer[beste]!.koblinger.length}, ` +
-        `fasittreff ${fasitTeller.treff}`,
+        `fasittreff ${fasitTeller.treff}` +
+        (angerbenk !== null
+          ? `, HOLDOUT-anger ${anger(evo.genomer[beste]!, angerbenk.holdout).toFixed(4)}`
+          : ""),
     );
     writeFileSync(`${dir}/mester.json`, genomTilJson(evo.genomer[beste]!));
     writeFileSync(
@@ -266,7 +311,20 @@ for (let g = 0; g < generasjoner; g++) {
   // BEKREFTELSE: den billige fitnessen er bare en port. Utfordreren maales
   // parret mot sittende gull paa et ferskt, stoerre froesett, og bare en
   // positiv differanse DER bytter gullet.
-  if ((g + 1) % 25 === 0) {
+  if ((g + 1) % 25 === 0 && angerbenk !== null) {
+    // BEKREFTELSE PAA HOLDOUT. Treningsvinduet forbedret seg 0,104 mens
+    // holdout ble 0,007 daarligere i roeykproeven - signaturen paa
+    // overtilpasning. Gullet maa derfor avgjoeres paa stillinger seleksjonen
+    // aldri har sett, ellers ratcheter vi nettopp overtilpasningen.
+    const u = anger(evo.genomer[beste]!, angerbenk.holdout);
+    const sittende = gull === null ? Infinity : anger(gull, angerbenk.holdout);
+    if (u < sittende) {
+      gull = evo.genomer[beste]!;
+      gullDiff = -u;
+      writeFileSync(`${dir}/gull.json`, genomTilJson(gull));
+      si(`  gull byttet ved gen ${g + 1}: holdout-anger ${u.toFixed(4)} mot ${sittende.toFixed(4)}`);
+    }
+  } else if ((g + 1) % 25 === 0) {
     const friskt = 2_000_000 + Math.floor(rng() * 100_000);
     const u = målSDRunder(
       () => new NeatAgent(evo.genomer[beste]!, { læringsrate: 0 }),
