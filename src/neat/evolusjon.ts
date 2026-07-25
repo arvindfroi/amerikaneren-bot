@@ -30,6 +30,7 @@ import {
   type MutasjonsRater,
 } from "./genom.ts";
 import { NeatAgent, STD_LÆRINGSRATE } from "./agent.ts";
+import { Nettverk } from "./nett.ts";
 import { utId } from "./genom.ts";
 import { GruppePool } from "./pool.ts";
 import { erPortvakt, lagPortvakt, STD_PORTVAKT, type Deltaker } from "./portvakt.ts";
@@ -126,6 +127,21 @@ export interface EvolusjonsOpts {
    * 0 = av. Standard 15.
    */
   readonly sparkEtter?: number;
+  /**
+   * ANGER-FITNESS: så stor andel av fitness som kommer fra
+   * BESLUTNINGSKVALITET mot det eksakte orakelet i stedet for kamputfall.
+   *
+   * Hvorfor: kampfitness har ±50 poeng kortflaks-støy mot et signal på ~0,3
+   * per beslutning, ett kortvalg er ett av ~250 bak ett tall, og to løp fra
+   * samme startpopulasjon spriket 31 poeng på ren drift. Angerbenken gir
+   * hvert genom NØYAKTIG de samme stillingene, så variansen mellom dem er
+   * null og forskjellen er ren ferdighet.
+   *
+   * 0 = av (bare cupresultat, som før). 0,3–0,5 blander.
+   */
+  readonly angerVekt?: number;
+  /** Stillinger med orakelfasit. Kreves når angerVekt > 0. */
+  readonly angerBenk?: readonly { nt?: readonly number[]; v: Readonly<Record<string, number>> }[];
 }
 
 /** Genom-trekk + resultat for ett individ (til forklaringsanalysen). */
@@ -278,7 +294,14 @@ export class Evolusjon {
   private readonly opts: Required<
     Omit<
       EvolusjonsOpts,
-      "kampOpts" | "rater" | "startGenom" | "startPopulasjon" | "startHall" | "startTerskel" | "pimcOpts"
+      | "kampOpts"
+      | "rater"
+      | "startGenom"
+      | "startPopulasjon"
+      | "startHall"
+      | "startTerskel"
+      | "pimcOpts"
+      | "angerBenk"
     >
   > & {
     kampOpts: KampOpts;
@@ -286,6 +309,7 @@ export class Evolusjon {
     pimcOpts: { verdener: number; terskel: number; maksEval: number };
   };
   private readonly rng: () => number;
+  private readonly angerBenk: readonly { nt?: readonly number[]; v: Readonly<Record<string, number>> }[];
   private arter: Art[] = [];
   terskel = 3.0;
   private pool: GruppePool | null = null;
@@ -330,10 +354,12 @@ export class Evolusjon {
       pimcPortvakter: Math.floor((opts.pimcPortvakter ?? 0) / 4) * 4,
       pimcOpts: { ...STD_PORTVAKT, ...opts.pimcOpts },
       målestokkType: opts.målestokkType ?? "pimc",
+      angerVekt: opts.angerVekt ?? 0,
       sparkEtter: opts.sparkEtter ?? 15,
     };
     if (this.opts.tråder > 1) this.pool = new GruppePool(this.opts.tråder);
     this.rng = lagRng(this.opts.frø);
+    this.angerBenk = opts.angerBenk ?? [];
     this.bok = new Innovasjonsbok(ANTALL_INN, ANTALL_UT);
     if (opts.startPopulasjon !== undefined && opts.startPopulasjon.length > 0) {
       const basis = opts.startPopulasjon.map((g) => this.kanoniser(g));
@@ -371,6 +397,28 @@ export class Evolusjon {
   }
 
   /** Setter/erstatter gullstandarden (kanoniseres og klones). */
+  /** Snittanger for ett genom på benken – lavere er bedre. */
+  private scoreAnger(g: Genom): number {
+    const nett = new Nettverk(g);
+    let sum = 0;
+    let n = 0;
+    for (const b of this.angerBenk) {
+      if (b.nt === undefined) continue;
+      const lovlige = Object.keys(b.v).map(Number);
+      if (lovlige.length < 2) continue;
+      const ut = nett.aktiver([...b.nt]);
+      let valgt = lovlige[0]!;
+      let beste = -Infinity;
+      for (const k of lovlige) {
+        if (ut[UT_KORT + k]! > ut[UT_KORT + valgt]!) valgt = k;
+        beste = Math.max(beste, b.v[String(k)]!);
+      }
+      sum += beste - b.v[String(valgt)]!;
+      n++;
+    }
+    return n === 0 ? 0 : sum / n;
+  }
+
   settGull(genom: Genom): void {
     this.gull = this.kanoniser(klonGenom(genom));
     this.bok.hoppOver(this.gull);
@@ -459,6 +507,24 @@ export class Evolusjon {
     );
     // Bare populasjonen formerer seg; hall of fame konkurrerer kun.
     const fitness = alleFitness.slice(0, this.genomer.length);
+
+    // ANGER-FITNESS: bland inn beslutningskvalitet mot orakelet. Skalaen er
+    // ulik cupdybdens, så vi normaliserer begge til [0,1] innen generasjonen
+    // og blander – ellers ville den ene dominert vilkårlig.
+    if (this.opts.angerVekt > 0 && this.angerBenk.length > 0) {
+      const anger = this.genomer.map((g) => this.scoreAnger(g));
+      const maksA = Math.max(...anger);
+      const minA = Math.min(...anger);
+      const maksF = Math.max(...fitness);
+      const minF = Math.min(...fitness);
+      const w = this.opts.angerVekt;
+      for (let i = 0; i < fitness.length; i++) {
+        // Lav anger er BRA, så den snus.
+        const a = maksA > minA ? 1 - (anger[i]! - minA) / (maksA - minA) : 0.5;
+        const f = maksF > minF ? (fitness[i]! - minF) / (maksF - minF) : 0.5;
+        fitness[i] = (1 - w) * f + w * a;
+      }
+    }
 
     const mesterForsvarte = this.mesterIdx !== null && res.mesterIdx === this.mesterIdx;
     const hallAntall = this.antallHallDeltakere();

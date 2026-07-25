@@ -32,6 +32,7 @@ import {
 } from "../src/index.ts";
 import { Evolusjon, genomFraJson, genomTilJson, NeatAgent, type Genom } from "../src/neat/index.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
+import { lesBenk } from "../src/neat/angerbenk.ts";
 import { grådigHandling } from "./graadig.ts";
 
 // --- Argumenter -------------------------------------------------------------
@@ -62,6 +63,9 @@ let trumfFasit = 0;
 let etterlysFasit = 0;
 let vrakFasit = 0;
 let stikkFasit = 0;
+/** Andel av fitness fra beslutningskvalitet mot orakelet (0 = av). */
+let angerVekt = 0;
+let angerMappe = "e1-data3";
 /** Læreplan: lær fasene i avhengighetsrekkefølge i stedet for alt samtidig. */
 let læreplan = false;
 let plansteg = 150;
@@ -84,6 +88,8 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (process.argv[i] === "--etterlysfasit") etterlysFasit = Number(process.argv[++i]);
   else if (process.argv[i] === "--vrakfasit") vrakFasit = Number(process.argv[++i]);
   else if (process.argv[i] === "--stikkfasit") stikkFasit = Number(process.argv[++i]);
+  else if (process.argv[i] === "--angervekt") angerVekt = Number(process.argv[++i]);
+  else if (process.argv[i] === "--angermappe") angerMappe = process.argv[++i] ?? angerMappe;
   else if (process.argv[i] === "--læreplan") læreplan = true;
   else if (process.argv[i] === "--plansteg") plansteg = Number(process.argv[++i]);
   else posisjonelle.push(process.argv[i]!);
@@ -251,6 +257,8 @@ const evo = new Evolusjon({
   },
   pimcPortvakter: portvakter,
   målestokkType: medNevro ? "nevro" : "pimc",
+  angerVekt,
+  angerBenk: angerVekt > 0 ? lesBenk(angerMappe, 1200, 3).filter((b) => b.nt !== undefined) : undefined,
 });
 const gullMotstander: "grådig" | "nevro" = medNevro ? "nevro" : "grådig";
 if (portvakter > 0)
@@ -270,6 +278,11 @@ if (etterlysFasit > 0)
   console.log(`Etterlysfasit på: høyeste lovlige som mål (${Math.round(etterlysFasit * 100)} % av valg, rate 0.03)`);
 if (vrakFasit > 0)
   console.log(`Vrakfasit på: behold kort i antatt beste trumffarge (${Math.round(vrakFasit * 100)} % av vrak, rate 0.03)`);
+if (angerVekt > 0)
+  console.log(
+    `Anger-fitness på: ${Math.round(angerVekt * 100)} % av fitness fra beslutningskvalitet mot orakelet ` +
+      `(${lesBenk(angerMappe, 1200, 3).filter((b) => b.nt !== undefined).length} stillinger fra ${angerMappe})`,
+  );
 if (stikkFasit > 0)
   console.log(`Stikkfasit på: taktikk i forsvar/makker/budvinner (${Math.round(stikkFasit * 100)} % av kortvalg, rate 0.02)`);
 if (læreplan)
