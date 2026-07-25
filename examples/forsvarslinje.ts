@@ -48,6 +48,19 @@ let stikkVekt = 1.0;
 // parallellitet uten traadkode OG uavhengige replikater - noedvendig i et
 // domene der felle-raten svinger 10pp mellom froesett ved n=250.
 let evoFrø = 0xf0f5;
+/**
+ * PAR: begge forsvarssetene spilles av SAMME genom.
+ *
+ * Arvind spurte hvem den egentlig spiller mot, og det avdekket at
+ * medforsvareren ogsaa var NevroHjerne. Genomet laerte dermed aa tilpasse
+ * seg nevros forsvarsstil, ikke aa samspille med sin egen sort. To
+ * koordinerte forsvarere er et annet – og sterkere – spill enn én god
+ * forsvarer ved siden av en fremmed.
+ *
+ * Referansen er allerede nevro i BEGGE forsvarssetene, saa med --par blir
+ * sammenligningen genompar mot nevropar, som er den ærlige varianten.
+ */
+let par = false;
 /** Hvor mange toppgenomer som bedoemmes paa nytt foer mesteren kaares. */
 const FINALISTER = 8;
 for (let i = 2; i < process.argv.length; i++) {
@@ -58,6 +71,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--givere") giverePerGen = Number(process.argv[++i]);
   else if (a === "--stikkvekt") stikkVekt = Number(process.argv[++i]);
   else if (a === "--fro") evoFrø = Number(process.argv[++i]);
+  else if (a === "--par") par = true;
 }
 mkdirSync(dir, { recursive: true });
 
@@ -65,6 +79,8 @@ mkdirSync(dir, { recursive: true });
 interface Stilling {
   readonly start: GameState;
   readonly sete: number;
+  /** Det ANDRE forsvarssetet – spilles av samme genom naar --par er paa. */
+  readonly medsete: number | null;
   readonly kontrakt: number;
 }
 
@@ -94,7 +110,9 @@ function byggStilling(frø: number, k: number): Stilling | null {
   if (s.fase !== "SPILL") return null;
   const forsvarere = [0, 1, 2, 3].filter((x) => x !== budsete && x !== s.makker);
   if (forsvarere.length === 0) return null;
-  return { start: s, sete: forsvarere[frø % forsvarere.length]!, kontrakt: k };
+  const sete = forsvarere[frø % forsvarere.length]!;
+  const medsete = forsvarere.find((x) => x !== sete) ?? null;
+  return { start: s, sete, medsete, kontrakt: k };
 }
 
 /** Bygger `antall` stillinger fra og med `fraFrø`, med varierende kontrakt. */
@@ -114,14 +132,32 @@ function spillUt(genom: Genom | null, st: Stilling): { falt: boolean; egneStikk:
   const agent = genom === null ? new NevroAgent() : new NeatAgent(genom, { læringsrate: 0 });
   agent.nyKamp();
   const nevro = new NevroAgent();
+  // Med --par sitter samme genom i BEGGE forsvarssetene, som to egne
+  // instanser (ingen delt hukommelse – de ser bare hverandres kort paa
+  // bordet, akkurat som to spillere ville gjort).
+  const medagent =
+    par && st.medsete !== null
+      ? genom === null
+        ? new NevroAgent()
+        : new NeatAgent(genom, { læringsrate: 0 })
+      : null;
+  medagent?.nyKamp();
+
   let s = st.start;
   let g = 0;
   while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && g++ < 400) {
-    s = utfør(s, s.iTur! === st.sete ? agent.velgHandling(s) : nevro.velgHandling(s)).state;
+    const i = s.iTur!;
+    const velger = i === st.sete ? agent : i === st.medsete && medagent !== null ? medagent : nevro;
+    s = utfør(s, velger.velgHandling(s)).state;
   }
   const res = s.sisteRunde;
   if (res === null) return { falt: false, egneStikk: 0 };
-  return { falt: res.lagStikk < st.kontrakt, egneStikk: res.stikkVunnet[st.sete] ?? 0 };
+  // Med par teller LAGETS stikk, ikke bare det ene setets – det er lagets
+  // prestasjon som selekteres.
+  const egne =
+    (res.stikkVunnet[st.sete] ?? 0) +
+    (medagent !== null && st.medsete !== null ? (res.stikkVunnet[st.medsete] ?? 0) : 0);
+  return { falt: res.lagStikk < st.kontrakt, egneStikk: egne };
 }
 
 /**
@@ -152,7 +188,7 @@ const OVERVAAK = byggSett(2_500_000, 200);
 const rng = lagRng(evoFrø ^ 0xd1e5);
 
 const nevroRef = fitnessFor(null, OVERVAAK);
-console.log(`Forsvarslinja: populasjon ${popp}, ${giverePerGen} givere/gen, kontrakt 8-10`);
+console.log(`Forsvarslinja: populasjon ${popp}, ${giverePerGen} givere/gen, kontrakt 8-10, ${par ? "PAR (begge forsvarssetene)" : "ett sete"}`);
 console.log(
   `NevroHjerne paa overvaakningssettet (n=${OVERVAAK.length}): ` +
     `feller ${(nevroRef.falt * 100).toFixed(1)} %, egne stikk ${nevroRef.stikk.toFixed(2)}\n`,
