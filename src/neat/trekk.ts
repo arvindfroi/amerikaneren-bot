@@ -207,6 +207,42 @@ export const FORSVARSSENSORER: readonly number[] = (() => {
   return ut;
 })();
 
+
+/**
+ * SENSORENE EN SPILLEFOERER MED TVUNGEN KONTRAKT TRENGER.
+ *
+ * Motstykket til FORSVARSSENSORER. Denne agenten byr ALDRI - kontrakten er
+ * gitt (9 eller 10) - men den gjoer alt annet: vraker fra talongen, velger
+ * trumf, etterlyser makkerkortet og spiller ut kontrakten.
+ *
+ * FJERNET: budrundens mekanikk (BUD_HOEYESTE/_AMERIKANER/_SOLO/_MEG, PASSET,
+ * MELDING, BUD_HIST) fordi budrunden aldri spilles, ER_BUDVINNER fordi den
+ * alltid er 1, og MINE_POENG/BESTE_MOTSTANDER fordi kampstillingen ikke
+ * paavirker hvilket kort som fyller DENNE kontrakten. 18 sensorer fjernet.
+ *
+ * BEHOLDT, og her er forskjellen fra forsvaret: hele haandvurderingen
+ * (EST_STIKK..LENGSTE, SEKVENS..SORTER) staar igjen. Forsvareren faar
+ * trumffargen tildelt; spillefoereren VELGER den, og fasedelingen maalte at
+ * trumfvalget alene var 32 av 42 poeng i gapet mot NevroHjerne. BESLUTNING
+ * beholdes ogsaa - denne agenten tar tre ulike beslutningstyper (VRAK, VELG,
+ * SPILL) og maa kunne skille dem.
+ */
+export const KONTRAKTSENSORER: readonly number[] = (() => {
+  const fjern = new Set<number>();
+  const spenn = (fra: number, antall: number): void => {
+    for (let i = 0; i < antall; i++) fjern.add(fra + i);
+  };
+  spenn(BUD_HØYESTE, 4);
+  spenn(PASSET, 4);
+  spenn(MELDING, 3);
+  fjern.add(ER_BUDVINNER);
+  spenn(MINE_POENG, 2);
+  spenn(BUD_HIST, 4);
+  const ut: number[] = [];
+  for (let i = 0; i < ANTALL_INN; i++) if (!fjern.has(i)) ut.push(i);
+  return ut;
+})();
+
 export const UT_XT_LAV = 60;
 export const UT_XT_HØY = 61;
 export const UT_MAKKER = 62;
