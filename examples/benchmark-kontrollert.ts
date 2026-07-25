@@ -94,6 +94,7 @@ import {
 import { velgHandling as pimcHandling } from "../src/bot/bot.ts";
 import { NeatAgent } from "../src/neat/agent.ts";
 import { genomFraJson } from "../src/neat/genom.ts";
+import { ANTALL_INN } from "../src/neat/trekk.ts";
 import { grådigHandling } from "./graadig.ts";
 import {
   Adapter,
@@ -170,8 +171,22 @@ function pimcSittende(frø: number, sete: number): Sittende {
   };
 }
 
-function nettSittende(genomJson: string): (frø: number, sete: number) => Sittende {
-  const genom = genomFraJson(genomJson);
+function nettSittende(genomJson: string, kilde: string): (frø: number, sete: number) => Sittende {
+  // Genomfiler finnes i to former: bart genom, og gull-/benk-filer pakket som
+  // {diff, gen, genom}. Godta begge.
+  const rå = JSON.parse(genomJson) as Record<string, unknown>;
+  const genom = genomFraJson(
+    typeof rå.genom === "object" && rå.genom !== null ? JSON.stringify(rå.genom) : genomJson,
+  );
+  // Sensorkodingen har vokst gjennom treningslinjene (297 → 311 → 318). Et
+  // genom fra en annen koding kan ikke kjøres av denne grenens trekk.ts – da
+  // ville inngangene bety noe annet enn de gjorde under treningen.
+  if (genom.antallInn !== ANTALL_INN) {
+    throw new Error(
+      `${kilde}: genomet er trent med ${genom.antallInn} innganger, men denne grenens ` +
+        `trekkuttrekk gir ${ANTALL_INN}. Kjør målingen på grenen genomet hører til.`,
+    );
+  }
   return () => {
     // læringsrate 0: nettet er frosset under måling (som i nettspillet).
     const agent = new NeatAgent(structuredClone(genom), { læringsrate: 0 });
@@ -210,7 +225,7 @@ for (const par of nettArg.split(",").filter(Boolean)) {
     kilde: "motor",
     søk: false,
     appType: null,
-    lag: nettSittende(readFileSync(sti, "utf8")),
+    lag: nettSittende(readFileSync(sti, "utf8"), `${navn} (${sti})`),
   });
 }
 
