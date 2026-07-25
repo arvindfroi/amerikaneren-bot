@@ -49,18 +49,17 @@ let stikkVekt = 1.0;
 // domene der felle-raten svinger 10pp mellom froesett ved n=250.
 let evoFrø = 0xf0f5;
 /**
- * PAR: begge forsvarssetene spilles av SAMME genom.
+ * DUPLIKAT: hver giver spilles TO ganger, med genomet i hvert av de to
+ * forsvarssetene, og resultatene snittes.
  *
- * Arvind spurte hvem den egentlig spiller mot, og det avdekket at
- * medforsvareren ogsaa var NevroHjerne. Genomet laerte dermed aa tilpasse
- * seg nevros forsvarsstil, ikke aa samspille med sin egen sort. To
- * koordinerte forsvarere er et annet – og sterkere – spill enn én god
- * forsvarer ved siden av en fremmed.
- *
- * Referansen er allerede nevro i BEGGE forsvarssetene, saa med --par blir
- * sammenligningen genompar mot nevropar, som er den ærlige varianten.
+ * Genomet sitter ALLTID kun i forsvar – de tre andre setene er NevroHjerne
+ * hele veien. Duplikatet er ren stoeykontroll: hvilket forsvarssete man
+ * tilfeldig faar avgjoer mye (utspillsrekkefoelge, hvem som sitter foer og
+ * etter spillefoereren), og den lotterivariansen forsvinner naar begge
+ * setene spilles. Effektivt dobler det antall observasjoner per giver uten
+ * aa trenge flere givere, og det er samme duplikatprinsipp cupen bruker.
  */
-let par = false;
+const DUPLIKAT = true;
 /** Hvor mange toppgenomer som bedoemmes paa nytt foer mesteren kaares. */
 const FINALISTER = 8;
 for (let i = 2; i < process.argv.length; i++) {
@@ -71,7 +70,6 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--givere") giverePerGen = Number(process.argv[++i]);
   else if (a === "--stikkvekt") stikkVekt = Number(process.argv[++i]);
   else if (a === "--fro") evoFrø = Number(process.argv[++i]);
-  else if (a === "--par") par = true;
 }
 mkdirSync(dir, { recursive: true });
 
@@ -128,36 +126,18 @@ function byggSett(fraFrø: number, antall: number): Stilling[] {
 }
 
 /** Spiller ut én ferdig stilling. Returnerer forsvarets to måltall. */
-function spillUt(genom: Genom | null, st: Stilling): { falt: boolean; egneStikk: number } {
+function spillUt(genom: Genom | null, st: Stilling, sete: number): { falt: boolean; egneStikk: number } {
   const agent = genom === null ? new NevroAgent() : new NeatAgent(genom, { læringsrate: 0 });
   agent.nyKamp();
   const nevro = new NevroAgent();
-  // Med --par sitter samme genom i BEGGE forsvarssetene, som to egne
-  // instanser (ingen delt hukommelse – de ser bare hverandres kort paa
-  // bordet, akkurat som to spillere ville gjort).
-  const medagent =
-    par && st.medsete !== null
-      ? genom === null
-        ? new NevroAgent()
-        : new NeatAgent(genom, { læringsrate: 0 })
-      : null;
-  medagent?.nyKamp();
-
   let s = st.start;
   let g = 0;
   while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && g++ < 400) {
-    const i = s.iTur!;
-    const velger = i === st.sete ? agent : i === st.medsete && medagent !== null ? medagent : nevro;
-    s = utfør(s, velger.velgHandling(s)).state;
+    s = utfør(s, s.iTur! === sete ? agent.velgHandling(s) : nevro.velgHandling(s)).state;
   }
   const res = s.sisteRunde;
   if (res === null) return { falt: false, egneStikk: 0 };
-  // Med par teller LAGETS stikk, ikke bare det ene setets – det er lagets
-  // prestasjon som selekteres.
-  const egne =
-    (res.stikkVunnet[st.sete] ?? 0) +
-    (medagent !== null && st.medsete !== null ? (res.stikkVunnet[st.medsete] ?? 0) : 0);
-  return { falt: res.lagStikk < st.kontrakt, egneStikk: egne };
+  return { falt: res.lagStikk < st.kontrakt, egneStikk: res.stikkVunnet[sete] ?? 0 };
 }
 
 /**
@@ -172,12 +152,18 @@ function spillUt(genom: Genom | null, st: Stilling): { falt: boolean; egneStikk:
 function fitnessFor(genom: Genom | null, sett: readonly Stilling[]): { fit: number; falt: number; stikk: number } {
   let falt = 0;
   let stikk = 0;
+  let n = 0;
   for (const st of sett) {
-    const r = spillUt(genom, st);
-    if (r.falt) falt++;
-    stikk += r.egneStikk;
+    // Begge forsvarssetene – samme giver, samme kontrakt, ulik plassering.
+    const seter = DUPLIKAT && st.medsete !== null ? [st.sete, st.medsete] : [st.sete];
+    for (const sete of seter) {
+      const r = spillUt(genom, st, sete);
+      if (r.falt) falt++;
+      stikk += r.egneStikk;
+      n++;
+    }
   }
-  const n = sett.length || 1;
+  n = n || 1;
   const faltAndel = falt / n;
   const stikkAndel = stikk / n / 12;
   return { fit: faltAndel + stikkVekt * stikkAndel, falt: faltAndel, stikk: stikk / n };
@@ -188,7 +174,7 @@ const OVERVAAK = byggSett(2_500_000, 200);
 const rng = lagRng(evoFrø ^ 0xd1e5);
 
 const nevroRef = fitnessFor(null, OVERVAAK);
-console.log(`Forsvarslinja: populasjon ${popp}, ${giverePerGen} givere/gen, kontrakt 8-10, ${par ? "PAR (begge forsvarssetene)" : "ett sete"}`);
+console.log(`Forsvarslinja: populasjon ${popp}, ${giverePerGen} givere/gen, kontrakt 8-10, duplikat: begge forsvarsseter`);
 console.log(
   `NevroHjerne paa overvaakningssettet (n=${OVERVAAK.length}): ` +
     `feller ${(nevroRef.falt * 100).toFixed(1)} %, egne stikk ${nevroRef.stikk.toFixed(2)}\n`,
