@@ -1,0 +1,21 @@
+  1/6 maalt     2/6 maalt     3/6 maalt     4/6 maalt     5/6 maalt     6/6 maalt   
+
+=== Hjelper flere verdener tidlig i runden?, 120 givere x 4 seter ===
+Alt annet er NevroHjerne. Baseline «aldri» = -0.00 poeng/runde.
+
+vindu             orakelvalg/runde  poeng/runde  mot baseline
+-------------------------------------------------------------
+6+, 32 verd.                  6.00         0.76         +0.76
+6+, 4 verd.                   6.00         0.41         +0.41
+0-2, 12 verd.                 3.00         0.22         +0.22
+0-2, 32 verd.                 3.00         0.20         +0.20
+aldri (nevro)                 0.00        -0.00         +0.00
+0-2, 4 verd.                  3.00        -0.88         -0.88
+
+=== GODKJENNINGSPORTEN ===
+  paalitelighet 0.654 (splitt 0.486)
+  observert 0.886, korrigert 1.095
+  DOM: GODKJENT
+  Referansen er pålitelig (0.654) og fasiten henger sammen med den (korrigert 1.095 over 6 kandidater).
+
+Skrev analyse/moe2-verdener.json

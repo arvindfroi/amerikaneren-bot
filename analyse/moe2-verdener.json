@@ -1,0 +1,56 @@
+{
+  "givere": 120,
+  "rader": [
+    {
+      "navn": "aldri (nevro)",
+      "orakelvalg": 0,
+      "poengA": -5.921189464667501e-17,
+      "poengB": 3.3306690738754695e-17,
+      "poeng": -1.295260195396016e-17
+    },
+    {
+      "navn": "0-2, 4 verd.",
+      "orakelvalg": 3,
+      "poengA": -0.5986111111111112,
+      "poengB": -1.1555555555555548,
+      "poeng": -0.877083333333333
+    },
+    {
+      "navn": "0-2, 12 verd.",
+      "orakelvalg": 3,
+      "poengA": 0.5833333333333331,
+      "poengB": -0.15138888888888896,
+      "poeng": 0.2159722222222221
+    },
+    {
+      "navn": "0-2, 32 verd.",
+      "orakelvalg": 3,
+      "poengA": 0.5861111111111109,
+      "poengB": -0.1902777777777778,
+      "poeng": 0.19791666666666657
+    },
+    {
+      "navn": "6+, 4 verd.",
+      "orakelvalg": 6,
+      "poengA": 0.2986111111111114,
+      "poengB": 0.5166666666666668,
+      "poeng": 0.4076388888888891
+    },
+    {
+      "navn": "6+, 32 verd.",
+      "orakelvalg": 6,
+      "poengA": 0.6180555555555554,
+      "poengB": 0.9027777777777778,
+      "poeng": 0.7604166666666665
+    }
+  ],
+  "dom": {
+    "dom": "godkjent",
+    "splitt": 0.48571428571428577,
+    "paalitelighet": 0.6538461538461539,
+    "observert": 0.8857142857142857,
+    "korrigert": 1.0953574408243492,
+    "n": 6,
+    "begrunnelse": "Referansen er pålitelig (0.654) og fasiten henger sammen med den (korrigert 1.095 over 6 kandidater)."
+  }
+}

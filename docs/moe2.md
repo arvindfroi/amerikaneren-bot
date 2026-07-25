@@ -672,3 +672,55 @@ det samme fra andre kanten: «SD − 1 ± 1», som aldri går over SD, koster ba
 Porten får et krav til: kandidatene skal være **det som faktisk skal brukes** –
 et trent nett, ikke en håndlaget policy som bruker samme orakel. Ellers
 validerer den orakelet i stedet for objektet.
+
+---
+
+## Hullet i stikk 0–2 var for få verdener – bekreftet
+
+Forklaringen sto i forrige seksjon merket som **påstand**. Den er nå målt,
+120 givere × 4 seter:
+
+| vindu | poeng/runde |
+|---|---|
+| stikk 0–2, **4 verdener** | **−0,88** |
+| stikk 0–2, **12 verdener** | **+0,22** |
+| stikk 0–2, 32 verdener | +0,20 |
+| stikk 6+, 4 verdener | +0,41 |
+| stikk 6+, 32 verdener | +0,76 |
+
+Å gå fra 4 til 12 verdener snur det tidlige vinduet fra −0,88 til +0,22 – en
+endring på **1,10 poeng**. 32 verdener gir ingenting utover 12. Tidlig i runden
+er mer skjult, så mulighetsrommet krever flere trekninger; når det er dekket,
+er det dekket.
+
+**Designkonsekvens:** spilleksperten bruker minst 12 verdener i stikk 0–2.
+Forrige seksjons konklusjon om at vi «ikke har noen validert fasit tidlig» er
+dermed opphevet – vi hadde en, den var bare underdimensjonert.
+
+### Støygulvet, som må stå ved siden av tallene
+
+Samme vindu målt i to kjøringer av samme skriptmal:
+
+| | «stikk 6+, 4 verdener» |
+|---|---|
+| første kjøring | +0,78 |
+| denne kjøringen | +0,41 |
+
+Frøene er de samme, men rng-en forbrukes ulikt når policylisten endres, så
+verdenene som trekkes blir andre. Forskjellen på **0,37 er ren samplingstøy**,
+ikke en effekt.
+
+Det gir et støygulv å lese alle disse tallene mot:
+
+- `0–2: −0,88 → +0,22` er **1,10** – langt over gulvet, ekte.
+- `6+: +0,41 → +0,76` er **0,35** – *på* gulvet, kan ikke leses som en effekt.
+
+Verdenstrekningen bør frøes eksplisitt per (giv, sete, vindu) i neste versjon,
+slik at to kjøringer av samme konfigurasjon gir identiske tall.
+
+### Om portens dom her
+
+Porten sier GODKJENT med korrigert korrelasjon **1,095**. En korrelasjon over
+1 er ikke et sterkere resultat – det er et tegn på at dempingskorreksjonen
+presses forbi sitt gyldighetsområde ved moderat pålitelighet (0,654).
+Les den som «positiv», ikke som «svært sterk».
