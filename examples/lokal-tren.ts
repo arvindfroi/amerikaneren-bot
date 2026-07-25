@@ -130,6 +130,19 @@ const ALLE_LINJER: Linje[] = [
     dir: "trening-d6",
     logg: "trening-d6.log",
     frø: 626262,
+    // MAALT 2026-07-25: fasit-laererne var ikke svake - de ble MOTARBEIDET
+    // av beloenningen. Gammel anger la til |xT - lagStikk|/12 i fitness, saa
+    // D6s seleksjonsoptimum for SPILL var dens eget estimat, 6,55 stikk:
+    //   lagStikk 5,20 -> 0,1125   6,55 -> 0,0000   8,00 -> 0,1208
+    //   8,75 (NevroHjernes nivaa) -> 0,1833, altsaa VERRE enn dens egen
+    //   oedelagte 5,20. Vrakfasit dyttet spillet opp; seleksjonen dyttet det
+    //   ned igjen mot 6,55. Derfor sto trumflengden paa 2,98 i generasjon
+    //   etter generasjon med --vrakfasit 0.6 paaslaatt hele tiden.
+    // Leddet er fjernet (se kontraktAnger i turnering.ts). Offline-test paa
+    // 40 HOLDOUT-givere viser at laereren virker naar den faar lov:
+    //   trumflengde 2,98 -> 3,15, lagstikk 5,19 -> 6,23, klart 50 % -> 68 %
+    // Dosene er derfor hevet: det var aldri dosen som var problemet, men
+    // naa som seleksjonen trekker samme vei er det verdt aa gi mer.
     // --angervekt 0.2: 20 % av fitness fra BESLUTNINGSKVALITET mot
     // det eksakte orakelet, ikke kamputfall. Det er svaret paa at
     // kampfitness har ±50 poeng kortflaks-stoey mot et signal paa ~0,3 per
@@ -140,7 +153,7 @@ const ALLE_LINJER: Linje[] = [
     // spillestyrke - samme feil som «+35,4»-maalingen, bare bygget inn i
     // fitness. 0,2 gir signalet plass uten aa la det overstyre utfallet.
     ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro",
-             "--trumffasit", "0.5", "--etterlysfasit", "0.6", "--vrakfasit", "0.6",
+             "--trumffasit", "0.8", "--etterlysfasit", "0.6", "--vrakfasit", "0.9",
              "--stikkfasit", "0.25", "--angervekt", "0.2"],
   },
 ];
