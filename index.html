@@ -160,8 +160,8 @@ function tegn(){
 // E1 destilleres fra det eksakte orakelet og har ingen generasjoner. Her er
 // x-aksen antall orakel-stillinger den har lært av, og y-aksen den PARRET
 // målte differansen mot NevroHjerne. 0 er delmålet, ikke et vilkårlig punkt.
-function tegnE1(e){
-  const boks=document.getElementById("e1");
+function tegnE1(e,id,tittel,ingress){
+  const boks=document.getElementById(id||"e1");
   if(!e){boks.innerHTML="";return;}
   const p=e.punkter||[];
   let graf="";
@@ -189,9 +189,8 @@ function tegnE1(e){
   }
   const k=n=>n>=1e6?(n/1e6).toFixed(2)+" mill.":n>=1e3?Math.round(n/1e3)+"k":String(n);
   const siste=p.length>0?p[p.length-1]:null;
-  boks.innerHTML='<div class="e1"><h2 style="color:var(--fokusE1)">E1 – destillert fra det eksakte orakelet</h2>'+
-    '<p>Lærer av dobbelt-dummy-fasit uten tidspress, ikke av MesterAI – en elev når ikke forbi læreren sin. '+
-    'Budgivning og trumfvalg er identiske med NevroHjerne, så differansen under er rent kortspill.</p>'+
+  boks.innerHTML='<div class="e1"><h2 style="color:var(--fokusE1)">'+(tittel||"E1 – destillert fra det eksakte orakelet")+'</h2>'+
+    '<p>'+(ingress||"Lærer av dobbelt-dummy-fasit uten tidspress, ikke av MesterAI – en elev når ikke forbi læreren sin. Budgivning og trumfvalg er identiske med NevroHjerne, så differansen under er rent kortspill.")+'</p>'+
     '<div class="tall">'+
       '<span>datasett <b>≈'+k(e.stillinger)+'</b> stillinger ('+e.mb+' MB, '+e.skard+' skard)</span>'+
       (e.valTreff!==null&&e.valTreff!==undefined?'<span>treff mot fasit <b>'+e.valTreff+' %</b></span>':'')+
