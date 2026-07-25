@@ -18,3 +18,4 @@ export * from "./turnering.ts";
 export * from "./evolusjon.ts";
 export * from "./hybrid.ts";
 export * from "./portvakt.ts";
+export { SenatAgent, ROLLER, kontraktFor, type Rolle, type SenatOpts } from "./senat.ts";
