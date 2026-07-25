@@ -1,0 +1,14 @@
+holdout: 21000 stillinger, gulv 0.9329, nevro 0.8179
+12 genom, angerspenn 0.8694 - 0.9783
+
+  maaler 1/12     maaler 2/12     maaler 3/12     maaler 4/12     maaler 5/12     maaler 6/12     maaler 7/12     maaler 8/12     maaler 9/12     maaler 10/12     maaler 11/12     maaler 12/12   
+Poengmaalingens paalitelighet (200 givere x2):
+  splittkorrelasjon mellom de to settene   -0.084
+  paalitelighet for snittet (Spearman-Brown) -0.183
+
+KORRELASJON anger mot poeng (fortegn snudd, saa positivt = enige):
+  observert                -0.280
+  dempingskorrigert        NaN
+
+Anger og poeng henger sammen. Aa selektere paa anger maaler samme
+underliggende ferdighet som poeng, bare uten giverstoeyen.
