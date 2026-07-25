@@ -248,32 +248,72 @@ interface E1Status {
   valTreff: number | null;
   punkter: { x: number; diff: number; se: number; hybrid: boolean }[];
 }
-function lesE1(): E1Status | null {
+/**
+ * Leser en DESTILLASJONSLINJE: et nett trent superviserende paa en fasit,
+ * uten generasjoner. To slike finnes naa, og de skiller seg BARE i hvem som
+ * er laerer:
+ *
+ *   E1  dobbelt dummy - loeser stillingen med alle fire hender aapne
+ *   SD  single dummy  - spiller kortet ut mot en realistisk motstander i
+ *                       verdener forenlige med agentens EGEN informasjon
+ *
+ * Skillet er ikke akademisk. Maalt 25. juli med godkjenningsporten: aa foelge
+ * DD i spillet gir korrigert korrelasjon -0,609 mot poeng (AVVIST), SD gir
+ * +0,718 (GODKJENT). E1 treffer DD-orakelet 61,4 % mot nevros 58,7 % og taper
+ * likevel 2,91 poeng per kamp. Derfor staar de to linjene ved siden av
+ * hverandre paa siden: sammenligningen ER resultatet.
+ */
+function lesDestillasjon(dataPrefiks: string, kandidatPrefiks: string): E1Status | null {
+  // INGEN REGEX BYGGET AV EN TEMPLATE-LITERAL. `\d` inne i en template blir
+  // til bare `d` (JS dropper backslash foran et ukjent escape), saa
+  // `^${dataPrefiks}\d*$` ble moensteret ^e1-datad*$ - det matcher «e1-data»
+  // men hverken «e1-data2» eller «e1-data3». To tredjedeler av E1-dataene ble
+  // aldri talt, og siden viste 323 861 der fasit var 465 057.
+  const dataMapper = readdirSync(REPO)
+    .filter((f) => f.startsWith(dataPrefiks) && /^\d*$/.test(f.slice(dataPrefiks.length)))
+    .sort();
+
+  // LINJELENGDEN VARIERER MELLOM MAPPENE, og det har kostet oss et feil tall
+  // paa siden hele 25. juli. Konstanten stod paa 736 B, som var riktig FOER
+  // `nt`-vektoren (318 tall) kom inn i formatet; etterpaa er linjene ~1540 B,
+  // og siden viste over DOBBELT saa mange stillinger som det fantes. Da
+  // proeven i stedet ble tatt fra ÉN mappe, ble E1 30 % for LAV - fordi
+  // `e1-data` er gammel og kort mens `e1-data3` er ny og lang.
+  //
+  // Hver mappe maales derfor for seg, paa ett skard. Aa telle alle linjene
+  // ville lest over en gigabyte hvert 2. minutt.
   let mb = 0;
   let skard = 0;
-  // Orakelet har byttet utmappe flere ganger (e1-data → e1-data2 → e1-data3),
-  // og siden viste derfor et tall som sluttet å vokse: den leste bare den
-  // FØRSTE mappa. Alle generasjonsmappene telles nå. `e1-frys` holdes utenfor
-  // med vilje – den er den frosne benken, ikke treningsdata, og å blande den
-  // inn ville blåst opp tallet med stillinger nettet aldri skal lære av.
-  const dataMapper = readdirSync(REPO)
-    .filter((f) => /^e1-data\d*$/.test(f))
-    .sort();
+  let stillinger = 0;
   for (const mappe of dataMapper) {
     try {
+      let mappeBytes = 0;
+      let proeve: string | null = null;
       for (const f of readdirSync(`${REPO}/${mappe}`)) {
         if (!f.endsWith(".jsonl")) continue;
         skard++;
-        mb += statSync(`${REPO}/${mappe}/${f}`).size / (1024 * 1024);
+        proeve ??= `${REPO}/${mappe}/${f}`;
+        mappeBytes += statSync(`${REPO}/${mappe}/${f}`).size;
       }
+      if (proeve === null) continue;
+      mb += mappeBytes / (1024 * 1024);
+      let bpl = 1540;
+      try {
+        const biter = readFileSync(proeve, "utf8").slice(0, 200_000);
+        const linjer = biter.split(String.fromCharCode(10)).filter((l) => l.trim() !== "");
+        if (linjer.length > 2) {
+          const hele = linjer.slice(0, -1); // siste er avkuttet av slice
+          bpl = hele.reduce((a, l) => a + l.length + 1, 0) / hele.length;
+        }
+      } catch {
+        /* beholder standarden for denne mappa */
+      }
+      stillinger += Math.round(mappeBytes / bpl);
     } catch {
-      /* mappa forsvant mens vi leste – hopp over */
+      /* mappa forsvant mens vi leste - hopp over */
     }
   }
   if (skard === 0) return null;
-  // Linjene er ~736 B; å telle dem eksakt ville lest hundrevis av MB hvert
-  // 2. minutt, så tallet er et anslag – og merkes som det på siden.
-  const stillinger = Math.round((mb * 1024 * 1024) / 736);
 
   // Treningsloggen het `tren.log` i røykprøven, men hver kjøring skriver nå
   // sin egen (`r1.log`, `r2.log`, …). Vi tar val-treffet fra den SIST endrede
@@ -301,7 +341,7 @@ function lesE1(): E1Status | null {
     for (const linje of readFileSync(`${REPO}/e1-maalinger.jsonl`, "utf8").split("\n")) {
       if (linje.trim() === "") continue;
       const m = JSON.parse(linje) as E1Måling;
-      if (!m.kandidat.startsWith("e1:") || m.motNevro === undefined) continue;
+      if (!m.kandidat.startsWith(kandidatPrefiks) || m.motNevro === undefined) continue;
       const x = Number(m.merke.match(/stillinger=(\d+)/)?.[1] ?? 0);
       if (x > 0) punkter.push({ x, diff: m.motNevro, se: m.motNevroSe ?? 0, hybrid: m.hybrid });
     }
@@ -311,7 +351,8 @@ function lesE1(): E1Status | null {
   punkter.sort((a, b) => a.x - b.x);
   return { mb: Math.round(mb), stillinger, skard, valTreff, punkter };
 }
-const e1 = lesE1();
+const e1 = lesDestillasjon("e1-data", "e1:e1-modell/e1-");
+const sd = lesDestillasjon("sd-data", "e1:e1-modell/sd-");
 
 const kjør = (cmd: string, cwd: string): string =>
   execSync(cmd, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
@@ -367,6 +408,7 @@ function skrivFiler(): void {
       levende: puls.filter((p) => p.hjerteslagMin < 10).map((p) => p.navn),
       puls,
       e1,
+      sd,
       serier,
       projeksjoner,
       pimcRef,
@@ -449,7 +491,7 @@ function MAL(): string {
 stiplet tykk = mot NevroHjerne, appens ferdigtrente nett. 0 = jevnt med den motstanderen kurven måles mot.
 <b id="stempel"></b><span id="vert"></span> · siden henter nye tall hvert minutt.</p>
 <div class="puls" id="puls"></div>
-<div id="e1"></div>
+<div id="e1"></div><div id="sd"></div>
 <div class="lgr" id="legend"></div>
 <h3 class="gtit">Mot NevroHjerne <span>– den harde målestokken</span></h3>
 <div id="grafNevro"></div>
@@ -495,6 +537,17 @@ function tegn(){
       (stille?' · stille i '+x.hjerteslagMin+' min':'')+'</span>';
   }).join("");
   tegnE1(d.e1);
+  // SD-linja staar ved siden av E1 med IDENTISK panel. Det er med vilje:
+  // samme pipeline, samme benk, samme arkitektur - eneste forskjell er
+  // laereren, og da er sammenligningen selve resultatet.
+  tegnE1(
+    d.sd,
+    "sd",
+    "SD – destillert fra single-dummy-evaluering",
+    "Læreren spiller kortet UT mot en realistisk motstander, i verdener forenlige med det agenten selv har sett. "+
+    "Målt 25. juli: å følge dobbelt dummy i spillet gir korrigert korrelasjon −0,609 mot poeng (avvist), single dummy +0,718 (godkjent). "+
+    "E1 over treffer DD-orakelet oftere enn NevroHjerne og taper likevel 2,9 poeng – derfor står de to her side om side.",
+  );
   const projs=d.projeksjoner||[];
 
   // TO GRAFER. De to målestokkene hører ikke hjemme i samme rute: en kurve
@@ -572,8 +625,8 @@ function tegn(){
 // E1 destilleres fra det eksakte orakelet og har ingen generasjoner. Her er
 // x-aksen antall orakel-stillinger den har lært av, og y-aksen den PARRET
 // målte differansen mot NevroHjerne. 0 er delmålet, ikke et vilkårlig punkt.
-function tegnE1(e){
-  const boks=document.getElementById("e1");
+function tegnE1(e,id,tittel,ingress){
+  const boks=document.getElementById(id||"e1");
   if(!e){boks.innerHTML="";return;}
   const p=e.punkter||[];
   let graf="";
@@ -601,9 +654,8 @@ function tegnE1(e){
   }
   const k=n=>n>=1e6?(n/1e6).toFixed(2)+" mill.":n>=1e3?Math.round(n/1e3)+"k":String(n);
   const siste=p.length>0?p[p.length-1]:null;
-  boks.innerHTML='<div class="e1"><h2 style="color:var(--fokusE1)">E1 – destillert fra det eksakte orakelet</h2>'+
-    '<p>Lærer av dobbelt-dummy-fasit uten tidspress, ikke av MesterAI – en elev når ikke forbi læreren sin. '+
-    'Budgivning og trumfvalg er identiske med NevroHjerne, så differansen under er rent kortspill.</p>'+
+  boks.innerHTML='<div class="e1"><h2 style="color:var(--fokusE1)">'+(tittel||"E1 – destillert fra det eksakte orakelet")+'</h2>'+
+    '<p>'+(ingress||"Lærer av dobbelt-dummy-fasit uten tidspress, ikke av MesterAI – en elev når ikke forbi læreren sin. Budgivning og trumfvalg er identiske med NevroHjerne, så differansen under er rent kortspill.")+'</p>'+
     '<div class="tall">'+
       '<span>datasett <b>≈'+k(e.stillinger)+'</b> stillinger ('+e.mb+' MB, '+e.skard+' skard)</span>'+
       (e.valTreff!==null&&e.valTreff!==undefined?'<span>treff mot fasit <b>'+e.valTreff+' %</b></span>':'')+
