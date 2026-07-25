@@ -727,6 +727,53 @@ Les den som «positiv», ikke som «svært sterk».
 
 ---
 
+## SD-generatoren: `examples/sd-orakel.ts`
+
+Læreren er byttet. E1 er destillert fra DD-orakelet, treffer det 61,4 % mot
+nevros 58,7 % og taper likevel 2,91 ± 0,06 poeng. SD-fasiten er den som bestod
+porten (+0,718 mot DDs −0,609), så treningsdataene må komme derfra.
+
+Skriptet spiller partier med NevroHjerne og merker et utvalg kortvalg med
+`vurderKortSD` (12 verdener, NevroHjerne som utspiller i alle seter – nøyaktig
+den konfigurasjonen porten godkjente).
+
+**Formatet er identisk med `examples/e1-orakel.ts`**, med vilje: `t` (E1-vektoren,
+273), `nt` (NEAT-vektoren, 318), `v` (kortindeks → verdi), `n`, `frø`, `stikk`.
+Eneste forskjell er at `dybde` (som ikke finnes i SD) er byttet mot
+`sdVerdener`. Dermed virker `verktoy/e1-tren.py` uendret, og SD-data kan trenes
+og sammenlignes mot DD-data på samme trener. Låst av
+`test/sd-orakel-format.test.ts`, som både kjører generatoren og sammenligner
+nøklene mot en ekte e1-orakel-linje på disk. Testen er skrevet fordi `t` og
+`nt` ble forvekslet tre ganger 25. juli.
+
+Utmappen er `sd-data/`, ikke `e1-data*`. Treneren leser alle `skard-*.jsonl` i
+en mappe og blander dem uten å se på innholdet; én SD-linje i `e1-data/` ville
+ødelagt begge settene uten at noe feilet. Frørommet starter på 50 mill., langt
+unna e1-orakelets (≤15,3 mill.) og portenes (8,1/8,6 mill.), så settene ikke
+deler givere.
+
+### Produksjonsraten – SD er BILLIGERE enn DD, ikke dyrere
+
+| | stillinger/s per prosess | med 16 skard |
+|---|---|---|
+| e1-orakel (DD, 24 verdener, dybde 7, nodetak 400k) | ~0,6 | ~2,2/time × 10⁴ |
+| **sd-orakel (SD, 12 verdener)** | **~16,6 alene** | se tabellen under |
+
+Det motsier setningen lenger opp om at SD er «dyrere per beslutning enn
+DD-oppslaget». Den gjaldt ett DD-*oppslag*; e1-orakelet gjør ikke ett oppslag,
+det kjører et eksaktsøk med tak på 400 000 noder i 24 verdener. Én SD-verden er
+en enkel utspilling med et lite nett – 12 av dem er billigere enn det.
+
+### Den kjente skjevheten, som står her og ikke oppdages senere
+
+Stillingene kommer fra **nevros** spilling, som resten av benken. En agent
+trent på dem kommer til å møte andre stillinger enn den er trent på. Det er
+samme distribution shift som gjorde anger-trening på nevro-stillinger 105 poeng
+*svakere* for D5. `--utforsk 0.15` demper det; kuren er DAgger – runde to hentes
+fra SD-agentens egen spilling, som `--spiller` allerede gjør for e1-orakel.
+
+---
+
 ## SD-vrakfasiten og SD-trumffasiten GODKJENT – begge
 
 De to siste DD-fasitene er nå bygget om etter samme oppskrift som budet og
@@ -972,3 +1019,67 @@ valgte fargen».
 4. **Verdenstrekningen frøes per giv**, men rng-en forbrukes ulikt når
    policylisten endres. To kjøringer med ulik policyliste kan derfor ikke
    sammenlignes rad for rad; bruk differansene innen én kjøring.
+
+---
+
+## MoE-premisset feiler: gevinstene legger seg ikke sammen
+
+200 givere × 4 seter, hver komponent slått på alene og i kombinasjon, alt
+annet NevroHjerne:
+
+| oppsett | poeng/runde | SE | mot nevro |
+|---|---|---|---|
+| **bud alene** | **4,25** | 0,44 | **+4,25** |
+| bud+trumf | 3,66 | 0,45 | +3,66 |
+| bud+spill | 2,18 | 0,46 | +2,18 |
+| alle tre | 1,64 | 0,47 | +1,64 |
+| trumf+spill | 1,01 | 0,35 | +1,01 |
+| spill alene | 0,48 | 0,35 | +0,48 |
+| nevro (baseline) | 0,00 | 0,35 | – |
+| trumf alene | −0,07 | 0,35 | −0,07 |
+
+Sum av enkeltgevinstene **+4,65**. Faktisk for «alle tre» **+1,64**.
+**Komposisjonstap −3,01.**
+
+Verre: **hver eneste tilføyelse til budet gjør det dårligere.** Bud alene er
++4,25; legg på trumf og det faller til +3,66; legg på spill og det faller til
++2,18; begge deler gir +1,64. Den beste agenten vi har er den enkleste.
+
+### Hvorfor – og det var forutsagt i skriptets egen kommentar
+
+Hver komponent ble målt med **alt annet på nevro**. Det er en LOKAL måling
+rundt nevros policy. SD-budet flytter snittbudet fra 7,54 til 9,10, og da
+havner man i en helt annen fordeling av kontrakter enn den kortspillet ble
+validert i. SD-kortspillet ble målt til å være verdt +0,48 i nevros
+stillinger; i de ambisiøse kontraktene budet skaper, er det ikke det.
+
+**Porten måler lokale gradienter rundt nevro. Den kan ikke validere et
+sammensatt sprang.**
+
+Det er den tredje strukturelle svakheten i porten funnet på én dag, alle ved
+måling:
+
+1. Den godkjente en **policy**, treningen brukte et **per-beslutning-tap**.
+2. Dommen **snudde med kandidatutvalget** (DD-trumf: 0,234 avvist → 0,610
+   godkjent).
+3. Den måler **lokalt**, og gevinstene komponerer ikke.
+
+### Hva som likevel står
+
+**SD-budpolicyen slår NevroHjerne med +4,25 ± 0,44** – 9,7 standardfeil fra
+null, bekreftet på et annet frøsett enn den ble validert på (+3,89 der).
+Det er den første komponenten i hele prosjektet som beviselig slår appens
+nett på poeng.
+
+Men den er en POLICY som spør SD-orakelet, ikke et trent nett. Budeksperten
+som ble trent på samme fasit fikk +0,18 ± 0,32.
+
+### Konsekvens
+
+Arkitekturens antakelse om **uavhengige eksperter** er målt feil. Enten må
+ekspertene valideres og trenes SAMMEN, eller så må vi akseptere at én god
+komponent er bedre enn fire, og bygge derfra. Å legge til flere «validerte»
+komponenter har målt negativ verdi.
+
+Trumf alene måler her −0,07 ± 0,35, mot +0,30 i trumfporten. Gevinsten
+replikerte altså ikke – den lå innenfor støy hele tiden.

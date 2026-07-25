@@ -1,0 +1,19 @@
+  1/8 maalt     2/8 maalt     3/8 maalt     4/8 maalt     5/8 maalt     6/8 maalt     7/8 maalt     8/8 maalt   
+
+=== Sammensatt agent mot NevroHjerne, 200 givere x 4 seter ===
+Alt som ikke er slaatt paa, spilles av nevro. Vrak er alltid nevro.
+
+oppsett               poeng/runde      SE   mot nevro
+-----------------------------------------------------
+bud                          4.25    0.44       +4.25
+bud+trumf                    3.66    0.45       +3.66
+bud+spill                    2.18    0.46       +2.18
+alle tre                     1.64    0.47       +1.64
+trumf+spill                  1.01    0.35       +1.01
+spill                        0.48    0.35       +0.48
+nevro (baseline)            -0.00    0.35       +0.00
+trumf                       -0.07    0.35       -0.07
+
+Sum av enkeltgevinstene   +4.65
+Faktisk for «alle tre»    +1.64
+Komposisjonstap           -3.01  <- gevinstene legger seg IKKE sammen
