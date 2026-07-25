@@ -37,7 +37,8 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { lagRng } from "../src/kort.ts";
 import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { Evolusjon, genomFraJson, genomTilJson, NeatAgent, Nettverk, type Genom } from "../src/neat/index.ts";
-import { lagInn, UT_KORT } from "../src/neat/trekk.ts";
+import { FORSVARSSENSORER, lagInn, UT_KORT } from "../src/neat/trekk.ts";
+import { STANDARD_RATER } from "../src/neat/genom.ts";
 import { spillerVisning } from "../src/motor.ts";
 import { besteTrumf, NevroAgent } from "../src/nevro/index.ts";
 
@@ -232,7 +233,23 @@ if (fraFil !== null) {
 }
 // startGenom gir én klon + (popp-1) MUTERTE kopier, saa forspranget koster
 // ikke variasjon i populasjonen - avlen har fortsatt noe aa jobbe med.
-const evo = new Evolusjon({ populasjon: popp, frø: evoFrø, startGenom });
+// KUN FORSVARSSENSORER. Forsvareren byr aldri og velger aldri trumf, saa
+// budrunde- og haandvurderingssensorene er ren stoey den maa bruke
+// koblinger paa. Restriksjonen gjelder ogsaa nye koblinger i alle senere
+// generasjoner - ellers siver de irrelevante inn igjen over tid.
+const evo = new Evolusjon({
+  populasjon: popp,
+  frø: evoFrø,
+  startGenom,
+  // MAA spres fra STANDARD_RATER: evolusjon.ts:339 gjoer `opts.rater ?? {...}`,
+  // saa en delvis rate-blokk ERSTATTER alle standardene i stedet for aa slaa
+  // seg sammen med dem. Uten spredningen ville alle mutasjonsratene blitt
+  // undefined og linja staatt bom stille uten aa klage.
+  //
+  // dempedeMaal utelates med vilje: den demper bud- og xT-hodene, som denne
+  // linja uansett ikke bruker.
+  rater: { ...STANDARD_RATER, tillatteKilder: new Set(FORSVARSSENSORER) },
+});
 const OVERVAAK = byggSett(2_500_000, 200);
 const rng = lagRng(evoFrø ^ 0xd1e5);
 

@@ -196,6 +196,12 @@ export interface MutasjonsRater {
    * for additiv – se normaliserVekter. 0 slaar den av (kun kontrollforsoek).
    */
   readonly normaliser?: number;
+  /**
+   * Hvilke INNGANGER nye koblinger kan hente fra. Uten den trekker NEAT
+   * uniformt blant alle 318, og relevante sensorer drukner - maalt paa D2,
+   * der 14 nye sensorer endte med 0 koblinger. Se FORSVARSSENSORER.
+   */
+  readonly tillatteKilder?: ReadonlySet<number>;
   /** Sjanse for å perturbere vektene (per genom). */
   readonly vekter: number;
   /** Sjanse per vekt for HELT ny verdi (ellers liten perturbasjon). */
@@ -340,8 +346,17 @@ export function muterNyKobling(
   rng: () => number,
   forsøk = 30,
   bias?: readonly KildeBias[],
+  tillatteKilder?: ReadonlySet<number>,
 ): boolean {
-  const kilder = g.noder;
+  // Inngangsnoder som ikke staar paa lista lukes helt. Skjulte noder og
+  // utganger er alltid lovlige kilder - restriksjonen gjelder SENSORENE.
+  // Uten dette trekker NEAT uniformt blant alle 318 innganger, og en
+  // relevant sensor drukner: maalt paa D2, der 14 nye sensorer endte med
+  // 0 koblinger etter mange generasjoner.
+  const kilder =
+    tillatteKilder === undefined
+      ? g.noder
+      : g.noder.filter((n) => n.type !== "inn" || tillatteKilder.has(n.id));
   const mål = g.noder.filter((n) => n.type === "skjult" || n.type === "ut");
   const finnes = new Set(g.koblinger.map((k) => `${k.inn}>${k.ut}`));
   for (let t = 0; t < forsøk; t++) {
@@ -434,7 +449,7 @@ export function muterBeskjær(g: Genom, rng: () => number): boolean {
 export function muter(g: Genom, bok: Innovasjonsbok, rng: () => number, rater = STANDARD_RATER): void {
   if (rng() < rater.vekter) muterVekter(g, rng, rater);
   if (rng() < (rater.beskjær ?? 0)) muterBeskjær(g, rng);
-  if (rng() < rater.nyKobling) muterNyKobling(g, bok, rng, 30, rater.kildeBias);
+  if (rng() < rater.nyKobling) muterNyKobling(g, bok, rng, 30, rater.kildeBias, rater.tillatteKilder);
   if (rng() < rater.nyNode) muterNyNode(g, bok, rng);
   if (rng() < rater.veksle) muterVeksle(g, rng, rater.kildeBias);
   // ALLTID til slutt: uansett hvilke mutasjoner som slo til, gjenopprettes

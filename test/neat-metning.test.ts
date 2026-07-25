@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { lagRng } from "../src/kort.ts";
 import { Innovasjonsbok, muter, nyttGenom, STANDARD_RATER, type Genom } from "../src/neat/genom.ts";
 import { Nettverk } from "../src/neat/nett.ts";
-import { ANTALL_INN, ANTALL_UT, UT_KORT } from "../src/neat/trekk.ts";
+import { ANTALL_INN, ANTALL_UT, FORSVARSSENSORER, UT_KORT } from "../src/neat/trekk.ts";
 
 /**
  * METNING ER HOVEDPROBLEMET i denne kodebasen, og disse testene låser fiksen.
@@ -90,4 +90,26 @@ test("normalisering endrer RETNING, ikke skala: lengden er lik for alle noder", 
       `node ${node} har vektlengde ${Math.sqrt(kvadratsum).toFixed(4)}, ikke 1,5`,
     );
   }
+});
+
+test("forsvarssensorer: NEAT kobler seg aldri til bud-/trumfvalgsensorer", () => {
+  // Arvind: «ta vekk alle sensorene som den ikke trenger for å felle budet og
+  // ta stikk selv». Restriksjonen må gjelde over MANGE mutasjoner, ikke bare
+  // ved oppstart – ellers siver de irrelevante inn igjen over generasjoner.
+  const tillatte = new Set(FORSVARSSENSORER);
+  const bok = new Innovasjonsbok(ANTALL_INN, ANTALL_UT);
+  const rng = lagRng(777);
+  const g = nyttGenom(ANTALL_INN, ANTALL_UT, bok, rng);
+  // Start rent: fjern koblinger fra sensorer som ikke er lov.
+  g.koblinger = g.koblinger.filter((k) => k.inn >= ANTALL_INN || tillatte.has(k.inn));
+  const rater = { ...STANDARD_RATER, tillatteKilder: tillatte };
+  for (let i = 0; i < 300; i++) muter(g, bok, rng, rater);
+
+  const ulovlige = g.koblinger.filter((k) => k.inn < ANTALL_INN && !tillatte.has(k.inn));
+  assert.equal(
+    ulovlige.length,
+    0,
+    `${ulovlige.length} koblinger fra forbudte sensorer etter 300 generasjoner: ${ulovlige.slice(0, 5).map((k) => k.inn).join(", ")}`,
+  );
+  assert.ok(g.koblinger.length > 10, "genomet vokste ikke – restriksjonen blokkerte alt");
 });

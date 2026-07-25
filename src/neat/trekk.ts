@@ -152,6 +152,61 @@ export const UT_KORT = 8;
  * budet velges EV-maksimerende over den. UT_MAKKER lærer makkerens bidrag
  * separat (hjelpeoppgave med egen fasit: makkerens faktiske stikk).
  */
+
+/**
+ * SENSORENE EN FORSVARER FAKTISK TRENGER.
+ *
+ * Arvind: «ta vekk alle sensorene som den ikke trenger for å felle budet og
+ * ta stikk selv. forsvar er alt.»
+ *
+ * Bakgrunnen er målt: da D2 fikk 14 nye sensorer, endte de med 0 av 14
+ * koblinger. NEAT trekker nye koblinger UNIFORMT blant alle kilder, så med
+ * 318 innganger er sjansen for å treffe en relevant sensor forsvinnende
+ * liten. Å fjerne det som er irrelevant er derfor ikke bare opprydding – det
+ * øker tettheten av nyttige koblinger direkte.
+ *
+ * FJERNET, med begrunnelse:
+ *  - BESLUTNING (4): alltid SPILL for en forsvarer, bærer null informasjon
+ *  - BUD_HØYESTE/AMERIKANER/SOLO/MEG (4), PASSET (4), MELDING (3),
+ *    BUD_HIST (4): budrunden er over når forsvaret begynner. KONTRAKT og
+ *    MANGLER_STIKK bærer alt som fortsatt betyr noe.
+ *  - ER_BUDVINNER (1): alltid 0 for en forsvarer
+ *  - TREKK_TRUMF (1): definert som «på budlaget OG …», alltid 0 for oss
+ *  - MINE_POENG, BESTE_MOTSTANDER (2): kampstillingen påvirker ikke hvilket
+ *    kort som feller DENNE kontrakten
+ *  - EST_STIKK … LENGSTE (14) og SEKVENS … SORTER (7): håndvurdering laget
+ *    for BUDGIVNING og TRUMFVALG. Forsvareren velger aldri trumf og byr
+ *    aldri – den får trumffargen tildelt og skal spille mot den.
+ *
+ * BEHOLDT er alt som sier noe om å felle kontrakten eller ta stikk: egen
+ * hånd, hva som er ute av spill, bordet, trumf, hvem som er budvinner og
+ * makker, det etterlyste kortet, avslørt renons, boss-kort, trumfkontroll,
+ * lagsensorene (MAKKER_LEDER/FIENDE_LEDER), og – viktigst – MANGLER_STIKK,
+ * som er nøyaktig fitness-leddet «falt kontrakten».
+ *
+ * 274 av 318 sensorer. Kuttet er beskjedent i antall fordi fire 52-blokker
+ * (hånd, sett, bord, etterlyst) utgjør 208 alene, men de er alle nødvendige.
+ */
+export const FORSVARSSENSORER: readonly number[] = (() => {
+  const fjern = new Set<number>();
+  const spenn = (fra: number, antall: number): void => {
+    for (let i = 0; i < antall; i++) fjern.add(fra + i);
+  };
+  spenn(BESLUTNING, 4);
+  spenn(BUD_HØYESTE, 4); // BUD_HØYESTE, _AMERIKANER, _SOLO, _MEG
+  spenn(PASSET, 4);
+  spenn(MELDING, 3);
+  fjern.add(ER_BUDVINNER);
+  spenn(MINE_POENG, 2); // MINE_POENG, BESTE_MOTSTANDER
+  fjern.add(TREKK_TRUMF);
+  spenn(BUD_HIST, 4);
+  spenn(EST_STIKK, 14); // EST_STIKK … LENGSTE
+  spenn(SEKVENS, 7); // SEKVENS … SORTER
+  const ut: number[] = [];
+  for (let i = 0; i < ANTALL_INN; i++) if (!fjern.has(i)) ut.push(i);
+  return ut;
+})();
+
 export const UT_XT_LAV = 60;
 export const UT_XT_HØY = 61;
 export const UT_MAKKER = 62;
