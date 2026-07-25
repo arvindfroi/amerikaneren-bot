@@ -6,48 +6,51 @@ Stillinger lest              2000
   hoppet over (mangler nt)   0
   hoppet over (< 2 lovlige)  0
 Vurdert                      2000
-Snittanger (egenpoeng)       1.0846
-Treff mot orakelet           24.6 % (492/2000)
-Treff mot NevroHjerne        32.3 % (645/2000)
-NevroHjerne mot orakelet     29.9 % (referansemålestokk)
-GODE stillinger              955 (ablert: 955)
-DÅRLIGE stillinger (≥ 1 p) 356 (ablert: 356)
-Likegyldige avvik            689
+Snittanger (egenpoeng)       1.2014
+Treff mot orakelet           26.3 % (526/2000)
+Treff mot NevroHjerne        32.5 % (650/2000)
+NevroHjerne mot orakelet     30.9 % (referansemålestokk)
+GODE stillinger              981 (ablert: 981)
+DÅRLIGE stillinger (≥ 1 p) 377 (ablert: 377)
+Likegyldige avvik            642
 Koblinger analysert          581 kanter → 581 innovasjonsnumre
 Ablasjonstid                 2 s
 
+ADVARSEL: e1-data3 ble skrevet til under kjøringen (orakelgeneratoren går).
+Benken er dermed ikke fast – sammenlign bare genomer fra SAMME kjøring.
+
 15 MEST SKADELIGE koblinger (bærer de dårlige valgene mest):
-  innov     45   318→ 352  vekt   0.156  god    5.74e-3  dårlig    2.12e-2  score  -1.0000
-  innov     39   318→ 346  vekt  -0.095  god    4.64e-3  dårlig    1.23e-2  score  -0.4932
-  innov     89   318→ 377  vekt   0.109  god    3.92e-3  dårlig    1.09e-2  score  -0.4526
-  innov    489   318→1011725  vekt  -1.479  god    2.62e-3  dårlig    7.38e-3  score  -0.3080
-  innov     74   180→ 370  vekt  -0.089  god    1.67e-3  dårlig    6.23e-3  score  -0.2943
-  innov    304   268→1001118  vekt  -1.024  god    5.52e-4  dårlig    2.09e-3  score  -0.0991
-  innov     90   318→ 378  vekt   0.032  god   -1.57e-4  dårlig    1.21e-3  score  -0.0883
-  innov    397   318→1000566  vekt   0.912  god    1.97e-4  dårlig    1.36e-3  score  -0.0752
-  innov    132   318→1001108  vekt  -2.778  god    2.41e-3  dårlig    3.54e-3  score  -0.0733
-  innov     50   318→ 355  vekt  -0.025  god   -3.47e-4  dårlig    7.38e-4  score  -0.0701
-  innov     44   318→ 351  vekt   0.023  god    4.09e-4  dårlig    1.44e-3  score  -0.0663
-  innov    322   286→1000827  vekt  -1.641  god    3.40e-4  dårlig    1.15e-3  score  -0.0522
-  innov    136    39→ 371  vekt  -0.339  god    1.51e-3  dårlig    2.31e-3  score  -0.0515
-  innov     71   318→ 370  vekt   0.052  god    8.02e-4  dårlig    1.60e-3  score  -0.0515
-  innov     32   318→ 342  vekt  -0.045  god    1.58e-3  dårlig    2.37e-3  score  -0.0510
+  innov     45   318→ 352  vekt   0.156  god    4.83e-3  dårlig    2.59e-2  score  -1.0000
+  innov     74   180→ 370  vekt  -0.089  god    1.56e-3  dårlig    7.54e-3  score  -0.2841
+  innov     39   318→ 346  vekt  -0.095  god    5.04e-3  dårlig    9.51e-3  score  -0.2121
+  innov    316   281→ 377  vekt  -0.164  god    1.25e-4  dårlig    3.68e-3  score  -0.1689
+  innov    304   268→1001118  vekt  -1.024  god    4.40e-4  dårlig    2.82e-3  score  -0.1128
+  innov     89   318→ 377  vekt   0.109  god    3.59e-3  dårlig    5.86e-3  score  -0.1078
+  innov    489   318→1011725  vekt  -1.479  god    2.39e-3  dårlig    3.81e-3  score  -0.0672
+  innov     29   318→ 339  vekt   0.025  god    7.84e-4  dårlig    2.15e-3  score  -0.0650
+  innov     32   318→ 342  vekt  -0.045  god    2.04e-3  dårlig    3.23e-3  score  -0.0565
+  innov     90   318→ 378  vekt   0.032  god   -1.84e-4  dårlig    9.83e-4  score  -0.0554
+  innov     63   318→ 366  vekt  -0.032  god   -4.73e-4  dårlig    5.16e-4  score  -0.0469
+  innov    322   286→1000827  vekt  -1.641  god    5.57e-4  dårlig    1.50e-3  score  -0.0448
+  innov     19    41→ 331  vekt  -0.127  god    1.25e-4  dårlig    9.66e-4  score  -0.0399
+  innov    397   318→1000566  vekt   0.912  god   -1.18e-4  dårlig    7.02e-4  score  -0.0389
+  innov     50   318→ 355  vekt  -0.025  god   -2.08e-4  dårlig    4.87e-4  score  -0.0330
 
 15 MEST NYTTIGE koblinger (bærer de gode valgene mest):
-  innov    316   281→ 377  vekt  -0.164  god   -1.21e-3  dårlig   -7.94e-3  score   0.4343
-  innov     77    81→ 371  vekt   0.166  god    7.33e-3  dårlig    2.30e-3  score   0.3251
-  innov     10   318→ 327  vekt  -0.256  god    2.06e-3  dårlig   -4.72e-5  score   0.1359
-  innov     75   318→ 371  vekt   0.071  god    4.18e-3  dårlig    3.00e-3  score   0.0759
-  innov     47   318→ 354  vekt   0.084  god    1.91e-3  dårlig    8.93e-4  score   0.0658
-  innov    113   190→ 355  vekt   0.041  god    8.88e-4  dårlig    9.43e-5  score   0.0513
-  innov    593   318→1017632  vekt   1.864  god    8.38e-4  dårlig    8.17e-5  score   0.0489
-  innov     35   318→ 343  vekt  -0.071  god    1.55e-3  dårlig    8.25e-4  score   0.0465
-  innov     87   318→ 375  vekt   0.045  god    2.47e-3  dårlig    1.78e-3  score   0.0442
-  innov    478   175→1003071  vekt   1.154  god    1.88e-3  dårlig    1.32e-3  score   0.0360
-  innov     55     4→ 360  vekt  -0.260  god    5.29e-4  dårlig    7.39e-9  score   0.0342
-  innov     53   318→ 358  vekt  -0.157  god    1.32e-3  dårlig    8.46e-4  score   0.0306
-  innov    225   318→1001312  vekt  -1.036  god    4.84e-4  dårlig    9.68e-5  score   0.0250
-  innov    189   192→ 366  vekt   0.084  god    6.24e-4  dårlig    2.46e-4  score   0.0244
-  innov    156   172→ 329  vekt   0.019  god    5.38e-4  dårlig    1.67e-4  score   0.0240
+  innov     77    81→ 371  vekt   0.166  god    8.42e-3  dårlig    3.92e-3  score   0.2135
+  innov     75   318→ 371  vekt   0.071  god    5.52e-3  dårlig    3.36e-3  score   0.1025
+  innov     47   318→ 354  vekt   0.084  god    2.04e-3  dårlig    4.95e-4  score   0.0734
+  innov     55     4→ 360  vekt  -0.260  god    1.03e-3  dårlig  -3.91e-12  score   0.0490
+  innov     35   318→ 343  vekt  -0.071  god    1.59e-3  dårlig    6.45e-4  score   0.0446
+  innov    593   318→1017632  vekt   1.864  god    1.01e-3  dårlig    6.82e-5  score   0.0445
+  innov     10   318→ 327  vekt  -0.256  god    9.76e-4  dårlig    2.04e-4  score   0.0366
+  innov    113   190→ 355  vekt   0.041  god    7.23e-4  dårlig    1.65e-4  score   0.0265
+  innov    478   175→1003071  vekt   1.154  god    1.91e-3  dårlig    1.39e-3  score   0.0248
+  innov     78   318→ 372  vekt  -0.025  god    1.00e-3  dårlig    5.31e-4  score   0.0222
+  innov     84   318→ 374  vekt  -0.033  god    1.26e-3  dårlig    8.74e-4  score   0.0184
+  innov    125   318→1001014  vekt  -1.145  god    3.45e-4  dårlig   -4.31e-5  score   0.0184
+  innov    588   314→ 371  vekt   0.029  god    6.18e-4  dårlig    2.51e-4  score   0.0174
+  innov     87   318→ 375  vekt   0.045  god    2.99e-3  dårlig    2.71e-3  score   0.0135
+  innov     31   318→ 341  vekt   0.013  god    2.14e-4  dårlig   -3.32e-5  score   0.0117
 
-346 av 581 koblinger (60 %) flyttet INGENTING i noen av stillingene – de er ekte døde i kortspillet.
+347 av 581 koblinger (60 %) flyttet INGENTING i noen av stillingene – de er ekte døde i kortspillet.

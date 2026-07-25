@@ -1,0 +1,53 @@
+
+==============================================================================
+GENANALYSE  d7/fro-d5.json   benk e1-frys
+==============================================================================
+Stillinger lest              3000
+  hoppet over (mangler nt)   0
+  hoppet over (< 2 lovlige)  0
+Vurdert                      3000
+Snittanger (egenpoeng)       0.9558
+Treff mot orakelet           35.5 % (1066/3000)
+Treff mot NevroHjerne        36.9 % (1107/3000)
+NevroHjerne mot orakelet     29.9 % (referansemålestokk)
+GODE stillinger              1656 (ablert: 1656)
+DÅRLIGE stillinger (≥ 1 p) 488 (ablert: 488)
+Likegyldige avvik            856
+Koblinger analysert          1992 kanter → 1992 innovasjonsnumre
+Ablasjonstid                 21 s
+
+15 MEST SKADELIGE koblinger (bærer de dårlige valgene mest):
+  innov    352   318→ 378  vekt   0.648  god    1.11e-2  dårlig    4.18e-2  score  -1.0000
+  innov    292   318→ 368  vekt  -0.909  god    8.40e-3  dårlig    3.81e-2  score  -0.9671
+  innov     72   318→ 331  vekt  -0.361  god   -4.07e-3  dårlig    2.20e-2  score  -0.8505
+  innov    144   318→ 343  vekt  -0.601  god    6.52e-3  dårlig    2.75e-2  score  -0.6839
+  innov    304   318→ 370  vekt  -0.430  god   -8.34e-3  dårlig    1.05e-2  score  -0.6124
+  innov    449   318→1001014  vekt   0.333  god    5.32e-3  dårlig    2.29e-2  score  -0.5709
+  innov    366   252→ 366  vekt   0.717  god    2.03e-3  dårlig    1.63e-2  score  -0.4660
+  innov   1231   267→1006693  vekt  -1.406  god    3.00e-3  dårlig    1.72e-2  score  -0.4608
+  innov    340   318→ 376  vekt  -0.667  god    3.16e-2  dårlig    4.45e-2  score  -0.4204
+  innov    191   318→ 351  vekt  -0.321  god    7.04e-3  dårlig    1.89e-2  score  -0.3867
+  innov    209   318→ 354  vekt  -0.511  god   -3.83e-4  dårlig    1.13e-2  score  -0.3806
+  innov    535   158→ 361  vekt   0.460  god    4.30e-3  dårlig    1.60e-2  score  -0.3795
+  innov    808   183→ 378  vekt   0.338  god    3.00e-3  dårlig    1.45e-2  score  -0.3760
+  innov    310   318→ 371  vekt  -0.570  god    5.31e-3  dårlig    1.68e-2  score  -0.3747
+  innov    346   318→ 377  vekt  -0.281  god    1.89e-3  dårlig    1.29e-2  score  -0.3591
+
+15 MEST NYTTIGE koblinger (bærer de gode valgene mest):
+  innov   1121   283→ 331  vekt   0.774  god    1.24e-2  dårlig    3.59e-3  score   0.2865
+  innov    410   190→ 355  vekt   0.694  god    1.03e-2  dårlig    2.18e-3  score   0.2659
+  innov     91   190→ 334  vekt   0.523  god    4.27e-3  dårlig   -7.85e-4  score   0.1645
+  innov    354    51→ 378  vekt  -0.421  god    2.82e-3  dårlig   -1.91e-3  score   0.1540
+  innov   1986   314→ 373  vekt   0.475  god    2.77e-3  dårlig   -1.82e-3  score   0.1495
+  innov    806   190→ 364  vekt  -0.436  god    4.36e-3  dårlig    1.14e-4  score   0.1383
+  innov    568   172→ 329  vekt   0.232  god    3.40e-3  dårlig   -6.85e-4  score   0.1329
+  innov    173   318→ 348  vekt  -0.185  god    3.56e-3  dårlig   -2.22e-4  score   0.1232
+  innov   1801   308→ 339  vekt  -0.419  god    1.88e-3  dårlig   -1.75e-3  score   0.1182
+  innov   1648   156→1010691  vekt   1.500  god    4.50e-3  dårlig    9.27e-4  score   0.1164
+  innov   1110   280→ 356  vekt   0.801  god    3.45e-3  dårlig   -5.84e-5  score   0.1144
+  innov     90   318→ 334  vekt   0.288  god    2.94e-3  dårlig   -5.11e-4  score   0.1124
+  innov    305    43→ 370  vekt   0.738  god    3.36e-2  dårlig    3.04e-2  score   0.1056
+  innov     21   168→ 322  vekt  -1.921  god    5.22e-3  dårlig    2.21e-3  score   0.0980
+  innov    333   168→ 374  vekt  -0.264  god    5.89e-3  dårlig    3.05e-3  score   0.0924
+
+891 av 1992 koblinger (45 %) flyttet INGENTING i noen av stillingene – de er ekte døde i kortspillet.

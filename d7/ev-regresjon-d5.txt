@@ -1,0 +1,108 @@
+
+================================================================================================
+EV-REGRESJON (ridge)  d7/fro-d5.json   benk e1-frys
+================================================================================================
+Stillinger i regresjonen     3000  (3000 lest, 0 uten nt, 0 med < 2 kort)
+Optimale valg (anger = 0)    55.2 % (1656/3000)
+  samme, argmaks-definisjon  35.5 % (1066/3000)  ← genanalyse.ts sin
+  stillinger m/ flere optima 53.8 %  ← hele forskjellen mellom de to
+Snittanger (respons y)       0.9558 egenpoeng
+Snitt v(valgt) (y2)          2.0587 egenpoeng
+Kanter i nettet              1992
+  døde (null varians)        903
+  forkastet av variansfilter 689
+Prediktorer BRUKT            400 (--prediktorer 400)
+  bærer andel av Σ|bidrag|   92.13 %
+  forkastede kolonner bar    7.87 %
+Lambda (brukt)               1
+R² in-sample                 0.0967
+R² holdout (hver 5. stilling)  0.0362
+Ablasjonstid                 28 s
+
+LAMBDA-SVEIP (tilpasset på 4/5, målt på holdout):
+  λ   0.01   R²tren   0.1698   R²holdout  -0.0633
+  λ   0.03   R²tren   0.1645   R²holdout  -0.0385
+  λ    0.1   R²tren   0.1528   R²holdout  -0.0053
+  λ    0.3   R²tren   0.1326   R²holdout   0.0221
+  λ      1   R²tren   0.0994   R²holdout   0.0362   ← best holdout   ← brukt
+  λ      3   R²tren   0.0642   R²holdout   0.0312
+  λ     10   R²tren   0.0319   R²holdout   0.0180
+  λ     30   R²tren   0.0137   R²holdout   0.0082
+  λ    100   R²tren   0.0046   R²holdout   0.0029
+
+FORTEGNSKONVENSJON: y = ANGER (max(v) − v(valgt)), lavere er bedre.
+  koefStd > 0  ⇒ genet øker angeren når det dytter for det valgte kortet ⇒ SKADELIG
+  koefStd < 0  ⇒ NYTTIG
+  (genanalyse.ts sin `scoreNorm` har MOTSATT fortegn: positiv = nyttig der.)
+
+20 MEST SKADELIGE koblinger (størst positiv koeffisient på anger):
+  innov    160   223→    345  vekt   0.631  koefStd    1.433e-1  koef    5.50e+0  fortegn 100 %  scoreNorm  -0.0893
+  innov    535   158→    361  vekt   0.460  koefStd    1.207e-1  koef    2.17e+0  fortegn 100 %  scoreNorm  -0.3117
+  innov    997   259→1000827  vekt   0.436  koefStd    1.070e-1  koef    1.10e+1  fortegn  80 %  scoreNorm  -0.0077
+  innov    366   252→    366  vekt   0.717  koefStd    9.963e-2  koef    1.89e+0  fortegn 100 %  scoreNorm  -0.2371
+  innov   1290   295→    362  vekt   0.169  koefStd    8.756e-2  koef    5.77e+0  fortegn 100 %  scoreNorm   0.0026
+  innov   1965   312→    352  vekt   0.888  koefStd    8.397e-2  koef    2.26e+0  fortegn 100 %  scoreNorm  -0.1313
+  innov    318   159→    372  vekt   0.430  koefStd    8.350e-2  koef    1.91e+0  fortegn 100 %  scoreNorm   0.0217
+  innov    121   156→    339  vekt   0.473  koefStd    8.279e-2  koef    1.98e+0  fortegn 100 %  scoreNorm  -0.3887
+  innov   1027   269→1000827  vekt   0.778  koefStd    7.008e-2  koef    3.31e+0  fortegn 100 %  scoreNorm  -0.0479
+  innov    771   171→1001480  vekt   0.302  koefStd    6.203e-2  koef    1.36e+1  fortegn 100 %  scoreNorm   0.0189
+  innov   1144   289→1001698  vekt   0.736  koefStd    5.796e-2  koef    1.88e+0  fortegn 100 %  scoreNorm  -0.0930
+  innov   1231   267→1006693  vekt  -1.406  koefStd    5.584e-2  koef    1.56e+0  fortegn 100 %  scoreNorm  -0.1828
+  innov    323   193→    373  vekt  -0.071  koefStd    5.436e-2  koef    7.70e+0  fortegn 100 %  scoreNorm  -0.0016
+  innov   1280   293→1001278  vekt   1.194  koefStd    5.357e-2  koef    1.14e+1  fortegn 100 %  scoreNorm   0.0118
+  innov    197   318→    352  vekt   0.089  koefStd    5.241e-2  koef    4.58e+0  fortegn 100 %  scoreNorm  -0.0246
+  innov    174   223→    348  vekt   0.360  koefStd    5.199e-2  koef    5.74e+0  fortegn  60 %  scoreNorm  -0.0218
+  innov   1977   313→    364  vekt   0.231  koefStd    5.105e-2  koef    9.81e+0  fortegn 100 %  scoreNorm  -0.0304
+  innov    778   157→    337  vekt  -0.194  koefStd    4.845e-2  koef    7.18e+0  fortegn 100 %  scoreNorm   0.0265
+  innov    978    77→    338  vekt  -0.405  koefStd    4.834e-2  koef    1.10e+0  fortegn 100 %  scoreNorm   0.0308
+  innov    293    71→    368  vekt   0.115  koefStd    4.678e-2  koef    4.79e+0  fortegn 100 %  scoreNorm   0.0108
+
+20 MEST NYTTIGE koblinger (størst negativ koeffisient på anger):
+  innov   1295   296→    319  vekt   0.712  koefStd   -7.216e-2  koef   -1.32e+1  fortegn 100 %  scoreNorm  -0.0082
+  innov   1332   282→1008301  vekt  -1.492  koefStd   -6.825e-2  koef   -2.59e+0  fortegn 100 %  scoreNorm   0.0439
+  innov     69   237→    330  vekt  -0.148  koefStd   -6.210e-2  koef   -1.21e+1  fortegn 100 %  scoreNorm  -0.0007
+  innov    312   171→    371  vekt  -0.100  koefStd   -5.125e-2  koef   -1.16e+1  fortegn  60 %  scoreNorm  -0.0124
+  innov   1776   252→1007979  vekt   1.355  koefStd   -5.043e-2  koef   -2.75e+0  fortegn 100 %  scoreNorm  -0.0928
+  innov    991   256→1000827  vekt   0.377  koefStd   -5.013e-2  koef   -6.87e+0  fortegn 100 %  scoreNorm  -0.0251
+  innov    296   178→    368  vekt   0.122  koefStd   -4.449e-2  koef   -4.09e+0  fortegn 100 %  scoreNorm   0.0231
+  innov    122    93→    339  vekt  -0.136  koefStd   -4.313e-2  koef   -5.37e+0  fortegn 100 %  scoreNorm   0.0598
+  innov   1298    55→1001539  vekt  -0.759  koefStd   -3.901e-2  koef   -6.06e+0  fortegn 100 %  scoreNorm  -0.0040
+  innov   1465   179→1003013  vekt   0.880  koefStd   -3.491e-2  koef   -6.30e+0  fortegn 100 %  scoreNorm   0.0032
+  innov   1042   274→    353  vekt   0.634  koefStd   -3.482e-2  koef   -5.73e-1  fortegn 100 %  scoreNorm   0.0598
+  innov   1325   269→1007979  vekt  -0.611  koefStd   -3.476e-2  koef   -3.09e+0  fortegn  60 %  scoreNorm  -0.0458
+  innov    410   190→    355  vekt   0.694  koefStd   -3.260e-2  koef   -6.35e-1  fortegn 100 %  scoreNorm   0.2112
+  innov   1992   184→1006491  vekt  -0.921  koefStd   -3.156e-2  koef   -2.83e+0  fortegn 100 %  scoreNorm   0.0440
+  innov    476    53→    378  vekt  -0.089  koefStd   -3.151e-2  koef   -3.58e+0  fortegn 100 %  scoreNorm   0.0554
+  innov   1951   311→    338  vekt   0.182  koefStd   -3.140e-2  koef   -3.76e+0  fortegn 100 %  scoreNorm  -0.0153
+  innov   1943   311→    330  vekt   0.437  koefStd   -3.095e-2  koef   -2.18e+0  fortegn 100 %  scoreNorm   0.0199
+  innov    465   318→1001108  vekt   0.655  koefStd   -3.031e-2  koef   -6.79e+0  fortegn 100 %  scoreNorm   0.0046
+  innov   1970   313→    357  vekt   0.372  koefStd   -3.017e-2  koef   -1.93e+0  fortegn 100 %  scoreNorm   0.0158
+  innov    940   110→    373  vekt  -0.842  koefStd   -2.933e-2  koef   -6.76e+0  fortegn  40 %  scoreNorm  -0.0408
+
+FORTEGNSSTABILITET (5 bootstrapp-resamplinger av STILLINGENE):
+  222 av 400 koblinger (56 %) beholdt fortegnet i ALLE resamplingene.
+  100 koblinger (25 %) hadde ≤ 60 % fortegnsenighet – de er STØY, ikke funn.
+  En kobling med fortegnsstabilitet < 100 % skal IKKE brukes som grunnlag for
+  selektiv arv: ridge fordeler samme effekt vilkårlig mellom samvarierende gener,
+  og da er «skadelig» eller «nyttig» avgjort av hvilke stillinger som kom med.
+  Av topp 20 skadelige er 18 helt stabile; av topp 20 nyttige 17.
+
+SAMMENLIGNING MED DEN MARGINALE HEURISTIKKEN (genanalyse):
+  Kilde: d7/genanalyse-d5.json (400 felles koblinger)
+  ADVARSEL: den filen ble kjørt på benk «e1-data3», ikke «e1-frys».
+  Tallene under blander da metodeforskjell med benkdrift. Målt på d5 flyttet
+  ρ(koefStd, scoreNorm) seg fra −0,20 til −0,40 bare ved å kjøre genanalysen på
+  nytt på samme benk. Kjør: node examples/genanalyse.ts d7/fro-d5.json --benk e1-frys --antall 3000
+  Er metodene enige, skal rangkorrelasjonen være NEGATIV (motsatte fortegnskonvensjoner).
+  Spearman ρ(koefStd, scoreNorm)         -0.2000   (margin-scoren, genanalyses rangering)
+  Spearman ρ(koefStd, scoreBidragNorm)   -0.4113   (bidrag-scoren, samme størrelse som X)
+  Topp-20 SKADELIGE felles med genanalyse:  4/20
+  Topp-20 NYTTIGE  felles med genanalyse:  1/20
+
+KONTRAST MOT y2 = v(valgt):
+  Spearman ρ(koefStd på anger, koefStd på v(valgt)) = 0.1340
+  sd(max(v)) over stillingene = 8.315 egenpoeng, mot snittanger 0.956.
+  y2 er IKKE y speilvendt, selv om y = max(v) − y2: stillingsverdien varierer
+  langt mer enn beslutningskvaliteten, så en regresjon på y2 lærer hvilke gener
+  som fyrer i verdifulle stillinger – ikke hvilke som velger riktig kort.
+  Det er hele grunnen til at ANGER er responsen her.

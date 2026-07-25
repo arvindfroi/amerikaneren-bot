@@ -74,6 +74,8 @@ let nAlle = 0;
 let nForsprang = 0;
 let nSpeil = 0;
 let utenNt = 0;
+let optMeg = 0;
+let optNevro = 0;
 
 for (const s of stillinger) {
   const nt = s.nt;
@@ -111,19 +113,28 @@ for (const s of stillinger) {
     }
   }
 
+  // OPTIMALT, ikke argmax-treff: 53,8 % av stillingene har FLERE optimale
+  // kort, og aa telle bare det foerste argmax-kortet scorer et riktig valg
+  // som bom. Rett definisjon er anger = 0, som angerbenk.scoreBenk bruker.
+  const beste = Math.max(...lovlige.map((k) => s.v[String(k)] ?? -Infinity));
+  const mittOpt = (s.v[String(mitt)] ?? -Infinity) >= beste - 1e-6;
+  const nevroOpt = (s.v[String(nevroValg)] ?? -Infinity) >= beste - 1e-6;
+  if (mittOpt) optMeg++;
+  if (nevroOpt) optNevro++;
   nAlle++;
   for (let i = 0; i < ANTALL_INN; i++) sumAlle[i]! += nt[i]!;
 
-  if (mitt === fasit && nevroValg !== fasit) {
+  if (mittOpt && !nevroOpt) {
     nForsprang++;
     for (let i = 0; i < ANTALL_INN; i++) sumForsprang[i]! += nt[i]!;
-  } else if (mitt !== fasit && nevroValg === fasit) {
+  } else if (!mittOpt && nevroOpt) {
     nSpeil++;
     for (let i = 0; i < ANTALL_INN; i++) sumSpeil[i]! += nt[i]!;
   }
 }
 
 console.log(`vurdert ${nAlle}, uten nt ${utenNt}`);
+console.log(`OPTIMALE valg (anger=0):  genom ${((100*optMeg)/nAlle).toFixed(1)} %   NevroHjerne ${((100*optNevro)/nAlle).toFixed(1)} %`);
 console.log(`FORSPRANG (vi rett, nevro feil): ${nForsprang}`);
 console.log(`SPEIL     (nevro rett, vi feil): ${nSpeil}`);
 if (nForsprang === 0) {
