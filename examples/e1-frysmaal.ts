@@ -20,6 +20,37 @@
  * på e1-data3 uten filtrering har altså SETT benken. `verktoy/e1-tren.py
  * --utelat e1-frys` finnes nettopp derfor, og feltet `holdout` i utfilen sier
  * hva som gjelder for hver måling.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * VEKSLINGSKURSEN MELLOM ANGER OG POENG, MÅLT 2026-07-25.
+ *
+ * Dette er tallet man må kjenne før man bruker benken til å velge noe. E1-r1
+ * og E1-r2 er samme linje, samme fasit, ulik anger:
+ *
+ *   e1-r1   anger 0,5436   kamp mot grådig +72,19
+ *   e1-r2   anger 0,4768   kamp mot grådig +72,46   (+0,27 ± 0,06, 600 givere)
+ *
+ * 12 % bedre anger ga 0,27 poeng/kamp. Avstanden opp til NevroHjerne er
+ * 3,18 ± 0,06 poeng. Med den vekslingskursen måtte angeren ned mot NULL for
+ * at E1 skulle ta igjen nevro på poeng – og E1 er allerede 0,34 anger BEDRE
+ * enn nevro på benken. De to målingene er altså ikke uenige om støy; de
+ * rangerer E1 og nevro MOTSATT.
+ *
+ * Fordelingen per stikk viser hvorfor (e1-r1 mot nevro, anger):
+ *
+ *   stikk      0     1     2     3     4     5     6     7     8     9    10
+ *   E1      0,43  0,52  0,57  0,83  1,45  0,49  0,52  0,40  0,39  0,24  0,10
+ *   nevro   0,85  0,48  0,54  0,76  1,30  1,23  1,44  1,05  0,87  0,44  0,08
+ *
+ * Hele forspranget ligger i stikk 5–9, altså der dobbelt-dummy-orakelet
+ * løser eksakt og fasiten er skarpest. I stikk 1–4 er E1 litt DÅRLIGERE enn
+ * nevro. Benken måler derfor mest sluttspill, mens kampen avgjøres tidlig –
+ * og nevro er faktisk under det tilfeldige gulvet i stikk 4, 6 og 7 uten at
+ * det hindrer den i å vinne kampen med tre poeng.
+ *
+ * Bruk derfor benken til å se AT et E1-nett har lært kortvalg, ikke til å
+ * rangere kandidater som er nære hverandre. Rangeringen hører hjemme i
+ * examples/neat-evaluer.ts med parrede givere.
  */
 
 import { appendFileSync, readFileSync } from "node:fs";
@@ -41,14 +72,22 @@ let utFil: string | null = "e1-frysmaal.jsonl";
 let merke = "";
 /** Settes når kandidaten kan ha sett benken – da er tallet IKKE et holdout-tall. */
 let lekket = false;
+/**
+ * Del opp etter stikknummer. Orakelets fasit er svakest TIDLIG: der er nesten
+ * alt skjult, og `dybde` er mindre enn gjenstående stikk, så verdenene spilles
+ * grådig fram til søket starter. Er E1s forsprang bare sent i runden, lærer
+ * den et sluttspill den kan stole på – og et åpningsspill den ikke bør.
+ */
+let perStikk = false;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--mappe") mappe = process.argv[++i] ?? mappe;
   else if (a === "--antall") antall = Number(process.argv[++i]);
   else if (a === "--del") del = (process.argv[++i] ?? "holdout") as typeof del;
-  else if (a === "--ut") utFil = process.argv[++i] ?? null;
+  else if (a === "--ut") utFil = process.argv[++i] || null;
   else if (a === "--merk") merke = process.argv[++i] ?? "";
   else if (a === "--lekket") lekket = true;
+  else if (a === "--perstikk") perStikk = true;
   else filer.push(a);
 }
 if (filer.length === 0) {
@@ -164,6 +203,26 @@ for (const k of kandidater) {
     `  mot nevro: ${snittDiff >= 0 ? "+" : ""}${snittDiff.toFixed(4)} ± ${se.toFixed(4)} anger ` +
       `(negativt = bedre enn nevro)`,
   );
+  if (perStikk) {
+    const stikk = [...new Set(sett.map((s) => s.stikk))].sort((a, b) => a - b);
+    console.log("  stikk    n   kandidat      nevro       gulv");
+    for (const st of stikk) {
+      const del = sett.filter((s) => s.stikk === st);
+      const m2 = mål({
+        navn: `${k.navn}@${st}`,
+        stillinger: del,
+        holdout: m.holdout,
+        retning: "lavereErBedre",
+        kandidat: k.velg,
+        gulv: gulvAv,
+        tak: takAv,
+      });
+      console.log(
+        `  ${String(st).padStart(5)}${String(m2.n).padStart(6)}` +
+          `${m2.verdi.toFixed(4).padStart(11)}${m2.tak.toFixed(4).padStart(11)}${m2.gulv.toFixed(4).padStart(11)}`,
+      );
+    }
+  }
   if (utFil !== null) {
     appendFileSync(
       utFil,

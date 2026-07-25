@@ -197,6 +197,23 @@ def treffrate(logits, verdi, maske):
     return (verdi.gather(1, valgt.unsqueeze(1)) >= best - 1e-6).float().mean().item()
 
 
+@torch.no_grad()
+def val_anger(logits, verdi, maske):
+    """Snittanger på valideringssettet: orakelets beste minus nettets valg.
+
+    DETTE ER KRITERIET, IKKE TREFFRATEN. Målt 2026-07-25 på læringskurven:
+    to kjøringer med IDENTISK oppsett fikk begge val-treff 60,8 %, men anger
+    0,5219 og 0,5435 på den frosne benken – treffraten kunne ikke skille dem,
+    fordi den teller et valg som er 0,01 poeng feil likt med et som er 3
+    poeng feil. Anger er det tallet vi faktisk rapporterer, og da må det også
+    være det vi velger sjekkpunkt etter.
+    """
+    stor_negativ = torch.finfo(logits.dtype).min
+    valgt = logits.masked_fill(maske == 0, stor_negativ).argmax(dim=1)
+    best = verdi.masked_fill(maske == 0, stor_negativ).max(dim=1).values
+    return (best - verdi.gather(1, valgt.unsqueeze(1)).squeeze(1)).mean().item()
+
+
 def skriv_vekter(sti: str, modell: E1Nett) -> None:
     """Appens format: antall nett, per nett antall lag, per lag inn/ut/vekter/bias."""
     os.makedirs(os.path.dirname(sti) or ".", exist_ok=True)
@@ -223,6 +240,12 @@ def main() -> None:
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--wd", type=float, default=0.0, help="vektfall i AdamW")
     p.add_argument("--taal", type=int, default=6, help="epoker uten framgang foer tidlig stopp")
+    p.add_argument(
+        "--kriterium",
+        choices=["anger", "treff"],
+        default="anger",
+        help="hva sjekkpunktet velges etter (se val_anger for hvorfor treff er feil valg)",
+    )
     p.add_argument("--tau", type=float, default=1.0)
     p.add_argument("--skjult", default="512,512,256")
     p.add_argument("--maks", type=int, default=None, help="trener paa bare N stillinger (valideringen er uendret)")
@@ -274,10 +297,10 @@ def main() -> None:
 
     # TIDLIG STOPP. R1 (311k, 40 epoker) toppet val-treff paa epoke 2 og
     # falt saa mens val-tap steg (1,45 -> 1,56) - klar overtilpasning paa et
-    # 700k-parameters nett. Vi stopper naar val-treffet ikke har blitt bedre
+    # 700k-parameters nett. Vi stopper naar kriteriet ikke har blitt bedre
     # paa `taal` epoker, saa flere epoker aldri skader; sjekkpunktet er uansett
     # det BESTE, ikke det siste.
-    beste = -1.0
+    beste = float("inf") if args.kriterium == "anger" else -1.0
     siden_beste = 0
     for epoke in range(args.epoker):
         modell.train()
@@ -298,28 +321,31 @@ def main() -> None:
             val_logits = modell(Xv)
             val_tap = maskert_tap(val_logits, Vv, Mv, args.tau).item()
             val_treff = treffrate(val_logits, Vv, Mv)
+            val_ang = val_anger(val_logits, Vv, Mv)
         linje = (
             f"epoke {epoke + 1}/{args.epoker}: tap {sum_tap / max(1, biter):.4f} "
-            f"val-tap {val_tap:.4f} val-treff {100 * val_treff:.1f} %"
+            f"val-tap {val_tap:.4f} val-treff {100 * val_treff:.1f} % val-anger {val_ang:.4f}"
         )
         print(linje)
         logg.write(linje + "\n")
-        if val_treff > beste:
-            beste = val_treff
+        naa = val_ang if args.kriterium == "anger" else val_treff
+        bedre = naa < beste if args.kriterium == "anger" else naa > beste
+        if bedre:
+            beste = naa
             siden_beste = 0
             skriv_vekter(args.ut, modell)
-            logg.write(f"  lagret (beste treff {100 * beste:.1f} %)\n")
+            logg.write(f"  lagret (beste {args.kriterium} {beste:.4f})\n")
         else:
             siden_beste += 1
             if siden_beste >= args.taal:
-                linje = f"tidlig stopp: {args.taal} epoker uten framgang (beste {100 * beste:.1f} %)"
+                linje = f"tidlig stopp: {args.taal} epoker uten framgang (beste {args.kriterium} {beste:.4f})"
                 print(linje)
                 logg.write(linje + "\n")
                 break
 
-    logg.write(f"=== ferdig, beste val-treff {100 * beste:.1f} % ===\n")
+    logg.write(f"=== ferdig, beste val-{args.kriterium} {beste:.4f} ===\n")
     logg.close()
-    print(f"Ferdig. Beste val-treff {100 * beste:.1f} % → {args.ut}")
+    print(f"Ferdig. Beste val-{args.kriterium} {beste:.4f} → {args.ut}")
 
 
 if __name__ == "__main__":
