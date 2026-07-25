@@ -190,6 +190,12 @@ export function klonGenom(g: Genom): Genom {
 // ---------------------------------------------------------------------------
 
 export interface MutasjonsRater {
+  /**
+   * L2-lengde per nodes innkommende vektvektor, gjenopprettet etter HVER
+   * mutasjon. Dette er det som gjør generasjonens endring relativ i stedet
+   * for additiv – se normaliserVekter. 0 slaar den av (kun kontrollforsoek).
+   */
+  readonly normaliser?: number;
   /** Sjanse for å perturbere vektene (per genom). */
   readonly vekter: number;
   /** Sjanse per vekt for HELT ny verdi (ellers liten perturbasjon). */
@@ -241,6 +247,12 @@ function kildeScore(bias: readonly KildeBias[] | undefined, id: number): number 
 // også ytelsen. Ny struktur må tilføres raskere enn seleksjonen luker den
 // ut, så artsvernet faktisk får innovasjoner å beskytte.
 export const STANDARD_RATER: MutasjonsRater = {
+  /**
+   * L2-lengde per nodes innkommende vektvektor, gjenopprettet etter hver
+   * mutasjon. 0 slår av normaliseringen (kun for kontrollforsøk – uten den
+   * metter nettet og slutter å lære, se normaliserVekter).
+   */
+  normaliser: 1.5,
   vekter: 0.8,
   nyVekt: 0.1,
   styrke: 0.35,
@@ -254,6 +266,56 @@ export const STANDARD_RATER: MutasjonsRater = {
   // jevn motvekt, ikke en saks som river ut struktur som nettopp ble født.
   beskjær: 0.25,
 };
+
+/**
+ * RELATIV NORMALISERING – kjernen i at nettet kan lære hver generasjon.
+ *
+ * MÅLT ÅRSAKSKJEDE (analyse 2026-07-25). Pre-aktiveringen i nett.ts er en RÅ
+ * sum, `Σ w·x`, uten deling på fan-in. Den er altså produktet av tre
+ * størrelser, og ALLE TRE vokser mens ingenting deler dem ned igjen:
+ *
+ *   1. E|w|  – muterVekter gjør `k.vekt += gaussisk()*styrke`. Det er en
+ *              ubalansert tilfeldig gange uten tilbakestillende kraft, så
+ *              E|w| vokser som √(generasjoner). Additivt, ikke relativt.
+ *   2. fan-in – nyKobling 0,6 + nyNode 0,2 legger til ~1,0 kobling per
+ *              generasjon; beskjær fjerner 0,25. Netto vekst er positiv, og
+ *              ingenting setter tak på hvor mange koblinger en node samler.
+ *   3. |kilde| – skjulte noder er selv tanh-utganger som metter mot ±1.
+ *
+ * Resultat: sum ≈ 7 → tanh = 0,999998 → tanh-deriverte 1−ut² ≈ 4e−6. Og
+ * siden kalibrerUtgang ganger HELE oppdateringen med nettopp den deriverte,
+ * blir all læring multiplisert med ~0. Klippingen på ±8 er 2,7 ganger forbi
+ * punktet der dette skjer, så den binder aldri i tide.
+ *
+ * FIKSEN: hold den innkommende vektvektoren til hver node på fast lengde.
+ * Da kan mutasjon og kalibrering fritt endre RETNINGEN – hvilke innganger
+ * som betyr noe og med hvilket fortegn – men aldri skalaen. Enhver endring
+ * blir dermed relativ i stedet for additiv, nøyaktig som Arvind spesifiserte,
+ * og pre-aktiveringen holder seg i tanh sitt responsive område uansett hvor
+ * mange generasjoner eller koblinger som kommer til.
+ *
+ * Merk at dette også nøytraliserer fan-in-veksten gratis: flere koblinger gir
+ * lengre vektor, som normaliseringen deler ned igjen. Ingen egen fan-in-
+ * grense trengs.
+ *
+ * `mål` er L2-lengden per node. 1,5 holder typisk pre-aktivering rundt ±1,5,
+ * der tanh-deriverte er ~0,2–1,0 – responsivt, men fortsatt i stand til å
+ * uttrykke et bestemt valg.
+ */
+export function normaliserVekter(g: Genom, mål = 1.5): void {
+  if (mål <= 0) return;
+  const sumPerNode = new Map<number, number>();
+  for (const k of g.koblinger) {
+    if (!k.aktiv) continue;
+    sumPerNode.set(k.ut, (sumPerNode.get(k.ut) ?? 0) + k.vekt * k.vekt);
+  }
+  for (const k of g.koblinger) {
+    if (!k.aktiv) continue;
+    const kvadratsum = sumPerNode.get(k.ut);
+    if (kvadratsum === undefined || kvadratsum <= 1e-12) continue;
+    k.vekt *= mål / Math.sqrt(kvadratsum);
+  }
+}
 
 export function muterVekter(g: Genom, rng: () => number, rater: MutasjonsRater): void {
   const demp = rater.dempFaktor ?? 0.3;
@@ -375,6 +437,10 @@ export function muter(g: Genom, bok: Innovasjonsbok, rng: () => number, rater = 
   if (rng() < rater.nyKobling) muterNyKobling(g, bok, rng, 30, rater.kildeBias);
   if (rng() < rater.nyNode) muterNyNode(g, bok, rng);
   if (rng() < rater.veksle) muterVeksle(g, rng, rater.kildeBias);
+  // ALLTID til slutt: uansett hvilke mutasjoner som slo til, gjenopprettes
+  // skalaen. Det er dette som gjør generasjonens endring relativ i stedet
+  // for additiv, og som hindrer at nettet metter seg over tid.
+  normaliserVekter(g, rater.normaliser ?? 1.5);
 }
 
 // ---------------------------------------------------------------------------
