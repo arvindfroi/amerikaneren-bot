@@ -1,0 +1,26 @@
+SD-LÆREREN MOT DD-LÆREREN – parrede poengdifferanser
+=====================================================
+Kilde: analyse/sd-r1-poeng-pergiver.jsonl (examples/neat-evaluer.ts --ut)
+Oppsett: 2000 givere × 4 seter per kandidat, frø 33 000 000+[0,2000),
+motstander 3× grådig, rent nett (ingen hybrid, ingen lamarckisk læring).
+Frøbåndet 33 mill. ligger utenfor sd-data (50–65 mill.), e1-data (≤15,3 mill.)
+og portene (8,1/8,6 mill.), så ingen kandidat er målt på givere den er trent på.
+
+Rå score mot grådig (poeng/kamp):
+  nevro    +75,40 ± 0,03
+  sd-r1    +75,28 ± 0,03
+  e1-r2    +72,44 ± 0,04
+
+Parret, samme givere:
+  sd-r1 − e1-r2 :  +2,8494 ± 0,0339   tegntest 1959/1995 (98,2 %)   p < 1e-300
+  sd-r1 − nevro :  −0,1150 ± 0,0257   tegntest  908/1964 (46,2 %)   p ≈ 0,001
+  e1-r2 − nevro :  −2,9643 ± 0,0342   tegntest   31/1998 ( 1,6 %)   p < 1e-300
+
+Lesning: å bytte lærer fra dobbelt-dummy til single-dummy er verdt
++2,85 ± 0,03 poeng per kamp på ellers identisk arkitektur (384–256),
+identisk trener, identisk kriterium (val-anger) og identisk målebenk.
+Det lukker 96 % av gapet E1 hadde ned til NevroHjerne.
+
+Restgapet på −0,115 ± 0,026 er lite, men det er 4,5 standardfeil fra null og
+tegntesten er entydig (sd-r1 vinner 46,2 % av giverne). sd-r1 slår altså IKKE
+nevro; den er så vidt under.

@@ -1,0 +1,17 @@
+sd-data/skard-0.jsonl 45629
+sd-data/skard-1.jsonl 45668
+sd-data/skard-10.jsonl 45168
+sd-data/skard-11.jsonl 45308
+sd-data/skard-12.jsonl 45322
+sd-data/skard-13.jsonl 45368
+sd-data/skard-14.jsonl 45687
+sd-data/skard-15.jsonl 45044
+sd-data/skard-2.jsonl 45209
+sd-data/skard-3.jsonl 45517
+sd-data/skard-4.jsonl 45518
+sd-data/skard-5.jsonl 45210
+sd-data/skard-6.jsonl 45459
+sd-data/skard-7.jsonl 45290
+sd-data/skard-8.jsonl 45362
+sd-data/skard-9.jsonl 45547
+total 726306

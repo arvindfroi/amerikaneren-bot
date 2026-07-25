@@ -1,0 +1,191 @@
+SD-LÆREREN MOT DD-LÆREREN – samlet, 2026-07-25 kveld
+=====================================================
+
+SPØRSMÅLET. E1 er destillert fra dobbelt-dummy-orakelet. Den har anger 0,4768
+mot NevroHjernes 0,8167 på DD-benken e1-frys – langt bedre – og taper likevel
+2,91 ± 0,06 poeng per kamp. Godkjenningsporten målte DD-kortfasiten til
+−0,609 korrigert korrelasjon mot poeng (AVVIST) og SD-kortfasiten til +0,718
+(GODKJENT). Hypotesen var derfor at flaskehalsen er LÆREREN, ikke data eller
+kapasitet. Denne kjøringen tester den direkte: samme trener, samme
+arkitektur, samme kriterium, samme målebenk – eneste forskjell er hvem som
+merket dataene.
+
+
+1. TRENINGEN
+------------
+verktoy/e1-tren.py, GPU (RTX 5080, torch 2.11+cu128) i WSL.
+Data: sd-data/, 619 223 stillinger, 12 SD-verdener, NevroHjerne i alle seter.
+Kriterium: val-anger (IKKE treffrate – se val_anger i e1-tren.py).
+--utelat e1-frys satt, men overlappet er null uansett; se punkt 5.
+
+  arkitektur        parametre   beste val-anger (SD-skala)   epoker
+  384–256  (sd-r1)    217 140            0,9206              13 (tidlig stopp)
+  512–384–256         449 204            0,9210              14
+  256–256             149 300            0,9253              15
+  640–512–384         720 564            0,9312              12
+
+Samme mønster som i DD-kjøringen: det lille nettet vinner, det største taper.
+Kapasitet er ikke flaskehalsen.
+
+sd-r1 = 384–256, e1-modell/sd-r1.bin, logg e1-modell/sd-r1.log.
+
+
+2. POENG – DET AVGJØRENDE MÅLET
+-------------------------------
+examples/neat-evaluer.ts, 2000 givere × 4 seter per kandidat, parret på giver,
+frø 33 000 000+[0,2000), motstander 3× grådig.
+Frøbåndet ligger utenfor sd-data (50–65 mill.), e1-data (≤15,3 mill.) og
+portene (8,1/8,6 mill.).
+
+  kandidat   poeng/kamp mot grådig
+  nevro          +75,40 ± 0,03
+  sd-r1          +75,28 ± 0,03
+  e1-r2          +72,44 ± 0,04
+
+Parret, samme givere:
+  sd-r1 − e1-r2 :  +2,8494 ± 0,0339   tegntest 1959/1995 (98,2 %)
+  sd-r1 − nevro :  −0,1150 ± 0,0257   tegntest  908/1964 (46,2 %)
+  e1-r2 − nevro :  −2,9643 ± 0,0342   tegntest   31/1998 ( 1,6 %)
+
+LÆRERBYTTET ER VERDT +2,85 ± 0,03 POENG PER KAMP. Det lukker 96 % av gapet.
+Restgapet −0,115 ± 0,026 er 4,5 SE fra null: sd-r1 slår IKKE nevro, men er
+for første gang praktisk talt jevnbyrdig.
+
+
+3. ANGER PÅ DD-BENKEN e1-frys (holdout, n=21 044)
+-------------------------------------------------
+  kandidat            anger    gulv     tak(nevro)  framdrift
+  e1-r2              0,4768   0,9321     0,8167      394,6 %
+  nevro              0,8167   0,9321     0,8167      100,0 %
+  sd-r1              0,8233   0,9321     0,8167       94,3 %
+  sdk-512-384-256    0,8370   0,9321     0,8167       82,4 %
+  sdk-256-256        0,8672   0,9321     0,8167       56,3 %
+
+DD-BENKEN LYVER FORTSATT. Den rangerer e1-r2 (−2,96 poeng) som klart best og
+sd-r1 (−0,12 poeng) som knapt på nevros nivå. Fortegnet på
+poengforskjellen er MOTSATT av fortegnet på angerforskjellen, akkurat som før.
+sd-r1 mot nevro er +0,0066 ± 0,0175 – ikke til å skille fra null, mens
+poengforskjellen er tydelig. DD-anger er altså ikke bare feil rangert; den er
+også blind for forskjeller poeng ser.
+
+
+4. ANGER PÅ SD-BENKEN sd-frys
+-----------------------------
+sd-frys er linjer sd-orakel-skårene skrev ETTER at treneren leste ferdig,
+klippet ut av sd-data. Ingen kandidat har sett dem.
+
+Holdout-halvdelen, n=4 191 (loggført i e1-frysmaal.jsonl):
+  kandidat            anger    gulv     tak(nevro)  framdrift
+  sdk-512-384-256    0,9043   1,4463     1,0971      155,2 %
+  sdk-256-256        0,9048   1,4463     1,0971      155,1 %
+  sd-r1              0,9360   1,4463     1,0971      146,2 %
+  nevro              1,0971   1,4463     1,0971      100,0 %
+  e1-r2              1,2306   1,4463     1,0971       61,8 %
+
+Hele settet, n=8 382:
+  sd-r1   0,9299   [gulv 1,4663 → tak 1,0802]   mot nevro −0,1504 ± 0,0247
+  nevro   1,0802                                 mot nevro  0,0000
+  e1-r2   1,2446                                 mot nevro +0,1644 ± 0,0307
+
+SD-BENKEN FÅR RIKTIG FORTEGN. Den setter e1-r2 UNDER nevro, der poeng også
+setter den (−2,96), og sd-r1 over nevro der poeng sier «jevnt». Den store
+forskjellen – e1-r2 mot resten – ser begge målestokker nå likt på. Det er
+første gang på to dager at fasit og poeng peker samme vei.
+
+MEN: den overvurderer fortsatt toppen. SD-anger sier sd-r1 er 0,15 BEDRE enn
+nevro; poeng sier 0,115 dårligere. Og den rangerer sdk-512-384-256 foran
+sd-r1 (0,9043 mot 0,9360) – se punkt 6 for hva poeng sier om akkurat den.
+
+Per stikk, hele settet (anger; nevro og gulv fra samme utvalg):
+
+  stikk    n    sd-r1    e1-r2    nevro     gulv
+      0   592   1,2953   1,6412   2,0133   1,9252
+      1   848   1,2213   1,3253   1,2608   1,7090
+      2   808   1,3424   1,4693   1,3649   1,8633
+      3   791   1,1107   1,4390   1,3564   1,7567
+      4   800   1,1941   1,2898   1,3081   1,7022
+      5   786   1,0962   1,4367   1,3000   1,7207
+      6   721   1,0377   1,5040   1,1963   1,6701
+      7   768   0,7562   1,3488   0,9124   1,3935
+      8   760   0,5407   1,1709   0,6120   1,1730
+      9   763   0,5391   0,7980   0,5505   0,9357
+     10   745   0,0808   0,3106   0,1358   0,2849
+
+sd-r1 er bedre enn nevro i ti av elleve stikk (unntaket er stikk 1, +0,0395).
+e1-r2 er dårligere enn nevro i ti av elleve (unntaket er stikk 0). Det er
+speilbildet av DD-benkens per-stikk-profil, der E1s forsprang lå i stikk 5–9.
+
+Merk også at NEVRO ligger OVER gulvet (dårligere enn tilfeldig) i stikk 0 på
+SD-benken: 2,0133 mot 1,9252. Samme fenomen som på DD-benken i stikk 4, 6 og 7.
+
+
+5. LEKKASJEKONTROLL
+-------------------
+e1-frys er de første ~4 200 linjene av hvert skard i e1-data3. Spørsmålet var
+om den overlapper sd-data slik den gjorde med e1-data3.
+
+  mappe      linjer    frø-område
+  e1-frys    42 088    700 000 .. 9 700 015
+  sd-data   619 223+   50 000 000 .. 65 000 142
+
+Disjunkte frørom, og nøkkelsettene er ulike (`dybde` i e1-frys mot
+`sdVerdener` i sd-data), så md5-signaturene kan ikke kollidere i det hele tatt.
+--utelat e1-frys ble likevel satt i alle fire kjøringene; treneren rapporterte
+«hoppet over 0». Holdouten er ren.
+
+
+6. ARKITEKTURENE PÅ POENG – OG DEN SJETTE MOTSATTE RANGERINGEN
+--------------------------------------------------------------
+Samme 2000 givere, samme frø, alle fem i samme kjøring
+(analyse/sd-arkitekturer-poeng.txt):
+
+  kandidat            poeng/kamp   parret mot nevro   tegntest
+  nevro                +75,40         –                 –
+  sd-r1 (384-256)      +75,28       −0,11 ± 0,03      908/1964
+  sdk-256-256          +75,28       −0,12 ± 0,03      906/1952
+  sdk-512-384-256      +75,27       −0,13 ± 0,03      892/1962
+  sdk-640-512-384      +75,22       −0,18 ± 0,03      843/1962
+
+Sett mot SD-angeren på sd-frys (holdout, n=4 191):
+
+  arkitektur          SD-anger   rang    poeng mot nevro   rang
+  sdk-640-512-384      0,8762      1        −0,18           4
+  sdk-512-384-256      0,9043      2        −0,13           3
+  sdk-256-256          0,9048      3        −0,12           2
+  sd-r1 (384-256)      0,9360      4        −0,11           1
+
+RANGERINGEN ER NØYAKTIG MOTSATT. Det er sjette gang på to dager at en fasit og
+poengbenken rangerer det samme paret hver sin vei – og denne gangen er fasiten
+den GODKJENTE SD-fasiten, målt på et rent holdout.
+
+Forbehold, som må stå: begge spennene er små. 0,06 anger over fire nett med
+parret SE ~0,035, og 0,07 poeng med SE 0,03 per ledd. En perfekt invertert
+rangering av fire elementer har sannsynlighet 1/24 = 0,042 under nullhypotesen
+om tilfeldig rekkefølge. Det er suggestivt, ikke avgjort. Det som ER avgjort er
+at SD-anger ikke kan brukes til å velge mellom nære kandidater – nøyaktig samme
+dom som DD-anger fikk, bare på et mye mindre spenn.
+
+Trenerens EGET valideringssett (halen av ett skard) rangerte derimot nesten som
+poeng: sd-r1 0,9206 < 512 0,9210 < 256-256 0,9253 < 640 0,9312, mot poengenes
+sd-r1 > 256-256 > 512 > 640. Det er ikke en trøst – to «angermålinger» på samme
+fasit som rangerer motsatt av hverandre betyr bare at ingen av dem har
+oppløsning nok på dette spennet.
+
+
+7. DOMMEN
+---------
+1. LÆREREN VAR FLASKEHALSEN. +2,85 ± 0,03 poeng per kamp av å bytte fasit,
+   med alt annet identisk. Hypotesen fra portene holdt på det målet som teller.
+2. PLATÅET ER BRUTT, BENKEN ER IKKE SLÅTT. sd-r1 ligger 0,115 ± 0,026 under
+   NevroHjerne, 4,5 SE fra null. Alle fire arkitekturene ligger 0,11–0,18
+   under. Det er ikke null, og det skal ikke rapporteres som seier.
+3. DD-ANGER SKAL IKKE BRUKES TIL NOE MER. Den kårer fortsatt e1-r2 (−2,96
+   poeng) foran sd-r1 (−0,12), og ser ikke en forskjell på 2,85 poeng i det
+   hele tatt (+0,0066 ± 0,0175).
+4. SD-ANGER HAR RIKTIG FORTEGN PÅ DET STORE, FEIL PÅ DET SMÅ. Bruk den som
+   gradient og til å skille lærere; ikke til å velge arkitektur. Der gjelder
+   poengbenken, som før.
+5. NESTE STEG som følger av tallene, ikke av ønsketenkning: DAgger (runde to
+   av dataene fra sd-r1s EGEN spilling, `--spiller`), siden restgapet kan være
+   distribution shift – stillingene er nevros. Og flere verdener i stikk 0–2,
+   der sd-r1 allerede har sitt største forsprang.

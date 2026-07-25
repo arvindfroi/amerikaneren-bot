@@ -32,6 +32,12 @@ avm-*.json
 trening-d5/
 e1-data2/
 e1-data3/
+# SD: kortdatasettet fra sd-orakel.ts (samme format som e1-data, egen mappe
+# fordi treneren blander alt som ligger i samme mappe)
+sd-data/
+# SD-holdouten: linjer sd-orakel-skårene skrev ETTER at treneren leste ferdig,
+# klippet ut av sd-data. Regenereres av kommandoen i docs/moe2.md.
+sd-frys/
 # arena: byggeartefakter og kopiert appkode (hentes med arena/hent-appkode.sh)
 arena/adapter/.build/
 arena/adapter/Sources/adapter/appkode/

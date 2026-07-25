@@ -1,0 +1,14 @@
+﻿Benk sd-frys, del «holdout»: 4191 stillinger
+
+nevro            1.0971  [gulv 1.4463 → tak 1.0971]  framdrift 100.0 %  n=4191 holdout
+  mot nevro: +0.0000 ± 0.0000 anger (negativt = bedre enn nevro)
+e1:e1-modell/e1-r2.bin 1.2306  [gulv 1.4463 → tak 1.0971]  framdrift 61.8 %  n=4191 holdout
+  mot nevro: +0.1334 ± 0.0416 anger (negativt = bedre enn nevro)
+e1:e1-modell/sd-r1.bin 0.9360  [gulv 1.4463 → tak 1.0971]  framdrift 146.2 %  n=4191 holdout
+  mot nevro: -0.1611 ± 0.0354 anger (negativt = bedre enn nevro)
+e1:e1-modell/sdk-512-384-256.bin 0.9043  [gulv 1.4463 → tak 1.0971]  framdrift 155.2 %  n=4191 holdout
+  mot nevro: -0.1928 ± 0.0343 anger (negativt = bedre enn nevro)
+e1:e1-modell/sdk-256-256.bin 0.9048  [gulv 1.4463 → tak 1.0971]  framdrift 155.1 %  n=4191 holdout
+  mot nevro: -0.1923 ± 0.0347 anger (negativt = bedre enn nevro)
+
+Skrevet til e1-frysmaal.jsonl

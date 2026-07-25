@@ -1,0 +1,10 @@
+﻿nevro: +75.40 ± 0.03 poeng/kamp
+e1:e1-modell/e1-r2.bin: +72.44 ± 0.04 poeng/kamp
+e1:e1-modell/sd-r1.bin: +75.28 ± 0.03 poeng/kamp
+
+Parrede differanser (samme givere):
+  e1:e1-modell/e1-r2.bin − nevro: -2.96 ± 0.03  (tegntest 31/1998, p=0.000)
+  e1:e1-modell/sd-r1.bin − nevro: -0.11 ± 0.03  (tegntest 908/1964, p=0.001)
+Sammendrag lagt til e1-maalinger.jsonl
+
+Tid: 507s
