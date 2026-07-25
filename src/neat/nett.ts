@@ -119,6 +119,89 @@ export class Nettverk {
 
   private sisteVerdier: Float64Array | null = null;
 
+  /**
+   * EKTE TILBAKEFORPLANTNING gjennom hele nettet.
+   *
+   * MÅLT PROBLEM som dette løser: `kalibrerUtgang` er ikke backprop, men en
+   * delta-regel som når ett lag (eller to med `dybde: 2`). Testet med dybde
+   * 1/2/4/6 ga IDENTISKE tall for 2, 4 og 6 – flagget lyver, koden har bare
+   * en «dybde >= 2»-gren uten rekursjon. Nettet har 233 skjulte noder som
+   * aldri får et læresignal, og all fasit-læring stoppet derfor to lag inn.
+   *
+   * Her forplantes feilen bakover gjennom koblingsgrafen i `steg` runder.
+   * NEAT tillater rekurrens, så grafen er ikke asyklisk og vi kan ikke
+   * topologisortere; i stedet gjør vi trunkert tilbakeforplantning – samme
+   * prinsipp som BPTT, med `steg` som horisont. Aktiveringene fra siste
+   * `aktiver`-kall brukes som arbeidspunkt.
+   *
+   * Gradientene akkumuleres per node FØR vektene skrives, slik at en node
+   * som mater flere utganger får summen av bidragene sine – ikke bare det
+   * siste, som en naiv per-kobling-oppdatering ville gitt.
+   *
+   * MÅLT: DENNE ER DÅRLIGERE ENN DEN GRUNNE DELTA-REGELEN, og verre jo
+   * dypere den går. Hold-out val-anger etter 5 epoker (start 1,0716):
+   *   kalibrerUtgang(dybde 2)  0,9366   ← best
+   *   tilbakeforplant(steg 2)  0,9650
+   *   tilbakeforplant(steg 4)  0,9801
+   *   tilbakeforplant(steg 8)  0,9790
+   * Hypotesen om at «233 skjulte noder aldri lærer» var et PROBLEM er altså
+   * feil – det er en fordel. Å oppdatere dem river i stykker struktur
+   * evolusjonen har bygget, mens en grunn oppdatering bare finpusser
+   * utgangslaget.
+   *
+   * Det er samme mønster som alt annet vi har målt: hard imitasjon −44,8,
+   * avmetning av utrente hoder −85, anger-trening fra feil fordeling −105.
+   * Jo mer av nettet et tiltak rører, desto verre går det. Beholdt fordi den
+   * er riktig implementert og kan bli nyttig på et nett som er TRENT fram
+   * med gradienter fra start (E1-sporet) – men ikke bruk den på evolverte
+   * genomer.
+   */
+  tilbakeforplant(
+    mål: ReadonlyMap<number, number>,
+    rate: number,
+    steg = 4,
+  ): number {
+    const verdier = this.sisteVerdier;
+    if (verdier === null) throw new Error("tilbakeforplant krever et foregående aktiver-kall");
+    const n = this.antallNoder;
+    const grad = new Float64Array(n);
+    const neste = new Float64Array(n);
+    let samletFeil = 0;
+
+    // Startgradient i utgangene: dL/dsum = (mål − ut) · tanh'(sum).
+    for (const [utNr, m] of mål) {
+      const idx = this.utIdx[utNr]!;
+      const ut = verdier[idx]!;
+      const feil = m - ut;
+      samletFeil += Math.abs(feil);
+      grad[idx] = (grad[idx] ?? 0) + feil * (1 - ut * ut);
+    }
+
+    const klipp = (v: number): number => (v > 8 ? 8 : v < -8 ? -8 : v);
+    for (let s = 0; s < steg; s++) {
+      neste.fill(0);
+      let aktiv = false;
+      for (let i = this.antallInn + 1; i < n; i++) {
+        const g = grad[i]!;
+        if (g === 0) continue;
+        for (const kobling of this.innkommende[i]!) {
+          const kilde = kobling.fraIdx;
+          const a = verdier[kilde]!;
+          // Vekten leses FØR oppdatering, som i ekte backprop-rekkefølge.
+          const w = kobling.gen.vekt;
+          kobling.gen.vekt = klipp(w + rate * g * a);
+          // Feilen videre bakover, dempet av kildens egen deriverte. Bias- og
+          // inngangsnoder har ingen innkommende koblinger og stopper kjeden.
+          if (kilde > this.antallInn) neste[kilde] = (neste[kilde] ?? 0) + g * w * (1 - a * a);
+        }
+        aktiv = true;
+      }
+      if (!aktiv) break;
+      grad.set(neste);
+    }
+    return samletFeil;
+  }
+
   /** Utgangsverdien fra SISTE aktiver-kall (for målrettet kalibrering). */
   lesUtgang(utNr: number): number {
     if (this.sisteVerdier === null) throw new Error("lesUtgang krever et foregående aktiver-kall");
