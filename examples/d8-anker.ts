@@ -61,6 +61,12 @@ let fraFil: string | null = null;
  */
 let refFil: string | null = null;
 let givere = 4;
+/** Hvor mange toppkandidater som maales om igjen foer mesteren kaares (0 = av). */
+let racing = 16;
+/** Antall EKSTRA givere i semifinalen. */
+let finGivere = 12;
+/** Generasjonssentrert dom (av = raatall, slik det var foer stoeyryddingen). */
+let relativDom = true;
 let evoFrø = 0xd8;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
@@ -70,6 +76,9 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--fra") fraFil = process.argv[++i]!;
   else if (a === "--givere") givere = Number(process.argv[++i]);
   else if (a === "--ref") refFil = process.argv[++i]!;
+  else if (a === "--racing") racing = Number(process.argv[++i]);
+  else if (a === "--fingivere") finGivere = Number(process.argv[++i]);
+  else if (a === "--relativdom") relativDom = process.argv[++i] !== "0";
   else if (a === "--fro") evoFrø = Number(process.argv[++i]);
 }
 mkdirSync(dir, { recursive: true });
@@ -131,10 +140,41 @@ for (let g = 0; g < generasjoner; g++) {
   const frøBase = 1_000_000 + (g % 500) * 64;
   const fitness = målPopulasjon(evo.genomer, frøBase);
 
-  for (let i = 0; i < evo.genomer.length; i++) dommenOverBarnet(evo.genomer[i]!, fitness[i]!);
+  // SEMIFINALE MOT VINNERENS FORBANNELSE. argmax over 96 tall med SE ~7 er
+  // systematisk for hoey, og det var synlig: `beste` hoppet 46,7 -> 32,1 ->
+  // 30,4 paa tre maalepunkter uten at populasjonen kan ha endret seg saa mye.
+  // De toppKandidat beste maales derfor paa NYE givere i samme blokk, og
+  // mesteren kaares paa det sammenslaatte estimatet. Selve avlen bruker
+  // fortsatt grovmaalingen for alle - det er bare kroningen som skjerpes.
+  const skjerpet = fitness.slice();
+  if (racing > 0) {
+    const topp = fitness
+      .map((v, i) => ({ v, i }))
+      .sort((a, b) => b.v - a.v)
+      .slice(0, racing)
+      .map((x) => x.i);
+    for (const i of topp) {
+      // +16 holder oss innenfor generasjonens egen 64-brede froeblokk, saa
+      // semifinalen aldri laaner giver fra en annen generasjon.
+      const fin = målAnkret(
+        () => new NeatAgent(evo.genomer[i]!, { læringsrate: 0 }),
+        grådigHandling,
+        finGivere,
+        frøBase + 16,
+      ).diff;
+      skjerpet[i] = (givere * fitness[i]! + finGivere * fin) / (givere + finGivere);
+    }
+  }
 
-  const beste = fitness.indexOf(Math.max(...fitness));
+  const beste = skjerpet.indexOf(Math.max(...skjerpet));
   const snitt = fitness.reduce((a, b) => a + b, 0) / fitness.length;
+
+  // GENERASJONSSENTRERT DOM. Naar giversettet roterer faar hele feltet en
+  // felles forskyvning, og raatallene ville latt den avgjoere skrittlengden.
+  // Se dommenOverBarnet for maalingen som viser hvor stor forskyvningen er.
+  for (let i = 0; i < evo.genomer.length; i++) {
+    dommenOverBarnet(evo.genomer[i]!, relativDom ? fitness[i]! - snitt : fitness[i]!);
+  }
 
   if ((g + 1) % 10 === 0) {
     const spredning = Math.sqrt(

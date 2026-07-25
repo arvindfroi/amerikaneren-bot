@@ -418,6 +418,23 @@ export function muterRettet(g: Genom, rng: () => number, rater: MutasjonsRater):
  * Kalles etter at fitness for generasjonen foreligger. Uten dette kallet er
  * muterRettet bare en tilfeldig gange med momentum, og hele poenget faller.
  */
+/**
+ * VIKTIG OM SKALAEN PAA `egenFitness`: den maa vaere sammenlignbar mellom to
+ * paafoelgende generasjoner, ellers doemmer denne funksjonen paa stoey.
+ *
+ * D8 maaler fitness paa et giversett som ROTERER hver generasjon (et fast
+ * sett ville gjort «beste noensinne» til «heldigst paa akkurat de giverne»).
+ * Da faar hele populasjonen en FELLES forskyvning naar giverne byttes -
+ * maalt i d8a: snittet gikk 7,4 -> 3,3 -> 2,3 over tre maalepunkter, altsaa
+ * flere poeng, mens forskjellene vi vil oppdage mellom forelder og barn er
+ * 1-3 poeng. Sammenlignes raatallene, avgjoeres skrittlengden og retningen i
+ * praksis av om giversettet var lett eller vanskelig.
+ *
+ * Kalleren skal derfor sende inn en GENERASJONSSENTRERT verdi (fitness minus
+ * generasjonens snitt). Da faller den felles forskyvningen eksakt bort, og
+ * det som staar igjen er genomets plassering i feltet - som er nettopp det
+ * dommen skal handle om.
+ */
 export function dommenOverBarnet(g: Genom, egenFitness: number): void {
   const forelder = g.foreldreFitness;
   if (forelder === undefined) {

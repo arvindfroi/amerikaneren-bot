@@ -13,7 +13,7 @@
  * fire ganger med kandidaten i hvert sete, så kortflaksen er kontrollert.
  */
 
-import { readFileSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
 
 import { FARGER, type Farge, type Kort } from "../src/kort.ts";
 import { opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
@@ -23,9 +23,21 @@ import { grådigHandling } from "./graadig.ts";
 
 const filer: string[] = [];
 let kamper = 40;
+/**
+ * Varig atferdslogg. Tabellen paa skjermen er et OEYEBLIKKSBILDE; det vi
+ * trenger er ENDRINGEN over tid - byr den hoeyere enn foer, vraker den
+ * fortsatt ess, kryper trumflengden oppover mot nevros. Med --jsonl legges
+ * én linje per kandidat per kjoering til en fil, saa serien overlever
+ * oekten og kan leses av en graf senere.
+ */
+let jsonlFil: string | null = null;
+/** Merkelapp paa linja, typisk generasjonsnummeret. */
+let merke = "";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--kamper") kamper = Number(process.argv[++i]);
+  else if (a === "--jsonl") jsonlFil = process.argv[++i]!;
+  else if (a === "--merke") merke = process.argv[++i]!;
   else filer.push(a);
 }
 
@@ -191,3 +203,40 @@ rad("  budet var", profiler.map((p) => snitt(p.budTall).toFixed(2)));
 rad("  overskudd", profiler.map((p) => (snitt(p.lagStikk) - snitt(p.budTall)).toFixed(2)));
 rad("  innfridd", profiler.map((p) => pst(p.klart, p.kontrakter)));
 rad("  kontrakter", profiler.map((p) => String(p.kontrakter)));
+
+// --- Varig atferdslogg -----------------------------------------------------
+// Én linje per kandidat per kjoering. Feltnavnene er de samme som radene
+// over, saa tabellen og serien aldri kan komme i utakt.
+if (jsonlFil !== null) {
+  const andel = (a: number, b: number): number | null => (b === 0 ? null : a / b);
+  for (let i = 0; i < kandidater.length; i++) {
+    const p = profiler[i]!;
+    appendFileSync(
+      jsonlFil,
+      JSON.stringify({
+        tid: new Date().toISOString(),
+        merke,
+        kandidat: kandidater[i]!.navn,
+        givere: kamper,
+        budSnitt: snitt(p.bud),
+        passandel: andel(p.pass, p.budAnledninger),
+        budMinst9: andel(p.bud.filter((b) => b >= 9).length, p.bud.length),
+        vrakValoer: snitt(p.vrakVerdi),
+        vrakEssKonge: andel(p.vrakEssKonge, p.vrakAntall),
+        vrakEgenTrumf: andel(p.vrakTrumfFarge, p.vrakAntall),
+        trumfLengde: snitt(p.trumfLengde),
+        trumfLengste: andel(p.trumfVarLengst, p.trumfValg),
+        trumfSerie: snitt(p.trumfSerie),
+        etterlysValoer: snitt(p.etterlysVerdi),
+        etterlysHoeyest: andel(p.etterlysVarHøyest, p.etterlysAntall),
+        lagStikk: snitt(p.lagStikk),
+        budTall: snitt(p.budTall),
+        overskudd: snitt(p.lagStikk) - snitt(p.budTall),
+        innfridd: andel(p.klart, p.kontrakter),
+        kontrakter: p.kontrakter,
+      }) + String.fromCharCode(10),
+    );
+  }
+  console.log(`
+Skrev ${kandidater.length} atferdslinjer til ${jsonlFil}`);
+}
