@@ -1259,3 +1259,48 @@ og 7.
    kan være distribution shift; stillingene er nevros, og det er den kjente
    skjevheten `sd-orakel.ts` selv advarer om. Og flere verdener i stikk 0–2,
    der sd-r1 allerede har sitt største forsprang (0,72 anger).
+
+---
+
+## MesterAI målt for første gang – og en feilslutning jeg gjorde
+
+`trening-felles/mesterai-referanse.json` fantes ikke før 25. juli 2026. Hele
+prosjektet hadde brukt NevroHjerne som stedfortreder uten å vite gapet.
+
+### Head-to-head, hele kamper til 100 poeng, speilede par
+
+| kandidat | kamper | poeng/kamp mot MesterAI | SE | vunnet |
+|---|---|---|---|---|
+| **sd-r1** | 100 | **−39,10** | 7,38 | 27/100 |
+| NevroHjerne | 91 | **−47,79** | 7,36 | 21/91 |
+| PIMC | 16 | −67,69 | 11,0 | 0/16 |
+
+**MesterAI er milevis foran alt vi har.** NevroHjerne taper med 48 poeng per
+kamp, ikke med et par.
+
+### Feilslutningen
+
+Jeg leste først MesterAI-referansen (+76,9 mot grådig) mot NevroHjernes
++75,40 mot grådig og konkluderte at gapet var «rundt 1,6 poeng per kamp –
+ikke titallene jeg fryktet».
+
+**Det var feil, og feil i optimistisk retning.** De to tallene kommer fra
+ulike måleoppsett: MesterAI-referansen er HELE KAMPER til 100 poeng, mens
++75,40 er en enkeltrunde-differanse over 2000 givere. Å sette dem i samme
+tabell er nøyaktig samme feilklasse som gjorde D7-kurven verdiløs, som fikk
+«ferske genom slår nevro» til å se riktig ut, og som skjulte 30 % av
+E1-dataene: **riktig tall, feil akse.**
+
+Fjerde gang på to dager. Regelen som følger av det: to tall som ikke er
+produsert av samme måleoppsett skal ikke stå i samme kolonne, uansett hvor
+sammenlignbare enhetene ser ut.
+
+### Det som faktisk er godt nytt
+
+Parret på samme frø og samme sete er **sd-r1 8,86 ± 7,82 poeng bedre enn
+NevroHjerne mot MesterAI** (bedre i 49 av 92 kamper). Det er bare 1,1
+standardfeil – altså ikke etablert – men fortegnet peker riktig vei mot en
+motstander SD-metoden IKKE ble finstilt mot. Overføringstapet er dermed ikke
+totalt, og det var den største kjente risikoen.
+
+Flere kamper trengs før dette er noe annet enn et hint.
