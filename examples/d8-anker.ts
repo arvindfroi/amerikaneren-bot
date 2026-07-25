@@ -71,6 +71,17 @@ let relativDom = true;
 let medBudfører = true;
 /** Skalaen i flaksvekten. Hoeyere alfa = flatere vekting. */
 let alfa = 1;
+/**
+ * SPILLFASIT: sannsynlighet per kortvalg for at solveren konsulteres.
+ *
+ * Maalt paa orakelbenken velger de trente genomene kort DAARLIGERE enn
+ * uniformt tilfeldig (anger 1,069-1,146 mot gulvet 1,035; nevro 0,943).
+ * Variansdekomponeringen sier hvorfor seleksjon ikke kan fikse det: agenten
+ * forklarer 0,1 % av angervariansen, stillingen 68 %. Korthodet maa derfor ha
+ * en LAERER. Maalt effekt av 7 700 korreksjoner: d5-gull 1,0691 -> 1,0374,
+ * d6-klar 1,1446 -> 1,1343. Det hjelper, men det er ikke nok alene.
+ */
+let spillFasit = 0.15;
 let evoFrø = 0xd8;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
@@ -85,6 +96,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--relativdom") relativDom = process.argv[++i] !== "0";
   else if (a === "--budfoerer") medBudfører = process.argv[++i] !== "0";
   else if (a === "--alfa") alfa = Number(process.argv[++i]);
+  else if (a === "--spillfasit") spillFasit = Number(process.argv[++i]);
   else if (a === "--fro") evoFrø = Number(process.argv[++i]);
 }
 mkdirSync(dir, { recursive: true });
@@ -127,6 +139,21 @@ void medBudfører;
  * givere holder. To genom som spilte ulike giver kan ikke sammenlignes ved
  * n=4; to genom som spilte de samme kan.
  */
+const fasitRng = lagRng(evoFrø ^ 0x5a17);
+const fasitTeller = { treff: 0 };
+const fasit =
+  spillFasit > 0
+    ? {
+        sjanse: spillFasit,
+        rate: 0.05,
+        verdener: 3,
+        dybde: 3,
+        nodeTak: 60_000,
+        rng: fasitRng,
+        teller: fasitTeller,
+      }
+    : undefined;
+
 function målPopulasjon(genomer: readonly Genom[], frøBase: number): number[] {
   return genomer.map(
     (g) =>
@@ -138,6 +165,7 @@ function målPopulasjon(genomer: readonly Genom[], frøBase: number): number[] {
         givere,
         frøBase,
         alfa,
+        fasit,
       ).diff,
   );
 }
@@ -219,7 +247,8 @@ for (let g = 0; g < generasjoner; g++) {
     si(
       `gen ${String(g + 1).padStart(5)}: beste ${fitness[beste]!.toFixed(1)}, ` +
         `snitt ${snitt.toFixed(1)}, spredning ${spredning.toFixed(1)}, ` +
-        `koblinger ${evo.genomer[beste]!.koblinger.length}`,
+        `koblinger ${evo.genomer[beste]!.koblinger.length}, ` +
+        `fasittreff ${fasitTeller.treff}`,
     );
     writeFileSync(`${dir}/mester.json`, genomTilJson(evo.genomer[beste]!));
     writeFileSync(

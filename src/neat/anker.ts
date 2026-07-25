@@ -37,11 +37,15 @@ import {
   type Handling,
 } from "../index.ts";
 import { analyserGiv, flaksVekt, sdBud, type Rollout } from "./singledummy.ts";
+import { solverBesteKort } from "./hybrid.ts";
+import type { Kort } from "../kort.ts";
 
 /** Det målingen trenger av en kandidat. NeatAgent oppfyller det. */
 export interface MålbarAgent {
   nyKamp(): void;
   velgHandling(state: GameState): Handling;
+  /** Valgfri lamarckisk kalibrering av korthodet mot en fasit. */
+  lærSpill?(state: GameState, spiller: number, solverKort: Kort, rate: number, mål?: number): void;
 }
 
 /**
@@ -192,6 +196,18 @@ export function benkelinjer(gen: number, mot: "grådig" | "nevro", m: Måling): 
  * runder ville blandet giv med hver sin spredning til ett poengtall som ikke
  * kan vektes per giv.
  */
+export interface SpillFasit {
+  /** Sannsynlighet per kortvalg for at solveren konsulteres. */
+  readonly sjanse: number;
+  readonly rate: number;
+  readonly verdener: number;
+  readonly dybde: number;
+  readonly nodeTak: number;
+  readonly rng: () => number;
+  /** Teller opp hvor mange ganger fasiten faktisk fyrte. */
+  readonly teller?: { treff: number };
+}
+
 export function målSDRunder(
   lagAgent: () => MålbarAgent,
   motstander: MotstanderTrekk,
@@ -200,6 +216,7 @@ export function målSDRunder(
   antallFrø: number,
   frøBase: number,
   alfa = 1,
+  fasit?: SpillFasit,
 ): Måling {
   const agent = lagAgent();
   let mesterPoeng = 0;
@@ -237,7 +254,33 @@ export function målSDRunder(
           }
           h = { type: "BUD", spiller: sete, bud: valgt };
         } else if (s.fase === "VRAK" || s.fase === "VELG") h = kontraktfører(s);
-        else h = agent.velgHandling(s);
+        else {
+          // SPILLFASIT. Maalt paa orakelbenken velger alle fire trente genom
+          // kort DAARLIGERE enn et uniformt tilfeldig lovlig kort (anger
+          // 1,05-1,11 mot gulvet 1,04), og et FERSKT utrent genom er bedre
+          // enn dem alle. Seleksjon har altsaa ikke bare latt vaere aa finne
+          // kortferdighet - den har spist opp det lille som var der. Grunnen
+          // ser man i variansdekomponeringen: agenten forklarer 0,1 % av
+          // angervariansen, stillingen 68 %. Det er ikke noe signal for
+          // seleksjonen aa gripe tak i.
+          //
+          // Derfor faar korthodet en LAERER i stedet. Agentens eget valg
+          // spilles fortsatt (on-policy - DAgger-laerdommen); solveren
+          // brukes bare som fasit til kalibreringen.
+          if (fasit !== undefined && agent.lærSpill !== undefined && fasit.rng() < fasit.sjanse) {
+            const kort = solverBesteKort(s, sete, {
+              verdener: fasit.verdener,
+              dybde: fasit.dybde,
+              nodeTak: fasit.nodeTak,
+              rng: fasit.rng,
+            });
+            if (kort !== null) {
+              agent.lærSpill(s, sete, kort, fasit.rate);
+              if (fasit.teller !== undefined) fasit.teller.treff++;
+            }
+          }
+          h = agent.velgHandling(s);
+        }
         s = utfør(s, h).state;
       }
       const egne = s.totalPoeng[sete] ?? 0;
