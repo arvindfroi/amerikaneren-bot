@@ -491,6 +491,49 @@ export class Evolusjon {
   }
 
   /** Kjører én hel generasjon: turnering, fitness, artsdeling, nytt kull. */
+  /**
+   * Én generasjon med UTENFRA GITT fitness – ingen cup.
+   *
+   * Cupen måler alt på én gang: budgivning, vraking, trumfvalg, spill i tre
+   * roller. For en ROLLESPESIALIST er det feil målestokk – forsvarsspill er
+   * én av mange ting som avgjør cupdybden, og signalet drukner. Målingen i
+   * natt viste hvor galt det kan gå: et ferskt, utrent genom forsvarer like
+   * godt som D5 etter 250 generasjoner i cupen (14 % mot 12 %), altså har
+   * evolusjonen ikke bygget noe forsvarsspill i det hele tatt.
+   *
+   * Denne inngangen lar en linje definere sin egen fitness og likevel arve
+   * hele NEAT-maskineriet: artsdeling, innovasjonsbok, elitisme, avl. Kalles
+   * av examples/forsvarslinje.ts, der fitness er nøyaktig to ting – falt
+   * kontrakten, og tok agenten stikk selv.
+   *
+   * `fitness` må ha samme lengde som `genomer`. Høyere er bedre.
+   */
+  nesteGenerasjonMed(fitness: readonly number[]): void {
+    if (fitness.length !== this.genomer.length) {
+      throw new Error(
+        `fitness har ${fitness.length} elementer, populasjonen har ${this.genomer.length}`,
+      );
+    }
+    const f = fitness.slice();
+    let anker = 0;
+    for (let i = 1; i < f.length; i++) if (f[i]! > f[anker]!) anker = i;
+    const nyMester = klonGenom(this.genomer[anker]!);
+
+    this.oppdaterGruppeKorr(f);
+    this.artsdel(f);
+    // Ingen kontraktsanger her: fitness ER rolleutfallet.
+    const nesteKull = this.avle(f, anker, new Array<number>(f.length).fill(0));
+
+    if (this.opts.hallOfFame > 0 && this.mester !== null) {
+      this.hall.unshift(klonGenom(this.mester));
+      this.hall = this.hall.slice(0, this.opts.hallOfFame);
+    }
+    this.mester = nyMester;
+    this.genomer = [klonGenom(nyMester), ...nesteKull];
+    this.mesterIdx = 0;
+    this.generasjon++;
+  }
+
   async kjørGenerasjon(): Promise<GenerasjonsStat> {
     const res = await this.spillTurnering();
     // Målestokken (siste felt-plass når portvakter er på) holdes utenfor
