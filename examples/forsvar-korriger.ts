@@ -111,7 +111,7 @@ function énRunde(genom: Genom | null, frø: number, lær: number): boolean | nu
     }
     if (lær > 0 && agent instanceof NeatAgent) {
       const lov = lovligeHandlinger(s);
-      if (lov.fase === "SPILL") agent.lærForsvar(s, sete, lov.kort, lær);
+      if (lov.fase === "SPILL") agent.lærForsvar(s, sete, lov.kort, lær, DYBDE);
     }
     s = utfør(s, agent.velgHandling(s)).state;
   }
@@ -122,6 +122,8 @@ function énRunde(genom: Genom | null, frø: number, lær: number): boolean | nu
 
 /** Overvåkning – EGET frøsett, brukes bare til å se kurven. */
 const OVERVAAK_FRO = Number(process.env.OVERVAAK_FRO ?? 2_500_000);
+/** Forplantningsdybde i kalibreringen. Dybde 2 maalte VERRE - se laerForsvar. */
+const DYBDE = Number(process.env.DYBDE ?? 1);
 function overvåk(genom: Genom | null, antall: number): { ok: number; n: number } {
   let ok = 0;
   let n = 0;

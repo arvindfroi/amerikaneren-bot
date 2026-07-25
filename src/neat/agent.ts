@@ -429,6 +429,9 @@ export class NeatAgent {
    * det. Nettet skal kunne avvike der det lønner seg.
    */
   /**
+   * ADVARSEL: DENNE MÅLTE VERRE. Ikke skru den på i en treningslinje uten å
+   * lese avsnittet «RESULTAT» nederst først.
+   *
    * FORSVARSFASIT – manuell korreksjon av tre MÅLTE defekter.
    *
    * examples/forsvarsprofil.ts, kontrakt 9, 400 givere, nevro som
@@ -459,8 +462,40 @@ export class NeatAgent {
    * store og entydige, men trumfing er gitt det høyeste målet: det er
    * enkeltgapet som er størst, og et stikk vunnet på trumf er et stikk
    * budlaget ikke får.
+   *
+   * RESULTAT: DEN VIRKER IKKE. Parret på identiske stillinger, n=1896
+   * kortvalg per variant (examples/forsvarsprofil.ts):
+   *
+   *                    D5 gull   rate .03/d1   rate .12/d1   d2    nevro
+   *   tok stikket        71 %       66 %          66 %      64 %    85 %
+   *   trumfet inn        30 %       27 %          20 %      19 %    71 %
+   *
+   * Alle varianter er DÅRLIGERE enn utgangspunktet på nøyaktig de to
+   * atferdene fasiten sikter på, og dose-responsen er monoton feil vei:
+   * mer kalibrering gir verre resultat. Det er altså ikke for lite trening.
+   *
+   * SANNSYNLIG ÅRSAK – en tellefeil i selve designet: metoden setter mål for
+   * HVERT lovlige kort, ett opp (+0,9) og de øvrige ned (−0,6). Over mange
+   * beslutninger er et gitt kort «det beste» bare ~1/n av gangene, så
+   * nettosignalet på det delte 52-korthodet peker nedover for alle kort.
+   * Hodet flates ut, og argmax avgjøres da av ørsmå restforskjeller – støy,
+   * ikke den rekkefølgen som ble spesifisert. lærStikk har samme form, men
+   * kjøres på 25 % av beslutningene (--stikkfasit 0.25); denne kjørte på
+   * 100 %, som gjør akkumuleringen mye verre.
+   *
+   * FØR DEN PRØVES IGJEN, må minst én av disse endres:
+   *  - fyr med lav sannsynlighet per beslutning, slik trumffasit gjør
+   *  - dra bare de KLART gale kortene ned, ikke alle de øvrige
+   *  - eller bruk et relativt mål (softmax over lovlige) i stedet for
+   *    absolutte per-utgang-mål, så summen av dytt er null
    */
-  lærForsvar(state: GameState, spiller: number, lovlige: readonly Kort[], rate: number): void {
+  lærForsvar(
+    state: GameState,
+    spiller: number,
+    lovlige: readonly Kort[],
+    rate: number,
+    dybde = 1,
+  ): void {
     if (rate <= 0 || lovlige.length < 2 || state.trumf === null) return;
     if (spiller === state.budvinner || spiller === state.makker) return; // kun forsvar
     const trumf = state.trumf;
@@ -531,7 +566,13 @@ export class NeatAgent {
     }
     if (mål.size === 0) return;
     this.evaluer(state, spiller, "SPILL");
-    for (const [idx, y] of mål) this.nett.kalibrerUtgang(UT_KORT + idx, y, rate, 2);
+    // DYBDE 1 SOM STANDARD, og det er malt: foerste versjon brukte dybde 2
+    // og gjorde nettopp de atferdene den siktet paa VERRE - trumfing 30 % ->
+    // 19 %, stikk-tagning 71 % -> 64 %. Med ~10 motstridende maal paa det
+    // samme delte korthodet per beslutning forplanter dybde 2 hver enkelt
+    // korreksjon inn i de skjulte nodene, og de overskriver hverandre.
+    // laerStikk har alltid brukt dybde 1 av samme grunn.
+    for (const [idx, y] of mål) this.nett.kalibrerUtgang(UT_KORT + idx, y, rate, dybde);
   }
 
   lærStikk(state: GameState, spiller: number, lovlige: readonly Kort[], rate: number): void {
