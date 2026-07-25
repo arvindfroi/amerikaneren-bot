@@ -621,3 +621,54 @@ utgangen) er prøvd og er feil, monotont:
 
 Grunnen er `bevarLengde`: kalibreringen får endre retning, aldri skala, så
 L2-lengden 1,5 fordeles på flere koblinger og hver sensor får mindre å si.
+
+---
+
+## Budeksperten: porten godkjente en POLICY, treningen brukte et TAP
+
+Budfasiten bestod porten med +0,925. Eksperten som ble trent på den slår
+likevel ikke NevroHjernes bud: beste variant **+0,18 ± 0,32**, altså ikke til
+å skille fra null, og varianten som følger designet lengst taper
+**−0,97 ± 0,27**.
+
+Og igjen rangerer de to målestokkene motsatt: den asymmetriske gradienten er
+**best på anger (5,346) og verst på poeng (−0,97)**.
+
+### Feilen er min, og den er strukturell
+
+Porten testet **policyer**: «by det SD sier», «by SD − 1», «by konstant 9».
+Den godkjente altså påstanden *å følge SD-policyen er verdt +3,89 poeng*.
+
+Treningen brukte noe annet: et **per-beslutning-tap** på avviket fra SD, med
+kostnadene 14,75 for overbud og 1,51 for underbud hentet fra policymålingen.
+
+Det er ikke samme størrelse. Kostnadene ble målt på policyer som forskjøv
+**alle fire setene samtidig**. Per beslutning er situasjonen en annen: et lavt
+bud betyr som regel at man ikke vinner budrunden i det hele tatt, så
+underbudskostnaden på 1,51 påløper aldri. Gradienten ser dermed en billigere
+nedside enn den virkelige og dytter estimatet for langt ned – eksperten byr
+81 % av SD-nivået.
+
+**En godkjent policy er ikke et godkjent treningsmål.** Porten må kjøres på
+objektet slik det faktisk skal brukes.
+
+### Hva som likevel overlevde
+
+Den delen av asymmetrien som ligger i **valgregelen** er bekreftet av poeng:
+å runde ned i stedet for til nærmeste er verdt **+1,73 til +4,29 poeng**.
+Terskelen er 0,093, ikke 0,5. Det er en ekte, målt gevinst.
+
+Diagnosen er også skarp: eksperten sikter *bedre* enn både nevro og SD−1
+(skjevhet −0,71 mot −1,38 og −1,00) og har *mindre* spredning enn nevro
+(1,52 mot 1,87). Men 21 % av budene ligger over SD, og med 14,75 poeng per
+stikk i overbud spiser den femtedelen hele gevinsten. Støykontrollen viser
+det samme fra andre kanten: «SD − 1 ± 1», som aldri går over SD, koster bare
+0,35 poeng for samme spredning.
+
+**Nivået er lett å treffe. Spredningen over SD er det som koster.**
+
+### Konsekvens for porten
+
+Porten får et krav til: kandidatene skal være **det som faktisk skal brukes** –
+et trent nett, ikke en håndlaget policy som bruker samme orakel. Ellers
+validerer den orakelet i stedet for objektet.
