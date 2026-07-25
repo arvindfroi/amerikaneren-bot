@@ -29,6 +29,14 @@
  * Løpsvariansen i NEAT er altså større enn effektene vi jakter på. Ha derfor
  * ALLTID startgenomet med som kandidat, og les tiltaket mot DET.
  *
+ * MÅLT BLINDSONE I DENNE MÅLINGEN (2026-07-25): mot nevro-motstandere
+ * vinner D-linjene ALDRI budrunden – nevro byr 9,3, de byr 5,6. Over 25
+ * partier × 12 runder ble det n=0 kontrakter for kandidaten. «Mot nevro»
+ * måler derfor BARE FORSVARSSPILL for disse botene, og forsvar er deres
+ * svakeste rolle (17 % mot nevros 79 %). Budgivning, vraking, trumfvalg og
+ * spillefører-spill er helt umålt her. Bruk tvungne kontrakter
+ * (examples/moe-roller.ts) for de rollene.
+ *
  * Statistikken er parret: HVER giver spilles av ALLE kandidatene med samme
  * kort, så differansen mellom to kandidater måles på identisk materiale.
  * Uavhengighetsenheten er GIVEREN (ikke enkeltkampen – de fire setene deler
