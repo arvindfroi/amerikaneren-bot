@@ -37,7 +37,7 @@
 stiplet tykk = mot NevroHjerne, appens ferdigtrente nett. 0 = jevnt med den motstanderen kurven måles mot.
 <b id="stempel"></b><span id="vert"></span> · siden henter nye tall hvert minutt.</p>
 <div class="puls" id="puls"></div>
-<div id="e1"></div>
+<div id="e1"></div><div id="sd"></div>
 <div class="lgr" id="legend"></div>
 <h3 class="gtit">Mot NevroHjerne <span>– den harde målestokken</span></h3>
 <div id="grafNevro"></div>
@@ -83,6 +83,17 @@ function tegn(){
       (stille?' · stille i '+x.hjerteslagMin+' min':'')+'</span>';
   }).join("");
   tegnE1(d.e1);
+  // SD-linja staar ved siden av E1 med IDENTISK panel. Det er med vilje:
+  // samme pipeline, samme benk, samme arkitektur - eneste forskjell er
+  // laereren, og da er sammenligningen selve resultatet.
+  tegnE1(
+    d.sd,
+    "sd",
+    "SD – destillert fra single-dummy-evaluering",
+    "Læreren spiller kortet UT mot en realistisk motstander, i verdener forenlige med det agenten selv har sett. "+
+    "Målt 25. juli: å følge dobbelt dummy i spillet gir korrigert korrelasjon −0,609 mot poeng (avvist), single dummy +0,718 (godkjent). "+
+    "E1 over treffer DD-orakelet oftere enn NevroHjerne og taper likevel 2,9 poeng – derfor står de to her side om side.",
+  );
   const projs=d.projeksjoner||[];
 
   // TO GRAFER. De to målestokkene hører ikke hjemme i samme rute: en kurve
