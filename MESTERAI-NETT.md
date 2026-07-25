@@ -1,4 +1,4 @@
-# MesterAI på nettsidene
+# MesterAI og nevronettet på nettsidene
 
 Den ekte MesterAI (appens President-nivå: PIMC-søk + NevroHjerne-nettet) er
 skrevet i Swift. I stedet for å skrive den om til JavaScript (risikabelt og
@@ -9,6 +9,13 @@ kobler nettsidene til den. To leveranser:
    referanselinje ved siden av PIMC-streken.
 2. **Spillbar motstander** – nettspillet spør en lokal MesterAI-tjeneste
    («broen») om trekk, så familien kan spille mot den.
+
+**Nevronettet alene trenger ingenting av dette.** `NevroHjerne` er bare et
+lite flerlags perseptron, så den delen er portert til TypeScript og ligger
+rett i nettspillet – se [«Nevronettet i nettleseren»](#nevronettet-i-nettleseren)
+nederst. Der spiller familien mot appens nevronett på den vanlige nettadressen,
+uten Swift, uten laptop og uten bro. Bare fullversjonen av MesterAI (med
+PIMC-søket) krever broa.
 
 Begge krever at arena-adapteren er bygget – det trenger **Swift 5.9+**
 ([swift.org/download](https://swift.org/download/), kjører fint på laptopen).
@@ -92,8 +99,58 @@ samme mekanikk som arena-benchmarken, bare over HTTP i stedet for stdin/stdout.
 Alle bro-kall serialiseres i rekkefølge, så adapterens motor aldri kommer ut
 av synk.
 
+## Nevronettet i nettleseren
+
+Appens `NevroHjerne` er tre tette nett (bud 64→64→48→12, vrak 59→96→64→52,
+spill 238→192→128→52 – til sammen ~100 000 vekter). Ingen søk, ingen
+avhengigheter: ett oppslag per beslutning, mikrosekunder. Derfor er den
+portert rett til TypeScript i `src/nevro/`, og nettspillet har fått
+motstanderen **NevroHjerne 🧠** ved siden av PIMC, C4 og D1. Den virker på den
+vanlige (HTTPS-)adressen – ingen bro, ingen laptop.
+
+```
+src/nevro/nett.ts     MLP-inferens + appens binærformat (Int32/Float32 LE)
+src/nevro/trekk.ts    Inngangsvektorene, eksakt som appens NevroTrekk
+src/nevro/spiller.ts  Bud/vrak/kortvalg + appens trumfheuristikk (AIPlayer)
+```
+
+Vektene er appens egne, hentet ut av `NevroVekter.swift`:
+
+```bash
+node arena/hent-nevrovekter.ts /sti/til/Amerikaneren-App
+# → web/nevro-vekter.b64.txt (~525 kB), serveres som /nevro.b64
+```
+
+### Hvorfor vi tør stole på porten
+
+Regnestykket gjøres i float32 med `Math.fround` på hver multiplikasjon og hver
+akkumulering – nøyaktig slik Swift-koden regner – så logitene er bit-identiske.
+Og porten er testet mot fasiten, ikke bare mot magefølelsen:
+
+```bash
+node examples/nevro-paritet.ts 8    # krever den bygde adapteren
+```
+
+Den spiller kamper der HVER beslutning tas av både TS-porten og appens
+Swift-nett (adapterens `nevro`-bot), og sammenlikner dem:
+
+```
+BUDRUNDE  305 like, 0 ulike
+SPILL    3660 like, 0 ulike
+VELG      305 like, 0 ulike
+VRAK      305 like, 0 ulike
+4575/4575 identiske (100.00 %) – PORTEN ER IDENTISK MED APPEN ✓
+```
+
+Styrken måles med `node examples/nevro-referanse.ts 8` (ingen Swift nødvendig):
+**+74,9 poeng mot grådig, 32/32 kamper vunnet.**
+
 ## Status
 
+- ✅ `src/nevro/` – appens nevronett i TypeScript, verifisert mot Swift-koden
+- ✅ Nettspillets NevroHjerne-motstander (virker på den deployede siden)
+- ✅ `arena/hent-nevrovekter.ts` – henter vektene ut av appen
+- ✅ `examples/nevro-paritet.ts` / `nevro-referanse.ts` – paritet og styrke
 - ✅ `arena/adapterklient.ts` – delt, testet adapterprotokoll
 - ✅ `examples/mesterai-referanse.ts` – måler dashboard-streken
 - ✅ `arena/mesterai-bro.ts` – serverer spillet + MesterAI-trekk over HTTP

@@ -293,6 +293,14 @@ gjennom flakskontrollerte cupturneringer i grupper på 4 og læring på anger
 designmålet: alt er fortsatt avhengighetsfritt, deterministisk gitt frø,
 og treningen skjer lokalt uten GPU.
 
+**Appens nevronett i nettleseren:** `src/nevro/` er appens innebygde
+`NevroHjerne` (et lite flerlags perseptron for bud, vrak og kortspill, trent
+offline ved destillering fra MesterAI + selvspill) portert til TypeScript.
+Vektene er appens egne – porten er verifisert trekk-for-trekk mot Swift-koden
+med `examples/nevro-paritet.ts` (4575/4575 identiske beslutninger). Det gir
+nettspillet en motstander med appens nevronett uten Swift, laptop eller bro.
+Se `MESTERAI-NETT.md`.
+
 ## Filstruktur
 
 ```
@@ -304,12 +312,15 @@ src/
   solver/sampler.ts  Determinisering av skjult informasjon
   bot/bot.ts         PIMC-bot: velgHandling for alle faser
   neat/              NEAT-nevroevolusjon: genom, nett, agent, turnering, evolusjon (docs/neat.md)
+  nevro/             Appens innebygde nevronett (NevroHjerne) portert til TS (MESTERAI-NETT.md)
   index.ts           Offentlig API (re-eksport)
 test/                node:test-suite (kort, regler, motor, dds, sampler, bot, neat)
 examples/
   selvspill.ts       Fire heuristikk-boter spiller en hel kamp
   styrketest.ts      Måler PIMC-botens stikk-fordel mot tilfeldig spill
   neat-tren.ts       Trener NEAT-populasjonen (npm run neat-tren)
+  nevro-referanse.ts Måler appens nevronett mot grådig (ingen Swift nødvendig)
+  nevro-paritet.ts   Sjekker at TS-porten er identisk med appens Swift-nett
 ```
 
 Skillet er bevisst: **motoren** er ren regel-logikk (avgjør lovlighet og

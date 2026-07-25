@@ -21,6 +21,8 @@ import {
 } from "../src/motor.ts";
 import { NeatAgent } from "../src/neat/agent.ts";
 import { genomFraJson } from "../src/neat/genom.ts";
+import { hjerneFraBase64, type NevroHjerne as NevroHjerneType } from "../src/nevro/nett.ts";
+import { NevroSpiller } from "../src/nevro/spiller.ts";
 import { AMERIKANER, PASS, SOLO, type Bud } from "../src/regler.ts";
 
 // --- Oppsett ----------------------------------------------------------------
@@ -35,6 +37,26 @@ const MENNESKE = 0;
 const LOKAL = location.protocol === "http:";
 const MESTER_URL = `${location.origin}/mester`;
 const MESTER_SETER = [1, 2, 3]; // botsetene styres av MesterAI i bro-modus
+
+// --- Appens nevronett -------------------------------------------------------
+// NevroHjerne er de samme vektene appen skiper, portert til TypeScript
+// (src/nevro). Nettet er verifisert trekk-for-trekk mot appens Swift-kode, så
+// dette ER appens nevronett – bare i nettleseren. ~400 kB vekter lastes én
+// gang per fane og gjenbrukes; inferensen tar under et millisekund.
+let nevroLaster: Promise<NevroHjerneType> | null = null;
+function nevroHjerne(): Promise<NevroHjerneType> {
+  nevroLaster ??= fetch(DATA_URL + "nevro.b64")
+    .then((r) => {
+      if (!r.ok) throw new Error(`nevrovekter: HTTP ${r.status}`);
+      return r.text();
+    })
+    .then((b64) => hjerneFraBase64(b64))
+    .catch((feil: unknown) => {
+      nevroLaster = null; // la neste forsøk prøve på nytt
+      throw feil;
+    });
+  return nevroLaster;
+}
 
 /** Serialiserer en handling til adapterens JSON-format (som arena-adapteren). */
 function handlingTilAdapter(h: Handling): Record<string, unknown> {
@@ -205,19 +227,32 @@ async function pimcHandling(s: GameState): Promise<Handling> {
   }
 }
 
-/** Motstandertype: PIMC-solver, et trent NEAT-nett, eller appens MesterAI. */
-type Motstander = "PIMC" | "C4" | "D1" | "MesterAI";
+/**
+ * Motstandertype: PIMC-solveren, et trent NEAT-nett, appens nevronett eller
+ * appens fulle MesterAI.
+ */
+type Motstander = "PIMC" | "Nevro" | "C4" | "D1" | "MesterAI";
 const MOTSTANDER_INFO: Record<Motstander, string> = {
   PIMC: "PIMC – solveren (vanskeligst)",
+  Nevro: "NevroHjerne – appens nevronett 🧠",
   C4: "C4 – evolusjonsnettet",
   D1: "D1 – gradientnettet",
   MesterAI: "MesterAI – appens mester 🏆",
 };
 /** MesterAI vises kun i bro-modus (spillet servert lokalt over HTTP). */
 const MOTSTANDERE = (): Motstander[] =>
-  LOKAL ? ["PIMC", "C4", "D1", "MesterAI"] : ["PIMC", "C4", "D1"];
+  LOKAL ? ["PIMC", "Nevro", "C4", "D1", "MesterAI"] : ["PIMC", "Nevro", "C4", "D1"];
 let motstander: Motstander = "PIMC";
-let nettAgenter: NeatAgent[] | null = null; // sete 1–3 ved C4/D1
+
+/**
+ * Et nett som fører sitt eget sete. NeatAgent (C4/D1) og NevroSpiller (appens
+ * nevronett) har samme lille grensesnitt, så spilløkka trenger bare én vei.
+ */
+interface SeteAgent {
+  velgHandling(s: GameState): Handling;
+  nyKamp(): void;
+}
+let nettAgenter: SeteAgent[] | null = null; // sete 1–3 ved Nevro/C4/D1
 
 const FARGE_TEGN: Record<Farge, string> = { S: "♠", H: "♥", R: "♦", K: "♣" };
 const FARGE_NAVN: Record<Farge, string> = { S: "spar", H: "hjerter", R: "ruter", K: "kløver" };
@@ -273,7 +308,19 @@ async function start(navn: string): Promise<void> {
   spillerNavn = navn || "familien";
   spillId = Math.random().toString(36).slice(2, 10);
   nettAgenter = null;
-  if (motstander === "C4" || motstander === "D1") {
+  if (motstander === "Nevro") {
+    // Appens eget nevronett: vektene lastes én gang og bufres i nettleseren.
+    rot.innerHTML = `<div class="panel start"><h2>Laster appens nevronett…</h2></div>`;
+    try {
+      const hjerne = await nevroHjerne();
+      nettAgenter = [1, 2, 3].map((sete) => new NevroSpiller(sete, hjerne));
+    } catch {
+      rot.innerHTML = `<div class="panel start"><h2>Klarte ikke laste nevronettet 😕</h2>
+        <button class="stor bekreft" id="tilbake">Tilbake</button></div>`;
+      document.getElementById("tilbake")!.onclick = () => startskjerm();
+      return;
+    }
+  } else if (motstander === "C4" || motstander === "D1") {
     rot.innerHTML = `<div class="panel start"><h2>Laster ${motstander}-nettet…</h2></div>`;
     try {
       const svar = await fetch(DATA_URL + motstander.toLowerCase() + ".json");
