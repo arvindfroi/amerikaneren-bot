@@ -2,7 +2,16 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 
 import { lagRng } from "../src/kort.ts";
-import { Innovasjonsbok, muter, nyttGenom, STANDARD_RATER, type Genom } from "../src/neat/genom.ts";
+import {
+  dommenOverBarnet,
+  Innovasjonsbok,
+  klonGenom,
+  muter,
+  muterRettet,
+  nyttGenom,
+  STANDARD_RATER,
+  type Genom,
+} from "../src/neat/genom.ts";
 import { Nettverk } from "../src/neat/nett.ts";
 import { ANTALL_INN, ANTALL_UT, FORSVARSSENSORER, UT_KORT } from "../src/neat/trekk.ts";
 
@@ -112,4 +121,72 @@ test("forsvarssensorer: NEAT kobler seg aldri til bud-/trumfvalgsensorer", () =>
     `${ulovlige.length} koblinger fra forbudte sensorer etter 300 generasjoner: ${ulovlige.slice(0, 5).map((k) => k.inn).join(", ")}`,
   );
   assert.ok(g.koblinger.length > 10, "genomet vokste ikke – restriksjonen blokkerte alt");
+});
+
+// ---------------------------------------------------------------------------
+// Bevist mutering (D7)
+// ---------------------------------------------------------------------------
+
+test("bevist mutering: bedre barn vokser skrittet, verre barn krymper og snur", () => {
+  const bok = new Innovasjonsbok(ANTALL_INN, ANTALL_UT);
+  const rng = lagRng(31337);
+  const g = nyttGenom(ANTALL_INN, ANTALL_UT, bok, rng);
+  const rater = { ...STANDARD_RATER };
+
+  muterRettet(g, rng, rater);
+  const steg0 = g.steg!;
+  const retning0 = new Map(g.retning!);
+
+  // Foerste dom setter bare referansen.
+  dommenOverBarnet(g, 1.0);
+  // Bedre enn forelderen -> skrittet skal VOKSE, retningen staa.
+  dommenOverBarnet(g, 2.0);
+  assert.ok(g.steg! > steg0, `skrittet vokste ikke: ${steg0} -> ${g.steg}`);
+  for (const [i, d] of g.retning!) {
+    assert.equal(d, retning0.get(i), "retningen ble endret selv om barnet var bedre");
+  }
+
+  const steg1 = g.steg!;
+  // Verre enn forrige -> skrittet skal KRYMPE og retningen SNUS.
+  dommenOverBarnet(g, 0.5);
+  assert.ok(g.steg! < steg1, `skrittet krympet ikke: ${steg1} -> ${g.steg}`);
+  for (const [i, d] of g.retning!) {
+    assert.equal(d, -retning0.get(i)!, "retningen ble ikke snudd etter et daarlig skritt");
+  }
+});
+
+test("retningshukommelsen overlever kloning – ellers er avlen minnelos", () => {
+  const bok = new Innovasjonsbok(ANTALL_INN, ANTALL_UT);
+  const rng = lagRng(555);
+  const g = nyttGenom(ANTALL_INN, ANTALL_UT, bok, rng);
+  muterRettet(g, rng, STANDARD_RATER);
+  g.steg = 0.123;
+  const k = klonGenom(g);
+  assert.equal(k.steg, 0.123);
+  assert.ok(k.retning !== undefined && k.retning.size === g.retning!.size);
+  // Kopi, ikke delt referanse: soesken maa ikke skrive over hverandre.
+  k.retning!.set(0, 999);
+  assert.notEqual(g.retning!.get(0), 999);
+});
+
+test("momentum: gjentatt mutering uten dom drar samme vei, ikke frem og tilbake", () => {
+  // Med MOMENTUM > 0 skal summen av to paafoelgende skritt vaere STOERRE enn
+  // to uavhengige tilfeldige skritt ville gitt i snitt – det er hele poenget
+  // med aa fortsette der forrige skritt slapp.
+  const bok = new Innovasjonsbok(ANTALL_INN, ANTALL_UT);
+  const rng = lagRng(808);
+  const g = nyttGenom(ANTALL_INN, ANTALL_UT, bok, rng);
+  muterRettet(g, rng, STANDARD_RATER);
+  const foerste = new Map(g.retning!);
+  muterRettet(g, rng, STANDARD_RATER);
+  let samme = 0;
+  let n = 0;
+  for (const [i, d] of g.retning!) {
+    const f = foerste.get(i);
+    if (f === undefined || f === 0) continue;
+    n++;
+    if (Math.sign(d) === Math.sign(f)) samme++;
+  }
+  assert.ok(n > 20, "for faa koblinger til aa maale");
+  assert.ok(samme / n > 0.55, `bare ${((100 * samme) / n).toFixed(0)} % av skrittene gikk samme vei`);
 });

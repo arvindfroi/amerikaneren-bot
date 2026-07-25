@@ -35,6 +35,18 @@ export interface Genom {
   readonly antallUt: number;
   noder: NodeGen[];
   koblinger: KoblingGen[];
+  /**
+   * BEVIST MUTERING (D7). Hukommelsen som gjoer mutasjonen rettet i stedet
+   * for tilfeldig – se muterRettet og dommenOverBarnet.
+   *
+   * `retning` er forrige vektendring per kobling (nøkkel: innovasjonsnummer,
+   * som overlever krysning og topologiendring). `steg` er genomets egen
+   * skrittlengde, og `foreldreFitness` er hva forelderen scoret, slik at
+   * barnet kan dømmes mot den som skapte det.
+   */
+  retning?: Map<number, number>;
+  steg?: number;
+  foreldreFitness?: number;
 }
 
 /** Node-id for bias-noden (alltid verdien 1.0). */
@@ -177,12 +189,25 @@ export function nyttGenom(
 }
 
 export function klonGenom(g: Genom): Genom {
-  return {
+  const ut: Genom = {
     antallInn: g.antallInn,
     antallUt: g.antallUt,
     noder: g.noder.map((n) => ({ ...n })),
     koblinger: g.koblinger.map((k) => ({ ...k })),
   };
+  // Retningshukommelsen MAA foelge med: klonGenom kalles ved hver avl, og
+  // uten dette ville barnet startet uten minne om hva som virket for
+  // forelderen - da er muterRettet ikke annet enn tilfeldig mutering med
+  // ekstra steg. Map-en kopieres, ikke deles, saa soesken ikke skriver over
+  // hverandres retning.
+  //
+  // Feltene settes KUN naar de finnes: `deepStrictEqual` skiller {} fra
+  // { retning: undefined }, og et genom uten retningshistorikk skal vaere
+  // bit-identisk med originalen etter kloning.
+  if (g.retning instanceof Map) ut.retning = new Map(g.retning);
+  if (g.steg !== undefined) ut.steg = g.steg;
+  if (g.foreldreFitness !== undefined) ut.foreldreFitness = g.foreldreFitness;
+  return ut;
 }
 
 // ---------------------------------------------------------------------------
@@ -321,6 +346,90 @@ export function normaliserVekter(g: Genom, mål = 1.5): void {
     if (kvadratsum === undefined || kvadratsum <= 1e-12) continue;
     k.vekt *= mål / Math.sqrt(kvadratsum);
   }
+}
+
+/**
+ * BEVIST MUTERING – kjernen i D7.
+ *
+ * Arvind: «hvis barnet er bedre enn foreldrene forsterkes de, hvis de er
+ * verre blir de svakere ... det jeg vil unngå er tilfeldig mutering, men en
+ * bevist mutering.»
+ *
+ * Dagens muterVekter er en ren tilfeldig gange: hvert skritt trekkes uten
+ * hukommelse om forrige skritt virket. Halvparten av all innsats gaar da til
+ * aa gaa tilbake dit man kom fra. Med 96 genomer og et stoeyete fitness-mal
+ * er det hovedgrunnen til at linjene «muterer uten aa laere».
+ *
+ * MEKANISMEN, i to halvdeler:
+ *
+ *  1. HER: barnet arver forelderens RETNING og gaar videre samme vei med et
+ *     momentum-ledd, pluss et mindre tilfeldig soek paa toppen:
+ *         delta = momentum * forrigeDelta + gaussisk * steg
+ *     Virket forrige skritt, fortsetter vi altsaa i samme retning i stedet
+ *     for aa kaste terning paa nytt.
+ *
+ *  2. dommenOverBarnet (under): naar barnets fitness foreligger, sammenlignes
+ *     den med forelderens. Bedre -> skrittlengden VOKSER og retningen staar.
+ *     Verre -> skrittlengden KRYMPER og retningen SNUS, saa neste skritt gaar
+ *     tilbake. Det er 1/5-regelen fra evolusjonsstrategier, med retning.
+ *
+ * Skrittlengden er per genom og multiplikativ (*1,3 / *0,7), aldri additiv –
+ * samme prinsipp som normaliserVekter: relative endringer, ikke absolutte.
+ * Den klippes til [0,02, 0,8] slik at en linje verken fryser eller sprenger.
+ *
+ * Merk at normaliserVekter kjoeres etterpaa som vanlig, saa retningen endrer
+ * RETNING i vektrommet og aldri skala. De to mekanismene er komplementaere:
+ * normaliseringen hindrer metning, retningen hindrer tilfeldig vandring.
+ */
+export const MOMENTUM = 0.6;
+const STEG_MIN = 0.02;
+const STEG_MAKS = 0.8;
+const STEG_OPP = 1.3;
+const STEG_NED = 0.7;
+
+export function muterRettet(g: Genom, rng: () => number, rater: MutasjonsRater): void {
+  const steg = g.steg ?? rater.styrke;
+  const forrige = g.retning;
+  const ny = new Map<number, number>();
+  for (const k of g.koblinger) {
+    if (!k.aktiv) continue;
+    const minne = forrige?.get(k.innovasjon) ?? 0;
+    const delta = MOMENTUM * minne + gaussisk(rng) * steg;
+    k.vekt += delta;
+    if (k.vekt > 8) k.vekt = 8;
+    if (k.vekt < -8) k.vekt = -8;
+    ny.set(k.innovasjon, delta);
+  }
+  g.retning = ny;
+  g.steg = steg;
+  normaliserVekter(g, rater.normaliser ?? 1.5);
+}
+
+/**
+ * Dommen over barnet: var det bedre enn forelderen som skapte det?
+ *
+ * Bedre -> skrittet var riktig. Skrittlengden vokser, retningen staar, og
+ * neste generasjon fortsetter samme vei (momentum bygger seg opp).
+ * Verre  -> skrittet var galt. Skrittlengden krymper OG retningen snus, saa
+ * neste skritt trekker tilbake mot der forelderen sto.
+ *
+ * Kalles etter at fitness for generasjonen foreligger. Uten dette kallet er
+ * muterRettet bare en tilfeldig gange med momentum, og hele poenget faller.
+ */
+export function dommenOverBarnet(g: Genom, egenFitness: number): void {
+  const forelder = g.foreldreFitness;
+  if (forelder === undefined) {
+    g.foreldreFitness = egenFitness;
+    return;
+  }
+  const bedre = egenFitness > forelder;
+  const steg = g.steg ?? 0.35;
+  g.steg = Math.min(STEG_MAKS, Math.max(STEG_MIN, steg * (bedre ? STEG_OPP : STEG_NED)));
+  if (!bedre && g.retning !== undefined) {
+    // Snu retningen: neste skritt gaar tilbake mot forelderen.
+    for (const [innov, d] of g.retning) g.retning.set(innov, -d);
+  }
+  g.foreldreFitness = egenFitness;
 }
 
 export function muterVekter(g: Genom, rng: () => number, rater: MutasjonsRater): void {
@@ -608,7 +717,13 @@ export function utvidUtganger(g: Genom, nyAntallUt: number): Genom {
 // ---------------------------------------------------------------------------
 
 export function genomTilJson(g: Genom): string {
-  return JSON.stringify(g);
+  // retning/steg/foreldreFitness er KJOERETIDSTILSTAND for bevist mutering,
+  // ikke en del av genomet. En Map overlever ikke JSON (blir {}), og et
+  // lastet genom skal uansett starte med blanke ark: retningen som virket i
+  // forrige kjoering gjelder ikke etter en pause, en annen fitness eller et
+  // annet froe. Utelates derfor bevisst.
+  const { retning: _r, steg: _s, foreldreFitness: _f, ...rent } = g;
+  return JSON.stringify(rent);
 }
 
 export function genomFraJson(json: string): Genom {
