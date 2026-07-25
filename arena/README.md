@@ -191,8 +191,8 @@ rundene av hver kamp (felles nevner – kan ikke drive med kamplengden).
 | 5 | Vanskelig *(anker)* | app | −0,32 ± 0,47 | −0,16 | 23 % | 81 % |
 | 6 | Lett | app | −1,06 ± 0,58 | −0,94 | 17 % | 76 % |
 | 7 | Grådig heuristikk | motor | −2,72 ± 0,33 | −2,55 | 0 % | – |
-| 8 | D1 (NEAT-nett) | motor | −3,48 ± 0,42 | −3,08 | 0 % | 80 % |
-| 9 | C4 (NEAT-nett) | motor | −3,65 ± 0,27 | −3,46 | 0 % | 78 % |
+| 8 | D1 (NEAT-nett) | motor | −3,48 ± 0,42 | −3,08 | 0 % | (10 bud) |
+| 9 | C4 (NEAT-nett) | motor | −3,65 ± 0,27 | −3,46 | 0 % | (9 bud) |
 
 Paret mot ankeret (samme blokker, derfor mye strammere KI):
 
@@ -215,6 +215,28 @@ Paret mot ankeret (samme blokker, derfor mye strammere KI):
   ankeret signifikant – for mikrosekunder per trekk. Repoets egne NEAT-nett
   (C4/D1) ligger derimot i BUNN av feltet, under grådig heuristikk. Det er den
   største enkeltoverraskelsen i kjøringen.
+- **Og hele gapet ligger i budrunden, ikke i kortspillet.** Antall budrunder
+  vunnet, av runder spilt (nøytralt nivå er 25 %):
+
+  | Bot | Budrunder vunnet | Andel | Innfridd |
+  |---|---:|---:|---:|
+  | NevroHjerne | 550 av 1075 | 51 % | 71 % |
+  | MesterAI | 442 av 877 | 50 % | 86 % |
+  | PIMC | 417 av 1073 | 38 % | 73 % |
+  | Lett | 265 av 973 | 27 % | 76 % |
+  | Vanskelig | 251 av 978 | 25 % | 81 % |
+  | Middels | 238 av 934 | 25 % | 85 % |
+  | **D1** | **10 av 876** | **1 %** | – |
+  | **C4** | **9 av 846** | **1 %** | – |
+  | Grådig | 0 av 892 | 0 % | – |
+
+  C4 og D1 **melder praktisk talt aldri** – 9 og 10 bud på over 800 runder
+  hver. Siden poengene i hovedsak kommer fra å være budvinner (2n), lever de
+  da bare på forsvarsstikk, akkurat som den grådige heuristikken som aldri
+  melder. Kortspillet deres er ikke målt her i det hele tatt: budhodet
+  slipper dem aldri til. Det er der en retrening bør begynne – ikke i
+  spillehodet. (Budtreff-tallene for C4/D1 hviler på 9–10 bud og betyr
+  ingenting; derfor står bare antallet i tabellen over.)
 - **PIMC skiller seg ikke fra ankeret** (t = 1,57). PIMC, Middels og Vanskelig
   er statistisk uskillelige på 64 kamper. Den eldre benchmarkens rangering av
   nettopp de tre lå innenfor støyen.
