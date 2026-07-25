@@ -1,0 +1,479 @@
+{
+ "benk": "e1-frys",
+ "antall": 2500,
+ "steg": 7,
+ "folder": 5,
+ "lambdaSveip": [
+  0.03,
+  0.1,
+  0.3,
+  1,
+  3,
+  10,
+  30,
+  100
+ ],
+ "maksPrediktorer": 400,
+ "fro": 12345,
+ "stillingerLest": 2500,
+ "stillingerBrukt": 2500,
+ "egenskapsnavn": [
+  "antallLovlige",
+  "antallOptimale",
+  "flereOptimale",
+  "sdVerdi",
+  "spennVerdi",
+  "angerVedTilfeldigValg",
+  "gapTilNestBeste",
+  "besteVerdi",
+  "stikk",
+  "andelStikkSpilt",
+  "kortPaaBordet",
+  "erBudvinner",
+  "erHemmeligMakker",
+  "paaBudlaget",
+  "erForsvarer",
+  "kanSlaa",
+  "kanTrumfe",
+  "trumfBoss",
+  "mineTrumf",
+  "manglerStikk"
+ ],
+ "forventetAngerTilfeldig": 1.004054426911977,
+ "forventetOptimaltTilfeldig": 0.52155847041847,
+ "forventetAngerVerst": 2.1735972000000037,
+ "anovaTrente": {
+  "navn": "bare trente agenter",
+  "agenter": 5,
+  "andelStilling": 0.6799651163562203,
+  "andelAgent": 0.0005630301088742139,
+  "andelSamspill": 0.31947185353490554,
+  "ssTot": 128720.81726889001
+ },
+ "anovaAlle": {
+  "navn": "alle agenter (inkl. tilfeldig genom)",
+  "agenter": 6,
+  "andelStilling": 0.6669032789581224,
+  "andelAgent": 0.0004751364496717279,
+  "andelSamspill": 0.3326215845922059,
+  "ssTot": 152885.54090049074
+ },
+ "alleOptimale": 723,
+ "ingenOptimale": 439,
+ "skillerAgentene": 1338,
+ "sekunder": 52.2505006,
+ "agenter": [
+  {
+   "navn": "d7/fro-d5-gull.json",
+   "snittanger": 1.0649987999999995,
+   "optimalt": 0.5356,
+   "andelBom": 0.4644,
+   "modeller": [
+    {
+     "navn": "stillingsvanske (snittanger hos de andre agentene)",
+     "p": 1,
+     "lambda": 0.03,
+     "r2": 0.6306792063036106,
+     "spearman": 0.5745276990864228,
+     "auc": 0.7539324151426207,
+     "r2Bom": 0.7009428268334233
+    },
+    {
+     "navn": "1 stillingsvariabel: anger ved tilfeldig valg",
+     "p": 1,
+     "lambda": 0.03,
+     "r2": 0.6433790671481733,
+     "spearman": 0.5643690454759647,
+     "auc": 0.741389469431917,
+     "r2Bom": 0.7614723793494516
+    },
+    {
+     "navn": "20 stillingsegenskaper",
+     "p": 20,
+     "lambda": 0.03,
+     "r2": 0.6312155286024972,
+     "spearman": 0.47193104860658186,
+     "auc": 0.6765117758570005,
+     "r2Bom": 0.7591333086270388
+    },
+    {
+     "navn": "3 beslutningsskalarer (margin, sd, spenn)",
+     "p": 3,
+     "lambda": 0.03,
+     "r2": 0.03867143458894062,
+     "spearman": 0.3606941984363004,
+     "auc": 0.682286972871755,
+     "r2Bom": -0.029099994208515945
+    },
+    {
+     "navn": "20 egenskaper + 3 beslutningsskalarer",
+     "p": 23,
+     "lambda": 0.03,
+     "r2": 0.6300983970780978,
+     "spearman": 0.47052687045939745,
+     "auc": 0.6761386844927147,
+     "r2Bom": 0.7585235502782436
+    },
+    {
+     "navn": "400 ablasjonsbidrag (ev-regresjonens modell)",
+     "p": 400,
+     "lambda": 10,
+     "r2": 0.010195689473484038,
+     "spearman": 0.19071551410492737,
+     "auc": 0.572355280754468,
+     "r2Bom": -0.05677057433870858
+    },
+    {
+     "navn": "400 ablasjonsbidrag + 20 stillingsegenskaper",
+     "p": 420,
+     "lambda": 0.3,
+     "r2": 0.5670653952759039,
+     "spearman": 0.44533768197931545,
+     "auc": 0.6738692597803007,
+     "r2Bom": 0.7134739166523504
+    }
+   ],
+   "ablasjon": {
+    "kanter": 1992,
+    "døde": 902,
+    "prediktorer": 400
+   }
+  },
+  {
+   "navn": "d7/fro-d6-klar.json",
+   "snittanger": 1.1134124,
+   "optimalt": 0.4976,
+   "andelBom": 0.5024,
+   "modeller": [
+    {
+     "navn": "stillingsvanske (snittanger hos de andre agentene)",
+     "p": 1,
+     "lambda": 0.03,
+     "r2": 0.5920104083654579,
+     "spearman": 0.622550046771317,
+     "auc": 0.7662378141192373,
+     "r2Bom": 0.7051753500328863
+    },
+    {
+     "navn": "1 stillingsvariabel: anger ved tilfeldig valg",
+     "p": 1,
+     "lambda": 0.03,
+     "r2": 0.5359125122861321,
+     "spearman": 0.603778123867281,
+     "auc": 0.7525478987035862,
+     "r2Bom": 0.6748907666178832
+    },
+    {
+     "navn": "20 stillingsegenskaper",
+     "p": 20,
+     "lambda": 0.03,
+     "r2": 0.5430567002754729,
+     "spearman": 0.524956505722559,
+     "auc": 0.6893944436479816,
+     "r2Bom": 0.669284860815855
+    },
+    {
+     "navn": "3 beslutningsskalarer (margin, sd, spenn)",
+     "p": 3,
+     "lambda": 0.03,
+     "r2": 0.031964223872234965,
+     "spearman": 0.4000067402822117,
+     "auc": 0.6983264894423168,
+     "r2Bom": -0.041843380542689435
+    },
+    {
+     "navn": "20 egenskaper + 3 beslutningsskalarer",
+     "p": 23,
+     "lambda": 0.03,
+     "r2": 0.541459060145808,
+     "spearman": 0.5156281358615717,
+     "auc": 0.6826998894054519,
+     "r2Bom": 0.6682295116897222
+    },
+    {
+     "navn": "234 ablasjonsbidrag (ev-regresjonens modell)",
+     "p": 234,
+     "lambda": 1,
+     "r2": 0.013864051095076602,
+     "spearman": 0.26149195681310994,
+     "auc": 0.6023073171605874,
+     "r2Bom": -0.03479425757321364
+    },
+    {
+     "navn": "234 ablasjonsbidrag + 20 stillingsegenskaper",
+     "p": 254,
+     "lambda": 1,
+     "r2": 0.45868456389554746,
+     "spearman": 0.4986058202457359,
+     "auc": 0.6796150183300224,
+     "r2Bom": 0.5832367486248808
+    }
+   ],
+   "ablasjon": {
+    "kanter": 581,
+    "døde": 347,
+    "prediktorer": 234
+   }
+  },
+  {
+   "navn": "trening-d8b/mester.json",
+   "snittanger": 1.1118036000000004,
+   "optimalt": 0.4964,
+   "andelBom": 0.5036,
+   "modeller": [
+    {
+     "navn": "stillingsvanske (snittanger hos de andre agentene)",
+     "p": 1,
+     "lambda": 0.03,
+     "r2": 0.5526769673521443,
+     "spearman": 0.6436802077486878,
+     "auc": 0.7820738227069691,
+     "r2Bom": 0.6386695972267789
+    },
+    {
+     "navn": "1 stillingsvariabel: anger ved tilfeldig valg",
+     "p": 1,
+     "lambda": 0.03,
+     "r2": 0.5470074986545724,
+     "spearman": 0.6158774302504593,
+     "auc": 0.7589875059123065,
+     "r2Bom": 0.6832178481075442
+    },
+    {
+     "navn": "20 stillingsegenskaper",
+     "p": 20,
+     "lambda": 0.3,
+     "r2": 0.5360836516609873,
+     "spearman": 0.5596524482634672,
+     "auc": 0.721173385628311,
+     "r2Bom": 0.6716252574066897
+    },
+    {
+     "navn": "3 beslutningsskalarer (margin, sd, spenn)",
+     "p": 3,
+     "lambda": 0.03,
+     "r2": 0.04390687748628308,
+     "spearman": 0.39416436190094506,
+     "auc": 0.6994490594392413,
+     "r2Bom": -0.02119627318783146
+    },
+    {
+     "navn": "20 egenskaper + 3 beslutningsskalarer",
+     "p": 23,
+     "lambda": 0.3,
+     "r2": 0.53547433385178,
+     "spearman": 0.5614016673721485,
+     "auc": 0.7231216466261611,
+     "r2Bom": 0.6713689901404842
+    },
+    {
+     "navn": "145 ablasjonsbidrag (ev-regresjonens modell)",
+     "p": 145,
+     "lambda": 1,
+     "r2": 0.016204493027911382,
+     "spearman": 0.20788710587730663,
+     "auc": 0.5720994176338101,
+     "r2Bom": -0.040594360647955074
+    },
+    {
+     "navn": "145 ablasjonsbidrag + 20 stillingsegenskaper",
+     "p": 165,
+     "lambda": 0.3,
+     "r2": 0.5272972889286057,
+     "spearman": 0.5298576587225617,
+     "auc": 0.7022021621600864,
+     "r2Bom": 0.6691518737928842
+    }
+   ],
+   "ablasjon": {
+    "kanter": 443,
+    "døde": 298,
+    "prediktorer": 145
+   }
+  },
+  {
+   "navn": "trening-d8d/mester.json",
+   "snittanger": 1.0480012000000007,
+   "optimalt": 0.5068,
+   "andelBom": 0.4932,
+   "modeller": [
+    {
+     "navn": "stillingsvanske (snittanger hos de andre agentene)",
+     "p": 1,
+     "lambda": 0.03,
+     "r2": 0.4370171942950045,
+     "spearman": 0.5571151973107742,
+     "auc": 0.7315045790869479,
+     "r2Bom": 0.5638010597333105
+    },
+    {
+     "navn": "1 stillingsvariabel: anger ved tilfeldig valg",
+     "p": 1,
+     "lambda": 0.03,
+     "r2": 0.5368330861450593,
+     "spearman": 0.5798908164921637,
+     "auc": 0.739220566235931,
+     "r2Bom": 0.688288981972342
+    },
+    {
+     "navn": "20 stillingsegenskaper",
+     "p": 20,
+     "lambda": 0.03,
+     "r2": 0.518003131988737,
+     "spearman": 0.47395697642476853,
+     "auc": 0.6579815402656876,
+     "r2Bom": 0.6811904180952069
+    },
+    {
+     "navn": "3 beslutningsskalarer (margin, sd, spenn)",
+     "p": 3,
+     "lambda": 0.03,
+     "r2": 0.04126331125853311,
+     "spearman": 0.3707031197783598,
+     "auc": 0.6802522194505096,
+     "r2Bom": -0.02057115519021102
+    },
+    {
+     "navn": "20 egenskaper + 3 beslutningsskalarer",
+     "p": 23,
+     "lambda": 0.03,
+     "r2": 0.5175119177570289,
+     "spearman": 0.4676673499188239,
+     "auc": 0.6566174479631752,
+     "r2Bom": 0.6804267513298881
+    },
+    {
+     "navn": "117 ablasjonsbidrag (ev-regresjonens modell)",
+     "p": 117,
+     "lambda": 1,
+     "r2": 0.031890110102825386,
+     "spearman": 0.18884986993621053,
+     "auc": 0.56511828427786,
+     "r2Bom": -0.018887453404048404
+    },
+    {
+     "navn": "117 ablasjonsbidrag + 20 stillingsegenskaper",
+     "p": 137,
+     "lambda": 0.03,
+     "r2": 0.5077449419146486,
+     "spearman": 0.44321459791182116,
+     "auc": 0.6467666659625364,
+     "r2Bom": 0.6824387929058906
+    }
+   ],
+   "ablasjon": {
+    "kanter": 243,
+    "døde": 126,
+    "prediktorer": 117
+   }
+  },
+  {
+   "navn": "tilfeldig(frø 12345)",
+   "snittanger": 1.0397356,
+   "optimalt": 0.5088,
+   "andelBom": 0.4912,
+   "modeller": [
+    {
+     "navn": "stillingsvanske (snittanger hos de andre agentene)",
+     "p": 1,
+     "lambda": 0.03,
+     "r2": 0.5302012090169229,
+     "spearman": 0.5901018251725655,
+     "auc": 0.7644396728330568,
+     "r2Bom": 0.6252792633132898
+    },
+    {
+     "navn": "1 stillingsvariabel: anger ved tilfeldig valg",
+     "p": 1,
+     "lambda": 0.03,
+     "r2": 0.5978139550749644,
+     "spearman": 0.6206110508248758,
+     "auc": 0.768658899780796,
+     "r2Bom": 0.7255277511631273
+    },
+    {
+     "navn": "20 stillingsegenskaper",
+     "p": 20,
+     "lambda": 0.03,
+     "r2": 0.5814527896030302,
+     "spearman": 0.530196739007064,
+     "auc": 0.6996637678487289,
+     "r2Bom": 0.7195727159185592
+    },
+    {
+     "navn": "3 beslutningsskalarer (margin, sd, spenn)",
+     "p": 3,
+     "lambda": 0.03,
+     "r2": 0.019615537743921996,
+     "spearman": 0.3434840795905228,
+     "auc": 0.6823860959170712,
+     "r2Bom": -0.05072045637306144
+    },
+    {
+     "navn": "20 egenskaper + 3 beslutningsskalarer",
+     "p": 23,
+     "lambda": 0.03,
+     "r2": 0.5817462008371471,
+     "spearman": 0.5000395896111336,
+     "auc": 0.6772421025136747,
+     "r2Bom": 0.7201208907358039
+    }
+   ],
+   "ablasjon": null
+  },
+  {
+   "navn": "nevro",
+   "snittanger": 0.9053347999999989,
+   "optimalt": 0.58,
+   "andelBom": 0.42,
+   "modeller": [
+    {
+     "navn": "stillingsvanske (snittanger hos de andre agentene)",
+     "p": 1,
+     "lambda": 0.03,
+     "r2": 0.407035246204135,
+     "spearman": 0.4907935556293016,
+     "auc": 0.7149310344827586,
+     "r2Bom": 0.5269599567774081
+    },
+    {
+     "navn": "1 stillingsvariabel: anger ved tilfeldig valg",
+     "p": 1,
+     "lambda": 0.03,
+     "r2": 0.46848793281003664,
+     "spearman": 0.5092506348378404,
+     "auc": 0.721928407224959,
+     "r2Bom": 0.6294879670186668
+    },
+    {
+     "navn": "20 stillingsegenskaper",
+     "p": 20,
+     "lambda": 0.1,
+     "r2": 0.4734168200376211,
+     "spearman": 0.4359675483977536,
+     "auc": 0.6735960591133004,
+     "r2Bom": 0.6201722046211776
+    },
+    {
+     "navn": "3 beslutningsskalarer (margin, sd, spenn)",
+     "p": 3,
+     "lambda": 0.1,
+     "r2": 0.04323959698316282,
+     "spearman": 0.3587418165209792,
+     "auc": 0.6902088669950739,
+     "r2Bom": -0.021190641789096798
+    },
+    {
+     "navn": "20 egenskaper + 3 beslutningsskalarer",
+     "p": 23,
+     "lambda": 0.1,
+     "r2": 0.47318923833371274,
+     "spearman": 0.4463247627131664,
+     "auc": 0.6814233169129721,
+     "r2Bom": 0.620314637432195
+    }
+   ],
+   "ablasjon": null
+  }
+ ]
+}
