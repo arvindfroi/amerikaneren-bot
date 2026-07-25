@@ -428,6 +428,112 @@ export class NeatAgent {
    * å holde igjen et stikk kan være riktig, og å trumfe inn er ikke alltid
    * det. Nettet skal kunne avvike der det lønner seg.
    */
+  /**
+   * FORSVARSFASIT – manuell korreksjon av tre MÅLTE defekter.
+   *
+   * examples/forsvarsprofil.ts, kontrakt 9, 400 givere, nevro som
+   * spillefører (D5 gull mot NevroHjerne):
+   *
+   *   renons + har trumf -> trumfet inn      30 %  mot  71 %
+   *   budlaget leder og vi kunne ta -> tok    71 %  mot  85 %
+   *   medforsvarer leder -> kastet honnør      5 %  mot   1 %
+   *
+   * Hvorfor dette ikke ble dekket av lærStikk: dens makker-gren krever
+   * `kjentLag`, som er USANT for en forsvarer inntil makkeren avsløres, og
+   * den ser uansett bare etter budvinner/makker-paret. Forsvarerne har
+   * dermed aldri hatt noe lagbegrep – enhver stilling ble behandlet som
+   * «motstander leder», også når medforsvareren allerede hadde stikket.
+   *
+   * LAGSPILLET er poenget her: de to forsvarerne spiller sammen mot
+   * kontrakten. Men informasjonen er begrenset – før makkeren er avslørt vet
+   * en forsvarer bare hvem budvinneren er; de to andre er makker ELLER
+   * medforsvarer, og den kan ikke skille dem. Lag-grenen fyrer derfor kun
+   * når `makkerAvslørt` er sann. Ingen kikking i skjult informasjon.
+   *
+   * Én ting som med vilje IKKE straffes: å overta medforsvarerens stikk.
+   * Målingen viser at NevroHjerne gjør det OFTERE enn D5 (29 % mot 20 %) –
+   * det er kontrolltaking, ikke sløsing. Det som straffes er å kaste en
+   * HONNØR når stikket alt er vårt.
+   *
+   * Målene er sterkere enn i lærStikk (±0,9 mot ±0,6) fordi avvikene er
+   * store og entydige, men trumfing er gitt det høyeste målet: det er
+   * enkeltgapet som er størst, og et stikk vunnet på trumf er et stikk
+   * budlaget ikke får.
+   */
+  lærForsvar(state: GameState, spiller: number, lovlige: readonly Kort[], rate: number): void {
+    if (rate <= 0 || lovlige.length < 2 || state.trumf === null) return;
+    if (spiller === state.budvinner || spiller === state.makker) return; // kun forsvar
+    const trumf = state.trumf;
+    const led = state.bord[0]?.kort.farge ?? null;
+    if (led === null) return; // utspill dekkes ikke her
+
+    const slår = (ny: Kort, best: Kort): boolean => {
+      const nT = ny.farge === trumf;
+      const bT = best.farge === trumf;
+      if (nT !== bT) return nT;
+      if (nT) return ny.verdi > best.verdi;
+      if (ny.farge !== led) return false;
+      if (best.farge !== led) return true;
+      return ny.verdi > best.verdi;
+    };
+    let leder = state.bord[0]!;
+    for (const kp of state.bord) if (slår(kp.kort, leder.kort)) leder = kp;
+
+    // Har medforsvareren stikket? Kun avgjørbart med LOVLIG informasjon:
+    // budvinneren er offentlig, makkeren først etter avsløring.
+    const lagetLeder =
+      state.makkerAvslørt &&
+      leder.spiller !== state.budvinner &&
+      leder.spiller !== state.makker &&
+      leder.spiller !== spiller;
+
+    const vinnende = lovlige.filter((k) => slår(k, leder.kort));
+    const mål = new Map<number, number>();
+    const sett = (k: Kort, y: number): void => {
+      mål.set(kortIndeks(k), y);
+    };
+    const pris = (k: Kort): number => (k.farge === trumf ? 100 : 0) + k.verdi;
+
+    if (lagetLeder) {
+      // Stikket er alt vårt: ikke brenn honnører. Å overta med et BILLIG
+      // kort er fortsatt lov (nevro gjør det 29 % av gangene) – det er kun
+      // honnørsløsingen som dras ned.
+      const lavest = lovlige.reduce((a, b) => (a.verdi <= b.verdi ? a : b));
+      for (const k of lovlige) {
+        sett(k, kortIndeks(k) === kortIndeks(lavest) ? 0.7 : k.verdi >= 13 ? -0.9 : -0.2);
+      }
+    } else if (vinnende.length > 0) {
+      const harLedFarge = lovlige.some((k) => k.farge === led);
+      const billigst = vinnende.reduce((a, b) => (pris(a) <= pris(b) ? a : b));
+      // RENONS + TRUMF: det største enkeltgapet (30 % mot 71 %). Trumf inn.
+      const trumfing = !harLedFarge && billigst.farge === trumf;
+      for (const k of lovlige) {
+        sett(
+          k,
+          kortIndeks(k) === kortIndeks(billigst)
+            ? trumfing
+              ? 0.95
+              : 0.9
+            : slår(k, leder.kort)
+              ? 0.0
+              : -0.6,
+        );
+      }
+    } else {
+      // Stikket er tapt uansett: kast lavest, og spar trumfen til den kan
+      // ta et stikk.
+      const kastbare = lovlige.filter((k) => k.farge !== trumf);
+      const pool = kastbare.length > 0 ? kastbare : lovlige;
+      const lavest = pool.reduce((a, b) => (a.verdi <= b.verdi ? a : b));
+      for (const k of lovlige) {
+        sett(k, kortIndeks(k) === kortIndeks(lavest) ? 0.7 : k.farge === trumf ? -0.8 : -0.3);
+      }
+    }
+    if (mål.size === 0) return;
+    this.evaluer(state, spiller, "SPILL");
+    for (const [idx, y] of mål) this.nett.kalibrerUtgang(UT_KORT + idx, y, rate, 2);
+  }
+
   lærStikk(state: GameState, spiller: number, lovlige: readonly Kort[], rate: number): void {
     if (rate <= 0 || lovlige.length < 2 || state.trumf === null) return;
     const påBudlag = spiller === state.budvinner || spiller === state.makker;
