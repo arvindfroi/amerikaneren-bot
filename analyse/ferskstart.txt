@@ -1,0 +1,13 @@
+angerbenk: 2000 stillinger med NEAT-vektor
+ferskt startgenom: 374 koblinger, anger 1.0752
+gulv (tilfeldig lovlig kort) 1.0354   nevro 0.9431
+
+A bare seleksjon   fitnessvinner 0.937 1.010 1.089 0.919 0.999
+                   BESTE i pop   0.897 0.870 0.940 0.919 0.918
+                   median        1.043 1.046 1.042 1.049 1.021   (0 fasittreff)
+B bare laerer      fitnessvinner 1.080 1.080 1.080 1.080 1.080
+                   BESTE i pop   0.963 0.963 0.963 0.963 0.963
+                   median        1.076 1.080 1.064 1.043 1.043   (2260 fasittreff)
+C begge            fitnessvinner 1.133 1.072 0.985 1.031 1.126
+                   BESTE i pop   0.951 0.889 0.804 0.859 0.904
+                   median        1.043 1.031 0.973 1.010 0.994   (110190 fasittreff)
