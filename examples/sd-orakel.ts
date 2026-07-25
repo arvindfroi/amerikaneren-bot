@@ -56,6 +56,7 @@ import { dirname } from "node:path";
 import { lagRng } from "../src/kort.ts";
 import { lovligeKort, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
 import { e1SpillTrekk, E1_SPILL_DIM } from "../src/e1/trekk.ts";
+import { E1Agent } from "../src/e1/nett.ts";
 import { vurderKortSD } from "../src/moe2/sdkort.ts";
 import { kortIndeks, NevroAgent } from "../src/nevro/index.ts";
 import { spillerVisning } from "../src/motor.ts";
@@ -71,6 +72,20 @@ let frøBase = 50_000_000;
 let skardI = 0;
 let skardN = 1;
 let verdener = 12;
+/**
+ * DAgger: hvem som SPILLER partiene, altsaa hvor stillingene kommer fra.
+ *
+ * Runde 1 brukte nevro som stillingskilde. Nettet som ble trent paa det moeter
+ * ANDRE stillinger naar det spiller selv - det er fordelingsskiftet DAgger
+ * finnes for aa lukke. Maalt paa sd-r1: +75,28 mot nevros +75,40, altsaa 96 %
+ * av gapet lukket, men ikke forbi.
+ *
+ * MERK at dette bare bytter STILLINGSKILDEN. Motstandermodellen i
+ * SD-rolloutene er fortsatt NevroHjerne, fordi det er noeyaktig den
+ * konfigurasjonen fasiten ble validert med (+0,718 gjennom porten). Endrer vi
+ * begge samtidig, vet vi ikke hvilken av dem som forklarte utfallet.
+ */
+let spillerFil: string | null = null;
 let sjanse = 0.35;
 let utforsk = 0.15;
 let fraStikk = 0;
@@ -85,6 +100,7 @@ for (let i = 2; i < process.argv.length; i++) {
     skardI = Number(i2);
     skardN = Number(n2);
   } else if (a === "--verdener") verdener = Number(process.argv[++i]);
+  else if (a === "--spiller") spillerFil = process.argv[++i] ?? null;
   else if (a === "--sjanse") sjanse = Number(process.argv[++i]);
   else if (a === "--utforsk") utforsk = Number(process.argv[++i]);
   else if (a === "--fraStikk") fraStikk = Number(process.argv[++i]);
@@ -103,6 +119,18 @@ mkdirSync(dirname(ut), { recursive: true });
 // alle fire seter, og en fasit skal genereres med nøyaktig den modellen den
 // ble validert med.
 const nevro = new NevroAgent();
+/**
+ * Stillingskilden. Standard er nevro (runde 1); med --spiller er det nettet
+ * som selv skal laere, og da er dette DAgger-runde 2.
+ */
+const spiller = spillerFil !== null ? E1Agent.fraFil(spillerFil) : nevro;
+// SKRIV HVEM SOM SPILLER. To ganger i dag har noe staatt «koblet» uten aa
+// vaere i bruk (muterRettet, spillFasit), og begge gangene fordi ingen linje
+// sa hva som faktisk kjoerte.
+console.log(
+  `stillingskilde: ${spillerFil ?? "NevroHjerne"}` +
+    `  |  motstandermodell i SD-rollout: NevroHjerne  |  ${verdener} verdener`,
+);
 const rng = lagRng((frøBase + skardI * 7919) >>> 0);
 let merket = 0;
 let beslutninger = 0;
@@ -164,8 +192,11 @@ alleKamper: for (let k = 0; k < kamper; k++) {
       h =
         rng() < utforsk
           ? { type: "SPILL", spiller: sete, kort: lovlige[Math.floor(rng() * lovlige.length)]! }
-          : nevro.velgHandling(s);
+          : spiller.velgHandling(s);
     } else {
+      // Bud, vrak og trumfvalg tas alltid av nevro - ogsaa i DAgger-runden.
+      // Det er de fasene sd-nettet ikke eier, og aa la det bestemme dem ville
+      // endret kontraktfordelingen og dermed hva stillingene er.
       h = nevro.velgHandling(s);
     }
     s = utfør(s, h).state;
