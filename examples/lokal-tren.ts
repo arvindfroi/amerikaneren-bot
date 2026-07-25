@@ -141,8 +141,19 @@ const ALLE_LINJER: Linje[] = [
     // Leddet er fjernet (se kontraktAnger i turnering.ts). Offline-test paa
     // 40 HOLDOUT-givere viser at laereren virker naar den faar lov:
     //   trumflengde 2,98 -> 3,15, lagstikk 5,19 -> 6,23, klart 50 % -> 68 %
-    // Dosene er derfor hevet: det var aldri dosen som var problemet, men
-    // naa som seleksjonen trekker samme vei er det verdt aa gi mer.
+    // DOSESVEIP (holdout, 40 usette givere) - og den advarer mot aa skru opp:
+    //   runder rate | trumflengde  vrak-i-trumf  lagstikk  klart
+    //      200 0.15 |    3.15         22 %        6.23     68 %
+    //      600 0.15 |    3.75          7 %        6.22     68 %   <- best
+    //      600 0.35 |    3.08         24 %        5.92     64 %
+    //     1500 0.15 |    2.95         27 %        5.82     62 %
+    //     1500 0.35 |    3.51         14 %        6.05     66 %
+    // Ikke monotont i noen av aksene: mer trening og hoeyere rate gjoer det
+    // VERRE. Kalibreringen konvergerer altsaa ikke, den driver. Klart-andelen
+    // er robust (50 % -> 62-68 % overalt), men trumflengden spretter.
+    // Derfor BEHOLDES 0.5/0.6 - aa heve dem til 0.8/0.9 ville vaert aa gaa
+    // mot maalingen. Taket for denne ruten ser ut til aa ligge rundt
+    // trumflengde 3,8 og klart 68 %, mot NevroHjernes 5,76 og 97 %.
     // --angervekt 0.2: 20 % av fitness fra BESLUTNINGSKVALITET mot
     // det eksakte orakelet, ikke kamputfall. Det er svaret paa at
     // kampfitness har ±50 poeng kortflaks-stoey mot et signal paa ~0,3 per
@@ -153,7 +164,7 @@ const ALLE_LINJER: Linje[] = [
     // spillestyrke - samme feil som «+35,4»-maalingen, bare bygget inn i
     // fitness. 0,2 gir signalet plass uten aa la det overstyre utfallet.
     ekstra: ["--sluttsøk", "4", "--spillfasit", "--budfasit", "--nevro",
-             "--trumffasit", "0.8", "--etterlysfasit", "0.6", "--vrakfasit", "0.9",
+             "--trumffasit", "0.5", "--etterlysfasit", "0.6", "--vrakfasit", "0.6",
              "--stikkfasit", "0.25", "--angervekt", "0.2"],
   },
 ];
