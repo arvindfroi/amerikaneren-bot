@@ -180,3 +180,51 @@ Konsekvens for arkitekturen: **ingen fasit i MoE2 er godkjent før porten er
 kjørt på den, med kandidater fra ulike familier og en poengreferanse hvis
 pålitelighet er målt.** To av seks fasiter ser allerede motbevist ut. De skal
 ikke brukes til forfremmelse før det er avklart.
+
+---
+
+## Portresultatene, og mønsteret de danner
+
+| fasit | dom | pålitelighet | korrigert korrelasjon |
+|---|---|---|---|
+| **bud** (avvik fra SD-orakelet) | **godkjent** | 0,947 (smalt utvalg) | **+0,925** |
+| **kortspill** (følge DD-solveren) | **avvist** | 0,880 | **−0,609** |
+
+### Skillet er ikke tilfeldig: SD mot DD
+
+Budfasiten er **single dummy**. SD-estimatet framkommer ved å faktisk spille
+giva ut med en realistisk motspiller (NevroHjerne) i alle fire seter. Ingen
+ser skjulte kort. Den bestod med 0,925.
+
+Kortfasiten er **double dummy**. Solveren løser stillingen med alle fire
+hender åpne. Den strøk med −0,609 – å følge den gjør spillet *verre*, og
+verre jo mer man følger den (stikk 0–5: −1,20 poeng per runde mot å la
+NevroHjerne spille).
+
+Det er den samme skillelinjen begge steder: **en fasit som forutsetter
+informasjon du ikke har, er ikke et mål – den er en felle.** DD-kortet er
+optimalt mot et motspill som ser like mye som deg selv. Mot en motstander med
+skjult informasjon setter det opp linjer som bare virker mot perfekt forsvar,
+og lar være å utnytte feil motstanderen faktisk gjør.
+
+Det forklarer også E1: E1 er destillert fra DD-orakelet, treffer det 61,4 %
+mot nevros 58,7 %, og taper likevel 2,91 poeng. Den har lært å ligne på en
+fasit som ikke vinner.
+
+### Konsekvens for de tre spillekspertene
+
+De kan ikke trenes på DD-enighet. Fasiten må bygges om etter samme prinsipp
+som budet: for hvert kandidatkort spilles resten ut med en realistisk
+motstandermodell over verdener som er forenlige med agentens EGEN informasjon,
+og kortet scores på det som faktisk skjer. Altså single-dummy kortevaluering,
+ikke double-dummy.
+
+Det er dyrere per beslutning enn DD-oppslaget. Til gjengjeld er det den eneste
+av de to som har bestått porten.
+
+### Hva som IKKE er avgjort
+
+Vinduet «stikk 6–8» ga +0,15 poeng, det eneste positive. Det kan være ekte
+(sent i runden nærmer DD seg sannheten fordi færre kort er skjult) eller ren
+støy. Det er ikke avgjort her, og skal ikke brukes til noe før det er målt
+med nok giver til å skilles fra null.

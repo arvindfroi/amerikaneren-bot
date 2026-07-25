@@ -1,0 +1,70 @@
+{
+  "givere": 160,
+  "rader": [
+    {
+      "navn": "aldri (nevro)",
+      "orakelvalg": 0,
+      "poengA": -4.718447854656915e-17,
+      "poengB": 3.8857805861880476e-17,
+      "poeng": -4.163336342344337e-18
+    },
+    {
+      "navn": "stikk 0-2",
+      "orakelvalg": 3,
+      "poengA": -0.23125,
+      "poengB": -1.0062499999999999,
+      "poeng": -0.6187499999999999
+    },
+    {
+      "navn": "stikk 3-5",
+      "orakelvalg": 3,
+      "poengA": -0.22083333333333335,
+      "poengB": 0.014583333333333486,
+      "poeng": -0.10312499999999994
+    },
+    {
+      "navn": "stikk 6-8",
+      "orakelvalg": 3,
+      "poengA": -0.16979166666666662,
+      "poengB": 0.4781249999999996,
+      "poeng": 0.15416666666666648
+    },
+    {
+      "navn": "stikk 9+",
+      "orakelvalg": 3,
+      "poengA": -0.24062499999999987,
+      "poengB": -0.07083333333333335,
+      "poeng": -0.1557291666666666
+    },
+    {
+      "navn": "stikk 0-5",
+      "orakelvalg": 6,
+      "poengA": -1.1604166666666669,
+      "poengB": -1.233333333333333,
+      "poeng": -1.196875
+    },
+    {
+      "navn": "stikk 6+",
+      "orakelvalg": 6,
+      "poengA": -0.5322916666666668,
+      "poengB": -0.16666666666666738,
+      "poeng": -0.3494791666666671
+    },
+    {
+      "navn": "alltid",
+      "orakelvalg": 12,
+      "poengA": -1.069791666666667,
+      "poengB": -0.825,
+      "poeng": -0.9473958333333335
+    }
+  ],
+  "dom": {
+    "dom": "avvist",
+    "splitt": 0.7857142857142857,
+    "paalitelighet": 0.88,
+    "observert": -0.5714285714285714,
+    "korrigert": -0.6091449038731727,
+    "n": 8,
+    "begrunnelse": "Fasiten peker MOTSATT vei av referansen (korrigert -0.609). Å selektere på den ville gjort kandidaten systematisk verre."
+  }
+}

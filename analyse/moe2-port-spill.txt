@@ -1,0 +1,23 @@
+  1/8 maalt     2/8 maalt     3/8 maalt     4/8 maalt     5/8 maalt     6/8 maalt     7/8 maalt     8/8 maalt   
+
+=== Aa foelge solveren i ulike stikk, 160 givere x 4 seter ===
+Alt annet er NevroHjerne. Baseline «aldri» = -0.00 poeng/runde.
+
+vindu             orakelvalg/runde  poeng/runde  mot baseline
+-------------------------------------------------------------
+stikk 6-8                     3.00         0.15         +0.15
+aldri (nevro)                 0.00        -0.00         +0.00
+stikk 3-5                     3.00        -0.10         -0.10
+stikk 9+                      3.00        -0.16         -0.16
+stikk 6+                      6.00        -0.35         -0.35
+stikk 0-2                     3.00        -0.62         -0.62
+alltid                       12.00        -0.95         -0.95
+stikk 0-5                     6.00        -1.20         -1.20
+
+=== GODKJENNINGSPORTEN ===
+  paalitelighet 0.880 (splitt 0.786)
+  observert -0.571, korrigert -0.609
+  DOM: AVVIST
+  Fasiten peker MOTSATT vei av referansen (korrigert -0.609). Å selektere på den ville gjort kandidaten systematisk verre.
+
+Skrev analyse/moe2-port-spill.json
