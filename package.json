@@ -31,7 +31,8 @@
     "neat-tren": "node examples/neat-tren.ts",
     "neat-vakt": "node examples/neat-vakt.ts",
     "arena": "node examples/arena.ts",
-    "benchmark": "node examples/benchmark.ts"
+    "benchmark": "node examples/benchmark.ts",
+    "benchmark-kontrollert": "node examples/benchmark-kontrollert.ts"
   },
   "keywords": [
     "amerikaner",
