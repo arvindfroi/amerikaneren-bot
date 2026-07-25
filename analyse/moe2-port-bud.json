@@ -1,0 +1,113 @@
+{
+  "givere": 240,
+  "rader": [
+    {
+      "navn": "SD (fasiten)",
+      "avvikFraSD": 0.4875,
+      "poengA": 3.8493055555555573,
+      "poengB": 3.92638888888889,
+      "poeng": 3.887847222222224,
+      "budSnitt": 9.098305084745762,
+      "andelBud": 0.921875
+    },
+    {
+      "navn": "SD − 1",
+      "avvikFraSD": 2.0635416666666666,
+      "poengA": 2.456944444444445,
+      "poengB": 2.29652777777778,
+      "poeng": 2.3767361111111125,
+      "budSnitt": 8.319338422391857,
+      "andelBud": 0.81875
+    },
+    {
+      "navn": "SD − 2",
+      "avvikFraSD": 3.71875,
+      "poengA": 0.29583333333333256,
+      "poengB": -0.6548611111111085,
+      "poeng": -0.17951388888888795,
+      "budSnitt": 7.6036866359447,
+      "andelBud": 0.678125
+    },
+    {
+      "navn": "SD − 3",
+      "avvikFraSD": 5.466666666666667,
+      "poengA": -1.3444444444444448,
+      "poengB": -2.275,
+      "poeng": -1.8097222222222225,
+      "budSnitt": 6.961702127659574,
+      "andelBud": 0.4895833333333333
+    },
+    {
+      "navn": "SD + 1",
+      "avvikFraSD": 1.0895833333333333,
+      "poengA": -10.909027777777778,
+      "poengB": -10.81180555555556,
+      "poeng": -10.860416666666671,
+      "budSnitt": 9.922912205567451,
+      "andelBud": 0.9729166666666667
+    },
+    {
+      "navn": "konstant 6",
+      "avvikFraSD": 5.889583333333333,
+      "poengA": -2.0215277777777794,
+      "poengB": -2.2680555555555566,
+      "poeng": -2.144791666666668,
+      "budSnitt": 6,
+      "andelBud": 0.5
+    },
+    {
+      "navn": "konstant 9",
+      "avvikFraSD": 1.2604166666666667,
+      "poengA": 0.5868055555555547,
+      "poengB": 1.3256944444444432,
+      "poeng": 0.9562499999999988,
+      "budSnitt": 9,
+      "andelBud": 1
+    },
+    {
+      "navn": "konstant 12",
+      "avvikFraSD": 3.125,
+      "poengA": -19.219444444444456,
+      "poengB": -18.31597222222222,
+      "poeng": -18.767708333333342,
+      "budSnitt": 12,
+      "andelBud": 1
+    },
+    {
+      "navn": "alltid pass",
+      "avvikFraSD": 8.875,
+      "poengA": -1.9965277777777777,
+      "poengB": -2.4076388888888856,
+      "poeng": -2.2020833333333316,
+      "budSnitt": null,
+      "andelBud": 0
+    },
+    {
+      "navn": "nevro selv",
+      "avvikFraSD": 2.097916666666667,
+      "poengA": -1.4802973661668754e-17,
+      "poengB": 0,
+      "poeng": -7.401486830834377e-18,
+      "budSnitt": 7.542981501632209,
+      "andelBud": 0.9572916666666667
+    }
+  ],
+  "dom": {
+    "dom": "godkjent",
+    "splitt": 0.9515151515151515,
+    "paalitelighet": 0.9751552795031055,
+    "observert": 0.47878787878787876,
+    "korrigert": 0.4848487261145896,
+    "n": 10,
+    "begrunnelse": "Referansen er pålitelig (0.975) og fasiten henger sammen med den (korrigert 0.485 over 10 kandidater)."
+  },
+  "domSmal": {
+    "dom": "godkjent",
+    "splitt": 0.9,
+    "paalitelighet": 0.9473684210526316,
+    "observert": 0.9,
+    "korrigert": 0.9246621004453465,
+    "n": 5,
+    "begrunnelse": "Referansen er pålitelig (0.947) og fasiten henger sammen med den (korrigert 0.925 over 5 kandidater)."
+  }
+}

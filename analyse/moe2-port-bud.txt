@@ -1,0 +1,30 @@
+  1/10 maalt     2/10 maalt     3/10 maalt     4/10 maalt     5/10 maalt     6/10 maalt     7/10 maalt     8/10 maalt     9/10 maalt     10/10 maalt   
+
+=== Budpolicyer, 240 givere x 4 seter, alt annet er NevroHjerne ===
+
+policy           avvik fra SD  snittbud   byr%  poeng/runde
+-----------------------------------------------------------
+SD (fasiten)            0.487      9.10   92 %         3.89
+SD − 1                  2.064      8.32   82 %         2.38
+konstant 9              1.260      9.00  100 %         0.96
+nevro selv              2.098      7.54   96 %        -0.00
+SD − 2                  3.719      7.60   68 %        -0.18
+SD − 3                  5.467      6.96   49 %        -1.81
+konstant 6              5.890      6.00   50 %        -2.14
+alltid pass             8.875         –    0 %        -2.20
+SD + 1                  1.090      9.92   97 %       -10.86
+konstant 12             3.125     12.00  100 %       -18.77
+
+=== GODKJENNINGSPORTEN ===
+  splitt-halv paalitelighet   0.975 (splitt 0.952)
+  observert korrelasjon       0.479
+  dempingskorrigert           0.485
+  DOM: GODKJENT
+  Referansen er pålitelig (0.975) og fasiten henger sammen med den (korrigert 0.485 over 10 kandidater).
+
+=== SMAL PORT (bare naerliggende policyer, n=5) ===
+  paalitelighet 0.947, korrigert 0.925
+  DOM: GODKJENT
+  Referansen er pålitelig (0.947) og fasiten henger sammen med den (korrigert 0.925 over 5 kandidater).
+
+Skrev analyse/moe2-port-bud.json
