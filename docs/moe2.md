@@ -484,3 +484,140 @@ Påliteligheten er 0,688, over terskelen på 0,3 men ikke høy, og effektene er
 mindre i absoluttverdi enn i DD-kjøringen. Retningen er entydig; størrelsen
 er det ikke. Før SD-fasiten brukes til å forfremme noe, skal den måles på
 flere givere.
+
+---
+
+## Budeksperten trent – og den slår ikke nevros eget bud
+
+Budfasiten er den eneste av seks som har bestått porten (korrigert +0,925,
+pålitelighet 0,947 smalt), så den er den eneste det er lov å trene på. Det er
+gjort. Skript: `examples/moe2-tren-bud.ts`, `examples/moe2-poeng-bud.ts`.
+Tall: `analyse/moe2-tren-bud.{txt,json}`, `analyse/moe2-poeng-bud.{txt,json}`.
+
+**Konklusjonen først: eksperten slår ikke NevroHjernes bud.** Den beste av
+fire varianter lander på **+0,18 ± 0,32 poeng/runde** mot nevros 0,00 – altså
+ikke til å skille fra null – mens SD-policyen den er trent mot ligger på
++3,89. Varianten som følger designet lengst (asymmetrisk gradient) taper
+**−0,97 ± 0,27**.
+
+### Tapsfunksjonen: asymmetrisk, konveks, i poeng
+
+Fasiten er ikke lenger −|påstand − SD|, men **−budKostnad(påstand − SD)**,
+målt i poeng per runde:
+
+| retning | kostnad per stikk | kilde |
+|---|---|---|
+| overbud | **14,75** | SD+1 gir −10,86 mot SDs +3,89 |
+| underbud, første stikk | **1,51** | SD−1 gir +2,38 |
+| underbud, videre | 2,10 | SD−2 −0,18 og SD−3 −1,81 |
+
+Ett stikk for mye koster **9,8 ganger** så mye som ett for lite. En kvadratisk
+eller absolutt straff på |feil| setter det forholdet til 1,0 og ber dermed
+eksperten balansere en risiko som ikke er balansert. De 2,10 er den konvekse
+innhyllingen av de to målte marginalene (2,56 og 1,63); summen er bevart
+(5,70), bare fordelingen mellom −2 og −3 er glattet, fordi en ikke-konveks
+kostnad gjør «velg billigste lovlige bud» sprangvis.
+
+Valget følger av kostnaden: **rund ned**. Terskelen for å runde opp er 0,093
+stikk, ikke 0,5. Det er verdt +1,73 til +4,29 poeng målt (se tabellen under),
+og er den ene delen av designet som poengbenken bekrefter.
+
+### mål(), holdout n=1828, anger i poeng per runde
+
+Taket er **SD-orakelet selv**, ikke NevroHjerne. Grunnen står i tallene: nevro
+bommer 2,6090 stikk fra SD der et uniformt lovlig bud bommer 2,2229, så
+`framdrift()` – som deler på (gulv − tak) – ga −278 % for et ferskt nett og
+−379 % for et lært, altså et tall som ble mer negativt jo bedre eksperten var.
+Med SD som tak er anger mot taket null per konstruksjon og framdriften leses
+som «hvor langt fra tilfeldig mot orakelet», i [0, 1].
+
+| policy | anger | gulv | tak | framdrift |
+|---|---|---|---|---|
+| SD (taket) | 0,000 | 25,176 | 0,000 | 100,0 % |
+| **asymmetrisk gradient, lært** | **5,346** | 25,176 | 0,000 | 78,8 % |
+| symmetrisk gradient, lært | 5,432 | 25,176 | 0,000 | 78,4 % |
+| ferskt nett (begge armer) | 5,867 | 25,176 | 0,000 | 76,7 % |
+| nevros bud | 5,588 | 25,176 | 0,000 | 77,8 % |
+| konstant 8 | 8,801 | 25,176 | 0,000 | 65,0 % |
+| konstant 9 | 11,264 | 25,176 | 0,000 | 55,3 % |
+
+Delingen går på **giv**, ikke på stilling, og `moe2-tren-bud.ts` stopper hvis
+en giv har havnet i to deler – 726/248/226 givere, sjekket i hver kjøring.
+
+Merk at nevro her ligger 77,8 % oppe, ikke under gulvet. Det er ikke en
+motsigelse av avsnittet over: nevro underbyr systematisk, og under en kostnad
+som gjør underbud billig blir den systematiske feilen billig. Under |avvik| lå
+den under gulvet. Samme policy, samme stillinger, to tapsfunksjoner, motsatt
+dom – som er selve grunnen til at tapsfunksjonen måtte måles og ikke antas.
+
+### Poengbenken, 240 givere × 4 seter, bare budet varieres
+
+| policy | snittbud | byr% | skjevhet | spredning | over% | poeng | SE | mot nevro |
+|---|---|---|---|---|---|---|---|---|
+| SD (fasiten) | 9,10 | 92 % | 0,00 | 0,00 | 0 % | **+3,89** | 0,41 | +3,89 |
+| SD − 1 | 8,32 | 82 % | −1,00 | 0,00 | 0 % | +2,38 | 0,34 | +2,38 |
+| SD − 1 ± 1 (støykontroll) | 8,42 | 81 % | −0,85 | 0,99 | 0 % | +2,03 | 0,36 | +2,03 |
+| **sym. gradient + rund ned** | 8,20 | 98 % | −0,71 | 1,52 | 21 % | **+0,18** | 0,32 | **+0,18** |
+| nevro selv | 7,54 | 96 % | −1,38 | 1,87 | 16 % | −0,00 | 0,33 | 0,00 |
+| asym. gradient + rund ned | 7,47 | 81 % | −1,57 | 1,55 | 10 % | −0,97 | 0,27 | −0,97 |
+| asym. gradient + nærmeste | 9,17 | 99 % | +0,28 | 1,90 | 44 % | −2,70 | 0,49 | −2,70 |
+| sym. gradient + nærmeste | 9,83 | 100 % | +0,96 | 1,83 | 56 % | −4,11 | 0,54 | −4,11 |
+
+`skjevhet` = snitt(bud − SD), `spredning` = standardavviket rundt den,
+`over%` = hvor ofte budet ligger over SD.
+
+### Hvorfor den ikke slår nevro: nivået er lett, spredningen er dyr
+
+Støykontrollen er hele svaret. «SD − 1 ± 1» sikter på samme nivå som SD − 1 og
+legger på ren tilfeldig spredning som **aldri** går over SD. Det koster 0,35
+poeng. Eksperten sikter BEDRE enn både SD − 1 og nevro (skjevhet −0,71 mot
+−1,00 og −1,38) og har MINDRE spredning enn nevro (1,52 mot 1,87) – og henter
+likevel bare +0,18.
+
+Forskjellen ligger i én kolonne: **21 % av budene ligger over SD**. Med 14,75
+poeng per overbudsstikk spiser den femtedelen hele gevinsten fra de fire
+andre. Et estimat er ikke en forskyvning; det skjelver, og skjelvingen er
+dyr bare i den ene retningen.
+
+Det gir også oppskriften videre, som ikke er «tren lenger»: enten må
+spredningen ned (bedre sensorer, ikke flere generasjoner – kurven flatet fra
+generasjon 35), eller så må budet velges under en **fordeling** i stedet for
+under et punktestimat, altså et nett som gir usikkerheten sin og et bud som
+er kvantilen i den fordelingen.
+
+### Og enda en gang: fasiten og poengbenken rangerer paret motsatt
+
+Dette er den femte gangen på to dager.
+
+| | holdout-anger (i poeng!) | poeng/runde |
+|---|---|---|
+| asymmetrisk gradient | **5,346** (best) | **−0,97** (verst) |
+| symmetrisk gradient | 5,432 | +0,18 |
+
+Angeren her er ikke et abstrakt fasitavvik – den er bygget av de MÅLTE
+poengkostnadene, og rangerer likevel motsatt av poeng. Mekanismen er at
+kostnadene ble målt på policyer som forskjøv **alle fire setene** samtidig,
+mens angeren brukes per beslutning. Et lavt bud betyr som regel at man ikke
+vinner budrunden i det hele tatt, og da påløper aldri de 1,51 – underbud er
+derfor billigere per beslutning enn per policy, og den asymmetriske
+gradienten dytter estimatet for langt ned (skjevhet −1,57, byr bare 81 %).
+
+Asymmetrien er likevel riktig og bekreftet: den delen av den som ligger i
+**valgregelen** – rund ned – er verdt +1,73 poeng for det asymmetrisk trente
+nettet og +4,29 for det symmetrisk trente. Det er delen som ligger i
+**gradienten** som overkorrigerer, og bare fordi den samme kostnaden brukes to
+ganger på rad.
+
+### Hva som IKKE hjalp, målt
+
+Hypotesen om at eksperten var kapasitetsbegrenset (5 av 87 sensorer koblet til
+utgangen) er prøvd og er feil, monotont:
+
+| trekk til utgangen | anger, asym. | anger, sym. |
+|---|---|---|
+| 5 | **5,037** | 6,175 |
+| 87 | 5,268 | 7,424 |
+| 400 | 5,380 | 8,086 |
+
+Grunnen er `bevarLengde`: kalibreringen får endre retning, aldri skala, så
+L2-lengden 1,5 fordeles på flere koblinger og hver sensor får mindre å si.

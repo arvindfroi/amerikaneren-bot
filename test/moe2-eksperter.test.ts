@@ -8,7 +8,18 @@ import { ANTALL_INN, INNGANG, lagInn } from "../src/neat/trekk.ts";
 import { tømCache } from "../src/neat/singledummy.ts";
 import { Nettverk } from "../src/neat/nett.ts";
 
-import { budEkspert, lagBudstillinger, påstand } from "../src/moe2/eksperter/bud.ts";
+import {
+  billigsteBud,
+  budEkspert,
+  budKostnad,
+  budLærevekt,
+  lagBudstillinger,
+  LÆREVEKT_OVER,
+  LÆREVEKT_UNDER,
+  OVERBUD_POENG,
+  påstand,
+  UNDERBUD_POENG_FØRSTE,
+} from "../src/moe2/eksperter/bud.ts";
 import {
   anger,
   bøtte,
@@ -256,8 +267,73 @@ test("budfasiten er deterministisk", () => {
     assert.deepEqual(a[i]!.verdi, b[i]!.verdi);
     assert.deepEqual(a[i]!.handlinger, b[i]!.handlinger);
     assert.equal(a[i]!.takValg, b[i]!.takValg);
+    assert.equal(a[i]!.nevroValg, b[i]!.nevroValg);
     assert.deepEqual([...a[i]!.læremål], [...b[i]!.læremål]);
   }
+});
+
+test("budets TAK er SD-orakelet selv, ikke NevroHjerne", () => {
+  tømCache();
+  const alle = lagBudstillinger({ giver: 25, frø: 56_000_000 });
+  assert.ok(alle.length > 40);
+  let nevroDårligere = 0;
+  for (const s of alle) {
+    // Taket er per konstruksjon det beste lovlige valget: anger null.
+    assert.ok(anger(s, s.takValg) < 1e-9, "taket er ikke fasitens eget optimum");
+    assert.ok(s.nevroValg !== undefined, "nevros valg må rapporteres, ikke bare kommenteres");
+    if (anger(s, s.nevroValg!) > 1e-9) nevroDårligere++;
+  }
+  // GRUNNEN til at taket ble byttet: nevro bommer 2,6090 stikk fra SD der et
+  // uniformt lovlig bud bommer 2,2229 (analyse/moe2-forste-maaling.txt). Et
+  // tak som ikke engang treffer fasiten kan ikke være taket for den.
+  assert.ok(
+    nevroDårligere > alle.length / 2,
+    `nevro traff fasiten i ${alle.length - nevroDårligere} av ${alle.length} stillinger`,
+  );
+});
+
+test("budtapet er ASYMMETRISK, konvekst, og festet til de målte poengtallene", () => {
+  // MÅLT (analyse/moe2-port-bud.txt, 240 givere x 4 seter): SD gir +3,89
+  // poeng/runde, SD+1 gir −10,86 og SD−1 gir +2,38.
+  assert.equal(budKostnad(0), 0);
+  assert.ok(Math.abs(budKostnad(1) - 14.75) < 1e-9, "ett stikk for høyt koster 14,75 poeng");
+  assert.ok(Math.abs(budKostnad(-1) - 1.51) < 1e-9, "ett stikk for lavt koster 1,51 poeng");
+  // Forholdet er hele poenget: en kvadratisk eller absolutt straff på |feil|
+  // ville satt dette til 1,0.
+  assert.ok(budKostnad(1) / budKostnad(-1) > 9, "asymmetrien er borte");
+  // De tre målte underbudspunktene: −1 → 1,51, −3 → 5,70 (eksakt), −2 mellom.
+  assert.ok(Math.abs(budKostnad(-3) - 5.71) < 0.02);
+  // Konveks: marginalen skal aldri synke, ellers kan «billigste lovlige bud»
+  // hoppe over flere stikk på en liten estimatendring.
+  for (let d = -6; d < 6; d++) {
+    const m1 = budKostnad(d + 1) - budKostnad(d);
+    const m2 = budKostnad(d + 2) - budKostnad(d + 1);
+    assert.ok(m2 >= m1 - 1e-9, `ikke-konveks mellom ${d} og ${d + 2}`);
+  }
+});
+
+test("eksperten runder NED: billigste lovlige bud, ikke det nærmeste", () => {
+  const lovlige = [5, 6, 7, 8, 9, 10];
+  // Estimat 8,6: nærmeste er 9, men 9 koster 14,75·0,4 = 5,90 mot 8-ens
+  // 1,51·0,6 = 0,91. Den asymmetriske regelen velger 8.
+  assert.equal(lovlige[billigsteBud(lovlige, 8.6)], 8);
+  // Terskelen ligger på 14,75·(1−x) = 1,51·x → x = 0,907 over budet under.
+  assert.equal(lovlige[billigsteBud(lovlige, 8.99)], 9);
+  assert.equal(lovlige[billigsteBud(lovlige, 8.5)], 8);
+  // Under hele det lovlige spennet finnes ingen billigere utvei enn det minste.
+  assert.equal(lovlige[billigsteBud(lovlige, 2)], 5);
+});
+
+test("læringsvektene er ekspektilvekter fra de samme målte kostnadene", () => {
+  assert.ok(LÆREVEKT_OVER > LÆREVEKT_UNDER, "overbudssiden må veie tyngst");
+  // Normalisert til snitt 1, så raten ikke endrer nivå – bare balanse.
+  assert.ok(Math.abs((LÆREVEKT_OVER + LÆREVEKT_UNDER) / 2 - 1) < 1e-9);
+  assert.ok(
+    Math.abs(LÆREVEKT_OVER / LÆREVEKT_UNDER - OVERBUD_POENG / UNDERBUD_POENG_FØRSTE) < 1e-9,
+  );
+  // feil = fasit − utgang. Negativ feil = nettet ligger over fasiten = dyrt.
+  assert.equal(budLærevekt(-0.1), LÆREVEKT_OVER);
+  assert.equal(budLærevekt(0.1), LÆREVEKT_UNDER);
 });
 
 test("budhandlingene ligger på ÉN akse: pass, tallbud og amerikaner i stikk", () => {
@@ -335,7 +411,9 @@ test("lamarckisk kalibrering senker treningsangeren for budeksperten", () => {
   const utvalg = delUtvalg("bud", alle);
   const pop = new Populasjon(budEkspert, { antall: 6, frø: 3 });
   const før = pop.rangér(utvalg.trening)[0]!.anger;
-  for (let e = 0; e < 5; e++) pop.lærEpoke(utvalg.trening, 0.05);
+  // Vekten hører til: fasiten er asymmetrisk, så en symmetrisk gradient sikter
+  // mot betinget forventning i et rom der forventningen ikke er optimum.
+  for (let e = 0; e < 5; e++) pop.lærEpoke(utvalg.trening, 0.05, budLærevekt);
   const etter = pop.rangér(utvalg.trening)[0]!.anger;
   assert.ok(
     etter < før,

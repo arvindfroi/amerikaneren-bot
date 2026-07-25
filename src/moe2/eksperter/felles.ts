@@ -124,8 +124,24 @@ export interface Råstilling<H> {
   readonly handlinger: readonly H[];
   /** Fasitverdi per handling, samme rekkefølge. Høyere er bedre. */
   readonly verdi: readonly number[];
-  /** Indeksen NevroHjerne velger i akkurat denne stillingen (taket). */
+  /**
+   * Indeksen TAKET velger i akkurat denne stillingen.
+   *
+   * For de fleste ekspertene er taket NevroHjerne. Det er ikke gitt: taket
+   * skal være en referanse som faktisk er bedre enn gulvet på DENNE oppgaven,
+   * og det må måles, ikke antas. Budeksperten bruker SD-orakelet selv, fordi
+   * nevro er målt til 2,6090 stikks avvik der et uniformt lovlig bud ligger på
+   * 2,2229 – taket lå under gulvet. Se `lagBudstillinger`.
+   */
   readonly takValg: number;
+  /**
+   * Indeksen NevroHjerne velger, når taket er noe annet enn nevro.
+   *
+   * Ren rapporteringslinje. Den finnes fordi «nevro duger ikke som tak her»
+   * er en påstand som skal kunne etterprøves i hver eneste rapport, på samme
+   * stillinger som kandidaten – ikke bare stå i en kommentar.
+   */
+  readonly nevroValg?: number | undefined;
   /**
    * Læremålet: utgang → ønsket tanh-verdi. Regnes ut sammen med fasiten, én
    * gang, av eksperten selv. Lagres her fordi den lamarckiske kalibreringen
@@ -350,8 +366,23 @@ export class Populasjon<H> {
    *
    * Kaster hvis noen stilling er merket holdout. Det er invarianten fra
    * docs/moe2.md gjort til kode i stedet for til en vane.
+   *
+   * ASYMMETRISK LÆRING. `vektAvFeil` skalerer raten med fortegnet på feilen
+   * (fasit − utgang). Delta-regelen er gradienten til et kvadratisk tap, og et
+   * kvadratisk tap straffer de to retningene likt – som er MÅLT feil for
+   * budet: ett stikk for høyt koster 14,75 poeng, ett for lavt 1,51. Med en
+   * vekt per side blir gradienten den til et asymmetrisk kvadratisk tap, og
+   * fikspunktet flytter seg fra betinget forventning til den τ-ekspektilen
+   * kostnadene faktisk peker på. Se `budLærevekt` i `bud.ts`.
+   *
+   * Standard er `undefined` – altså symmetrisk – fordi de andre ekspertene
+   * ikke har en målt asymmetri ennå. Å gjette en er verre enn å la være.
    */
-  lærEpoke(stillinger: readonly Stilling<H>[], rate = 0.05): void {
+  lærEpoke(
+    stillinger: readonly Stilling<H>[],
+    rate = 0.05,
+    vektAvFeil?: (feil: number) => number,
+  ): void {
     for (const s of stillinger) {
       if (s.del === "holdout") {
         throw new Error(
@@ -365,7 +396,10 @@ export class Populasjon<H> {
       for (const s of stillinger) {
         if (s.læremål.size === 0) continue;
         nett.aktiver(s.inn);
-        for (const [utgang, y] of s.læremål) nett.kalibrerUtgang(utgang, y, rate);
+        for (const [utgang, y] of s.læremål) {
+          const v = vektAvFeil === undefined ? 1 : vektAvFeil(y - nett.lesUtgang(utgang));
+          if (v !== 0) nett.kalibrerUtgang(utgang, y, rate * v);
+        }
       }
     }
   }

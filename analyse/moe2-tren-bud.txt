@@ -1,0 +1,62 @@
+Trening av budeksperten. 2026-07-25T16:24:38.279Z
+givere 1200 (frø 9000000), pop 32, 60 generasjoner x 3 epoker, rate 0.05
+
+stillinger: 5872 trening / 2027 utvikling / 1828 holdout  (av 9727)
+giv-deling: 726 / 248 / 226 givere, ingen giv i to deler (sjekket, ikke antatt)
+
+=== ARM: asymmetrisk ===
+  asymmetrisk fersk 5.8670  [gulv 25.1758 → tak 0.0000]  framdrift 76.7 %  n=1828 holdout
+  gen   0  utvikling beste 4.9799  median 5.7810  mester 4.9799
+  gen   5  utvikling beste 4.9295  median 5.0050  mester 4.9295
+  gen  10  utvikling beste 4.8802  median 4.9108  mester 4.8802
+  gen  15  utvikling beste 4.8311  median 4.8756  mester 4.8311
+  gen  20  utvikling beste 4.7836  median 4.8311  mester 4.7836
+  gen  25  utvikling beste 4.7730  median 4.7894  mester 4.7730
+  gen  30  utvikling beste 4.7656  median 4.7730  mester 4.7656
+  gen  35  utvikling beste 4.7632  median 4.7730  mester 4.7632
+  gen  40  utvikling beste 4.7632  median 4.7724  mester 4.7632
+  gen  45  utvikling beste 4.7596  median 4.7656  mester 4.7596
+  gen  50  utvikling beste 4.7596  median 4.7632  mester 4.7596
+  gen  55  utvikling beste 4.7579  median 4.7596  mester 4.7579
+  gen  59  utvikling beste 4.7579  median 4.7596  mester 4.7579
+  asymmetrisk lært 5.3459  [gulv 25.1758 → tak 0.0000]  framdrift 78.8 %  n=1828 holdout
+  asymmetrisk tren 5.0031  [gulv 26.3199 → tak 0.0000]  framdrift 81.0 %  n=5872 TRENINGSSETT
+  snittbud 5.68 mot orakelets 7.87  over 5 % / under 62 %
+
+=== ARM: symmetrisk ===
+  symmetrisk fersk 5.8670  [gulv 25.1758 → tak 0.0000]  framdrift 76.7 %  n=1828 holdout
+  gen   0  utvikling beste 6.1791  median 8.2419  mester 5.8547
+  gen   5  utvikling beste 6.1544  median 6.3125  mester 5.8547
+  gen  10  utvikling beste 6.0778  median 6.1544  mester 5.8547
+  gen  15  utvikling beste 5.9348  median 6.0691  mester 5.8547
+  gen  20  utvikling beste 5.8145  median 5.9313  mester 5.8145
+  gen  25  utvikling beste 5.6904  median 5.7880  mester 5.6904
+  gen  30  utvikling beste 5.6813  median 5.6983  mester 5.6813
+  gen  35  utvikling beste 5.5857  median 5.6774  mester 5.5849
+  gen  40  utvikling beste 5.4850  median 5.5857  mester 5.4711
+  gen  45  utvikling beste 5.3981  median 5.5031  mester 5.3981
+  gen  50  utvikling beste 5.3981  median 5.4632  mester 5.3981
+  gen  55  utvikling beste 5.3819  median 5.4074  mester 5.3819
+  gen  59  utvikling beste 5.3109  median 5.3981  mester 5.3109
+  symmetrisk lært  5.4320  [gulv 25.1758 → tak 0.0000]  framdrift 78.4 %  n=1828 holdout
+  symmetrisk tren  5.5725  [gulv 26.3199 → tak 0.0000]  framdrift 78.8 %  n=5872 TRENINGSSETT
+  snittbud 6.90 mot orakelets 7.87  over 15 % / under 48 %
+
+=== HOLDOUT, n=1828 – anger i POENG per runde ===
+policy                  anger     gulv     tak   framdrift
+----------------------------------------------------------
+SD (taket)              0.000   25.176   0.000     100.0 %
+asymmetrisk lært        5.346   25.176   0.000      78.8 %
+symmetrisk lært         5.432   25.176   0.000      78.4 %
+asymmetrisk fersk       5.867   25.176   0.000      76.7 %
+symmetrisk fersk        5.867   25.176   0.000      76.7 %
+konstant 9             11.264   25.176   0.000      55.3 %
+konstant 8              8.801   25.176   0.000      65.0 %
+nevros bud              5.588   25.176   0.000      77.8 %
+
+NEVRO ER IKKE TAKET her: nevros bud gir anger 5.588 mot gulvet 25.176 – bedre enn å velge uniformt blant de lovlige budene, på nøyaktig disse stillingene.
+
+Skrev analyse/moe2-budekspert.json (armen «asymmetrisk») og analyse/moe2-budekspert-symmetrisk.json
+Skrev analyse/moe2-tren-bud.json
+
+Tid: 63 s

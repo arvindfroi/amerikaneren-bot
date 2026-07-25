@@ -1,0 +1,23 @@
+Budeksperten mot poeng. 2026-07-25T16:28:47.831Z
+240 givere x 4 seter, bare budet varieres, alt annet er NevroHjerne
+ekspert: analyse/moe2-budekspert.json
+
+policy           snittbud   byr%  skjevhet  spredning   over%    poeng     SE  mot nevro
+----------------------------------------------------------------------------------------
+SD (fasiten)         9.10   92 %      0.00       0.00     0 %     3.89   0.41       3.89
+SD − 1               8.32   82 %     -1.00       0.00     0 %     2.38   0.34       2.38
+SD − 1 ± 1           8.42   81 %     -0.85       0.99     0 %     2.03   0.36       2.03
+sym+billigst         8.20   98 %     -0.71       1.52    21 %     0.18   0.32       0.18
+nevro selv           7.54   96 %     -1.38       1.87    16 %    -0.00   0.33       0.00
+asym+billigst        7.47   81 %     -1.57       1.55    10 %    -0.97   0.27      -0.97
+asym+nærmest         9.17   99 %      0.28       1.90    44 %    -2.70   0.49      -2.70
+sym+nærmest          9.83  100 %      0.96       1.83    56 %    -4.11   0.54      -4.11
+skjevhet = snitt(bud − SD), spredning = standardavviket rundt den, over% = hvor ofte budet ligger over SD
+
+  asym+billigst     -0.97 mot nevro, snittbud 7.47, avvik fra SD 3.01
+  asym+nærmest      -2.70 mot nevro, snittbud 9.17, avvik fra SD 1.56
+  sym+billigst       0.18 mot nevro, snittbud 8.20, avvik fra SD 1.47
+  sym+nærmest       -4.11 mot nevro, snittbud 9.83, avvik fra SD 1.60
+
+Beste variant «sym+billigst» SLÅR nevros eget bud: 0.18 poeng/runde (SE 0.32).
+Av spennet nevro → SD (3.89 poeng) har den hentet 5 %.
