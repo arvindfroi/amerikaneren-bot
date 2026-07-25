@@ -656,6 +656,35 @@ export interface FitnessOpts {
  * dominerer alltid), og snittangeren per kontrakt trekkes fra – to agenter
  * som når like langt rangeres etter hvem som byr mest presist.
  */
+/**
+ * VEKTENE MELLOM CUPDYBDE OG RELATIV POENGDIFFERANSE.
+ *
+ * Arvind: «den bør bli straffet og belønnet med hvor mange poeng den klarer
+ * å få i forhold til resten. dette belønner godt spill. så ikke bare hvordan
+ * den gjør det individuelt.»
+ *
+ * SLIK DET VAR: ett dybdesteg ga 2,0 mens HELE poengspennet i feltet ga
+ * maksimalt 1,8. Et genom som spilte klart best av alle 96, men røk i én
+ * enkelt gruppe, rangerte dermed under et middelmådig genom som kom seg én
+ * runde videre. Cupdybden er ETT knockout-utfall med stor kortflaks;
+ * poengdifferansen er summen over alle seterotasjoner og alle runder, altså
+ * mye lavere varians og et langt ærligere mål på spillestyrke.
+ *
+ * Merk at poengBonus ALLEREDE er relativ – `poeng` er egne kamppoeng minus
+ * snittet av motstandernes, normalisert mot feltets spenn. Den målte altså
+ * det riktige hele tiden; den ble bare veid for lavt til å bety noe.
+ *
+ * Nå dominerer poengene (6,0 mot 0,6), og dybden er en tilleggsopplysning
+ * i stedet for hovedsignalet. Regelen lenger nede – at bare genomer som SLÅR
+ * mesterens dybde kan få høyere fitness enn mesteren – står fortsatt, så
+ * mesteren kan ikke avsettes på poeng alene.
+ *
+ * MAA MAALES: dette er en stor endring i seleksjonspresset, og den er ikke
+ * verifisert mot utfall enda. D6 er linja som kjoerer den.
+ */
+const DYBDE_VEKT = 0.6;
+const POENG_VEKT = 6;
+
 export function beregnFitness(
   res: TurneringsResultat,
   forrigeMesterIdx: number | null,
@@ -684,11 +713,11 @@ export function beregnFitness(
   const fitness = new Array<number>(n);
   for (let i = 0; i < n; i++) {
     const relativDybde = res.dybde[i]! - referanse + maksDybde; // ≥ 0
-    const base = (relativDybde + 1) * 2;
+    const base = (relativDybde + 1) * DYBDE_VEKT;
     // 1,8 < 2 (ett dybdesteg): dybden dominerer fortsatt, men differansen
     // får nå reell seleksjonskraft innen samme dybde – avgjørende når
     // populasjonen er jevn og dybden alene er nesten ren trekningsstøy.
-    const poengBonus = ((res.poeng[i]! - minP) / spenn) * 1.8;
+    const poengBonus = ((res.poeng[i]! - minP) / spenn) * POENG_VEKT;
     const anger = lambda * res.regretSnitt[i]!;
     fitness[i] = Math.max(0.05, base + poengBonus - anger);
   }

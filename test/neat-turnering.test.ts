@@ -65,7 +65,14 @@ test("turneringen avviser felt som ikke er delelig med 4", async () => {
   await assert.rejects(() => kjørTurnering(nyAgenter(0), 1));
 });
 
-test("fitness: dybde dominerer, poeng skiller, regret straffer", () => {
+test("fitness: RELATIV POENGDIFFERANSE dominerer, dybde er tilleggsopplysning", () => {
+  // Endret kontrakt (Arvind): «den boer bli straffet og beloennet med hvor
+  // mange poeng den klarer aa faa i forhold til resten. dette beloenner godt
+  // spill.» Foer veide ett dybdesteg 2,0 mens HELE poengspennet ga 1,8 – et
+  // genom som spilte best av alle, men roek i én gruppe, rangerte under et
+  // middelmaadig genom som kom én runde videre. Cupdybden er ETT
+  // knockout-utfall med stor kortflaks; poengdifferansen er summen over alle
+  // seterotasjoner og runder.
   const res: TurneringsResultat = {
     dybde: [2, 1, 1, 0],
     poeng: [400, 300, 100, 50],
@@ -75,12 +82,26 @@ test("fitness: dybde dominerer, poeng skiller, regret straffer", () => {
     runder: 2,
   };
   const fit = beregnFitness(res, null);
-  assert.ok(fit[0]! > fit[1]!, "større dybde gir mer fitness");
+  assert.ok(fit[0]! > fit[1]!, "flest poeng OG dypest skal rangere oeverst");
   assert.ok(fit[1]! > fit[2]!, "lik dybde: flere poeng gir mer fitness");
   assert.ok(fit[2]! > fit[3]!);
-  // Poengbonus (< 1) kan aldri slå ett dybdesteg (2 i base).
-  assert.ok(fit[1]! - fit[2]! < 2);
   for (const f of fit) assert.ok(f > 0);
+
+  // KJERNEN: et genom som spiller klart best, men roek tidlig i cupen, skal
+  // naa rangere OVER et svakere genom som kom lenger. Det var umulig foer.
+  const cupflaks: TurneringsResultat = {
+    dybde: [0, 3],
+    poeng: [400, 50],
+    seire: [1, 5],
+    regretSnitt: [0.1, 0.1],
+    mesterIdx: 1,
+    runder: 2,
+  };
+  const f2 = beregnFitness(cupflaks, null);
+  assert.ok(
+    f2[0]! > f2[1]!,
+    `beste spiller (400 poeng, dybde 0) fikk ${f2[0]!.toFixed(2)} mot ${f2[1]!.toFixed(2)} for et svakt genom som kom dypere`,
+  );
 });
 
 test("fitness relativt til forrige mester: å slå mesterens dybde gir mer enn mesteren", () => {
@@ -96,8 +117,14 @@ test("fitness relativt til forrige mester: å slå mesterens dybde gir mer enn m
   const fit = beregnFitness(res, 0);
   assert.ok(fit[1]! > fit[0]!, "dypere enn mesteren ⇒ høyere fitness enn mesteren");
   assert.ok(fit[2]! < fit[0]!, "grunnere enn mesteren ⇒ lavere fitness");
-  // Samme dybde som mesteren rangeres via poeng, tett på mesteren.
-  assert.ok(Math.abs(fit[3]! - fit[0]!) < 2);
+  // Samme dybde som mesteren rangeres via POENG, og forskjellen kan naa vaere
+  // stor – det er hele poenget med endringen. Den gamle testen krevde at
+  // avstanden var under ett dybdesteg, altsaa at poeng bare kunne nudge
+  // innenfor et niva. Naa skal 150 poeng mot mesterens 200 gi maalbart
+  // lavere fitness, ikke bare marginalt.
+  assert.ok(fit[3]! < fit[0]!, "faerre poeng paa samme dybde skal gi lavere fitness");
+  // ... men mesterbeskyttelsen staar: ingen paa samme dybde kan passere.
+  assert.ok(fit[3]! <= fit[0]!);
 });
 
 test("parallell cup (arbeidstråder) gir bit-identisk resultat med sekvensiell", async () => {
