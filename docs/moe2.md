@@ -153,3 +153,30 @@ det betyr minst.
 Dette er nøyaktig det godkjenningsporten i `src/moe2/port.ts` ble skrevet
 for å fange. Den ble bare ikke kjørt før arkitekturen ble skrevet. Porten
 virket; jeg brukte den for sent.
+
+### Andre bekreftelse, uavhengig av den første: budfasiten
+
+Ekspertbyggingen målte NevroHjerne mot SD-orakelets bud og fant at **taket
+ligger under gulvet**:
+
+| | avvik fra SD-orakelets bud (stikk) |
+|---|---|
+| uniformt lovlig bud (gulv) | 2,2229 |
+| NevroHjerne (tak) | 2,6090 |
+
+Nevro er altså dårligere enn tilfeldig til å treffe SD-orakelets bud — og
+nevro er den som vinner på poeng, med +75,37 mot alt vi har bygget.
+
+Retningen stemmer med egne målinger tidligere samme dag: SD byr 8,78 i snitt,
+nevros budnett 5,66. Nevro underbyr systematisk med over tre stikk, henter
+hjem 8,92, og innfrir 97 % av kontraktene sine.
+
+**Det er samme mønster som i E1-målingen, på en helt annen beslutning.**
+Orakelet sier hva som er optimalt med informasjon man ikke har – dobbelt
+dummy ser alle hender, og SD-budet forutsetter at man vinner budrunden. Å
+ligne på orakelet er ikke det samme som å spille godt.
+
+Konsekvens for arkitekturen: **ingen fasit i MoE2 er godkjent før porten er
+kjørt på den, med kandidater fra ulike familier og en poengreferanse hvis
+pålitelighet er målt.** To av seks fasiter ser allerede motbevist ut. De skal
+ikke brukes til forfremmelse før det er avklart.
