@@ -67,6 +67,8 @@ let racing = 16;
 let finGivere = 12;
 /** Generasjonssentrert dom (av = raatall, slik det var foer stoeyryddingen). */
 let relativDom = true;
+/** NevroHjerne byr/vraker/etterlyser i kandidatens sete (av = kandidaten byr selv). */
+let medBudfører = true;
 let evoFrø = 0xd8;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
@@ -79,6 +81,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--racing") racing = Number(process.argv[++i]);
   else if (a === "--fingivere") finGivere = Number(process.argv[++i]);
   else if (a === "--relativdom") relativDom = process.argv[++i] !== "0";
+  else if (a === "--budfoerer") medBudfører = process.argv[++i] !== "0";
   else if (a === "--fro") evoFrø = Number(process.argv[++i]);
 }
 mkdirSync(dir, { recursive: true });
@@ -97,6 +100,20 @@ const motNevro = (s: Parameters<typeof grådigHandling>[0]): ReturnType<typeof g
   nevro.velgHandling(s);
 
 /**
+ * BUDFOERER I KANDIDATENS EGET SETE. NevroHjerne byr, vraker og etterlyser;
+ * genomet spiller bare kortene.
+ *
+ * Uten dette maalte fitness unnvikelse i stedet for spilleevne: D5 endte som
+ * spillefoerer i 6 % av rundene, D6 i 2 %, D8b i 0,3 %. Aa passe er den
+ * billigste maaten aa slippe unna en kontrakt man ikke kan spille hjem, og
+ * seleksjonen fant den utveien hver gang. Naa er rollen paatvunget.
+ *
+ * Dette er halve koevolusjonen. Budagenten er foreloepig FROSSEN (nevro), ikke
+ * en egen populasjon som laerer - det staar igjen.
+ */
+const budfører = medBudfører ? motNevro : undefined;
+
+/**
  * Fitness for hele populasjonen på ETT delt frøsett.
  *
  * At frøbasen er felles er ikke en detalj – det er hele grunnen til at fire
@@ -105,7 +122,15 @@ const motNevro = (s: Parameters<typeof grådigHandling>[0]): ReturnType<typeof g
  */
 function målPopulasjon(genomer: readonly Genom[], frøBase: number): number[] {
   return genomer.map(
-    (g) => målAnkret(() => new NeatAgent(g, { læringsrate: 0 }), grådigHandling, givere, frøBase).diff,
+    (g) =>
+      målAnkret(
+        () => new NeatAgent(g, { læringsrate: 0 }),
+        grådigHandling,
+        givere,
+        frøBase,
+        8,
+        budfører,
+      ).diff,
   );
 }
 
@@ -161,6 +186,8 @@ for (let g = 0; g < generasjoner; g++) {
         grådigHandling,
         finGivere,
         frøBase + 16,
+        8,
+        budfører,
       ).diff;
       skjerpet[i] = (givere * fitness[i]! + finGivere * fin) / (givere + finGivere);
     }
@@ -208,11 +235,20 @@ for (let g = 0; g < generasjoner; g++) {
       grådigHandling,
       24,
       friskt,
+      8,
+      budfører,
     );
     const s =
       gull === null
         ? null
-        : målAnkret(() => new NeatAgent(gull!, { læringsrate: 0 }), grådigHandling, 24, friskt);
+        : målAnkret(
+            () => new NeatAgent(gull!, { læringsrate: 0 }),
+            grådigHandling,
+            24,
+            friskt,
+            8,
+            budfører,
+          );
     if (s === null || u.diff > s.diff) {
       gull = evo.genomer[beste]!;
       gullDiff = u.diff;
@@ -231,7 +267,17 @@ for (let g = 0; g < generasjoner; g++) {
     // 40 RUNDER, ikke 8: fitnessen har raad til aa kutte kampen kort, men
     // poeng akkumuleres per runde, saa benken maa ha en fast, lang skala.
     const frø = 3_000_000 + (g % 40) * 16;
-    const nb = målAnkret(() => new NeatAgent(kandidat, { læringsrate: 0 }), motNevro, 16, frø, 40);
+    // Benken bruker SAMME oppsett som treningen. Maalte vi hele botten mens vi
+    // trente bare kortspillet, ville tallet blandet inn en budagent genomet
+    // ikke lenger eier.
+    const nb = målAnkret(
+      () => new NeatAgent(kandidat, { læringsrate: 0 }),
+      motNevro,
+      16,
+      frø,
+      40,
+      budfører,
+    );
 
     // UTGANGSPUNKTET MAALES PAA DE SAMME GIVERNE, hver gang.
     //
@@ -243,7 +289,14 @@ for (let g = 0; g < generasjoner; g++) {
     // laane oere til naar jeg avgjoer om linja gaar framover.
     const ref =
       refGenom !== undefined
-        ? målAnkret(() => new NeatAgent(refGenom, { læringsrate: 0 }), motNevro, 16, frø, 40)
+        ? målAnkret(
+            () => new NeatAgent(refGenom, { læringsrate: 0 }),
+            motNevro,
+            16,
+            frø,
+            40,
+            budfører,
+          )
         : null;
     const linjer = benkelinjer(g + 1, "nevro", nb);
     si(linjer);

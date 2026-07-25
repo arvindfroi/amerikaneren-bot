@@ -67,12 +67,31 @@ export interface Måling {
  * `maksRunder` bounder både kostnad og varians. `målMot` i neat-tren spiller
  * til FERDIG (opptil 40 runder); for fitness er det for dyrt og for spredt.
  */
+/**
+ * BUDFOERER: overtar BUDRUNDE, VRAK og VELG i kandidatens eget sete.
+ *
+ * HVORFOR DETTE MAA FINNES. Maalt paa 80 giver x 4 seter er D5 spillefoerer i
+ * 6 % av rundene, D6 i 2 % og D8b i 0,3 % - én runde av 320. De har ikke
+ * blitt bedre, de har sluttet aa by. Naar det aa vinne budrunden koster
+ * poeng, er det aa passe alltid den billigste utveien, og seleksjonen finner
+ * den hver gang. Tapet flytter seg bare over i forsvaret (49 % -> 71 % ->
+ * 90 % av totaltapet).
+ *
+ * Med en fast budfoerer kan ikke kandidaten velge bort rollen. Den blir
+ * spillefoerer like ofte som budfoereren bestemmer, og maa faktisk spille
+ * kontraktene hjem. Da maaler fitness spilleevne i stedet for unnvikelse.
+ *
+ * De tre fasene hoerer sammen: budet, vraket og etterlysningen er én
+ * beslutningskjede om hva kontrakten skal vaere. Lot vi kandidaten vrake
+ * ville den kunne sabotere en kontrakt den ikke ville ha.
+ */
 export function målAnkret(
   lagAgent: () => MålbarAgent,
   motstander: MotstanderTrekk,
   antallFrø: number,
   frøBase: number,
   maksRunder = 8,
+  budfører?: MotstanderTrekk,
 ): Måling {
   const agent = lagAgent();
   let mesterPoeng = 0;
@@ -92,8 +111,15 @@ export function målAnkret(
         const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner! : s.iTur;
         let h: Handling;
         if (s.fase === "RUNDE_SLUTT") h = { type: "NESTE" };
-        else if (iTur === sete) h = agent.velgHandling(s);
-        else h = motstander(s);
+        else if (iTur !== sete) h = motstander(s);
+        else if (
+          budfører !== undefined &&
+          (s.fase === "BUDRUNDE" || s.fase === "VRAK" || s.fase === "VELG")
+        ) {
+          // Budfoereren eier kontraktvalget i kandidatens sete; kandidaten
+          // eier bare kortspillet. Se kommentaren over målAnkret.
+          h = budfører(s);
+        } else h = agent.velgHandling(s);
         s = utfør(s, h).state;
       }
       const egne = s.totalPoeng[sete] ?? 0;
