@@ -388,6 +388,14 @@ const STEG_MIN = 0.02;
 const STEG_MAKS = 0.8;
 const STEG_OPP = 1.3;
 const STEG_NED = 0.7;
+/**
+ * Hvor stor del av et daarlig skritt som trekkes tilbake med det samme.
+ *
+ * 0 = gammel oppfoersel (bare snu minnet, la endringen staa). 1 = full angring,
+ * som fjerner all utforskning og laaser linja. Standarden er et kompromiss og
+ * skal MAALES, ikke antas - se examples/angre-ab.ts.
+ */
+export const ANGRE_ANDEL = 0.5;
 
 export function muterRettet(g: Genom, rng: () => number, rater: MutasjonsRater): void {
   const steg = g.steg ?? rater.styrke;
@@ -435,7 +443,7 @@ export function muterRettet(g: Genom, rng: () => number, rater: MutasjonsRater):
  * det som staar igjen er genomets plassering i feltet - som er nettopp det
  * dommen skal handle om.
  */
-export function dommenOverBarnet(g: Genom, egenFitness: number): void {
+export function dommenOverBarnet(g: Genom, egenFitness: number, angre = ANGRE_ANDEL): void {
   const forelder = g.foreldreFitness;
   if (forelder === undefined) {
     g.foreldreFitness = egenFitness;
@@ -445,10 +453,43 @@ export function dommenOverBarnet(g: Genom, egenFitness: number): void {
   const steg = g.steg ?? 0.35;
   g.steg = Math.min(STEG_MAKS, Math.max(STEG_MIN, steg * (bedre ? STEG_OPP : STEG_NED)));
   if (!bedre && g.retning !== undefined) {
-    // Snu retningen: neste skritt gaar tilbake mot forelderen.
-    for (const [innov, d] of g.retning) g.retning.set(innov, -d);
+    // FAKTISK ANGRE SKRITTET, ikke bare snu minnet.
+    //
+    // Foer dette stod den skadelige vektendringen igjen i genomet; vi snudde
+    // bare retningen, saa den ble delvis trukket tilbake FOERST ved neste
+    // mutasjon, blandet med ny stoey. Naa trekkes vektene tilbake med det
+    // samme, kobling for kobling, langs noeyaktig det skrittet som gjorde
+    // barnet verre. Det er per-gen reversering: hver kobling angrer sin egen
+    // endring, ikke genomet som helhet.
+    if (angre > 0) angreSkritt(g, angre);
+    // Resten av minnet snus, saa momentum fortsetter tilbakeveien.
+    for (const [innov, d] of g.retning) g.retning.set(innov, -d * (1 - angre));
   }
   g.foreldreFitness = egenFitness;
+}
+
+/**
+ * Trekker vektene tilbake langs forrige skritt.
+ *
+ * `retning` holder deltaen som SIST ble lagt paa hver kobling (noekkel er
+ * innovasjonsnummeret, som overlever krysning og topologiendring). Aa trekke
+ * fra `andel * delta` foerer koblingen tilbake mot verdien den hadde foer
+ * skrittet - helt tilbake ved andel 1, halvveis ved 0,5.
+ *
+ * Bare aktive koblinger roeres; en deaktivert kobling har ingen virkning aa
+ * angre, og aa endre vekten dens ville bare gjemt stoey til den slaas paa igjen.
+ */
+export function angreSkritt(g: Genom, andel: number): void {
+  const retning = g.retning;
+  if (retning === undefined) return;
+  for (const k of g.koblinger) {
+    if (!k.aktiv) continue;
+    const delta = retning.get(k.innovasjon);
+    if (delta === undefined) continue;
+    k.vekt -= andel * delta;
+    if (k.vekt > 8) k.vekt = 8;
+    if (k.vekt < -8) k.vekt = -8;
+  }
 }
 
 export function muterVekter(g: Genom, rng: () => number, rater: MutasjonsRater): void {

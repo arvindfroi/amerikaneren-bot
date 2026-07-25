@@ -3,6 +3,8 @@ import { test } from "node:test";
 
 import { lagRng } from "../src/kort.ts";
 import {
+  angreSkritt,
+  ANGRE_ANDEL,
   dommenOverBarnet,
   Innovasjonsbok,
   klonGenom,
@@ -149,10 +151,19 @@ test("bevist mutering: bedre barn vokser skrittet, verre barn krymper og snur", 
 
   const steg1 = g.steg!;
   // Verre enn forrige -> skrittet skal KRYMPE og retningen SNUS.
+  //
+  // Minnet snus OG skaleres med (1 - ANGRE_ANDEL). Grunnen er at halve
+  // skrittet naa trekkes tilbake med det samme av angreSkritt; lot vi minnet
+  // staa paa full styrke ville momentum dratt oss forbi forelderen paa
+  // neste skritt i stedet for tilbake TIL den.
   dommenOverBarnet(g, 0.5);
   assert.ok(g.steg! < steg1, `skrittet krympet ikke: ${steg1} -> ${g.steg}`);
   for (const [i, d] of g.retning!) {
-    assert.equal(d, -retning0.get(i)!, "retningen ble ikke snudd etter et daarlig skritt");
+    const forventet = -retning0.get(i)! * (1 - ANGRE_ANDEL);
+    assert.ok(
+      Math.abs(d - forventet) < 1e-9,
+      `retningen ble ikke snudd og skalert: ${d} mot forventet ${forventet}`,
+    );
   }
 });
 
@@ -228,4 +239,64 @@ test("kalibrering kan ikke mette nettet – tusenvis av steg endrer aldri skalae
   const u = nett.aktiver(inn);
   const d = 1 - u[UT_KORT]! * u[UT_KORT]!;
   assert.ok(d > 0.05, `utgangen mettet likevel: tanh-derivert ${d.toFixed(5)}`);
+});
+
+// --- Per-gen angring -------------------------------------------------------
+// Foer denne mekanismen ble et daarlig skritt staaende i genomet; bare
+// retningsminnet ble snudd, saa skaden ble foerst delvis trukket tilbake ved
+// NESTE mutasjon, blandet med ny stoey. Testene under laaser at skrittet nå
+// angres med det samme, kobling for kobling.
+test("angreSkritt foerer vekten tilbake langs forrige skritt", () => {
+  const bok = new Innovasjonsbok();
+  const g = nyttGenom(ANTALL_INN, ANTALL_UT, bok, lagRng(7));
+  const foer = g.koblinger.map((k) => k.vekt);
+  muterRettet(g, lagRng(7), { ...STANDARD_RATER, bevist: true });
+  const etter = g.koblinger.map((k) => k.vekt);
+  assert.ok(etter.some((v, i) => v !== foer[i]), "mutasjonen endret ingenting");
+
+  angreSkritt(g, 1);
+  for (let i = 0; i < g.koblinger.length; i++) {
+    if (!g.koblinger[i]!.aktiv) continue;
+    assert.ok(
+      Math.abs(g.koblinger[i]!.vekt - foer[i]!) < 1e-9,
+      `kobling ${i}: ${g.koblinger[i]!.vekt} skulle vaert tilbake paa ${foer[i]}`,
+    );
+  }
+});
+
+test("halv angring gaar halvveis tilbake", () => {
+  const g = nyttGenom(ANTALL_INN, ANTALL_UT, new Innovasjonsbok(), lagRng(11));
+  const foer = g.koblinger.map((k) => k.vekt);
+  muterRettet(g, lagRng(11), { ...STANDARD_RATER, bevist: true });
+  const etter = g.koblinger.map((k) => k.vekt);
+  angreSkritt(g, 0.5);
+  for (let i = 0; i < g.koblinger.length; i++) {
+    if (!g.koblinger[i]!.aktiv) continue;
+    const forventet = (foer[i]! + etter[i]!) / 2;
+    assert.ok(Math.abs(g.koblinger[i]!.vekt - forventet) < 1e-9, `kobling ${i}`);
+  }
+});
+
+test("dommenOverBarnet angrer et daarlig skritt, men ikke et godt", () => {
+  const lag = (): Genom => {
+    const g = nyttGenom(ANTALL_INN, ANTALL_UT, new Innovasjonsbok(), lagRng(3));
+    muterRettet(g, lagRng(3), { ...STANDARD_RATER, bevist: true });
+    g.foreldreFitness = 10;
+    return g;
+  };
+  const daarlig = lag();
+  const godt = lag();
+  const utgangspunkt = daarlig.koblinger.map((k) => k.vekt);
+
+  dommenOverBarnet(daarlig, 5); // verre enn forelderens 10
+  dommenOverBarnet(godt, 15); // bedre
+
+  assert.ok(
+    daarlig.koblinger.some((k, i) => Math.abs(k.vekt - utgangspunkt[i]!) > 1e-9),
+    "et daarlig skritt skal trekkes tilbake",
+  );
+  assert.ok(
+    godt.koblinger.every((k, i) => Math.abs(k.vekt - utgangspunkt[i]!) < 1e-9),
+    "et godt skritt skal staa uroert",
+  );
 });
