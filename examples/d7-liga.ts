@@ -61,18 +61,28 @@ if (fraFil !== null) {
  * lansering: vi fikset at laeringen kan feste, og startet saa en linje uten
  * laering.
  *
- * Dosene er de D6 kjoerte med, som er de eneste vi har maalt: trumffasit ga
- * +20,4 +- 4,4, og dosesveipet viste at MER ikke er bedre (1500 runder
- * daarligere enn 600 paa samme rate).
+ * SPILLFASITEN VAR EN NO-OP I FOERSTE LANSERING. Den ble sendt som
+ * `{sjanse, rate, dybde}` uten `verdener` og `nodeTak`. `solverBesteKort`
+ * loeper `while (verdener < opts.verdener && ...)`, og med `undefined` er den
+ * testen alltid usann: loekka kjoerer null ganger, funksjonen returnerer null,
+ * og `lærSpill` fyrer aldri. examples/ ligger utenfor tsconfig-ens `include`,
+ * saa typesjekken fanget det ikke. Formen er naa den samme som neat-tren.ts
+ * bruker - den eneste som faktisk har kjoert.
+ *
+ * RATENE er rettet til dem D-linjene virkelig kjoerte med (neat-tren.ts:248-257).
+ * Kommentaren her paastod foer at 0,05 overalt var «D6s maalte doser»; det var
+ * ikke sant, D6 kjoerte 0,02-0,03. Sjansene for trumf/etterlys/vrak/stikk er
+ * baaret over fra D-linjenes flagg og er IKKE hver for seg dosesveipet - bare
+ * trumffasiten er det (+20,4 +- 4,4, og mer var ikke bedre).
  */
 const KAMP = {
   maksRunder: 12,
-  spillFasit: { sjanse: 0.35, rate: 0.05, dybde: 1 },
-  budFasit: { sjanse: 0.5, rate: 0.05 },
-  trumfFasit: { sjanse: 0.5, rate: 0.05 },
-  etterlysFasit: { sjanse: 0.6, rate: 0.05 },
-  vrakFasit: { sjanse: 0.6, rate: 0.05 },
-  stikkFasit: { sjanse: 0.25, rate: 0.05 },
+  spillFasit: { sjanse: 0.08, verdener: 3, dybde: 3, nodeTak: 60_000, rate: 0.02 },
+  budFasit: { sjanse: 0.05, rate: 0.02 },
+  trumfFasit: { sjanse: 0.5, rate: 0.03 },
+  etterlysFasit: { sjanse: 0.6, rate: 0.03 },
+  vrakFasit: { sjanse: 0.6, rate: 0.03 },
+  stikkFasit: { sjanse: 0.25, rate: 0.02 },
 } as const;
 
 const evo = new Evolusjon({
