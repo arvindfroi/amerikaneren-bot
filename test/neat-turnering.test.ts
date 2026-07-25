@@ -8,6 +8,7 @@ import { ANTALL_INN, ANTALL_UT } from "../src/neat/trekk.ts";
 import {
   beregnFitness,
   kjørTurnering,
+  kontraktAnger,
   spillGruppekamp,
   type TurneringsResultat,
 } from "../src/neat/turnering.ts";
@@ -149,4 +150,42 @@ test("kun agenter som slår mesteren (dypere i cupen) kan få høyere fitness", 
   assert.ok(fit[2]! < fit[0]!, "samme dybde, flere poeng ⇒ FORTSATT under mesteren");
   assert.ok(fit[3]! < fit[0]!, "samme dybde ⇒ under mesteren");
   assert.ok(fit[2]! > fit[3]!, "innbyrdes rekkefølge bevart blant de nedklemte");
+});
+
+// ---------------------------------------------------------------------------
+// Kontraktanger: to invarianter som ble brutt i den gamle formelen
+// ---------------------------------------------------------------------------
+
+test("anger er MONOTON i lagstikk: flere stikk gir aldri mer anger", () => {
+  // Den gamle formelen la til |xT − lagStikk|, og med et xT-estimat på 6 var
+  // anger LAVEST ved nøyaktig 6 stikk. Da lønner det seg å legge seg ned og
+  // spille dårlig. Ingen stikktall skal noensinne straffes for å være høyt.
+  for (const mål of [5, 6, 7, 8, 9, 10, 11, 12]) {
+    for (let s = 0; s < 12; s++) {
+      const her = kontraktAnger(mål, s, s >= mål, 12);
+      const mer = kontraktAnger(mål, s + 1, s + 1 >= mål, 12);
+      assert.ok(
+        mer <= her + 1e-12,
+        `bud ${mål}: ${s} stikk ga ${her}, ${s + 1} stikk ga ${mer} – flere stikk straffet`,
+      );
+    }
+  }
+});
+
+test("anger er UAVHENGIG av budets størrelse: lik bom koster likt", () => {
+  // Gammel formel: 2·bud + 2·stikk. Å bomme med ett stikk kostet 32/26 på
+  // bud 9 mot 12/26 på bud 6 – ambisjon ble straffet, på toppen av at
+  // reglene alt trekker −2n i poeng.
+  for (let bom = 1; bom <= 4; bom++) {
+    const verdier = [5, 6, 7, 8, 9, 10, 11, 12]
+      .filter((b) => b - bom >= 0)
+      .map((b) => kontraktAnger(b, b - bom, false, 12));
+    for (const v of verdier) {
+      assert.equal(v, verdier[0]!, `bom på ${bom} stikk koster ulikt for ulike bud`);
+    }
+  }
+});
+
+test("klart bud gir null anger uansett antall overstikk", () => {
+  for (let s = 6; s <= 12; s++) assert.equal(kontraktAnger(6, s, true, 12), 0);
 });

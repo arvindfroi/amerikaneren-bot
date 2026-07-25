@@ -378,21 +378,51 @@ export function spillGruppekamp(
 }
 
 /**
- * Anger for budvinnerens kontrakt når en runde er ferdig. VIKTIG: angeren
- * straffer BUDET, aldri spillet. Spillkvaliteten avgjøres allerede av
- * poengdifferansen (fitness `poeng`): hvert stikk motstanderne tar er +1 til
- * dem, så det å ta så mange stikk som mulig maksimerer differansen av seg
- * selv. En egen overstikk-straff ville derimot premiert agenten for å ta
- * FÆRRE stikk (spille dårlig med vilje for å treffe et lavt bud) – nettopp
- * det reward-hacket vi må unngå. Derfor:
- *  - kalibrering: |xT-estimat − faktiske lagstikk| (per stikk) – trener
- *    ESTIMATET til å treffe det hånden faktisk bærer (overbud OG underbud
- *    fanges her, som estimatfeil, ikke som spillstraff).
- *  - klart: INGEN ekstra straff – underbud prises av differansen (bud 9 klart
- *    = +18, bud 6 = +12) og av budfasit-rollouten, ikke av overstikk.
- *  - falt: tapet mot beste etterpåklokskap (2·bud + 2·stikk hvis stikkene
- *    bar et lovlig bud) – dette er budregret: budet var uklart for hånden.
- * Normalisert (poeng delt på 2·antallStikk) slik at verdien er ~[0, 2].
+ * Angeren for EN kontrakt. Ren funksjon, eksportert fordi de to
+ * egenskapene den har er invarianter som ble brutt før og aldri må brytes
+ * igjen (se test/neat-turnering.test.ts):
+ *
+ *  - MONOTON i lagStikk: flere stikk kan aldri gi mer anger. Uten dette
+ *    lønner det seg å spille dårlig for å treffe budet.
+ *  - UAVHENGIG av budets størrelse: å bomme med ett stikk koster det samme
+ *    på bud 10 som på bud 6. Uten dette straffes ambisjon dobbelt, siden
+ *    reglene alt trekker −2n i poengsummen.
+ */
+export function kontraktAnger(
+  mål: number,
+  lagStikk: number,
+  klart: boolean,
+  antallStikk: number,
+): number {
+  return klart ? 0 : Math.max(0, mål - lagStikk) / antallStikk;
+}
+
+/**
+ * Anger for budvinnerens kontrakt når en runde er ferdig.
+ *
+ * TO REGLER, begge lært den harde veien ved måling:
+ *
+ * 1. INGENTING som agenten kan påvirke ved å SPILLE DÅRLIGERE får stå i
+ *    fitness. Den gamle koden la til `|xT − lagStikk| / antallStikk`. Fordi
+ *    xT-hodet og korthodet sitter i SAMME genom, kunne seleksjonen senke det
+ *    leddet på to måter: gjøre estimatet bedre, eller ta akkurat så mange
+ *    stikk som estimatet sa. Bud 6 og ni mulige stikk ga da 0,25 i anger for
+ *    å spille godt og 0 for å legge seg på seks. Det er sandbagging skrevet
+ *    rett inn i seleksjonen, og den er nå fjernet helt. Kalibrering hører
+ *    hjemme i LÆRINGEN (`lærAvKontrakt` / `lærBudFasit` nedenfor), der
+ *    fasiten er de faktiske lagstikkene og korthodet står fritt til å
+ *    maksimere dem: «jeg tok elleve selv om jeg bød ni – godt å vite.»
+ *
+ * 2. AMBISJON ER GRATIS. Den gamle straffen var `2·bud + 2·stikk`, altså
+ *    proporsjonal med budets størrelse: å bomme på 9 kostet nesten tre
+ *    ganger så mye som å bomme på 6, PÅ TOPPEN av at reglene alt trekker
+ *    −2n i `poeng`. Dobbeltstraffen gjorde høye bud systematisk ulønnsomme
+ *    i seleksjonen. Nå måles bare BOMMEN: hvor mange stikk kontrakten falt
+ *    med. Bud 10 som tar 9 koster nøyaktig like mye som bud 6 som tar 5.
+ *    Risikoen ved et høyt bud prises der reglene priser den – i ±2n i
+ *    poengsummen – og ikke én gang til her.
+ *
+ * Normalisert til ~[0, 1] (bom delt på antall stikk).
  */
 function bokførRegret(
   førState: GameState,
@@ -411,19 +441,10 @@ function bokførRegret(
     if (est === undefined) continue;
     const antallStikk = førState.giving.antallStikk;
     const mål = res.melding.type === "tall" ? res.melding.bud : antallStikk;
-    const kalibrering = Math.abs(est.xt - res.lagStikk) / antallStikk;
-    let poengTap: number;
-    if (res.klart) {
-      // Klart: overstikk er IKKE en spillfeil (differansen belønner allerede
-      // hvert stikk), og å straffe dem ville lært agenten å sandbagge mot et
-      // lavt bud. Underbud fanges av kalibreringen (estimatfeil) og av
-      // differansen (høyere bud = mer poeng klart). Ingen ekstra straff.
-      poengTap = 0;
-    } else {
-      const kunneBudt = res.lagStikk >= 5 ? 2 * res.lagStikk : 0;
-      poengTap = 2 * mål + kunneBudt;
-    }
-    regretSum[agentIdx]! += kalibrering + poengTap / (2 * antallStikk);
+    // Bare bommen, og bare når kontrakten faktisk falt. Klart bud = 0 anger
+    // uansett hvor mange overstikk som kom – overstikk er ikke en feil, og
+    // et underbud rettes av LÆRINGEN under, ikke av seleksjonen.
+    regretSum[agentIdx]! += kontraktAnger(mål, res.lagStikk, res.klart, antallStikk);
     regretRunder[agentIdx]!++;
     // Nettet lærer av angeren sin med en gang fasiten foreligger.
     const makkerStikk = res.makker !== null ? (res.stikkVunnet[res.makker] ?? 0) : 0;
