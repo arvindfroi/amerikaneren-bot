@@ -344,3 +344,74 @@ Vinduet «stikk 6–8» ga +0,15 poeng, det eneste positive. Det kan være ekte
 (sent i runden nærmer DD seg sannheten fordi færre kort er skjult) eller ren
 støy. Det er ikke avgjort her, og skal ikke brukes til noe før det er målt
 med nok giver til å skilles fra null.
+
+
+---
+
+## Portresultatene komplett: fire fasiter, ett skille
+
+| fasit | metode | pålitelighet (smalt) | korrigert (smalt) | dom |
+|---|---|---|---|---|
+| **bud** | **single dummy** | 0,947 | **+0,925** | **godkjent** |
+| trumf | double dummy | 0,992 | +0,234 | avvist |
+| vrak | double dummy | 0,982 | +0,144 | avvist |
+| kortspill | double dummy | 0,880 | **−0,609** | avvist |
+
+Fire uavhengige beslutninger, fire porter, samme svar hver gang: **den ene
+SD-fasiten består, alle tre DD-fasitene faller.** Påliteligheten er 0,88–0,99
+i alle fire, så referansen er ikke problemet noe sted.
+
+### Den klareste enkeltillustrasjonen: etterlysningen
+
+Trumfeksperten skal velge farge og etterlyse et kort. Etterlysningen avgjør
+hvem makkeren blir.
+
+| policy | etterlyst valør | poeng/runde |
+|---|---|---|
+| lengste farge, høyest etterlysning | 12,9 | **+6,02** |
+| NevroHjerne | 12,9 | +5,93 |
+| **DD (fasiten)** | **4,3** | +4,11 |
+
+Dobbelt dummy etterlyser valør **4,3**. Den *ser* hvem som sitter med toeren,
+så den kan trygt kalle på en lav valør og få akkurat den makkeren den vil ha.
+Uten den informasjonen er det samme trekket et sjansespill. Beholder man
+fasitens fargevalg og bare bytter til høyeste lovlige etterlysning, er det
+verdt +0,72 poeng.
+
+Det er hele feilen i én rad: fasiten utnytter kunnskap agenten ikke har, og
+oppskriften den gir er derfor ikke overførbar.
+
+### Tapsfunksjonen kan ikke være symmetrisk
+
+Paret mot fasitens eget valg på samme giv, poeng per enhet DD-anger:
+
+| beslutning | retning fra fasiten | poeng/anger |
+|---|---|---|
+| vrak | kastet høyere kort | −4,03 |
+| vrak | tømte færre farger | −4,64 |
+| vrak | tømte **flere** farger | **+0,34** |
+| trumf | kortere trumffarge | −3,80 |
+| trumf | **lengre** trumffarge | **+1,41** |
+| trumf | lavere etterlysning | −4,26 |
+| trumf | **høyere** etterlysning | **+0,93** |
+
+I tre av fire retninger *tjener* man poeng på å avvike fra fasiten. Budet viste
+samme sak motsatt vei: overbud koster 14,75, underbud 1,51. En kvadratisk
+straff på avvik er feil i alle fire beslutninger.
+
+### Metodisk advarsel som gjelder alle framtidige porter
+
+Det første smale utvalget for vrak var **håndplukket** og ga +0,429 GODKJENT.
+Med en regel skrevet ned sammen med policyene – «alle unntatt de som er
+konstruert for å være dårlige» – ble svaret +0,144 AVVIST.
+
+| utvalg (vrak) | korrigert | dom |
+|---|---|---|
+| bare DD-rangfamilien | 1,000 | godkjent |
+| DD-familien + nevro | 0,000 | avvist |
+| alle unntatt bevisst dårlige | 0,144 | avvist |
+
+Perfekt innen familie, faller fra hverandre på tvers – nøyaktig E1-mønsteret.
+**Utvalgsregelen skal skrives ned før tallene foreligger.** Sensitivitets-
+tabellen står nå i utdataene til hver port, så et enkelt utvalg ikke kan
+bære en konklusjon alene.
