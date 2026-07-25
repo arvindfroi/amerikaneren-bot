@@ -1,0 +1,17 @@
+SANN skaar (120 givere x 4 seter, felles giversett):
+  d5-gull    -6.69
+  d6-klar    -6.85
+  d8d        -4.79
+  d5-gull − d6-klar = 0.16
+  d5-gull − d8d = -1.90
+  d6-klar − d8d = -2.06
+
+Typisk |differanse| mellom to genom: 1.37 poeng/runde
+
+PARRET STANDARDFEIL per giverantall (8 gjentakelser, ferskt sett hver gang):
+ givere   runder   parret SE  signal/stoey  P(riktig rekkefolge)
+----------------------------------------------------------------
+      4       16        3.05          0.45                  67 %
+      8       32        2.67          0.51                  70 %
+     16       64        2.40          0.57                  72 %
+     32      128        1.57          0.88                  81 %
