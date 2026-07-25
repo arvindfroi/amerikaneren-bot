@@ -724,3 +724,251 @@ Porten sier GODKJENT med korrigert korrelasjon **1,095**. En korrelasjon over
 1 er ikke et sterkere resultat – det er et tegn på at dempingskorreksjonen
 presses forbi sitt gyldighetsområde ved moderat pålitelighet (0,654).
 Les den som «positiv», ikke som «svært sterk».
+
+---
+
+## SD-vrakfasiten og SD-trumffasiten GODKJENT – begge
+
+De to siste DD-fasitene er nå bygget om etter samme oppskrift som budet og
+kortspillet, og begge består porten. Skript:
+`examples/moe2-port-vrak-sd.ts`, `examples/moe2-port-trumf-sd.ts`.
+Tall: `analyse/moe2-port-{vrak,trumf}-sd.{txt,json}`.
+Modulen er `src/moe2/sdkort.ts`, som nå dekker alle tre beslutningene gjennom
+én felles `vurderSD` – kortspill, vrak og trumf deler verdenssampling og
+utspilling, i stedet for tre kopier som kan gli fra hverandre.
+
+| fasit | DD, opprinnelig kjøring | SD, denne kjøringen | pålitelighet (SD, smalt) |
+|---|---|---|---|
+| **vrak** | +0,144 avvist | **+0,848 GODKJENT** | 0,966 |
+| **trumf** | +0,234 avvist | **+0,831 GODKJENT** | 0,969 |
+
+**Fortegnet snudde ikke, for det trengte det ikke.** Kortfasiten gikk fra
+−0,609 til +0,718 fordi DD der pekte MOTSATT vei. Vrak og trumf pekte allerede
+riktig vei; de lå bare så nær null (+0,144, +0,234) at de ikke kunne bære en
+seleksjon. Ombygd til SD flytter de seg til +0,85 og +0,83 – forbi terskelen
+på 0,3 med god margin, med pålitelighet 0,97 i begge.
+
+Alle sju fasitkjøringene, samlet:
+
+| fasit | metode | korrigert (smalt) | dom |
+|---|---|---|---|
+| bud | single dummy | +0,925 | godkjent |
+| **vrak** | **single dummy** | **+0,848** | **godkjent** |
+| **trumf** | **single dummy** | **+0,831** | **godkjent** |
+| kortspill | single dummy | +0,718 | godkjent |
+| trumf | double dummy | +0,234 | avvist |
+| vrak | double dummy | +0,144 | avvist |
+| kortspill | double dummy | −0,609 | avvist |
+
+**Fire single-dummy-fasiter, fire godkjenninger. Tre double-dummy-fasiter, tre
+avvisninger.** Skillet holder i alle sju.
+
+### Vrak: 1 400 giver, 64 verdener, forhåndsfilter topp-20 av DD
+
+| vrakpolicy | SD-anger | snittvalør | renons | poeng/runde |
+|---|---|---|---|---|
+| SD nr. 2 | 3,934 | 6,70 | 0,44 | **+5,90** |
+| **SD (fasiten)** | **2,916** | 6,65 | 0,53 | **+5,85** |
+| nevro selv | 1,088 | 6,19 | 0,85 | +5,71 |
+| korteste farge | 1,889 | 6,93 | 1,02 | +4,25 |
+| SD nr. 5 | 5,869 | 6,96 | 0,37 | +3,88 |
+| **DD (fasiten)** | 6,627 | 7,00 | 0,52 | **+3,73** |
+| DD nr. 26 | 8,681 | 7,35 | 0,26 | +1,38 |
+| lavest valør | 9,239 | 3,52 | 0,08 | −2,71 |
+| tilfeldig | 12,671 | 8,42 | 0,10 | −5,35 |
+| DD verste | 17,934 | 11,45 | 0,07 | −14,25 |
+
+`mål()` med gulv og tak fra de samme 1 400 givene:
+
+| | verdi | gulv (tilfeldig) | tak (nevro) | framdrift |
+|---|---|---|---|---|
+| **SD-vrak** | **5,846** | −5,346 | 5,713 | **101,2 %** |
+| DD-vrak | 3,731 | −5,346 | 5,713 | 82,1 % |
+
+I DD-kjøringen lå fasitens eget optimum 1,54 poeng UNDER NevroHjerne (+4,65 mot
++6,19). Her ligger det 0,13 over – innenfor støyen (halvdelene gir 6,06 og
+5,63), så det riktige er å si at **SD-vraket når nevro, mens DD-vraket lå to
+poeng under.** `SD nr. 2` (+5,90) er ikke til å skille fra fasiten (+5,85).
+
+### Trumf: 1 998 giver, 32 verdener, hele tabellen enumerert
+
+Her er det ikke behov for noe forhåndsfilter – søkerommet er ~36 par.
+
+| trumfpolicy | SD-anger | trumflengde | etterlyst valør | poeng/runde |
+|---|---|---|---|---|
+| lengste farge, høyest | 1,104 | 6,01 | 12,9 | **+5,88** |
+| SD-fargen, høyest | 0,722 | 5,93 | 13,1 | +5,72 |
+| nevro selv | 1,233 | 6,01 | 12,9 | +5,58 |
+| **SD (fasiten)** | **0,000** | 5,93 | **12,1** | **+5,28** |
+| DD-fargen, høyest | 3,383 | 5,39 | 13,0 | +4,48 |
+| lengde+serie | 2,162 | 5,87 | 12,6 | +4,42 |
+| **DD (fasiten)** | 8,892 | 5,39 | **4,3** | **+4,37** |
+| SD-fargen, lavest | 7,713 | 5,93 | 2,7 | −1,07 |
+| tilfeldig | 15,510 | 2,58 | 7,9 | −9,64 |
+| SD verste | 22,654 | 0,49 | 6,7 | −15,25 |
+
+| | verdi | gulv | tak | framdrift |
+|---|---|---|---|---|
+| **SD-trumf** | **5,281** | −9,641 | 5,579 | **98,0 %** |
+| DD-trumf | 4,371 | −9,641 | 5,579 | 92,1 % |
+
+### Etterlysningen: 4,3 → 12,1, uten at noe annet ble endret
+
+Dette er den ene raden hele hypotesen ble formulert på. Samme stilling, samme
+kandidatliste, eneste forskjell er om kandidaten vurderes med alle hender åpne
+eller ved å spilles ut i verdener agenten faktisk kan tenke seg:
+
+| fasit | etterlyst valør, snitt | trumflengde | poeng/runde |
+|---|---|---|---|
+| DD | **4,3** | 5,39 | +4,37 |
+| SD | **12,1** | 5,93 | +5,28 |
+
+Dobbelt dummy kaller på en toer fordi den SER hvem som sitter med den. Single
+dummy trekker 32 verdener der kortet ligger et tilfeldig sted, og da er en lav
+etterlysning nøyaktig det sjansespillet den er. Fasiten oppdager det selv, uten
+at noen har fortalt den at høy etterlysning er bra. **Den flytter seg 7,8
+valørtrinn og henter +0,91 poeng.**
+
+Trumffargen følger med: DD velger 5,39 kort lang trumf, SD 5,93 – nærmere
+«lengste farge», som er policyen som scorer best av alle.
+
+### Det som IKKE ble reparert, og som skal stå
+
+SD-fasitens eget optimum er fortsatt ikke den beste policyen i trumf.
+«Lengste farge, høyest etterlysning» (+5,88) og «SD-fargen, høyest» (+5,72) slår
+den (+5,28). Forskjellen er halvdelsstabil (5,31/5,25 mot 5,82/5,62), altså
+ekte, ikke støy.
+
+Aksen er den samme som DD feilet på, bare mindre: fasiten etterlyser 12,1 der
+det beste er 13,1. Asymmetritabellen sier det rett ut – å etterlyse HØYERE enn
+fasiten, i samme farge, er verdt **+0,76 poeng per enhet anger**.
+
+Er det bare for få verdener? Delvis. Med 96 verdener (500 giver,
+`analyse/moe2-port-trumf-sd-k96.{txt,json}`) stiger fasitens etterlysning til
+**12,7** og treffer «høyeste lovlige» i 84 % av stillingene mot 70 % ved 32.
+Men gapet lukkes ikke: «SD-fargen, høyest» ligger fortsatt +0,60 over fasiten,
+og «høyere valør» er fortsatt verdt +2,81 poeng per anger. Dommen er robust
+(smalt +0,796 ved 96 verdener mot +0,831 ved 32), men **den siste
+etterlysningsjusteringen bør legges inn som en regel, ikke ventes ut med flere
+verdener.**
+
+### Hva forhåndsfilteret koster i vrak – målt, ikke antatt
+
+C(16,4) = 1 820 kandidater × 64 verdener × en hel utspilling er uoverkommelig,
+så SD rangerer bare de `filter` DD-beste. Prisen er målt to ganger.
+
+**Direkte filtertest**, 24 giver, valgt i verdenssett A og målt i et uavhengig
+sett B – ellers ville maks-over-100 slått maks-over-20 av ren vinnerforbannelse:
+
+| | |
+|---|---|
+| samme vrak valgt av topp-20 og topp-100 | 38 % |
+| SD-gevinst ved topp-100 | **+0,690** |
+| DD-rang til det SD-beste vraket i topp-100 | 37,4 av 100 |
+
+Det SD-beste vraket ligger altså typisk rundt DD-rang 37 – godt utenfor topp-20.
+
+**Hele porten kjørt om igjen med topp-100**, 500 giver
+(`analyse/moe2-port-vrak-sd-f100.{txt,json}`):
+
+| filter | SD-fasitens poeng | nevro, samme giver | differanse | framdrift | smal port |
+|---|---|---|---|---|---|
+| topp-20 | +5,85 | +5,71 | +0,14 | 101,2 % | +0,848 |
+| **topp-100** | **+7,63** | +6,27 | **+1,36** | **112,5 %** | **+0,954** |
+
+Med topp-100 slår SD-vraket NevroHjerne med 1,36 poeng, og fasitens egen
+SD-anger faller fra 2,916 til 1,140. **Filteret var den bindende
+begrensningen, ikke SD-idéen.** Kostnaden er lineær i `filter`: topp-100 tar
+2,8 s per giv mot 0,9 s.
+
+### DD dømt på nøyaktig samme datagrunnlag – og hvorfor det tallet ikke er +0,144
+
+Begge skriptene regner ut DD-dommen av de SAMME givene, de SAMME policyene og
+de SAMME poengmålingene, så kolonnene bare skiller seg på fasiten:
+
+| | SD, smalt | DD, smalt, samme data |
+|---|---|---|
+| vrak (topp-20) | **+0,848** | +0,424 |
+| vrak (topp-100) | **+0,954** | +0,502 |
+| trumf (32 verdener) | **+0,831** | +0,610 |
+| trumf (96 verdener) | **+0,796** | +0,565 |
+
+SD slår DD i alle fire, men **DD-kolonnen her er høyere enn de +0,144 og +0,234
+som felte fasiten første gang, og det er ikke en motsigelse – det er en annen
+test.** Policylisten er nå bygget rundt SD-fasiten: nær-variantene er SD nr. 2 og
+SD nr. 5, og de bevisst dårlige er valgt for å ligge langt fra SD. DD blir
+dermed målt på et utvalg som ikke er konstruert for å skille DD-naboer fra
+hverandre, og det er nettopp de nabolagene DD falt på. **Den gyldige DD-dommen
+er fortsatt den fra `moe2-port-{vrak,trumf}.ts`**; kolonnen her er en kontroll
+for at SD ikke bare har fått et lettere utvalg.
+
+### Sensitivitet: dommen som funksjon av utvalget
+
+Utvalgsregelen ble skrevet ned sammen med policyene, før tallene forelå:
+*alle unntatt de som er konstruert for å være dårlige* – samme regel og samme
+antall navn som i DD-kjøringene, så tallene kan settes rett mot hverandre.
+
+| utvalg (vrak, topp-20) | n | pålitelighet | SD | DD |
+|---|---|---|---|---|
+| bredt – alle policyer | 13 | 0,986 | +0,941 | +0,808 |
+| **SMALT – uten de bevisst dårlige** | 9 | 0,966 | **+0,848** | +0,424 |
+| bare SD-rangfamilien | 3 | 0,667 | +0,612 | +0,612 |
+| SD-familien + nevro | 4 | 0,571 | **+0,265 avvist** | +0,794 |
+| bare ikke-SD | 10 | 0,994 | +0,967 | +0,809 |
+
+| utvalg (trumf) | n | pålitelighet | SD | DD |
+|---|---|---|---|---|
+| bredt – alle policyer | 13 | 0,986 | +0,924 | +0,824 |
+| **SMALT – uten de bevisst dårlige** | 10 | 0,969 | **+0,831** | +0,610 |
+| bare SD-familien | 4 | 1,000 | +0,800 | +1,000 |
+| SD-familien + nevro | 5 | 1,000 | +0,700 | +0,900 |
+| bare ikke-SD | 7 | 0,943 | +0,956 | +0,552 |
+
+Én rad avviker: «SD-familien + nevro» i vrak gir +0,265 AVVIST. Det er n=4 med
+pålitelighet 0,571, altså fire policyer der tre ligger innenfor støyen av
+hverandre (+5,90, +5,85, +5,71) – ikke et utvalg som kan bære en dom. Med
+topp-100-filteret blir den samme raden +0,849. Den står her fordi
+sensitivitetstabellen skal vise alt den viser, også det som ikke passer.
+
+### Tapsfunksjonen: symmetrisk er nå forsvarlig i vrak, men ikke i trumf
+
+Paret mot fasitens eget valg på samme giv, poeng per enhet anger:
+
+| beslutning | retning fra fasiten | DD-kjøringen | SD-kjøringen |
+|---|---|---|---|
+| vrak | kastet høyere kort | −4,03 | −0,86 |
+| vrak | kastet lavere kort | −1,78 | −0,61 |
+| vrak | tømte færre farger | −4,64 | −0,90 |
+| vrak | tømte **flere** farger | **+0,34** | **−0,71** |
+| trumf | kortere trumffarge | −3,80 | −0,91 |
+| trumf | **lengre** trumffarge | **+1,41** | **+0,14** |
+| trumf | lavere etterlysning | −4,26 | −0,70 |
+| trumf | **høyere** etterlysning | **+0,93** | **+0,76** |
+
+Under DD tjente man poeng på å avvike fra fasiten i tre av fire retninger.
+Under SD er **alle fire vrakretningene negative**: fasiten er ikke lenger
+systematisk skjev, og et symmetrisk tap på SD-anger er forsvarlig i vrak.
+
+I trumf gjenstår to positive: lengre farge (+0,14, marginalt) og høyere
+etterlysning (+0,76, klart). Etterlysningsaksen må derfor fortsatt straffes
+asymmetrisk, eller løses med regelen «etterlys det høyeste lovlige kortet i den
+valgte fargen».
+
+### Forbehold som må stå
+
+1. **Porten er delvis selvbekreftende.** SD-fasiten estimerer forventet
+   poengutfall mot NevroHjerne, og referansen MÅLER poengutfall mot
+   NevroHjerne. Med K → ∞ ville den vært tautologisk. Det informative er at DD
+   ikke består samme test, at et gjennomførbart K holder, og at fasitens eget
+   optimum likevel IKKE er den beste policyen i trumf – hadde porten vært ren
+   tautologi, ville den vært det.
+2. **Porten testet policyer, ikke et trent nett.** Det er nøyaktig fellen
+   budeksperten gikk i: en godkjent policy er ikke et godkjent treningsmål.
+   Før vrak- eller trumfeksperten forfremmes, skal porten kjøres på nettet slik
+   det faktisk skal brukes.
+3. **Vrakfasiten er definert med et filter.** «SD-beste av de 20 DD-beste» og
+   «SD-beste av de 100 DD-beste» er to ulike fasiter, og forskjellen er målt til
+   +1,22 poeng. Fasiten må oppgi filteret sitt.
+4. **Verdenstrekningen frøes per giv**, men rng-en forbrukes ulikt når
+   policylisten endres. To kjøringer med ulik policyliste kan derfor ikke
+   sammenlignes rad for rad; bruk differansene innen én kjøring.

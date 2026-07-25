@@ -1,0 +1,61 @@
+  20/2000, 0.51 s/giv, est. 16.7 min igjen     40/2000, 0.44 s/giv, est. 14.4 min igjen     60/2000, 0.47 s/giv, est. 15.3 min igjen     80/2000, 0.46 s/giv, est. 14.8 min igjen     100/2000, 0.48 s/giv, est. 15.2 min igjen     120/2000, 0.46 s/giv, est. 14.5 min igjen     140/2000, 0.47 s/giv, est. 14.7 min igjen     160/2000, 0.47 s/giv, est. 14.4 min igjen     180/2000, 0.48 s/giv, est. 14.4 min igjen     200/2000, 0.47 s/giv, est. 14.1 min igjen     220/2000, 0.48 s/giv, est. 14.1 min igjen     240/2000, 0.47 s/giv, est. 13.8 min igjen     260/2000, 0.47 s/giv, est. 13.8 min igjen     280/2000, 0.47 s/giv, est. 13.5 min igjen     300/2000, 0.47 s/giv, est. 13.4 min igjen     320/2000, 0.47 s/giv, est. 13.1 min igjen     340/2000, 0.47 s/giv, est. 13.1 min igjen     360/2000, 0.47 s/giv, est. 12.9 min igjen     380/2000, 0.47 s/giv, est. 12.8 min igjen     400/2000, 0.47 s/giv, est. 12.6 min igjen     420/2000, 0.47 s/giv, est. 12.5 min igjen     440/2000, 0.47 s/giv, est. 12.2 min igjen     460/2000, 0.47 s/giv, est. 12.1 min igjen     480/2000, 0.47 s/giv, est. 11.9 min igjen     500/2000, 0.47 s/giv, est. 11.8 min igjen     520/2000, 0.47 s/giv, est. 11.6 min igjen     540/2000, 0.47 s/giv, est. 11.5 min igjen     560/2000, 0.47 s/giv, est. 11.3 min igjen     580/2000, 0.47 s/giv, est. 11.2 min igjen     600/2000, 0.47 s/giv, est. 11.0 min igjen     620/2000, 0.47 s/giv, est. 10.9 min igjen     640/2000, 0.47 s/giv, est. 10.7 min igjen     660/2000, 0.47 s/giv, est. 10.5 min igjen     680/2000, 0.47 s/giv, est. 10.4 min igjen     700/2000, 0.47 s/giv, est. 10.2 min igjen     720/2000, 0.47 s/giv, est. 10.0 min igjen     740/2000, 0.47 s/giv, est. 9.9 min igjen     760/2000, 0.47 s/giv, est. 9.8 min igjen     780/2000, 0.47 s/giv, est. 9.6 min igjen     800/2000, 0.47 s/giv, est. 9.4 min igjen     820/2000, 0.47 s/giv, est. 9.3 min igjen     840/2000, 0.47 s/giv, est. 9.1 min igjen     860/2000, 0.47 s/giv, est. 8.9 min igjen     880/2000, 0.47 s/giv, est. 8.8 min igjen     900/2000, 0.47 s/giv, est. 8.6 min igjen     920/2000, 0.47 s/giv, est. 8.5 min igjen     940/2000, 0.47 s/giv, est. 8.3 min igjen     960/2000, 0.47 s/giv, est. 8.2 min igjen     980/2000, 0.47 s/giv, est. 8.0 min igjen     1000/2000, 0.47 s/giv, est. 7.9 min igjen     1020/2000, 0.47 s/giv, est. 7.7 min igjen     1040/2000, 0.47 s/giv, est. 7.6 min igjen     1060/2000, 0.47 s/giv, est. 7.4 min igjen     1080/2000, 0.47 s/giv, est. 7.2 min igjen     1100/2000, 0.47 s/giv, est. 7.1 min igjen     1120/2000, 0.47 s/giv, est. 6.9 min igjen     1140/2000, 0.47 s/giv, est. 6.8 min igjen     1160/2000, 0.47 s/giv, est. 6.6 min igjen     1180/2000, 0.47 s/giv, est. 6.5 min igjen     1200/2000, 0.47 s/giv, est. 6.3 min igjen     1220/2000, 0.47 s/giv, est. 6.1 min igjen     1240/2000, 0.47 s/giv, est. 6.0 min igjen     1260/2000, 0.47 s/giv, est. 5.8 min igjen     1280/2000, 0.47 s/giv, est. 5.7 min igjen     1300/2000, 0.47 s/giv, est. 5.5 min igjen     1320/2000, 0.47 s/giv, est. 5.4 min igjen     1340/2000, 0.47 s/giv, est. 5.2 min igjen     1360/2000, 0.47 s/giv, est. 5.0 min igjen     1380/2000, 0.47 s/giv, est. 4.9 min igjen     1400/2000, 0.47 s/giv, est. 4.7 min igjen     1420/2000, 0.47 s/giv, est. 4.6 min igjen     1440/2000, 0.47 s/giv, est. 4.4 min igjen     1460/2000, 0.47 s/giv, est. 4.3 min igjen     1480/2000, 0.47 s/giv, est. 4.1 min igjen     1500/2000, 0.47 s/giv, est. 3.9 min igjen     1520/2000, 0.47 s/giv, est. 3.8 min igjen     1540/2000, 0.47 s/giv, est. 3.6 min igjen     1560/2000, 0.47 s/giv, est. 3.5 min igjen     1580/2000, 0.47 s/giv, est. 3.3 min igjen     1600/2000, 0.47 s/giv, est. 3.2 min igjen     1620/2000, 0.47 s/giv, est. 3.0 min igjen     1640/2000, 0.47 s/giv, est. 2.8 min igjen     1660/2000, 0.47 s/giv, est. 2.7 min igjen     1680/2000, 0.47 s/giv, est. 2.5 min igjen     1700/2000, 0.47 s/giv, est. 2.4 min igjen     1720/2000, 0.47 s/giv, est. 2.2 min igjen     1740/2000, 0.47 s/giv, est. 2.0 min igjen     1760/2000, 0.47 s/giv, est. 1.9 min igjen     1780/2000, 0.47 s/giv, est. 1.7 min igjen     1800/2000, 0.47 s/giv, est. 1.6 min igjen     1820/2000, 0.47 s/giv, est. 1.4 min igjen     1840/2000, 0.47 s/giv, est. 1.3 min igjen     1860/2000, 0.47 s/giv, est. 1.1 min igjen     1880/2000, 0.47 s/giv, est. 0.9 min igjen     1900/2000, 0.47 s/giv, est. 0.8 min igjen     1920/2000, 0.47 s/giv, est. 0.6 min igjen     1940/2000, 0.47 s/giv, est. 0.5 min igjen     1960/2000, 0.47 s/giv, est. 0.3 min igjen     1980/2000, 0.47 s/giv, est. 0.2 min igjen     2000/2000, 0.47 s/giv, est. 0.0 min igjen   
+=== SD-trumfpolicyer, 1998 giver (2 hoppet over), 32 verdener, DD-dybde 6 ===
+Bare trumffarge og etterlysning varieres. Bud, vrak og hele kortspillet i
+alle fire seter er NevroHjerne. Poeng er budvinnersetets differanse mot
+snittet av de tre andre, i den ene runden valget gjelder.
+
+policy                SD-anger  DD-anger  lengde  valoer  =farge  =fasit  poeng/runde
+-------------------------------------------------------------------------------------
+lengste farge            1.104     0.799    6.01    12.9    86 %    60 %         5.88
+SD-farge, høyest         0.722     0.812    5.93    13.1   100 %    70 %         5.72
+nevro selv               1.233     0.805    6.01    12.9    84 %    59 %         5.58
+SD (fasiten)             0.000     0.930    5.93    12.1   100 %   100 %         5.28
+DD-farge, høyest         3.383     0.737    5.39    13.0    64 %    45 %         4.48
+lengde+serie             2.162     0.951    5.87    12.6    73 %    51 %         4.42
+DD (fasiten)             8.892     0.000    5.39     4.3    64 %     3 %         4.37
+SD nr. 3                 3.842     1.276    5.85     9.0    78 %     0 %         1.90
+SD-farge, lavest         7.713     1.374    5.93     2.7   100 %     2 %        -1.07
+nevrofarge, lavest       7.626     1.333    6.01     2.6    84 %     2 %        -1.10
+tilfeldig               15.510     3.307    2.58     7.9    19 %     2 %        -9.64
+SD median               18.017     3.997    1.69     7.9     3 %     0 %       -12.76
+SD verste               22.654     4.573    0.49     6.7     0 %     0 %       -15.25
+
+=== MAALEKONTRAKTEN: gulv og tak fra samme giver ===
+  SD-trumf         5.2814  [gulv -9.6408 → tak 5.5794]  framdrift 98.0 %  n=1998 holdout
+  DD-trumf         4.3709  [gulv -9.6408 → tak 5.5794]  framdrift 92.1 %  n=1998 holdout
+
+=== SD-FASITEN, bredt utvalg (n=13) ===
+  splitt-halv paalitelighet   0.986 (splitt 0.973)
+  observert korrelasjon       0.918
+  dempingskorrigert           0.924
+  DOM: GODKJENT
+  Referansen er pålitelig (0.986) og fasiten henger sammen med den (korrigert 0.924 over 13 kandidater).
+
+=== SD-FASITEN, SMALT – den som teller (n=10) ===
+  splitt-halv paalitelighet   0.969 (splitt 0.939)
+  observert korrelasjon       0.818
+  dempingskorrigert           0.831
+  DOM: GODKJENT
+  Referansen er pålitelig (0.969) og fasiten henger sammen med den (korrigert 0.831 over 10 kandidater).
+
+=== SENSITIVITET: dommen som funksjon av utvalget, SD mot DD ===
+Begge fasitene er regnet ut av de SAMME givene og de SAMME policyene, saa
+forskjellen mellom kolonnene er fasiten og ingenting annet.
+utvalg                               n  paalitelig  SD korr     SD dom  DD korr     DD dom
+------------------------------------------------------------------------------------------
+bredt – alle policyer               13       0.986    0.924   godkjent    0.824   godkjent
+SMALT – uten de bevisst dårlige     10       0.969    0.831   godkjent    0.610   godkjent
+bare SD-familien                     4       1.000    0.800   godkjent    1.000   godkjent
+SD-familien + nevro                  5       1.000    0.700   godkjent    0.900   godkjent
+bare ikke-SD                         7       0.943    0.956   godkjent    0.552   godkjent
+SD- + DD-familien                    6       1.000    0.771   godkjent    0.486   godkjent
+
+=== ASYMMETRI I TAPSFUNKSJONEN (paret mot SD-fasiten paa samme giv) ===
+retning                         n  snitt anger   d poeng  poeng per anger
+-------------------------------------------------------------------------
+KORTERE farge enn fasit      6807       18.007    -16.36            -0.91
+LENGRE farge enn fasit        762        4.427      0.64             0.14
+HOEYERE valoer (samme farge)   2754        2.470      1.88             0.76
+LAVERE valoer (samme farge)   6456        6.998     -4.90            -0.70
+
+Skrev analyse/moe2-port-trumf-sd.{txt,json}

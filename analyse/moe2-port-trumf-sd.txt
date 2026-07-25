@@ -1,0 +1,58 @@
+=== SD-trumfpolicyer, 1998 giver (2 hoppet over), 32 verdener, DD-dybde 6 ===
+Bare trumffarge og etterlysning varieres. Bud, vrak og hele kortspillet i
+alle fire seter er NevroHjerne. Poeng er budvinnersetets differanse mot
+snittet av de tre andre, i den ene runden valget gjelder.
+
+policy                SD-anger  DD-anger  lengde  valoer  =farge  =fasit  poeng/runde
+-------------------------------------------------------------------------------------
+lengste farge            1.104     0.799    6.01    12.9    86 %    60 %         5.88
+SD-farge, høyest         0.722     0.812    5.93    13.1   100 %    70 %         5.72
+nevro selv               1.233     0.805    6.01    12.9    84 %    59 %         5.58
+SD (fasiten)             0.000     0.930    5.93    12.1   100 %   100 %         5.28
+DD-farge, høyest         3.383     0.737    5.39    13.0    64 %    45 %         4.48
+lengde+serie             2.162     0.951    5.87    12.6    73 %    51 %         4.42
+DD (fasiten)             8.892     0.000    5.39     4.3    64 %     3 %         4.37
+SD nr. 3                 3.842     1.276    5.85     9.0    78 %     0 %         1.90
+SD-farge, lavest         7.713     1.374    5.93     2.7   100 %     2 %        -1.07
+nevrofarge, lavest       7.626     1.333    6.01     2.6    84 %     2 %        -1.10
+tilfeldig               15.510     3.307    2.58     7.9    19 %     2 %        -9.64
+SD median               18.017     3.997    1.69     7.9     3 %     0 %       -12.76
+SD verste               22.654     4.573    0.49     6.7     0 %     0 %       -15.25
+
+=== MAALEKONTRAKTEN: gulv og tak fra samme giver ===
+  SD-trumf         5.2814  [gulv -9.6408 → tak 5.5794]  framdrift 98.0 %  n=1998 holdout
+  DD-trumf         4.3709  [gulv -9.6408 → tak 5.5794]  framdrift 92.1 %  n=1998 holdout
+
+=== SD-FASITEN, bredt utvalg (n=13) ===
+  splitt-halv paalitelighet   0.986 (splitt 0.973)
+  observert korrelasjon       0.918
+  dempingskorrigert           0.924
+  DOM: GODKJENT
+  Referansen er pålitelig (0.986) og fasiten henger sammen med den (korrigert 0.924 over 13 kandidater).
+
+=== SD-FASITEN, SMALT – den som teller (n=10) ===
+  splitt-halv paalitelighet   0.969 (splitt 0.939)
+  observert korrelasjon       0.818
+  dempingskorrigert           0.831
+  DOM: GODKJENT
+  Referansen er pålitelig (0.969) og fasiten henger sammen med den (korrigert 0.831 over 10 kandidater).
+
+=== SENSITIVITET: dommen som funksjon av utvalget, SD mot DD ===
+Begge fasitene er regnet ut av de SAMME givene og de SAMME policyene, saa
+forskjellen mellom kolonnene er fasiten og ingenting annet.
+utvalg                               n  paalitelig  SD korr     SD dom  DD korr     DD dom
+------------------------------------------------------------------------------------------
+bredt – alle policyer               13       0.986    0.924   godkjent    0.824   godkjent
+SMALT – uten de bevisst dårlige     10       0.969    0.831   godkjent    0.610   godkjent
+bare SD-familien                     4       1.000    0.800   godkjent    1.000   godkjent
+SD-familien + nevro                  5       1.000    0.700   godkjent    0.900   godkjent
+bare ikke-SD                         7       0.943    0.956   godkjent    0.552   godkjent
+SD- + DD-familien                    6       1.000    0.771   godkjent    0.486   godkjent
+
+=== ASYMMETRI I TAPSFUNKSJONEN (paret mot SD-fasiten paa samme giv) ===
+retning                         n  snitt anger   d poeng  poeng per anger
+-------------------------------------------------------------------------
+KORTERE farge enn fasit      6807       18.007    -16.36            -0.91
+LENGRE farge enn fasit        762        4.427      0.64             0.14
+HOEYERE valoer (samme farge)   2754        2.470      1.88             0.76
+LAVERE valoer (samme farge)   6456        6.998     -4.90            -0.70

@@ -1,0 +1,67 @@
+=== SD-vrakpolicyer, 1400 giver (0 hoppet over), 64 verdener, forhaandsfilter topp-20 av DD (dybde 6) ===
+Bare vraket varieres. Bud, trumf, etterlysning og hele kortspillet i alle
+fire seter er NevroHjerne. Poeng er budvinnersetets differanse mot snittet
+av de tre andre, i den ene runden vraket gjelder.
+
+policy            SD-anger  DD-anger  snittvaloer  renons  = fasit  poeng/runde
+-------------------------------------------------------------------------------
+SD nr. 2             3.934     0.206         6.70    0.44      0 %         5.90
+SD (fasiten)         2.916     0.188         6.65    0.53    100 %         5.85
+nevro selv           1.088     1.134         6.19    0.85      9 %         5.71
+korteste farge       1.889     1.244         6.93    1.02      8 %         4.25
+SD nr. 5             5.869     0.229         6.96    0.37      0 %         3.88
+DD (fasiten)         6.627     0.000         7.00    0.52     14 %         3.73
+DD nr. 26            8.681     0.457         7.35    0.26      0 %         1.38
+DD nr. 101          10.043     0.873         7.52    0.17      0 %        -0.65
+lavest valør         9.239     2.059         3.52    0.08      0 %        -2.71
+tilfeldig           12.671     2.422         8.42    0.10      0 %        -5.35
+DD median           12.493     2.398         8.26    0.10      0 %        -5.65
+høyest valør        18.648     3.479        13.03    0.08      0 %       -12.00
+DD verste           17.934     5.749        11.45    0.07      0 %       -14.25
+
+=== MAALEKONTRAKTEN: gulv og tak fra samme giver ===
+  SD-vrak          5.8457  [gulv -5.3457 → tak 5.7131]  framdrift 101.2 %  n=1400 holdout
+  DD-vrak          3.7305  [gulv -5.3457 → tak 5.7131]  framdrift 82.1 %  n=1400 holdout
+
+=== SD-FASITEN, bredt utvalg (n=13) ===
+  splitt-halv paalitelighet   0.986 (splitt 0.973)
+  observert korrelasjon       0.934
+  dempingskorrigert           0.941
+  DOM: GODKJENT
+  Referansen er pålitelig (0.986) og fasiten henger sammen med den (korrigert 0.941 over 13 kandidater).
+
+=== SD-FASITEN, SMALT – den som teller (n=9) ===
+  splitt-halv paalitelighet   0.966 (splitt 0.933)
+  observert korrelasjon       0.833
+  dempingskorrigert           0.848
+  DOM: GODKJENT
+  Referansen er pålitelig (0.966) og fasiten henger sammen med den (korrigert 0.848 over 9 kandidater).
+
+=== SENSITIVITET: dommen som funksjon av utvalget, SD mot DD ===
+Begge fasitene er regnet ut av de SAMME givene og de SAMME policyene, saa
+forskjellen mellom kolonnene er fasiten og ingenting annet.
+utvalg                               n  paalitelig  SD korr     SD dom  DD korr     DD dom
+------------------------------------------------------------------------------------------
+bredt – alle policyer               13       0.986    0.941   godkjent    0.808   godkjent
+SMALT – uten de bevisst dårlige      9       0.966    0.848   godkjent    0.424   godkjent
+bare SD-rangfamilien                 3       0.667    0.612   godkjent    0.612   godkjent
+SD-familien + nevro                  4       0.571    0.265     avvist    0.794   godkjent
+bare ikke-SD                        10       0.994    0.967   godkjent    0.809   godkjent
+SD- + DD-familien                    6       0.939    0.973   godkjent    0.619   godkjent
+
+=== ASYMMETRI I TAPSFUNKSJONEN (paret mot SD-fasiten paa samme giv) ===
+retning                       n  snitt anger   d poeng  poeng per anger
+-----------------------------------------------------------------------
+kastet HOEYERE enn fasit   9885       11.137     -9.58            -0.86
+kastet LAVERE enn fasit    5947        6.506     -3.97            -0.61
+toemte FLERE farger        1768        3.349     -2.39            -0.71
+toemte FAERRE farger       4855       12.755    -11.47            -0.90
+
+=== HVA FORHAANDSFILTERET KOSTER (topp-20 mot topp-100) ===
+Fasitens egen SD-anger mot alt som ble maalt i portkjoeringen (OEVRE grense:
+tallet inneholder ogsaa vinnerforbannelsen, siden maks tas over flere estimater):
+  2.916 poeng over 1400 giver
+Egen filtertest, 24 giver, VALGT i sett A og MAALT i sett B:
+  samme vrak valgt         38 %
+  gevinst ved topp-100      +0.690 poeng
+  DD-rang til den SD-beste i det brede settet, snitt 37.4 av 100

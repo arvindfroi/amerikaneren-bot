@@ -1,0 +1,434 @@
+{
+  "givere": 500,
+  "brukte": 500,
+  "hoppet": 0,
+  "dybde": 6,
+  "verdener": 64,
+  "filter": 100,
+  "filterBredt": 100,
+  "rader": [
+    {
+      "navn": "SD (fasiten)",
+      "sdAnger": 1.1402708333333338,
+      "ddAnger": 0.414,
+      "poengA": 7.213333333333332,
+      "poengB": 8.046666666666667,
+      "poeng": 7.629999999999999,
+      "valør": 6.6245,
+      "renons": 0.624,
+      "likFasit": 1
+    },
+    {
+      "navn": "SD nr. 2",
+      "sdAnger": 1.9186562500000013,
+      "ddAnger": 0.424,
+      "poengA": 6.895999999999998,
+      "poengB": 7.722666666666668,
+      "poeng": 7.309333333333333,
+      "valør": 6.732,
+      "renons": 0.538,
+      "likFasit": 0
+    },
+    {
+      "navn": "SD nr. 5",
+      "sdAnger": 3.1059166666666678,
+      "ddAnger": 0.458,
+      "poengA": 5.658666666666667,
+      "poengB": 6.820000000000002,
+      "poeng": 6.2393333333333345,
+      "valør": 6.8555,
+      "renons": 0.458,
+      "likFasit": 0
+    },
+    {
+      "navn": "DD (fasiten)",
+      "sdAnger": 6.713572916666668,
+      "ddAnger": 0,
+      "poengA": 4.065333333333332,
+      "poengB": 5.848,
+      "poeng": 4.956666666666664,
+      "valør": 7.114,
+      "renons": 0.586,
+      "likFasit": 0.082
+    },
+    {
+      "navn": "DD nr. 26",
+      "sdAnger": 8.808927083333334,
+      "ddAnger": 0.474,
+      "poengA": 1.5079999999999993,
+      "poengB": 3.1226666666666665,
+      "poeng": 2.3153333333333324,
+      "valør": 7.457,
+      "renons": 0.28,
+      "likFasit": 0.012
+    },
+    {
+      "navn": "DD nr. 101",
+      "sdAnger": 10.386270833333336,
+      "ddAnger": 0.858,
+      "poengA": -0.6439999999999997,
+      "poengB": 2.2186666666666675,
+      "poeng": 0.7873333333333331,
+      "valør": 7.7505,
+      "renons": 0.188,
+      "likFasit": 0
+    },
+    {
+      "navn": "nevro selv",
+      "sdAnger": 1.4217291666666665,
+      "ddAnger": 1.068,
+      "poengA": 6.518666666666668,
+      "poengB": 6.025333333333338,
+      "poeng": 6.271999999999997,
+      "valør": 6.2965,
+      "renons": 0.87,
+      "likFasit": 0.124
+    },
+    {
+      "navn": "lavest valør",
+      "sdAnger": 9.768406250000004,
+      "ddAnger": 2.086,
+      "poengA": -1.1400000000000008,
+      "poengB": -0.12133333333333346,
+      "poeng": -0.6306666666666669,
+      "valør": 3.5665,
+      "renons": 0.078,
+      "likFasit": 0.004
+    },
+    {
+      "navn": "korteste farge",
+      "sdAnger": 2.292333333333333,
+      "ddAnger": 1.226,
+      "poengA": 5.448000000000001,
+      "poengB": 6.01866666666667,
+      "poeng": 5.733333333333332,
+      "valør": 7.09,
+      "renons": 1.018,
+      "likFasit": 0.12
+    },
+    {
+      "navn": "DD median",
+      "sdAnger": 12.877822916666666,
+      "ddAnger": 2.384,
+      "poengA": -5.218666666666666,
+      "poengB": -3.920000000000001,
+      "poeng": -4.5693333333333355,
+      "valør": 8.339,
+      "renons": 0.106,
+      "likFasit": 0
+    },
+    {
+      "navn": "DD verste",
+      "sdAnger": 18.432562499999996,
+      "ddAnger": 5.698,
+      "poengA": -13.599999999999993,
+      "poengB": -13.880000000000006,
+      "poeng": -13.74,
+      "valør": 11.535,
+      "renons": 0.082,
+      "likFasit": 0
+    },
+    {
+      "navn": "høyest valør",
+      "sdAnger": 19.10404166666667,
+      "ddAnger": 3.53,
+      "poengA": -10.837333333333337,
+      "poengB": -12.186666666666667,
+      "poeng": -11.512000000000006,
+      "valør": 13.103,
+      "renons": 0.086,
+      "likFasit": 0
+    },
+    {
+      "navn": "tilfeldig",
+      "sdAnger": 13.326677083333323,
+      "ddAnger": 2.506,
+      "poengA": -3.5586666666666646,
+      "poengB": -5.704000000000001,
+      "poeng": -4.631333333333334,
+      "valør": 8.637,
+      "renons": 0.096,
+      "likFasit": 0
+    }
+  ],
+  "dommerSD": [
+    {
+      "navn": "bredt – alle policyer",
+      "policyer": [
+        "SD (fasiten)",
+        "SD nr. 2",
+        "SD nr. 5",
+        "DD (fasiten)",
+        "DD nr. 26",
+        "DD nr. 101",
+        "nevro selv",
+        "lavest valør",
+        "korteste farge",
+        "DD median",
+        "DD verste",
+        "høyest valør",
+        "tilfeldig"
+      ],
+      "dom": "godkjent",
+      "splitt": 0.989010989010989,
+      "paalitelighet": 0.994475138121547,
+      "observert": 0.978021978021978,
+      "korrigert": 0.9807349429507163,
+      "n": 13,
+      "begrunnelse": "Referansen er pålitelig (0.994) og fasiten henger sammen med den (korrigert 0.981 over 13 kandidater)."
+    },
+    {
+      "navn": "SMALT – uten de bevisst dårlige",
+      "policyer": [
+        "SD (fasiten)",
+        "SD nr. 2",
+        "SD nr. 5",
+        "DD (fasiten)",
+        "DD nr. 26",
+        "DD nr. 101",
+        "nevro selv",
+        "lavest valør",
+        "korteste farge"
+      ],
+      "dom": "godkjent",
+      "splitt": 0.9833333333333333,
+      "paalitelighet": 0.9915966386554621,
+      "observert": 0.95,
+      "korrigert": 0.9540169312358904,
+      "n": 9,
+      "begrunnelse": "Referansen er pålitelig (0.992) og fasiten henger sammen med den (korrigert 0.954 over 9 kandidater)."
+    },
+    {
+      "navn": "bare SD-rangfamilien",
+      "policyer": [
+        "SD (fasiten)",
+        "SD nr. 2",
+        "SD nr. 5"
+      ],
+      "dom": "godkjent",
+      "splitt": 1,
+      "paalitelighet": 1,
+      "observert": 1,
+      "korrigert": 1,
+      "n": 3,
+      "begrunnelse": "Referansen er pålitelig (1.000) og fasiten henger sammen med den (korrigert 1.000 over 3 kandidater)."
+    },
+    {
+      "navn": "SD-familien + nevro",
+      "policyer": [
+        "SD (fasiten)",
+        "SD nr. 2",
+        "SD nr. 5",
+        "nevro selv"
+      ],
+      "dom": "godkjent",
+      "splitt": 0.8,
+      "paalitelighet": 0.888888888888889,
+      "observert": 0.8,
+      "korrigert": 0.8485281374238571,
+      "n": 4,
+      "begrunnelse": "Referansen er pålitelig (0.889) og fasiten henger sammen med den (korrigert 0.849 over 4 kandidater)."
+    },
+    {
+      "navn": "bare ikke-SD",
+      "policyer": [
+        "DD (fasiten)",
+        "DD nr. 26",
+        "DD nr. 101",
+        "nevro selv",
+        "lavest valør",
+        "korteste farge",
+        "DD median",
+        "DD verste",
+        "høyest valør",
+        "tilfeldig"
+      ],
+      "dom": "godkjent",
+      "splitt": 0.9878787878787879,
+      "paalitelighet": 0.9939024390243903,
+      "observert": 0.9757575757575757,
+      "korrigert": 0.9787461205066815,
+      "n": 10,
+      "begrunnelse": "Referansen er pålitelig (0.994) og fasiten henger sammen med den (korrigert 0.979 over 10 kandidater)."
+    },
+    {
+      "navn": "SD- + DD-familien",
+      "policyer": [
+        "SD (fasiten)",
+        "SD nr. 2",
+        "SD nr. 5",
+        "DD (fasiten)",
+        "DD nr. 26",
+        "DD nr. 101"
+      ],
+      "dom": "godkjent",
+      "splitt": 1,
+      "paalitelighet": 1,
+      "observert": 1,
+      "korrigert": 1,
+      "n": 6,
+      "begrunnelse": "Referansen er pålitelig (1.000) og fasiten henger sammen med den (korrigert 1.000 over 6 kandidater)."
+    }
+  ],
+  "dommerDD": [
+    {
+      "navn": "bredt – alle policyer",
+      "policyer": [
+        "SD (fasiten)",
+        "SD nr. 2",
+        "SD nr. 5",
+        "DD (fasiten)",
+        "DD nr. 26",
+        "DD nr. 101",
+        "nevro selv",
+        "lavest valør",
+        "korteste farge",
+        "DD median",
+        "DD verste",
+        "høyest valør",
+        "tilfeldig"
+      ],
+      "dom": "godkjent",
+      "splitt": 0.989010989010989,
+      "paalitelighet": 0.994475138121547,
+      "observert": 0.8351648351648352,
+      "korrigert": 0.8374815243174657,
+      "n": 13,
+      "begrunnelse": "Referansen er pålitelig (0.994) og fasiten henger sammen med den (korrigert 0.837 over 13 kandidater)."
+    },
+    {
+      "navn": "SMALT – uten de bevisst dårlige",
+      "policyer": [
+        "SD (fasiten)",
+        "SD nr. 2",
+        "SD nr. 5",
+        "DD (fasiten)",
+        "DD nr. 26",
+        "DD nr. 101",
+        "nevro selv",
+        "lavest valør",
+        "korteste farge"
+      ],
+      "dom": "godkjent",
+      "splitt": 0.9833333333333333,
+      "paalitelighet": 0.9915966386554621,
+      "observert": 0.5,
+      "korrigert": 0.5021141743346792,
+      "n": 9,
+      "begrunnelse": "Referansen er pålitelig (0.992) og fasiten henger sammen med den (korrigert 0.502 over 9 kandidater)."
+    },
+    {
+      "navn": "bare SD-rangfamilien",
+      "policyer": [
+        "SD (fasiten)",
+        "SD nr. 2",
+        "SD nr. 5"
+      ],
+      "dom": "godkjent",
+      "splitt": 1,
+      "paalitelighet": 1,
+      "observert": 1,
+      "korrigert": 1,
+      "n": 3,
+      "begrunnelse": "Referansen er pålitelig (1.000) og fasiten henger sammen med den (korrigert 1.000 over 3 kandidater)."
+    },
+    {
+      "navn": "SD-familien + nevro",
+      "policyer": [
+        "SD (fasiten)",
+        "SD nr. 2",
+        "SD nr. 5",
+        "nevro selv"
+      ],
+      "dom": "godkjent",
+      "splitt": 0.8,
+      "paalitelighet": 0.888888888888889,
+      "observert": 0.8,
+      "korrigert": 0.8485281374238571,
+      "n": 4,
+      "begrunnelse": "Referansen er pålitelig (0.889) og fasiten henger sammen med den (korrigert 0.849 over 4 kandidater)."
+    },
+    {
+      "navn": "bare ikke-SD",
+      "policyer": [
+        "DD (fasiten)",
+        "DD nr. 26",
+        "DD nr. 101",
+        "nevro selv",
+        "lavest valør",
+        "korteste farge",
+        "DD median",
+        "DD verste",
+        "høyest valør",
+        "tilfeldig"
+      ],
+      "dom": "godkjent",
+      "splitt": 0.9878787878787879,
+      "paalitelighet": 0.9939024390243903,
+      "observert": 0.8181818181818181,
+      "korrigert": 0.8206877407975279,
+      "n": 10,
+      "begrunnelse": "Referansen er pålitelig (0.994) og fasiten henger sammen med den (korrigert 0.821 over 10 kandidater)."
+    },
+    {
+      "navn": "SD- + DD-familien",
+      "policyer": [
+        "SD (fasiten)",
+        "SD nr. 2",
+        "SD nr. 5",
+        "DD (fasiten)",
+        "DD nr. 26",
+        "DD nr. 101"
+      ],
+      "dom": "godkjent",
+      "splitt": 1,
+      "paalitelighet": 1,
+      "observert": 0.6571428571428571,
+      "korrigert": 0.6571428571428571,
+      "n": 6,
+      "begrunnelse": "Referansen er pålitelig (1.000) og fasiten henger sammen med den (korrigert 0.657 over 6 kandidater)."
+    }
+  ],
+  "asym": {
+    "valørHøyere": {
+      "n": 3655,
+      "anger": 40463.984375000065,
+      "dPoeng": -36718.33333333328
+    },
+    "valørLavere": {
+      "n": 2004,
+      "anger": 12563.583333333347,
+      "dPoeng": -9126.999999999993
+    },
+    "renonsFlere": {
+      "n": 595,
+      "anger": 2157.5052083333326,
+      "dPoeng": -1684.0000000000025
+    },
+    "renonsFærre": {
+      "n": 2049,
+      "anger": 25903.08854166668,
+      "dPoeng": -25955.66666666669
+    }
+  },
+  "målingSD": {
+    "navn": "SD-vrak",
+    "verdi": 7.629999999999999,
+    "gulv": -4.631333333333334,
+    "tak": 6.271999999999997,
+    "n": 500,
+    "holdout": true,
+    "retning": "hoeyereErBedre"
+  },
+  "målingDD": {
+    "navn": "DD-vrak",
+    "verdi": 4.956666666666664,
+    "gulv": -4.631333333333334,
+    "tak": 6.271999999999997,
+    "n": 500,
+    "holdout": true,
+    "retning": "hoeyereErBedre"
+  },
+  "filterkost": 1.1402708333333338,
+  "filterrader": []
+}

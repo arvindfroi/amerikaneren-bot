@@ -1,0 +1,70 @@
+  10/1424, 0.92 s/enhet, est. 21.7 min igjen     20/1424, 0.79 s/enhet, est. 18.5 min igjen     30/1424, 0.74 s/enhet, est. 17.1 min igjen     40/1424, 0.75 s/enhet, est. 17.3 min igjen     50/1424, 0.72 s/enhet, est. 16.6 min igjen     60/1424, 0.72 s/enhet, est. 16.3 min igjen     70/1424, 0.72 s/enhet, est. 16.2 min igjen     80/1424, 0.71 s/enhet, est. 15.9 min igjen     90/1424, 0.70 s/enhet, est. 15.6 min igjen     100/1424, 0.70 s/enhet, est. 15.3 min igjen     110/1424, 0.69 s/enhet, est. 15.2 min igjen     120/1424, 0.70 s/enhet, est. 15.2 min igjen     130/1424, 0.70 s/enhet, est. 15.1 min igjen     140/1424, 0.70 s/enhet, est. 15.0 min igjen     150/1424, 0.70 s/enhet, est. 14.9 min igjen     160/1424, 0.70 s/enhet, est. 14.7 min igjen     170/1424, 0.70 s/enhet, est. 14.6 min igjen     180/1424, 0.71 s/enhet, est. 14.7 min igjen     190/1424, 0.71 s/enhet, est. 14.6 min igjen     200/1424, 0.71 s/enhet, est. 14.5 min igjen     210/1424, 0.71 s/enhet, est. 14.3 min igjen     220/1424, 0.70 s/enhet, est. 14.1 min igjen     230/1424, 0.71 s/enhet, est. 14.1 min igjen     240/1424, 0.71 s/enhet, est. 14.0 min igjen     250/1424, 0.72 s/enhet, est. 14.1 min igjen     260/1424, 0.72 s/enhet, est. 14.0 min igjen     270/1424, 0.73 s/enhet, est. 14.1 min igjen     280/1424, 0.74 s/enhet, est. 14.1 min igjen     290/1424, 0.75 s/enhet, est. 14.2 min igjen     300/1424, 0.76 s/enhet, est. 14.2 min igjen     310/1424, 0.76 s/enhet, est. 14.2 min igjen     320/1424, 0.77 s/enhet, est. 14.2 min igjen     330/1424, 0.77 s/enhet, est. 14.1 min igjen     340/1424, 0.78 s/enhet, est. 14.1 min igjen     350/1424, 0.79 s/enhet, est. 14.1 min igjen     360/1424, 0.79 s/enhet, est. 14.0 min igjen     370/1424, 0.80 s/enhet, est. 14.0 min igjen     380/1424, 0.80 s/enhet, est. 13.9 min igjen     390/1424, 0.80 s/enhet, est. 13.8 min igjen     400/1424, 0.81 s/enhet, est. 13.8 min igjen     410/1424, 0.81 s/enhet, est. 13.7 min igjen     420/1424, 0.82 s/enhet, est. 13.7 min igjen     430/1424, 0.82 s/enhet, est. 13.5 min igjen     440/1424, 0.82 s/enhet, est. 13.5 min igjen     450/1424, 0.83 s/enhet, est. 13.4 min igjen     460/1424, 0.83 s/enhet, est. 13.3 min igjen     470/1424, 0.83 s/enhet, est. 13.2 min igjen     480/1424, 0.84 s/enhet, est. 13.2 min igjen     490/1424, 0.84 s/enhet, est. 13.1 min igjen     500/1424, 0.84 s/enhet, est. 12.9 min igjen     510/1424, 0.84 s/enhet, est. 12.8 min igjen     520/1424, 0.85 s/enhet, est. 12.8 min igjen     530/1424, 0.85 s/enhet, est. 12.6 min igjen     540/1424, 0.85 s/enhet, est. 12.5 min igjen     550/1424, 0.85 s/enhet, est. 12.4 min igjen     560/1424, 0.86 s/enhet, est. 12.3 min igjen     570/1424, 0.86 s/enhet, est. 12.2 min igjen     580/1424, 0.86 s/enhet, est. 12.1 min igjen     590/1424, 0.86 s/enhet, est. 11.9 min igjen     600/1424, 0.86 s/enhet, est. 11.8 min igjen     610/1424, 0.86 s/enhet, est. 11.7 min igjen     620/1424, 0.86 s/enhet, est. 11.6 min igjen     630/1424, 0.87 s/enhet, est. 11.5 min igjen     640/1424, 0.87 s/enhet, est. 11.4 min igjen     650/1424, 0.87 s/enhet, est. 11.3 min igjen     660/1424, 0.87 s/enhet, est. 11.1 min igjen     670/1424, 0.87 s/enhet, est. 11.0 min igjen     680/1424, 0.87 s/enhet, est. 10.8 min igjen     690/1424, 0.87 s/enhet, est. 10.7 min igjen     700/1424, 0.88 s/enhet, est. 10.6 min igjen     710/1424, 0.88 s/enhet, est. 10.4 min igjen     720/1424, 0.88 s/enhet, est. 10.3 min igjen     730/1424, 0.88 s/enhet, est. 10.2 min igjen     740/1424, 0.88 s/enhet, est. 10.1 min igjen     750/1424, 0.88 s/enhet, est. 9.9 min igjen     760/1424, 0.88 s/enhet, est. 9.8 min igjen     770/1424, 0.88 s/enhet, est. 9.6 min igjen     780/1424, 0.88 s/enhet, est. 9.5 min igjen     790/1424, 0.89 s/enhet, est. 9.4 min igjen     800/1424, 0.89 s/enhet, est. 9.2 min igjen     810/1424, 0.89 s/enhet, est. 9.1 min igjen     820/1424, 0.89 s/enhet, est. 9.0 min igjen     830/1424, 0.89 s/enhet, est. 8.8 min igjen     840/1424, 0.89 s/enhet, est. 8.7 min igjen     850/1424, 0.89 s/enhet, est. 8.5 min igjen     860/1424, 0.89 s/enhet, est. 8.4 min igjen     870/1424, 0.89 s/enhet, est. 8.2 min igjen     880/1424, 0.90 s/enhet, est. 8.1 min igjen     890/1424, 0.90 s/enhet, est. 8.0 min igjen     900/1424, 0.90 s/enhet, est. 7.8 min igjen     910/1424, 0.90 s/enhet, est. 7.7 min igjen     920/1424, 0.90 s/enhet, est. 7.6 min igjen     930/1424, 0.90 s/enhet, est. 7.4 min igjen     940/1424, 0.90 s/enhet, est. 7.3 min igjen     950/1424, 0.90 s/enhet, est. 7.1 min igjen     960/1424, 0.90 s/enhet, est. 7.0 min igjen     970/1424, 0.90 s/enhet, est. 6.8 min igjen     980/1424, 0.90 s/enhet, est. 6.7 min igjen     990/1424, 0.90 s/enhet, est. 6.5 min igjen     1000/1424, 0.90 s/enhet, est. 6.4 min igjen     1010/1424, 0.91 s/enhet, est. 6.2 min igjen     1020/1424, 0.91 s/enhet, est. 6.1 min igjen     1030/1424, 0.90 s/enhet, est. 5.9 min igjen     1040/1424, 0.91 s/enhet, est. 5.8 min igjen     1050/1424, 0.91 s/enhet, est. 5.6 min igjen     1060/1424, 0.91 s/enhet, est. 5.5 min igjen     1070/1424, 0.91 s/enhet, est. 5.4 min igjen     1080/1424, 0.91 s/enhet, est. 5.2 min igjen     1090/1424, 0.91 s/enhet, est. 5.1 min igjen     1100/1424, 0.91 s/enhet, est. 4.9 min igjen     1110/1424, 0.91 s/enhet, est. 4.8 min igjen     1120/1424, 0.91 s/enhet, est. 4.6 min igjen     1130/1424, 0.91 s/enhet, est. 4.5 min igjen     1140/1424, 0.91 s/enhet, est. 4.3 min igjen     1150/1424, 0.91 s/enhet, est. 4.2 min igjen     1160/1424, 0.91 s/enhet, est. 4.0 min igjen     1170/1424, 0.92 s/enhet, est. 3.9 min igjen     1180/1424, 0.92 s/enhet, est. 3.7 min igjen     1190/1424, 0.92 s/enhet, est. 3.6 min igjen     1200/1424, 0.92 s/enhet, est. 3.4 min igjen     1210/1424, 0.92 s/enhet, est. 3.3 min igjen     1220/1424, 0.92 s/enhet, est. 3.1 min igjen     1230/1424, 0.91 s/enhet, est. 3.0 min igjen     1240/1424, 0.91 s/enhet, est. 2.8 min igjen     1250/1424, 0.91 s/enhet, est. 2.6 min igjen     1260/1424, 0.91 s/enhet, est. 2.5 min igjen     1270/1424, 0.91 s/enhet, est. 2.3 min igjen     1280/1424, 0.91 s/enhet, est. 2.2 min igjen     1290/1424, 0.91 s/enhet, est. 2.0 min igjen     1300/1424, 0.91 s/enhet, est. 1.9 min igjen     1310/1424, 0.90 s/enhet, est. 1.7 min igjen     1320/1424, 0.90 s/enhet, est. 1.6 min igjen     1330/1424, 0.90 s/enhet, est. 1.4 min igjen     1340/1424, 0.90 s/enhet, est. 1.3 min igjen     1350/1424, 0.90 s/enhet, est. 1.1 min igjen     1360/1424, 0.90 s/enhet, est. 1.0 min igjen     1370/1424, 0.90 s/enhet, est. 0.8 min igjen     1380/1424, 0.89 s/enhet, est. 0.7 min igjen     1390/1424, 0.89 s/enhet, est. 0.5 min igjen     1400/1424, 0.90 s/enhet, est. 0.4 min igjen     1410/1424, 0.90 s/enhet, est. 0.2 min igjen     1420/1424, 0.91 s/enhet, est. 0.1 min igjen   
+=== SD-vrakpolicyer, 1400 giver (0 hoppet over), 64 verdener, forhaandsfilter topp-20 av DD (dybde 6) ===
+Bare vraket varieres. Bud, trumf, etterlysning og hele kortspillet i alle
+fire seter er NevroHjerne. Poeng er budvinnersetets differanse mot snittet
+av de tre andre, i den ene runden vraket gjelder.
+
+policy            SD-anger  DD-anger  snittvaloer  renons  = fasit  poeng/runde
+-------------------------------------------------------------------------------
+SD nr. 2             3.934     0.206         6.70    0.44      0 %         5.90
+SD (fasiten)         2.916     0.188         6.65    0.53    100 %         5.85
+nevro selv           1.088     1.134         6.19    0.85      9 %         5.71
+korteste farge       1.889     1.244         6.93    1.02      8 %         4.25
+SD nr. 5             5.869     0.229         6.96    0.37      0 %         3.88
+DD (fasiten)         6.627     0.000         7.00    0.52     14 %         3.73
+DD nr. 26            8.681     0.457         7.35    0.26      0 %         1.38
+DD nr. 101          10.043     0.873         7.52    0.17      0 %        -0.65
+lavest valør         9.239     2.059         3.52    0.08      0 %        -2.71
+tilfeldig           12.671     2.422         8.42    0.10      0 %        -5.35
+DD median           12.493     2.398         8.26    0.10      0 %        -5.65
+høyest valør        18.648     3.479        13.03    0.08      0 %       -12.00
+DD verste           17.934     5.749        11.45    0.07      0 %       -14.25
+
+=== MAALEKONTRAKTEN: gulv og tak fra samme giver ===
+  SD-vrak          5.8457  [gulv -5.3457 → tak 5.7131]  framdrift 101.2 %  n=1400 holdout
+  DD-vrak          3.7305  [gulv -5.3457 → tak 5.7131]  framdrift 82.1 %  n=1400 holdout
+
+=== SD-FASITEN, bredt utvalg (n=13) ===
+  splitt-halv paalitelighet   0.986 (splitt 0.973)
+  observert korrelasjon       0.934
+  dempingskorrigert           0.941
+  DOM: GODKJENT
+  Referansen er pålitelig (0.986) og fasiten henger sammen med den (korrigert 0.941 over 13 kandidater).
+
+=== SD-FASITEN, SMALT – den som teller (n=9) ===
+  splitt-halv paalitelighet   0.966 (splitt 0.933)
+  observert korrelasjon       0.833
+  dempingskorrigert           0.848
+  DOM: GODKJENT
+  Referansen er pålitelig (0.966) og fasiten henger sammen med den (korrigert 0.848 over 9 kandidater).
+
+=== SENSITIVITET: dommen som funksjon av utvalget, SD mot DD ===
+Begge fasitene er regnet ut av de SAMME givene og de SAMME policyene, saa
+forskjellen mellom kolonnene er fasiten og ingenting annet.
+utvalg                               n  paalitelig  SD korr     SD dom  DD korr     DD dom
+------------------------------------------------------------------------------------------
+bredt – alle policyer               13       0.986    0.941   godkjent    0.808   godkjent
+SMALT – uten de bevisst dårlige      9       0.966    0.848   godkjent    0.424   godkjent
+bare SD-rangfamilien                 3       0.667    0.612   godkjent    0.612   godkjent
+SD-familien + nevro                  4       0.571    0.265     avvist    0.794   godkjent
+bare ikke-SD                        10       0.994    0.967   godkjent    0.809   godkjent
+SD- + DD-familien                    6       0.939    0.973   godkjent    0.619   godkjent
+
+=== ASYMMETRI I TAPSFUNKSJONEN (paret mot SD-fasiten paa samme giv) ===
+retning                       n  snitt anger   d poeng  poeng per anger
+-----------------------------------------------------------------------
+kastet HOEYERE enn fasit   9885       11.137     -9.58            -0.86
+kastet LAVERE enn fasit    5947        6.506     -3.97            -0.61
+toemte FLERE farger        1768        3.349     -2.39            -0.71
+toemte FAERRE farger       4855       12.755    -11.47            -0.90
+
+=== HVA FORHAANDSFILTERET KOSTER (topp-20 mot topp-100) ===
+Fasitens egen SD-anger mot alt som ble maalt i portkjoeringen (OEVRE grense:
+tallet inneholder ogsaa vinnerforbannelsen, siden maks tas over flere estimater):
+  2.916 poeng over 1400 giver
+Egen filtertest, 24 giver, VALGT i sett A og MAALT i sett B:
+  samme vrak valgt         38 %
+  gevinst ved topp-100      +0.690 poeng
+  DD-rang til den SD-beste i det brede settet, snitt 37.4 av 100
+
+Skrev analyse/moe2-port-vrak-sd.{txt,json}
