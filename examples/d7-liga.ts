@@ -23,12 +23,14 @@
  * Dette er altså D7s FUNDAMENT: ligaen og ratingen. Resten bygges oppå.
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { lagRng } from "../src/kort.ts";
 import { Evolusjon, genomFraJson, genomTilJson, NeatAgent, type Genom } from "../src/neat/index.ts";
 import { spillGruppekamp } from "../src/neat/turnering.ts";
+import { dommenOverBarnet, STANDARD_RATER } from "../src/neat/genom.ts";
 import { andelerFraPoeng, nyRating, oppdaterBord, type Rating } from "../src/neat/elo.ts";
+import { NevroAgent } from "../src/nevro/index.ts";
 
 let popp = 96;
 let generasjoner = 100000;
@@ -52,7 +54,35 @@ if (fraFil !== null) {
   const rå = JSON.parse(readFileSync(fraFil, "utf8")) as { genom?: unknown };
   startGenom = genomFraJson(rå.genom !== undefined ? JSON.stringify(rå.genom) : readFileSync(fraFil, "utf8"));
 }
-const evo = new Evolusjon({ populasjon: popp, frø: evoFrø, startGenom });
+/**
+ * FASIT-LAERING PAA. Uten dette ville ligaen vaert et rent mutasjonssoek, og
+ * hele metningsarbeidet - normaliseringen, bevarLengde, den funksjonelle
+ * vakten - ville aldri blitt utoevd. Det var noeyaktig feilen i foerste
+ * lansering: vi fikset at laeringen kan feste, og startet saa en linje uten
+ * laering.
+ *
+ * Dosene er de D6 kjoerte med, som er de eneste vi har maalt: trumffasit ga
+ * +20,4 +- 4,4, og dosesveipet viste at MER ikke er bedre (1500 runder
+ * daarligere enn 600 paa samme rate).
+ */
+const KAMP = {
+  maksRunder: 12,
+  spillFasit: { sjanse: 0.35, rate: 0.05, dybde: 1 },
+  budFasit: { sjanse: 0.5, rate: 0.05 },
+  trumfFasit: { sjanse: 0.5, rate: 0.05 },
+  etterlysFasit: { sjanse: 0.6, rate: 0.05 },
+  vrakFasit: { sjanse: 0.6, rate: 0.05 },
+  stikkFasit: { sjanse: 0.25, rate: 0.05 },
+} as const;
+
+const evo = new Evolusjon({
+  populasjon: popp,
+  frø: evoFrø,
+  startGenom,
+  // BEVIST MUTERING: barnet arver forelderens retning og gaar videre samme
+  // vei; dommenOverBarnet snur den naar skrittet var galt.
+  rater: { ...STANDARD_RATER, bevist: true },
+});
 const rng = lagRng(evoFrø ^ 0x11a6a);
 
 /** Rating per plass i populasjonen. Mesteren staar alltid paa plass 0. */
@@ -69,6 +99,32 @@ const stokk = (n: number): number[] => {
   return idx;
 };
 
+/**
+ * EKSTERN BENK mot NevroHjerne, skrevet til `trening-<dir>.log` i repo-rota
+ * i noeyaktig det formatet neat-graf.ts alt parser. Elo er intern og ikke
+ * sammenlignbar mellom skaar - grafen trenger et absolutt tall.
+ */
+function benk(g: Genom, kamper = 24): { egne: number; nevro: number; seire: number } {
+  let egne = 0;
+  let nevro = 0;
+  let seire = 0;
+  for (let k = 0; k < kamper; k++) {
+    const agenter = [
+      new NeatAgent(g, { læringsrate: 0 }),
+      new NevroAgent(),
+      new NevroAgent(),
+      new NevroAgent(),
+    ];
+    const res = spillGruppekamp(agenter, 8_000_000 + k, { maksRunder: 12 });
+    egne += res.poeng[0] ?? 0;
+    const andre = ((res.poeng[1] ?? 0) + (res.poeng[2] ?? 0) + (res.poeng[3] ?? 0)) / 3;
+    nevro += andre;
+    if ((res.poeng[0] ?? 0) > andre) seire++;
+  }
+  return { egne: egne / kamper, nevro: nevro / kamper, seire };
+}
+
+const NL = String.fromCharCode(10);
 const logg: string[] = [];
 const si = (s: string): void => {
   console.log(s);
@@ -87,7 +143,7 @@ for (let g = 0; g < generasjoner; g++) {
     for (let b = 0; b + 3 < rekke.length; b += 4) {
       const idx = [rekke[b]!, rekke[b + 1]!, rekke[b + 2]!, rekke[b + 3]!];
       const agenter = idx.map((i) => new NeatAgent(evo.genomer[i]!, { læringsrate: 0 }));
-      const res = spillGruppekamp(agenter, giverFrø, { maksRunder: 12 });
+      const res = spillGruppekamp(agenter, giverFrø, KAMP);
       oppdaterBord(
         idx.map((i) => ratinger[i]!),
         andelerFraPoeng(res.poeng),
@@ -96,6 +152,10 @@ for (let g = 0; g < generasjoner; g++) {
   }
 
   const fitness = ratinger.map((r) => r.rating);
+  // DOMMEN OVER BARNET: skrittlengden vokser naar ratingen steg, krymper og
+  // snur retningen naar den falt. Det er andre halvdel av bevist mutering -
+  // uten dette kallet er muterRettet bare tilfeldig gange med momentum.
+  for (let i = 0; i < evo.genomer.length; i++) dommenOverBarnet(evo.genomer[i]!, fitness[i]!);
   const beste = fitness.indexOf(Math.max(...fitness));
   const mesterRating = ratinger[beste]!.rating;
 
@@ -109,6 +169,21 @@ for (let g = 0; g < generasjoner; g++) {
         `spredning ${spredning.toFixed(0)}, koblinger ${evo.genomer[beste]!.koblinger.length}`,
     );
     writeFileSync(`${dir}/mester.json`, genomTilJson(evo.genomer[beste]!));
+    writeFileSync(
+      `${dir}/status.json`,
+      JSON.stringify({ generasjon: g + 1, rating: mesterRating, populasjon: popp }, null, 2),
+    );
+  }
+
+  // Ekstern benk med jevne mellomrom: grafen leser denne, og den er det
+  // eneste tallet som er sammenlignbart paa tvers av skaar.
+  if ((g + 1) % 50 === 0) {
+    const b = benk(evo.genomer[beste]!);
+    const linje =
+      `[gen ${g + 1}] benk vs nevro: mester ${b.egne.toFixed(1)} poeng/kamp, ` +
+      `nevro ${b.nevro.toFixed(1)}, seire ${b.seire}/24`;
+    si(linje);
+    appendFileSync(`${dir}.log`, linje + NL);
   }
 
   evo.nesteGenerasjonMed(fitness);

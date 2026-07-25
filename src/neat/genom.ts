@@ -227,6 +227,8 @@ export interface MutasjonsRater {
    * der 14 nye sensorer endte med 0 koblinger. Se FORSVARSSENSORER.
    */
   readonly tillatteKilder?: ReadonlySet<number>;
+  /** Bruk retningsbevisst mutasjon (muterRettet) i stedet for tilfeldig. */
+  readonly bevist?: boolean;
   /** Sjanse for å perturbere vektene (per genom). */
   readonly vekter: number;
   /** Sjanse per vekt for HELT ny verdi (ellers liten perturbasjon). */
@@ -402,7 +404,7 @@ export function muterRettet(g: Genom, rng: () => number, rater: MutasjonsRater):
   }
   g.retning = ny;
   g.steg = steg;
-  normaliserVekter(g, rater.normaliser ?? 1.5);
+  // muter() normaliserer til slutt uansett, saa vi lar det staa til der.
 }
 
 /**
@@ -556,7 +558,14 @@ export function muterBeskjær(g: Genom, rng: () => number): boolean {
 }
 
 export function muter(g: Genom, bok: Innovasjonsbok, rng: () => number, rater = STANDARD_RATER): void {
-  if (rng() < rater.vekter) muterVekter(g, rng, rater);
+  // BEVIST MUTERING naar genomet har retningshukommelse, ellers den vanlige
+  // tilfeldige perturbasjonen. muterRettet gjenbruker forrige skritt med
+  // momentum og lar dommenOverBarnet snu retningen naar skrittet var galt -
+  // se der for hvorfor en ren tilfeldig gange kaster bort halve innsatsen.
+  if (rng() < rater.vekter) {
+    if (rater.bevist === true) muterRettet(g, rng, rater);
+    else muterVekter(g, rng, rater);
+  }
   if (rng() < (rater.beskjær ?? 0)) muterBeskjær(g, rng);
   if (rng() < rater.nyKobling) muterNyKobling(g, bok, rng, 30, rater.kildeBias, rater.tillatteKilder);
   if (rng() < rater.nyNode) muterNyNode(g, bok, rng);
