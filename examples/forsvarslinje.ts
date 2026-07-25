@@ -44,6 +44,12 @@ let generasjoner = 400;
 let dir = "trening-f1";
 let giverePerGen = 24;
 let stikkVekt = 1.0;
+// Flere skaar med ULIKE froe kjoeres som egne prosesser. Det gir bade
+// parallellitet uten traadkode OG uavhengige replikater - noedvendig i et
+// domene der felle-raten svinger 10pp mellom froesett ved n=250.
+let evoFrø = 0xf0f5;
+/** Hvor mange toppgenomer som bedoemmes paa nytt foer mesteren kaares. */
+const FINALISTER = 8;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--popp") popp = Number(process.argv[++i]);
@@ -51,6 +57,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--dir") dir = process.argv[++i]!;
   else if (a === "--givere") giverePerGen = Number(process.argv[++i]);
   else if (a === "--stikkvekt") stikkVekt = Number(process.argv[++i]);
+  else if (a === "--fro") evoFrø = Number(process.argv[++i]);
 }
 mkdirSync(dir, { recursive: true });
 
@@ -140,9 +147,9 @@ function fitnessFor(genom: Genom | null, sett: readonly Stilling[]): { fit: numb
   return { fit: faltAndel + stikkVekt * stikkAndel, falt: faltAndel, stikk: stikk / n };
 }
 
-const evo = new Evolusjon({ populasjon: popp, frø: 0xf0f5 });
+const evo = new Evolusjon({ populasjon: popp, frø: evoFrø });
 const OVERVAAK = byggSett(2_500_000, 200);
-const rng = lagRng(0xd1e5);
+const rng = lagRng(evoFrø ^ 0xd1e5);
 
 const nevroRef = fitnessFor(null, OVERVAAK);
 console.log(`Forsvarslinja: populasjon ${popp}, ${giverePerGen} givere/gen, kontrakt 8-10`);
@@ -157,6 +164,25 @@ for (let g = 0; g < generasjoner; g++) {
   // Nye givere hver generasjon – men de SAMME for alle genomer i den.
   const sett = byggSett(3_000_000 + Math.floor(rng() * 900_000), giverePerGen);
   const fitness = evo.genomer.map((gen) => fitnessFor(gen, sett).fit);
+
+  // VINNERENS FORBANNELSE, målt: med 96 genomer bedømt på 40 givere er
+  // argmax det genomet som var HELDIG, ikke det beste – felle-raten er ~0,2,
+  // så standardfeilen per genom er ~6pp mens forskjellene vi leter etter er
+  // mindre. Første kjøring viste akkurat dette: mesterens overvåkede
+  // felle-rate falt 17,0 % -> 12,0 % fra generasjon 10 til 20.
+  //
+  // De TOPP `FINALISTER` genomene bedømmes derfor på nytt på et eget,
+  // ferskt sett før mesteren kåres. Kombinert estimat over ~3x så mange
+  // givere gjør kroningen langt mindre tilfeldig, og koster bare
+  // FINALISTER x bekreftelsesgivere ekstra utspill.
+  const rangert = fitness.map((f, i) => ({ f, i })).sort((a, b) => b.f - a.f);
+  const bekreft = byggSett(3_900_000 + Math.floor(rng() * 900_000), giverePerGen * 2);
+  for (const { i } of rangert.slice(0, FINALISTER)) {
+    const b = fitnessFor(evo.genomer[i]!, bekreft);
+    // Vektet snitt over begge sett – flere givere teller mer.
+    fitness[i] = (fitness[i]! * sett.length + b.fit * bekreft.length) / (sett.length + bekreft.length);
+  }
+
   evo.nesteGenerasjonMed(fitness);
 
   if ((g + 1) % 10 === 0) {
