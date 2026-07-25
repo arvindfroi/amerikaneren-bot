@@ -99,3 +99,57 @@ MoE2 snur derfor rekkefølgen:
 
 Det bevarer NEATs styrke (den finner strukturen selv) og fjerner den delen
 som målingene sier skader.
+
+---
+
+## RETTELSE 2026-07-25, etter E1-målingen
+
+Designet over lot hver ekspert selektere på **orakelenighet** (anger). Det er
+nå målt til å være feil, og rettelsen er den viktigste enkeltendringen i
+dokumentet.
+
+### Målingen
+
+| | anger på e1-frys holdout (n=21 044) | poeng mot grådig, 600 givere |
+|---|---|---|
+| gulv (tilfeldig kort) | 0,9321 | – |
+| NevroHjerne | 0,8167 | **+75,37 ± 0,06** |
+| E1-r1 | 0,5436 | +72,19 ± 0,08 |
+| **E1-r2** | **0,4768** | +72,46 ± 0,07 |
+
+E1-r2 er 0,34 anger **bedre** enn NevroHjerne – 2,4 ganger hele gulv-til-tak-
+spennet – og taper likevel **2,91 ± 0,06 poeng** per kamp, tegntest 9 av 599.
+Det er ikke støy. De to målestokkene rangerer paret **motsatt**.
+
+Bekreftet uavhengig med `neat-anger.ts`: anger 0,4780 mot 0,8348, optimalt
+valg 61,4 % mot 58,7 %.
+
+### Hvorfor
+
+Fordelen til E1 ligger i stikk 5–9, der dobbelt-dummy-solveren løser eksakt.
+I stikk 1–4 er E1 **dårligere** enn nevro. NevroHjerne ligger til og med under
+det tilfeldige gulvet i stikk 4, 6 og 7 uten at det hindrer den i å lede med
+tre poeng.
+
+Benken måler altså sluttspill. Kampen avgjøres tidlig. Orakelet er skarpt der
+det betyr minst.
+
+### Hva som endres
+
+1. **Ingen ekspert promoteres på orakelenighet alene.** Anger er
+   gradientsignal for læringen – den er billig, deterministisk og virker som
+   retning – men forfremmelse krever poengbenken.
+2. **Innen én arkitektur ser anger ut til å holde**: r2 slo r1 på begge
+   målestokkene (12 % bedre anger ga +0,27 poeng, p<0,001). På tvers av
+   arkitekturer holder den ikke. Fasiten er derfor merket som
+   *relativ innen familie*, ikke absolutt.
+3. **Godkjenningsporten skal kjøres per ekspert med kandidater fra ULIKE
+   familier.** Kjøres den bare innen én, godkjenner den en fasit som ikke
+   generaliserer – som her.
+4. **Per-stikk-vekting må måles, ikke antas.** Om tidlige stikk avgjør
+   kampen, skal fasiten vektes deretter, og vekten skal komme fra en måling
+   av hvilke stikk som faktisk korrelerer med poeng.
+
+Dette er nøyaktig det godkjenningsporten i `src/moe2/port.ts` ble skrevet
+for å fange. Den ble bare ikke kjørt før arkitekturen ble skrevet. Porten
+virket; jeg brukte den for sent.
