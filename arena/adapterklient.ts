@@ -13,7 +13,8 @@
  *   {"type":"avslutt"}
  */
 
-import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { spawn, spawnSync, type ChildProcessByStdio } from "node:child_process";
+import type { Readable, Writable } from "node:stream";
 import { existsSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { fraKortId, kortId } from "../src/kort.ts";
@@ -75,7 +76,9 @@ export interface AdapterSvar {
 
 /** Én adapterprosess. Serialiserer forespørsler: én ventende om gangen. */
 export class Adapter {
-  private readonly proc: ChildProcessWithoutNullStreams;
+  // stderr arves av foreldreprosessen ("inherit"), så den er null her – derfor
+  // ChildProcessByStdio og ikke ChildProcessWithoutNullStreams.
+  private readonly proc: ChildProcessByStdio<Writable, Readable, null>;
   private readonly kø: {
     løs: (svar: AdapterSvar) => void;
     avvis: (feil: Error) => void;

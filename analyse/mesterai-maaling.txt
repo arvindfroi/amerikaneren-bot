@@ -1,0 +1,154 @@
+=== MesterAI hode mot hode: 2 mot 2, speilede par ===
+Kilder: analyse/h2h-nevro.jsonl, analyse/h2h-sdr1.jsonl, analyse/h2h-pimc.jsonl
+MesterAI-innstilling: 450 ms per kortvalg
+Positivt tall = MesterAI er BEDRE enn kandidaten.
+
+--- MesterAI mot nevro ---
+  par 53 (106 kamper, 2211 runder)
+  poeng per runde per sete: +1.068 ± 0.163
+  poeng per kamp (2 seter): +44.8 ± 6.6
+  kampseire MesterAI: 79/106
+  budrunder vunnet: MesterAI 1145 (klarte 73 %), nevro 1106 (klarte 64 %)
+
+--- MesterAI mot e1:e1-modell/sd-r1.bin ---
+  par 57 (114 kamper, 2183 runder)
+  poeng per runde per sete: +1.135 ± 0.177
+  poeng per kamp (2 seter): +41.6 ± 6.6
+  kampseire MesterAI: 85/114
+  budrunder vunnet: MesterAI 1127 (klarte 74 %), e1:e1-modell/sd-r1.bin 1111 (klarte 65 %)
+
+--- MesterAI mot pimc ---
+  par 10 (20 kamper, 323 runder)
+  poeng per runde per sete: +2.355 ± 0.292
+  poeng per kamp (2 seter): +72.6 ± 8.5
+  kampseire MesterAI: 20/20
+  budrunder vunnet: MesterAI 238 (klarte 76 %), pimc 85 (klarte 67 %)
+
+=== Parrede sammenlikninger mellom kandidatene (samme givere) ===
+Positivt = FØRSTE kandidat taper mer mot MesterAI enn den andre.
+
+nevro minus e1:e1-modell/sd-r1.bin (53 felles par):
+  poeng per runde per sete: -0.050 ± 0.214
+  poeng per kamp (2 seter): +4.1 ± 8.5
+
+nevro minus pimc (10 felles par):
+  poeng per runde per sete: -1.307 ± 0.437
+  poeng per kamp (2 seter): -21.9 ± 17.6
+
+e1:e1-modell/sd-r1.bin minus pimc (10 felles par):
+  poeng per runde per sete: -1.222 ± 0.507
+  poeng per kamp (2 seter): -33.4 ± 21.1
+
+
+=== Grådigbenken: den målestokken alt annet er målt på ===
+Én bot mot 3x grådig, kamp til 100 poeng (tak 40 runder), setene rotert 0-3,
+frø 777000+f. Nøyaktig samme protokoll i examples/mesterai-referanse.ts og
+examples/neat-evaluer.ts, så tallene er direkte sammenliknbare.
+
+Samme 12 givere (frø 777000-777011), 48 kamper per kandidat:
+  MesterAI     +76,9        (102,5 mot grådig 25,6, seire 48/48)
+  sd-r1        +75,45 ± 0,38
+  NevroHjerne  +75,35 ± 0,41
+
+1000 givere (frø 777000+), bare nettene (de er raske nok):
+  NevroHjerne  +75,42 ± 0,04
+  sd-r1        +75,28 ± 0,04
+  parret sd-r1 - nevro: -0,14 ± 0,04  (tegntest 444/974, p=0,006)
+
+Det siste tallet reproduserer -0,110 ± 0,030 fra frøbånd 33 mill. på et helt
+annet frøbånd. Gapet sd-r1 -> nevro på grådigbenken er altså ekte og stabilt.
+
+En grådigbenk-kamp varer i snitt 8,4 runder (målt over 240 kamper): den sterke
+boten er i mål på 100 poeng lenge før 40-runders taket. Mot MesterAI varer en
+kamp ca. 21 runder, fordi den er jevn. Derfor må alt regnes om til poeng per
+runde per sete før tallene kan sammenliknes.
+
+=== Hovedfunnet: grådigbenken er METTET ===
+                              per kamp/sete   per runde/sete
+  MesterAI - nevro, grådigbenk    +1,55           +0,185
+  MesterAI - nevro, direkte      +22,4           +1,068 ± 0,163
+
+Det direkte oppgjøret gir et gap 5,8x større enn grådigbenken gjør. De to
+tallene er ikke uenige om støy - de måler ikke det samme.
+
+Årsaken er taket: mot tre grådige når alle kandidatene 100 poeng nesten hver
+gang, og differansen mot grådig lander på 75-77 uansett hvor mye sterkere den
+beste er. Benken har ikke oppløsning igjen på toppen av feltet. Den kan si at
+en kandidat slår grådig; den kan IKKE si hvor langt det er opp til MesterAI.
+Hele prosjektet har brukt NevroHjerne som stedfortreder for MesterAI på en
+benk som ikke kunne se forskjell på de to.
+
+RETTELSE TIL commit 698a5da: den forklarte misforholdet med at +76,9 og
++75,40 kom fra "ulike måleoppsett", og at +75,40 var "en enkeltrunde-
+differanse over 2000 givere". Det stemmer ikke. mesterai-referanse.ts og
+neat-evaluer.ts kjører identisk protokoll, og kjører man referansens EGET
+regnskap med NevroHjerne i setet på de samme frøene, får man:
+
+  nevro    102,3 mot grådig 27,0  ->  diff +75,4  (48 kamper, 8,5 runder/kamp)
+  MesterAI 102,5 mot grådig 25,6  ->  diff +76,9  (48 kamper)
+
++75,4 reproduseres på desimalen. Tallene ligger på SAMME akse. Den ekte
+årsaken er at begge lander på ~102 poeng: kampen stopper når noen passerer
+100, så metrikken er klemt mot taket og kan ikke vise mer enn ~2 poeng
+uansett. Det er metning, ikke enhetsforveksling - og forskjellen betyr noe:
+en aksefeil retter man ved å lese tabellen riktig, et tak retter man bare ved
+å bytte målestokk.
+
+Direkte målt er MesterAI klart sterkest: den slår NevroHjerne med 1,07 poeng
+per runde per sete (6,6 standardfeil fra null) og vinner 79 av 106 kamper.
+
+=== Overføringstapet: avgrenset oppad, ikke oppløst ===
+sd-r1 er trent med single-dummy-evaluering der NevroHjerne er motstandermodell
+i rolloutene. Spørsmålet var om metoden er finstilt mot nevros spillestil og
+faller sammen mot MesterAI. Alt under er sd-r1 MINUS nevro i YTELSE
+(positivt = sd-r1 best), parret på de samme 53 giverne:
+
+  mot 3x grådig (1000 givere):   -0,0167 ± 0,0048  poeng/runde/sete
+  mot MesterAI, per runde:       -0,050  ± 0,214   poeng/runde/sete
+  mot MesterAI, per kamp:        +2,05   ± 4,25    poeng/kamp/sete
+
+Legg merke til at de to MesterAI-tallene ikke engang er ENIGE OM FORTEGNET.
+Per runde er sd-r1 litt dårligere enn nevro, per kamp litt bedre. Det er ikke
+en motsetning som skal forklares - det er slik en måling ser ut når støyen er
+mange ganger større enn effekten, og det er i seg selv beviset for at
+oppløsningen ikke strekker til.
+
+Punktanslaget per runde (-0,050) er 3x grådigbenkens (-0,0167), altså i samme
+retning og litt større. Men standardfeilen er 0,214 - fire ganger effekten.
+95 %-intervallet spenner fra -0,47 til +0,37 poeng per runde.
+
+ÆRLIG DOM: målingen kan ikke skille "samme lille tap som mot grådig" fra "3x
+større tap". Den utelukker bare at overføringstapet er STORT: mer enn ca. 0,47
+poeng per runde per sete er utelukket, og det er under halvparten av gapet
+nevro har opp til MesterAI (1,07). Den største kjente risikoen i tilnærmingen
+er dermed verken bekreftet eller avkreftet - den er avgrenset oppad.
+
+Hvorfor det ikke lot seg oppløse: effekten vi jakter (0,0167 poeng/runde) er
+13x mindre enn standardfeilen 57 par gir. SE 0,005 ville krevd ca. 100 000 par
+- flere tusen CPU-timer med MesterAI i den andre enden. Fin rangering av to
+nære kandidater hører derfor fortsatt hjemme på en billig benk med parrede
+givere. MesterAI-oppgjøret sier hva vi sikter MOT, ikke hvem av to nesten like
+nett som er best.
+
+=== Forbehold som må stå ===
+1. TIDSBUDSJETT OG LAST. MesterAIs søk stopper når verdener >= maksVerdener,
+   ELLER når verdener >= minVerdener og de 450 ms er brukt opp. Maskinen kjørte
+   16 sd-orakel + 2 e1-orakel gjennom hele målingen (kølengde 26-34 på 24
+   kjerner), så MesterAI rakk færre verdener per kortvalg enn den ville gjort
+   på en ledig maskin. Alle MesterAI-tallene her er derfor NEDRE anslag.
+   Bruk --verdener N (låser minVerdener = maksVerdener) for en lastuavhengig
+   måling neste gang.
+2. NevroHjerne og sd-r1 er rene nett og påvirkes ikke av last - de bruker
+   mikrosekunder uansett. Skjevheten går altså bare én vei, i MesterAIs disfavør.
+3. PIMC har bare 10 par og deler tidsbudsjett med MesterAI, så den er rammet av
+   samme last i tillegg til at Node er tregere per verden enn Swift. Tallet
+   (+2,36 ± 0,29 per runde, 20-0 i kamper) bekrefter retningen i
+   arena/README.md (MesterAI 4-0), ikke mer.
+4. Speilingen nuller ut kortflaksen i givingen, ikke i spillet: kampene
+   divergerer etter første ulike beslutning, og MesterAI har egen RNG per kamp.
+5. "Kampseire" telles per SETE (motoren kårer én vinner), ikke per side.
+   Amerikaner er ikke et fast makkerpar-spill - makkerskapet dannes per runde
+   via etterlysningen. Poeng per runde per sete er derfor hovedtallet.
+6. Synk mellom motoren og appens GameEngine ble verifisert etter HVER handling
+   i alle 244 spilte kampene (240 av dem i komplette speilede par). Ingen
+   avvik oppsto, og ingen kjøring stoppet på DESYNK.

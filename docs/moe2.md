@@ -1304,3 +1304,171 @@ motstander SD-metoden IKKE ble finstilt mot. Overføringstapet er dermed ikke
 totalt, og det var den største kjente risikoen.
 
 Flere kamper trengs før dette er noe annet enn et hint.
+
+## MesterAI målt for første gang: grådigbenken er mettet, og gapet er 5,8x større enn den viser
+
+`trening-felles/mesterai-referanse.json` fantes ikke før nå. MesterAI – appens
+President-nivå, det spillet familien faktisk møter – hadde **aldri** vært målt
+i dette repoet. NevroHjerne har vært stedfortreder for den i hver eneste
+måling, uten at noen kjente avstanden mellom de to.
+
+Tall: `analyse/mesterai-maaling.txt`, `analyse/h2h-nevro.jsonl`,
+`analyse/h2h-sdr1.jsonl`, `analyse/h2h-pimc.jsonl`,
+`analyse/mesterai-referanse.json`. Harness: `examples/mesterai-h2h.ts` +
+`examples/mesterai-h2h-rapport.ts` (nye), `examples/mesterai-referanse.ts`
+(fantes, aldri fullført før nå – loggen stoppet på kamp 28/32).
+
+### Oppsettet
+
+MesterAI kjøres som **appens egen Swift-kode** gjennom arena-adapteren
+(`arena/adapter`, bygget i WSL). Vår motor er dommer: den deler ut, validerer
+hver handling og fører poeng; adapteren speiler appens `GameEngine` og
+verifiseres etter **hver** handling. 244 kamper, null avvik.
+
+To ulike målinger, og forskjellen mellom dem er hele poenget:
+
+| | oppsett | hva den svarer på |
+|---|---|---|
+| grådigbenken | 1 bot mot 3× grådig, kamp til 100 | slår kandidaten grådig? |
+| hode mot hode | MesterAI 2 seter mot kandidat 2 seter, speilede par | hvem er best? |
+
+### Grådigbenken, samme 12 givere (frø 777000+), 48 kamper hver
+
+| kandidat | poeng/kamp mot grådig |
+|---|---|
+| **MesterAI** | **+76,9** (102,5 mot 25,6, seire 48/48) |
+| sd-r1 | +75,45 ± 0,38 |
+| NevroHjerne | +75,35 ± 0,41 |
+
+Streken på dashbordet kommer herfra (`{diff: 76.9, kamper: 48}`).
+
+### Hode mot hode, speilede par, 450 ms per kortvalg
+
+MesterAI minus kandidaten; positivt = MesterAI best.
+
+| kandidat | par | poeng/runde/sete | poeng/kamp (2 seter) | kampseire |
+|---|---|---|---|---|
+| **NevroHjerne** | 53 | **+1,068 ± 0,163** | +44,8 ± 6,6 | 79/106 |
+| **sd-r1** | 57 | **+1,135 ± 0,177** | +41,6 ± 6,6 | 85/114 |
+| PIMC | 10 | +2,355 ± 0,292 | +72,6 ± 8,5 | 20/20 |
+
+### Hovedfunnet: benken vi har brukt kan ikke se toppen av feltet
+
+En grådigbenk-kamp varer **8,4 runder** i snitt (målt over 240 kamper) – den
+sterke boten er i mål på 100 lenge før 40-runders taket. Mot MesterAI varer en
+kamp ~21 runder, fordi den er jevn. Regnet om til samme enhet:
+
+| | per kamp/sete | per runde/sete |
+|---|---|---|
+| MesterAI − nevro, **grådigbenk** | +1,55 | +0,185 |
+| MesterAI − nevro, **direkte** | +22,4 | **+1,068 ± 0,163** |
+
+**Det direkte oppgjøret gir et gap 5,8× større enn grådigbenken gjør.** Ikke
+fordi det ene er støy, men fordi de ikke måler det samme: mot tre grådige når
+alle kandidatene 100 poeng nesten hver gang, og differansen lander på 75–77
+uansett hvor mye sterkere den beste er. Benken har ikke oppløsning igjen på
+toppen. Den kan si at en kandidat slår grådig; den kan ikke si hvor langt det
+er opp til MesterAI.
+
+#### Rettelse til forrige avsnitt: det var ikke feil akse, det var et tak
+
+Avsnittet over (commit `698a5da`) forklarte det samme misforholdet med at
++76,9 og +75,40 kom fra «ulike måleoppsett», og at +75,40 var «en
+enkeltrunde-differanse over 2000 givere». **Den diagnosen er feil.**
+
+`examples/mesterai-referanse.ts` og `examples/neat-evaluer.ts` kjører identisk
+protokoll: `opprettSpill({antallSpillere: 4}, frø)`, kamp til 100 poeng med tak
+på 40 runder, setene rotert 0–3, og differansen `egne − snitt(de tre andre)`
+per kamp. Kjører man `mesterai-referanse.ts` sitt EGET regnskap med
+NevroHjerne i setet, på de samme frøene:
+
+```
+nevro 102,3 mot grådig 27,0  →  diff +75,4   (48 kamper, 8,5 runder/kamp)
+MesterAI 102,5 mot grådig 25,6 →  diff +76,9  (48 kamper)
+```
+
++75,4 reproduseres på desimalen. De to tallene ligger altså på **samme akse**,
+og det var riktig å sette dem i samme kolonne.
+
+Den ekte årsaken står i tallene over: begge kandidatene lander på ~102 poeng.
+Kampen stopper når noen passerer 100, så metrikken er **klemt mot taket** –
+den kan ikke vise et større gap enn ~2 poeng uansett hvor mye sterkere
+MesterAI er. Det er metning, ikke enhetsforveksling.
+
+Forskjellen betyr noe for hva man gjør videre: en aksefeil fikser man ved å
+lese tabellen riktig, et tak fikser man bare ved å bytte målestokk. Regelen
+fra forrige avsnitt («to tall fra ulike måleoppsett skal ikke stå i samme
+kolonne») er god og står ved lag – den var bare ikke det som gikk galt her.
+Regelen som faktisk følger: **når to kandidater begge ligger på taket i en
+metrikk, måler den ikke lenger forskjellen mellom dem.**
+
+Det er verdt å si rett ut: **NevroHjerne er ikke i nærheten av MesterAI.**
+1,07 poeng per runde per sete er 6,6 standardfeil fra null, og MesterAI tar 75 %
+av kampene. Hele forbedringsløkka har siktet på en målestokk som ligger langt
+under det den trodde den etterliknet.
+
+### Overføringstapet: avgrenset oppad, ikke oppløst
+
+sd-r1 er trent med single-dummy-evaluering der **NevroHjerne er
+motstandermodell i rolloutene**. Er metoden finstilt mot nevros spillestil,
+skal den falle sammen mot MesterAI. sd-r1 minus nevro i ytelse (positivt =
+sd-r1 best), parret på de samme 53 giverne:
+
+| motstander | enhet | sd-r1 − nevro |
+|---|---|---|
+| 3× grådig (1000 givere) | poeng/runde/sete | **−0,0167 ± 0,0048** |
+| MesterAI, per runde | poeng/runde/sete | −0,050 ± 0,214 |
+| MesterAI, per kamp | poeng/kamp/sete | +2,05 ± 4,25 |
+
+De to MesterAI-tallene er **ikke engang enige om fortegnet**. Det er ikke en
+motsetning som skal bortforklares – det er slik en måling ser ut når støyen er
+mange ganger effekten, og det er i seg selv beviset for at oppløsningen ikke
+strekker til.
+
+Punktanslaget per runde (−0,050) er 3× grådigbenkens (−0,0167), i samme
+retning og litt større. Men SE er 0,214 – fire ganger effekten. 95 %-intervallet
+spenner −0,47 til +0,37.
+
+**Dommen:** målingen kan ikke skille «samme lille tap som mot grådig» fra «3×
+større tap». Den utelukker bare at overføringstapet er STORT – mer enn ~0,47
+poeng/runde/sete er utelukket, under halvparten av gapet nevro har opp til
+MesterAI (1,07). Den største kjente risikoen i tilnærmingen er verken
+bekreftet eller avkreftet; den er **avgrenset oppad**.
+
+Å oppløse den ville krevd ~100 000 par (SE 0,005), altså flere tusen CPU-timer
+med MesterAI i den andre enden. Fin rangering av to nære kandidater hører
+derfor fortsatt hjemme på en billig benk med parrede givere. MesterAI-oppgjøret
+sier hva vi sikter **mot**, ikke hvem av to nesten like nett som er best.
+
+### Forbeholdet som er viktigst
+
+MesterAIs søk stopper når `verdener >= maksVerdener`, **eller** når
+`verdener >= minVerdener` og tidsbudsjettet er brukt opp (`MesterAI.swift`).
+Maskinen kjørte 16 `sd-orakel` + 2 `e1-orakel` gjennom hele målingen
+(kølengde 26–34 på 24 kjerner), så MesterAI rakk færre verdener per kortvalg
+enn den ville gjort på en ledig maskin.
+
+**Alle MesterAI-tallene her er derfor NEDRE anslag.** Nettene er upåvirket –
+de bruker mikrosekunder uansett last – så skjevheten går bare én vei, i
+MesterAIs disfavør. Det ekte gapet er større enn 1,07.
+
+`examples/mesterai-h2h.ts --verdener N` låser `minVerdener = maksVerdener` og
+setter fristen så høyt at den aldri kutter søket. Da er arbeidsmengden per
+kortvalg uavhengig av last, og tallet blir reproduserbart på tvers av maskiner.
+Bruk det når målingen skal være en varig målestokk.
+
+### Dommen
+
+1. **MesterAI er målt.** +76,9 mot grådig; +1,068 ± 0,163 poeng/runde/sete mot
+   NevroHjerne direkte. Dashbordet kan endelig tegne streken.
+2. **Grådigbenken er mettet og undervurderer gapet 5,8×.** Den skal fortsatt
+   brukes til å rangere nære kandidater billig, men aldri til å svare på «hvor
+   langt er det opp til MesterAI».
+3. **NevroHjerne er en dårlig stedfortreder for MesterAI.** Å nå nevro er ikke
+   å nå appen. Delmålet «slå NevroHjerne» er et mellomsteg, ikke målstreken.
+4. **Overføringstapet er ikke målt ferdig** – bare avgrenset oppad. Det er
+   fortsatt den største kjente risikoen i SD-tilnærmingen.
+5. **Neste steg som følger av tallene:** kjør h2h på nytt med `--verdener 36`
+   på en ledig maskin for et lastuavhengig tall, og bruk MesterAI som
+   motstandermodell i SD-rolloutene hvis overføringstapet skal fjernes ved
+   roten i stedet for måles.
