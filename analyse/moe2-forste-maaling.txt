@@ -1,0 +1,56 @@
+MoE2-eksperter, første måling. 2026-07-25T14:30:33.705Z
+pop 16, epoker 5, rate 0.05, DD-dybde 5, frø 1299137842
+
+=== bud ===
+  sensorer 87 av 318, utganger 1
+  stillinger: 1884 trening / 713 utvikling / 624 holdout
+  bud fersk        1.1490  [gulv 2.2229 → tak 2.6090]  framdrift -278.1 %  n=624 holdout
+  bud lært         0.7596  [gulv 2.2229 → tak 2.6090]  framdrift -379.0 %  n=624 holdout
+  bud tren         0.7994  [gulv 2.2514 → tak 2.5950]  framdrift -422.6 %  n=1884 TRENINGSSETT
+  bud konstant-9   0.8093  [gulv 2.2229 → tak 2.6090]  framdrift -366.1 %  n=624 holdout
+
+=== vrak ===
+  sensorer 81 av 318, utganger 52
+  stillinger: 65 trening / 29 utvikling / 26 holdout
+  vrak fersk       2.1538  [gulv 2.4823 → tak 1.0000]  framdrift 22.2 %  n=26 holdout
+  vrak lært        2.0385  [gulv 2.4823 → tak 1.0000]  framdrift 29.9 %  n=26 holdout
+  vrak tren        1.7385  [gulv 2.3526 → tak 1.3077]  framdrift 58.8 %  n=65 TRENINGSSETT
+
+=== trumf ===
+  sensorer 130 av 318, utganger 17
+  stillinger: 241 trening / 83 utvikling / 76 holdout
+  trumf fersk      2.7632  [gulv 3.3706 → tak 0.5921]  framdrift 21.9 %  n=76 holdout
+  trumf lært       1.8421  [gulv 3.3706 → tak 0.5921]  framdrift 55.0 %  n=76 holdout
+  trumf tren       1.4772  [gulv 3.2581 → tak 0.8174]  framdrift 73.0 %  n=241 TRENINGSSETT
+
+=== spill-fører ===
+  sensorer 264 av 318, utganger 52
+  stillinger: 1760 trening / 526 utvikling / 568 holdout
+  spill-fører fersk 2.7769  [gulv 2.5976 → tak 2.3251]  framdrift -65.8 %  n=568 holdout  ⚠ UNDER GULVET
+  spill-fører lært 2.5161  [gulv 2.5976 → tak 2.3251]  framdrift 29.9 %  n=568 holdout
+  spill-fører tren 2.6724  [gulv 2.7126 → tak 2.3943]  framdrift 12.6 %  n=1760 TRENINGSSETT
+
+=== spill-forsvar ===
+  sensorer 266 av 318, utganger 52
+  stillinger: 1872 trening / 556 utvikling / 572 holdout
+  spill-forsvar fersk 0.0579  [gulv 0.0652 → tak 0.0464]  framdrift 38.6 %  n=572 holdout
+  spill-forsvar lært 0.0556  [gulv 0.0652 → tak 0.0464]  framdrift 50.8 %  n=572 holdout
+  spill-forsvar tren 0.0604  [gulv 0.0724 → tak 0.0496]  framdrift 52.8 %  n=1872 TRENINGSSETT
+
+=== spill-makker ===
+  sensorer 262 av 318, utganger 52
+  stillinger: 1434 trening / 425 utvikling / 475 holdout
+  spill-makker fersk 0.6768  [gulv 0.7291 → tak 0.6520]  framdrift 67.9 %  n=475 holdout
+  spill-makker lært 0.6455  [gulv 0.7291 → tak 0.6520]  framdrift 108.5 %  n=475 holdout
+  spill-makker tren 0.6600  [gulv 0.7256 → tak 0.5512]  framdrift 37.6 %  n=1434 TRENINGSSETT
+
+=== OPPSUMMERING (holdout, etter læring) ===
+ekspert              verdi      gulv       tak   framdrift  dom
+bud                 0.7596    2.2229    2.6090           –  TAKET ER UNDER GULVET – referansen er verre enn tilfeldig her
+vrak                2.0385    2.4823    1.0000      29.9 %  mellom gulv og tak
+trumf               1.8421    3.3706    0.5921      55.0 %  mellom gulv og tak
+spill-fører         2.5161    2.5976    2.3251      29.9 %  mellom gulv og tak
+spill-forsvar       0.0556    0.0652    0.0464      50.8 %  mellom gulv og tak
+spill-makker        0.6455    0.7291    0.6520     108.5 %  over taket
+
+Tid: 55 s
