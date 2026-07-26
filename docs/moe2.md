@@ -2621,8 +2621,9 @@ ikke en spiller.
 dag, og kurven er entydig: den topper på 0, faller mot +2 fordi den slutter å
 fyre, og faller under null på −1 fordi den da tar kontrakter hånden ikke bærer.
 
-MesterAI-speilingen er den svakeste av dem som fyrer. Det er niende gang noe
-som lignet mer på MesterAI målte dårligere – men forbeholdet står: `m`-varianten
+MesterAI-speilingen er den svakeste av dem som fyrer – nok et tilfelle der «lign
+mer på MesterAI» målte dårligere enn den terskelen tallene selv peker på. Men
+forbeholdet står: `m`-varianten
 bytter BÅDE margin og estimator (snittet over de fire setene i stedet for setets
 eget tall), så de to effektene er ikke skilt her.
 
