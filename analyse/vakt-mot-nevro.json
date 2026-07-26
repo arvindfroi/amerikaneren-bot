@@ -1,12 +1,16 @@
 {
-  "tid": "2026-07-26T01:23:30.449Z",
-  "merke": "konvensjonsvakt paa sd-r2: 5 varianter mot kontroll, froe 36000000, 2000 givere",
+  "tid": "2026-07-26T02:08:20.736Z",
+  "merke": "konvensjonsvakt paa sd-r2: 7 varianter mot kontroll, froe 36000000, 2000 givere",
   "kilder": [
     "analyse/vakt-pergiver-0.jsonl",
     "analyse/vakt-pergiver-1.jsonl",
     "analyse/vakt-pergiver-2.jsonl",
     "analyse/vakt-pergiver-3.jsonl",
-    "analyse/vakt-pergiver-4.jsonl"
+    "analyse/vakt-pergiver-4.jsonl",
+    "analyse/vakth-pergiver-0.jsonl",
+    "analyse/vakth-pergiver-1.jsonl",
+    "analyse/vakth-pergiver-2.jsonl",
+    "analyse/vakth-pergiver-3.jsonl"
   ],
   "givere": 2000,
   "frøFra": 36000000,
@@ -47,6 +51,16 @@
       "kandidat": "vakt:ab:e1:e1-modell/sd-r2.bin",
       "diff": 76.56304166666658,
       "se": 0.027635473337777678
+    },
+    {
+      "kandidat": "vakt:h:e1:e1-modell/sd-r2.bin",
+      "diff": 76.19775000000011,
+      "se": 0.028701740700960765
+    },
+    {
+      "kandidat": "vakt:ht:e1:e1-modell/sd-r2.bin",
+      "diff": 76.37320833333331,
+      "se": 0.028369060162972002
     }
   ],
   "motGrunnlinje": [
@@ -103,6 +117,24 @@
       "tegn": "1783/1989",
       "p": 0,
       "sigma": 51.4946187966944
+    },
+    {
+      "a": "vakt:h:e1:e1-modell/sd-r2.bin",
+      "b": "nevro",
+      "diff": 0.7684583333333322,
+      "se": 0.02331060538119951,
+      "tegn": "1584/1981",
+      "p": 0,
+      "sigma": 32.96603930986322
+    },
+    {
+      "a": "vakt:ht:e1:e1-modell/sd-r2.bin",
+      "b": "nevro",
+      "diff": 0.9439166666666653,
+      "se": 0.023142688062439458,
+      "tegn": "1672/1975",
+      "p": 0,
+      "sigma": 40.786820619971124
     }
   ],
   "innbyrdes": [
@@ -161,6 +193,24 @@
       "sigma": 51.4946187966944
     },
     {
+      "a": "vakt:h:e1:e1-modell/sd-r2.bin",
+      "b": "nevro",
+      "diff": 0.7684583333333322,
+      "se": 0.02331060538119951,
+      "tegn": "1584/1981",
+      "p": 0,
+      "sigma": 32.96603930986322
+    },
+    {
+      "a": "vakt:ht:e1:e1-modell/sd-r2.bin",
+      "b": "nevro",
+      "diff": 0.9439166666666653,
+      "se": 0.023142688062439458,
+      "tegn": "1672/1975",
+      "p": 0,
+      "sigma": 40.786820619971124
+    },
+    {
       "a": "vakt:a:e1:e1-modell/sd-r2.bin",
       "b": "e1:e1-modell/sd-r2.bin",
       "diff": 0.6306666666666663,
@@ -206,6 +256,24 @@
       "sigma": 48.067351745174
     },
     {
+      "a": "vakt:h:e1:e1-modell/sd-r2.bin",
+      "b": "e1:e1-modell/sd-r2.bin",
+      "diff": 0.4230416666666672,
+      "se": 0.014982625671132567,
+      "tegn": "1581/1932",
+      "p": 0,
+      "sigma": 28.235482615156908
+    },
+    {
+      "a": "vakt:ht:e1:e1-modell/sd-r2.bin",
+      "b": "e1:e1-modell/sd-r2.bin",
+      "diff": 0.5984999999999999,
+      "se": 0.015306885626933346,
+      "tegn": "1733/1967",
+      "p": 0,
+      "sigma": 39.100050433963176
+    },
+    {
       "a": "vakt:t:e1:e1-modell/sd-r2.bin",
       "b": "vakt:a:e1:e1-modell/sd-r2.bin",
       "diff": -0.44924999999999976,
@@ -242,6 +310,24 @@
       "sigma": 16.028066073598115
     },
     {
+      "a": "vakt:h:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:a:e1:e1-modell/sd-r2.bin",
+      "diff": -0.20762499999999967,
+      "se": 0.010671927074292532,
+      "tegn": "498/1871",
+      "p": 0,
+      "sigma": -19.455249136788506
+    },
+    {
+      "a": "vakt:ht:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:a:e1:e1-modell/sd-r2.bin",
+      "diff": -0.0321666666666666,
+      "se": 0.011513442105600052,
+      "tegn": "916/1874",
+      "p": 0.3319432146604102,
+      "sigma": -2.7938357939908323
+    },
+    {
       "a": "vakt:b:e1:e1-modell/sd-r2.bin",
       "b": "vakt:t:e1:e1-modell/sd-r2.bin",
       "diff": -0.012291666666666657,
@@ -269,6 +355,24 @@
       "sigma": 39.19972323458997
     },
     {
+      "a": "vakt:h:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:t:e1:e1-modell/sd-r2.bin",
+      "diff": 0.24162499999999984,
+      "se": 0.01538481884888505,
+      "tegn": "1329/1926",
+      "p": 0,
+      "sigma": 15.705417293068132
+    },
+    {
+      "a": "vakt:ht:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:t:e1:e1-modell/sd-r2.bin",
+      "diff": 0.4170833333333338,
+      "se": 0.014232462901765285,
+      "tegn": "1605/1941",
+      "p": 0,
+      "sigma": 29.305070823799724
+    },
+    {
       "a": "vakt:at:e1:e1-modell/sd-r2.bin",
       "b": "vakt:b:e1:e1-modell/sd-r2.bin",
       "diff": 0.6277500000000008,
@@ -287,6 +391,24 @@
       "sigma": 44.508760661636714
     },
     {
+      "a": "vakt:h:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:b:e1:e1-modell/sd-r2.bin",
+      "diff": 0.25391666666666696,
+      "se": 0.01681532739070274,
+      "tegn": "1320/1941",
+      "p": 0,
+      "sigma": 15.100310613462007
+    },
+    {
+      "a": "vakt:ht:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:b:e1:e1-modell/sd-r2.bin",
+      "diff": 0.42937500000000106,
+      "se": 0.01579998591836608,
+      "tegn": "1545/1940",
+      "p": 0,
+      "sigma": 27.175657131497235
+    },
+    {
       "a": "vakt:ab:e1:e1-modell/sd-r2.bin",
       "b": "vakt:at:e1:e1-modell/sd-r2.bin",
       "diff": -0.0085416666666666,
@@ -294,6 +416,51 @@
       "tegn": "897/1843",
       "p": 0.2537084852977787,
       "sigma": -1.024410998482589
+    },
+    {
+      "a": "vakt:h:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.37383333333333335,
+      "se": 0.011690523857506137,
+      "tegn": "300/1917",
+      "p": 0,
+      "sigma": -31.977466355650616
+    },
+    {
+      "a": "vakt:ht:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.19837499999999983,
+      "se": 0.010277052497480116,
+      "tegn": "491/1852",
+      "p": 0,
+      "sigma": -19.302713501623195
+    },
+    {
+      "a": "vakt:h:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:ab:e1:e1-modell/sd-r2.bin",
+      "diff": -0.3652916666666666,
+      "se": 0.013895471867604117,
+      "tegn": "459/1941",
+      "p": 0,
+      "sigma": -26.288539903298073
+    },
+    {
+      "a": "vakt:ht:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:ab:e1:e1-modell/sd-r2.bin",
+      "diff": -0.18983333333333346,
+      "se": 0.012764449612901178,
+      "tegn": "672/1896",
+      "p": 0,
+      "sigma": -14.872034368130272
+    },
+    {
+      "a": "vakt:ht:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:h:e1:e1-modell/sd-r2.bin",
+      "diff": 0.17545833333333288,
+      "se": 0.0057512476956720435,
+      "tegn": "1519/1622",
+      "p": 0,
+      "sigma": 30.50787283346701
     }
   ]
 }

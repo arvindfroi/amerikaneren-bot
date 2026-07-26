@@ -75,6 +75,31 @@ test("vakt 1: åpningsutspillet slår ikke det etterlyste kortet", () => {
   assert.equal(kortId(vaktKort(s, 0, k("S", 3), A_ÅPNING)), kortId(k("S", 3)));
 });
 
+test("vakt 1, variant «h»: høyeste utspill som fortsatt lar det etterlyste stå", () => {
+  const s = stilling({
+    trumf: "S",
+    etterlyst: k("S", 12),
+    budvinner: 0,
+    iTur: 0,
+    hender: [[k("S", 14), k("S", 8), k("S", 3)], [], [], []],
+  });
+  const h = lesVaktflagg("h");
+  assert.equal(kortId(vaktKort(s, 0, k("S", 14), h)), kortId(k("S", 8)));
+  assert.equal(kortId(vaktKort(s, 0, k("S", 14), A_ÅPNING)), kortId(k("S", 3)));
+  // På et PÅLEGG er kortet bortkastet uansett, og da gjelder billigst for begge.
+  const pålegg = stilling({
+    ...s,
+    makker: 1,
+    makkerAvslørt: true,
+    stikkSpilt: 2,
+    bord: [
+      { spiller: 2, kort: k("S", 2) },
+      { spiller: 1, kort: k("S", 12) },
+    ],
+  });
+  assert.equal(kortId(vaktKort(pålegg, 0, k("S", 14), h)), kortId(k("S", 3)));
+});
+
 test("vakt 1: må alle lovlige kort slå det etterlyste, velges det billigste", () => {
   const s = stilling({
     trumf: "S",

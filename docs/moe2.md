@@ -2088,3 +2088,50 @@ To ting tallene sier som ideen ikke sa:
   13 %. Den strenge regelen retter et hull spilleføreren har og lager et
   avvik i to seter som ikke hadde noe. `t` lar de setene stå (30 %/38 %) –
   og måler 0,01 poeng bedre. Det henger sammen.
+
+### Varianten som lignet mer på MesterAI, og målte dårligere
+
+Atferdskontrollen pekte på en åpenbar oppfølger: vakten åpner med valør 3,85
+der MesterAI åpner med 7,16, for konvensjonen krever bare at man legger UNDER
+det etterlyste kortet – ikke at man legger lavest. Flagget `h` gjør nettopp
+det: HØYESTE utspill som fortsatt lar det etterlyste stå. Samme 2000 givere,
+samme frø:
+
+| variant | mot kontrollen | mot `a`/`at` |
+|---|---|---|
+| `+a` billigst under | +0,631 ± 0,015 | – |
+| `+h` høyest under | +0,423 ± 0,015 | **−0,208 ± 0,011** (tegntest 498/1871) |
+| `+at` | +0,797 ± 0,015 | – |
+| `+ht` | +0,599 ± 0,015 | **−0,198 ± 0,010** (tegntest 491/1852) |
+
+Begge `h`-variantene slår kontrollen, men begge taper klart mot `a`-varianten,
+og de taper i tre av fire givere. **Å ligne mer på MesterAI var verre.** Det
+er den syvende gangen på fire dager at noe som så riktig ut målte dårligere –
+og denne gangen var «riktig» definert av MesterAIs egen atferdsprofil. Å legge
+en høy trumf under makkerens kort brenner en stopper for ingenting;
+konvensjonen handler om å ikke ta stikket, ikke om hvor mye man betaler for å
+la være.
+
+### Mot MesterAI: ikke avgjort, og kan ikke avgjøres på én natt
+
+`analyse/h2h-vaktat-*.jsonl` (`vakt:at`) og `analyse/h2h-vaktkontroll-*.jsonl`
+(kontrollen) kjører side om side på de samme frøbåndene (1200000 og 1300000),
+startet samtidig, så maskinlasten treffer begge likt. Etter tre timer:
+
+| | par | poeng/runde/sete |
+|---|---|---|
+| MesterAI mot sd-r2 (kontroll) | 10 | +0,462 ± 0,476 |
+| MesterAI mot sd-r2 + `at` | 11 | +0,430 ± 0,538 |
+| parret differanse | 9 felles | −0,001 ± 0,733 |
+
+Det er ingen måling – det er et tomt konfidensintervall. Spredningen per par
+er ~1,5 poeng/runde, så SE 0,2 krever ~56 felles par, altså rundt ti timer med
+den lasten maskinen har nå (over tretti tunge prosesser, CPU på 100 %, og
+MesterAI er tidsbudsjettert). **Kjøringene fortsetter og skriver varig til
+disk**; rapporten regnes på nytt med
+
+    node examples/mesterai-h2h-rapport.ts analyse/h2h-vakt*.jsonl
+
+Til sammenlikning: sd-r2 alene ligger +0,499 ± 0,178 bak MesterAI over 36 par
+(`analyse/h2h-sdr2-*.jsonl`). Det tallet ble først synlig etter at
+par-grupperingen i rapporten ble rettet til å nøkle på frø.

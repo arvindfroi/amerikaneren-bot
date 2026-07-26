@@ -115,6 +115,11 @@ export function billigste(kort: readonly Kort[], trumf: Farge): Kort {
   return kort.reduce((a, b) => (pris(b, trumf) < pris(a, trumf) ? b : a));
 }
 
+/** Det dyreste kortet i utvalget etter `pris` – høyeste trumf før høyeste sidekort. */
+export function dyreste(kort: readonly Kort[], trumf: Farge): Kort {
+  return kort.reduce((a, b) => (pris(b, trumf) > pris(a, trumf) ? b : a));
+}
+
 /**
  * LAGET SETT FRA `sete`, med bare synlig informasjon.
  *

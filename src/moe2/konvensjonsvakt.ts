@@ -35,7 +35,8 @@
  * annet enn de to reglene er fortsatt agentens eget spill.
  *
  * SPESIFIKASJON: «vakt:<flagg>:<indre kandidat>», f.eks.
- *   vakt:a:e1:e1-modell/sd-r2.bin     bare åpningsvakten
+ *   vakt:a:e1:e1-modell/sd-r2.bin     bare åpningsvakten (billigste under)
+ *   vakt:h:e1:e1-modell/sd-r2.bin     åpningsvakten, men HØYESTE under
  *   vakt:t:e1:e1-modell/sd-r2.bin     bare «garantert: aldri trumf»
  *   vakt:b:e1:e1-modell/sd-r2.bin     bare «garantert: alltid billigst»
  *   vakt:at:e1:e1-modell/sd-r2.bin    begge (billigst-varianten av vakt 2 er b)
@@ -43,12 +44,19 @@
 
 import { likeKort, type Kort } from "../kort.ts";
 import { lovligeKort, stikkvinner, type GameState, type Handling } from "../motor.ts";
-import { billigste, garantertSynlig, lagetSynlig } from "./synlig.ts";
+import { billigste, dyreste, garantertSynlig, lagetSynlig } from "./synlig.ts";
 
 /** Hvilke av reglene som er slått på. */
 export interface Vaktvalg {
   /** Vakt 1: slå aldri ditt eget etterlyste kort. */
   readonly åpning: boolean;
+  /**
+   * Vakt 1, variant: velg det HØYESTE utspillet som lar det etterlyste stå, i
+   * stedet for det billigste. Atferdskontrollen viste at billigst-varianten
+   * åpner med valør 3,85 mot MesterAIs 7,16 – konvensjonen krever bare at man
+   * legger UNDER kortet, ikke at man legger lavest. Måles for seg.
+   */
+  readonly åpningHøyest?: boolean;
   /** Vakt 2, mild: på et garantert stikk, aldri trumf når et avkast er lovlig. */
   readonly garantiIkkeTrumf: boolean;
   /** Vakt 2, streng: på et garantert stikk, alltid det billigste lovlige kortet. */
@@ -62,9 +70,14 @@ export function lesVaktflagg(flagg: string): Vaktvalg {
   let valg = INGEN_VAKT;
   for (const tegn of flagg) {
     if (tegn === "a") valg = { ...valg, åpning: true };
+    else if (tegn === "h") valg = { ...valg, åpning: true, åpningHøyest: true };
     else if (tegn === "t") valg = { ...valg, garantiIkkeTrumf: true };
     else if (tegn === "b") valg = { ...valg, garantiBilligst: true };
-    else throw new Error(`Ukjent vaktflagg «${tegn}» (a = åpning, t = ikke trumf, b = billigst)`);
+    else {
+      throw new Error(
+        `Ukjent vaktflagg «${tegn}» (a = åpning/billigst, h = åpning/høyest, t = ikke trumf, b = billigst)`,
+      );
+    }
   }
   if (valg === INGEN_VAKT) throw new Error("Tom vaktspesifikasjon – oppgi minst ett av a, t, b");
   return valg;
@@ -153,7 +166,11 @@ export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg
     const trygge = lovlige.filter((k) => !slårEgetEtterlyst(s, sete, k));
     // Finnes ikke et lovlig kort som lar det etterlyste stå, spilles det
     // billigste lovlige: da er skaden uunngåelig, og da skal den være minst.
-    return billigste(trygge.length > 0 ? trygge : lovlige, trumf);
+    if (trygge.length === 0) return billigste(lovlige, trumf);
+    // Varianten «høyest under» gjelder bare utspillet. På et pålegg er kortet
+    // uansett bortkastet, og da er billigst det eneste rimelige.
+    if (valg.åpningHøyest === true && s.bord.length === 0) return dyreste(trygge, trumf);
+    return billigste(trygge, trumf);
   }
 
   if ((valg.garantiIkkeTrumf || valg.garantiBilligst) && garantertVårt(s, sete)) {

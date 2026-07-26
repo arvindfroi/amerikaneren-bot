@@ -1,9 +1,9 @@
 PARRET POENGRAPPORT
 ===================
-Kilder: analyse/vakt-pergiver-0.jsonl, analyse/vakt-pergiver-1.jsonl, analyse/vakt-pergiver-2.jsonl, analyse/vakt-pergiver-3.jsonl, analyse/vakt-pergiver-4.jsonl
-Leste 14000 linjer, 7 kandidater, 2000 FELLES givere
+Kilder: analyse/vakt-pergiver-0.jsonl, analyse/vakt-pergiver-1.jsonl, analyse/vakt-pergiver-2.jsonl, analyse/vakt-pergiver-3.jsonl, analyse/vakt-pergiver-4.jsonl, analyse/vakth-pergiver-0.jsonl, analyse/vakth-pergiver-1.jsonl, analyse/vakth-pergiver-2.jsonl, analyse/vakth-pergiver-3.jsonl
+Leste 24000 linjer, 9 kandidater, 2000 FELLES givere
 Frøbånd: 36000000–36001999
-Merke: konvensjonsvakt paa sd-r2: 5 varianter mot kontroll, froe 36000000, 2000 givere
+Merke: konvensjonsvakt paa sd-r2: 7 varianter mot kontroll, froe 36000000, 2000 givere
 
 Rå score mot benkemotstanderen (poeng/kamp, snitt over de 4 setene):
   nevro                            +75.429 ± 0.030
@@ -13,6 +13,8 @@ Rå score mot benkemotstanderen (poeng/kamp, snitt over de 4 setene):
   vakt:b:e1:e1-modell/sd-r2.bin    +75.944 ± 0.029
   vakt:at:e1:e1-modell/sd-r2.bin   +76.572 ± 0.028
   vakt:ab:e1:e1-modell/sd-r2.bin   +76.563 ± 0.028
+  vakt:h:e1:e1-modell/sd-r2.bin    +76.198 ± 0.029
+  vakt:ht:e1:e1-modell/sd-r2.bin   +76.373 ± 0.028
 
 Parret mot nevro (samme givere):
   e1:e1-modell/sd-r2.bin           +0.3454 ± 0.0238   14.5 SE   tegntest 1278/1958   p=<1e-6
@@ -21,6 +23,8 @@ Parret mot nevro (samme givere):
   vakt:b:e1:e1-modell/sd-r2.bin    +0.5145 ± 0.0239   21.5 SE   tegntest 1393/1973   p=<1e-6
   vakt:at:e1:e1-modell/sd-r2.bin   +1.1423 ± 0.0221   51.7 SE   tegntest 1781/1986   p=<1e-6
   vakt:ab:e1:e1-modell/sd-r2.bin   +1.1338 ± 0.0220   51.5 SE   tegntest 1783/1989   p=<1e-6
+  vakt:h:e1:e1-modell/sd-r2.bin    +0.7685 ± 0.0233   33.0 SE   tegntest 1584/1981   p=<1e-6
+  vakt:ht:e1:e1-modell/sd-r2.bin   +0.9439 ± 0.0231   40.8 SE   tegntest 1672/1975   p=<1e-6
 
 Alle par innbyrdes (B − A, positivt = B best):
   e1:e1-modell/sd-r2.bin       − nevro                        +0.3454 ± 0.0238   tegntest 1278/1958   p=<1e-6
@@ -29,18 +33,33 @@ Alle par innbyrdes (B − A, positivt = B best):
   vakt:b:e1:e1-modell/sd-r2.bin − nevro                        +0.5145 ± 0.0239   tegntest 1393/1973   p=<1e-6
   vakt:at:e1:e1-modell/sd-r2.bin − nevro                        +1.1423 ± 0.0221   tegntest 1781/1986   p=<1e-6
   vakt:ab:e1:e1-modell/sd-r2.bin − nevro                        +1.1338 ± 0.0220   tegntest 1783/1989   p=<1e-6
+  vakt:h:e1:e1-modell/sd-r2.bin − nevro                        +0.7685 ± 0.0233   tegntest 1584/1981   p=<1e-6
+  vakt:ht:e1:e1-modell/sd-r2.bin − nevro                        +0.9439 ± 0.0231   tegntest 1672/1975   p=<1e-6
   vakt:a:e1:e1-modell/sd-r2.bin − e1:e1-modell/sd-r2.bin       +0.6307 ± 0.0146   tegntest 1767/1956   p=<1e-6
   vakt:t:e1:e1-modell/sd-r2.bin − e1:e1-modell/sd-r2.bin       +0.1814 ± 0.0061   tegntest 1532/1655   p=<1e-6
   vakt:b:e1:e1-modell/sd-r2.bin − e1:e1-modell/sd-r2.bin       +0.1691 ± 0.0105   tegntest 1290/1892   p=<1e-6
   vakt:at:e1:e1-modell/sd-r2.bin − e1:e1-modell/sd-r2.bin       +0.7969 ± 0.0150   tegntest 1852/1969   p=<1e-6
   vakt:ab:e1:e1-modell/sd-r2.bin − e1:e1-modell/sd-r2.bin       +0.7883 ± 0.0164   tegntest 1782/1979   p=<1e-6
+  vakt:h:e1:e1-modell/sd-r2.bin − e1:e1-modell/sd-r2.bin       +0.4230 ± 0.0150   tegntest 1581/1932   p=<1e-6
+  vakt:ht:e1:e1-modell/sd-r2.bin − e1:e1-modell/sd-r2.bin       +0.5985 ± 0.0153   tegntest 1733/1967   p=<1e-6
   vakt:t:e1:e1-modell/sd-r2.bin − vakt:a:e1:e1-modell/sd-r2.bin -0.4492 ± 0.0150   tegntest 362/1926   p=<1e-6
   vakt:b:e1:e1-modell/sd-r2.bin − vakt:a:e1:e1-modell/sd-r2.bin -0.4615 ± 0.0163   tegntest 406/1948   p=<1e-6
   vakt:at:e1:e1-modell/sd-r2.bin − vakt:a:e1:e1-modell/sd-r2.bin +0.1662 ± 0.0055   tegntest 1487/1599   p=<1e-6
   vakt:ab:e1:e1-modell/sd-r2.bin − vakt:a:e1:e1-modell/sd-r2.bin +0.1577 ± 0.0098   tegntest 1269/1883   p=<1e-6
+  vakt:h:e1:e1-modell/sd-r2.bin − vakt:a:e1:e1-modell/sd-r2.bin -0.2076 ± 0.0107   tegntest 498/1871   p=<1e-6
+  vakt:ht:e1:e1-modell/sd-r2.bin − vakt:a:e1:e1-modell/sd-r2.bin -0.0322 ± 0.0115   tegntest 916/1874   p=0.3319
   vakt:b:e1:e1-modell/sd-r2.bin − vakt:t:e1:e1-modell/sd-r2.bin -0.0123 ± 0.0086   tegntest 860/1827   p=0.0123
   vakt:at:e1:e1-modell/sd-r2.bin − vakt:t:e1:e1-modell/sd-r2.bin +0.6155 ± 0.0139   tegntest 1778/1955   p=<1e-6
   vakt:ab:e1:e1-modell/sd-r2.bin − vakt:t:e1:e1-modell/sd-r2.bin +0.6069 ± 0.0155   tegntest 1670/1954   p=<1e-6
+  vakt:h:e1:e1-modell/sd-r2.bin − vakt:t:e1:e1-modell/sd-r2.bin +0.2416 ± 0.0154   tegntest 1329/1926   p=<1e-6
+  vakt:ht:e1:e1-modell/sd-r2.bin − vakt:t:e1:e1-modell/sd-r2.bin +0.4171 ± 0.0142   tegntest 1605/1941   p=<1e-6
   vakt:at:e1:e1-modell/sd-r2.bin − vakt:b:e1:e1-modell/sd-r2.bin +0.6278 ± 0.0153   tegntest 1722/1970   p=<1e-6
   vakt:ab:e1:e1-modell/sd-r2.bin − vakt:b:e1:e1-modell/sd-r2.bin +0.6192 ± 0.0139   tegntest 1780/1978   p=<1e-6
+  vakt:h:e1:e1-modell/sd-r2.bin − vakt:b:e1:e1-modell/sd-r2.bin +0.2539 ± 0.0168   tegntest 1320/1941   p=<1e-6
+  vakt:ht:e1:e1-modell/sd-r2.bin − vakt:b:e1:e1-modell/sd-r2.bin +0.4294 ± 0.0158   tegntest 1545/1940   p=<1e-6
   vakt:ab:e1:e1-modell/sd-r2.bin − vakt:at:e1:e1-modell/sd-r2.bin -0.0085 ± 0.0083   tegntest 897/1843   p=0.2537
+  vakt:h:e1:e1-modell/sd-r2.bin − vakt:at:e1:e1-modell/sd-r2.bin -0.3738 ± 0.0117   tegntest 300/1917   p=<1e-6
+  vakt:ht:e1:e1-modell/sd-r2.bin − vakt:at:e1:e1-modell/sd-r2.bin -0.1984 ± 0.0103   tegntest 491/1852   p=<1e-6
+  vakt:h:e1:e1-modell/sd-r2.bin − vakt:ab:e1:e1-modell/sd-r2.bin -0.3653 ± 0.0139   tegntest 459/1941   p=<1e-6
+  vakt:ht:e1:e1-modell/sd-r2.bin − vakt:ab:e1:e1-modell/sd-r2.bin -0.1898 ± 0.0128   tegntest 672/1896   p=<1e-6
+  vakt:ht:e1:e1-modell/sd-r2.bin − vakt:h:e1:e1-modell/sd-r2.bin +0.1755 ± 0.0058   tegntest 1519/1622   p=<1e-6
