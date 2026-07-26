@@ -1,0 +1,514 @@
+=== ATFERDSPROFIL MOT MESTERAI ===
+
+Runder profilert:  236
+Frøbase:           660000 (12 runder per kamp)
+MesterAI:          450 ms per kortvalg, alle fire seter
+Tidsbruk:          56.9 min
+Skrevet:           2026-07-26T00:29:50.377Z
+
+Alle kolonnene svarer på DE SAMME stillingene, i den samme kjøringen.
+MesterAI driver spillet; kandidatene svarer på hvert beslutningspunkt
+uten å utføre noe. Kolonne 1 er derfor både fasit og kontroll: den må
+vise 100 % på hver «likt valg»-rad.
+
+En n merket «*» er under 50 observasjoner. Slike rader er USIKRE:
+de kan svinge flere titalls prosentpoeng på ren tilfeldighet, og skal
+ikke leses som funn uansett hvor stort avviket ser ut.
+
+
+BUD
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  snittbud (tallbud)                           7.20             7.19             7.19
+    n                                          1256             1259             1259
+  passandel                                    36 %             36 %             36 %
+    n                                          1964             1964             1964
+  andel bud ≥ 9                                25 %             25 %             25 %
+    n                                          1256             1259             1259
+  andel bud ≥ 7                                62 %             63 %             63 %
+    n                                          1256             1259             1259
+  amerikaner/solo                               0 %              0 %              0 %
+    n                                          1964             1964             1964
+  likt valg som MesterAI                      100 %             95 %             95 %
+    n                                          1964             1964             1964
+
+VRAK
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  snittvalør på vraket kort                    6.27             6.12             6.12
+    n                                           944              944              944
+  vraket ess/konge                              4 %              3 %              3 %
+    n                                           944              944              944
+  vraket i senere trumf                         1 %              2 %              2 %
+    n                                           944              944              944
+  farger tømt av vraket                        0.92             0.89             0.89
+    n                                           236              236              236
+  likt valg som MesterAI                      100 %             56 %             56 %
+    n                                           236              236              236
+
+TRUMF
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  trumflengde                                  5.98             6.02             6.02
+    n                                           236              236              236
+  valgte lengste farge                         97 %            100 %            100 %
+    n                                           236              236              236
+  serie i trumf                                2.72             2.72             2.72
+    n                                           236              236              236
+  etterlyst valør                             13.06            12.97            12.97
+    n                                           236              236              236
+  etterlyste høyeste lovlige                  100 %            100 %            100 %
+    n                                           236              236              236
+  likt valg som MesterAI                      100 %             89 %             89 %
+    n                                           236              236              236
+
+SPILL/spillefører
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  likt valg som MesterAI                      100 %             43 %             66 %
+    n                                          2832             2832             2832
+  utspill: trumf ut                            52 %             62 %             50 %
+    n                                          1744             1744             1744
+  utspill: honnør ut                           25 %             21 %             27 %
+    n                                          1744             1744             1744
+  tok stikket når vi kunne                     91 %             96 %             86 %
+    n                                           482              482              482
+  trumfet inn ved renons                       70 %             92 %             83 %
+    n                                           521              521              521
+  slo medspillerens stikk                      50 %             80 %             73 %
+    n                                           486              486              486
+  kastet honnør bort                            2 %              0 %              1 %
+    n                                           486              486              486
+
+SPILL/makker
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  likt valg som MesterAI                      100 %             57 %             74 %
+    n                                          2832             2832             2832
+  utspill: trumf ut                            17 %             11 %             23 %
+    n                                           616              616              616
+  utspill: honnør ut                           16 %             23 %             13 %
+    n                                           616              616              616
+  tok stikket når vi kunne                     91 %             92 %             82 %
+    n                                           309              309              309
+  trumfet inn ved renons                       53 %             79 %             52 %
+    n                                           130              130              130
+  slo medspillerens stikk                      18 %             22 %             19 %
+    n                                          1606             1606             1606
+  kastet honnør bort                            5 %              5 %              4 %
+    n                                          1606             1606             1606
+
+SPILL/forsvarer
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  likt valg som MesterAI                      100 %             58 %             81 %
+    n                                          5664             5664             5664
+  utspill: trumf ut                             8 %             14 %             14 %
+    n                                           472              472              472
+  utspill: honnør ut                           28 %             22 %             26 %
+    n                                           472              472              472
+  tok stikket når vi kunne                     86 %             94 %             81 %
+    n                                           868              868              868
+  trumfet inn ved renons                       83 %             94 %             76 %
+    n                                            83               83               83
+  slo medspillerens stikk                      30 %             40 %             34 %
+    n                                           608              608              608
+  kastet honnør bort                            1 %              1 %              1 %
+    n                                           608              608              608
+
+FØRSTE STIKK SOM SPILLEFØRER – og de to neste, som kontroll.
+
+Konvensjonen: har du etterlyst et kort, åpner du med en LAV TRUMF. Det
+etterlyste kortet er den høyeste trumfen du IKKE selv har, så det står.
+Makkeren må legge det i første stikk (makkerplikten) og tar stikket med
+det – du har avslørt makkeren uten å bruke opp én eneste egen honnør.
+Åpner du med din høyeste trumf, tar du stikket selv, brenner en honnør
+og lærer ingenting du ikke visste fra før.
+
+Merk at motoren TVINGER trumfutspill i stikk 1 for budvinneren som har
+trumf, så «trumf ut» er ~100 % der for alle tre. Det som skiller dem er
+VALØREN. I stikk 2 og 3 er trumfutspill et fritt valg, så de radene
+sier om et mønster er en åpningskonvensjon eller bare generell stil.
+
+«etterlyst tar stikket» er deterministisk: makkerplikten treffer, ingen
+av forsvarerne har et lovlig kort som slår det etterlyste, og utspillet
+slår det ikke selv. Ingen gjetting om hva noen VIL gjøre.
+
+UTSPILL/stikk 1
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  trumf ut                                    100 %            100 %            100 %
+    n                                           236              236              236
+  valør på utspillet                           7.23             9.77             5.59
+    n                                           236              236              236
+  lavt kort (valør ≤ 7)                        51 %             36 %             72 %
+    n                                           236              236              236
+  LAV TRUMF ut (≤ 7)                           51 %             36 %             72 %
+    n                                           236              236              236
+  høyeste trumf på hånd                        17 %             44 %             12 %
+    n                                           236              236              236
+  laveste trumf på hånd                        24 %             17 %             40 %
+    n                                           236              236              236
+  etterlyst tar stikket                        93 %             44 %             99 %
+    n                                           236              236              236
+
+UTSPILL/stikk 2
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  trumf ut                                     19 %             44 %             44 %
+    n                                          16 *             16 *             16 *
+  valør på utspillet                           9.50             8.63             9.44
+    n                                          16 *             16 *             16 *
+  lavt kort (valør ≤ 7)                        31 %             44 %             31 %
+    n                                          16 *             16 *             16 *
+  LAV TRUMF ut (≤ 7)                            0 %              6 %              6 %
+    n                                          16 *             16 *             16 *
+  høyeste trumf på hånd                        19 %             25 %             38 %
+    n                                          16 *             16 *             16 *
+  laveste trumf på hånd                         0 %              0 %              0 %
+    n                                          16 *             16 *             16 *
+  etterlyst tar stikket                           –                –                –
+    n                                             –                –                –
+
+UTSPILL/stikk 3
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  trumf ut                                     29 %             51 %             36 %
+    n                                           123              123              123
+  valør på utspillet                          10.07             9.12            10.33
+    n                                           123              123              123
+  lavt kort (valør ≤ 7)                        27 %             41 %             28 %
+    n                                           123              123              123
+  LAV TRUMF ut (≤ 7)                            6 %              4 %              8 %
+    n                                           123              123              123
+  høyeste trumf på hånd                        21 %             29 %             28 %
+    n                                           123              123              123
+  laveste trumf på hånd                         1 %              1 %              1 %
+    n                                           123              123              123
+  etterlyst tar stikket                           –                –                –
+    n                                             –                –                –
+
+SLO MEDSPILLERENS STIKK – delt i to, for det er to helt ulike ting.
+
+Er stikket IKKE sikret ennå, kan motstandere som sitter igjen fortsatt
+overta det. Da er det et legitimt valg å legge på og forsvare stikket,
+og raden telles uten dom.
+
+Er stikket alt GARANTERT for laget, er hver ekstra valør man legger på
+rent tap: kortet er borte, stikket var vårt uansett. Da skal det
+billigste lovlige kortet ut – et sidekort før en trumf, lavest valør
+innenfor det. «ikke billigste kort» er det ekte sløsemålet.
+
+Garantien avgjøres på to nivåer, begge nøstet:
+  GARANTERT  – motorens fulle informasjon: ingen gjenstående motstander
+               har et LOVLIG kort som slår det som ligger. Eksakt.
+  … offentlig – bare det spilleren selv kan se: egen hånd, alt spilt,
+               eget vrak, og renonser avslørt i tidligere stikk. Alt
+               annet antas å kunne ligge hos en motstander. Er stikket
+               garantert HER, hadde spilleren grunnlag for å se det.
+Differansen mellom dem står som «skjult garanti» nederst: tilfellene
+som ikke lot seg klassifisere fra spillerens egen synsvinkel.
+
+GARANTI/spillefører
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  medspiller leder: garantert                  58 %             58 %             58 %
+    n                                           486              486              486
+  GARANTERT: slo stikket                       27 %             75 %             62 %
+    n                                           284              284              284
+  GARANTERT: ikke billigste kort               43 %             67 %             65 %
+    n                                           284              284              284
+    → valør lagt                               8.79             8.95             9.06
+    n                                           121              190              186
+    → valør billigst mulig                     5.48             5.66             5.82
+    n                                           121              190              186
+  GARANTERT: brente trumf                       2 %             35 %             27 %
+    n                                           284              284              284
+  GARANTERT: la honnør (≥13)                   11 %             24 %             25 %
+    n                                           284              284              284
+  GARANTERT offentlig: slo det                 30 %             76 %             66 %
+    n                                           225              225              225
+  IKKE garantert: slo stikket                  82 %             86 %             89 %
+    n                                           202              202              202
+
+GARANTI/makker
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  medspiller leder: garantert                  84 %             84 %             84 %
+    n                                          1606             1606             1606
+  GARANTERT: slo stikket                        9 %             13 %             10 %
+    n                                          1345             1345             1345
+  GARANTERT: ikke billigste kort               31 %             37 %             24 %
+    n                                          1345             1345             1345
+    → valør lagt                               8.02             8.43             7.49
+    n                                           412              495              318
+    → valør billigst mulig                     5.17             4.53             5.40
+    n                                           412              495              318
+  GARANTERT: brente trumf                       0 %              3 %              2 %
+    n                                          1345             1345             1345
+  GARANTERT: la honnør (≥13)                   10 %             11 %             10 %
+    n                                          1345             1345             1345
+  GARANTERT offentlig: slo det                  8 %             11 %              9 %
+    n                                          1120             1120             1120
+  IKKE garantert: slo stikket                  64 %             70 %             66 %
+    n                                           261              261              261
+
+GARANTI/forsvarer
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  medspiller leder: garantert                  45 %             45 %             45 %
+    n                                           608              608              608
+  GARANTERT: slo stikket                       17 %             23 %             19 %
+    n                                           276              276              276
+  GARANTERT: ikke billigste kort               36 %             44 %             32 %
+    n                                           276              276              276
+    → valør lagt                               8.44             9.34             8.98
+    n                                           100              121               87
+    → valør billigst mulig                     5.02             4.40             5.26
+    n                                           100              121               87
+  GARANTERT: brente trumf                       1 %              2 %              1 %
+    n                                           276              276              276
+  GARANTERT: la honnør (≥13)                   12 %             18 %             14 %
+    n                                           276              276              276
+  GARANTERT offentlig: slo det                 19 %             22 %             19 %
+    n                                           212              212              212
+  IKKE garantert: slo stikket                  41 %             54 %             46 %
+    n                                           332              332              332
+
+BUDVINNER
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  budet i samme stilling                       9.32             9.28             9.28
+    n                                           236              206              206
+  stikk laget faktisk tok                      9.90             9.96             9.96
+    n                                           236              206              206
+  overskudd (stikk − bud)                      0.58             0.68             0.68
+    n                                           236              206              206
+  ville innfridd                               80 %             83 %             83 %
+    n                                           236              206              206
+  ville passet i stedet                         0 %             13 %             13 %
+    n                                           236              236              236
+
+BUDFORDELING (antall tallbud per verdi)
+-------------------------------------------------------------------------------------
+                                           MesterAI        sd-r1.bin            nevro
+  bud 5                                  236 (19 %)       236 (19 %)       236 (19 %)
+  bud 6                                  236 (19 %)       236 (19 %)       236 (19 %)
+  bud 7                                  236 (19 %)       237 (19 %)       237 (19 %)
+  bud 8                                  236 (19 %)       236 (19 %)       236 (19 %)
+  bud 9                                  216 (17 %)       228 (18 %)       228 (18 %)
+  bud 10                                   94 (7 %)         84 (7 %)         84 (7 %)
+  bud 11                                    2 (0 %)          2 (0 %)          2 (0 %)
+
+
+=== ENIGHET: hvor ofte trykker kandidaten på samme knapp? ===
+
+Disse radene sier HVOR uenigheten sitter, ikke HVA som er galt. De kan
+ikke rettes direkte, så de er holdt utenfor funnlista under.
+
+   43 %  sd-r1.bin    SPILL/spillefører (n=2832)
+   56 %  sd-r1.bin    VRAK (n=236)
+   56 %  nevro        VRAK (n=236)
+   57 %  sd-r1.bin    SPILL/makker (n=2832)
+   58 %  sd-r1.bin    SPILL/forsvarer (n=5664)
+   66 %  nevro        SPILL/spillefører (n=2832)
+   74 %  nevro        SPILL/makker (n=2832)
+   81 %  nevro        SPILL/forsvarer (n=5664)
+   89 %  sd-r1.bin    TRUMF (n=236)
+   89 %  nevro        TRUMF (n=236)
+   95 %  sd-r1.bin    BUD (n=1964)
+   95 %  nevro        BUD (n=1964)
+
+
+=== FUNN: største atferdsavvik mot MesterAI, størst først ===
+
+Sortert på |z| = avviket målt i standardfeil. Det er det ærlige målet på
+«størrelse»: et avvik på 20 prosentpoeng over 30 beslutninger og ett på 5
+over 4000 er ikke like store funn, og rå prosentpoeng kan uansett ikke
+rangeres mot snittvalører. z er regnet UPARRET og er derfor et NEDRE anslag –
+stillingene er identiske, så den virkelige presisjonen er bedre enn dette.
+Tommelfinger: |z| < 2 er støy, |z| > 4 er en reell atferdsforskjell.
+Rader med n < 50 er merket USIKKER og skal ikke leses som funn.
+
+|z|  13.4  sd-r1.bin MINDRE UTSPILL/stikk 1 / etterlyst tar stikket: 44 % mot MesterAIs 93 % (avvik -49 %, n=236)
+|z|  13.0  sd-r1.bin MER    GARANTI/spillefører / GARANTERT: slo stikket: 75 % mot MesterAIs 27 % (avvik +48 %, n=284)
+|z|  11.0  sd-r1.bin MER    GARANTI/spillefører / GARANTERT: brente trumf: 35 % mot MesterAIs 2 % (avvik +33 %, n=284)
+|z|  10.9  sd-r1.bin MER    GARANTI/spillefører / GARANTERT offentlig: slo det: 76 % mot MesterAIs 30 % (avvik +46 %, n=225)
+|z|  10.3  sd-r1.bin MER    SPILL/spillefører / slo medspillerens stikk: 80 % mot MesterAIs 50 % (avvik +30 %, n=486)
+|z|   9.4  sd-r1.bin MER    SPILL/spillefører / trumfet inn ved renons: 92 % mot MesterAIs 70 % (avvik +22 %, n=521)
+|z|   8.9  nevro MER    GARANTI/spillefører / GARANTERT: slo stikket: 62 % mot MesterAIs 27 % (avvik +35 %, n=284)
+|z|   8.8  nevro MER    GARANTI/spillefører / GARANTERT: brente trumf: 27 % mot MesterAIs 2 % (avvik +25 %, n=284)
+|z|   8.1  nevro MER    GARANTI/spillefører / GARANTERT offentlig: slo det: 66 % mot MesterAIs 30 % (avvik +36 %, n=225)
+|z|   7.7  nevro MER    SPILL/spillefører / slo medspillerens stikk: 73 % mot MesterAIs 50 % (avvik +23 %, n=486)
+|z|   6.8  sd-r1.bin MER    UTSPILL/stikk 1 / høyeste trumf på hånd: 44 % mot MesterAIs 17 % (avvik +28 %, n=236)
+|z|   6.5  sd-r1.bin MER    UTSPILL/stikk 1 / valør på utspillet: 9.77 mot MesterAIs 7.23 (avvik +2.54, n=236)
+|z|   6.0  sd-r1.bin MER    SPILL/forsvarer / tok stikket når vi kunne: 94 % mot MesterAIs 86 % (avvik +9 %, n=868)
+|z|   6.0  sd-r1.bin MER    GARANTI/spillefører / GARANTERT: ikke billigste kort: 67 % mot MesterAIs 43 % (avvik +24 %, n=284)
+|z|   6.0  sd-r1.bin MER    SPILL/spillefører / utspill: trumf ut: 62 % mot MesterAIs 52 % (avvik +10 %, n=1744)
+|z|   5.9  sd-r1.bin MER    BUDVINNER / ville passet i stedet: 13 % mot MesterAIs 0 % (avvik +13 %, n=236)
+|z|   5.9  nevro MER    BUDVINNER / ville passet i stedet: 13 % mot MesterAIs 0 % (avvik +13 %, n=236)
+|z|   5.6  nevro MER    GARANTI/spillefører / GARANTERT: ikke billigste kort: 65 % mot MesterAIs 43 % (avvik +23 %, n=284)
+|z|   5.5  sd-r1.bin MER    GARANTI/makker / GARANTERT: brente trumf: 3 % mot MesterAIs 0 % (avvik +3 %, n=1345)
+|z|   4.9  nevro MINDRE UTSPILL/stikk 1 / valør på utspillet: 5.59 mot MesterAIs 7.23 (avvik -1.64, n=236)
+|z|   4.9  nevro MER    SPILL/spillefører / trumfet inn ved renons: 83 % mot MesterAIs 70 % (avvik +13 %, n=521)
+|z|   4.8  nevro MER    UTSPILL/stikk 1 / lavt kort (valør ≤ 7): 72 % mot MesterAIs 51 % (avvik +21 %, n=236)
+|z|   4.8  nevro MER    UTSPILL/stikk 1 / LAV TRUMF ut (≤ 7): 72 % mot MesterAIs 51 % (avvik +21 %, n=236)
+|z|   4.6  sd-r1.bin MER    SPILL/makker / trumfet inn ved renons: 79 % mot MesterAIs 53 % (avvik +26 %, n=130)
+|z|   4.2  nevro MER    GARANTI/spillefører / GARANTERT: la honnør (≥13): 25 % mot MesterAIs 11 % (avvik +13 %, n=284)
+|z|   4.1  nevro MINDRE GARANTI/makker / GARANTERT: ikke billigste kort: 24 % mot MesterAIs 31 % (avvik -7 %, n=1345)
+|z|   3.9  sd-r1.bin MER    GARANTI/spillefører / GARANTERT: la honnør (≥13): 24 % mot MesterAIs 11 % (avvik +12 %, n=284)
+|z|   3.8  nevro MER    UTSPILL/stikk 1 / laveste trumf på hånd: 40 % mot MesterAIs 24 % (avvik +16 %, n=236)
+|z|   3.7  nevro MER    GARANTI/makker / GARANTERT: brente trumf: 2 % mot MesterAIs 0 % (avvik +1 %, n=1345)
+|z|   3.6  sd-r1.bin MER    UTSPILL/stikk 3 / trumf ut: 51 % mot MesterAIs 29 % (avvik +22 %, n=123)
+|z|   3.5  sd-r1.bin MER    SPILL/forsvarer / slo medspillerens stikk: 40 % mot MesterAIs 30 % (avvik +10 %, n=608)
+|z|   3.5  sd-r1.bin MINDRE GARANTI/makker /   → valør billigst mulig: 4.53 mot MesterAIs 5.17 (avvik -0.64, n=495)
+|z|   3.4  sd-r1.bin MER    GARANTI/makker / GARANTERT: ikke billigste kort: 37 % mot MesterAIs 31 % (avvik +6 %, n=1345)
+|z|   3.4  nevro MINDRE SPILL/makker / tok stikket når vi kunne: 82 % mot MesterAIs 91 % (avvik -9 %, n=309)
+|z|   3.3  sd-r1.bin MER    GARANTI/forsvarer / IKKE garantert: slo stikket: 54 % mot MesterAIs 41 % (avvik +13 %, n=332)
+|z|   3.3  sd-r1.bin MER    GARANTI/makker / GARANTERT: slo stikket: 13 % mot MesterAIs 9 % (avvik +4 %, n=1345)
+|z|   3.3  sd-r1.bin MER    SPILL/makker / utspill: honnør ut: 23 % mot MesterAIs 16 % (avvik +7 %, n=616)
+|z|   3.2  sd-r1.bin MINDRE UTSPILL/stikk 1 / lavt kort (valør ≤ 7): 36 % mot MesterAIs 51 % (avvik -14 %, n=236)
+|z|   3.2  sd-r1.bin MINDRE UTSPILL/stikk 1 / LAV TRUMF ut (≤ 7): 36 % mot MesterAIs 51 % (avvik -14 %, n=236)
+|z|   3.1  nevro MER    UTSPILL/stikk 1 / etterlyst tar stikket: 99 % mot MesterAIs 93 % (avvik +6 %, n=236)
+|z|   3.1  sd-r1.bin MER    SPILL/makker / slo medspillerens stikk: 22 % mot MesterAIs 18 % (avvik +4 %, n=1606)
+|z|   3.0  sd-r1.bin MER    SPILL/spillefører / tok stikket når vi kunne: 96 % mot MesterAIs 91 % (avvik +5 %, n=482)
+|z|   3.0  sd-r1.bin MER    SPILL/forsvarer / utspill: trumf ut: 14 % mot MesterAIs 8 % (avvik +6 %, n=472)
+|z|   2.9  sd-r1.bin MINDRE SPILL/makker / utspill: trumf ut: 11 % mot MesterAIs 17 % (avvik -6 %, n=616)
+|z|   2.9  sd-r1.bin MER    GARANTI/makker / GARANTERT offentlig: slo det: 11 % mot MesterAIs 8 % (avvik +4 %, n=1120)
+|z|   2.9  sd-r1.bin MER    TRUMF / valgte lengste farge: 100 % mot MesterAIs 97 % (avvik +3 %, n=236)
+|z|   2.9  nevro MER    TRUMF / valgte lengste farge: 100 % mot MesterAIs 97 % (avvik +3 %, n=236)
+|z|   2.8  nevro MINDRE SPILL/forsvarer / tok stikket når vi kunne: 81 % mot MesterAIs 86 % (avvik -5 %, n=868)
+|z|   2.8  nevro MER    SPILL/forsvarer / utspill: trumf ut: 14 % mot MesterAIs 8 % (avvik +6 %, n=472)
+|z|   2.8  nevro MER    SPILL/makker / utspill: trumf ut: 23 % mot MesterAIs 17 % (avvik +6 %, n=616)
+|z|   2.6  sd-r1.bin MINDRE SPILL/spillefører / utspill: honnør ut: 21 % mot MesterAIs 25 % (avvik -4 %, n=1744)
+|z|   2.4  sd-r1.bin MER    UTSPILL/stikk 3 / lavt kort (valør ≤ 7): 41 % mot MesterAIs 27 % (avvik +15 %, n=123)
+|z|   2.3  nevro MINDRE SPILL/spillefører / tok stikket når vi kunne: 86 % mot MesterAIs 91 % (avvik -5 %, n=482)
+|z|   2.3  nevro MINDRE GARANTI/makker /   → valør lagt: 7.49 mot MesterAIs 8.02 (avvik -0.52, n=318)
+|z|   2.3  sd-r1.bin MINDRE SPILL/forsvarer / utspill: honnør ut: 22 % mot MesterAIs 28 % (avvik -6 %, n=472)
+|z|   2.2  sd-r1.bin MER    SPILL/forsvarer / trumfet inn ved renons: 94 % mot MesterAIs 83 % (avvik +11 %, n=83)
+|z|   2.2  sd-r1.bin MER    GARANTI/makker /   → valør lagt: 8.43 mot MesterAIs 8.02 (avvik +0.41, n=495)
+|z|   2.1  sd-r1.bin MINDRE SPILL/spillefører / kastet honnør bort: 0 % mot MesterAIs 2 % (avvik -1 %, n=486)
+|z|   2.0  nevro MER    GARANTI/spillefører / IKKE garantert: slo stikket: 89 % mot MesterAIs 82 % (avvik +7 %, n=202)
+|z|   1.9  sd-r1.bin MER    GARANTI/forsvarer / GARANTERT: la honnør (≥13): 18 % mot MesterAIs 12 % (avvik +6 %, n=276)
+|z|   1.9  sd-r1.bin MINDRE UTSPILL/stikk 3 / valør på utspillet: 9.12 mot MesterAIs 10.07 (avvik -0.94, n=123)
+|z|   1.9  sd-r1.bin MER    GARANTI/forsvarer /   → valør lagt: 9.34 mot MesterAIs 8.44 (avvik +0.90, n=121)
+|z|   1.8  sd-r1.bin MER    GARANTI/forsvarer / GARANTERT: ikke billigste kort: 44 % mot MesterAIs 36 % (avvik +8 %, n=276)
+|z|   1.8  sd-r1.bin MER    VRAK / vraket i senere trumf: 2 % mot MesterAIs 1 % (avvik +1 %, n=944)
+|z|   1.8  nevro MER    VRAK / vraket i senere trumf: 2 % mot MesterAIs 1 % (avvik +1 %, n=944)
+|z|   1.7  sd-r1.bin MINDRE UTSPILL/stikk 1 / laveste trumf på hånd: 17 % mot MesterAIs 24 % (avvik -6 %, n=236)
+|z|   1.7  sd-r1.bin MER    GARANTI/forsvarer / GARANTERT: slo stikket: 23 % mot MesterAIs 17 % (avvik +6 %, n=276)
+|z|   1.7  sd-r1.bin MINDRE GARANTI/forsvarer /   → valør billigst mulig: 4.40 mot MesterAIs 5.02 (avvik -0.62, n=121)
+|z|   1.6  sd-r1.bin MER    GARANTI/makker / IKKE garantert: slo stikket: 70 % mot MesterAIs 64 % (avvik +7 %, n=261)
+|z|   1.6  sd-r1.bin MER    UTSPILL/stikk 2 / trumf ut: 44 % mot MesterAIs 19 % (avvik +25 %, n=16)  ← USIKKER (n < 50)
+|z|   1.6  nevro MER    UTSPILL/stikk 2 / trumf ut: 44 % mot MesterAIs 19 % (avvik +25 %, n=16)  ← USIKKER (n < 50)
+|z|   1.6  nevro MER    GARANTI/makker / GARANTERT: slo stikket: 10 % mot MesterAIs 9 % (avvik +2 %, n=1345)
+|z|   1.5  sd-r1.bin MER    UTSPILL/stikk 3 / høyeste trumf på hånd: 29 % mot MesterAIs 21 % (avvik +8 %, n=123)
+|z|   1.5  nevro MINDRE UTSPILL/stikk 1 / høyeste trumf på hånd: 12 % mot MesterAIs 17 % (avvik -5 %, n=236)
+|z|   1.4  nevro MER    GARANTI/makker / GARANTERT offentlig: slo det: 9 % mot MesterAIs 8 % (avvik +2 %, n=1120)
+|z|   1.3  nevro MER    SPILL/makker / slo medspillerens stikk: 19 % mot MesterAIs 18 % (avvik +2 %, n=1606)
+|z|   1.3  nevro MER    SPILL/forsvarer / slo medspillerens stikk: 34 % mot MesterAIs 30 % (avvik +3 %, n=608)
+|z|   1.3  nevro MER    GARANTI/forsvarer / IKKE garantert: slo stikket: 46 % mot MesterAIs 41 % (avvik +5 %, n=332)
+|z|   1.2  sd-r1.bin MER    GARANTI/spillefører / IKKE garantert: slo stikket: 86 % mot MesterAIs 82 % (avvik +4 %, n=202)
+|z|   1.2  nevro MINDRE SPILL/makker / utspill: honnør ut: 13 % mot MesterAIs 16 % (avvik -2 %, n=616)
+|z|   1.2  nevro MER    UTSPILL/stikk 2 / høyeste trumf på hånd: 38 % mot MesterAIs 19 % (avvik +19 %, n=16)  ← USIKKER (n < 50)
+|z|   1.2  nevro MER    UTSPILL/stikk 3 / høyeste trumf på hånd: 28 % mot MesterAIs 21 % (avvik +7 %, n=123)
+|z|   1.2  nevro MINDRE GARANTI/forsvarer / GARANTERT: ikke billigste kort: 32 % mot MesterAIs 36 % (avvik -5 %, n=276)
+|z|   1.2  nevro MINDRE SPILL/forsvarer / trumfet inn ved renons: 76 % mot MesterAIs 83 % (avvik -7 %, n=83)
+|z|   1.2  nevro MINDRE SPILL/spillefører / utspill: trumf ut: 50 % mot MesterAIs 52 % (avvik -2 %, n=1744)
+|z|   1.1  nevro MER    SPILL/spillefører / utspill: honnør ut: 27 % mot MesterAIs 25 % (avvik +2 %, n=1744)
+|z|   1.1  nevro MER    UTSPILL/stikk 3 / trumf ut: 36 % mot MesterAIs 29 % (avvik +7 %, n=123)
+|z|   1.0  nevro MER    GARANTI/makker /   → valør billigst mulig: 5.40 mot MesterAIs 5.17 (avvik +0.23, n=318)
+|z|   1.0  sd-r1.bin MER    UTSPILL/stikk 2 / LAV TRUMF ut (≤ 7): 6 % mot MesterAIs 0 % (avvik +6 %, n=16)  ← USIKKER (n < 50)
+|z|   1.0  nevro MER    UTSPILL/stikk 2 / LAV TRUMF ut (≤ 7): 6 % mot MesterAIs 0 % (avvik +6 %, n=16)  ← USIKKER (n < 50)
+|z|   1.0  nevro MER    GARANTI/spillefører /   → valør billigst mulig: 5.82 mot MesterAIs 5.48 (avvik +0.34, n=186)
+|z|   1.0  nevro MINDRE SPILL/makker / kastet honnør bort: 4 % mot MesterAIs 5 % (avvik -1 %, n=1606)
+|z|   1.0  sd-r1.bin MINDRE VRAK / vraket ess/konge: 3 % mot MesterAIs 4 % (avvik -1 %, n=944)
+|z|   1.0  nevro MINDRE VRAK / vraket ess/konge: 3 % mot MesterAIs 4 % (avvik -1 %, n=944)
+|z|   1.0  nevro MER    GARANTI/forsvarer /   → valør lagt: 8.98 mot MesterAIs 8.44 (avvik +0.54, n=87)
+|z|   0.9  sd-r1.bin MINDRE VRAK / snittvalør på vraket kort: 6.12 mot MesterAIs 6.27 (avvik -0.14, n=944)
+|z|   0.9  nevro MINDRE VRAK / snittvalør på vraket kort: 6.12 mot MesterAIs 6.27 (avvik -0.14, n=944)
+|z|   0.9  sd-r1.bin MINDRE TRUMF / etterlyst valør: 12.97 mot MesterAIs 13.06 (avvik -0.09, n=236)
+|z|   0.9  nevro MINDRE TRUMF / etterlyst valør: 12.97 mot MesterAIs 13.06 (avvik -0.09, n=236)
+|z|   0.9  sd-r1.bin MER    GARANTI/makker / GARANTERT: la honnør (≥13): 11 % mot MesterAIs 10 % (avvik +1 %, n=1345)
+|z|   0.8  sd-r1.bin MER    GARANTI/forsvarer / GARANTERT offentlig: slo det: 22 % mot MesterAIs 19 % (avvik +3 %, n=212)
+|z|   0.8  nevro MINDRE SPILL/spillefører / kastet honnør bort: 1 % mot MesterAIs 2 % (avvik -1 %, n=486)
+|z|   0.8  nevro MER    UTSPILL/stikk 3 / LAV TRUMF ut (≤ 7): 8 % mot MesterAIs 6 % (avvik +2 %, n=123)
+|z|   0.7  sd-r1.bin MER    BUDVINNER / overskudd (stikk − bud): 0.68 mot MesterAIs 0.58 (avvik +0.10, n=206)
+|z|   0.7  nevro MER    BUDVINNER / overskudd (stikk − bud): 0.68 mot MesterAIs 0.58 (avvik +0.10, n=206)
+|z|   0.7  sd-r1.bin MER    UTSPILL/stikk 2 / lavt kort (valør ≤ 7): 44 % mot MesterAIs 31 % (avvik +13 %, n=16)  ← USIKKER (n < 50)
+|z|   0.7  sd-r1.bin MER    GARANTI/forsvarer / GARANTERT: brente trumf: 2 % mot MesterAIs 1 % (avvik +1 %, n=276)
+|z|   0.7  nevro MER    GARANTI/spillefører /   → valør lagt: 9.06 mot MesterAIs 8.79 (avvik +0.27, n=186)
+|z|   0.7  sd-r1.bin MINDRE VRAK / farger tømt av vraket: 0.89 mot MesterAIs 0.92 (avvik -0.03, n=236)
+|z|   0.7  nevro MINDRE VRAK / farger tømt av vraket: 0.89 mot MesterAIs 0.92 (avvik -0.03, n=236)
+|z|   0.7  sd-r1.bin MINDRE BUDVINNER / budet i samme stilling: 9.28 mot MesterAIs 9.32 (avvik -0.04, n=206)
+|z|   0.7  nevro MINDRE BUDVINNER / budet i samme stilling: 9.28 mot MesterAIs 9.32 (avvik -0.04, n=206)
+|z|   0.7  sd-r1.bin MER    BUDVINNER / ville innfridd: 83 % mot MesterAIs 80 % (avvik +2 %, n=206)
+|z|   0.7  nevro MER    BUDVINNER / ville innfridd: 83 % mot MesterAIs 80 % (avvik +2 %, n=206)
+|z|   0.6  sd-r1.bin MINDRE UTSPILL/stikk 2 / valør på utspillet: 8.63 mot MesterAIs 9.50 (avvik -0.88, n=16)  ← USIKKER (n < 50)
+|z|   0.6  nevro MER    GARANTI/forsvarer / GARANTERT: la honnør (≥13): 14 % mot MesterAIs 12 % (avvik +2 %, n=276)
+|z|   0.6  sd-r1.bin MINDRE UTSPILL/stikk 3 / LAV TRUMF ut (≤ 7): 4 % mot MesterAIs 6 % (avvik -2 %, n=123)
+|z|   0.6  nevro MER    GARANTI/forsvarer /   → valør billigst mulig: 5.26 mot MesterAIs 5.02 (avvik +0.24, n=87)
+|z|   0.6  nevro MER    GARANTI/forsvarer / GARANTERT: slo stikket: 19 % mot MesterAIs 17 % (avvik +2 %, n=276)
+|z|   0.5  nevro MER    UTSPILL/stikk 3 / valør på utspillet: 10.33 mot MesterAIs 10.07 (avvik +0.27, n=123)
+|z|   0.5  sd-r1.bin MER    GARANTI/spillefører /   → valør billigst mulig: 5.66 mot MesterAIs 5.48 (avvik +0.18, n=190)
+|z|   0.5  nevro MINDRE SPILL/forsvarer / utspill: honnør ut: 26 % mot MesterAIs 28 % (avvik -1 %, n=472)
+|z|   0.5  sd-r1.bin MER    BUDVINNER / stikk laget faktisk tok: 9.96 mot MesterAIs 9.90 (avvik +0.06, n=206)
+|z|   0.5  nevro MER    BUDVINNER / stikk laget faktisk tok: 9.96 mot MesterAIs 9.90 (avvik +0.06, n=206)
+|z|   0.5  nevro MER    GARANTI/makker / IKKE garantert: slo stikket: 66 % mot MesterAIs 64 % (avvik +2 %, n=261)
+|z|   0.4  sd-r1.bin MER    UTSPILL/stikk 2 / høyeste trumf på hånd: 25 % mot MesterAIs 19 % (avvik +6 %, n=16)  ← USIKKER (n < 50)
+|z|   0.4  sd-r1.bin MER    GARANTI/spillefører /   → valør lagt: 8.95 mot MesterAIs 8.79 (avvik +0.17, n=190)
+|z|   0.4  sd-r1.bin MER    TRUMF / trumflengde: 6.02 mot MesterAIs 5.98 (avvik +0.03, n=236)
+|z|   0.4  nevro MER    TRUMF / trumflengde: 6.02 mot MesterAIs 5.98 (avvik +0.03, n=236)
+|z|   0.3  sd-r1.bin MINDRE SPILL/forsvarer / kastet honnør bort: 1 % mot MesterAIs 1 % (avvik -0 %, n=608)
+|z|   0.2  nevro MINDRE GARANTI/makker / GARANTERT: la honnør (≥13): 10 % mot MesterAIs 10 % (avvik -0 %, n=1345)
+|z|   0.2  sd-r1.bin MER    SPILL/makker / kastet honnør bort: 5 % mot MesterAIs 5 % (avvik +0 %, n=1606)
+|z|   0.1  sd-r1.bin MER    SPILL/makker / tok stikket når vi kunne: 92 % mot MesterAIs 91 % (avvik +0 %, n=309)
+|z|   0.1  nevro MER    UTSPILL/stikk 3 / lavt kort (valør ≤ 7): 28 % mot MesterAIs 27 % (avvik +1 %, n=123)
+|z|   0.1  nevro MINDRE SPILL/makker / trumfet inn ved renons: 52 % mot MesterAIs 53 % (avvik -1 %, n=130)
+|z|   0.1  sd-r1.bin MINDRE BUD / passandel: 36 % mot MesterAIs 36 % (avvik -0 %, n=1964)
+|z|   0.1  nevro MINDRE BUD / passandel: 36 % mot MesterAIs 36 % (avvik -0 %, n=1964)
+|z|   0.1  sd-r1.bin MINDRE BUD / snittbud (tallbud): 7.19 mot MesterAIs 7.20 (avvik -0.01, n=1259)
+|z|   0.1  nevro MINDRE BUD / snittbud (tallbud): 7.19 mot MesterAIs 7.20 (avvik -0.01, n=1259)
+|z|   0.1  sd-r1.bin MER    BUD / andel bud ≥ 9: 25 % mot MesterAIs 25 % (avvik +0 %, n=1259)
+|z|   0.1  nevro MER    BUD / andel bud ≥ 9: 25 % mot MesterAIs 25 % (avvik +0 %, n=1259)
+|z|   0.0  sd-r1.bin MER    BUD / andel bud ≥ 7: 63 % mot MesterAIs 62 % (avvik +0 %, n=1259)
+|z|   0.0  nevro MER    BUD / andel bud ≥ 7: 63 % mot MesterAIs 62 % (avvik +0 %, n=1259)
+|z|   0.0  nevro MINDRE UTSPILL/stikk 2 / valør på utspillet: 9.44 mot MesterAIs 9.50 (avvik -0.06, n=16)  ← USIKKER (n < 50)
+|z|   0.0  sd-r1.bin MINDRE BUD / amerikaner/solo: 0 % mot MesterAIs 0 % (avvik 0 %, n=1964)
+|z|   0.0  nevro MINDRE BUD / amerikaner/solo: 0 % mot MesterAIs 0 % (avvik 0 %, n=1964)
+|z|   0.0  sd-r1.bin MINDRE TRUMF / serie i trumf: 2.72 mot MesterAIs 2.72 (avvik 0.00, n=236)
+|z|   0.0  nevro MINDRE TRUMF / serie i trumf: 2.72 mot MesterAIs 2.72 (avvik 0.00, n=236)
+|z|   0.0  sd-r1.bin MINDRE TRUMF / etterlyste høyeste lovlige: 100 % mot MesterAIs 100 % (avvik 0 %, n=236)
+|z|   0.0  nevro MINDRE TRUMF / etterlyste høyeste lovlige: 100 % mot MesterAIs 100 % (avvik 0 %, n=236)
+|z|   0.0  nevro MINDRE SPILL/forsvarer / kastet honnør bort: 1 % mot MesterAIs 1 % (avvik 0 %, n=608)
+|z|   0.0  sd-r1.bin MINDRE UTSPILL/stikk 1 / trumf ut: 100 % mot MesterAIs 100 % (avvik 0 %, n=236)
+|z|   0.0  nevro MINDRE UTSPILL/stikk 1 / trumf ut: 100 % mot MesterAIs 100 % (avvik 0 %, n=236)
+|z|   0.0  nevro MINDRE UTSPILL/stikk 2 / lavt kort (valør ≤ 7): 31 % mot MesterAIs 31 % (avvik 0 %, n=16)  ← USIKKER (n < 50)
+|z|   0.0  sd-r1.bin MINDRE UTSPILL/stikk 2 / laveste trumf på hånd: 0 % mot MesterAIs 0 % (avvik 0 %, n=16)  ← USIKKER (n < 50)
+|z|   0.0  nevro MINDRE UTSPILL/stikk 2 / laveste trumf på hånd: 0 % mot MesterAIs 0 % (avvik 0 %, n=16)  ← USIKKER (n < 50)
+|z|   0.0  sd-r1.bin MINDRE UTSPILL/stikk 3 / laveste trumf på hånd: 1 % mot MesterAIs 1 % (avvik 0 %, n=123)
+|z|   0.0  nevro MINDRE UTSPILL/stikk 3 / laveste trumf på hånd: 1 % mot MesterAIs 1 % (avvik 0 %, n=123)
+|z|   0.0  sd-r1.bin MINDRE GARANTI/spillefører / medspiller leder: garantert: 58 % mot MesterAIs 58 % (avvik 0 %, n=486)
+|z|   0.0  nevro MINDRE GARANTI/spillefører / medspiller leder: garantert: 58 % mot MesterAIs 58 % (avvik 0 %, n=486)
+|z|   0.0  sd-r1.bin MINDRE GARANTI/makker / medspiller leder: garantert: 84 % mot MesterAIs 84 % (avvik 0 %, n=1606)
+|z|   0.0  nevro MINDRE GARANTI/makker / medspiller leder: garantert: 84 % mot MesterAIs 84 % (avvik 0 %, n=1606)
+|z|   0.0  sd-r1.bin MINDRE GARANTI/forsvarer / medspiller leder: garantert: 45 % mot MesterAIs 45 % (avvik 0 %, n=608)
+|z|   0.0  nevro MINDRE GARANTI/forsvarer / medspiller leder: garantert: 45 % mot MesterAIs 45 % (avvik 0 %, n=608)
+|z|   0.0  nevro MINDRE GARANTI/forsvarer / GARANTERT: brente trumf: 1 % mot MesterAIs 1 % (avvik 0 %, n=276)
+|z|   0.0  nevro MINDRE GARANTI/forsvarer / GARANTERT offentlig: slo det: 19 % mot MesterAIs 19 % (avvik 0 %, n=212)
+
+
+=== GARANTI: hvor mange stillinger lot seg klassifisere? ===
+
+Med motorens fulle informasjon er ALLE stillinger klassifisert – det er
+en eksakt avgjørelse, ikke et anslag, så «uklassifiserte» er null der.
+Fra spillerens egen synsvinkel er det derimot en rest: stikk som VAR
+garantert uten at han kunne vite det. De står som «skjult garanti», og
+i dem er overtak ikke en feil han hadde grunnlag for å unngå.
+
+  spillefører   medspiller leder:   486   garantert (fasit):   284   av dem synlig for spilleren:   225   skjult garanti:    59   ikke garantert:   202   uklassifiserte: 0
+  makker        medspiller leder:  1606   garantert (fasit):  1345   av dem synlig for spilleren:  1120   skjult garanti:   225   ikke garantert:   261   uklassifiserte: 0
+  forsvarer     medspiller leder:   608   garantert (fasit):   276   av dem synlig for spilleren:   212   skjult garanti:    64   ikke garantert:   332   uklassifiserte: 0
+
+Beslutninger som kastet unntak: MesterAI: 0, sd-r1.bin: 0, nevro: 0
+

@@ -1703,3 +1703,62 @@ h2h-prosesser, 2 e1-orakel og 2 atferdsmålinger gjennom hele kjøringen, så
 MesterAI rakk færre verdener per kortvalg enn på en ledig maskin. **Begge
 absolutte tall er nedre anslag på MesterAIs styrke.** Den parrede differansen
 er upåvirket, siden begge kandidatene møtte den samme MesterAI-en.
+
+---
+
+## Atferd mot MesterAI: to konkrete hull, begge store
+
+Profilert på 230 kontrakter, alle tre kandidatene svarer på NØYAKTIG samme
+stillinger. MesterAI driver spillet; kandidatene svarer uten å utføre noe.
+
+### 1. Åpningsutspillet – konvensjonen er brutt
+
+Arvind beskrev konvensjonen: har du etterlyst et kort, åpner du med en **lav
+trumf**. Det etterlyste kortet er den høyeste trumfen du ikke selv har, så det
+står. Makkeren må legge det (makkerplikten) og tar stikket – du har avslørt
+makkeren uten å bruke opp én eneste egen honnør.
+
+| stikk 1, som spillefører | MesterAI | sd-r1 | nevro |
+|---|---|---|---|
+| valør på utspillet | 7,29 | **9,82** | 5,61 |
+| lav trumf (≤ 7) | 50 % | **36 %** | 72 % |
+| spilte ut sin HØYESTE trumf | 17 % | **44 %** | 12 % |
+| **etterlyst tar stikket** | **93 %** | **43 %** | **99 %** |
+
+n = 230. Motoren tvinger trumfutspill i stikk 1, så «trumf ut» er 100 % for
+alle – det som skiller dem er valøren.
+
+**sd-r1 åpner med sin høyeste trumf i 44 % av kontraktene og ødelegger
+konvensjonen: det etterlyste kortet tar stikket i bare 43 % av tilfellene mot
+NevroHjernes 99 %.**
+
+Dette er en REGRESJON. Nevro gjør det riktig. Vår SD-trening brøt det.
+
+Sannsynlig mekanisme: SD-evalueringen maksimerer forventet utfall over
+samplede verdener per beslutning. Å ta stikket selv med en høy trumf ser
+lokalt bra ut; verdien av å avsløre makkeren billig er strukturell og ligger
+utenfor det ett kortvalg måler. **Læreren er nærsynt om konvensjoner.**
+
+### 2. Garanterte stikk – Arvinds presisering var riktig, og hullet består
+
+Arvind påpekte at å slå medspillerens stikk ikke er dumt i seg selv –
+seterekkefølgen betyr noe – men at man skal legge billigste kort når stikket
+alt er garantert. Målingen er delt deretter:
+
+| som spillefører, medspiller leder | MesterAI | sd-r1 | nevro |
+|---|---|---|---|
+| **garantert:** slo stikket | **28 %** | **76 %** | 62 % |
+| **garantert:** la ikke billigste kort | 43 % | **67 %** | 66 % |
+| **garantert:** brente trumf | **3 %** | **35 %** | 27 % |
+| **garantert:** la honnør (≥13) | 11 % | 24 % | 25 % |
+| *ikke* garantert: slo stikket | 81 % | 87 % | 89 % |
+
+n = 279 garanterte, 197 ikke-garanterte.
+
+Presiseringen var riktig og endrer bildet: i stillinger der stikket **ikke** er
+garantert ligger alle tre likt (81–89 %). Det var altså feil av meg å kalle
+«slo medspillerens stikk» et hull uten å dele det opp.
+
+Men i de garanterte stillingene består hullet og er større enn det så ut:
+sd-r1 slår stikket i 76 % mot MesterAIs 28 %, og **brenner trumf i 35 % mot
+MesterAIs 3 %**. Det er rent bortkastet materiale – stikket var alt vårt.
