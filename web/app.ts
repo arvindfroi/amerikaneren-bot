@@ -198,12 +198,13 @@ async function initPimcWorker(): Promise<void> {
   });
 }
 
-/** Be workeren pondere på `s` i inntil `ms` (no-op utenfor PIMC-spillfasen). */
-function ponder(s: GameState, ms: number): void {
-  if (motstander !== "PIMC" || worker === null || ms < 120) return;
-  if (s.fase === "SPILL" && s.iTur !== null && s.iTur !== MENNESKE) {
-    worker.postMessage({ type: "pondre", state: s, ms });
-  }
+/**
+ * Pondering hoerte til PIMC-solveren, som er fjernet som motstander.
+ * NevroHjerne bruker mikrosekunder per trekk og har ingenting aa pondre paa.
+ * Funksjonen staar som no-op saa kallstedene ikke maa rives ut.
+ */
+function ponder(_s: GameState, _ms: number): void {
+  /* ingen motstander bruker worker-pondering lenger */
 }
 
 /** PIMC-beslutning i workeren; faller tilbake til rask synkron ved feil. */
@@ -231,18 +232,25 @@ async function pimcHandling(s: GameState): Promise<Handling> {
  * Motstandertype: PIMC-solveren, et trent NEAT-nett, appens nevronett eller
  * appens fulle MesterAI.
  */
-type Motstander = "PIMC" | "Nevro" | "C4" | "D1" | "MesterAI";
+/**
+ * Motstanderne er redusert til de to som er verdt å spille mot.
+ *
+ * C4 og D1 er evolusjonslinjer som er MÅLT til å spille kort dårligere enn å
+ * velge tilfeldig (anger 1,07–1,15 mot gulvet 1,035 på orakelbenken), og PIMC
+ * taper 67,7 poeng per kamp mot appens MesterAI. Å la dem stå ga familien
+ * motstandere som verken er sterke eller lærerike.
+ *
+ * Igjen står NevroHjerne – appens eget nett – og vår egen beste bot.
+ */
+type Motstander = "Nevro" | "MesterAI";
 const MOTSTANDER_INFO: Record<Motstander, string> = {
-  PIMC: "PIMC – solveren (vanskeligst)",
   Nevro: "NevroHjerne – appens nevronett 🧠",
-  C4: "C4 – evolusjonsnettet",
-  D1: "D1 – gradientnettet",
   MesterAI: "MesterAI – appens mester 🏆",
 };
 /** MesterAI vises kun i bro-modus (spillet servert lokalt over HTTP). */
 const MOTSTANDERE = (): Motstander[] =>
-  LOKAL ? ["PIMC", "Nevro", "C4", "D1", "MesterAI"] : ["PIMC", "Nevro", "C4", "D1"];
-let motstander: Motstander = "PIMC";
+  LOKAL ? ["Nevro", "MesterAI"] : ["Nevro"];
+let motstander: Motstander = "Nevro";
 
 /**
  * Et nett som fører sitt eget sete. NeatAgent (C4/D1) og NevroSpiller (appens
@@ -282,7 +290,7 @@ function si(tekst: string): void {
 function logg(type: string, data: unknown): void {
   const hendelse = {
     spillId,
-    navn: `${spillerNavn} vs ${motstander}${motstander === "PIMC" ? `/${styrke}` : ""}`,
+    navn: `${spillerNavn} vs ${motstander}`,
     type,
     data,
     tid: new Date().toISOString(),
@@ -316,18 +324,6 @@ async function start(navn: string): Promise<void> {
       nettAgenter = [1, 2, 3].map((sete) => new NevroSpiller(sete, hjerne));
     } catch {
       rot.innerHTML = `<div class="panel start"><h2>Klarte ikke laste nevronettet 😕</h2>
-        <button class="stor bekreft" id="tilbake">Tilbake</button></div>`;
-      document.getElementById("tilbake")!.onclick = () => startskjerm();
-      return;
-    }
-  } else if (motstander === "C4" || motstander === "D1") {
-    rot.innerHTML = `<div class="panel start"><h2>Laster ${motstander}-nettet…</h2></div>`;
-    try {
-      const svar = await fetch(DATA_URL + motstander.toLowerCase() + ".json");
-      const genom = genomFraJson(await svar.text());
-      nettAgenter = [1, 2, 3].map(() => new NeatAgent(structuredClone(genom), { læringsrate: 0 }));
-    } catch {
-      rot.innerHTML = `<div class="panel start"><h2>Klarte ikke laste ${motstander}-nettet 😕</h2>
         <button class="stor bekreft" id="tilbake">Tilbake</button></div>`;
       document.getElementById("tilbake")!.onclick = () => startskjerm();
       return;
@@ -738,15 +734,8 @@ function startskjerm(): void {
           role="radio" aria-checked="${m === motstander}">${MOTSTANDER_INFO[m]}</button>`)
         .join("")}
     </div>
-    ${motstander === "PIMC"
-      ? `<p style="margin:0 0 0.6vh">Styrke:</p>
-    <div class="knapper motstandere" role="radiogroup" aria-label="Styrke">
-      ${(Object.keys(STYRKER) as Styrke[])
-        .map((s) => `<button class="stor motstander${s === styrke ? " aktiv" : ""}" data-styrke="${s}"
-          role="radio" aria-checked="${s === styrke}">${STYRKER[s].navn}</button>`)
-        .join("")}
-    </div>`
-      : ""}
+    <!-- Styrkevalget hoerte til PIMC, som er fjernet. Nevronettet bruker
+         mikrosekunder per trekk, saa det finnes ingen tidsbudsjett aa velge. -->
     <label for="navn">Hvem spiller? (for dataloggen)</label>
     <input id="navn" type="text" placeholder="f.eks. mamma" autocomplete="off">
     <button class="stor bekreft" id="start-knapp">Start spillet</button>
