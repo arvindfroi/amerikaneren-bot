@@ -2822,3 +2822,54 @@ da den ble skrevet: **hovedbenken kan strukturelt ikke oppfylle den.**
 Speilbenken — tre kopier av kontrollen i de andre setene — er den riktige for
 alt som rører budgivning eller rollebalanse. Der er kontrollens råscore
 identisk 0, som er en gratis kontroll på at benken er symmetrisk.
+
+---
+
+## RETTELSE: fasiten sier det riktige — nettet lærte det bare ikke
+
+Jeg skrev at konvensjonsvakten koder kunnskap «læreren strukturelt ikke kan
+tilegne seg fra målet sitt», og at verdien av å la det etterlyste kortet stå
+ligger «utenfor det ett kortvalg måler». **Det er målt feil.**
+
+Arvind presset på det: «klarer vi ikke å lære denne verdien? den må jo bli
+trent med dybde og.» Han hadde rett, og jeg hadde ikke målt før jeg påsto.
+
+`vurderKortSD` spiller ut HELE runden. Verdien av å spare esset til senere
+ligger godt innenfor horisonten. Målt direkte i akkurat de stillingene der
+konvensjonen gjelder — spillefører leder stikk 1, minst to trumf å velge
+mellom, 24 verdener, n=50:
+
+| | |
+|---|---|
+| SD foretrekker **laveste** trumf | 33 av 50 (66 %) |
+| snitt (lavest − høyest) | **+1,041 ± 0,429** (2,4 SE) |
+
+**Fasiten sier det riktige, og det er verdt over ett stikk.**
+
+### Hva som da er den virkelige forklaringen
+
+Ikke at målet er blindt, men at **eksponeringen er for lav**. Utspillet i
+stikk 1 skjer én gang per kontrakt, mens runden har tolv kortvalg. Stillingene
+er en brøkdel av treningsdataene, og merkelappen der har SE 0,43 per stilling
+— en støyete etikett på en sjelden situasjon.
+
+Det er nøyaktig samme mønster som rollevektingen: 104 % av tapet lå i én av
+tre roller mens dataene var uniforme.
+
+### Konsekvens
+
+Vakten er **ikke** en permanent arkitekturkomponent. Den kompenserer for en
+treningssvikt, og den bør i prinsippet kunne fjernes ved å vekte
+treningsdataene mot utspillet i stikk 1 — på samme måte som `--rollevekt`
+vekter mot spillefører.
+
+Vakten blir stående til et nett faktisk klarer seg uten den, målt parret. Men
+den skal ikke lenger begrunnes med at problemet er uløselig.
+
+### En feil til, i mitt eget måleskript
+
+Første forsøk lette etter stillinger der det etterlyste kortet lå på bordet og
+spillefører var i tur. Det finnes ikke: spillefører LEDER stikk 1, så kortet
+er ikke spilt ennå når hen velger. Skriptet fant null stillinger og trykket
+likevel «FASITEN SIER FEIL» — en konklusjon på tom mengde, samme feilklasse
+som `Math.abs(NaN) < 0.3` i går. Terskelen `if (n < 5) avbryt` er lagt inn.
