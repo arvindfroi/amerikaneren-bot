@@ -2181,3 +2181,42 @@ ligger på 1 %, MesterAI på 7 %. Vakten tar sd-r2 til 1 %.
 Det bekrefter diagnosen: SD-læreren maksimerer forventet utfall per kortvalg
 og kan ikke se strukturell verdi som ligger utenfor det ene trekket. Mer data
 av samme slag ville ikke ha løst det – en regel gjorde det på ett forsøk.
+
+---
+
+## Rollebalanse: en regel som følger av at vi vektet dataene
+
+Fasedekomponeringen viste at spillefører er 25 % av sete-rundene og **104 %**
+av tapet, mens forsvar er −0,04 og makker **+0,12** — altså i vår favør.
+Datagenereringen ble derfor vektet 3× mot spillefører-stillinger.
+
+**Det er en hypotese, ikke et bevist valg.** Vi optimerte mot der vi taper
+uten å måle om det koster oss der vi allerede vinner. Arvind flagget det:
+skal vi kunne by høyere fordi kvaliteten stiger, må også lagspillet og
+forsvaret holde — ellers flytter vi bare tapet.
+
+### Belønningen er ikke problemet
+
+`standardMål` i `src/moe2/sdkort.ts` er `egne − snitt(andre)`. Som forsvarer
+stiger differansen når kontrakten felles (spillefører får −2n), så forsvar er
+allerede belønnet i fasiten. Risikoen ligger utelukkende i hvilke stillinger
+som blir MERKET.
+
+### Regelen
+
+**Ethvert nytt nett måles per rolle før det promoteres, ikke bare på totalen.**
+Et nett som vinner samlet men taper som forsvarer har flyttet tapet, ikke
+fjernet det — og det ville ikke synes i poengsummen før mye senere.
+
+Kontrollen er gratis: `examples/mesterai-fasegap.ts` gjør nøyaktig denne
+oppdelingen, og A/B-en krever ingen ny datagenerering:
+
+| datasett | vekting | linjer |
+|---|---|---|
+| sd-data | uniform | 1 273 591 |
+| sd-data2 | uniform (DAgger) | 1 814 269 |
+| sd-data3 | 3× spillefører | genereres nå |
+
+sd-r2 er trent på de to første, altså uniformt. Neste nett trenes med sd-data3
+i blandingen, og de to sammenlignes **per rolle**. Blir forsvaret dårligere,
+er rollevekt 3 for høy — og da er det målt, ikke gjettet.
