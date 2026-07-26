@@ -87,6 +87,25 @@ let verdener = 12;
  */
 let spillerFil: string | null = null;
 let sjanse = 0.35;
+/**
+ * ROLLEVEKT: hvor mye oftere spillefoererens stillinger merkes.
+ *
+ * MAALT 26. juli paa 1498 runder mot MesterAI, rolledekomponert:
+ *
+ *   rolle          andel av sete-runder   andel av TOTALTAPET
+ *   spillefoerer            25 %                  104 %
+ *   makker                  25 %                   -7 %
+ *   forsvarer               50 %                    2 %
+ *
+ * Hele gapet ligger i ÉN av tre roller. Makker og forsvar er noeytrale eller
+ * i vaar favoer. Likevel merker generatoren i dag alle roller likt, saa tre
+ * fjerdedeler av dataene gaar til stillinger der vi ikke taper noe.
+ *
+ * Med rollevekt 3 merkes spillefoererens stillinger tre ganger saa ofte.
+ * Rollen forblir representert - vi kutter ikke de andre, for et nett som
+ * glemmer forsvar taper det vi alt har.
+ */
+let rolleVekt = 3;
 let utforsk = 0.15;
 let fraStikk = 0;
 let maks = 0;
@@ -102,6 +121,7 @@ for (let i = 2; i < process.argv.length; i++) {
   } else if (a === "--verdener") verdener = Number(process.argv[++i]);
   else if (a === "--spiller") spillerFil = process.argv[++i] ?? null;
   else if (a === "--sjanse") sjanse = Number(process.argv[++i]);
+  else if (a === "--rollevekt") rolleVekt = Number(process.argv[++i]);
   else if (a === "--utforsk") utforsk = Number(process.argv[++i]);
   else if (a === "--fraStikk") fraStikk = Number(process.argv[++i]);
   else if (a === "--maks") maks = Number(process.argv[++i]);
@@ -152,7 +172,10 @@ alleKamper: for (let k = 0; k < kamper; k++) {
       const sete = s.iTur;
       const lovlige = lovligeKort(s, sete);
       beslutninger++;
-      if (lovlige.length >= 2 && s.stikkSpilt >= fraStikk && rng() < sjanse) {
+      // Spillefoereren er 25 % av stillingene og 104 % av tapet - se rolleVekt.
+      const erFoerer = s.budvinner === sete;
+      const p = Math.min(1, sjanse * (erFoerer ? rolleVekt : 1));
+      if (lovlige.length >= 2 && s.stikkSpilt >= fraStikk && rng() < p) {
         const vurdert = vurderKortSD(s, sete, nevro, { verdener, rng });
         // Tom liste = ingen verden lot seg trekke. Da skal INGENTING skrives:
         // å behandle «ingen data» som «alle valg er like gode» var mekanismen
