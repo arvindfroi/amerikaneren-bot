@@ -49,6 +49,12 @@ import { opprettSpill, utfør, velgHandling, type GameState, type Handling } fro
 import { genomFraJson, HybridAgent, NeatAgent, ROLLER, SenatAgent, type Genom, type Rolle, type SenatOpts } from "../src/neat/index.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 import { E1Agent } from "../src/e1/nett.ts";
+import {
+  Konvensjonsvakt,
+  delVaktspek,
+  type Innagent,
+  type Vaktvalg,
+} from "../src/moe2/konvensjonsvakt.ts";
 import { grådigHandling } from "./graadig.ts";
 
 // --- Argumenter -------------------------------------------------------------
@@ -102,6 +108,9 @@ interface Kandidat {
   readonly referanse: Referanse | null;
   /** Vektfil for e1-kandidater. */
   readonly fil?: string;
+  /** «vakt:<flagg>:<indre>»: konvensjonsvakten lagt utenpå kandidaten under. */
+  readonly vakt?: Vaktvalg;
+  readonly indre?: Kandidat;
 }
 /** Godtar både et rent genom (mester.json) og gull-innpakningen {diff, gen, genom}. */
 function lesGenom(fil: string): Genom {
@@ -109,14 +118,21 @@ function lesGenom(fil: string): Genom {
   const rå = JSON.parse(tekst) as { genom?: unknown };
   return genomFraJson(rå.genom !== undefined ? JSON.stringify(rå.genom) : tekst);
 }
-const kandidater: Kandidat[] = filer.map((f) => {
+function lesKandidat(f: string): Kandidat {
+  // «vakt:<flagg>:<indre>» – to deterministiske konvensjonsregler utenpå en
+  // hvilken som helst annen kandidat. Se src/moe2/konvensjonsvakt.ts.
+  const vakt = delVaktspek(f);
+  if (vakt !== null) {
+    return { navn: f, genom: null, referanse: null, vakt: vakt.valg, indre: lesKandidat(vakt.indre) };
+  }
   if (f === "pimc" || f === "nevro") return { navn: f, genom: null, referanse: f };
   if (f.startsWith("e1:")) return { navn: f, genom: null, referanse: "e1" as const, fil: f.slice(3) };
   // «senat:<grunngenom>» – nevros budgivning/trumf + senatorenes kortspill.
   // Eksperter lastes fra moe/ekspert-<rolle>.json når de finnes.
   if (f.startsWith("senat:")) return { navn: f, genom: null, referanse: "senat" as const, fil: f.slice(6) };
   return { navn: f, genom: lesGenom(f), referanse: null };
-});
+}
+const kandidater: Kandidat[] = filer.map(lesKandidat);
 
 // Vektfilen er et par MB – les den én gang, ikke per kamp.
 const senatBufret = new Map<string, SenatOpts>();
@@ -148,21 +164,33 @@ function e1Agent(fil: string): E1Agent {
   return a;
 }
 
+/**
+ * Agenten kandidaten spiller med. `null` = PIMC-referansen, som ikke er en
+ * agent men et søk kalt direkte i løkka under (den trenger `guard` i frøet).
+ */
+function lagAgent(k: Kandidat, frø: number): Innagent | null {
+  if (k.vakt !== undefined) {
+    const indre = lagAgent(k.indre!, frø);
+    if (indre === null) throw new Error("Konvensjonsvakten kan ikke pakkes rundt pimc-referansen");
+    return new Konvensjonsvakt(indre, k.vakt);
+  }
+  return k.referanse === "senat"
+    ? new SenatAgent(senatOpts(k.fil!))
+    : k.referanse === "e1"
+    ? e1Agent(k.fil!)
+    : k.referanse === "nevro"
+    ? new NevroAgent()
+    : k.genom === null
+      ? null
+      : hybrid
+        ? new HybridAgent(k.genom, { stikkTerskel: terskel, verdener, midtKandidater: midt, frø })
+        : new NeatAgent(k.genom, { læringsrate });
+}
+
 /** Én hel kamp: kandidaten i `sete`, tre motstandere. Returnerer poengdifferansen. */
 function kamp(k: Kandidat, frø: number, sete: number): number {
-  const agent =
-    k.referanse === "senat"
-      ? new SenatAgent(senatOpts(k.fil!))
-      : k.referanse === "e1"
-      ? e1Agent(k.fil!)
-      : k.referanse === "nevro"
-      ? new NevroAgent()
-      : k.genom === null
-        ? null
-        : hybrid
-          ? new HybridAgent(k.genom, { stikkTerskel: terskel, verdener, midtKandidater: midt, frø })
-          : new NeatAgent(k.genom, { læringsrate });
-  agent?.nyKamp();
+  const agent = lagAgent(k, frø);
+  agent?.nyKamp?.();
   let s = opprettSpill({ antallSpillere: 4 }, frø);
   let guard = 0;
   while (s.fase !== "FERDIG" && guard++ < 20000) {

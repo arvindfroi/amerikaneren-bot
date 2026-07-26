@@ -75,7 +75,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { FARGER, kortId, likeKort, nyStokk, type Farge, type Kort } from "../src/kort.ts";
+import { FARGER, likeKort, type Farge, type Kort } from "../src/kort.ts";
 import {
   lovligeEtterlys,
   lovligeHandlinger,
@@ -86,6 +86,16 @@ import {
   type GameState,
   type Handling,
 } from "../src/motor.ts";
+// Garantien og «synlig for spilleren» bor i src/moe2/synlig.ts, for
+// konvensjonsvakten må avgjøre NØYAKTIG det samme spørsmålet på nøyaktig samme
+// måte som denne målingen. To kopier ville gjort tallene uforenlige.
+import {
+  etterlystTarStikket,
+  garantertFasit,
+  garantertSynlig,
+  pris,
+} from "../src/moe2/synlig.ts";
+import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 import type { Bud } from "../src/regler.ts";
 import { velgHandling as pimcVelg, type BotOpts } from "../src/bot/bot.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
@@ -145,6 +155,20 @@ interface Kandidat {
 }
 
 function lagKandidat(spec: string): Kandidat {
+  // «vakt:<flagg>:<indre>» – konvensjonsvakten utenpå en hvilken som helst
+  // annen kandidat. Navnet beholder hele spesifikasjonen, så rapporten sier
+  // hvilken vakt som svarte.
+  const vakt = delVaktspek(spec);
+  if (vakt !== null) {
+    const indre = lagKandidat(vakt.indre);
+    const pakket = new Konvensjonsvakt({ velgHandling: (s) => indre.velg(s) }, vakt.valg);
+    return {
+      // Kort navn: tabellkolonnene er 15 tegn brede.
+      navn: `v${vakt.flagg}:${indre.navn}`,
+      nyKamp: (frø) => indre.nyKamp(frø),
+      velg: (s) => pakket.velgHandling(s),
+    };
+  }
   if (spec === "pimc") {
     let opts: BotOpts = { tidsbudsjettMs: tidMs, terskel: 7 };
     return {
@@ -407,115 +431,10 @@ function rollenTil(s: GameState, sete: number): Rolle {
 // Offentlig garanti medfører alltid fasit-garanti, så tallene er nøstet.
 // Differansen – «skjult garanti» – er nettopp de tilfellene som ikke lot seg
 // klassifisere fra spillerens egen synsvinkel, og den rapporteres for seg.
-
-/** Setene som ennå ikke har lagt kort i dette stikket (utenom `sete` selv). */
-function gjenstående(s: GameState, sete: number): number[] {
-  const lagt = new Set<number>(s.bord.map((b) => b.spiller));
-  lagt.add(sete);
-  const ut: number[] = [];
-  for (let i = 0; i < s.antallSpillere; i++) if (!lagt.has(i)) ut.push(i);
-  return ut;
-}
-
-/** Ville `kort` slått det kortet som leder stikket akkurat nå? */
-function slårLedende(s: GameState, kort: Kort): boolean {
-  const MERKE = -1; // ikke et sete – bare en etikett stikkvinner kan gi tilbake
-  return stikkvinner(s.bord.concat({ spiller: MERKE, kort }), s.trumf!) === MERKE;
-}
-
-/** FASIT: kan noen av de gjenstående motstanderne fortsatt overta stikket? */
-function garantertFasit(s: GameState, sete: number, våre: readonly number[]): boolean {
-  for (const m of gjenstående(s, sete)) {
-    if (våre.includes(m)) continue;
-    for (const k of lovligeKort(s, m)) if (slårLedende(s, k)) return false;
-  }
-  return true;
-}
-
-/** Farger en spiller har VIST at han er renons i (kastet av i fargen som ble ledet). */
-function avslørteRenonser(s: GameState): Map<number, Set<Farge>> {
-  const ut = new Map<number, Set<Farge>>();
-  const legg = (sp: number, f: Farge): void => {
-    const sett = ut.get(sp) ?? new Set<Farge>();
-    sett.add(f);
-    ut.set(sp, sett);
-  };
-  const seStikk = (kort: readonly { spiller: number; kort: Kort }[]): void => {
-    if (kort.length === 0) return;
-    const led = kort[0]!.kort.farge;
-    for (const kp of kort) if (kp.kort.farge !== led) legg(kp.spiller, led);
-  };
-  for (const stikk of s.historikk) seStikk(stikk.kort);
-  seStikk(s.bord);
-  return ut;
-}
-
-/**
- * Kortene `sete` ikke kan utelukke at en motstander sitter med: hele stokken
- * minus egen hånd, minus alt som er spilt, minus eget vrak. For alle andre enn
- * budvinneren er vrakets fire kort usett, og de teller derfor med som mulige
- * motstanderkort. Det gjør vurderingen konservativ, aldri for optimistisk.
- */
-function ukjenteKort(s: GameState, sete: number): Kort[] {
-  const sett = new Set<string>();
-  for (const k of s.hender[sete] ?? []) sett.add(kortId(k));
-  for (const stikk of s.historikk) for (const kp of stikk.kort) sett.add(kortId(kp.kort));
-  for (const kp of s.bord) sett.add(kortId(kp.kort));
-  if (sete === s.budvinner) for (const k of s.vrak) sett.add(kortId(k));
-  return nyStokk().filter((k) => !sett.has(kortId(k)));
-}
-
-/** OFFENTLIG: er stikket sikret ut fra bare det `sete` selv kan vite? */
-function garantertOffentlig(s: GameState, sete: number, våre: readonly number[]): boolean {
-  const truende = ukjenteKort(s, sete).filter((k) => slårLedende(s, k));
-  if (truende.length === 0) return true;
-  const renons = avslørteRenonser(s);
-  for (const m of gjenstående(s, sete)) {
-    if (våre.includes(m)) continue;
-    const hans = renons.get(m) ?? new Set<Farge>();
-    // Følgeplikt kan vi ikke bruke her – vi kan ikke VITE at han har fargen.
-    if (truende.some((k) => !hans.has(k.farge))) return false;
-  }
-  return true;
-}
-
-/**
- * Hva koster det å bli kvitt kortet? Et sidekort går alltid foran en trumf –
- * å brenne trumf i et stikk laget alt har er dyrere enn å kaste en toer i en
- * sidefarge, uansett valør – og innenfor det avgjør valøren.
- */
-function pris(k: Kort, trumf: Farge): number {
-  return (k.farge === trumf ? 100 : 0) + k.verdi;
-}
-
-/**
- * Tar det etterlyste kortet stikk 1 hvis spilleføreren åpner med `utspill`?
- *
- * Deterministisk, uten å gjette hva noen VIL gjøre:
- *   1. Makkeren MÅ legge det etterlyste kortet hvis makkerplikten treffer
- *      (`lovligeKort` gir da bare det ene kortet). Gjør den ikke det, kommer
- *      kortet ikke ned, og svaret er nei.
- *   2. Utspillet må ikke selv slå det.
- *   3. Ingen av de to forsvarerne må ha et LOVLIG kort som slår det.
- * Da står stikket til makkeren uansett hva de andre finner på.
- */
-function etterlystTarStikket(s: GameState, sete: number, utspill: Kort): boolean {
-  const etterlyst = s.etterlyst;
-  const makker = s.makker;
-  if (etterlyst === null || makker === null || makker === sete) return false;
-  const åpnet: GameState = { ...s, bord: [{ spiller: sete, kort: utspill }] };
-  const makkerLov = lovligeKort(åpnet, makker);
-  if (!(makkerLov.length === 1 && likeKort(makkerLov[0]!, etterlyst))) return false;
-  const medEtterlyst = åpnet.bord.concat({ spiller: makker, kort: etterlyst });
-  if (stikkvinner(medEtterlyst, s.trumf!) !== makker) return false;
-  for (let d = 0; d < s.antallSpillere; d++) {
-    if (d === sete || d === makker) continue;
-    for (const k of lovligeKort(åpnet, d)) {
-      if (stikkvinner(medEtterlyst.concat({ spiller: d, kort: k }), s.trumf!) === d) return false;
-    }
-  }
-  return true;
-}
+//
+// Selve avgjørelsene ligger i `src/moe2/synlig.ts` (garantertFasit,
+// garantertSynlig, pris, etterlystTarStikket) – samme kode som
+// konvensjonsvakten bruker under spill.
 
 /** Registrerer ett utspill fra spilleføreren i stikk `stikk` (0-indeksert). */
 function registrerUtspill(p: Profil, s: GameState, sete: number, kort: Kort, stikk: number): void {
@@ -656,7 +575,7 @@ function registrer(p: Profil, s: GameState, sete: number, h: Handling, fasit: Ha
         r.garantertBilligstVerdi.push(billigst.verdi);
       }
       if (kort.farge === trumf && lovlige.some((k) => k.farge !== trumf)) r.garantertBrentTrumf++;
-      if (garantertOffentlig(s, sete, våre)) {
+      if (garantertSynlig(s, sete, våre)) {
         r.offGarantert++;
         if (slo) r.offGarantertSlo++;
       } else {

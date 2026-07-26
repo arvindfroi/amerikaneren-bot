@@ -1996,3 +1996,57 @@ kjøringen er ikke bit-identisk med en ren h2h-kjøring på samme frø. Den er
 like gyldig – bare ikke den samme. Gapet målt her (+0,87 poeng/runde/sete
 samlet, +0,52 for sd-r2 alene) ligger i samme leie som h2h-tallene
 (+0,536 ± 0,212 for sd-r2), på et helt annet frøsett.
+
+## Konvensjonsvakten: to deterministiske regler utenpå nettet
+
+De to hullene atferdsprofilen fant (åpningsutspillet og de garanterte
+stikkene) er REGELFORMEDE: de handler om konvensjoner der gevinsten ligger
+utenfor det ett kortvalg kan måle, og som SD-læreren derfor er nærsynt om.
+Da er en deterministisk vakt et billigere svar enn en ny treningsrunde – men
+bare hvis den MÅLER bedre.
+
+`src/moe2/konvensjonsvakt.ts` pakker en vilkårlig agent og overstyrer BARE når
+agentens kort bryter en av to regler. Spesifikasjonen `vakt:<flagg>:<indre>`
+virker i `neat-evaluer.ts`, `mesterai-h2h.ts` og `mesterai-atferd.ts`:
+
+| flagg | regel |
+|---|---|
+| `a` | **slå aldri ditt eget etterlyste kort** – ved åpningsutspillet i stikk 1 og når kortet ligger på bordet og vinner. Da spilles billigste lovlige kort som lar det stå |
+| `t` | **garantert stikk: aldri trumf** når et ikke-trumf-avkast er lovlig |
+| `b` | **garantert stikk: alltid billigste lovlige kort** (strengere enn `t`) |
+
+Vakten er en SPILLER, ikke en måling: den ser bare det setet selv kan se.
+`src/moe2/synlig.ts` eier både «synlig for spilleren»-garantien og fasiten,
+og importeres av BÅDE vakten og `mesterai-atferd.ts` – ellers ville profilen
+målt ett spørsmål og vakten svart på et annet. `garantertFasit` og
+`state.makker` før avsløring røres aldri av vakten; lagkunnskapen kommer fra
+`lagetSynlig`, som gir null når spilleren ennå ikke kan vite hvem makkeren er.
+Bare budvinneren kan bryte regel 1 (det etterlyste kortet ligger per
+definisjon hos makkeren, og en forsvarer SKAL slå det), og testene låser at
+vakten ikke rører forsvarssetet.
+
+### Målt mot NevroHjerne: alle fem variantene slår kontrollen
+
+2000 givere, frø 36000000, parret (`analyse/vakt-mot-nevro.txt`,
+`analyse/vakt-pergiver-*.jsonl`). Grunnlinjen er sd-r2 UTEN vakt:
+
+| variant | mot kontrollen | SE | tegntest | mot nevro |
+|---|---|---|---|---|
+| sd-r2 (kontroll) | – | – | – | +0,345 ± 0,024 |
+| `+a` åpning | **+0,631** | 0,015 | 1767/1956 | +0,976 ± 0,022 |
+| `+t` garanti/ikke trumf | **+0,181** | 0,006 | 1532/1655 | +0,527 ± 0,024 |
+| `+b` garanti/billigst | **+0,169** | 0,011 | 1290/1892 | +0,515 ± 0,024 |
+| `+at` begge | **+0,797** | 0,015 | 1852/1969 | +1,142 ± 0,022 |
+| `+ab` begge, streng | **+0,788** | 0,016 | 1782/1979 | +1,134 ± 0,022 |
+
+Alle p < 1e-6. Effekten er 40–50 SE og går samme vei i ni av ti givere – dette
+er ikke et grensetilfelle. Åpningsregelen er den store: +0,63 alene, mot
++0,18 for garantiregelen. **Forsprangeret mot NevroHjerne mer enn tredobles,
+fra +0,345 til +1,142 poeng/kamp.**
+
+Arvinds forbehold om at «ikke billigste kort» kan være riktig – man kjøper
+utspillet med et sidekort – står seg i tallene: `t` (aldri trumf) måler
++0,012 ± 0,009 bedre enn den strenge `b` (tegntest 860/1827 i `t`s favør),
+og `at` +0,009 ± 0,008 bedre enn `ab`. Forskjellen er liten, men den peker
+konsekvent samme vei, og den strenge varianten har ingen målt fordel.
+**`vakt:at` er varianten som skal promoteres.**
