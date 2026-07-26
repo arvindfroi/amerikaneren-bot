@@ -126,7 +126,8 @@ export class MesterKlone {
       if (nevroH.type !== "SPILL") return nevroH;
       const logits = forover(this.nett, kloneTrekk(state, sete, nevroH.kort));
       // Snarveien: samme addisjon som treneren gjør før tapet regnes.
-      logits[kortIndeks(nevroH.kort)] += NEVRO_SNARVEI;
+      const ni = kortIndeks(nevroH.kort);
+      logits[ni] = logits[ni]! + NEVRO_SNARVEI;
       let beste = lovlige[0]!;
       for (const k of lovlige) if (logits[kortIndeks(k)]! > logits[kortIndeks(beste)]!) beste = k;
       return { type: "SPILL", spiller: sete, kort: beste };
