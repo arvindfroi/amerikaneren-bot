@@ -1794,7 +1794,8 @@ Men der består hullet, og det er større enn det så ut: sd-r1 slår stikket i
 | trumf brent på et stikk som alt var vårt | **0,03** | **0,39** | 0,30 |
 | valør gitt bort over det billigste lovlige | 1,49 | 2,46 | 2,37 |
 
-sd-r1 brenner **én unødvendig trumf hver 2,6. runde**; MesterAI én hver 33.
+sd-r1 brenner **én unødvendig trumf hver 2,6. runde** (124 av 320); MesterAI
+én hver 40. (8 av 320).
 Det er den skarpeste enkeltraden i hele profilen, for den har ingen unnskyldning.
 
 Én nyanse som holder tallet ærlig: å ta et garantert stikk gir deg *utspillet*,
