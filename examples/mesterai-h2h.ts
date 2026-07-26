@@ -65,7 +65,7 @@ import { velgHandling as pimcVelg, type BotOpts } from "../src/bot/bot.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
-import { lagMotpart, SDAgent } from "../src/moe2/sdagent.ts";
+import { delSDSpek, SDAgent } from "../src/moe2/sdagent.ts";
 import { grådigHandling } from "./graadig.ts";
 import {
   Adapter,
@@ -164,16 +164,15 @@ function lagKandidat(spec: string): Kandidat {
   // den ut med en klone av MesterAI. Dette er den eneste veien til å måle hva
   // motstandermodellen i SD er verdt uten å gå om en hel treningsrunde.
   if (spec.startsWith("sd:")) {
-    const motpartSpek = spec.slice(3);
-    const motpart = lagMotpart(motpartSpek);
-    let agent = new SDAgent(motpart, { verdener: sdVerdener });
+    const { motpart, egen } = delSDSpek(spec.slice(3));
+    let agent = new SDAgent(motpart, { verdener: sdVerdener, egen });
     return {
       navn: spec,
       nyKamp: (frø) => {
         // Nytt frø per kamp, men SAMME frø for begge kandidatene i et par:
         // verdenstrekningen skal ikke være en kilde til forskjell mellom to
         // motstandermodeller som måles mot hverandre.
-        agent = new SDAgent(motpart, { verdener: sdVerdener, frø });
+        agent = new SDAgent(motpart, { verdener: sdVerdener, egen, frø });
       },
       velg: (s) => agent.velgHandling(s),
     };

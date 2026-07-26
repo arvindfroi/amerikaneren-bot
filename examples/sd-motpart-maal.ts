@@ -51,7 +51,7 @@ import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
-import { lagMotpart, SDAgent } from "../src/moe2/sdagent.ts";
+import { delSDSpek, lagMotpart, SDAgent } from "../src/moe2/sdagent.ts";
 
 // --- Argumenter -------------------------------------------------------------
 
@@ -96,11 +96,14 @@ interface Spiller {
  */
 function lagSpiller(spek: string): Spiller {
   if (spek.startsWith("sd:")) {
-    const motpart = lagMotpart(spek.slice(3));
-    let a = new SDAgent(motpart, { verdener });
+    // Modellene bygges HER, én gang. `lagSDAgent` gjør både innlesing og
+    // konstruksjon, så et kall per kamp ville lest vektfilene på nytt for hver
+    // giver – innlesingen er dyrere enn selve evalueringen.
+    const { motpart, egen } = delSDSpek(spek.slice(3));
+    let a = new SDAgent(motpart, { verdener, egen });
     return {
       nyKamp: (frø) => {
-        a = new SDAgent(motpart, { verdener, frø });
+        a = new SDAgent(motpart, { verdener, egen, frø });
       },
       velgHandling: (s) => a.velgHandling(s),
     };

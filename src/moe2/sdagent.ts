@@ -30,6 +30,18 @@ import { MesterKlone } from "./mesterklone.ts";
 import { besteKortSD, type Utspiller } from "./sdkort.ts";
 
 export interface SDAgentOpts {
+  /**
+   * Modellen som spiller AGENTENS EGET sete ut i verdenene. Standard er
+   * `motpart`, altså dagens oppførsel: én modell i alle fire seter.
+   *
+   * HVORFOR DETTE ER EN EGEN AKSE. `vurderSD` lar motstandermodellen spille
+   * runden ferdig i ALLE seter – også våre egne senere trekk. Er vår egen
+   * spiller sterkere enn modellen, undervurderer evalueringen systematisk de
+   * linjene som krever god oppfølging fra oss selv. «Feil motstander» har
+   * altså en tvilling: FEIL SELV. Den koster det samme å prøve, og de to kan
+   * skilles fordi de settes i hvert sitt sete.
+   */
+  readonly egen?: Utspiller;
   /** Verdener per kortvalg. 12 er det målte nivået – se sd-orakel.ts. */
   readonly verdener?: number;
   /** Frø for verdenstrekningen, så en måling kan gjentas. */
@@ -54,8 +66,30 @@ export function lagMotpart(spek: string): Utspiller {
   );
 }
 
+/**
+ * Deler en SD-spek i de to modellene og LESER dem, én gang:
+ *
+ *   `nevro`          – motstandermodell i alle fire seter (dagens oppførsel)
+ *   `klone:<fil>`    – MesterAI-klonen i alle fire seter
+ *   `nevro+e1:<fil>` – nevro i motstandersetene, `<fil>` i VÅRT eget sete
+ *
+ * `+` er skilletegnet fordi `:` allerede er i bruk inne i hver modellspek.
+ *
+ * Returnerer modellene, ikke en ferdig agent, nettopp fordi agenten må bygges
+ * på nytt per kamp (for frøet) mens vektfilene skal leses ÉN gang – en
+ * innlesing per giver er dyrere enn hele evalueringen.
+ */
+export function delSDSpek(spek: string): { motpart: Utspiller; egen?: Utspiller } {
+  const [motpartSpek, egenSpek] = spek.split("+");
+  return {
+    motpart: lagMotpart(motpartSpek!),
+    ...(egenSpek === undefined ? {} : { egen: lagMotpart(egenSpek) }),
+  };
+}
+
 export class SDAgent {
   private readonly motpart: Utspiller;
+  private readonly egen: Utspiller | null;
   private readonly nevro = new NevroAgent();
   private readonly verdener: number;
   private readonly fraStikk: number;
@@ -64,6 +98,7 @@ export class SDAgent {
 
   constructor(motpart: Utspiller, opts: SDAgentOpts = {}) {
     this.motpart = motpart;
+    this.egen = opts.egen ?? null;
     this.verdener = opts.verdener ?? 12;
     this.fraStikk = opts.fraStikk ?? 0;
     this.frø = (opts.frø ?? 20260726) >>> 0;
@@ -86,7 +121,19 @@ export class SDAgent {
       // arena mot MesterAI er tid det knappeste vi har.
       const lovlige = lovligeKort(state, sete);
       if (lovlige.length === 1) return { type: "SPILL", spiller: sete, kort: lovlige[0]! };
-      const kort = besteKortSD(state, sete, this.motpart, { verdener: this.verdener, rng: this.rng });
+      // Med `egen` settes en annen modell i VÅRT sete inne i verdenene.
+      // Innpakningen er gjort her og ikke i `sdkort.ts` med vilje: `vurderSD`
+      // kaller `motpart.velgHandling(s)` for hvilket som helst sete som er i
+      // tur, så en bryter på `s.iTur` gir setedelingen uten at kjernen –
+      // fasiten som gikk gjennom godkjenningsporten – røres.
+      const rolleFordelt: Utspiller =
+        this.egen === null
+          ? this.motpart
+          : {
+              velgHandling: (s) =>
+                (s.iTur === sete ? this.egen! : this.motpart).velgHandling(s),
+            };
+      const kort = besteKortSD(state, sete, rolleFordelt, { verdener: this.verdener, rng: this.rng });
       // null = ingen verden lot seg trekke. Da skal vi IKKE gjette: NevroHjerne
       // overtar, som i godkjenningsporten.
       if (kort !== null) return { type: "SPILL", spiller: sete, kort };
