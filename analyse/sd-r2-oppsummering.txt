@@ -198,3 +198,32 @@ stillinger, og 16 av de 48 lå i sd-r1s treningssett.
 5. RESTGAPET ER IKKE UTTØMT: kurvene skiller lag fra epoke 2, og hold-tapet
    bunner før hold-angeren. Det er rom igjen i regularisering og i valg av
    sjekkpunktkriterium som ikke er prøvd her.
+
+
+8. MOT MesterAI – tillegg, 36 speilede par per kandidat
+--------------------------------------------------------
+`examples/mesterai-h2h.ts`, 450 ms per kortvalg, frøbase 550 000, samme par
+som nevro og sd-r1 ble målt på 25. juli. sd-r1 er målt OM IGJEN i samme
+kjøring, ikke lånt fra i går: MesterAIs søk er tidsbudsjettert, så to tall fra
+ulik maskinlast kan ikke settes mot hverandre.
+
+  kandidat   par   MesterAI − kandidat, poeng/runde/sete   poeng/kamp   kampseire
+  sd-r2       36            +0,536 ± 0,212                 +17,4 ± 8,0    46/72
+  sd-r1       36            +0,956 ± 0,213                 +38,9 ± 8,7    55/72
+  (nevro, 25. juli, annen last: +1,068 ± 0,163, 79/106)
+
+  parret, samme 36 par:
+    sd-r2 − sd-r1, poeng/runde/sete :  −0,420 ± 0,284   (1,5 SE)
+    sd-r2 − sd-r1, poeng/kamp       :  −21,5  ± 10,9    (2,0 SE)
+
+Negativt = sd-r2 taper mindre. Retningen er den samme som på nevro-benken og
+størrelsen er stor – gapet faller fra 0,96 til 0,54 poeng per runde per sete –
+men 1,5 SE er IKKE etablert, og de to enhetene er ikke helt enige. Samme
+situasjon som da sd-r1 skulle skilles fra nevro mot MesterAI: støyen er flere
+ganger effekten.
+
+FORBEHOLD: maskinen kjørte 12 h2h-prosesser, 2 e1-orakel og 2 atferdsmålinger
+gjennom hele kjøringen. MesterAI rakk derfor færre verdener per kortvalg enn
+på en ledig maskin, og BEGGE absolutte tall er nedre anslag på MesterAIs
+styrke. Den parrede differansen er upåvirket – begge kandidatene møtte den
+samme MesterAI-en, samtidig.

@@ -1,0 +1,26 @@
+=== MesterAI hode mot hode: 2 mot 2, speilede par ===
+Kilder: analyse/h2h-sdr2-b.jsonl, analyse/h2h-sdr1-b.jsonl
+MesterAI-innstilling: 450 ms per kortvalg
+Positivt tall = MesterAI er BEDRE enn kandidaten.
+
+--- MesterAI mot e1:e1-modell/sd-r2.bin ---
+  par 36 (72 kamper, 1398 runder)
+  poeng per runde per sete: +0.536 ± 0.212
+  poeng per kamp (2 seter): +17.4 ± 8.0
+  kampseire MesterAI: 46/72
+  budrunder vunnet: MesterAI 720 (klarte 73 %), e1:e1-modell/sd-r2.bin 678 (klarte 69 %)
+
+--- MesterAI mot e1:e1-modell/sd-r1.bin ---
+  par 36 (72 kamper, 1392 runder)
+  poeng per runde per sete: +0.956 ± 0.213
+  poeng per kamp (2 seter): +38.9 ± 8.7
+  kampseire MesterAI: 55/72
+  budrunder vunnet: MesterAI 734 (klarte 75 %), e1:e1-modell/sd-r1.bin 658 (klarte 66 %)
+
+=== Parrede sammenlikninger mellom kandidatene (samme givere) ===
+Positivt = FØRSTE kandidat taper mer mot MesterAI enn den andre.
+
+e1:e1-modell/sd-r2.bin minus e1:e1-modell/sd-r1.bin (36 felles par):
+  poeng per runde per sete: -0.420 ± 0.284
+  poeng per kamp (2 seter): -21.5 ± 10.9
+

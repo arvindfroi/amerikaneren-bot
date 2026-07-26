@@ -1656,3 +1656,50 @@ implementasjoner, samme tall.
 5. **Restgapet er ikke uttømt.** Kurvene skiller lag fra epoke 2, og hold-tapet
    bunner før hold-angeren. Regularisering og valg av sjekkpunktkriterium er
    ikke prøvd, og runde 3 fra sd-r2s egen spilling er den neste åpenbare.
+
+### sd-r2 mot MesterAI: gapet nesten halvert, men ikke etablert
+
+`examples/mesterai-h2h.ts`, 36 speilede par per kandidat (72 kamper, ~1 400
+runder hver), 450 ms per kortvalg, frøbase 550 000 – de samme parene som
+nevro og sd-r1 ble målt på 25. juli. Tall: `analyse/mesterai-sd-r2.txt`,
+`analyse/h2h-sdr2-b.jsonl`, `analyse/h2h-sdr1-b.jsonl`.
+
+**sd-r1 er målt om igjen i SAMME kjøring**, ikke lånt fra i går. Grunnen står i
+avsnittet over: MesterAIs søk er tidsbudsjettert, så styrken avhenger av hvor
+travel maskinen er. To tall fra to ulike lastsituasjoner kan ikke settes mot
+hverandre. Her kjørte begge kandidatene samtidig, med de samme 12 h2h-
+prosessene og den samme bakgrunnslasten, så den parrede differansen er
+lastmatchet.
+
+| kandidat | par | MesterAI − kandidat, poeng/runde/sete | poeng/kamp | MesterAIs kampseire |
+|---|---|---|---|---|
+| **sd-r2** | 36 | **+0,536 ± 0,212** | +17,4 ± 8,0 | 46/72 (64 %) |
+| sd-r1 | 36 | +0,956 ± 0,213 | +38,9 ± 8,7 | 55/72 (76 %) |
+| *nevro (25. juli, annen last)* | *53* | *+1,068 ± 0,163* | *+44,8 ± 6,6* | *79/106 (75 %)* |
+
+Parret på de samme 36 parene:
+
+| | sd-r2 − sd-r1 |
+|---|---|
+| poeng/runde/sete | **−0,420 ± 0,284** (1,5 SE) |
+| poeng/kamp | **−21,5 ± 10,9** (2,0 SE) |
+
+Negativt betyr at sd-r2 taper MINDRE. Retningen er den samme som på
+nevro-benken, og størrelsen er stor – gapet opp til MesterAI faller fra 0,96
+til 0,54 poeng per runde per sete – men **1,5 SE er ikke etablert**, og de to
+enhetene er ikke helt enige (1,5 mot 2,0 SE). Det er nøyaktig samme situasjon
+som da sd-r1 skulle skilles fra nevro mot MesterAI: støyen er flere ganger
+effekten, og oppløsningen holder ikke.
+
+Det som ER verdt å merke seg: **den doblede måleusikkerheten peker samme vei
+som den skarpe målingen.** På nevro-benken er sd-r2 − sd-r1 = +0,4875 ± 0,0215,
+altså 23 SE. Mot MesterAI er punktanslaget +0,42 per runde per sete i samme
+retning. Overføringstapet, som var den største kjente risikoen i
+SD-tilnærmingen, ser altså ikke ut til å spise gevinsten – men det er fortsatt
+avgrenset, ikke oppløst.
+
+Forbeholdet fra forrige avsnitt gjelder uendret: maskinen kjørte 12
+h2h-prosesser, 2 e1-orakel og 2 atferdsmålinger gjennom hele kjøringen, så
+MesterAI rakk færre verdener per kortvalg enn på en ledig maskin. **Begge
+absolutte tall er nedre anslag på MesterAIs styrke.** Den parrede differansen
+er upåvirket, siden begge kandidatene møtte den samme MesterAI-en.
