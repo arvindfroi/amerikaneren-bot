@@ -1708,31 +1708,55 @@ er upåvirket, siden begge kandidatene møtte den samme MesterAI-en.
 
 ## Atferd mot MesterAI: to konkrete hull, begge store
 
-Profilert på 230 kontrakter, alle tre kandidatene svarer på NØYAKTIG samme
-stillinger. MesterAI driver spillet; kandidatene svarer uten å utføre noe.
+**Ferdig kjøring: 320 kontrakter** (`analyse/mesterai-atferd2.txt`, 75,5 min,
+450 ms per kortvalg). Tallene under erstatter delrapporten på 230 kontrakter
+som ble committet mens kjøringen fortsatt gikk – retningen er den samme, men
+`etterlyst tar stikket` for sd-r1 landet på 47 % og ikke 43 %.
 
-### 1. Åpningsutspillet – konvensjonen er brutt
+Alle tre kandidatene svarer på NØYAKTIG samme stillinger. MesterAI driver
+spillet; kandidatene svarer uten å utføre noe. Rader med n < 50 er merket `*`
+i rapporten og skal ikke leses som funn.
+
+### 1. Åpningsutspillet – konvensjonen er brutt, og den er brutt akkurat der
 
 Arvind beskrev konvensjonen: har du etterlyst et kort, åpner du med en **lav
 trumf**. Det etterlyste kortet er den høyeste trumfen du ikke selv har, så det
 står. Makkeren må legge det (makkerplikten) og tar stikket – du har avslørt
 makkeren uten å bruke opp én eneste egen honnør.
 
-| stikk 1, som spillefører | MesterAI | sd-r1 | nevro |
+| stikk 1, som spillefører (n = 320) | MesterAI | sd-r1 | nevro |
 |---|---|---|---|
-| valør på utspillet | 7,29 | **9,82** | 5,61 |
-| lav trumf (≤ 7) | 50 % | **36 %** | 72 % |
-| spilte ut sin HØYESTE trumf | 17 % | **44 %** | 12 % |
-| **etterlyst tar stikket** | **93 %** | **43 %** | **99 %** |
+| valør på utspillet | 7,38 | **9,47** | 5,67 |
+| lav trumf (≤ 7) | 48 % | **40 %** | 70 % |
+| spilte ut sin HØYESTE trumf | 18 % | **44 %** | 11 % |
+| spilte ut sin LAVESTE trumf | 23 % | 21 % | 41 % |
+| **etterlyst tar stikket** | **93 %** | **47 %** | **99 %** |
 
-n = 230. Motoren tvinger trumfutspill i stikk 1, så «trumf ut» er 100 % for
-alle – det som skiller dem er valøren.
+Motoren tvinger trumfutspill i stikk 1 for budvinneren som har trumf, så
+«trumf ut» er 100 % for alle tre – det eneste som skiller dem er valøren.
 
-**sd-r1 åpner med sin høyeste trumf i 44 % av kontraktene og ødelegger
-konvensjonen: det etterlyste kortet tar stikket i bare 43 % av tilfellene mot
-NevroHjernes 99 %.**
+**sd-r1 åpner med sin høyeste trumf i 44 % av kontraktene og river ned
+konvensjonen: det etterlyste kortet tar stikket i bare 47 % av tilfellene, mot
+NevroHjernes 99 %.** |z| = 14,9. Det er en REGRESJON – nevro gjør det riktig,
+SD-treningen brøt det.
 
-Dette er en REGRESJON. Nevro gjør det riktig. Vår SD-trening brøt det.
+Merk hva MesterAI faktisk gjør: den spiller ikke sin laveste trumf (bare
+23 %), men den spiller nesten alltid *under det etterlyste kortet* (93 %).
+Konvensjonen handler altså ikke om å legge lavest mulig, men om å legge under
+makkerens kort. Nevro er strengere enn MesterAI her, ikke bedre.
+
+**Er det en åpningskonvensjon eller generell stil?** Stikk 2 og 3 svarer:
+
+| stikk 3, som spillefører (n = 171) | MesterAI | sd-r1 | nevro |
+|---|---|---|---|
+| trumf ut (fritt valg her) | 33 % | 51 % | 37 % |
+| valør på utspillet | 9,96 | 9,18 | 10,10 |
+| høyeste trumf på hånd | 24 % | 29 % | 28 % |
+
+I stikk 3 er sd-r1s «høyeste trumf ut» 29 % mot MesterAIs 24 % – innenfor
+støy. **Defekten sitter i åpningen, ikke i stilen.** (Stikk 2 har bare n = 22
+og er merket usikker: det etterlyste kortet tar stikk 1 i 93 % av rundene, så
+det er makkeren og ikke spilleføreren som spiller ut i stikk 2.)
 
 Sannsynlig mekanisme: SD-evalueringen maksimerer forventet utfall over
 samplede verdener per beslutning. Å ta stikket selv med en høy trumf ser
@@ -1742,23 +1766,58 @@ utenfor det ett kortvalg måler. **Læreren er nærsynt om konvensjoner.**
 ### 2. Garanterte stikk – Arvinds presisering var riktig, og hullet består
 
 Arvind påpekte at å slå medspillerens stikk ikke er dumt i seg selv –
-seterekkefølgen betyr noe – men at man skal legge billigste kort når stikket
-alt er garantert. Målingen er delt deretter:
+seterekkefølgen betyr noe, spillere etter deg kan fortsatt overta – men at man
+skal legge billigste kort når stikket alt er garantert. Målingen er delt
+deretter, og delingen henger bare på stillingen, så nevnerne er identiske i
+alle tre kolonnene.
 
-| som spillefører, medspiller leder | MesterAI | sd-r1 | nevro |
+| som spillefører, medspiller leder | MesterAI | sd-r1 | nevro | n |
+|---|---|---|---|---|
+| **garantert:** slo stikket | **26 %** | **75 %** | 63 % | 362 |
+| **garantert:** la ikke billigste kort | 41 % | **66 %** | 64 % | 362 |
+| **garantert:** brente trumf | **2 %** | **34 %** | 27 % | 362 |
+| **garantert:** la honnør (≥13) | 10 % | 23 % | 24 % | 362 |
+| garantert **og synlig for spilleren:** slo det | 28 % | 76 % | 65 % | 291 |
+| *ikke* garantert: slo stikket | 82 % | 86 % | 87 % | 261 |
+
+**Presiseringen var riktig, og den flytter hele funnet.** I stillinger der
+stikket ikke er garantert ligger alle tre likt: 82 / 86 / 87 %, |z| = 1,3 for
+sd-r1 – ren støy. Det var altså feil av meg å kalle «slo medspillerens stikk»
+(80 % mot 49 %) et hull uten å dele det opp: *hele* forskjellen ligger i de
+garanterte stillingene, ingen av den i de åpne.
+
+Men der består hullet, og det er større enn det så ut: sd-r1 slår stikket i
+75 % mot MesterAIs 26 % (|z| = 15,2). Omregnet til materiale per runde:
+
+| som spillefører, per runde | MesterAI | sd-r1 | nevro |
 |---|---|---|---|
-| **garantert:** slo stikket | **28 %** | **76 %** | 62 % |
-| **garantert:** la ikke billigste kort | 43 % | **67 %** | 66 % |
-| **garantert:** brente trumf | **3 %** | **35 %** | 27 % |
-| **garantert:** la honnør (≥13) | 11 % | 24 % | 25 % |
-| *ikke* garantert: slo stikket | 81 % | 87 % | 89 % |
+| trumf brent på et stikk som alt var vårt | **0,03** | **0,39** | 0,30 |
+| valør gitt bort over det billigste lovlige | 1,49 | 2,46 | 2,37 |
 
-n = 279 garanterte, 197 ikke-garanterte.
+sd-r1 brenner **én unødvendig trumf hver 2,6. runde**; MesterAI én hver 33.
+Det er den skarpeste enkeltraden i hele profilen, for den har ingen unnskyldning.
 
-Presiseringen var riktig og endrer bildet: i stillinger der stikket **ikke** er
-garantert ligger alle tre likt (81–89 %). Det var altså feil av meg å kalle
-«slo medspillerens stikk» et hull uten å dele det opp.
+Én nyanse som holder tallet ærlig: å ta et garantert stikk gir deg *utspillet*,
+og for spilleføreren er det en reell gevinst. Det er derfor MesterAI selv
+ligger på 41 % «ikke billigste kort» – den kjøper utspillet med et sidekort den
+ikke trenger. Men den betaler nesten aldri med trumf. Skillet mellom 41 % og
+66 % er diskutabelt; skillet mellom 2 % og 34 % er det ikke.
 
-Men i de garanterte stillingene består hullet og er større enn det så ut:
-sd-r1 slår stikket i 76 % mot MesterAIs 28 %, og **brenner trumf i 35 % mot
-MesterAIs 3 %**. Det er rent bortkastet materiale – stikket var alt vårt.
+Hullet er dessuten **seteavhengig**: som makker er avviket 9 % mot 13 %, som
+forsvarer 17 % mot 23 %. Det er spilleførersetet som lekker.
+
+### Hvordan «garantert» avgjøres, og hva som ikke lot seg klassifisere
+
+To nivåer, nøstet:
+
+- **fasit** – motorens fulle informasjon: ingen gjenstående motstander har et
+  *lovlig* kort som slår det som ligger. Eksakt; 0 uklassifiserte stillinger.
+- **synlig for spilleren** – bare egen hånd, alt som er spilt, eget vrak og
+  renonser avslørt i tidligere stikk. Alt annet antas å kunne ligge hos en
+  motstander (også vrakets fire kort, for alle andre enn budvinneren).
+
+Som spillefører: 623 stillinger med medspiller i lederrollen, 362 garanterte i
+fasit, 291 av dem synlige for spilleren, **71 «skjult garanti»** – stikk som
+*var* sikret uten at spilleren hadde grunnlag for å se det. I dem er overtak
+ikke en feil. Tallene endrer seg knapt når man begrenser seg til de synlige
+(76 % mot 75 % for sd-r1), så funnet står uten å måtte påberope seg fasit.
