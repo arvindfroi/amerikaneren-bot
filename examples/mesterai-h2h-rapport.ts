@@ -69,6 +69,8 @@ for (const f of filer) {
 
 interface Par {
   readonly par: number;
+  /** Givingen paret ble spilt på. Det er DENNE som identifiserer paret. */
+  readonly froe: number;
   /** MesterAI minus kandidaten, poeng per runde, over begge kampene i paret. */
   readonly perRunde: number;
   /** MesterAI minus kandidaten, poeng per kamp (to seter summert). */
@@ -77,20 +79,29 @@ interface Par {
   readonly mesterSeire: number;
 }
 
-/** Bare KOMPLETTE par teller: en halv speiling er en skjev måling, ikke en måling. */
+/**
+ * Bare KOMPLETTE par teller: en halv speiling er en skjev måling, ikke en måling.
+ *
+ * Paret identifiseres av FRØET, ikke av par-indeksen. To kjøringer med ulik
+ * `--froe` bruker de samme indeksene 0, 1, 2 … på helt forskjellige givere;
+ * grupperte man på indeks, ville en side fra det ene frøbåndet og en side fra
+ * det andre enten smelte sammen til et falskt par eller (med fire linjer på
+ * samme indeks) forsvinne som «ikke komplett». Begge deler har skjedd.
+ */
 function parVis(rader: readonly Kamplinje[]): Par[] {
   const etter = new Map<number, Kamplinje[]>();
   for (const r of rader) {
-    if (!etter.has(r.par)) etter.set(r.par, []);
-    etter.get(r.par)!.push(r);
+    if (!etter.has(r.froe)) etter.set(r.froe, []);
+    etter.get(r.froe)!.push(r);
   }
   const ut: Par[] = [];
-  for (const [par, kamper] of [...etter].sort((a, b) => a[0] - b[0])) {
+  for (const [froe, kamper] of [...etter].sort((a, b) => a[0] - b[0])) {
     if (kamper.length !== 2 || new Set(kamper.map((k) => k.side)).size !== 2) continue;
     const runder = kamper.reduce((s, k) => s + k.runder, 0);
     const diff = kamper.reduce((s, k) => s + (k.mesterPoeng - k.kandidatPoeng), 0);
     ut.push({
-      par,
+      par: kamper[0]!.par,
+      froe,
       // Per sete: hver side har to seter, så divisjonen gir poeng per sete per runde.
       perRunde: diff / runder / 2,
       perKamp: diff / 2,
@@ -169,11 +180,12 @@ if (kandidater.length > 1) {
     for (let j = i + 1; j < kandidater.length; j++) {
       const a = parPerKandidat.get(kandidater[i]!)!;
       const b = parPerKandidat.get(kandidater[j]!)!;
-      const bKart = new Map(b.map((p) => [p.par, p]));
-      const felles = a.filter((p) => bKart.has(p.par));
+      // Felles par = felles GIVING, altså samme frø – ikke samme par-indeks.
+      const bKart = new Map(b.map((p) => [p.froe, p]));
+      const felles = a.filter((p) => bKart.has(p.froe));
       if (felles.length < 2) continue;
-      const dR = felles.map((p) => p.perRunde - bKart.get(p.par)!.perRunde);
-      const dK = felles.map((p) => p.perKamp - bKart.get(p.par)!.perKamp);
+      const dR = felles.map((p) => p.perRunde - bKart.get(p.froe)!.perRunde);
+      const dK = felles.map((p) => p.perKamp - bKart.get(p.froe)!.perKamp);
       skriv(`${kandidater[i]} minus ${kandidater[j]} (${felles.length} felles par):`);
       skriv(`  poeng per runde per sete: ${fortegn(snitt(dR))} ± ${se(dR).toFixed(3)}`);
       skriv(`  poeng per kamp (2 seter): ${fortegn(snitt(dK), 1)} ± ${se(dK).toFixed(1)}`);
