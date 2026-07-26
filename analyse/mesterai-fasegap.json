@@ -1,0 +1,316 @@
+{
+  "tid": "2026-07-26T01:16:37.494Z",
+  "kilder": [
+    "analyse/fasegap-sdr2-0.jsonl",
+    "analyse/fasegap-sdr2-1.jsonl",
+    "analyse/fasegap-sdr2-2.jsonl",
+    "analyse/fasegap-sdr1-0.jsonl",
+    "analyse/fasegap-sdr1-1.jsonl",
+    "analyse/fasegap-nevro-0.jsonl",
+    "analyse/fasegap-nevro-1.jsonl"
+  ],
+  "kandidat": "e1:e1-modell/sd-r2.bin, e1:e1-modell/sd-r1.bin, nevro",
+  "runder": 1498,
+  "kamper": 70,
+  "par": 35,
+  "mesterOppsett": {
+    "ms": 450
+  },
+  "maskinlast": {
+    "kjerner": 24,
+    "cpuMedian": 0.524,
+    "cpuMin": 0.51,
+    "cpuMaks": 0.554,
+    "merknad": "MesterAI er tidsbudsjettert; høy last gir færre verdener per kortvalg og dermed et NEDRE anslag på MesterAIs styrke."
+  },
+  "tynnN": 50,
+  "total": {
+    "vaarPoeng": 7445,
+    "mesterPoeng": 10039,
+    "gap": -2594,
+    "gapPerRunde": -1.7316421895861147,
+    "parretSnitt": -74.11428571428571,
+    "parretSe": 16.515476389863952,
+    "antallPar": 35
+  },
+  "perKandidat": [
+    {
+      "kandidat": "e1:e1-modell/sd-r2.bin",
+      "runder": 627,
+      "gapPerRunde": -1.0382775119617225,
+      "gapPerRundePerSete": 0.5191387559808612,
+      "foererAndelAvGap": 1.1459293394777266,
+      "innfriddVaar": 0.6622950819672131,
+      "innfriddMester": 0.7080745341614907,
+      "lagStikkMinusSdVaar": -0.009836065573770493,
+      "lagStikkMinusSdMester": 0.2950310559006211,
+      "budMinusSdVaar": -0.21710526315789475,
+      "budMinusSdMester": 0.03426791277258567
+    },
+    {
+      "kandidat": "e1:e1-modell/sd-r1.bin",
+      "runder": 432,
+      "gapPerRunde": -2.3310185185185186,
+      "gapPerRundePerSete": 1.1655092592592593,
+      "foererAndelAvGap": 1.1817279046673288,
+      "innfriddVaar": 0.5822222222222222,
+      "innfriddMester": 0.7342995169082126,
+      "lagStikkMinusSdVaar": -0.24888888888888888,
+      "lagStikkMinusSdMester": 0.30434782608695654,
+      "budMinusSdVaar": -0.12053571428571429,
+      "budMinusSdMester": -0.043478260869565216
+    },
+    {
+      "kandidat": "nevro",
+      "runder": 439,
+      "gapPerRunde": -2.132118451025057,
+      "gapPerRundePerSete": 1.0660592255125285,
+      "foererAndelAvGap": 0.8269230769230769,
+      "innfriddVaar": 0.6210045662100456,
+      "innfriddMester": 0.7136363636363636,
+      "lagStikkMinusSdVaar": -0.1643835616438356,
+      "lagStikkMinusSdMester": 0.25,
+      "budMinusSdVaar": -0.09174311926605505,
+      "budMinusSdMester": 0.031818181818181815
+    }
+  ],
+  "roller": [
+    {
+      "rolle": "spillefører",
+      "nVaar": 749,
+      "nMester": 749,
+      "vaarSnitt": 4.3604806408544725,
+      "mesterSnitt": 7.978638184245661,
+      "diff": -3.618157543391188,
+      "bidrag": -2710,
+      "bidragPerRunde": -1.809078771695594,
+      "andelAvGap": 1.0447185813415574,
+      "frekvenseffekt": 0,
+      "kvalitetseffekt": -2710,
+      "usikker": false
+    },
+    {
+      "rolle": "makker",
+      "nVaar": 763,
+      "nMester": 735,
+      "vaarSnitt": 3.1415465268676277,
+      "mesterSnitt": 3.0258503401360546,
+      "diff": 0.11569618673157311,
+      "bidrag": 173,
+      "bidragPerRunde": 0.11548731642189586,
+      "andelAvGap": -0.06669236700077101,
+      "frekvenseffekt": 84.72380952380954,
+      "kvalitetseffekt": 88.27619047619028,
+      "usikker": false
+    },
+    {
+      "rolle": "forsvarer",
+      "nVaar": 1484,
+      "nMester": 1512,
+      "vaarSnitt": 1.2008086253369272,
+      "mesterSnitt": 1.2162698412698412,
+      "diff": -0.015461215932913941,
+      "bidrag": -57,
+      "bidragPerRunde": -0.038050734312416554,
+      "andelAvGap": 0.02197378565921357,
+      "frekvenseffekt": -34.05555555555555,
+      "kvalitetseffekt": -22.944444444444287,
+      "usikker": false
+    }
+  ],
+  "spillefoerer": [
+    {
+      "side": "vaar",
+      "kontrakter": 749,
+      "innfridd": 469,
+      "snittbud": 9.394101876675602,
+      "sdBud": 9.551401869158878,
+      "budMinusSd": -0.15729999248327609,
+      "lagStikk": 9.42456608811749,
+      "lagStikkMinusSd": -0.1268357810413885,
+      "poengPerKontrakt": 4.3604806408544725
+    },
+    {
+      "side": "mester",
+      "kontrakter": 749,
+      "innfridd": 537,
+      "snittbud": 9.466577540106952,
+      "sdBud": 9.456608811748998,
+      "budMinusSd": 0.009968728357954149,
+      "lagStikk": 9.740987983978638,
+      "lagStikkMinusSd": 0.28437917222963954,
+      "poengPerKontrakt": 7.978638184245661
+    }
+  ],
+  "bud": [
+    {
+      "navn": "MesterAI (skygge, alle stillinger)",
+      "n": 12615,
+      "tall": 8172,
+      "passandel": 0.351961950059453,
+      "snittavvik": -1.738252569750367,
+      "eksaktandel": 0.1561429270680372,
+      "overandel": 0.14818893783651493,
+      "overSnitt": 1.6052848885218827,
+      "underandel": 0.6956681350954479,
+      "underSnitt": 2.8406332453825858,
+      "kostnadPerBud": 7.2482562408224736
+    },
+    {
+      "navn": "kandidat (skygge, alle stillinger)",
+      "n": 12615,
+      "tall": 8081,
+      "passandel": 0.3590170432025367,
+      "snittavvik": -1.7888875139215443,
+      "eksaktandel": 0.15753000866229427,
+      "overandel": 0.13636926123004578,
+      "overSnitt": 1.5689655172413792,
+      "underandel": 0.70610073010766,
+      "underSnitt": 2.8364879074658256,
+      "kostnadPerBud": 6.945267912387212
+    },
+    {
+      "navn": "MesterAIs UTFØRTE bud",
+      "n": 6269,
+      "tall": 4021,
+      "passandel": 0.3584303716701228,
+      "snittavvik": -1.7518030340711266,
+      "eksaktandel": 0.15170355632927132,
+      "overandel": 0.14797314100969908,
+      "overSnitt": 1.5949579831932774,
+      "underandel": 0.7003233026610296,
+      "underSnitt": 2.8384232954545454,
+      "kostnadPerBud": 7.242380004973786
+    },
+    {
+      "navn": "vårt UTFØRTE bud",
+      "n": 6346,
+      "tall": 4096,
+      "passandel": 0.35408131106208635,
+      "snittavvik": -1.784912109375,
+      "eksaktandel": 0.159423828125,
+      "overandel": 0.1357421875,
+      "overSnitt": 1.5845323741007193,
+      "underandel": 0.704833984375,
+      "underSnitt": 2.8375476272947697,
+      "kostnadPerBud": 6.956694335937401
+    }
+  ],
+  "uenighet": {
+    "beggeSvar": 12615,
+    "beggeTall": 7721,
+    "beggeTallLike": 7721,
+    "beggeTallUlike": 0,
+    "vaarNaermest": 0,
+    "mesterNaermest": 0,
+    "likeNaer": 0,
+    "vaarAvvik": null,
+    "mesterAvvik": null,
+    "vaarKostnad": null,
+    "mesterKostnad": null,
+    "vaarPassMesterByr": 451,
+    "mesterPassVaarByr": 360
+  },
+  "avviksboetter": [
+    {
+      "side": "vaar",
+      "boetter": [
+        {
+          "navn": "≤ −2 (underbud)",
+          "n": 148,
+          "innfriddAndel": 0.972972972972973,
+          "lagStikk": 10.68918918918919,
+          "nettoPerRunde": 13.054054054054054
+        },
+        {
+          "navn": "−1",
+          "n": 167,
+          "innfriddAndel": 0.874251497005988,
+          "lagStikk": 10.071856287425149,
+          "nettoPerRunde": 9.730538922155688
+        },
+        {
+          "navn": "0 (treffer SD)",
+          "n": 198,
+          "innfriddAndel": 0.5909090909090909,
+          "lagStikk": 9.227272727272727,
+          "nettoPerRunde": 2.6363636363636362
+        },
+        {
+          "navn": "+1",
+          "n": 120,
+          "innfriddAndel": 0.36666666666666664,
+          "lagStikk": 8.783333333333333,
+          "nettoPerRunde": -4.733333333333333
+        },
+        {
+          "navn": "≥ +2 (overbud)",
+          "n": 113,
+          "innfriddAndel": 0.1592920353982301,
+          "lagStikk": 7.79646017699115,
+          "nettoPerRunde": -14.026548672566372
+        }
+      ]
+    },
+    {
+      "side": "mester",
+      "boetter": [
+        {
+          "navn": "≤ −2 (underbud)",
+          "n": 125,
+          "innfriddAndel": 0.984,
+          "lagStikk": 10.832,
+          "nettoPerRunde": 12.656
+        },
+        {
+          "navn": "−1",
+          "n": 185,
+          "innfriddAndel": 0.9351351351351351,
+          "lagStikk": 10.31891891891892,
+          "nettoPerRunde": 12.010810810810812
+        },
+        {
+          "navn": "0 (treffer SD)",
+          "n": 166,
+          "innfriddAndel": 0.7831325301204819,
+          "lagStikk": 9.680722891566266,
+          "nettoPerRunde": 8.644578313253012
+        },
+        {
+          "navn": "+1",
+          "n": 124,
+          "innfriddAndel": 0.5080645161290323,
+          "lagStikk": 9.21774193548387,
+          "nettoPerRunde": 0.3387096774193548
+        },
+        {
+          "navn": "≥ +2 (overbud)",
+          "n": 148,
+          "innfriddAndel": 0.31756756756756754,
+          "lagStikk": 8.587837837837839,
+          "nettoPerRunde": -5.8108108108108105
+        }
+      ]
+    }
+  ],
+  "falteKontrakter": [
+    {
+      "side": "vaar",
+      "kontrakter": 746,
+      "falt": 277,
+      "forHoeytBud": 171,
+      "ikkeHentetHjem": 106,
+      "manglendeStikkSpill": 1.3584905660377358,
+      "manglendeStikkOptimistisk": 1.8771929824561404
+    },
+    {
+      "side": "mester",
+      "kontrakter": 748,
+      "falt": 212,
+      "forHoeytBud": 162,
+      "ikkeHentetHjem": 50,
+      "manglendeStikkSpill": 1.44,
+      "manglendeStikkOptimistisk": 1.7654320987654322
+    }
+  ]
+}

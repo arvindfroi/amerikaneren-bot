@@ -1,0 +1,187 @@
+=== HVOR VINNER MESTERAI POENGENE? Fasegap per rolle ===
+
+Kandidat(er):      e1:e1-modell/sd-r2.bin, e1:e1-modell/sd-r1.bin, nevro
+Runder:            1498  (70 kamper, 35 speilede par)
+MesterAI:          450 ms per kortvalg
+Kjerner:           24
+CPU-last:          median 52 % (min 51 %, maks 55 %)
+Kilder:            analyse/fasegap-sdr2-0.jsonl, analyse/fasegap-sdr2-1.jsonl, analyse/fasegap-sdr2-2.jsonl, analyse/fasegap-sdr1-0.jsonl, analyse/fasegap-sdr1-1.jsonl, analyse/fasegap-nevro-0.jsonl, analyse/fasegap-nevro-1.jsonl
+Skrevet:           2026-07-26T01:16:37.483Z
+
+MASKINLASTEN ER IKKE PYNT. MesterAIs søk stopper når minVerdener er nådd
+OG tidsbudsjettet er brukt opp. På en lastet maskin rekker den færre
+verdener på de samme millisekundene og spiller SVAKERE. Alle tall her er
+derfor et NEDRE anslag på MesterAIs styrke – gapet mot oss er om noe
+STØRRE enn det som står, ikke mindre.
+
+En n merket «*» er under 50 observasjoner og skal leses som USIKKER.
+
+TOTALGAPET
+------------------------------------------------------------------------------
+  Vår side:      7445 poeng over 1498 runder = +4.97 per runde
+  MesterAI:      10039 poeng over 1498 runder = +6.70 per runde
+  GAP:           -1.73 poeng per runde  (-2594.00 totalt)
+  Samme, MesterAI − oss per runde per SETE: +0.87   (enheten docs/moe2.md bruker for h2h)
+  Parret per par: -74.11 ± 16.52 poeng per par (n = 35* par)
+
+
+0) HODETALLENE PER KANDIDAT – gjelder funnet alle tre nettene?
+------------------------------------------------------------------------------------------------------------------
+kandidat                    runder  gap/runde  M−oss /sete  fører% av gap  innfridd v/m   lagstikk−SD v/m
+------------------------------------------------------------------------------------------------------------------
+sd-r2.bin                      627      -1.04        +0.52          115 %       66/71 %     -0.01 / +0.30
+sd-r1.bin                      432      -2.33        +1.17          118 %       58/73 %     -0.25 / +0.30
+nevro                          439      -2.13        +1.07           83 %       62/71 %     -0.16 / +0.25
+
+«fører% av gap» er hvor stor del av totalgapet som ligger i
+spillefører-setets egne poeng. «M−oss /sete» er enheten docs/moe2.md
+bruker for h2h-tallene.
+
+
+1A) ROLLEDEKOMPONERING – hvor i runden går poengene tapt?
+----------------------------------------------------------------------------------------------------------------------
+Hver sete-runde har nøyaktig ÉN rolle, og motorens delta gir poengene per
+sete. Summen av bøttene ER poengsummen; oppdelingen er eksakt.
+
+rolle            n vår   andel  vår p/rd  n mester  mester p/rd     diff  gap-bidrag  per runde  % av gap
+----------------------------------------------------------------------------------------------------------------------
+spillefører        749    25 %     +4.36       749        +7.98    -3.62    -2710.00      -1.81     104 %
+makker             763    25 %     +3.14       735        +3.03    +0.12     +173.00      +0.12      -7 %
+forsvarer         1484    50 %     +1.20      1512        +1.22    -0.02      -57.00      -0.04       2 %
+----------------------------------------------------------------------------------------------------------------------
+SUM               2996   100 %     +2.48      2996        +3.35             -2594.00      -1.73     100 %
+
+«gap-bidrag» er poeng, ikke snitt: vår sum minus mesters sum i rollen.
+«per runde» deler det på antall runder, så kolonnen summerer til totalgapet.
+
+Frekvens eller kvalitet? Havner vi sjeldnere i rollen, eller gjør vi det
+dårligere når vi er der?
+
+rolle           n vår − n mester  frekvenseffekt  kvalitetseffekt       sum
+---------------------------------------------------------------------------
+spillefører                    0           +0.00         -2710.00  -2710.00
+makker                        28          +84.72           +88.28   +173.00
+forsvarer                    -28          -34.06           -22.94    -57.00
+
+
+1B) SOM SPILLEFØRER – budet, stikkene, og hva hånden BAR
+--------------------------------------------------------------------------------------------------------
+«lagstikk − SD» er det avgjørende tallet: SD-orakelet sier hva giva bærer
+for akkurat det setet, så differansen er spilleføringens bidrag med hånden
+holdt fast. Den kan sammenliknes rett mellom sidene.
+
+side          kontrakter  innfridd  snittbud   SD-bud  bud − SD  lagstikk  lagstikk − SD  poeng/kontrakt
+--------------------------------------------------------------------------------------------------------
+vår side             749      63 %      9.39     9.55     -0.16      9.42          -0.13           +4.36
+MesterAI             749      72 %      9.47     9.46     +0.01      9.74          +0.28           +7.98
+--------------------------------------------------------------------------------------------------------
+differanse                   -9 pp     -0.07    +0.09     -0.17     -0.32          -0.41           -3.62
+
+
+2A) BUDET MOT SD-ORAKELET
+--------------------------------------------------------------------------------------------------------------------------
+De to første radene er PARRET: begge svarte på nøyaktig de samme
+stillingene, én av dem ble utført. De to siste er budene som faktisk ble
+gitt, altså hver side i sine egne seter.
+
+Avviket er sterkt asymmetrisk – målt tidligere koster ett stikk overbud
+14.75 poeng, første stikk underbud 1.51 og videre 2.10.
+«kostnad» bruker de tallene og er derfor i poeng, ikke i stikk.
+
+policy                                 n tall    pass    avvik   eksakt   over n  over snitt  under n  under snitt   kostnad
+--------------------------------------------------------------------------------------------------------------------------
+MesterAI (skygge, alle stillinger)       8172    35 %    -1.74     16 %     15 %        1.61     70 %         2.84      7.25
+kandidat (skygge, alle stillinger)       8081    36 %    -1.79     16 %     14 %        1.57     71 %         2.84      6.95
+MesterAIs UTFØRTE bud                    4021    36 %    -1.75     15 %     15 %        1.59     70 %         2.84      7.24
+vårt UTFØRTE bud                         4096    35 %    -1.78     16 %     14 %        1.58     70 %         2.84      6.96
+
+«avvik» er snitt(bud − SD): negativt = underbyr, positivt = overbyr.
+«over n»/«under n» er andelen av tallbudene, «snitt» er størrelsen i stikk.
+
+
+2B) NÅR VI OG MESTERAI BYR ULIKT – hvem ligger nærmest SD?
+------------------------------------------------------------------------------
+  Budbeslutninger der begge svarte:            12615
+  … der BEGGE ga et tallbud:                   7721
+      derav samme tall:                        7721  (100 %)
+      derav ULIKT tall:                        0  (0 %)
+  … der bare den ene ville bydd:               811
+      vi passer, MesterAI byr:                 451   (SD i de stillingene: 9.02)
+      MesterAI passer, vi byr:                 360   (SD i de stillingene: 9.01)
+
+  DE NUMERISKE BUDENE ER IDENTISKE I HVER ENESTE STILLING.
+
+  Det er ikke «nesten likt» – det er null avvik på alle
+  7721 stillingene der begge ga et tall. Forklaringen er at
+  MesterAIs budgivning og vår er DET SAMME NETTET: appens mester-bot
+  bruker NevroHjerne til budet, og både `nevro`, `sd-r1` og `sd-r2`
+  (E1Agent) sender BUDRUNDE videre til den samme NevroAgent-en.
+  Vi har altså trent kortspillet, ikke budet.
+
+  KONSEKVENSEN FOR SPØRSMÅLET: budgivningen kan ikke forklare noe som
+  helst av gapet. Det er ikke et statistisk «vi finner ingen forskjell»
+  – det er en identitet. Alt som skiller sidene ligger et annet sted.
+
+  Det ENESTE budet skiller på er når man passer i stedet for å by, og
+  der er utslaget lite: 451 mot 360 av 12615 beslutninger, og
+  budrundene blir jevnt fordelt (se «n vår» mot «n mester» for
+  spillefører i tabell 1A).
+
+
+2C) TJENER NOEN POENG PÅ AVVIKET? Runder gruppert på budvinnerens bud − SD
+------------------------------------------------------------------------------------------------
+«netto» er budvinnersidens poeng minus motpartens, den runden. Positivt
+betyr at siden tjente på runden.
+
+budvinner   bud − SD             runder   andel  innfridd  lagstikk  netto/runde
+------------------------------------------------------------------------------------------------
+vår side    ≤ −2 (underbud)         148    20 %      97 %     10.69       +13.05
+vår side    −1                      167    22 %      87 %     10.07        +9.73
+vår side    0 (treffer SD)          198    27 %      59 %      9.23        +2.64
+vår side    +1                      120    16 %      37 %      8.78        -4.73
+vår side    ≥ +2 (overbud)          113    15 %      16 %      7.80       -14.03
+
+MesterAI    ≤ −2 (underbud)         125    17 %      98 %     10.83       +12.66
+MesterAI    −1                      185    25 %      94 %     10.32       +12.01
+MesterAI    0 (treffer SD)          166    22 %      78 %      9.68        +8.64
+MesterAI    +1                      124    17 %      51 %      9.22        +0.34
+MesterAI    ≥ +2 (overbud)          148    20 %      32 %      8.59        -5.81
+
+
+3) FALTE KONTRAKTER, DELT I TO
+--------------------------------------------------------------------------------------------------------
+Falt fordi budet var HØYERE enn hånden bar (bud > SD), eller fordi
+kortspillet ikke hentet hjem det hånden BAR (bud ≤ SD)? De to krever
+motsatt fiks: den første er budgivning, den andre er spilleføring.
+
+side          kontrakter    falt  fallrate  bud > SD   andel  bud ≤ SD   andel  mangler (spill)
+--------------------------------------------------------------------------------------------------------
+vår side             746     277      37 %       171    62 %       106    38 %             1.36
+MesterAI             748     212      28 %       162    76 %        50    24 %             1.44
+
+«mangler (spill)» er bud − lagstikk i de rundene der SD sa budet var
+innenfor rekkevidde, altså hvor mange stikk kortspillet kom til kort.
+
+Uttrykt per RUNDE, så de to fallgrunnene kan veies mot hverandre:
+
+side          falt/runde    derav bud > SD    derav bud ≤ SD
+vår side            0.18              0.11              0.07
+MesterAI            0.14              0.11              0.03
+
+MERFALLET – der hele svaret ligger:
+  Vi mister 0.04 flere kontrakter per runde enn MesterAI.
+  Av det er 0.01 for høyt bud (14 %) og 0.04 kortspill (86 %).
+  I rene tall: 171 mot 162 fall på for høyt bud – nesten likt – mot 106 mot 50 fall på kortspill.
+
+
+=== SVARET, i tre tall ===
+
+1) Rollen som koster mest: SPILLEFØRER – -1.81 poeng per runde, 104 % av totalgapet, på 25 % av sete-rundene.
+   Av det er -2710.00 kvalitet og +0.00 frekvens.
+
+2) Budet: vi avviker -1.79 stikk fra SD, MesterAI -1.74 – på de SAMME stillingene. Vi treffer eksakt 16 %, MesterAI 16 %.
+   Sterkere enn som så: alle 7721 numeriske bud er IDENTISKE. Budet kan ikke forklare gapet – det er samme nett på begge sider.
+
+3) Spilleføringen: som spillefører henter vi -0.13 stikk mot SD, MesterAI +0.28 – en forskjell på -0.41 stikk på samme orakelgrunnlag.
+   Innfridd: 63 % mot 72 %.
+

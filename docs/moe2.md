@@ -1822,3 +1822,177 @@ fasit, 291 av dem synlige for spilleren, **71 «skjult garanti»** – stikk som
 *var* sikret uten at spilleren hadde grunnlag for å se det. I dem er overtak
 ikke en feil. Tallene endrer seg knapt når man begrenser seg til de synlige
 (76 % mot 75 % for sd-r1), så funnet står uten å måtte påberope seg fasit.
+
+---
+
+## Hvor MesterAI vinner: spillefører-setet, og praktisk talt ingen andre steder
+
+Skript: `examples/mesterai-fasegap.ts` (måling) og
+`examples/mesterai-fasegap-rapport.ts` (rapport).
+Tall: `analyse/mesterai-fasegap.{txt,json}`, rådata `analyse/fasegap-*.jsonl`.
+
+**1 498 runder, 70 kamper, 35 speilede par**, tre kandidater i samme kjøring
+(sd-r2, sd-r1, nevro), frøbase 770 000 – ferske giver, disjunkt fra h2h
+(550 000) og atferdsprofilen (660 000). 450 ms per kortvalg, CPU-last median
+**52 % av 24 kjerner** gjennom hele kjøringen. MesterAI-tallene er derfor som
+alltid nedre anslag; den parrede sammenlikningen er upåvirket.
+
+Oppsettet er h2h-riggen med én tilføyelse: hver runde logges for seg, med
+`delta` per sete, SD-orakelets bud for alle fire seter, og **hver eneste
+budbeslutning besvart av BÅDE MesterAI og kandidaten** på den identiske
+stillingen. Det siste krever at adapteren har en bot på alle fire setene
+(`nyKamp` med `mesterSeter: [0,1,2,3]`); hvem som SPILLER endres ikke, for
+linja drives av `handling`-meldingene fra vår motor.
+
+Hypotesen som ble testet: *gapet ligger i spilleføring, ikke i budgivning.*
+Den holdt, og skarpere enn ventet.
+
+### Rolledekomponeringen er eksakt, ikke en tilnærming
+
+Hver sete-runde har nøyaktig én rolle, og motorens `delta` gir poengene per
+sete. Summen av bøttene ER poengsummen.
+
+| rolle | n vår | andel | vår p/sete-runde | n mester | mester p/sete-runde | gap-bidrag | per runde | % av gap |
+|---|---|---|---|---|---|---|---|---|
+| **spillefører** | 749 | 25 % | **+4,36** | 749 | **+7,98** | **−2 710** | **−1,81** | **104 %** |
+| makker | 763 | 25 % | +3,14 | 735 | +3,03 | +173 | +0,12 | −7 % |
+| forsvarer | 1 484 | 50 % | +1,20 | 1 512 | +1,22 | −57 | −0,04 | 2 % |
+| SUM | 2 996 | 100 % | +2,48 | 2 996 | +3,35 | −2 594 | −1,73 | 100 % |
+
+**Hele gapet ligger i spillefører-setet.** Som makker tjener vi til og med
+0,12 poeng per runde, og som forsvarer er sidene like til andre desimal
+(+1,20 mot +1,22 per sete-runde over 1 484 og 1 512 observasjoner).
+
+Frekvens eller kvalitet? Splitten er entydig:
+
+| rolle | n vår − n mester | frekvenseffekt | kvalitetseffekt |
+|---|---|---|---|
+| spillefører | **0** | **+0,00** | **−2 710,00** |
+| makker | +28 | +84,72 | +88,28 |
+| forsvarer | −28 | −34,06 | −22,94 |
+
+**Vi vinner budrunden nøyaktig like ofte som MesterAI – 749 mot 749.**
+Frekvenseffekten er ikke «liten», den er null. MesterAI byr oss ikke ut; den
+spiller kontraktene bedre. Det bekrefter h2h-loggenes 1 145/1 106 og
+1 127/1 111 på et uavhengig frøsett.
+
+### Budet kan ikke forklare gapet – det er BOKSTAVELIG TALT samme nett
+
+Ved hver budbeslutning svarte begge sider på den identiske stillingen:
+
+| | antall |
+|---|---|
+| budbeslutninger der begge svarte | 12 615 |
+| … der begge ga et tallbud | 7 721 |
+| … **derav samme tall** | **7 721 (100 %)** |
+| … **derav ulikt tall** | **0 (0 %)** |
+| … der bare den ene ville by | 811 (451 mot 360) |
+
+**Null avvik på 7 721 numeriske bud.** Det er ikke et statistisk «vi finner
+ingen forskjell» – det er en identitet, og den har en enkel forklaring:
+appens mester-bot bruker NevroHjerne til budet, og `nevro`, `sd-r1` og `sd-r2`
+(E1Agent) sender alle BUDRUNDE videre til den samme `NevroAgent`. **Vi har
+trent kortspillet, ikke budet.** Atferdsprofilens 7,23 mot 7,20 var ikke to
+nett som tilfeldigvis lignet; det var det samme nettet målt to ganger, og
+differansen kom bare av at stillingene var ulike.
+
+Det eneste budet skiller på er passgrensen, og der er utslaget lite: 451 mot
+360 av 12 615 beslutninger, med samme SD-nivå i begge retninger (9,02 mot
+9,01). Budrundene blir jevnt fordelt, som tabellen over viser.
+
+Mot SD-orakelet ligger begge sider på samme sted: −1,79 mot −1,74 stikk, 16 %
+eksakte treff hos begge, 13–15 % overbud og ~71 % underbud. **Å lukke gapet
+mot MesterAI gjennom budgivning er umulig så lenge nettet er delt.** Et bedre
+bud er fortsatt verdt poeng i seg selv – SD-policyen er målt til +3,89 – men
+det er en gevinst mot begge sider, ikke en forklaring på forskjellen.
+
+### Spilleføringen, med hånden holdt fast av orakelet
+
+| side | kontrakter | innfridd | snittbud | SD-bud | bud − SD | lagstikk | **lagstikk − SD** | poeng/kontrakt |
+|---|---|---|---|---|---|---|---|---|
+| vår side | 749 | 63 % | 9,39 | 9,55 | −0,16 | 9,42 | **−0,13** | +4,36 |
+| MesterAI | 749 | 72 % | 9,47 | 9,46 | +0,01 | 9,74 | **+0,28** | +7,98 |
+| differanse | | −9 pp | −0,07 | +0,09 | −0,17 | −0,32 | **−0,41** | −3,62 |
+
+`lagstikk − SD` er tallet hele saken hviler på. SD-orakelet sier hva giva
+bærer for akkurat det setet, spilt ut med NevroHjerne i alle fire. Med hånden
+holdt fast av orakelet henter **MesterAI 0,41 stikk mer hjem per kontrakt enn
+vi gjør**. Budene er like, SD-nivået er likt (9,55 mot 9,46 – vi får om noe
+litt bedre hender), og likevel tar MesterAI 9,74 stikk der vi tar 9,42.
+
+MesterAI ligger **over** orakelet (+0,28); vi ligger **under** (−0,13). Det er
+verdt å merke seg for seg selv: SD-estimatet er laget med NevroHjerne som
+utspiller i alle fire seter, så «+0,28» betyr at MesterAI spiller kontrakten
+bedre enn NevroHjerne gjør – og at vi, etter to DAgger-runder, fortsatt ikke
+gjør det.
+
+### Falte kontrakter: 86 % av merfallet er kortspill
+
+| side | kontrakter | falt | fallrate | bud > SD | bud ≤ SD | mangler (spill) |
+|---|---|---|---|---|---|---|
+| vår side | 746 | 277 | 37 % | 171 (62 %) | **106 (38 %)** | 1,36 |
+| MesterAI | 748 | 212 | 28 % | 162 (76 %) | **50 (24 %)** | 1,44 |
+
+Delingen skiller «bydde for optimistisk» fra «spilte det ikke hjem»: falt
+budet fordi det lå over det SD sa hånden bar, eller fordi kortspillet ikke
+hentet hjem det hånden BAR?
+
+**Vi mister 0,04 flere kontrakter per runde enn MesterAI. Av det er 14 % for
+høyt bud og 86 % kortspill.** I rene tall: 171 mot 162 fall på for høyt bud –
+nesten likt, som det må være når budnettet er delt – mot **106 mot 50** fall
+på kontrakter orakelet sa var innenfor rekkevidde. Vi taper mer enn dobbelt
+så mange kontrakter vi hadde kortene til å vinne.
+
+### Det MesterAI kjøper med den bedre spilleføringen
+
+Runder gruppert på budvinnerens `bud − SD`, netto poeng for budvinnersiden:
+
+| bud − SD | vår innfridd | vår netto | MesterAIs innfridd | MesterAIs netto |
+|---|---|---|---|---|
+| ≤ −2 | 97 % | +12,9 | 98 % | +12,7 |
+| −1 | 88 % | +9,9 | 93 % | +12,0 |
+| **0 (treffer SD)** | **60 %** | **+3,1** | **80 %** | **+9,0** |
+| +1 | 35 % | −5,2 | 51 % | +0,1 |
+| ≥ +2 | 16 % | −13,7 | 32 % | −5,5 |
+
+Raden som forteller alt: **på nøyaktig SD-budet innfrir MesterAI 80 % og vi
+60 %.** Samme bud, samme orakelgrunnlag, tjue prosentpoeng forskjell. Og der
+et overbud på +1 koster oss 5,2 poeng, er det gratis for MesterAI (+0,1) –
+den kan tillate seg å by aggressivt fordi den henter hjem det den byr.
+
+Det nyanserer en tidligere konklusjon: den målte overbudskostnaden på 14,75
+poeng per stikk er ikke en ren egenskap ved spillet, den avhenger av
+spilleføringen som skal innfri budet. For en bedre spillefører er den mindre.
+
+### Konsekvens
+
+1. **Budeksperten er ikke veien til MesterAI.** Budnettet er delt med
+   motstanderen; 100 % av de numeriske budene er identiske. Arbeid der kan gi
+   poeng mot begge, men kan per konstruksjon ikke lukke gapet.
+2. **Forsvaret er ikke problemet.** +1,20 mot +1,22 per sete-runde over ~1 500
+   observasjoner på hver side. Halvparten av sete-rundene, 2 % av gapet.
+   `spill-forsvar`-eksperten er ikke der marginalgevinsten ligger.
+3. **Makkerrollen er heller ikke problemet** – vi er 0,12 poeng foran der.
+4. **Alt ligger i spillefører-setet: 104 % av gapet på 25 % av sete-rundene.**
+   Konkret, i én størrelse som kan optimeres direkte: `lagstikk − SD`, der vi
+   ligger på −0,13 og MesterAI på +0,28.
+5. **Neste fasit bør være spillefører-spesifikk.** `spill-fører` er allerede en
+   egen ekspert i arkitekturen, og SD-kortfasiten er godkjent (+0,718). Det som
+   mangler er at treningsdataene vektes mot budvinnerens stillinger –
+   `sd-orakel.ts` merker i dag et utvalg kortvalg uten hensyn til rolle, mens
+   104 % av gapet ligger i én av de tre rollene.
+
+### Forbeholdet
+
+CPU-lasten lå på 52 % av 24 kjerner gjennom kjøringen (to `e1-orakel`, en
+atferdsmåling, graf- og atferdspuls, pluss de sju fasegap-skardene selv), så
+MesterAI rakk færre verdener per kortvalg enn på en ledig maskin. Alle
+absolutte MesterAI-tall er nedre anslag. Rolledekomponeringen er upåvirket:
+begge sider spilte i den samme kampen, mot den samme MesterAI-en, på de samme
+givene.
+
+Skyggespørsmålene til adapteren forbruker MesterAIs egen verdenstrekning, så
+kjøringen er ikke bit-identisk med en ren h2h-kjøring på samme frø. Den er
+like gyldig – bare ikke den samme. Gapet målt her (+0,87 poeng/runde/sete
+samlet, +0,52 for sd-r2 alene) ligger i samme leie som h2h-tallene
+(+0,536 ± 0,212 for sd-r2), på et helt annet frøsett.
