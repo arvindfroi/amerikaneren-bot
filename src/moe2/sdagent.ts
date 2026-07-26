@@ -26,6 +26,7 @@ import { lagRng } from "../kort.ts";
 import { lovligeKort, type GameState, type Handling } from "../motor.ts";
 import { E1Agent } from "../e1/nett.ts";
 import { NevroAgent } from "../nevro/index.ts";
+import { MesterKlone } from "./mesterklone.ts";
 import { besteKortSD, type Utspiller } from "./sdkort.ts";
 
 export interface SDAgentOpts {
@@ -40,13 +41,17 @@ export interface SDAgentOpts {
 /**
  * En motstandermodell fra en kommandolinjestreng.
  *
- *   `nevro`        – NevroHjerne, dagens standard
- *   `e1:<vektfil>` – et E1-nett, f.eks. MesterAI-klonen
+ *   `nevro`           – NevroHjerne, dagens standard
+ *   `e1:<vektfil>`    – et E1-nett (273 trekk)
+ *   `klone:<vektfil>` – MesterAI-klonen (325 trekk: E1 + NevroHjernes valg)
  */
 export function lagMotpart(spek: string): Utspiller {
   if (spek === "nevro") return new NevroAgent();
+  if (spek.startsWith("klone:")) return MesterKlone.fraFil(spek.slice(6));
   if (spek.startsWith("e1:")) return E1Agent.fraFil(spek.slice(3));
-  throw new Error(`Ukjent motstandermodell «${spek}» (bruk nevro eller e1:<vektfil>)`);
+  throw new Error(
+    `Ukjent motstandermodell «${spek}» (bruk nevro, e1:<vektfil> eller klone:<vektfil>)`,
+  );
 }
 
 export class SDAgent {

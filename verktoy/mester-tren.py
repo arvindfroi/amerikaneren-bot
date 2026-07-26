@@ -41,6 +41,7 @@ import glob
 import importlib.util
 import json
 import os
+import struct
 import time
 
 import numpy
@@ -59,11 +60,21 @@ _spek.loader.exec_module(sdtren)
 TREKK_DIM = sdtren.TREKK_DIM  # 273
 KORT = sdtren.KORT  # 52
 
+# SNARVEIEN. Med --nevrotrekk legges dette tallet til logiten for NevroHjernes
+# valg, bade her og i src/moe2/mesterklone.ts (NEVRO_SNARVEI). Da er «kopier
+# NevroHjerne» losningen et uttrent nett allerede har, og treningen laerer bare
+# AVVIKENE. Uten den ma nettet laere en 52x52-identitet gjennom det skjulte
+# laget, og det gjor det ikke: forste forsok landet paa 42 % mot NevroHjernes
+# 68 %, altsaa en daarligere MesterAI-stedfortreder enn den den skal erstatte.
+# TALLET MAA VAERE IDENTISK de to stedene. Star de ulikt, spiller klonen en
+# annen policy enn den ble trent til, og ingenting feiler.
+NEVRO_SNARVEI = 3.0  # standard; kan overstyres med --snarvei UNDER FORSOK
+
 
 # --- Innlesing --------------------------------------------------------------
 
 
-def les(mapper: list[str]):
+def les(mapper: list[str], med_nevro: bool = False):
     """Alle `skard-*.jsonl` i `mapper` → (X, K, M, FRO, KILDE, SIG, tak).
 
     `tak` er (enige, sjekkede) fra `k2`-feltene: MesterAIs enighet med seg selv
@@ -88,7 +99,14 @@ def les(mapper: list[str]):
     # fulle, stopper innlesingen der – da leses et prefiks, ikke feil data.
     tak_linjer = int(tak_linjer * 1.05) + 1000
 
-    X = numpy.zeros((tak_linjer, TREKK_DIM), dtype=numpy.float32)
+    # RESIDUALVARIANTEN. Med `med_nevro` legges en én-av-52 for NevroHjernes
+    # valg bakerst i trekkvektoren (273 + 52 = 325, se src/moe2/mesterklone.ts).
+    # Da har nettet «kopier NevroHjerne» som en triviell løsning og lærer
+    # KORREKSJONEN. Uten det må en fersk klone slå NevroHjernes 68,5 % fra
+    # bunnen, og et null-resultat i den påfølgende poengmålingen ville ikke
+    # kunne skilles fra «klonen var bare dårligere».
+    inn_dim = TREKK_DIM + (KORT if med_nevro else 0)
+    X = numpy.zeros((tak_linjer, inn_dim), dtype=numpy.float32)
     K = numpy.zeros(tak_linjer, dtype=numpy.int64)
     KN = numpy.full(tak_linjer, -1, dtype=numpy.int64)
     NLOV = numpy.zeros(tak_linjer, dtype=numpy.int16)
@@ -133,10 +151,19 @@ def les(mapper: list[str]):
                     # utenfor masken er en feil vi ikke skal trene på.
                     ugyldig += 1
                     continue
+                kn = r.get("kn", -1)
+                if med_nevro and not (0 <= kn < KORT):
+                    # Uten NevroHjernes valg kan residualvektoren ikke bygges.
+                    # Linjen droppes heller enn å fylles med nuller: en tom
+                    # én-av-52 er en TREDJE, ukjent kategori for nettet.
+                    ugyldig += 1
+                    continue
                 sett.add(s)
-                X[n] = t
+                X[n, :TREKK_DIM] = t
+                if med_nevro:
+                    X[n, TREKK_DIM + kn] = 1.0
                 K[n] = k
-                KN[n] = r.get("kn", -1)
+                KN[n] = kn
                 NLOV[n] = len(lov)
                 for i in lov:
                     M[n, i] = 1.0
@@ -160,6 +187,64 @@ def les(mapper: list[str]):
         X[:n], K[:n], KN[:n], NLOV[:n], M[:n], FRO[:n], STIKK[:n], KILDE[:n], SIG[:n],
         (selv_enig, selv_n),
     )
+
+
+def les_vekter(sti: str) -> list[tuple[numpy.ndarray, numpy.ndarray]]:
+    """Leser appformatet `skriv_vekter` skriver: antall nett, antall lag, og per
+    lag inn/ut/vekter/bias – alt little-endian float32.
+
+    Poenget er å kunne score FERDIGE nett på nøyaktig de stillingene MesterAI
+    er logget i, uten å gå veien om TypeScript. NevroHjernes enighet med
+    MesterAI er allerede i dataene (`kn`); dette gir den samme raden for sd-r1,
+    sd-r2 og hvilket som helst annet E1-nett, gratis.
+    """
+    with open(sti, "rb") as f:
+        rå = f.read()
+    pos = 0
+    (antall,) = struct.unpack_from("<i", rå, pos)
+    pos += 4
+    if antall != 1:
+        raise SystemExit(f"{sti}: forventet ett nett, fant {antall}")
+    (lag,) = struct.unpack_from("<i", rå, pos)
+    pos += 4
+    ut: list[tuple[numpy.ndarray, numpy.ndarray]] = []
+    for _ in range(lag):
+        inn, utd = struct.unpack_from("<ii", rå, pos)
+        pos += 8
+        W = numpy.frombuffer(rå, dtype="<f4", count=inn * utd, offset=pos).reshape(utd, inn)
+        pos += 4 * inn * utd
+        b = numpy.frombuffer(rå, dtype="<f4", count=utd, offset=pos)
+        pos += 4 * utd
+        ut.append((W, b))
+    return ut
+
+
+def forover_numpy(vekter, X: numpy.ndarray) -> numpy.ndarray:
+    """ReLU på alle lag unntatt det siste – samme form som `E1Nett.forward`."""
+    h = X
+    for i, (W, b) in enumerate(vekter):
+        h = h @ W.T + b
+        if i < len(vekter) - 1:
+            h = numpy.maximum(h, 0.0)
+    return h
+
+
+def enighet_for_nett(sti: str, X, K, M, idx, batch: int = 32768) -> tuple[float, int]:
+    """Hvor ofte nettet i `sti` velger samme kort som MesterAI, over `idx`."""
+    vekter = les_vekter(sti)
+    inn = vekter[0][0].shape[1]
+    if inn != X.shape[1]:
+        raise SystemExit(
+            f"{sti} tar {inn} trekk, men dataene er {X.shape[1]}. "
+            "E1-nett (273) kan bare sammenlignes uten --nevrotrekk."
+        )
+    treff = 0
+    for i in range(0, len(idx), batch):
+        j = idx[i : i + batch]
+        logits = forover_numpy(vekter, X[j])
+        logits[M[j] == 0] = -1e30
+        treff += int((logits.argmax(axis=1) == K[j]).sum())
+    return treff / len(idx), len(idx)
 
 
 def maalestokk(K, KN, NLOV, STIKK, tak: tuple[int, int], idx) -> dict:
@@ -214,6 +299,15 @@ def maalestokk(K, KN, NLOV, STIKK, tak: tuple[int, int], idx) -> dict:
 # --- Tap og mål -------------------------------------------------------------
 
 
+def med_snarvei(logits, kn, styrke: float):
+    """Legg NevroHjernes valg til logitene – identisk med mesterklone.ts."""
+    if styrke <= 0:
+        return logits
+    return logits.scatter_add(
+        1, kn.unsqueeze(1), torch.full_like(kn.unsqueeze(1), styrke, dtype=logits.dtype)
+    )
+
+
 def maskert_ce(logits, k, maske):
     """Hard kryssentropi mot det valgte kortet, maskert til lovlige kort."""
     stor_negativ = torch.finfo(logits.dtype).min
@@ -222,7 +316,7 @@ def maskert_ce(logits, k, maske):
 
 
 @torch.no_grad()
-def maal_i_biter(modell, X, K, M, idx, batch: int = 65536):
+def maal_i_biter(modell, X, K, KN, M, idx, snarvei: float, batch: int = 65536):
     """(tap, treff) over `idx`. Treff = argmax blant lovlige = MesterAIs kort."""
     stor_negativ = torch.finfo(torch.float32).min
     sum_tap = 0.0
@@ -230,7 +324,7 @@ def maal_i_biter(modell, X, K, M, idx, batch: int = 65536):
     n = idx.numel()
     for i in range(0, n, batch):
         j = idx[i : i + batch]
-        logits = modell(X[j])
+        logits = med_snarvei(modell(X[j]), KN[j], snarvei)
         sum_tap += maskert_ce(logits, K[j], M[j]).item() * j.numel()
         valgt = logits.masked_fill(M[j] == 0, stor_negativ).argmax(dim=1)
         sum_treff += (valgt == K[j]).float().sum().item()
@@ -238,14 +332,14 @@ def maal_i_biter(modell, X, K, M, idx, batch: int = 65536):
 
 
 @torch.no_grad()
-def treff_per_stikk(modell, X, K, M, STIKK_g, idx, batch: int = 65536):
+def treff_per_stikk(modell, X, K, KN, M, STIKK_g, idx, snarvei: float, batch: int = 65536):
     """Treffprosent brutt ned på stikknummer – der SD-fasiten er svakest er
     også klonens troskap mest verdt å vite."""
     stor_negativ = torch.finfo(torch.float32).min
     teller: dict[int, list[int]] = {}
     for i in range(0, idx.numel(), batch):
         j = idx[i : i + batch]
-        logits = modell(X[j])
+        logits = med_snarvei(modell(X[j]), KN[j], snarvei)
         valgt = logits.masked_fill(M[j] == 0, stor_negativ).argmax(dim=1)
         ok = (valgt == K[j]).cpu().numpy()
         st = STIKK_g[j].cpu().numpy()
@@ -275,11 +369,36 @@ def main() -> None:
     p.add_argument("--taal", type=int, default=6)
     p.add_argument("--tremaal", type=int, default=200000)
     p.add_argument(
+        "--nevrotrekk",
+        action="store_true",
+        help="legg NevroHjernes valg (en-av-52) bakerst i trekkvektoren -> 325 inn. "
+        "Nettet laerer da KORREKSJONEN mot NevroHjerne, ikke policyen fra bunnen, "
+        "og lastes av src/moe2/mesterklone.ts (klone:<fil>) i stedet for E1Agent.",
+    )
+    p.add_argument(
+        "--snarvei",
+        type=float,
+        default=NEVRO_SNARVEI,
+        help="hvor mye NevroHjernes valg legges til logitene. MÅ være identisk med "
+        "NEVRO_SNARVEI i src/moe2/mesterklone.ts – ellers spiller klonen en annen "
+        "policy enn den ble trent til, og ingenting feiler. Skal bare endres under "
+        "forsøk, og da i BEGGE filene.",
+    )
+    p.add_argument(
+        "--sammenlign",
+        default="",
+        help="komma-liste med E1-vektfiler (273 inn) som skal scores paa de samme "
+        "stillingene, f.eks. e1-modell/sd-r2.bin. Krever at --nevrotrekk er AV.",
+    )
+    p.add_argument(
         "--barestatistikk",
         action="store_true",
         help="skriv målestokken (gulv/nullpunkt/tak) og avslutt – ingen trening, ingen GPU",
     )
     args = p.parse_args()
+    # Snarveien er 0 uten --nevrotrekk: da finnes ikke NevroHjernes valg i
+    # trekkvektoren, og en snarvei ville vaert en inngang nettet ikke ser.
+    snarvei = args.snarvei if args.nevrotrekk else 0.0
 
     enhet = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Enhet: {enhet}" + (f" ({torch.cuda.get_device_name(0)})" if enhet == "cuda" else ""))
@@ -288,7 +407,8 @@ def main() -> None:
     if args.holdoutmappe not in mapper:
         raise SystemExit(f"--holdoutmappe {args.holdoutmappe} er ikke blant --data {mapper}")
 
-    X, K, KN, NLOV, M, FRO, STIKK, KILDE, SIG, (selv_enig, selv_n) = les(mapper)
+    X, K, KN, NLOV, M, FRO, STIKK, KILDE, SIG, (selv_enig, selv_n) = les(mapper, args.nevrotrekk)
+    inn_dim = X.shape[1]
     n = X.shape[0]
     if n < 1000:
         raise SystemExit(f"For lite data ({n} stillinger)")
@@ -318,6 +438,17 @@ def main() -> None:
         + ", ".join(f"{s}: {100 * e:.0f} % (n={m})" for s, (e, m) in ms["nevro_per_stikk"].items())
     )
     print()
+
+    # FERDIGE NETT paa nøyaktig de samme stillingene. NevroHjernes rad ligger
+    # allerede i dataene (`kn`); denne gir den samme raden for hvilket som helst
+    # E1-nett, uten en eneste ny MesterAI-beslutning.
+    ms["andre_nett"] = {}
+    for fil in [f for f in args.sammenlign.split(",") if f]:
+        e, m = enighet_for_nett(fil, X, K, M, alle)
+        ms["andre_nett"][fil] = [e, m]
+        print(f"  NETT  {fil}: {100 * e:.2f} % enighet med MesterAI (n = {m})")
+    if ms["andre_nett"]:
+        print()
 
     if args.barestatistikk:
         os.makedirs(os.path.dirname(args.logg) or ".", exist_ok=True)
@@ -365,6 +496,9 @@ def main() -> None:
 
     Xg = torch.from_numpy(X).to(enhet)
     Kg = torch.from_numpy(K).to(enhet)
+    # KN maa vaere >= 0 for scatter_add; -1 kan bare forekomme uten --nevrotrekk,
+    # og da brukes den ikke.
+    KNg = torch.from_numpy(numpy.maximum(KN, 0)).to(enhet)
     Mg = torch.from_numpy(M).to(enhet)
     Sg = torch.from_numpy(STIKK.astype(numpy.int64)).to(enhet)
     del X, K, M
@@ -393,7 +527,7 @@ def main() -> None:
 
     for spek in args.kjor:
         navn, skjult = spek.split(":")
-        dims = [TREKK_DIM] + [int(x) for x in skjult.split(",")] + [KORT]
+        dims = [inn_dim] + [int(x) for x in skjult.split(",")] + [KORT]
         modell = sdtren.E1Nett(dims).to(enhet)
         antall = sum(q.numel() for q in modell.parameters())
         ut = os.path.join(args.utmappe, f"{navn}.bin")
@@ -426,7 +560,7 @@ def main() -> None:
             biter = 0
             for i in range(0, tren_idx.numel(), args.batch):
                 j = tren_idx[perm[i : i + args.batch]]
-                tap = maskert_ce(modell(Xg[j]), Kg[j], Mg[j])
+                tap = maskert_ce(med_snarvei(modell(Xg[j]), KNg[j], snarvei), Kg[j], Mg[j])
                 opt.zero_grad(set_to_none=True)
                 tap.backward()
                 opt.step()
@@ -434,8 +568,8 @@ def main() -> None:
                 biter += 1
             plan.step()
             modell.eval()
-            tr_tap, tr_treff = maal_i_biter(modell, Xg, Kg, Mg, tm)
-            ho_tap, ho_treff = maal_i_biter(modell, Xg, Kg, Mg, hold_idx)
+            tr_tap, tr_treff = maal_i_biter(modell, Xg, Kg, KNg, Mg, tm, snarvei)
+            ho_tap, ho_treff = maal_i_biter(modell, Xg, Kg, KNg, Mg, hold_idx, snarvei)
             rad = {
                 "type": "epoke", "navn": navn, "epoke": epoke + 1,
                 "tren_tap_lopende": round(sum_tap / max(1, biter), 5),
@@ -471,7 +605,7 @@ def main() -> None:
 
         # Per stikk på det BESTE nettet er ikke tilgjengelig uten å laste det om
         # igjen; profilen tas derfor på sluttmodellen og merkes som sådan.
-        profil = treff_per_stikk(modell, Xg, Kg, Mg, Sg, hold_idx)
+        profil = treff_per_stikk(modell, Xg, Kg, KNg, Mg, Sg, hold_idx, snarvei)
         print(
             f"{navn} ferdig: beste hold-treff {100 * beste:.2f} % på epoke {beste_epoke} "
             f"(nevro {100 * nevro_hold:.2f} %, tak {100 * tak:.2f} %) → {ut}"

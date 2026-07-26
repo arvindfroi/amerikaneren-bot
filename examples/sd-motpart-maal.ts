@@ -3,9 +3,9 @@
  * velges.
  *
  *   node examples/sd-motpart-maal.ts \
- *     --kandidat sd:nevro --kandidat sd:e1:e1-modell/mester-klone.bin \
- *     --kandidat nevro --kandidat e1:e1-modell/sd-r2.bin \
- *     --miljo e1:e1-modell/mester-klone.bin \
+ *     --kandidat sd:nevro --kandidat sd:klone:e1-modell/mklon.bin \
+ *     --kandidat nevro \
+ *     --miljo klone:e1-modell/mklon.bin \
  *     --froe 200000000 --frofra 0 --frotil 250 \
  *     --ut analyse/sd-motpart-klonemiljo-0.jsonl
  *
@@ -38,8 +38,8 @@
  *
  * | Flagg | Standard | Betydning |
  * |---|---|---|
- * | `--kandidat` | (kan gjentas) | `nevro`, `e1:<fil>`, `sd:<motpart>` |
- * | `--miljo` | nevro | hvem som sitter i de tre andre setene |
+ * | `--kandidat` | (kan gjentas) | `nevro`, `e1:<fil>`, `klone:<fil>`, `sd:<motpart>` |
+ * | `--miljo` | nevro | hvem som sitter i de tre andre setene (samme spek-former) |
  * | `--froe` | 200000000 | frøbase, disjunkt fra alle andre bånd |
  * | `--frofra`/`--frotil` | 0/200 | skard: bare giverne [fra, til) |
  * | `--runder` | 1 | runder per kamp (1 = portens protokoll) |
@@ -51,8 +51,6 @@ import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
-import { E1Agent } from "../src/e1/nett.ts";
-import { NevroAgent } from "../src/nevro/index.ts";
 import { lagMotpart, SDAgent } from "../src/moe2/sdagent.ts";
 
 // --- Argumenter -------------------------------------------------------------
@@ -89,34 +87,16 @@ interface Spiller {
 }
 
 /**
- * Vektfiler er et par MB – de leses ÉN gang per spek og gjenbrukes. Det gjelder
- * også motstandermodellen inne i SD-kandidatene: leses den på nytt per kamp,
- * blir innlesingen dyrere enn evalueringen selv.
+ * Vektfilene leses ÉN gang, ved oppstart: `lagSpiller` kalles per kandidat, og
+ * SD-agenten som bygges på nytt per kamp får den ferdiglastede modellen inn.
+ * Leses en modell på nytt per kamp, blir innlesingen dyrere enn evalueringen.
+ *
+ * `sd:<motpart>` og de rene spillerne deler `lagMotpart`, så en spek som
+ * `klone:<fil>` betyr det samme uansett hvor den står.
  */
-const e1Bufret = new Map<string, E1Agent>();
-function e1(fil: string): E1Agent {
-  let a = e1Bufret.get(fil);
-  if (a === undefined) {
-    a = E1Agent.fraFil(fil);
-    e1Bufret.set(fil, a);
-  }
-  return a;
-}
-
 function lagSpiller(spek: string): Spiller {
-  if (spek === "nevro") {
-    const a = new NevroAgent();
-    return { nyKamp: () => a.nyKamp(), velgHandling: (s) => a.velgHandling(s) };
-  }
-  if (spek.startsWith("e1:")) {
-    const a = e1(spek.slice(3));
-    return { nyKamp: () => a.nyKamp(), velgHandling: (s) => a.velgHandling(s) };
-  }
   if (spek.startsWith("sd:")) {
-    // Motstandermodellen bygges én gang; bare SD-agenten rundt den er ny per
-    // kamp, og det er en tom konstruktør.
-    const motpart =
-      spek.slice(3).startsWith("e1:") ? e1(spek.slice(6)) : lagMotpart(spek.slice(3));
+    const motpart = lagMotpart(spek.slice(3));
     let a = new SDAgent(motpart, { verdener });
     return {
       nyKamp: (frø) => {
@@ -125,7 +105,9 @@ function lagSpiller(spek: string): Spiller {
       velgHandling: (s) => a.velgHandling(s),
     };
   }
-  throw new Error(`Ukjent spek «${spek}» (bruk nevro, e1:<fil> eller sd:<motpart>)`);
+  const a = lagMotpart(spek);
+  const medNyKamp = a as { nyKamp?: () => void };
+  return { nyKamp: () => medNyKamp.nyKamp?.(), velgHandling: (s) => a.velgHandling(s) };
 }
 
 const kandidater = kandidatSpek.map((s) => ({ navn: s, spiller: lagSpiller(s) }));
