@@ -2777,3 +2777,48 @@ trygge hele tiden, og som vi passer på uansett hvor godt vi spiller.
 budgivning); `--grunnlinje <navn>` styrer hvem alt måles mot. Rundeloggene er
 titalls MB og ligger i `.gitignore`; `analyse/budgrense.{txt,json}` og
 `analyse/budgrense-givere-*.jsonl` er de varige filene.
+
+---
+
+## Grådigbenken måler bare spilleføring — verifisert
+
+Uavhengig kontroll, 60 giver × 4 seter mot 3× grådig:
+
+```
+vaart sete vant budrunden i 240 av 240 runder (100 %)
+snittbud naar vi vant: 5.68
+graadigs bud: {"5": 163, "PASS": 720}
+```
+
+Grådig byr **bare 5**, og bare som åpner. Vårt sete vinner derfor **hver
+eneste budrunde**, på et snittbud på 5,68 mot 9,3 i ekte kamper.
+
+### Hva det betyr for alt vi har målt
+
+På den benken er vi **alltid spillefører**. Forsvar og makkerspill blir aldri
+målt. Budgivning blir aldri målt. Det gjelder blant annet:
+
+- `vakt:at` sine **+0,797**
+- sd-r2 sine **+0,373** over NevroHjerne
+- hele E1/SD-sammenligningen
+
+Tallene er ikke gale — de måler det de måler. Men de måler **spilleføring ved
+lave kontrakter**, ikke helhetlig spillestyrke, og det har ikke stått noe sted.
+
+### Hvorfor konklusjonene likevel står
+
+De viktigste er bekreftet på en benk som måler alt. MesterAI-h2h er 2 mot 2
+med ekte budrunder og alle roller:
+
+- `vakt:at` mot kontrollen: **+11,20 ± 3,31 poeng per kamp**, parret på 588
+  giver, bedre i 329 av 588
+- `vakt:at` mot MesterAI: **−0,127 ± 0,049** mot kontrollens −0,473
+
+Så vaktene holder. Men rollebalanse-regelen er enda viktigere enn den så ut
+da den ble skrevet: **hovedbenken kan strukturelt ikke oppfylle den.**
+
+### Konsekvens
+
+Speilbenken — tre kopier av kontrollen i de andre setene — er den riktige for
+alt som rører budgivning eller rollebalanse. Der er kontrollens råscore
+identisk 0, som er en gratis kontroll på at benken er symmetrisk.
