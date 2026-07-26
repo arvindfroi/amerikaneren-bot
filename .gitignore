@@ -51,3 +51,7 @@ sd-frys2/
 arena/adapter/.build/
 arena/adapter/Sources/adapter/appkode/
 e1-frys/
+# MesterAI-beslutninger fra examples/mester-orakel.ts (atferdskloning).
+# Hundrevis av MB, regenereres av skriptet - og maa ALDRI blandes med sd-data:
+# fasiten her er ett valgt kort (`k`), ikke en verdivektor (`v`).
+mester-data/

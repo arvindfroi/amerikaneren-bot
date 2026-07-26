@@ -27,7 +27,8 @@
  *
  * | Flagg | Standard | Betydning |
  * |---|---|---|
- * | `--kandidat` | nevro | `nevro`, `e1:<fil>`, `pimc` eller `graadig` |
+ * | `--kandidat` | nevro | `nevro`, `e1:<fil>`, `sd:<motpart>`, `pimc` eller `graadig` |
+ * | `--sdverdener` | 12 | verdener SD-kandidaten sampler per kortvalg |
  * | `--par` | 8 | antall speilede par (= 2 kamper hver) |
  * | `--froe` | 550000 | frøbase; par p bruker frø `froe + p` |
  * | `--parfra`/`--partil` | – | skard: kjør bare parene [fra, til) (parallelle prosesser) |
@@ -63,6 +64,8 @@ import { opprettSpill, utfør, type GameState, type Handling } from "../src/moto
 import { velgHandling as pimcVelg, type BotOpts } from "../src/bot/bot.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 import { E1Agent } from "../src/e1/nett.ts";
+import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
+import { lagMotpart, SDAgent } from "../src/moe2/sdagent.ts";
 import { grådigHandling } from "./graadig.ts";
 import {
   Adapter,
@@ -96,6 +99,8 @@ const parTil = flagg("partil", antallPar);
 const tidMs = flagg("ms", 450);
 /** 0 = ikke oppgitt: da styrer tidsbudsjettet alene, som i appen. */
 const låsteVerdener = flagg("verdener", 0);
+/** Verdener SD-kandidaten (`sd:<motpart>`) sampler per kortvalg. */
+const sdVerdener = flagg("sdverdener", 12);
 const adapterSti = tekstFlagg("adapter", "arena/adapter/.build/release/adapter");
 const utSti = tekstFlagg("ut", "analyse/mesterai-h2h.jsonl");
 
@@ -121,6 +126,18 @@ interface Kandidat {
 }
 
 function lagKandidat(spec: string): Kandidat {
+  // «vakt:<flagg>:<indre>» – konvensjonsvakten (src/moe2/konvensjonsvakt.ts)
+  // lagt utenpå en hvilken som helst annen kandidat.
+  const vakt = delVaktspek(spec);
+  if (vakt !== null) {
+    const indre = lagKandidat(vakt.indre);
+    const pakket = new Konvensjonsvakt({ velgHandling: (s) => indre.velg(s) }, vakt.valg);
+    return {
+      navn: spec,
+      nyKamp: (frø) => indre.nyKamp(frø),
+      velg: (s) => pakket.velgHandling(s),
+    };
+  }
   if (spec === "pimc") {
     let opts: BotOpts = { tidsbudsjettMs: tidMs, terskel: 7 };
     return {
@@ -142,7 +159,26 @@ function lagKandidat(spec: string): Kandidat {
     const agent = E1Agent.fraFil(spec.slice(3));
     return { navn: spec, nyKamp: () => agent.nyKamp(), velg: (s) => agent.velgHandling(s) };
   }
-  throw new Error(`Ukjent kandidat «${spec}» (bruk nevro, e1:<fil>, pimc eller graadig)`);
+  // «sd:<motpart>» – SD-evalueringen SOM POLICY, med motstandermodellen oppgitt
+  // eksplisitt: `sd:nevro` er dagens konfigurasjon, `sd:e1:<klonefil>` bytter
+  // den ut med en klone av MesterAI. Dette er den eneste veien til å måle hva
+  // motstandermodellen i SD er verdt uten å gå om en hel treningsrunde.
+  if (spec.startsWith("sd:")) {
+    const motpartSpek = spec.slice(3);
+    const motpart = lagMotpart(motpartSpek);
+    let agent = new SDAgent(motpart, { verdener: sdVerdener });
+    return {
+      navn: spec,
+      nyKamp: (frø) => {
+        // Nytt frø per kamp, men SAMME frø for begge kandidatene i et par:
+        // verdenstrekningen skal ikke være en kilde til forskjell mellom to
+        // motstandermodeller som måles mot hverandre.
+        agent = new SDAgent(motpart, { verdener: sdVerdener, frø });
+      },
+      velg: (s) => agent.velgHandling(s),
+    };
+  }
+  throw new Error(`Ukjent kandidat «${spec}» (bruk nevro, e1:<fil>, sd:<motpart>, pimc eller graadig)`);
 }
 
 const kandidat = lagKandidat(kandidatNavn);
