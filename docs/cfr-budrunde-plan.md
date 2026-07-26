@@ -14,9 +14,20 @@ oppløsning.
 
 ## 0. Hvorfor dette virker (og hvorfor bare budrunden)
 
-- **Stikkspillet** er et perfekt-informasjons delspill når hendene er kjent →
+- ~~**Stikkspillet** er et perfekt-informasjons delspill når hendene er kjent →
   løses eksakt av `løsDD`/`evaluerHybrid`. CFR/nevrale nett kan ikke slå
-  eksakt løsning her. La det være.
+  eksakt løsning her. La det være.~~
+  **MOTBEVIST 26. juli 2026.** Premisset gjelder bare hvis hendene ER kjent.
+  Det er de ikke. Å løse hver verden eksakt og ta snittet er PIMC, og PIMC
+  antar at alle – også vi selv, senere i runden – får vite hvilken verden det
+  var. Målt gjennom godkjenningsporten: å følge DD-solveren i spillet gir
+  korrigert korrelasjon **−0,609** mot poeng (AVVIST). Og med FULL enumerasjon
+  av alle forenlige verdener, altså eksakt PIMC uten samplingstøy, blir det
+  **verre**: −0,017 / −0,289 / −0,778 poeng ved terskel 2 / 3 / 4 stikk,
+  monotont med dybden.
+  Enumerasjonen fjerner støyen, ikke skjevheten. Stikkspillet er et EKTE
+  imperfekt-informasjons delspill, akkurat som budrunden – og det samme
+  argumentet for CFR gjelder derfor der.
 - **Budrunden** er et ekte imperfekt-info, konkurrerende delspill (signalering,
   posisjon, risiko). Her ligger den reelle gevinsten. CFR konvergerer mot en
   likevekt.
