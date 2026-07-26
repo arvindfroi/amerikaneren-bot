@@ -2561,3 +2561,218 @@ gratis; å øke essandelen koster −2,5 poeng per ess.
 
 Å «ligne mer på MesterAI» på det aggregerte tallet «vraket ess/konge» ville
 altså vært å kopiere et snitt uten å kopiere betingelsen det gjelder under.
+
+---
+
+## Budgrensen: ja, vi har råd til å by mer – men bare hvis vi ser kortene
+
+Fasegapet fant at budnettet vårt og MesterAIs er **bokstavelig talt det samme
+nettet** – alle 7 721 numeriske bud er identiske – og at det eneste de skiller
+på er PASS mot by. I 451 av 12 615 beslutninger byr MesterAI der vi passer,
+med SD-orakelet på 9,00 og et bud på 9,59, og innfrir likevel 72 %. Etter
+konvensjonsvaktene innfrir vi 75 % mot MesterAIs 73 %. Hypotesen: budpolicyen
+ble laget da kortspillet vårt var svakere, og har ikke fulgt med.
+
+**Svaret er ja – og gevinsten er stor.** Å by der vi passer er verdt
+**+0,75 poeng per sete-runde** (21,6 SE), og 104 % av det ligger i de nye
+kontraktene. Men hele gevinsten forsvinner når estimatet må tas blindt: en
+lovlig estimator som bare ser egen hånd måler **+0,005 ± 0,026**. Det er ikke
+budgrensen som er feil. Det er at vi ikke kan SE hvilke hender det gjelder.
+
+`src/moe2/budvakt.ts` (spesifikasjon `bud:<flagg>:<indre>`),
+`examples/budgrense.ts`, varige tall i `analyse/budgrense.{txt,json}` og
+`analyse/budgrense-nevro.{txt,json}`.
+
+### Funn null: benken vi har brukt kan ikke måle budgivning i det hele tatt
+
+Standardbenken i `neat-evaluer.ts` er tre GRÅDIGE motstandere. Grådig byr bare
+5, og bare som åpner. Målt: **vårt sete vinner budrunden i 196 av 196 runder**,
+med snittbud 5,60 mot SD 8,93 og 99 % innfridd. Budvakten fyrte null ganger,
+fordi den indre agenten aldri passer seg bort fra en kontrakt.
+
+Alle vakt- og eks-målingene over er tatt på den benken. De måler
+SPILLEFØRING, og det er greit – det var det de skulle måle. Men **budgivningen
+er umålt der, og kan ikke måles der.** Benken her er derfor SPEILET: tre kopier
+av kontrollkandidaten i de andre setene. Da er budrunden ekte, motstanden i
+kortspillet er på vårt eget nivå, og kontrollens råscore er identisk 0 –
+en gratis kontroll på at benken er symmetrisk.
+
+Parringen går helt ned på runde: kortene i runde r er en ren funksjon av
+(frø, rundeNr), så to kandidater i samme (frø, sete) møter nøyaktig samme kort
+i runde r uansett hva som skjedde før. 600 givere × 4 seter × 12 runder,
+frø 42000000+, ~27 500 parrede sete-runder per kandidat.
+
+### Taket: hvor går grensen, og er den en annen enn nettets?
+
+Budvakten gjør PASS om til det laveste lovlige tallbudet når SD-orakelet sier
+hånden bærer det, med en margin. Orakelet **jukser** – det spiller giva ut fra
+den faktiske stillingen og ser dermed alle fire hender – så dette er et TAK,
+ikke en spiller.
+
+| margin | fyrer | poeng/sete-runde | SE | SE-er |
+|---|---|---|---|---|
+| SD ≥ bud − 1 | 43,7 % | −0,102 | 0,081 | −1,3 |
+| **SD ≥ bud** | 24,7 % | **+1,116** | 0,058 | 19,1 |
+| **SD ≥ bud + 1** | 9,8 % | **+0,748** | 0,035 | 21,6 |
+| SD ≥ bud + 2 | 2,5 % | +0,207 | 0,016 | 12,9 |
+| snitt ≥ bud − 0,6 (speiler MesterAI) | 23,7 % | +0,127 | 0,053 | 2,4 |
+
+**Grensen ligger på SD ≥ budet**, altså ett helt hakk over der nettet ligger i
+dag, og kurven er entydig: den topper på 0, faller mot +2 fordi den slutter å
+fyre, og faller under null på −1 fordi den da tar kontrakter hånden ikke bærer.
+
+MesterAI-speilingen er den svakeste av dem som fyrer. Det er niende gang noe
+som lignet mer på MesterAI målte dårligere – men forbeholdet står: `m`-varianten
+bytter BÅDE margin og estimator (snittet over de fire setene i stedet for setets
+eget tall), så de to effektene er ikke skilt her.
+
+### Sammensetningen: kontraktene vi passer på er ikke marginale, de er de beste vi har
+
+| `bud:1` | kontrakter | innfridd | bud | SD | bud − SD | lagstikk | poeng/kontrakt |
+|---|---|---|---|---|---|---|---|
+| kontroll | 6 977 | 75 % | 9,29 | 9,40 | −0,11 | 9,70 | +9,32 |
+| med vakt, alle | 8 531 | **79 %** | 9,40 | 9,78 | −0,39 | 9,88 | +10,63 |
+| … derav NYE | 1 974 | **88 %** | 9,76 | **11,01** | **−1,25** | 10,41 | **+14,60** |
+| … derav gamle | 6 557 | 76 % | 9,29 | 9,42 | −0,13 | 9,72 | +9,43 |
+
+Dette er hovedfunnet, og det er ikke det hypotesen forventet. **Vi tar ikke
+igjen ved å OVERBY. Vi tar igjen ved å komme inn i budrunder vi passer oss ut
+av, på et bud som ligger 1,25 stikk UNDER det hånden bærer.** Hendene har
+SD 11,01 mot 9,40 for de kontraktene vi allerede tar – de er ikke marginale,
+de er bedre enn snittkontrakten vår. Vi innfrir 88 % av dem.
+
+Bøttene (eksakt oppdeling som summerer til totalen):
+
+| `bud:1`, bøtte | n | andel | sum/runde | % av total |
+|---|---|---|---|---|
+| ny kontrakt | 1 974 | 7,2 % | +0,775 | 104 % |
+| gammel kontrakt | 6 557 | 23,9 % | +0,028 | 4 % |
+| makker | 6 120 | 22,3 % | −0,010 | −1 % |
+| forsvar | 12 783 | 46,6 % | −0,045 | −6 % |
+
+### Rollebalansen: forsvaret står stille
+
+Kravet fra «Rollebalanse» over. Budvakten flytter oss inn i spillefører-setet
+22 % oftere (8 531 mot 6 977 kontrakter), og makker/forsvar blir tilsvarende
+sjeldnere. Det som ikke skal skje, er at de blir DÅRLIGERE. Parret på runde,
+bare der begge kandidatene er i samme rolle:
+
+| variant | forsvar Δp/runde | makker Δp/runde |
+|---|---|---|
+| `bud:1` | **+0,0007 ± 0,0023** (n = 12 414) | −0,029 ± 0,036 (n = 5 842) |
+| `bud:0` | −0,0022 ± 0,0035 | −0,074 ± 0,062 |
+| `bud:b24-0.5` | **−0,0051 ± 0,0025** | **−0,101 ± 0,040** |
+
+`bud:1` og `bud:0` er rene: forsvaret rører seg ikke. Den siste raden er
+grunnen til at regelen finnes – se under.
+
+### Kostnadskurven, målt på nytt: nivået har flyttet seg, ikke hellingen
+
+Samme oppdeling som fasegapets tabell 2C, på kontrollen (6 977 kontrakter):
+
+| bud − SD | n | innfridd (nå) | innfridd (fasegap, vår side) | MesterAI (fasegap) | poeng/kontrakt |
+|---|---|---|---|---|---|
+| ≤ −2 | 1 234 | 98 % | 97 % | 98 % | +17,35 |
+| −1 | 1 619 | 93 % | 87 % | 94 % | +15,88 |
+| 0 | 1 819 | **78 %** | **59 %** | **78 %** | +10,27 |
+| +1 | 1 355 | **58 %** | **37 %** | 51 % | +3,06 |
+| ≥ +2 | 950 | **37 %** | **16 %** | 32 % | −5,19 |
+
+Arvinds premiss holder: **vi innfrir nå på nøyaktig MesterAIs nivå i hvert
+eneste bånd**, og på de to overbudsbåndene ligger vi over den. Men hellingen
+er ikke borte: steget fra 0 til +1 koster fortsatt ~7 poeng per kontrakt.
+Overbud er ikke blitt billig – vi er blitt bedre til å innfri. Det er derfor
+gevinsten ligger i UNDERBUDENE og ikke i overbudene.
+
+Forbeholdet som må stå: kolonnen «nå» er målt på speilbenken, der forsvaret er
+våre egne agenter, mens fasegap-kolonnene er målt mot MesterAI. Radene er ikke
+strengt sammenlignbare – men konvensjonsvaktmålingen mot MesterAI selv
+(75 % mot 73 % innfridd) peker samme vei.
+
+### Den lovlige estimatoren måler NULL, og det er hele historien
+
+Orakelet kan ikke promoteres. Den lovlige varianten sampler K utdelinger av de
+40 kortene setet ikke har, kjører nøyaktig samme rollout på hver og bruker
+snittet. Testen som holder den ærlig ligger i `test/moe2-budvakt.test.ts`:
+tallet skal være UENDRET når motstandernes kort byttes om, og den samme testen
+i speilvendt form slår fast at orakelets tall ENDRER seg – juksedefinisjonen.
+
+| variant | fyrer | poeng/sete-runde | SE |
+|---|---|---|---|
+| blind K=8, snitt ≥ bud − 1,5 | 47,7 % | −1,675 | 0,081 |
+| blind K=8, snitt ≥ bud − 1 | 30,5 % | −0,594 | 0,063 |
+| blind K=8, snitt ≥ bud − 0,5 | 15,3 % | −0,051 | 0,043 |
+| blind K=8, snitt ≥ bud | 5,8 % | +0,005 | 0,026 |
+| blind K=8, snitt ≥ bud + 0,5 | 1,4 % | +0,017 | 0,012 |
+| blind K=24, snitt ≥ bud | 3,2 % | +0,011 | 0,018 |
+| blind K=24, snitt ≥ bud − 0,5 | 11,8 % | +0,081 | 0,037 |
+
+Kurven er monoton feil vei: **jo mer den blinde vakten byr, jo verre går det.**
+Optimum er «ikke fyr».
+
+Grunnen står i sammensetningen, og den er skarp. Hendene ORAKELET plukker har
+SD 11,01 – over snittkontrakten vår på 9,40. Hendene den BLINDE plukker har
+SD 8,86–8,94, altså UNDER snittet. Den blinde estimatoren fyrer på hender som
+faktisk er svakere enn de vi allerede spiller. Kalibreringen forklarer hvorfor:
+blind(8) har samme snitt som orakelet (8,85 mot 8,87) men halve spredningen
+(0,82 mot 1,61) og **r = 0,31**. Med K = 24 blir estimatet mindre støyete og
+tallet så vidt positivt – men fortsatt bare 11 % av takets.
+
+Og `bud:b24-0.5` er nettopp tilfellet rollebalanse-regelen ble skrevet for:
++0,081 ± 0,037 totalt (2,2 SE), men **−0,101 ± 0,040 som makker og
+−0,0051 ± 0,0025 som forsvarer**. Den flytter tapet, den fjerner det ikke.
+**Ingenting promoteres.**
+
+### Avhenger gevinsten av at vi spiller bedre? Bare der kontraktene er marginale
+
+Kontrollen for hypotesens ÅRSAKSLEDD: samme orakelvakt, samme speilbenk, samme
+600 givere – men med NEVROS kortspill i vårt sete i stedet for `vakt:at`
+(`analyse/budgrense-nevro.txt`).
+
+| margin | på `vakt:at:e1:sd-r2` | på `nevro` |
+|---|---|---|
+| SD ≥ bud + 1 | +0,748 ± 0,035 | +0,676 ± 0,036 |
+| SD ≥ bud | **+1,116 ± 0,058** | **+0,444 ± 0,060** |
+
+På de TRYGGE kontraktene (SD minst ett stikk over budet) spiller det nesten
+ingen rolle hvem som fører dem hjem – nevro banker dem også. På de MARGINALE
+(SD akkurat på budet) henter det sterke kortspillet **2,5 ganger så mye**.
+Samme hender, samme bud: 88 % innfridd og +14,60 per kontrakt for `vakt:at`
+mot 81 % og +12,10 for nevro.
+
+Arvinds hypotese er altså riktig i formen, men den gjelder et smalere område
+enn den ble sagt: bedre spilleføring gir råd til flere MARGINALE kontrakter.
+De store pengene i budgivningen ligger et annet sted – i kontraktene som var
+trygge hele tiden, og som vi passer på uansett hvor godt vi spiller.
+
+### Dommen
+
+1. **Budgrensen ligger feil.** Det er verdt +0,75 til +1,12 poeng per sete-runde
+   å by der vi passer, når hånden bærer det. Nettet ligger ett helt stikk for
+   forsiktig.
+2. **Feilen er ikke at vi ikke tør by høyt nok.** Kontraktene vi går glipp av
+   er UNDERBUD på sterke hender – bud − SD = −1,25, innfridd 88 %.
+3. **Ingenting kan promoteres.** Hele signalet ligger i informasjon
+   budgiveren ikke har. En lovlig estimator med 8 verdener måler +0,005 ± 0,026;
+   med 24 verdener +0,081 ± 0,037, og den taper som makker.
+4. **Neste steg er ikke en vakt, det er en bedre håndvurdering.** Taket er målt
+   og det er stort. Det som mangler er en funksjon fra egen hånd til forventede
+   lagstikk som er bedre enn 24 rollouts – altså trening på (hånd → SD), ikke en
+   regel. Den fasiten er allerede gratis: `analyserGiv` skriver den for hver giv
+   vi noen gang har spilt.
+
+### Reprodusering
+
+    for i in 0 1 2 3 4; do
+      node examples/budgrense.ts --froe 42000000 --kamper 600 \
+        --frofra $((i*120)) --frotil $(((i+1)*120)) --runder 12 \
+        --ut analyse/budgrense-runder-$i.jsonl \
+        --givere analyse/budgrense-givere-$i.jsonl &
+    done
+    node examples/budgrense.ts --rapport analyse/budgrense-runder-*.jsonl \
+      --tekst analyse/budgrense.txt --json analyse/budgrense.json
+
+`--motstander <spek>` bytter benk (`grådig` gir den gamle, som ikke kan måle
+budgivning); `--grunnlinje <navn>` styrer hvem alt måles mot. Rundeloggene er
+titalls MB og ligger i `.gitignore`; `analyse/budgrense.{txt,json}` og
+`analyse/budgrense-givere-*.jsonl` er de varige filene.

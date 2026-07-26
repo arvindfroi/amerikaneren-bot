@@ -56,6 +56,7 @@ import {
   type Vaktvalg,
 } from "../src/moe2/konvensjonsvakt.ts";
 import { EksaktSluttspill, delEksaktSpek, type Eksaktvalg } from "../src/moe2/eksaktagent.ts";
+import { Budvakt, delBudspek, type Budvalg } from "../src/moe2/budvakt.ts";
 import { grådigHandling } from "./graadig.ts";
 
 // --- Argumenter -------------------------------------------------------------
@@ -113,6 +114,8 @@ interface Kandidat {
   readonly vakt?: Vaktvalg;
   /** «eks:<terskel>:<indre>»: eksakt enumerasjon av sluttspillet, utenpå kandidaten under. */
   readonly eksakt?: Eksaktvalg;
+  /** «bud:<margin>:<indre>»: budvakten (SD-orakelet) utenpå kandidaten under. */
+  readonly budvakt?: Budvalg;
   readonly indre?: Kandidat;
 }
 /** Godtar både et rent genom (mester.json) og gull-innpakningen {diff, gen, genom}. */
@@ -122,6 +125,13 @@ function lesGenom(fil: string): Genom {
   return genomFraJson(rå.genom !== undefined ? JSON.stringify(rå.genom) : tekst);
 }
 function lesKandidat(f: string): Kandidat {
+  // «bud:<margin>:<indre>» – SD-orakelet gjør PASS om til bud. JUKSER (ser
+  // alle fire hender); en takmåling, ikke en promoterbar spiller.
+  // Se src/moe2/budvakt.ts.
+  const bv = delBudspek(f);
+  if (bv !== null) {
+    return { navn: f, genom: null, referanse: null, budvakt: bv.valg, indre: lesKandidat(bv.indre) };
+  }
   // «eks:<terskel>:<indre>» – full enumerasjon av alle forenlige verdener fra
   // terskelen og ut. Se src/moe2/eksaktagent.ts.
   const eks = delEksaktSpek(f);
@@ -163,6 +173,11 @@ function senatOpts(fil: string): SenatOpts {
   return o;
 }
 
+// Rolloutspilleren SD-orakelet bruker. NevroHjerne er deterministisk, så én
+// instans for hele kjøringen gir samme tall som én per kandidat – og cachen i
+// singledummy.ts deles da av alle kandidatene på samme giv.
+const budOrakel = new NevroAgent();
+
 const e1Bufret = new Map<string, E1Agent>();
 function e1Agent(fil: string): E1Agent {
   let a = e1Bufret.get(fil);
@@ -178,6 +193,11 @@ function e1Agent(fil: string): E1Agent {
  * agent men et søk kalt direkte i løkka under (den trenger `guard` i frøet).
  */
 function lagAgent(k: Kandidat, frø: number): Innagent | null {
+  if (k.budvakt !== undefined) {
+    const indre = lagAgent(k.indre!, frø);
+    if (indre === null) throw new Error("Budvakten kan ikke pakkes rundt pimc-referansen");
+    return new Budvakt(indre, k.budvakt, budOrakel);
+  }
   if (k.eksakt !== undefined) {
     const indre = lagAgent(k.indre!, frø);
     if (indre === null) throw new Error("Eksakt sluttspill kan ikke pakkes rundt pimc-referansen");

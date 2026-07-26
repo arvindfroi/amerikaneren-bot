@@ -1,0 +1,101 @@
+BUDGRENSEN – lønner det seg å by der vi passer?
+==============================================================================
+Kilder:      analyse/budgrense-runder-n0.jsonl, analyse/budgrense-runder-n1.jsonl
+Grunnlinje:  nevro
+Runder:      28567 loggede (frø × runde × sete); parret per kandidat, se n under
+Givere:      600
+Merke:       budvakt paa NEVROS kortspill, speilbenk vakt:at:e1:sd-r2, froe 42000000, 600 givere, 12 runder
+Skrevet:     2026-07-26T12:42:20.672Z
+
+ADVARSEL: budvakten ser alle fire hender via SD-orakelet. Tallene er et
+TAK for hypotesen «vi har råd til å by mer», ikke en promoterbar spiller.
+
+1) PARRET TOTALDIFFERANSE, poeng per sete-runde
+------------------------------------------------------------------------------
+kandidat                                n     diff      SE  SE-er      tegntest        p
+bud:1:nevro                         27791  +0.6760  0.0356   19.0     2453/3525    <1e-6
+bud:0:nevro                         27337  +0.4442  0.0595    7.5     4690/7770    <1e-6
+
+Hvor ofte slår vakten inn? (runder der den gjorde et PASS om til bud)
+  bud:1:nevro                      2687 av 27791 runder (9.7 %), vant budrunden i 1999 av dem
+  bud:0:nevro                      6598 av 27337 runder (24.1 %), vant budrunden i 5417 av dem
+
+2) HVOR KOMMER DIFFERANSEN FRA? Bøttene summerer eksakt til totalen
+------------------------------------------------------------------------------
+Bøtten bestemmes av KANDIDATENS rolle i runden. «ny kontrakt» = budvakten
+overstyrte et PASS i denne budrunden og kandidaten endte som spillefører.
+«sum/runde» er bøttens bidrag delt på ALLE felles runder, så kolonnen
+summerer til totaldifferansen over.
+
+bud:1:nevro
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt          1999   7.2 %        +8.277    +16545    +0.5953        88 %
+  gammel kontrakt      6935  25.0 %        +0.201     +1392    +0.0501         7 %
+  makker               6101  22.0 %        +0.092      +560    +0.0202         3 %
+  forsvar             12756  45.9 %        +0.023      +290    +0.0104         2 %
+
+bud:0:nevro
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt          5417  19.8 %        +1.508     +8167    +0.2988        67 %
+  gammel kontrakt      6672  24.4 %        +0.294     +1961    +0.0717        16 %
+  makker               4815  17.6 %        +0.168      +811    +0.0297         7 %
+  forsvar             10433  38.2 %        +0.115     +1205    +0.0441        10 %
+
+3) SAMMENSETNINGEN – hva slags kontrakter blir det?
+------------------------------------------------------------------------------
+kandidat                            kontr.   andel  innfr.    bud     SD  bud−SD  stikk  p/kontr
+nevro                                 7298  25.9 %    66 %   9.30   9.40   -0.10   9.36    +5.62
+bud:1:nevro                           8934  32.1 %    70 %   9.39   9.77   -0.37   9.56    +7.33
+    derav NYE (vakten byd)            1999  74.4 %    81 %   9.77  11.01   -1.24  10.19   +12.10
+    derav gamle                       6935  27.6 %    67 %   9.29   9.41   -0.12   9.38    +5.95
+bud:0:nevro                          12088  44.2 %    65 %   9.55   9.83   -0.28   9.53    +5.49
+    derav NYE (vakten byd)            5417  82.1 %    63 %   9.90  10.36   -0.45   9.73    +4.90
+    derav gamle                       6671  32.2 %    67 %   9.27   9.40   -0.13   9.37    +5.97
+
+4) ROLLEBALANSEN – kravet i docs/moe2.md før promotering
+------------------------------------------------------------------------------
+Frekvens (hvor ofte havner vi i rollen) og kvalitet (poeng per runde der).
+
+kandidat                            fører n    p/rd  makker n    p/rd  forsvar n    p/rd
+nevro                                  7299   +5.62      6974   +4.34      13889   +1.07
+bud:1:nevro                            8934   +7.33      6101   +4.03      12756   +1.05
+bud:0:nevro                           12089   +5.49      4815   +3.74      10433   +1.01
+
+Den parrede rolledifferansen er det som teller – en rolle kan bli sjeldnere
+UTEN at den blir dårligere. Parret på runde, mot grunnlinjen:
+
+kandidat                            forsvar Δp/rd      SE  makker Δp/rd      SE
+bud:1:nevro                       +0.0006 (12377)  0.0023-0.0137 (5848)  0.0350
+bud:0:nevro                        -0.0005 (9911)  0.0035-0.0557 (4452)  0.0606
+
+5) HVA KOSTER ET OVERBUD NÅ? Kontrakter gruppert på bud − SD
+------------------------------------------------------------------------------
+Samme oppdeling som `analyse/mesterai-fasegap.txt` tabell 2C, men på
+spillefører-setets EGNE poeng, ikke netto mot motparten – bare de er
+tilgjengelige her. Tallet som skal leses er hvordan kurven HELLER: er
+overbud fortsatt en klippe, eller har spilleføringen flatet den ut?
+
+nevro  (7298 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1256    17 %      96 %     10.62          +16.66
+  −1             1708    23 %      88 %      9.92          +13.99
+  0              1934    27 %      67 %      9.26           +6.28
+  +1             1393    19 %      41 %      8.68           -3.54
+  ≥ +2           1007    14 %      21 %      7.96          -10.97
+
+bud:1:nevro  (8934 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1655    19 %      95 %     10.61          +16.31
+  −1             3194    36 %      83 %     10.01          +12.69
+  0              1845    21 %      67 %      9.26           +6.45
+  +1             1317    15 %      42 %      8.70           -3.02
+  ≥ +2            923    10 %      22 %      7.98          -10.83
+
+bud:0:nevro  (12088 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1631    13 %      95 %     10.61          +16.33
+  −1             3126    26 %      83 %     10.00          +12.68
+  0              5186    43 %      57 %      9.38           +2.64
+  +1             1248    10 %      42 %      8.69           -3.05
+  ≥ +2            897     7 %      21 %      7.97          -10.95
+

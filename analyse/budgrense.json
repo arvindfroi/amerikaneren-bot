@@ -1,0 +1,1815 @@
+{
+  "tid": "2026-07-26T13:12:15.173Z",
+  "merke": "budvakt paa vakt:at:e1:sd-r2, speilbenk (3x samme kandidat), froe 42000000+, 600 givere x 4 seter x 12 runder",
+  "grunnlinje": "vakt:at:e1:e1-modell/sd-r2.bin",
+  "totalt": [
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 27434,
+      "diff": 0.7478676095356127,
+      "se": 0.03459216629480878,
+      "tegnPluss": 2481,
+      "tegnN": 3524,
+      "p": 0
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 26660,
+      "diff": 1.1155663915978995,
+      "se": 0.05843322921601765,
+      "tegnPluss": 5103,
+      "tegnN": 7734,
+      "p": 0
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 26597,
+      "diff": -0.10170319960897846,
+      "se": 0.08122596355964785,
+      "tegnPluss": 6948,
+      "tegnN": 12305,
+      "p": 0
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 27361,
+      "diff": 0.12711523701619093,
+      "se": 0.05265611779016845,
+      "tegnPluss": 4037,
+      "tegnN": 7047,
+      "p": 0
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 27498,
+      "diff": -0.05091279365772056,
+      "se": 0.043402856049138225,
+      "tegnPluss": 2716,
+      "tegnN": 4916,
+      "p": 1.8607337892717624e-13
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 27773,
+      "diff": 0.004680805098476938,
+      "se": 0.026316429341641082,
+      "tegnPluss": 1170,
+      "tegnN": 2097,
+      "p": 1.119928159099004e-7
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 27877,
+      "diff": 0.0167880331456039,
+      "se": 0.012016923425412676,
+      "tegnPluss": 294,
+      "tegnN": 510,
+      "p": 0.0005526415504593096
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 27904,
+      "diff": 0.0013976490825688074,
+      "se": 0.003799642526624486,
+      "tegnPluss": 38,
+      "tegnN": 64,
+      "p": 0.13361446195300464
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 27826,
+      "diff": 0.20721627255085173,
+      "se": 0.016047516418934725,
+      "tegnPluss": 657,
+      "tegnN": 906,
+      "p": 0
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 27303,
+      "diff": -0.5937076511738637,
+      "se": 0.06306355353673453,
+      "tegnPluss": 4551,
+      "tegnN": 8759,
+      "p": 0.00024746207683712385
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 27286,
+      "diff": -1.6749981675584549,
+      "se": 0.08093381822866674,
+      "tegnPluss": 6240,
+      "tegnN": 13009,
+      "p": 0.000003521233985281924
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 27833,
+      "diff": 0.010563000754500054,
+      "se": 0.017559903610793407,
+      "tegnPluss": 598,
+      "tegnN": 1046,
+      "p": 0.0000035227433741180647
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "n": 27597,
+      "diff": 0.08047976229300287,
+      "se": 0.03663603490784758,
+      "tegnPluss": 2177,
+      "tegnN": 3819,
+      "p": 0
+    }
+  ],
+  "fyring": [
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 2689,
+      "vantBudrunden": 1974,
+      "runder": 27434
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 6585,
+      "vantBudrunden": 5321,
+      "runder": 26660
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 11628,
+      "vantBudrunden": 10129,
+      "runder": 26597
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 6487,
+      "vantBudrunden": 4405,
+      "runder": 27361
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 4197,
+      "vantBudrunden": 2841,
+      "runder": 27498
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 1621,
+      "vantBudrunden": 959,
+      "runder": 27773
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 402,
+      "vantBudrunden": 186,
+      "runder": 27877
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 65,
+      "vantBudrunden": 16,
+      "runder": 27904
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 706,
+      "vantBudrunden": 423,
+      "runder": 27826
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 8318,
+      "vantBudrunden": 6294,
+      "runder": 27303
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 13024,
+      "vantBudrunden": 10640,
+      "runder": 27286
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 895,
+      "vantBudrunden": 394,
+      "runder": 27833
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "fyrte": 3249,
+      "vantBudrunden": 2016,
+      "runder": 27597
+    }
+  ],
+  "boetter": [
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 1974,
+      "sum": 21272,
+      "perRunde": 0.7753882044178756
+    },
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6557,
+      "sum": 774,
+      "perRunde": 0.02821316614420063
+    },
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 6120,
+      "sum": -285,
+      "perRunde": -0.010388568929066122
+    },
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 12783,
+      "sum": -1244,
+      "perRunde": -0.04534519209739739
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 5321,
+      "sum": 27940,
+      "perRunde": 1.0480120030007503
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6163,
+      "sum": 1609,
+      "perRunde": 0.060352588147036756
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 4832,
+      "sum": 374,
+      "perRunde": 0.014028507126781695
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 10344,
+      "sum": -182,
+      "perRunde": -0.006826706676669167
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 10129,
+      "sum": -6865,
+      "perRunde": -0.25811181712223186
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6123,
+      "sum": 3597,
+      "perRunde": 0.1352408166334549
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 3165,
+      "sum": -233,
+      "perRunde": -0.008760386509756739
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 7180,
+      "sum": 796,
+      "perRunde": 0.029928187389555213
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 4405,
+      "sum": 3879,
+      "perRunde": 0.14177113409597603
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6504,
+      "sum": 2225,
+      "perRunde": 0.08132012718833376
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 5518,
+      "sum": -1294,
+      "perRunde": -0.04729359307042871
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 10934,
+      "sum": -1332,
+      "perRunde": -0.04868243119769014
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 2841,
+      "sum": -1320,
+      "perRunde": -0.04800349116299367
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6730,
+      "sum": 1761,
+      "perRunde": 0.06404102116517565
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 5741,
+      "sum": -628,
+      "perRunde": -0.022838024583606082
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 12186,
+      "sum": -1213,
+      "perRunde": -0.044112299076296456
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 959,
+      "sum": 887,
+      "perRunde": 0.0319374932488388
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6866,
+      "sum": 773,
+      "perRunde": 0.027832787239405177
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 6532,
+      "sum": -575,
+      "perRunde": -0.02070356101249415
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 13416,
+      "sum": -955,
+      "perRunde": -0.03438591437727289
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 186,
+      "sum": 617,
+      "perRunde": 0.022132941134268395
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6961,
+      "sum": 317,
+      "perRunde": 0.011371381425547942
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 6882,
+      "sum": -82,
+      "perRunde": -0.0029414929870502566
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 13848,
+      "sum": -384,
+      "perRunde": -0.013774796427162176
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 16,
+      "sum": 108,
+      "perRunde": 0.0038704128440366975
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6971,
+      "sum": 12,
+      "perRunde": 0.00043004587155963305
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 6972,
+      "sum": -50,
+      "perRunde": -0.0017918577981651377
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 13945,
+      "sum": -31,
+      "perRunde": -0.0011109518348623854
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 423,
+      "sum": 5940,
+      "perRunde": 0.2134694170919284
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6891,
+      "sum": 336,
+      "perRunde": 0.01207503773449292
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 6769,
+      "sum": -225,
+      "perRunde": -0.008085962768633652
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 13743,
+      "sum": -285,
+      "perRunde": -0.010242219506935959
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 6294,
+      "sum": -17983,
+      "perRunde": -0.6586455700838736
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6600,
+      "sum": 3576,
+      "perRunde": 0.13097461817382705
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 4485,
+      "sum": -613,
+      "perRunde": -0.022451745229461965
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 9924,
+      "sum": -1190,
+      "perRunde": -0.0435849540343552
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 10640,
+      "sum": -48331,
+      "perRunde": -1.7712746463387818
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6630,
+      "sum": 4700,
+      "perRunde": 0.1722495052407828
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 3020,
+      "sum": -1166,
+      "perRunde": -0.042732536832075056
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 6996,
+      "sum": -907,
+      "perRunde": -0.03324048962838085
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 394,
+      "sum": 1073,
+      "perRunde": 0.03855135989652571
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6932,
+      "sum": 235,
+      "perRunde": 0.008443214888801063
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 6770,
+      "sum": -545,
+      "perRunde": -0.01958107282721949
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 13737,
+      "sum": -469,
+      "perRunde": -0.01685050120360723
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "ny kontrakt",
+      "n": 2016,
+      "sum": 2670,
+      "perRunde": 0.09674964670072835
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "gammel kontrakt",
+      "n": 6787,
+      "sum": 1198,
+      "perRunde": 0.04341051563575751
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "makker",
+      "n": 6016,
+      "sum": -546,
+      "perRunde": -0.01978475921295793
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bøtte": "forsvar",
+      "n": 12778,
+      "sum": -1101,
+      "perRunde": -0.039895640830525055
+    }
+  ],
+  "sammensetning": [
+    {
+      "kandidat": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 6977,
+        "innfridd": 5266,
+        "budSum": 64800,
+        "sdSum": 65574,
+        "stikkSum": 67709,
+        "poeng": 65020,
+        "runder": 27908
+      },
+      "nye": {
+        "kontrakter": 0,
+        "innfridd": 0,
+        "budSum": 0,
+        "sdSum": 0,
+        "stikkSum": 0,
+        "poeng": 0,
+        "runder": 0
+      },
+      "gamle": {
+        "kontrakter": 6977,
+        "innfridd": 5266,
+        "budSum": 64800,
+        "sdSum": 65574,
+        "stikkSum": 67709,
+        "poeng": 65020,
+        "runder": 27908
+      }
+    },
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 8531,
+        "innfridd": 6698,
+        "budSum": 80159,
+        "sdSum": 83468,
+        "stikkSum": 84249,
+        "poeng": 90658,
+        "runder": 27434
+      },
+      "nye": {
+        "kontrakter": 1974,
+        "innfridd": 1728,
+        "budSum": 19274,
+        "sdSum": 21732,
+        "stikkSum": 20541,
+        "poeng": 28812,
+        "runder": 2689
+      },
+      "gamle": {
+        "kontrakter": 6557,
+        "innfridd": 4970,
+        "budSum": 60885,
+        "sdSum": 61736,
+        "stikkSum": 63708,
+        "poeng": 61846,
+        "runder": 24745
+      }
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 11484,
+        "innfridd": 8554,
+        "budSum": 109810,
+        "sdSum": 113098,
+        "stikkSum": 113117,
+        "poeng": 105608,
+        "runder": 26660
+      },
+      "nye": {
+        "kontrakter": 5321,
+        "innfridd": 3868,
+        "budSum": 52687,
+        "sdSum": 55101,
+        "stikkSum": 53233,
+        "poeng": 46974,
+        "runder": 6585
+      },
+      "gamle": {
+        "kontrakter": 6163,
+        "innfridd": 4686,
+        "budSum": 57123,
+        "sdSum": 57997,
+        "stikkSum": 59884,
+        "poeng": 58634,
+        "runder": 20075
+      }
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 16252,
+        "innfridd": 10469,
+        "budSum": 157920,
+        "sdSum": 156671,
+        "stikkSum": 157427,
+        "poeng": 85304,
+        "runder": 26597
+      },
+      "nye": {
+        "kontrakter": 10129,
+        "innfridd": 5776,
+        "budSum": 101247,
+        "sdSum": 99092,
+        "stikkSum": 97908,
+        "poeng": 25738,
+        "runder": 11628
+      },
+      "gamle": {
+        "kontrakter": 6123,
+        "innfridd": 4693,
+        "budSum": 56673,
+        "sdSum": 57579,
+        "stikkSum": 59519,
+        "poeng": 59566,
+        "runder": 14969
+      }
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 10909,
+        "innfridd": 7605,
+        "budSum": 102750,
+        "sdSum": 102505,
+        "stikkSum": 104560,
+        "poeng": 78816,
+        "runder": 27361
+      },
+      "nye": {
+        "kontrakter": 4405,
+        "innfridd": 2662,
+        "budSum": 42472,
+        "sdSum": 41334,
+        "stikkSum": 41412,
+        "poeng": 17088,
+        "runder": 6487
+      },
+      "gamle": {
+        "kontrakter": 6504,
+        "innfridd": 4943,
+        "budSum": 60278,
+        "sdSum": 61171,
+        "stikkSum": 63148,
+        "poeng": 61728,
+        "runder": 20874
+      }
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 9571,
+        "innfridd": 6741,
+        "budSum": 89619,
+        "sdSum": 88654,
+        "stikkSum": 91691,
+        "poeng": 71370,
+        "runder": 27498
+      },
+      "nye": {
+        "kontrakter": 2841,
+        "innfridd": 1641,
+        "budSum": 27167,
+        "sdSum": 25325,
+        "stikkSum": 26345,
+        "poeng": 7954,
+        "runder": 4197
+      },
+      "gamle": {
+        "kontrakter": 6730,
+        "innfridd": 5100,
+        "budSum": 62452,
+        "sdSum": 63329,
+        "stikkSum": 65346,
+        "poeng": 63416,
+        "runder": 23301
+      }
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 7825,
+        "innfridd": 5787,
+        "budSum": 72722,
+        "sdSum": 73086,
+        "stikkSum": 75520,
+        "poeng": 68540,
+        "runder": 27773
+      },
+      "nye": {
+        "kontrakter": 959,
+        "innfridd": 593,
+        "budSum": 8983,
+        "sdSum": 8505,
+        "stikkSum": 8855,
+        "poeng": 4150,
+        "runder": 1621
+      },
+      "gamle": {
+        "kontrakter": 6866,
+        "innfridd": 5194,
+        "budSum": 63739,
+        "sdSum": 64581,
+        "stikkSum": 66665,
+        "poeng": 64390,
+        "runder": 26152
+      }
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 7147,
+        "innfridd": 5384,
+        "budSum": 66349,
+        "sdSum": 67057,
+        "stikkSum": 69267,
+        "poeng": 66198,
+        "runder": 27877
+      },
+      "nye": {
+        "kontrakter": 186,
+        "innfridd": 127,
+        "budSum": 1708,
+        "sdSum": 1641,
+        "stikkSum": 1707,
+        "poeng": 1224,
+        "runder": 402
+      },
+      "gamle": {
+        "kontrakter": 6961,
+        "innfridd": 5257,
+        "budSum": 64641,
+        "sdSum": 65416,
+        "stikkSum": 67560,
+        "poeng": 64974,
+        "runder": 27475
+      }
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 6987,
+        "innfridd": 5275,
+        "budSum": 64883,
+        "sdSum": 65653,
+        "stikkSum": 67796,
+        "poeng": 65146,
+        "runder": 27904
+      },
+      "nye": {
+        "kontrakter": 16,
+        "innfridd": 12,
+        "budSum": 140,
+        "sdSum": 138,
+        "stikkSum": 142,
+        "poeng": 132,
+        "runder": 65
+      },
+      "gamle": {
+        "kontrakter": 6971,
+        "innfridd": 5263,
+        "budSum": 64743,
+        "sdSum": 65515,
+        "stikkSum": 67654,
+        "poeng": 65014,
+        "runder": 27839
+      }
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 7314,
+        "innfridd": 5623,
+        "budSum": 68000,
+        "sdSum": 69698,
+        "stikkSum": 71468,
+        "poeng": 72152,
+        "runder": 27826
+      },
+      "nye": {
+        "kontrakter": 423,
+        "innfridd": 410,
+        "budSum": 4008,
+        "sdSum": 4892,
+        "stikkSum": 4565,
+        "poeng": 7520,
+        "runder": 706
+      },
+      "gamle": {
+        "kontrakter": 6891,
+        "innfridd": 5213,
+        "budSum": 63992,
+        "sdSum": 64806,
+        "stikkSum": 66903,
+        "poeng": 64632,
+        "runder": 27120
+      }
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 12894,
+        "innfridd": 8257,
+        "budSum": 122373,
+        "sdSum": 117935,
+        "stikkSum": 122024,
+        "poeng": 65202,
+        "runder": 27303
+      },
+      "nye": {
+        "kontrakter": 6294,
+        "innfridd": 3210,
+        "budSum": 61228,
+        "sdSum": 55783,
+        "stikkSum": 57853,
+        "poeng": 1404,
+        "runder": 8318
+      },
+      "gamle": {
+        "kontrakter": 6600,
+        "innfridd": 5047,
+        "budSum": 61145,
+        "sdSum": 62152,
+        "stikkSum": 64171,
+        "poeng": 63798,
+        "runder": 18985
+      }
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 17269,
+        "innfridd": 9985,
+        "budSum": 166198,
+        "sdSum": 155941,
+        "stikkSum": 161552,
+        "poeng": 45932,
+        "runder": 27286
+      },
+      "nye": {
+        "kontrakter": 10640,
+        "innfridd": 4904,
+        "budSum": 104876,
+        "sdSum": 93555,
+        "stikkSum": 97154,
+        "poeng": -18484,
+        "runder": 13024
+      },
+      "gamle": {
+        "kontrakter": 6629,
+        "innfridd": 5081,
+        "budSum": 61322,
+        "sdSum": 62386,
+        "stikkSum": 64398,
+        "poeng": 64416,
+        "runder": 14262
+      }
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 7326,
+        "innfridd": 5502,
+        "budSum": 67979,
+        "sdSum": 68655,
+        "stikkSum": 70880,
+        "poeng": 67210,
+        "runder": 27833
+      },
+      "nye": {
+        "kontrakter": 394,
+        "innfridd": 269,
+        "budSum": 3604,
+        "sdSum": 3505,
+        "stikkSum": 3626,
+        "poeng": 2584,
+        "runder": 895
+      },
+      "gamle": {
+        "kontrakter": 6932,
+        "innfridd": 5233,
+        "budSum": 64375,
+        "sdSum": 65150,
+        "stikkSum": 67254,
+        "poeng": 64626,
+        "runder": 26938
+      }
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "alle": {
+        "kontrakter": 8803,
+        "innfridd": 6402,
+        "budSum": 81983,
+        "sdSum": 81840,
+        "stikkSum": 84627,
+        "poeng": 73266,
+        "runder": 27597
+      },
+      "nye": {
+        "kontrakter": 2016,
+        "innfridd": 1267,
+        "budSum": 18980,
+        "sdSum": 18013,
+        "stikkSum": 18735,
+        "poeng": 9580,
+        "runder": 3249
+      },
+      "gamle": {
+        "kontrakter": 6787,
+        "innfridd": 5135,
+        "budSum": 63003,
+        "sdSum": 63827,
+        "stikkSum": 65892,
+        "poeng": 63686,
+        "runder": 24348
+      }
+    }
+  ],
+  "roller": [
+    {
+      "kandidat": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 6977,
+        "p": 65020
+      },
+      "M": {
+        "n": 6977,
+        "p": 32510
+      },
+      "D": {
+        "n": 13954,
+        "p": 16015
+      }
+    },
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 8531,
+        "p": 90658
+      },
+      "M": {
+        "n": 6120,
+        "p": 26887
+      },
+      "D": {
+        "n": 12783,
+        "p": 14419
+      }
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 11484,
+        "p": 105608
+      },
+      "M": {
+        "n": 4832,
+        "p": 19914
+      },
+      "D": {
+        "n": 10344,
+        "p": 11200
+      }
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 16252,
+        "p": 85304
+      },
+      "M": {
+        "n": 3165,
+        "p": 11876
+      },
+      "D": {
+        "n": 7180,
+        "p": 7293
+      }
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 10909,
+        "p": 78816
+      },
+      "M": {
+        "n": 5518,
+        "p": 22222
+      },
+      "D": {
+        "n": 10934,
+        "p": 13065
+      }
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 9571,
+        "p": 71370
+      },
+      "M": {
+        "n": 5741,
+        "p": 25301
+      },
+      "D": {
+        "n": 12186,
+        "p": 13139
+      }
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 7825,
+        "p": 68540
+      },
+      "M": {
+        "n": 6532,
+        "p": 29255
+      },
+      "D": {
+        "n": 13416,
+        "p": 15062
+      }
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 7147,
+        "p": 66198
+      },
+      "M": {
+        "n": 6882,
+        "p": 31777
+      },
+      "D": {
+        "n": 13848,
+        "p": 15812
+      }
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 6987,
+        "p": 65146
+      },
+      "M": {
+        "n": 6972,
+        "p": 32403
+      },
+      "D": {
+        "n": 13945,
+        "p": 15988
+      }
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 7314,
+        "p": 72152
+      },
+      "M": {
+        "n": 6769,
+        "p": 31127
+      },
+      "D": {
+        "n": 13743,
+        "p": 15716
+      }
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 12894,
+        "p": 65202
+      },
+      "M": {
+        "n": 4485,
+        "p": 19071
+      },
+      "D": {
+        "n": 9924,
+        "p": 10031
+      }
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 17270,
+        "p": 45882
+      },
+      "M": {
+        "n": 3020,
+        "p": 12474
+      },
+      "D": {
+        "n": 6996,
+        "p": 6497
+      }
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 7326,
+        "p": 67210
+      },
+      "M": {
+        "n": 6770,
+        "p": 30640
+      },
+      "D": {
+        "n": 13737,
+        "p": 15589
+      }
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "F": {
+        "n": 8803,
+        "p": 73266
+      },
+      "M": {
+        "n": 6016,
+        "p": 26903
+      },
+      "D": {
+        "n": 12778,
+        "p": 13975
+      }
+    }
+  ],
+  "rollediff": [
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": 0.0007249879168680521,
+      "forsvarSe": 0.0022941110238615314,
+      "forsvarN": 12414,
+      "makker": -0.02875727490585416,
+      "makkerSe": 0.035534450135935286,
+      "makkerN": 5842
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": -0.002240554027905082,
+      "forsvarSe": 0.0035044645152277603,
+      "forsvarN": 9819,
+      "makker": -0.07402392236515459,
+      "makkerSe": 0.06216681317031533,
+      "makkerN": 4431
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": -0.0014801657785671995,
+      "forsvarSe": 0.004989176168323305,
+      "forsvarN": 6756,
+      "makker": -0.27526132404181186,
+      "makkerSe": 0.10099952113851697,
+      "makkerN": 2870
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": 0.0012472416770603473,
+      "forsvarSe": 0.003500374240288582,
+      "forsvarN": 10423,
+      "makker": -0.14632713026444663,
+      "makkerSe": 0.059548106796281745,
+      "makkerN": 5105
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": -0.006103763987792472,
+      "forsvarSe": 0.0028391935769578117,
+      "forsvarN": 11796,
+      "makker": -0.11582799634034767,
+      "makkerSe": 0.04428421210418422,
+      "makkerN": 5465
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": -0.0007578628268283441,
+      "forsvarSe": 0.0018220829104853063,
+      "forsvarN": 13195,
+      "makker": -0.10543683218101822,
+      "makkerSe": 0.02975515194784491,
+      "makkerN": 6364
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": -0.0010155229943420861,
+      "forsvarSe": 0.0010258338809519725,
+      "forsvarN": 13786,
+      "makker": -0.01023541453428864,
+      "makkerSe": 0.013557176597884153,
+      "makkerN": 6839
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": -0.00007175660160734788,
+      "forsvarSe": 0.0002958700388573393,
+      "forsvarN": 13936,
+      "makker": -0.008759333716255025,
+      "makkerSe": 0.0063552172891608765,
+      "makkerN": 6964
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": 0.00022021581149526536,
+      "forsvarSe": 0.0011157028761304623,
+      "forsvarN": 13623,
+      "makker": -0.015977303270120948,
+      "makkerSe": 0.017592832176445864,
+      "makkerN": 6697
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": -0.007246376811594203,
+      "forsvarSe": 0.0037435355658655524,
+      "forsvarN": 9522,
+      "makker": -0.21767241379310345,
+      "makkerSe": 0.0657793938748096,
+      "makkerN": 4176
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": -0.004482964734010759,
+      "forsvarSe": 0.005180890999656673,
+      "forsvarN": 6692,
+      "makker": -0.46008708272859217,
+      "makkerSe": 0.1008882249350085,
+      "makkerN": 2756
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": -0.0002936641949930255,
+      "forsvarSe": 0.0012843010257304322,
+      "forsvarN": 13621,
+      "makker": -0.061169415292353826,
+      "makkerSe": 0.02238576384695481,
+      "makkerN": 6670
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "forsvar": -0.0051442810063499714,
+      "forsvarSe": 0.0024901373215300998,
+      "forsvarN": 12441,
+      "makker": -0.10131852879944483,
+      "makkerSe": 0.03959155993462579,
+      "makkerN": 5764
+    }
+  ],
+  "kostnadskurve": [
+    {
+      "kandidat": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1234,
+      "innfridd": 0.9821717990275527,
+      "poeng": 17.353322528363048
+    },
+    {
+      "kandidat": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 1619,
+      "innfridd": 0.92958616429895,
+      "poeng": 15.877702285361334
+    },
+    {
+      "kandidat": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 1819,
+      "innfridd": 0.7757009345794392,
+      "poeng": 10.270478284771853
+    },
+    {
+      "kandidat": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 1355,
+      "innfridd": 0.5837638376383764,
+      "poeng": 3.0612546125461253
+    },
+    {
+      "kandidat": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 950,
+      "innfridd": 0.36526315789473685,
+      "poeng": -5.189473684210526
+    },
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1612,
+      "innfridd": 0.9776674937965261,
+      "poeng": 17.416873449131515
+    },
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 3072,
+      "innfridd": 0.890625,
+      "poeng": 14.848958333333334
+    },
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 1713,
+      "innfridd": 0.7752481027437245,
+      "poeng": 10.247518972562755
+    },
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 1266,
+      "innfridd": 0.5821484992101106,
+      "poeng": 2.9794628751974725
+    },
+    {
+      "kandidat": "bud:1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 868,
+      "innfridd": 0.36981566820276496,
+      "poeng": -5.023041474654378
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1547,
+      "innfridd": 0.9793148028442146,
+      "poeng": 17.457013574660632
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 2990,
+      "innfridd": 0.8949832775919733,
+      "poeng": 15.019397993311037
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 4949,
+      "innfridd": 0.6801374014952516,
+      "poeng": 6.861184077591433
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 1174,
+      "innfridd": 0.5877342419080068,
+      "poeng": 3.2180579216354346
+    },
+    {
+      "kandidat": "bud:0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 824,
+      "innfridd": 0.3725728155339806,
+      "poeng": -4.902912621359223
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1571,
+      "innfridd": 0.9777211966900063,
+      "poeng": 17.401654996817314
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 3018,
+      "innfridd": 0.8949635520212061,
+      "poeng": 15.00596421471173
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 5014,
+      "innfridd": 0.6862784204228161,
+      "poeng": 7.095731950538492
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 5849,
+      "innfridd": 0.4238331338690374,
+      "poeng": -3.331509659770901
+    },
+    {
+      "kandidat": "bud:-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 800,
+      "innfridd": 0.39,
+      "poeng": -4.2675
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1543,
+      "innfridd": 0.981853532080363,
+      "poeng": 17.490602721970188
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 2414,
+      "innfridd": 0.9047224523612262,
+      "poeng": 15.131731565865783
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 3030,
+      "innfridd": 0.7363036303630363,
+      "poeng": 8.856105610561055
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 2310,
+      "innfridd": 0.5225108225108225,
+      "poeng": 0.6874458874458874
+    },
+    {
+      "kandidat": "bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 1612,
+      "innfridd": 0.2903225806451613,
+      "poeng": -8.140198511166252
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1387,
+      "innfridd": 0.9826964671953857,
+      "poeng": 17.434751261715935
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 2012,
+      "innfridd": 0.9165009940357853,
+      "poeng": 15.469184890656063
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 2485,
+      "innfridd": 0.7649899396378269,
+      "poeng": 9.905835010060363
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 2020,
+      "innfridd": 0.5643564356435643,
+      "poeng": 2.3089108910891087
+    },
+    {
+      "kandidat": "bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 1667,
+      "innfridd": 0.29574085182963405,
+      "poeng": -7.928014397120576
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1298,
+      "innfridd": 0.9815100154083205,
+      "poeng": 17.332819722650232
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 1758,
+      "innfridd": 0.9243458475540387,
+      "poeng": 15.684869169510808
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 2051,
+      "innfridd": 0.7766942954656265,
+      "poeng": 10.309117503656752
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 1570,
+      "innfridd": 0.5700636942675159,
+      "poeng": 2.551592356687898
+    },
+    {
+      "kandidat": "bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 1148,
+      "innfridd": 0.34843205574912894,
+      "poeng": -5.820557491289199
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1244,
+      "innfridd": 0.9823151125401929,
+      "poeng": 17.35209003215434
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 1646,
+      "innfridd": 0.9277035236938032,
+      "poeng": 15.806804374240583
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 1886,
+      "innfridd": 0.7799575821845175,
+      "poeng": 10.4220572640509
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 1385,
+      "innfridd": 0.5797833935018051,
+      "poeng": 2.9010830324909747
+    },
+    {
+      "kandidat": "bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 986,
+      "innfridd": 0.3661257606490872,
+      "poeng": -5.152129817444219
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1232,
+      "innfridd": 0.9821428571428571,
+      "poeng": 17.350649350649352
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 1623,
+      "innfridd": 0.9285274183610598,
+      "poeng": 15.836105976586568
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 1824,
+      "innfridd": 0.7768640350877193,
+      "poeng": 10.31030701754386
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 1357,
+      "innfridd": 0.5851142225497421,
+      "poeng": 3.108327192336035
+    },
+    {
+      "kandidat": "bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 951,
+      "innfridd": 0.3648790746582545,
+      "poeng": -5.211356466876971
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1652,
+      "innfridd": 0.9788135593220338,
+      "poeng": 17.45762711864407
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 1603,
+      "innfridd": 0.9307548346849657,
+      "poeng": 15.91890205864005
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 1796,
+      "innfridd": 0.7728285077951003,
+      "poeng": 10.155902004454344
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 1328,
+      "innfridd": 0.588855421686747,
+      "poeng": 3.25
+    },
+    {
+      "kandidat": "bud:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 935,
+      "innfridd": 0.3679144385026738,
+      "poeng": -5.093048128342246
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1501,
+      "innfridd": 0.9806795469686875,
+      "poeng": 17.417721518987342
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 2382,
+      "innfridd": 0.9105793450881612,
+      "poeng": 15.353484466834592
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 3235,
+      "innfridd": 0.7431221020092735,
+      "poeng": 9.146213292117466
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 2886,
+      "innfridd": 0.509009009009009,
+      "poeng": 0.18572418572418573
+    },
+    {
+      "kandidat": "bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 2890,
+      "innfridd": 0.25709342560553633,
+      "poeng": -9.563321799307959
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1617,
+      "innfridd": 0.9795918367346939,
+      "poeng": 17.407544836116266
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 2791,
+      "innfridd": 0.9050519527051236,
+      "poeng": 15.244715155858115
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 4017,
+      "innfridd": 0.7294000497883993,
+      "poeng": 8.685586258401793
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 3991,
+      "innfridd": 0.48333750939614134,
+      "poeng": -0.8243547982961664
+    },
+    {
+      "kandidat": "bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 4853,
+      "innfridd": 0.20935503812075004,
+      "poeng": -11.614259221100351
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1262,
+      "innfridd": 0.9801901743264659,
+      "poeng": 17.275752773375594
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 1678,
+      "innfridd": 0.9278903456495828,
+      "poeng": 15.800953516090583
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 1933,
+      "innfridd": 0.7790998448008277,
+      "poeng": 10.382824624935333
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 1448,
+      "innfridd": 0.5759668508287292,
+      "poeng": 2.7569060773480665
+    },
+    {
+      "kandidat": "bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 1005,
+      "innfridd": 0.3661691542288557,
+      "poeng": -5.142288557213931
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≤ −2",
+      "n": 1363,
+      "innfridd": 0.9845928099779897,
+      "poeng": 17.479090242112985
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "−1",
+      "n": 1933,
+      "innfridd": 0.9192964304190377,
+      "poeng": 15.531298499741334
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "0",
+      "n": 2308,
+      "innfridd": 0.774263431542461,
+      "poeng": 10.228769497400346
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "+1",
+      "n": 1814,
+      "innfridd": 0.5705622932745315,
+      "poeng": 2.572216097023153
+    },
+    {
+      "kandidat": "bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin",
+      "bånd": "≥ +2",
+      "n": 1385,
+      "innfridd": 0.3328519855595668,
+      "poeng": -6.392779783393502
+    }
+  ]
+}

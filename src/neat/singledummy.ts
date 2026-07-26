@@ -86,6 +86,32 @@ function friskBudrunde(s: GameState, sete: number): GameState {
 }
 
 /**
+ * Spiller giva ut med `sete` som budvinner paa minste tallbud, og gir
+ * lagstikkene. Returnerer null hvis runden ikke naadde et resultat.
+ *
+ * Den er skilt ut fra `analyserGiv` fordi en LOVLIG budestimator maa gjoere
+ * nøyaktig det samme paa en SAMPLET verden (se `src/moe2/budvakt.ts`): ser de
+ * to rolloutene ulike ut, maaler orakelet og estimatoren to forskjellige
+ * ting, og differansen mellom dem betyr ingenting.
+ */
+export function sdForSete(budState: GameState, sete: number, spiller: Rollout): number | null {
+  let s = friskBudrunde(budState, sete);
+  s = utfør(s, { type: "BUD", spiller: sete, bud: MINSTE_TALLBUD }).state;
+  let vakt = 0;
+  while (s.fase === "BUDRUNDE" && vakt++ < 8) {
+    s = utfør(s, { type: "BUD", spiller: s.iTur!, bud: "PASS" }).state;
+  }
+  vakt = 0;
+  while ((s.fase === "VRAK" || s.fase === "VELG") && vakt++ < 10) {
+    s = utfør(s, spiller.velgHandling(s)).state;
+  }
+  vakt = 0;
+  while (s.fase === "SPILL" && vakt++ < 250) s = utfør(s, spiller.velgHandling(s)).state;
+  const res = s.sisteRunde;
+  return res !== null && res !== undefined ? res.lagStikk : null;
+}
+
+/**
  * Spiller giva ut fra hvert sete og returnerer lagstikkene.
  *
  * `budState` maa staa i BUDRUNDE – det er der budet skal avgjoeres.
@@ -98,20 +124,8 @@ export function analyserGiv(budState: GameState, spiller: Rollout): GivAnalyse {
   const N = budState.antallSpillere;
   const sd: number[] = [];
   for (let sete = 0; sete < N; sete++) {
-    let s = friskBudrunde(budState, sete);
-    s = utfør(s, { type: "BUD", spiller: sete, bud: MINSTE_TALLBUD }).state;
-    let vakt = 0;
-    while (s.fase === "BUDRUNDE" && vakt++ < 8) {
-      s = utfør(s, { type: "BUD", spiller: s.iTur!, bud: "PASS" }).state;
-    }
-    vakt = 0;
-    while ((s.fase === "VRAK" || s.fase === "VELG") && vakt++ < 10) {
-      s = utfør(s, spiller.velgHandling(s)).state;
-    }
-    vakt = 0;
-    while (s.fase === "SPILL" && vakt++ < 250) s = utfør(s, spiller.velgHandling(s)).state;
-    const res = s.sisteRunde;
-    if (res !== null && res !== undefined) sd.push(res.lagStikk);
+    const stikk = sdForSete(budState, sete, spiller);
+    if (stikk !== null) sd.push(stikk);
   }
   const n = sd.length || 1;
   const snitt = sd.reduce((a, b) => a + b, 0) / n;

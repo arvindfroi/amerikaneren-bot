@@ -1,0 +1,343 @@
+BUDGRENSEN – lønner det seg å by der vi passer?
+==============================================================================
+Kilder:      analyse/budgrense-runder-0.jsonl, analyse/budgrense-runder-1.jsonl, analyse/budgrense-runder-2.jsonl, analyse/budgrense-runder-3.jsonl, analyse/budgrense-runder-4.jsonl, analyse/budgrense-runder-b0.jsonl, analyse/budgrense-runder-b1.jsonl, analyse/budgrense-runder-b2.jsonl
+Grunnlinje:  vakt:at:e1:e1-modell/sd-r2.bin
+Runder:      28750 loggede (frø × runde × sete); parret per kandidat, se n under
+Givere:      600
+Merke:       budvakt paa vakt:at:e1:sd-r2, speilbenk (3x samme kandidat), froe 42000000+, 600 givere x 4 seter x 12 runder
+Skrevet:     2026-07-26T13:12:15.172Z
+
+ADVARSEL: budvakten ser alle fire hender via SD-orakelet. Tallene er et
+TAK for hypotesen «vi har råd til å by mer», ikke en promoterbar spiller.
+
+1) PARRET TOTALDIFFERANSE, poeng per sete-runde
+------------------------------------------------------------------------------
+kandidat                                n     diff      SE  SE-er      tegntest        p
+bud:1:vakt:at:e1:e1-modell/sd-r2.bin  27434  +0.7479  0.0346   21.6     2481/3524    <1e-6
+bud:0:vakt:at:e1:e1-modell/sd-r2.bin  26660  +1.1156  0.0584   19.1     5103/7734    <1e-6
+bud:-1:vakt:at:e1:e1-modell/sd-r2.bin  26597  -0.1017  0.0812   -1.3    6948/12305    <1e-6
+bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin  27361  +0.1271  0.0527    2.4     4037/7047    <1e-6
+bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin  27498  -0.0509  0.0434   -1.2     2716/4916    <1e-6
+bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin  27773  +0.0047  0.0263    0.2     1170/2097    <1e-6
+bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin  27877  +0.0168  0.0120    1.4       294/510   0.0006
+bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin  27904  +0.0014  0.0038    0.4         38/64   0.1336
+bud:2:vakt:at:e1:e1-modell/sd-r2.bin  27826  +0.2072  0.0160   12.9       657/906    <1e-6
+bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin  27303  -0.5937  0.0631   -9.4     4551/8759   0.0002
+bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin  27286  -1.6750  0.0809  -20.7    6240/13009   0.0000
+bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin  27833  +0.0106  0.0176    0.6      598/1046   0.0000
+bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin  27597  +0.0805  0.0366    2.2     2177/3819    <1e-6
+
+Hvor ofte slår vakten inn? (runder der den gjorde et PASS om til bud)
+  bud:1:vakt:at:e1:e1-modell/sd-r2.bin 2689 av 27434 runder (9.8 %), vant budrunden i 1974 av dem
+  bud:0:vakt:at:e1:e1-modell/sd-r2.bin 6585 av 26660 runder (24.7 %), vant budrunden i 5321 av dem
+  bud:-1:vakt:at:e1:e1-modell/sd-r2.bin 11628 av 26597 runder (43.7 %), vant budrunden i 10129 av dem
+  bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin 6487 av 27361 runder (23.7 %), vant budrunden i 4405 av dem
+  bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin 4197 av 27498 runder (15.3 %), vant budrunden i 2841 av dem
+  bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin 1621 av 27773 runder (5.8 %), vant budrunden i 959 av dem
+  bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin 402 av 27877 runder (1.4 %), vant budrunden i 186 av dem
+  bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin 65 av 27904 runder (0.2 %), vant budrunden i 16 av dem
+  bud:2:vakt:at:e1:e1-modell/sd-r2.bin 706 av 27826 runder (2.5 %), vant budrunden i 423 av dem
+  bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin 8318 av 27303 runder (30.5 %), vant budrunden i 6294 av dem
+  bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin 13024 av 27286 runder (47.7 %), vant budrunden i 10640 av dem
+  bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin 895 av 27833 runder (3.2 %), vant budrunden i 394 av dem
+  bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin 3249 av 27597 runder (11.8 %), vant budrunden i 2016 av dem
+
+2) HVOR KOMMER DIFFERANSEN FRA? Bøttene summerer eksakt til totalen
+------------------------------------------------------------------------------
+Bøtten bestemmes av KANDIDATENS rolle i runden. «ny kontrakt» = budvakten
+overstyrte et PASS i denne budrunden og kandidaten endte som spillefører.
+«sum/runde» er bøttens bidrag delt på ALLE felles runder, så kolonnen
+summerer til totaldifferansen over.
+
+bud:1:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt          1974   7.2 %       +10.776    +21272    +0.7754       104 %
+  gammel kontrakt      6557  23.9 %        +0.118      +774    +0.0282         4 %
+  makker               6120  22.3 %        -0.047      -285    -0.0104        -1 %
+  forsvar             12783  46.6 %        -0.097     -1244    -0.0453        -6 %
+
+bud:0:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt          5321  20.0 %        +5.251    +27940    +1.0480        94 %
+  gammel kontrakt      6163  23.1 %        +0.261     +1609    +0.0604         5 %
+  makker               4832  18.1 %        +0.077      +374    +0.0140         1 %
+  forsvar             10344  38.8 %        -0.018      -182    -0.0068        -1 %
+
+bud:-1:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt         10129  38.1 %        -0.678     -6865    -0.2581       254 %
+  gammel kontrakt      6123  23.0 %        +0.587     +3597    +0.1352      -133 %
+  makker               3165  11.9 %        -0.074      -233    -0.0088         9 %
+  forsvar              7180  27.0 %        +0.111      +796    +0.0299       -29 %
+
+bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt          4405  16.1 %        +0.881     +3879    +0.1418       112 %
+  gammel kontrakt      6504  23.8 %        +0.342     +2225    +0.0813        64 %
+  makker               5518  20.2 %        -0.235     -1294    -0.0473       -37 %
+  forsvar             10934  40.0 %        -0.122     -1332    -0.0487       -38 %
+
+bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt          2841  10.3 %        -0.465     -1320    -0.0480        94 %
+  gammel kontrakt      6730  24.5 %        +0.262     +1761    +0.0640      -126 %
+  makker               5741  20.9 %        -0.109      -628    -0.0228        45 %
+  forsvar             12186  44.3 %        -0.100     -1213    -0.0441        87 %
+
+bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt           959   3.5 %        +0.925      +887    +0.0319       682 %
+  gammel kontrakt      6866  24.7 %        +0.113      +773    +0.0278       595 %
+  makker               6532  23.5 %        -0.088      -575    -0.0207      -442 %
+  forsvar             13416  48.3 %        -0.071      -955    -0.0344      -735 %
+
+bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt           186   0.7 %        +3.317      +617    +0.0221       132 %
+  gammel kontrakt      6961  25.0 %        +0.046      +317    +0.0114        68 %
+  makker               6882  24.7 %        -0.012       -82    -0.0029       -18 %
+  forsvar             13848  49.7 %        -0.028      -384    -0.0138       -82 %
+
+bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt            16   0.1 %        +6.750      +108    +0.0039       277 %
+  gammel kontrakt      6971  25.0 %        +0.002       +12    +0.0004        31 %
+  makker               6972  25.0 %        -0.007       -50    -0.0018      -128 %
+  forsvar             13945  50.0 %        -0.002       -31    -0.0011       -79 %
+
+bud:2:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt           423   1.5 %       +14.043     +5940    +0.2135       103 %
+  gammel kontrakt      6891  24.8 %        +0.049      +336    +0.0121         6 %
+  makker               6769  24.3 %        -0.033      -225    -0.0081        -4 %
+  forsvar             13743  49.4 %        -0.021      -285    -0.0102        -5 %
+
+bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt          6294  23.1 %        -2.857    -17983    -0.6586       111 %
+  gammel kontrakt      6600  24.2 %        +0.542     +3576    +0.1310       -22 %
+  makker               4485  16.4 %        -0.137      -613    -0.0225         4 %
+  forsvar              9924  36.3 %        -0.120     -1190    -0.0436         7 %
+
+bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt         10640  39.0 %        -4.542    -48331    -1.7713       106 %
+  gammel kontrakt      6630  24.3 %        +0.709     +4700    +0.1722       -10 %
+  makker               3020  11.1 %        -0.386     -1166    -0.0427         3 %
+  forsvar              6996  25.6 %        -0.130      -907    -0.0332         2 %
+
+bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt           394   1.4 %        +2.723     +1073    +0.0386       365 %
+  gammel kontrakt      6932  24.9 %        +0.034      +235    +0.0084        80 %
+  makker               6770  24.3 %        -0.081      -545    -0.0196      -185 %
+  forsvar             13737  49.4 %        -0.034      -469    -0.0169      -160 %
+
+bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin
+  bøtte                   n   andel  diff i bøtta       sum  sum/runde  % av total
+  ny kontrakt          2016   7.3 %        +1.324     +2670    +0.0967       120 %
+  gammel kontrakt      6787  24.6 %        +0.177     +1198    +0.0434        54 %
+  makker               6016  21.8 %        -0.091      -546    -0.0198       -25 %
+  forsvar             12778  46.3 %        -0.086     -1101    -0.0399       -50 %
+
+3) SAMMENSETNINGEN – hva slags kontrakter blir det?
+------------------------------------------------------------------------------
+kandidat                            kontr.   andel  innfr.    bud     SD  bud−SD  stikk  p/kontr
+vakt:at:e1:e1-modell/sd-r2.bin        6977  25.0 %    75 %   9.29   9.40   -0.11   9.70    +9.32
+bud:1:vakt:at:e1:e1-modell/sd-r2.bin    8531  31.1 %    79 %   9.40   9.78   -0.39   9.88   +10.63
+    derav NYE (vakten byd)            1974  73.4 %    88 %   9.76  11.01   -1.25  10.41   +14.60
+    derav gamle                       6557  26.5 %    76 %   9.29   9.42   -0.13   9.72    +9.43
+bud:0:vakt:at:e1:e1-modell/sd-r2.bin   11484  43.1 %    74 %   9.56   9.85   -0.29   9.85    +9.20
+    derav NYE (vakten byd)            5321  80.8 %    73 %   9.90  10.36   -0.45  10.00    +8.83
+    derav gamle                       6163  30.7 %    76 %   9.27   9.41   -0.14   9.72    +9.51
+bud:-1:vakt:at:e1:e1-modell/sd-r2.bin   16252  61.1 %    64 %   9.72   9.64   +0.08   9.69    +5.25
+    derav NYE (vakten byd)           10129  87.1 %    57 %  10.00   9.78   +0.21   9.67    +2.54
+    derav gamle                       6123  40.9 %    77 %   9.26   9.40   -0.15   9.72    +9.73
+bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin   10909  39.9 %    70 %   9.42   9.40   +0.02   9.58    +7.22
+    derav NYE (vakten byd)            4405  67.9 %    60 %   9.64   9.38   +0.26   9.40    +3.88
+    derav gamle                       6504  31.2 %    76 %   9.27   9.41   -0.14   9.71    +9.49
+bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin    9571  34.8 %    70 %   9.36   9.26   +0.10   9.58    +7.46
+    derav NYE (vakten byd)            2841  67.7 %    58 %   9.56   8.91   +0.65   9.27    +2.80
+    derav gamle                       6730  28.9 %    76 %   9.28   9.41   -0.13   9.71    +9.42
+bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin    7825  28.2 %    74 %   9.29   9.34   -0.05   9.65    +8.76
+    derav NYE (vakten byd)             959  59.2 %    62 %   9.37   8.87   +0.50   9.23    +4.33
+    derav gamle                       6866  26.3 %    76 %   9.28   9.41   -0.12   9.71    +9.38
+bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin    7147  25.6 %    75 %   9.28   9.38   -0.10   9.69    +9.26
+    derav NYE (vakten byd)             186  46.3 %    68 %   9.18   8.82   +0.36   9.18    +6.58
+    derav gamle                       6961  25.3 %    76 %   9.29   9.40   -0.11   9.71    +9.33
+bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin    6987  25.0 %    75 %   9.29   9.40   -0.11   9.70    +9.32
+    derav NYE (vakten byd)              16  24.6 %    75 %   8.75   8.63   +0.13   8.88    +8.25
+    derav gamle                       6971  25.0 %    75 %   9.29   9.40   -0.11   9.71    +9.33
+bud:2:vakt:at:e1:e1-modell/sd-r2.bin    7314  26.3 %    77 %   9.30   9.53   -0.23   9.77    +9.86
+    derav NYE (vakten byd)             423  59.9 %    97 %   9.48  11.57   -2.09  10.79   +17.78
+    derav gamle                       6891  25.4 %    76 %   9.29   9.40   -0.12   9.71    +9.38
+bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin   12894  47.2 %    64 %   9.49   9.15   +0.34   9.46    +5.06
+    derav NYE (vakten byd)            6294  75.7 %    51 %   9.73   8.86   +0.87   9.19    +0.22
+    derav gamle                       6600  34.8 %    76 %   9.26   9.42   -0.15   9.72    +9.67
+bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin   17269  63.3 %    58 %   9.62   9.03   +0.59   9.36    +2.66
+    derav NYE (vakten byd)           10640  81.7 %    46 %   9.86   8.79   +1.06   9.13    -1.74
+    derav gamle                       6629  46.5 %    77 %   9.25   9.41   -0.16   9.71    +9.72
+bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin    7326  26.3 %    75 %   9.28   9.37   -0.09   9.68    +9.17
+    derav NYE (vakten byd)             394  44.0 %    68 %   9.15   8.90   +0.25   9.20    +6.56
+    derav gamle                       6932  25.7 %    75 %   9.29   9.40   -0.11   9.70    +9.32
+bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin    8803  31.9 %    73 %   9.31   9.30   +0.02   9.61    +8.32
+    derav NYE (vakten byd)            2016  62.0 %    63 %   9.41   8.94   +0.48   9.29    +4.75
+    derav gamle                       6787  27.9 %    76 %   9.28   9.40   -0.12   9.71    +9.38
+
+4) ROLLEBALANSEN – kravet i docs/moe2.md før promotering
+------------------------------------------------------------------------------
+Frekvens (hvor ofte havner vi i rollen) og kvalitet (poeng per runde der).
+
+kandidat                            fører n    p/rd  makker n    p/rd  forsvar n    p/rd
+vakt:at:e1:e1-modell/sd-r2.bin         6977   +9.32      6977   +4.66      13954   +1.15
+bud:1:vakt:at:e1:e1-modell/sd-r2.bin     8531  +10.63      6120   +4.39      12783   +1.13
+bud:0:vakt:at:e1:e1-modell/sd-r2.bin    11484   +9.20      4832   +4.12      10344   +1.08
+bud:-1:vakt:at:e1:e1-modell/sd-r2.bin    16252   +5.25      3165   +3.75       7180   +1.02
+bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin    10909   +7.22      5518   +4.03      10934   +1.19
+bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin     9571   +7.46      5741   +4.41      12186   +1.08
+bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin     7825   +8.76      6532   +4.48      13416   +1.12
+bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin     7147   +9.26      6882   +4.62      13848   +1.14
+bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin     6987   +9.32      6972   +4.65      13945   +1.15
+bud:2:vakt:at:e1:e1-modell/sd-r2.bin     7314   +9.86      6769   +4.60      13743   +1.14
+bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin    12894   +5.06      4485   +4.25       9924   +1.01
+bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin    17270   +2.66      3020   +4.13       6996   +0.93
+bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin     7326   +9.17      6770   +4.53      13737   +1.13
+bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin     8803   +8.32      6016   +4.47      12778   +1.09
+
+Den parrede rolledifferansen er det som teller – en rolle kan bli sjeldnere
+UTEN at den blir dårligere. Parret på runde, mot grunnlinjen:
+
+kandidat                            forsvar Δp/rd      SE  makker Δp/rd      SE
+bud:1:vakt:at:e1:e1-modell/sd-r2.bin+0.0007 (12414)  0.0023-0.0288 (5842)  0.0355
+bud:0:vakt:at:e1:e1-modell/sd-r2.bin -0.0022 (9819)  0.0035-0.0740 (4431)  0.0622
+bud:-1:vakt:at:e1:e1-modell/sd-r2.bin -0.0015 (6756)  0.0050-0.2753 (2870)  0.1010
+bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin+0.0012 (10423)  0.0035-0.1463 (5105)  0.0595
+bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin-0.0061 (11796)  0.0028-0.1158 (5465)  0.0443
+bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin-0.0008 (13195)  0.0018-0.1054 (6364)  0.0298
+bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin-0.0010 (13786)  0.0010-0.0102 (6839)  0.0136
+bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin-0.0001 (13936)  0.0003-0.0088 (6964)  0.0064
+bud:2:vakt:at:e1:e1-modell/sd-r2.bin+0.0002 (13623)  0.0011-0.0160 (6697)  0.0176
+bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin -0.0072 (9522)  0.0037-0.2177 (4176)  0.0658
+bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin -0.0045 (6692)  0.0052-0.4601 (2756)  0.1009
+bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin-0.0003 (13621)  0.0013-0.0612 (6670)  0.0224
+bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin-0.0051 (12441)  0.0025-0.1013 (5764)  0.0396
+
+5) HVA KOSTER ET OVERBUD NÅ? Kontrakter gruppert på bud − SD
+------------------------------------------------------------------------------
+Samme oppdeling som `analyse/mesterai-fasegap.txt` tabell 2C, men på
+spillefører-setets EGNE poeng, ikke netto mot motparten – bare de er
+tilgjengelige her. Tallet som skal leses er hvordan kurven HELLER: er
+overbud fortsatt en klippe, eller har spilleføringen flatet den ut?
+
+vakt:at:e1:e1-modell/sd-r2.bin  (6977 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1234    18 %      98 %     10.81          +17.35
+  −1             1619    23 %      93 %     10.19          +15.88
+  0              1819    26 %      78 %      9.61          +10.27
+  +1             1355    19 %      58 %      9.12           +3.06
+  ≥ +2            950    14 %      37 %      8.46           -5.19
+
+bud:1:vakt:at:e1:e1-modell/sd-r2.bin  (8531 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1612    19 %      98 %     10.79          +17.42
+  −1             3072    36 %      89 %     10.26          +14.85
+  0              1713    20 %      78 %      9.61          +10.25
+  +1             1266    15 %      58 %      9.10           +2.98
+  ≥ +2            868    10 %      37 %      8.47           -5.02
+
+bud:0:vakt:at:e1:e1-modell/sd-r2.bin  (11484 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1547    13 %      98 %     10.80          +17.46
+  −1             2990    26 %      89 %     10.27          +15.02
+  0              4949    43 %      68 %      9.70           +6.86
+  +1             1174    10 %      59 %      9.11           +3.22
+  ≥ +2            824     7 %      37 %      8.49           -4.90
+
+bud:-1:vakt:at:e1:e1-modell/sd-r2.bin  (16252 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1571    10 %      98 %     10.79          +17.40
+  −1             3018    19 %      89 %     10.26          +15.01
+  0              5014    31 %      69 %      9.71           +7.10
+  +1             5849    36 %      42 %      9.24           -3.33
+  ≥ +2            800     5 %      39 %      8.50           -4.27
+
+bud:m-0.6:vakt:at:e1:e1-modell/sd-r2.bin  (10909 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1543    14 %      98 %     10.80          +17.49
+  −1             2414    22 %      90 %     10.16          +15.13
+  0              3030    28 %      74 %      9.62           +8.86
+  +1             2310    21 %      52 %      9.02           +0.69
+  ≥ +2           1612    15 %      29 %      8.30           -8.14
+
+bud:b8-0.5:vakt:at:e1:e1-modell/sd-r2.bin  (9571 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1387    14 %      98 %     10.79          +17.43
+  −1             2012    21 %      92 %     10.17          +15.47
+  0              2485    26 %      76 %      9.59           +9.91
+  +1             2020    21 %      56 %      9.13           +2.31
+  ≥ +2           1667    17 %      30 %      8.38           -7.93
+
+bud:b8+0:vakt:at:e1:e1-modell/sd-r2.bin  (7825 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1298    17 %      98 %     10.79          +17.33
+  −1             1758    22 %      92 %     10.18          +15.68
+  0              2051    26 %      78 %      9.60          +10.31
+  +1             1570    20 %      57 %      9.09           +2.55
+  ≥ +2           1148    15 %      35 %      8.43           -5.82
+
+bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin  (7147 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1244    17 %      98 %     10.80          +17.35
+  −1             1646    23 %      93 %     10.19          +15.81
+  0              1886    26 %      78 %      9.60          +10.42
+  +1             1385    19 %      58 %      9.11           +2.90
+  ≥ +2            986    14 %      37 %      8.46           -5.15
+
+bud:b8+1:vakt:at:e1:e1-modell/sd-r2.bin  (6987 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1232    18 %      98 %     10.81          +17.35
+  −1             1623    23 %      93 %     10.19          +15.84
+  0              1824    26 %      78 %      9.61          +10.31
+  +1             1357    19 %      59 %      9.12           +3.11
+  ≥ +2            951    14 %      36 %      8.46           -5.21
+
+bud:2:vakt:at:e1:e1-modell/sd-r2.bin  (7314 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1652    23 %      98 %     10.80          +17.46
+  −1             1603    22 %      93 %     10.19          +15.92
+  0              1796    25 %      77 %      9.61          +10.16
+  +1             1328    18 %      59 %      9.13           +3.25
+  ≥ +2            935    13 %      37 %      8.46           -5.09
+
+bud:b8-1:vakt:at:e1:e1-modell/sd-r2.bin  (12894 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1501    12 %      98 %     10.79          +17.42
+  −1             2382    18 %      91 %     10.19          +15.35
+  0              3235    25 %      74 %      9.63           +9.15
+  +1             2886    22 %      51 %      9.09           +0.19
+  ≥ +2           2890    22 %      26 %      8.35           -9.56
+
+bud:b8-1.5:vakt:at:e1:e1-modell/sd-r2.bin  (17269 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1617     9 %      98 %     10.79          +17.41
+  −1             2791    16 %      91 %     10.22          +15.24
+  0              4017    23 %      73 %      9.67           +8.69
+  +1             3991    23 %      48 %      9.15           -0.82
+  ≥ +2           4853    28 %      21 %      8.29          -11.61
+
+bud:b24+0:vakt:at:e1:e1-modell/sd-r2.bin  (7326 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1262    17 %      98 %     10.79          +17.28
+  −1             1678    23 %      93 %     10.17          +15.80
+  0              1933    26 %      78 %      9.60          +10.38
+  +1             1448    20 %      58 %      9.09           +2.76
+  ≥ +2           1005    14 %      37 %      8.44           -5.14
+
+bud:b24-0.5:vakt:at:e1:e1-modell/sd-r2.bin  (8803 kontrakter)
+  bud − SD          n   andel  innfridd  lagstikk  poeng/kontrakt
+  ≤ −2           1363    15 %      98 %     10.80          +17.48
+  −1             1933    22 %      92 %     10.16          +15.53
+  0              2308    26 %      77 %      9.59          +10.23
+  +1             1814    21 %      57 %      9.09           +2.57
+  ≥ +2           1385    16 %      33 %      8.40           -6.39
+

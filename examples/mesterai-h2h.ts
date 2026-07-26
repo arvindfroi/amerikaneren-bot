@@ -67,6 +67,7 @@ import { NevroAgent } from "../src/nevro/index.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 import { EksaktSluttspill, delEksaktSpek } from "../src/moe2/eksaktagent.ts";
+import { Budvakt, delBudspek } from "../src/moe2/budvakt.ts";
 import { delSDSpek, SDAgent } from "../src/moe2/sdagent.ts";
 import { grådigHandling } from "./graadig.ts";
 import {
@@ -130,6 +131,19 @@ interface Kandidat {
 }
 
 function lagKandidat(spec: string): Kandidat {
+  // «bud:<flagg>:<indre>» – budvakten (src/moe2/budvakt.ts) gjør PASS om til
+  // bud. Ytterst av alt: den rører bare budrunden, og kortspillvaktene under
+  // skal se nøyaktig den kontrakten budvakten endte med.
+  const bv = delBudspek(spec);
+  if (bv !== null) {
+    const indre = lagKandidat(bv.indre);
+    const pakket = new Budvakt({ velgHandling: (s) => indre.velg(s) }, bv.valg, new NevroAgent());
+    return {
+      navn: spec,
+      nyKamp: (frø) => indre.nyKamp(frø),
+      velg: (s) => pakket.velgHandling(s),
+    };
+  }
   // «eks:<terskel>:<indre>» – full enumerasjon av alle forenlige verdener fra
   // terskelen og ut (src/moe2/eksaktagent.ts). Står ytterst: fra terskelen og
   // ut skal regnestykket bestemme, også der vakten ville overstyrt.

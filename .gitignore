@@ -55,3 +55,8 @@ e1-frys/
 # Hundrevis av MB, regenereres av skriptet - og maa ALDRI blandes med sd-data:
 # fasiten her er ett valgt kort (`k`), ikke en verdivektor (`v`).
 mester-data/
+# budgrense: én linje per (kandidat, giv, sete, runde) – titalls MB, og all
+# statistikken er destillert til analyse/budgrense.{txt,json}. Regenereres av
+# kommandoen i docs/moe2.md. `budgrense-givere-*.jsonl` (én linje per kamp)
+# er små og ligger i git.
+analyse/budgrense-runder-*.jsonl

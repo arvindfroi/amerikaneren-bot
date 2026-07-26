@@ -1,0 +1,363 @@
+{
+  "tid": "2026-07-26T12:42:20.673Z",
+  "merke": "budvakt paa NEVROS kortspill, speilbenk vakt:at:e1:sd-r2, froe 42000000, 600 givere, 12 runder",
+  "grunnlinje": "nevro",
+  "totalt": [
+    {
+      "kandidat": "bud:1:nevro",
+      "n": 27791,
+      "diff": 0.6760102191356914,
+      "se": 0.035622463006099205,
+      "tegnPluss": 2453,
+      "tegnN": 3525,
+      "p": 0
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "n": 27337,
+      "diff": 0.4442330906829572,
+      "se": 0.0594512684312739,
+      "tegnPluss": 4690,
+      "tegnN": 7770,
+      "p": 0
+    }
+  ],
+  "fyring": [
+    {
+      "kandidat": "bud:1:nevro",
+      "fyrte": 2687,
+      "vantBudrunden": 1999,
+      "runder": 27791
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "fyrte": 6598,
+      "vantBudrunden": 5417,
+      "runder": 27337
+    }
+  ],
+  "boetter": [
+    {
+      "kandidat": "bud:1:nevro",
+      "bøtte": "ny kontrakt",
+      "n": 1999,
+      "sum": 16545,
+      "perRunde": 0.59533661976899
+    },
+    {
+      "kandidat": "bud:1:nevro",
+      "bøtte": "gammel kontrakt",
+      "n": 6935,
+      "sum": 1392,
+      "perRunde": 0.050088158036774494
+    },
+    {
+      "kandidat": "bud:1:nevro",
+      "bøtte": "makker",
+      "n": 6101,
+      "sum": 560,
+      "perRunde": 0.020150408405598935
+    },
+    {
+      "kandidat": "bud:1:nevro",
+      "bøtte": "forsvar",
+      "n": 12756,
+      "sum": 290,
+      "perRunde": 0.01043503292432802
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "bøtte": "ny kontrakt",
+      "n": 5417,
+      "sum": 8167,
+      "perRunde": 0.29875260635768375
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "bøtte": "gammel kontrakt",
+      "n": 6672,
+      "sum": 1961,
+      "perRunde": 0.07173427954786553
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "bøtte": "makker",
+      "n": 4815,
+      "sum": 811,
+      "perRunde": 0.029666752021070344
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "bøtte": "forsvar",
+      "n": 10433,
+      "sum": 1205,
+      "perRunde": 0.04407945275633757
+    }
+  ],
+  "sammensetning": [
+    {
+      "kandidat": "nevro",
+      "alle": {
+        "kontrakter": 7298,
+        "innfridd": 4790,
+        "budSum": 67839,
+        "sdSum": 68583,
+        "stikkSum": 68280,
+        "poeng": 41006,
+        "runder": 28162
+      },
+      "nye": {
+        "kontrakter": 0,
+        "innfridd": 0,
+        "budSum": 0,
+        "sdSum": 0,
+        "stikkSum": 0,
+        "poeng": 0,
+        "runder": 0
+      },
+      "gamle": {
+        "kontrakter": 7298,
+        "innfridd": 4790,
+        "budSum": 67839,
+        "sdSum": 68583,
+        "stikkSum": 68280,
+        "poeng": 41006,
+        "runder": 28162
+      }
+    },
+    {
+      "kandidat": "bud:1:nevro",
+      "alle": {
+        "kontrakter": 8934,
+        "innfridd": 6236,
+        "budSum": 83930,
+        "sdSum": 87269,
+        "stikkSum": 85437,
+        "poeng": 65476,
+        "runder": 27791
+      },
+      "nye": {
+        "kontrakter": 1999,
+        "innfridd": 1621,
+        "budSum": 19522,
+        "sdSum": 22009,
+        "stikkSum": 20369,
+        "poeng": 24180,
+        "runder": 2687
+      },
+      "gamle": {
+        "kontrakter": 6935,
+        "innfridd": 4615,
+        "budSum": 64408,
+        "sdSum": 65260,
+        "stikkSum": 65068,
+        "poeng": 41296,
+        "runder": 25104
+      }
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "alle": {
+        "kontrakter": 12088,
+        "innfridd": 7842,
+        "budSum": 115497,
+        "sdSum": 118848,
+        "stikkSum": 115202,
+        "poeng": 66350,
+        "runder": 27337
+      },
+      "nye": {
+        "kontrakter": 5417,
+        "innfridd": 3399,
+        "budSum": 53646,
+        "sdSum": 56109,
+        "stikkSum": 52698,
+        "poeng": 26548,
+        "runder": 6598
+      },
+      "gamle": {
+        "kontrakter": 6671,
+        "innfridd": 4443,
+        "budSum": 61851,
+        "sdSum": 62739,
+        "stikkSum": 62504,
+        "poeng": 39802,
+        "runder": 20739
+      }
+    }
+  ],
+  "roller": [
+    {
+      "kandidat": "nevro",
+      "F": {
+        "n": 7299,
+        "p": 41056
+      },
+      "M": {
+        "n": 6974,
+        "p": 30236
+      },
+      "D": {
+        "n": 13889,
+        "p": 14857
+      }
+    },
+    {
+      "kandidat": "bud:1:nevro",
+      "F": {
+        "n": 8934,
+        "p": 65476
+      },
+      "M": {
+        "n": 6101,
+        "p": 24562
+      },
+      "D": {
+        "n": 12756,
+        "p": 13400
+      }
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "F": {
+        "n": 12089,
+        "p": 66400
+      },
+      "M": {
+        "n": 4815,
+        "p": 18000
+      },
+      "D": {
+        "n": 10433,
+        "p": 10516
+      }
+    }
+  ],
+  "rollediff": [
+    {
+      "kandidat": "bud:1:nevro",
+      "forsvar": 0.000565565161186071,
+      "forsvarSe": 0.0022895959923550655,
+      "forsvarN": 12377,
+      "makker": -0.013679890560875513,
+      "makkerSe": 0.035000905350093404,
+      "makkerN": 5848
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "forsvar": -0.000504489960649783,
+      "forsvarSe": 0.003467599404517182,
+      "forsvarN": 9911,
+      "makker": -0.055705300988319856,
+      "makkerSe": 0.060574696953627286,
+      "makkerN": 4452
+    }
+  ],
+  "kostnadskurve": [
+    {
+      "kandidat": "nevro",
+      "bånd": "≤ −2",
+      "n": 1256,
+      "innfridd": 0.9625796178343949,
+      "poeng": 16.660828025477706
+    },
+    {
+      "kandidat": "nevro",
+      "bånd": "−1",
+      "n": 1708,
+      "innfridd": 0.8788056206088993,
+      "poeng": 13.994145199063231
+    },
+    {
+      "kandidat": "nevro",
+      "bånd": "0",
+      "n": 1934,
+      "innfridd": 0.6701137538779731,
+      "poeng": 6.28335056876939
+    },
+    {
+      "kandidat": "nevro",
+      "bånd": "+1",
+      "n": 1393,
+      "innfridd": 0.40990667623833454,
+      "poeng": -3.5362526920315864
+    },
+    {
+      "kandidat": "nevro",
+      "bånd": "≥ +2",
+      "n": 1007,
+      "innfridd": 0.211519364448858,
+      "poeng": -10.971201588877856
+    },
+    {
+      "kandidat": "bud:1:nevro",
+      "bånd": "≤ −2",
+      "n": 1655,
+      "innfridd": 0.9474320241691843,
+      "poeng": 16.31178247734139
+    },
+    {
+      "kandidat": "bud:1:nevro",
+      "bånd": "−1",
+      "n": 3194,
+      "innfridd": 0.8346900438321854,
+      "poeng": 12.6944270507201
+    },
+    {
+      "kandidat": "bud:1:nevro",
+      "bånd": "0",
+      "n": 1845,
+      "innfridd": 0.6747967479674797,
+      "poeng": 6.45420054200542
+    },
+    {
+      "kandidat": "bud:1:nevro",
+      "bånd": "+1",
+      "n": 1317,
+      "innfridd": 0.42369020501138954,
+      "poeng": -3.017463933181473
+    },
+    {
+      "kandidat": "bud:1:nevro",
+      "bånd": "≥ +2",
+      "n": 923,
+      "innfridd": 0.21560130010834236,
+      "poeng": -10.834236186348862
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "bånd": "≤ −2",
+      "n": 1631,
+      "innfridd": 0.9484978540772532,
+      "poeng": 16.334763948497855
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "bånd": "−1",
+      "n": 3126,
+      "innfridd": 0.8339731285988484,
+      "poeng": 12.681381957773512
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "bånd": "0",
+      "n": 5186,
+      "innfridd": 0.5726957192441188,
+      "poeng": 2.640570767450829
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "bånd": "+1",
+      "n": 1248,
+      "innfridd": 0.4230769230769231,
+      "poeng": -3.0528846153846154
+    },
+    {
+      "kandidat": "bud:0:nevro",
+      "bånd": "≥ +2",
+      "n": 897,
+      "innfridd": 0.21181716833890746,
+      "poeng": -10.945373467112598
+    }
+  ]
+}
