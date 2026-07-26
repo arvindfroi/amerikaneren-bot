@@ -1,0 +1,80 @@
+{
+  "tid": "2026-07-26T11:06:08.677Z",
+  "merke": "kontroll: vakten YTTERST, saa enumerasjonen ikke overkjoerer den",
+  "kilder": [
+    "analyse/eksaktinni-pergiver-0.jsonl",
+    "analyse/eksaktinni-pergiver-1.jsonl",
+    "analyse/eksaktinni-pergiver-2.jsonl",
+    "analyse/eksaktinni-pergiver-3.jsonl"
+  ],
+  "givere": 400,
+  "frøFra": 36000000,
+  "frøTil": 36000399,
+  "grunnlinje": "vakt:at:e1:e1-modell/sd-r2.bin",
+  "raa": [
+    {
+      "kandidat": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": 76.62041666666664,
+      "se": 0.05887340618059167
+    },
+    {
+      "kandidat": "vakt:at:eks:4:e1:e1-modell/sd-r2.bin",
+      "diff": 75.85208333333337,
+      "se": 0.060062011808311104
+    },
+    {
+      "kandidat": "vakt:at:eks:3:e1:e1-modell/sd-r2.bin",
+      "diff": 76.34333333333338,
+      "se": 0.06006943327731557
+    }
+  ],
+  "motGrunnlinje": [
+    {
+      "a": "vakt:at:eks:4:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.7683333333333325,
+      "se": 0.028603009210488556,
+      "tegn": "28/399",
+      "p": 0,
+      "sigma": -26.861975524295158
+    },
+    {
+      "a": "vakt:at:eks:3:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.27708333333333335,
+      "se": 0.016961354156117565,
+      "tegn": "40/378",
+      "p": 0,
+      "sigma": -16.336156345948112
+    }
+  ],
+  "innbyrdes": [
+    {
+      "a": "vakt:at:eks:4:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.7683333333333325,
+      "se": 0.028603009210488556,
+      "tegn": "28/399",
+      "p": 0,
+      "sigma": -26.861975524295158
+    },
+    {
+      "a": "vakt:at:eks:3:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.27708333333333335,
+      "se": 0.016961354156117565,
+      "tegn": "40/378",
+      "p": 0,
+      "sigma": -16.336156345948112
+    },
+    {
+      "a": "vakt:at:eks:3:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:eks:4:e1:e1-modell/sd-r2.bin",
+      "diff": 0.4912499999999996,
+      "se": 0.025559042863474133,
+      "tegn": "356/394",
+      "p": 0,
+      "sigma": 19.220203300415218
+    }
+  ]
+}

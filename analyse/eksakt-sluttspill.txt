@@ -1,0 +1,55 @@
+EKSAKT SLUTTSPILL – hvor dypt rekker full enumerasjon?
+
+40 givinger, NevroHjerne i alle seter, 960 sluttspillbeslutninger (alle fire seter), tak 40 000 konfigurasjoner.
+
+«Verdener» = fordelinger forenlige med det setet har sett (DP-telling).
+«Rå» = det samme uten renonse-inferens – hvor mye informasjonen krymper rommet.
+«Konf» = klassekonfigurasjoner enumerasjonen faktisk løser. Det er DET som koster.
+ms = full enumerasjon + eksakt DD-løsning av HVER verden, for ett kortvalg.
+
+| stikk igjen | n | usett | klasser | verdener med | verdener p90 | rå med | konf med | konf p90 | ms med | ms p90 | ms maks | full |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 160 | 5 | 2 | 5 | 30 | 5 | 2 | 7 | 0.01 | 0.03 | 0.29 | 100 % |
+| 2 | 160 | 8 | 4 | 105 | 1530 | 840 | 14 | 71 | 0.07 | 0.40 | 10.3 | 100 % |
+| 3 | 160 | 11 | 5 | 3420 | 76e3 | 69e3 | 107 | 837 | 1.79 | 46.2 | 552.0 | 100 % |
+| 4 | 160 | 14 | 5 | 147e3 | 4.2e6 | 4.2e6 | 618 | 15e3 | 38.8 | 1461.4 | 7775.6 | 98 % |
+| 5 | 160 | 17 | 6 | 7.3e6 | 180.4e6 | 214.4e6 | 5685 | 40e3 | 347.4 | 5816.3 | 23570.7 | 76 % |
+| 6 | 160 | 20 | 7 | 254.3e6 | 5.9e9 | 9.8e9 | 40e3 | 40e3 | 1333.4 | 16186.3 | 142996.7 | 48 % |
+
+ANDEL BESLUTNINGER SOM RAKK INNENFOR TIDSBUDSJETTET (full enumerasjon, ikke sampling):
+
+| stikk igjen | ≤ 50 ms | ≤ 200 ms | ≤ 1 s |
+|---|---|---|---|
+| 1 | 100 % | 100 % | 100 % |
+| 2 | 100 % | 100 % | 100 % |
+| 3 | 91 % | 99 % | 100 % |
+| 4 | 52 % | 72 % | 86 % |
+| 5 | 21 % | 35 % | 43 % |
+| 6 | 11 % | 14 % | 20 % |
+
+KONTROLL: enumerasjonens vektsum mot uavhengig DP-telling – 0 avvik av 835 fullførte enumerasjoner. 0 avvik = enumerasjonen dekker HELE rommet, og «eksakt» er ikke en sampling i forkledning.
+
+HVA TERSKELEN ER VERDT I POENG – parret mot kontrollen, samme givere.
+Negativt tall = den eksakte varianten er DÅRLIGERE enn kontrollen.
+
+analyse/eksakt-mot-nevro.json – 2000 felles givere, grunnlinje «vakt:at:e1:e1-modell/sd-r2.bin»
+
+| variant | differanse | SE | SE-er | tegntest |
+|---|---|---|---|---|
+| nevro | -1.1423 | 0.0221 | -51.7 | 205/1986 |
+| eks:2:vakt:at:e1:e1-modell/sd-r2.bin | -0.0167 | 0.0033 | -5.0 | 401/1040 |
+| eks:3:vakt:at:e1:e1-modell/sd-r2.bin | -0.2885 | 0.0089 | -32.3 | 197/1900 |
+
+analyse/eksakt4-mot-nevro.json – 400 felles givere, grunnlinje «vakt:at:e1:e1-modell/sd-r2.bin»
+
+| variant | differanse | SE | SE-er | tegntest |
+|---|---|---|---|---|
+| nevro | -1.1373 | 0.0489 | -23.3 | 46/399 |
+| eks:4:vakt:at:e1:e1-modell/sd-r2.bin | -0.7781 | 0.0290 | -26.8 | 29/400 |
+
+analyse/eksaktinni-mot-nevro.json – 400 felles givere, grunnlinje «vakt:at:e1:e1-modell/sd-r2.bin»
+
+| variant | differanse | SE | SE-er | tegntest |
+|---|---|---|---|---|
+| vakt:at:eks:4:e1:e1-modell/sd-r2.bin | -0.7683 | 0.0286 | -26.9 | 28/399 |
+| vakt:at:eks:3:e1:e1-modell/sd-r2.bin | -0.2771 | 0.0170 | -16.3 | 40/378 |

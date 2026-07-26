@@ -66,6 +66,7 @@ import { velgHandling as pimcVelg, type BotOpts } from "../src/bot/bot.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
+import { EksaktSluttspill, delEksaktSpek } from "../src/moe2/eksaktagent.ts";
 import { delSDSpek, SDAgent } from "../src/moe2/sdagent.ts";
 import { grådigHandling } from "./graadig.ts";
 import {
@@ -129,6 +130,19 @@ interface Kandidat {
 }
 
 function lagKandidat(spec: string): Kandidat {
+  // «eks:<terskel>:<indre>» – full enumerasjon av alle forenlige verdener fra
+  // terskelen og ut (src/moe2/eksaktagent.ts). Står ytterst: fra terskelen og
+  // ut skal regnestykket bestemme, også der vakten ville overstyrt.
+  const eks = delEksaktSpek(spec);
+  if (eks !== null) {
+    const indre = lagKandidat(eks.indre);
+    const pakket = new EksaktSluttspill({ velgHandling: (s) => indre.velg(s) }, eks.valg);
+    return {
+      navn: spec,
+      nyKamp: (frø) => indre.nyKamp(frø),
+      velg: (s) => pakket.velgHandling(s),
+    };
+  }
   // «vakt:<flagg>:<indre>» – konvensjonsvakten (src/moe2/konvensjonsvakt.ts)
   // lagt utenpå en hvilken som helst annen kandidat.
   const vakt = delVaktspek(spec);

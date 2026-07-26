@@ -55,6 +55,7 @@ import {
   type Innagent,
   type Vaktvalg,
 } from "../src/moe2/konvensjonsvakt.ts";
+import { EksaktSluttspill, delEksaktSpek, type Eksaktvalg } from "../src/moe2/eksaktagent.ts";
 import { grådigHandling } from "./graadig.ts";
 
 // --- Argumenter -------------------------------------------------------------
@@ -110,6 +111,8 @@ interface Kandidat {
   readonly fil?: string;
   /** «vakt:<flagg>:<indre>»: konvensjonsvakten lagt utenpå kandidaten under. */
   readonly vakt?: Vaktvalg;
+  /** «eks:<terskel>:<indre>»: eksakt enumerasjon av sluttspillet, utenpå kandidaten under. */
+  readonly eksakt?: Eksaktvalg;
   readonly indre?: Kandidat;
 }
 /** Godtar både et rent genom (mester.json) og gull-innpakningen {diff, gen, genom}. */
@@ -119,6 +122,12 @@ function lesGenom(fil: string): Genom {
   return genomFraJson(rå.genom !== undefined ? JSON.stringify(rå.genom) : tekst);
 }
 function lesKandidat(f: string): Kandidat {
+  // «eks:<terskel>:<indre>» – full enumerasjon av alle forenlige verdener fra
+  // terskelen og ut. Se src/moe2/eksaktagent.ts.
+  const eks = delEksaktSpek(f);
+  if (eks !== null) {
+    return { navn: f, genom: null, referanse: null, eksakt: eks.valg, indre: lesKandidat(eks.indre) };
+  }
   // «vakt:<flagg>:<indre>» – to deterministiske konvensjonsregler utenpå en
   // hvilken som helst annen kandidat. Se src/moe2/konvensjonsvakt.ts.
   const vakt = delVaktspek(f);
@@ -169,6 +178,11 @@ function e1Agent(fil: string): E1Agent {
  * agent men et søk kalt direkte i løkka under (den trenger `guard` i frøet).
  */
 function lagAgent(k: Kandidat, frø: number): Innagent | null {
+  if (k.eksakt !== undefined) {
+    const indre = lagAgent(k.indre!, frø);
+    if (indre === null) throw new Error("Eksakt sluttspill kan ikke pakkes rundt pimc-referansen");
+    return new EksaktSluttspill(indre, k.eksakt);
+  }
   if (k.vakt !== undefined) {
     const indre = lagAgent(k.indre!, frø);
     if (indre === null) throw new Error("Konvensjonsvakten kan ikke pakkes rundt pimc-referansen");

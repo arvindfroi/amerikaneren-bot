@@ -1,0 +1,121 @@
+{
+  "tid": "2026-07-26T11:05:22.516Z",
+  "merke": "eksakt sluttspill: terskel 2 og 3 mot vakt:at, froe 36000000, 2000 givere",
+  "kilder": [
+    "analyse/eksakt-pergiver-0.jsonl",
+    "analyse/eksakt-pergiver-1.jsonl",
+    "analyse/eksakt-pergiver-2.jsonl",
+    "analyse/eksakt-pergiver-3.jsonl"
+  ],
+  "givere": 2000,
+  "frøFra": 36000000,
+  "frøTil": 36001999,
+  "grunnlinje": "vakt:at:e1:e1-modell/sd-r2.bin",
+  "raa": [
+    {
+      "kandidat": "nevro",
+      "diff": 75.42929166666666,
+      "se": 0.029873521423118107
+    },
+    {
+      "kandidat": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": 76.5715833333335,
+      "se": 0.027831940074404794
+    },
+    {
+      "kandidat": "eks:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": 76.55491666666661,
+      "se": 0.027803129383749892
+    },
+    {
+      "kandidat": "eks:3:vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": 76.28312499999996,
+      "se": 0.028404608639662307
+    }
+  ],
+  "motGrunnlinje": [
+    {
+      "a": "nevro",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -1.1422916666666683,
+      "se": 0.02208688582634066,
+      "tegn": "205/1986",
+      "p": 0,
+      "sigma": -51.718095328060215
+    },
+    {
+      "a": "eks:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.016666666666666736,
+      "se": 0.0033378117322950688,
+      "tegn": "401/1040",
+      "p": 1.5942802633617248e-13,
+      "sigma": -4.993291414673886
+    },
+    {
+      "a": "eks:3:vakt:at:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.2884583333333333,
+      "se": 0.008929313315335065,
+      "tegn": "197/1900",
+      "p": 0,
+      "sigma": -32.304649097477565
+    }
+  ],
+  "innbyrdes": [
+    {
+      "a": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "b": "nevro",
+      "diff": 1.1422916666666683,
+      "se": 0.02208688582634066,
+      "tegn": "1781/1986",
+      "p": 0,
+      "sigma": 51.718095328060215
+    },
+    {
+      "a": "eks:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "b": "nevro",
+      "diff": 1.1256249999999992,
+      "se": 0.022062729206307367,
+      "tegn": "1778/1985",
+      "p": 0,
+      "sigma": 51.01929999114533
+    },
+    {
+      "a": "eks:3:vakt:at:e1:e1-modell/sd-r2.bin",
+      "b": "nevro",
+      "diff": 0.8538333333333328,
+      "se": 0.02258763435184845,
+      "tegn": "1636/1984",
+      "p": 0,
+      "sigma": 37.80091885821853
+    },
+    {
+      "a": "eks:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.016666666666666736,
+      "se": 0.0033378117322950688,
+      "tegn": "401/1040",
+      "p": 1.5942802633617248e-13,
+      "sigma": -4.993291414673886
+    },
+    {
+      "a": "eks:3:vakt:at:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.2884583333333333,
+      "se": 0.008929313315335065,
+      "tegn": "197/1900",
+      "p": 0,
+      "sigma": -32.304649097477565
+    },
+    {
+      "a": "eks:3:vakt:at:e1:e1-modell/sd-r2.bin",
+      "b": "eks:2:vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.27179166666666676,
+      "se": 0.008422302654305621,
+      "tegn": "189/1883",
+      "p": 0,
+      "sigma": -32.270470181657785
+    }
+  ]
+}

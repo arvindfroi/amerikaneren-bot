@@ -2220,3 +2220,171 @@ oppdelingen, og A/B-en krever ingen ny datagenerering:
 sd-r2 er trent på de to første, altså uniformt. Neste nett trenes med sd-data3
 i blandingen, og de to sammenlignes **per rolle**. Blir forsvaret dårligere,
 er rollevekt 3 for høy — og da er det målt, ikke gjettet.
+
+---
+
+## Eksakt sluttspill: full enumerasjon er billig nok, og måler VERRE på hver eneste terskel
+
+Spørsmålet var godt stilt. Dobbelt dummy er den ene fasiten vi har MOTBEVIST
+(−0,609 korrigert korrelasjon mot poeng): den løser én verden med alle fire
+hender åpne, og forutsetter informasjon vi ikke har. Men sent i runden krymper
+den skjulte informasjonen, og da kan vi enumerere ALLE verdener som er forenlige
+med det setet faktisk har sett og løse hver eksakt. Da er valget optimalt gitt
+vår virkelige informasjon – kvalitativt forskjellig fra både DD (jukser) og SD
+(sampler). Det passet også med et målt funn: «stikk 6–8» var det eneste
+DD-vinduet med positiv verdi (+0,15).
+
+`src/solver/eksakt.ts` gjør det, `src/moe2/eksaktagent.ts` gjør det til en
+policy (`eks:<terskel>:<indre>`), og `examples/eksakt-sluttspill.ts` måler både
+kostnaden og gevinsten inn i `analyse/eksakt-sluttspill.{txt,json}`.
+
+**Svaret er at premisset holder, mekanismen virker, kostnaden er overkommelig –
+og metoden taper poeng på hver eneste terskel vi klarer å nå.**
+
+### 1. Grensen: vi rekker tre stikk på 50 ms og fire på ett sekund
+
+40 givinger, NevroHjerne i alle seter, 960 sluttspillbeslutninger fordelt på
+alle fire setene (budvinneren har et annet informasjonsbilde enn de tre andre –
+han kjenner sitt eget vrak).
+
+| stikk igjen | usett | verdener (median) | verdener (p90) | konf. (median) | ms (median) | ms (p90) |
+|---|---|---|---|---|---|---|
+| 1 | 5 | 5 | 30 | 2 | 0,01 | 0,03 |
+| 2 | 8 | 105 | 1 530 | 14 | 0,07 | 0,40 |
+| 3 | 11 | 3 420 | 76 000 | 107 | 1,79 | 46,2 |
+| 4 | 14 | 147 000 | 4,2e6 | 618 | 38,8 | 1 461 |
+| 5 | 17 | 7,3e6 | 180e6 | 5 685 | 347 | 5 816 |
+| 6 | 20 | 254e6 | 5,9e9 | 40 000 | 1 333 | 16 186 |
+
+Andel beslutninger som rakk innenfor tidsbudsjettet, med FULL enumerasjon:
+
+| stikk igjen | ≤ 50 ms | ≤ 200 ms | ≤ 1 s |
+|---|---|---|---|
+| 3 | 91 % | 99 % | 100 % |
+| 4 | 52 % | 72 % | 86 % |
+| 5 | 21 % | 35 % | 43 % |
+| 6 | 11 % | 14 % | 20 % |
+
+**Innenfor 50 ms rekker vi tre stikk, innenfor 1 s fire.** Fem stikk er utenfor
+rekkevidde i mer enn halvparten av stillingene, og seks i fire av fem.
+
+Det som gjør det overkommelig er EKVIVALENSKLASSER. To usette kort i samme farge
+som er naboer blant kortene som fortsatt er i behold, er umulige å skille for
+noen – verken reglene, motstanderne eller løseren ser forskjell. Vi enumererer
+derfor konfigurasjoner og vekter hver med antallet verdener den står for. Med
+fire stikk igjen krymper 147 000 verdener til 618 konfigurasjoner: en faktor 240.
+
+### 2. Enumerasjonen ER full – talt mot det kombinatorisk mulige
+
+Kravet var å bevise at dette ikke er sampling i forkledning. Kontrollen er bygget
+to ganger, uten delt kode: `enumerer` går over klassekonfigurasjoner og summerer
+multinomialvektene, mens `tellVerdener` teller det samme rommet kort for kort med
+dynamisk programmering. **0 avvik av 835 fullførte enumerasjoner.** En test låser
+det, og en annen låser at den VIRKELIGE givingen alltid ligger i rommet vi dekker
+– rommet er hverken for stort eller for smalt.
+
+Ingen sampling ble brukt. Der rommet var for stort (over taket) avstod agenten og
+lot nettet bestemme, i stedet for å levere en avkortet enumerasjon – en avkortet
+enumerasjon er en skjev sampling, ikke en fasit.
+
+### 3. Verdien: negativ på hver terskel, og monotont verre med dybden
+
+Parret mot kontrollen `vakt:at:e1:sd-r2` på de samme giverne, frø 36000000 –
+samme oppsett som konvensjonsvakten ble målt med.
+
+| terskel | givere | mot kontrollen | SE | SE-er | tegntest |
+|---|---|---|---|---|---|
+| 2 stikk | 2 000 | **−0,017** | 0,003 | −5,0 | 401/1040 |
+| 3 stikk | 2 000 | **−0,289** | 0,009 | −32,3 | 197/1900 |
+| 4 stikk | 400 | **−0,778** | 0,029 | −26,8 | 29/400 |
+
+Alle p < 1e-6. Ikke ett grensetilfelle: med fire stikk igjen er varianten verre
+i 371 av 400 givere. Og skaden vokser monotont med hvor mye av sluttspillet vi
+overlater til regnestykket: 0,017 → 0,289 → 0,778.
+
+**Kontrollen som avliver den enkle forklaringen.** Den første mistanken var at
+enumerasjonen bare overkjørte konvensjonsvakten, som ligger inni. Da måles
+varianten om igjen med vakten YTTERST, så den får siste ord:
+
+| variant | mot kontrollen | SE |
+|---|---|---|
+| `eks:4:vakt:at` (enumerasjon ytterst) | −0,778 | 0,029 |
+| `vakt:at:eks:4` (vakten ytterst) | −0,769 | 0,029 |
+| `eks:3:vakt:at` | −0,289 | 0,009 |
+| `vakt:at:eks:3` | −0,277 | 0,017 |
+
+Identisk innenfor støyen. Det er ikke vakten som blir overkjørt – **det er
+enumerasjonen selv som taper poengene.**
+
+### 4. Hvorfor: å fjerne samplingstøy fra en SKJEV estimator gjør skjevheten mer pålitelig
+
+Dette er den åttende gangen noe åpenbart riktig målte dårligere, og denne gangen
+peker forklaringen rett på noe vi allerede visste.
+
+Å ta snittet av DD-verdier over alle verdener er PIMC med komplett verdensliste.
+Hver verden løses som om ALLE parter – også vi selv, senere i samme runde – fikk
+vite hvilken verden det var. Den virkelige optimale strategien må spille samme
+kort i to verdener den ikke kan skille. Enumerasjonen fjerner altså
+samplingstøyen, ikke strategifusjonen: den regner ut den EKSAKTE PIMC-verdien,
+og PIMC-verdien er bygget på den samme DD-antakelsen som ble målt til −0,609.
+
+Sagt kort: **vi gjorde et skjevt estimat mer presist.** Da flytter svaret seg mot
+skjevheten, ikke mot sannheten – og det er nøyaktig det monotone mønsteret viser.
+Jo dypere terskel, jo større del av spillet overlates til den skjeve verdien, og
+jo mer taper vi.
+
+Det forklarer også hvorfor «stikk 6–8» var det eneste positive DD-vinduet uten at
+det overførte seg hit: der ble DD brukt som ETT signal blant flere i et nett som
+kunne overprøve den, ikke som en policy som overstyrer alt annet.
+
+Grensen er altså ikke beregningskraft. **Grensen er at målet er feil.** Den eneste
+dybden der metoden er beviselig optimal – siste stikk, der ingen framtidig egen
+beslutning gjenstår – er også den dybden der alle har nøyaktig ett kort igjen og
+det ikke er noe valg å ta. Det er derfor terskel 2 er den minste som i det hele
+tatt gjør noe, og den er allerede negativ.
+
+### 5. Mot MesterAI: ikke avgjort, og kan ikke avgjøres på timer
+
+`analyse/h2h-eks3-n0.jsonl` og `-n1.jsonl` (`eks:3:vakt:at`) kjører på de SAMME
+frøbåndene (2000000, 2100000) som kontrollen `analyse/h2h-vaktat-n0/n1.jsonl`,
+så sammenligningen er parret på giving.
+
+| | par | poeng/runde/sete |
+|---|---|---|
+| MesterAI mot `vakt:at` (kontroll) | 178 | +0,121 ± 0,096 |
+| MesterAI mot `eks:3:vakt:at` | 8 | +0,601 ± 0,422 |
+| parret differanse | 8 felles | −0,400 ± 0,482 |
+
+Åtte par er ingen måling – konfidensintervallet er større enn effekten vi leter
+etter, og SE 0,1 krever rundt 50 felles par. Kjøringene skriver varig til disk og
+fortsetter; rapporten regnes på nytt med
+
+    node examples/mesterai-h2h-rapport.ts analyse/h2h-eks3-n*.jsonl analyse/h2h-vaktat-n*.jsonl
+
+Maskinlasten er verdt å notere: over tretti tunge prosesser kjørte samtidig, og
+MesterAI er tidsbudsjettert (450 ms per kortvalg), så MesterAI-tallene her er et
+NEDRE anslag på dens styrke. Lasten treffer kontrollen og kandidaten likt siden
+de kjørte side om side, så den parrede differansen er upåvirket.
+
+**Nevro-målingen er uansett den som avgjør denne saken:** 2000 parrede givere gir
+SE 0,009, og eks:3 ligger 32 SE under kontrollen. Et MesterAI-tall med SE 0,1
+kan ikke redde en variant som er avvist med den marginen.
+
+### Dommen
+
+**Ingenting promoteres.** `vakt:at:e1:e1-modell/sd-r2.bin` står. Mot NevroHjerne
+er hver eneste eksakte variant målt dårligere enn den, med 5 til 32 SE, og kravet
+er parret måling mot kontrollen – ikke at ideen er god.
+
+Det som er verdt å ta med videre:
+
+- **Kostnaden er ikke problemet.** Full enumerasjon av tre stikk koster 1,8 ms i
+  medianen. Skulle vi noen gang få en RIKTIG verdifunksjon for sluttspillet, er
+  det rikelig med råd til å bruke den eksakt.
+- **Verktøyet består.** `src/solver/eksakt.ts` gir den eksakte PIMC-verdien og
+  det eksakte antallet forenlige verdener. Begge er nyttige som MÅLESTOKK – for
+  eksempel til å måle hvor mye samplingstøy SD-evalueringen faktisk har, noe som
+  til nå bare har vært antatt.
+- **DD-diagnosen står, nå med en skarpere kant.** Problemet med dobbelt dummy er
+  ikke at den er upresis. Den er upresis OG skjev, og bare det første lar seg
+  fikse med mer regnekraft.

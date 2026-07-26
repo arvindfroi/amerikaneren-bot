@@ -1,0 +1,80 @@
+{
+  "tid": "2026-07-26T11:06:08.453Z",
+  "merke": "eksakt sluttspill: terskel 4, froe 36000000, 400 givere",
+  "kilder": [
+    "analyse/eksakt4-pergiver-0.jsonl",
+    "analyse/eksakt4-pergiver-1.jsonl",
+    "analyse/eksakt4-pergiver-2.jsonl",
+    "analyse/eksakt4-pergiver-3.jsonl"
+  ],
+  "givere": 400,
+  "frøFra": 36000000,
+  "frøTil": 36000399,
+  "grunnlinje": "vakt:at:e1:e1-modell/sd-r2.bin",
+  "raa": [
+    {
+      "kandidat": "nevro",
+      "diff": 75.48312499999999,
+      "se": 0.06360126866256152
+    },
+    {
+      "kandidat": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": 76.62041666666664,
+      "se": 0.05887340618059167
+    },
+    {
+      "kandidat": "eks:4:vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": 75.8422916666667,
+      "se": 0.06022863008596051
+    }
+  ],
+  "motGrunnlinje": [
+    {
+      "a": "nevro",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -1.1372916666666675,
+      "se": 0.04889357196671599,
+      "tegn": "46/399",
+      "p": 0,
+      "sigma": -23.260555956944035
+    },
+    {
+      "a": "eks:4:vakt:at:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.7781249999999992,
+      "se": 0.029035417110430194,
+      "tegn": "29/400",
+      "p": 0,
+      "sigma": -26.799167273559803
+    }
+  ],
+  "innbyrdes": [
+    {
+      "a": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "b": "nevro",
+      "diff": 1.1372916666666675,
+      "se": 0.04889357196671599,
+      "tegn": "353/399",
+      "p": 0,
+      "sigma": 23.260555956944035
+    },
+    {
+      "a": "eks:4:vakt:at:e1:e1-modell/sd-r2.bin",
+      "b": "nevro",
+      "diff": 0.3591666666666676,
+      "se": 0.05082151964290026,
+      "tegn": "254/393",
+      "p": 6.6132490594839055e-9,
+      "sigma": 7.067216194839679
+    },
+    {
+      "a": "eks:4:vakt:at:e1:e1-modell/sd-r2.bin",
+      "b": "vakt:at:e1:e1-modell/sd-r2.bin",
+      "diff": -0.7781249999999992,
+      "se": 0.029035417110430194,
+      "tegn": "29/400",
+      "p": 0,
+      "sigma": -26.799167273559803
+    }
+  ]
+}

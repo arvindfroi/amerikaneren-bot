@@ -1,0 +1,20 @@
+PARRET POENGRAPPORT
+===================
+Kilder: analyse/eksakt4-pergiver-0.jsonl, analyse/eksakt4-pergiver-1.jsonl, analyse/eksakt4-pergiver-2.jsonl, analyse/eksakt4-pergiver-3.jsonl
+Leste 1200 linjer, 3 kandidater, 400 FELLES givere
+Frøbånd: 36000000–36000399
+Merke: eksakt sluttspill: terskel 4, froe 36000000, 400 givere
+
+Rå score mot benkemotstanderen (poeng/kamp, snitt over de 4 setene):
+  nevro                            +75.483 ± 0.064
+  vakt:at:e1:e1-modell/sd-r2.bin   +76.620 ± 0.059
+  eks:4:vakt:at:e1:e1-modell/sd-r2.bin +75.842 ± 0.060
+
+Parret mot vakt:at:e1:e1-modell/sd-r2.bin (samme givere):
+  nevro                            -1.1373 ± 0.0489   -23.3 SE   tegntest 46/399   p=<1e-6
+  eks:4:vakt:at:e1:e1-modell/sd-r2.bin -0.7781 ± 0.0290   -26.8 SE   tegntest 29/400   p=<1e-6
+
+Alle par innbyrdes (B − A, positivt = B best):
+  vakt:at:e1:e1-modell/sd-r2.bin − nevro                        +1.1373 ± 0.0489   tegntest 353/399   p=<1e-6
+  eks:4:vakt:at:e1:e1-modell/sd-r2.bin − nevro                        +0.3592 ± 0.0508   tegntest 254/393   p=<1e-6
+  eks:4:vakt:at:e1:e1-modell/sd-r2.bin − vakt:at:e1:e1-modell/sd-r2.bin -0.7781 ± 0.0290   tegntest 29/400   p=<1e-6

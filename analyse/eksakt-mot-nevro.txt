@@ -1,0 +1,25 @@
+PARRET POENGRAPPORT
+===================
+Kilder: analyse/eksakt-pergiver-0.jsonl, analyse/eksakt-pergiver-1.jsonl, analyse/eksakt-pergiver-2.jsonl, analyse/eksakt-pergiver-3.jsonl
+Leste 8000 linjer, 4 kandidater, 2000 FELLES givere
+Frøbånd: 36000000–36001999
+Merke: eksakt sluttspill: terskel 2 og 3 mot vakt:at, froe 36000000, 2000 givere
+
+Rå score mot benkemotstanderen (poeng/kamp, snitt over de 4 setene):
+  nevro                            +75.429 ± 0.030
+  vakt:at:e1:e1-modell/sd-r2.bin   +76.572 ± 0.028
+  eks:2:vakt:at:e1:e1-modell/sd-r2.bin +76.555 ± 0.028
+  eks:3:vakt:at:e1:e1-modell/sd-r2.bin +76.283 ± 0.028
+
+Parret mot vakt:at:e1:e1-modell/sd-r2.bin (samme givere):
+  nevro                            -1.1423 ± 0.0221   -51.7 SE   tegntest 205/1986   p=<1e-6
+  eks:2:vakt:at:e1:e1-modell/sd-r2.bin -0.0167 ± 0.0033   -5.0 SE   tegntest 401/1040   p=<1e-6
+  eks:3:vakt:at:e1:e1-modell/sd-r2.bin -0.2885 ± 0.0089   -32.3 SE   tegntest 197/1900   p=<1e-6
+
+Alle par innbyrdes (B − A, positivt = B best):
+  vakt:at:e1:e1-modell/sd-r2.bin − nevro                        +1.1423 ± 0.0221   tegntest 1781/1986   p=<1e-6
+  eks:2:vakt:at:e1:e1-modell/sd-r2.bin − nevro                        +1.1256 ± 0.0221   tegntest 1778/1985   p=<1e-6
+  eks:3:vakt:at:e1:e1-modell/sd-r2.bin − nevro                        +0.8538 ± 0.0226   tegntest 1636/1984   p=<1e-6
+  eks:2:vakt:at:e1:e1-modell/sd-r2.bin − vakt:at:e1:e1-modell/sd-r2.bin -0.0167 ± 0.0033   tegntest 401/1040   p=<1e-6
+  eks:3:vakt:at:e1:e1-modell/sd-r2.bin − vakt:at:e1:e1-modell/sd-r2.bin -0.2885 ± 0.0089   tegntest 197/1900   p=<1e-6
+  eks:3:vakt:at:e1:e1-modell/sd-r2.bin − eks:2:vakt:at:e1:e1-modell/sd-r2.bin -0.2718 ± 0.0084   tegntest 189/1883   p=<1e-6
