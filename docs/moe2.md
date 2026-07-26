@@ -2050,3 +2050,41 @@ utspillet med et sidekort – står seg i tallene: `t` (aldri trumf) måler
 og `at` +0,009 ± 0,008 bedre enn `ab`. Forskjellen er liten, men den peker
 konsekvent samme vei, og den strenge varianten har ingen målt fordel.
 **`vakt:at` er varianten som skal promoteres.**
+
+### Atferdskontrollen: begge vaktene virker som tenkt
+
+Profilen kjørt om igjen med vaktene på, 120 kontrakter mot MesterAI, samme
+oppsett som `mesterai-atferd2` (`analyse/mesterai-atferd-vakt.txt`, 37,6 min).
+Alle kolonnene svarer på DE SAMME stillingene.
+
+| stikk 1, som spillefører (n = 120) | MesterAI | sd-r2 | `+a` | `+at` | nevro |
+|---|---|---|---|---|---|
+| **etterlyst tar stikket** | 91 % | **43 %** | **100 %** | **100 %** | 99 % |
+| spilte ut sin høyeste trumf | 18 % | 42 % | 2 % | 2 % | 8 % |
+| valør på utspillet | 7,16 | 9,64 | 3,85 | 3,85 | 5,21 |
+
+| som spillefører, garantert (n = 133) | MesterAI | sd-r2 | `+t` | `+b` | nevro |
+|---|---|---|---|---|---|
+| **brente trumf** | 2 % | **27 %** | **2 %** | **2 %** | 25 % |
+| ikke billigste kort | 42 % | 57 % | 32 % | 11 % | 59 % |
+| slo stikket | 26 % | 65 % | 41 % | 29 % | 57 % |
+| *ikke* garantert: slo stikket | 82 % | 81 % | 81 % | 81 % | 86 % |
+
+Hullet fra `mesterai-atferd2` er lukket i begge ender: 43 % → 100 % på
+åpningen og 27 % → 2 % på brent trumf, som er nøyaktig MesterAIs nivå. Raden
+«ikke garantert» står helt stille (81 % i alle vaktkolonnene) – vakten rører
+bare de stillingene den skal røre, og lar de åpne valgene være agentens egne.
+Vakten slår inn i 5,9 % av kortvalgene (`at`, målt over 80 kamper).
+
+To ting tallene sier som ideen ikke sa:
+
+- **`a` er strengere enn MesterAI, ikke lik den.** MesterAI åpner med valør
+  7,16 og lar det etterlyste stå i 91 %; vakten legger 3,85 og treffer 100 %.
+  Den kjøper altså konvensjonen med å alltid velge det billigste kortet som
+  lar makkeren stå. Det MÅLER bedre (+0,63), men det er ikke MesterAIs stil,
+  og «høyeste kort som fortsatt lar det etterlyste stå» er en umålt variant.
+- **`b` bommer i de andre setene.** Som makker går «ikke billigste kort» fra
+  31 % (MesterAI 31 %) til 6 %, som forsvarer fra 39 % (MesterAI 45 %) til
+  13 %. Den strenge regelen retter et hull spilleføreren har og lager et
+  avvik i to seter som ikke hadde noe. `t` lar de setene stå (30 %/38 %) –
+  og måler 0,01 poeng bedre. Det henger sammen.
