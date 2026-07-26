@@ -1,0 +1,156 @@
+=== VRAKET: TREKK, REGLER OG HAANDVERDI, 24000 giver (0 hoppet over) ===
+Froebase 33000000. Budrunden er NevroHjerne og skjer FOER vraket, saa alle
+policyer maales paa noeyaktig samme stillinger. Etter vraket spiller
+«vakt:at:e1:e1-modell/sd-r2.bin» budvinnersetet og NevroHjerne de tre andre.
+Poeng = budvinnersetets differanse mot snittet av de tre andre, i den ene runden.
+Skrevet: 2026-07-26T11:33:59.092Z
+
+=== 1a. TREKK -> POENG, GIV-FASTE EFFEKTER ===
+Bare variasjonen mellom ULIKE VRAK AV SAMME HAAND teller. Kolonnen «eksogen»
+bruker bare de fire TILFELDIGE vrakene, der trekkene ikke er valgt av noen
+policy - der er koeffisienten en ekte kausal effekt og ikke et seleksjonsspor.
+
+trekk                       alle policyer        eksogen
+--------------------------------------------------------
+renonser                           +3.720         +3.474
+trumflengde                        +4.537         +4.033
+korte sterke (A/K i ≤3)            -0.436         -0.102
+vraket valør                       -0.102         -0.151
+vraket ESS                         -3.550         -2.524
+vraket KONGE                       -2.309         -1.633
+R^2 (innenfor giv)                  0.271          0.092
+n                                  264000          96000
+
+=== 1b. SAMME TREKK, MEN KONTROLLERT MED SD-ESTIMATET I STEDET ===
+Kryssgiv-regresjon med `analyserGiv`-estimatet for budvinnersetet som
+haandstyrkekontroll. Staar her fordi det var det oppdraget ba om; de
+giv-faste effektene over er STRENGERE, og der de er uenige gjelder de faste.
+
+  renonser                        +5.963
+  trumflengde                     +1.860
+  korte sterke (A/K i ≤3)         +2.685
+  vraket valør                    -0.040
+  vraket ESS                      -2.951
+  vraket KONGE                    -1.349
+  SD-estimat (kontroll)           +2.885
+  R^2 0.247, n 264000
+
+=== 1c. HVA ER EN RENONS VERDT? (alle policyer) ===
+farger igjen         n     poeng  poeng, giv-sentrert  lagstikk  innfridd
+-------------------------------------------------------------------------
+2                15500     12.75                +6.32     10.61      92 %
+3               110271      7.72                +4.19      9.66      78 %
+4               138229     -0.77                -4.05      8.59      52 %
+
+=== 1c. HVA ER EN RENONS VERDT? (bare tilfeldige vrak) ===
+farger igjen         n     poeng  poeng, giv-sentrert  lagstikk  innfridd
+-------------------------------------------------------------------------
+2                   49     13.56                +8.17     10.86      94 %
+3                 9741      2.27                +2.59      9.19      61 %
+4                86210     -3.80                -0.30      8.25      42 %
+
+=== 1d. RENONSBYTTET: PRISEN FOR AA TOEMME DEN KORTESTE FARGEN ===
+Parret ETT-KORTS bytte: kast toppkortet i den korteste fargen og bli RENONS,
+mot aa beholde det og kaste ett lavt kort til fra en annen farge. Alt annet
+i vraket er likt. Positivt d = renonsen var verdt prisen.
+Dette er tabellen 1c ikke kan gi: de haendene som KAN bli renons er
+systematisk andre haender enn de som ikke kan.
+
+gruppe                              n    d poeng      SE       p  d lagstikk
+----------------------------------------------------------------------------
+alle                            23899      +0.49    0.08   0.000      +0.101
+toppkortet er et ESS             5822      -2.88    0.16   0.000      -0.404
+toppkortet er en KONGE           3787      +0.20    0.20   0.323      +0.066
+toppkortet er dame/knekt         5112      +1.61    0.17   0.000      +0.278
+toppkortet er 10 eller lavere    9178      +2.12    0.13   0.000      +0.336
+fargen har 1 kort                4127      +1.89    0.19   0.000      +0.348
+fargen har 2 kort               11185      +0.70    0.12   0.000      +0.107
+fargen har 3 kort                8058      -0.50    0.14   0.001      -0.034
+fargen har 4 kort                 529      +0.12    0.60   0.838      +0.083
+ender med 2 farger               3957      +2.16    0.18   0.000      +0.393
+ender med 3 farger              19942      +0.16    0.09   0.083      +0.043
+
+=== 2. REGLENE, PARRET MOT NEVROS VRAK PAA SAMME GIV ===
+«mot nevro» er den parrede differansen. Ess og konge staar i hver sin
+kolonne - de skal aldri slaas sammen til «honnoer».
+
+policy                    poeng   mot nevro     SE       p  lagstikk  innfr.  renons  trumfl.    ESS   KONGE  = nevro
+---------------------------------------------------------------------------------------------------------------------
+korteste, aldri ess        8.78      +0.084  0.061   0.171      9.79    82 %    0.85     6.03  0.000   0.216     44 %
+renons uten ess            8.72      +0.024  0.062   0.694      9.79    81 %    0.94     6.03  0.000   0.256     45 %
+korteste, aldri A/K        8.72      +0.023  0.061   0.706      9.78    81 %    0.71     6.03  0.000   0.000     42 %
+nevro (dagens)             8.69      +0.000  0.000   1.000      9.79    81 %    0.86     6.02  0.009   0.117    100 %
+veid (målte vekter)        8.52      -0.176  0.068   0.010      9.74    81 %    1.01     6.04  0.011   0.104     36 %
+korteste, fritt            8.23      -0.465  0.066   0.000      9.71    80 %    1.02     6.03  0.209   0.203     36 %
+lavest valør               0.30      -8.392  0.105   0.000      8.75    55 %    0.09     4.71  0.000   0.000      1 %
+tilfeldig 3               -3.05     -11.747  0.109   0.000      8.36    45 %    0.10     4.80  0.403   0.363      0 %
+tilfeldig 1               -3.13     -11.827  0.109   0.000      8.34    44 %    0.11     4.80  0.408   0.353      0 %
+tilfeldig 4               -3.24     -11.935  0.109   0.000      8.34    44 %    0.10     4.79  0.409   0.363      0 %
+tilfeldig 2               -3.25     -11.946  0.109   0.000      8.34    44 %    0.10     4.79  0.412   0.363      0 %
+
+=== 3. NAAR LOENNER DET SEG AA HIVE KONGEN? ===
+Parret ETT-KORTS bytte paa samme haand: honnoeren inn i vraket mot det
+nest laveste kortet inn i stedet. Positivt d = det LOENNER seg aa hive den.
+
+gruppe                              n    d poeng      SE       p  d lagstikk
+----------------------------------------------------------------------------
+alle                            20498      -3.33    0.10   0.000      -0.432
+kastet gir RENONS                4064      -0.37    0.19   0.050      -0.048
+kastet gir ikke renons          16434      -4.06    0.11   0.000      -0.527
+essen blir igjen i fargen        6805      -3.91    0.17   0.000      -0.594
+essen blir IKKE igjen           13693      -3.04    0.12   0.000      -0.351
+fargen har 1–2 kort              2517      -0.27    0.22   0.234      -0.051
+fargen har 3 kort                4993      -1.18    0.17   0.000      -0.151
+fargen har 4+ kort              12988      -4.74    0.13   0.000      -0.613
+
+=== 3. SAMME FORSOEK MED ESSET - rapportert for seg ===
+Parret ETT-KORTS bytte paa samme haand: honnoeren inn i vraket mot det
+nest laveste kortet inn i stedet. Positivt d = det LOENNER seg aa hive den.
+
+gruppe                              n    d poeng      SE       p  d lagstikk
+----------------------------------------------------------------------------
+alle                            21530      -5.05    0.10   0.000      -0.661
+kastet gir RENONS                5057      -3.16    0.16   0.000      -0.453
+kastet gir ikke renons          16473      -5.63    0.11   0.000      -0.725
+essen blir igjen i fargen           0      +0.00       –   1.000      +0.000
+essen blir IKKE igjen           21530      -5.05    0.10   0.000      -0.661
+fargen har 1–2 kort              3210      -3.12    0.21   0.000      -0.456
+fargen har 3 kort                5833      -4.05    0.16   0.000      -0.539
+fargen har 4+ kort              12487      -6.02    0.14   0.000      -0.770
+
+=== 4. HAANDVERDI: SLAAR «HVOR STYRKEN SITTER» REN LENGDE? ===
+Maal: SD-estimatet (lagstikk setet henter hjem naar det faar kontrakten),
+fra analyserGiv. n = 96000 (4 seter x 24000 giver), delt paa midten.
+R^2 UTE er det som teller - R^2 inne vokser alltid av en kolonne til.
+
+modell                               R^2 inne    R^2 ute
+--------------------------------------------------------
+A: bare lengste farge                   0.050      0.052
+B: ren form (lengder)                   0.055      0.058
+C: form + honnørpoeng                   0.161      0.160
+D: form + ess og konger ATSKILT         0.147      0.149
+E: form + HVOR styrken sitter           0.163      0.162
+F: alt, ess/konge/A-K atskilt           0.164      0.164
+
+Koeffisientene i den fulle modellen (stikk per enhet):
+  lengste                         +0.431
+  nest lengste                    +0.137
+  farger brukt                    -0.100
+  honnørpoeng                     +0.102
+  honnør i lengste                +0.041
+  serie fra ess i lengste         -0.124
+  side-A/K                        +0.080
+  korte sterke sidefarger         -0.110
+  ess i hånden                    +0.140
+  konger i hånden                 +0.035
+  korte A-K-farger (≤3)           +0.073
+
+=== VEKTER TIL DEN VEIDE REGELEN (fra den EKSOGENE regresjonen) ===
+{
+  "renons": 3.474255676767363,
+  "lengsteFarge": 4.033119625344242,
+  "korteSterke": -0.10199638940300264,
+  "vraketValør": -0.15122250980413351,
+  "vraketEss": -2.523806673948056,
+  "vraketKonge": -1.6331207785084707
+}

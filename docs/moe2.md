@@ -2388,3 +2388,176 @@ Det som er verdt å ta med videre:
 - **DD-diagnosen står, nå med en skarpere kant.** Problemet med dobbelt dummy er
   ikke at den er upresis. Den er upresis OG skjev, og bare det første lar seg
   fikse med mer regnekraft.
+
+---
+
+## Vraket målt: fire hypoteser, tre holder, og ingen regel slår nevro
+
+Vraket gjøres i dag av **NevroHjerne i alle våre agenter** – E1 overstyrer bare
+kortspillet, konvensjonsvakten bare to kortvalg. Hvert tall vi noen gang har
+målt på vrak har derfor vært nevros oppførsel, identisk i hver kolonne, akkurat
+som budnettet viste seg å være. Atferdsprofilen mot MesterAI ga to hint om at
+det lå noe der: MesterAI tømmer **0,95** farger med vraket mot nevros 0,89, og
+kaster ess/konge i **4 %** av kortene mot nevros 3 %.
+
+Målingen: `examples/vrak-analyse.ts`, **2 × 24 000 giver** på disjunkte
+frøbånd (31 000 000 og 33 000 000). Budrunden er NevroHjerne og skjer FØR
+vraket, så alle policyer måles på nøyaktig samme stillinger. Etter vraket
+spiller `vakt:at:e1:e1-modell/sd-r2.bin` budvinnersetet og NevroHjerne de tre
+andre. Poeng er budvinnersetets differanse mot snittet av de tre andre.
+Varige filer: `analyse/vrak-analyse.{txt,json}` og `-r1.{txt,json}`.
+
+### Svaret først: ingen eksplisitt vrakregel slår nevros vrak
+
+Parret på giv, begge kjøringene slått sammen (48 000 giver):
+
+| regel | mot nevros vrak | farger tømt | ess vraket | konger vraket |
+|---|---|---|---|---|
+| **tøm korteste, aldri kast ess** | **+0,056 ± 0,043** | 0,85 | 0,000 | 0,217 |
+| tøm korteste, aldri kast A/K | −0,003 ± 0,043 | 0,71 | 0,000 | 0,000 |
+| renons uten ess | −0,010 ± 0,044 | 0,94 | 0,000 | 0,258 |
+| veid, målte vekter (kun holdout) | −0,176 ± 0,068 | 1,01 | 0,011 | 0,104 |
+| tøm korteste, ingen honnørvern | −0,474 ± 0,046 | 1,02 | 0,207 | 0,204 |
+| lavest valør | −8,46 ± 0,07 | 0,09 | 0,000 | 0,000 |
+| *nevro (dagens)* | 0 | 0,86 | 0,010 | 0,120 |
+
+Hovedkandidaten er **+0,056 ± 0,043, p ≈ 0,19** – en uavgjort, ikke en seier.
+**Ingenting promoteres.** Det er tredje gang en «gjør det MesterAI ser ut til å
+gjøre»-hypotese ikke bærer: variant «h» målte −0,21, MoE-premisset falt, og nå
+dette.
+
+Men to differanser *innenfor* tabellen er store og entydige:
+
+- **Å forby ESSET er verdt +0,53 poeng** (−0,474 → +0,056, samme regel ellers).
+- **Å legge kongeforbudet oppå koster −0,06** (+0,056 → −0,003) – altså ingenting.
+
+Det er nøyaktig asymmetrien Arvind presiserte, målt i poeng.
+
+### Hypotese 1: «man vraker for å bli kvitt svake FARGER» – SANN, men liten
+
+Tabellen «farger igjen → poeng» kan ikke svare på dette: de hendene som *kan*
+bli renons er systematisk andre hender enn de som ikke kan. Derfor et parret
+**ett-korts bytte** på samme hånd: kast toppkortet i den korteste fargen og bli
+renons, mot å beholde det og kaste ett lavt kort til fra en annen farge. Alt
+annet i vraket er likt.
+
+| renonsbyttet (holdout, n = 23 899) | d poeng |
+|---|---|
+| **alle** | **+0,49 ± 0,08** |
+| toppkortet er et ESS | **−2,88 ± 0,16** |
+| toppkortet er en KONGE | +0,20 ± 0,20 |
+| toppkortet er dame/knekt | +1,61 ± 0,17 |
+| toppkortet er 10 eller lavere | +2,12 ± 0,13 |
+| fargen har 1 kort | +1,89 ± 0,19 |
+| fargen har 2 kort | +0,70 ± 0,12 |
+| fargen har 3 kort | −0,50 ± 0,14 |
+
+Renonsen er ekte, men den er **betinget av hva den koster**. Den er verdt et
+lavt kort og en dame; den er ikke verdt et ess.
+
+Og nevro høster den allerede: reglene som tømmer FLERE farger enn nevro (0,94
+og 1,02 mot 0,86) scorer ikke bedre. Mekanismen er sann; påstanden om at vi
+lar poeng ligge igjen er det ikke.
+
+### Hypotese 2: «man sikter mot 2–3 farger» – SANN, og skarpere enn den ble sagt
+
+Samme ett-korts bytte, delt på hvor mange farger hånden ender med:
+
+| | d poeng |
+|---|---|
+| **renonsen tar deg fra 3 farger til 2** | **+2,16 ± 0,18** |
+| renonsen tar deg fra 4 farger til 3 | +0,16 ± 0,09 (p = 0,08) |
+
+**Den ANDRE renonsen er verdt tretten ganger den første.** «Sikt mot 2–3» er
+riktig, men gevinsten ligger i å komme til TO. Å gå fra fire farger til tre er
+gratis i begge retninger.
+
+### Hypotese 3: «håndverdi er ikke lengde alene» – FØRSTE HALVDEL sann, andre ikke
+
+Ren regresjon på SD-estimatet fra `analyserGiv` (hva hånden faktisk henter hjem
+når setet får kontrakten), 96 000 hender, halvparten holdt utenfor:
+
+| modell | R² ute |
+|---|---|
+| bare lengste farge | 0,052 |
+| all form (lengder, farger brukt) | 0,058 |
+| **form + honnørpoeng** | **0,160** |
+| form + hvor styrken sitter | 0,162 |
+| alt, ess/konge/A-K atskilt | 0,164 |
+
+**Styrken tredobler det formen alene forklarer.** «Håndverdi er ikke lengde
+alene» er riktig, og ikke marginalt.
+
+Men *hvor* styrken sitter forklarer nesten ingenting utover å telle honnørene
+(0,160 → 0,164). I stikk per enhet:
+
+| | stikk |
+|---|---|
+| +1 kort i den lengste fargen | +0,43 |
+| +1 ess (honnørpoeng + esstillegg) | +0,55 |
+| +1 konge (honnørpoeng + kongetillegg) | +0,34 |
+| farge med ≤3 kort som har BÅDE A og K | +0,07 |
+| farge med ≤3 kort som har ÉN av dem | −0,11 |
+
+Bytter man to lave sidekort mot ess og konge i en kort farge – hans eget
+eksempel, med formen holdt fast – er hele summen **+1,01 stikk, altså 2,35
+ekstra kort trumflengde.** Påstanden holder i størrelsesorden.
+
+Men den holder av feil grunn: **A K i kløver er verdt det fordi det er et ess og
+en konge, ikke fordi de sitter i en kort farge.** Tillegget for at de sitter
+sammen i en kort farge er +0,07, og en kort farge med bare ÉN av dem er −0,11.
+
+Det samme går igjen i vraket: trekket «har A/K i en farge med ≤3 kort» har
+koeffisient −0,10 til −0,23 på rundepoeng. Den korte sterke fargen er ikke en
+verdi i seg selv.
+
+### Hypotese 4: «ess og konge er ikke samme kategori» – SANN, og det største funnet
+
+Parret ett-korts bytte, honnøren inn i vraket mot det nest laveste kortet:
+
+| | KONGEN kastet | ESSET kastet |
+|---|---|---|
+| alle | −3,33 ± 0,10 | −5,05 ± 0,10 |
+| kastet gir renons | **−0,37 ± 0,19** | −3,16 ± 0,16 |
+| fargen har 1–2 kort | **−0,27 ± 0,22** (p = 0,23) | −3,12 ± 0,21 |
+| fargen har 3 kort | −1,18 ± 0,17 | −4,05 ± 0,16 |
+| fargen har 4+ kort | −4,74 ± 0,13 | −6,02 ± 0,14 |
+
+**Svaret på «når lønner det seg å hive kongen»: når fargen er på ett eller to
+kort, eller når kastet gjør deg renons.** Der er det gratis (−0,3 ± 0,2, ikke
+skilt fra null). Har fargen fire kort eller flere koster kongen −4,7.
+
+**Esset er negativt i HVER eneste rute.** Det finnes ikke en delmengde her der
+det lønner seg å hive et ess – heller ikke når kastet gir renons (−3,16).
+
+Én ekstra observasjon: kongen koster MER når esset i samme farge blir stående
+(−3,91 mot −3,04). A-K sammen er en løpende farge; å bryte den koster det andre
+stikket.
+
+Trekkregresjonen med giv-faste effekter over tilfeldige vrak sier det samme i
+ett tall: **et vraket ess koster −2,52 poeng, en vraket konge −1,63.**
+
+### Hva vi ikke fikk til: en vektet regel bygget på tallene
+
+Vektene fra den eksogene regresjonen (renons +3,13, trumflengde +4,03, ess
+−2,59, konge −1,67) ble brukt til å velge blant alle C(16,4) = 1 820 vrak.
+Regelen målte **−0,176 ± 0,068 på friske giver.**
+
+Grunnen står i tallene selv: koeffisientene er målt på TILFELDIGE vrak, som
+blir renons i 0,10 av tilfellene. Nevro blir det i 0,86. **+3,13 for en renons
+er et ekstrapolat; det parrede byttet måler den samme renonsen til +0,49 i det
+området valget faktisk tas – sju ganger mindre.** Regelen tømte 1,01 farger og
+betalte for det.
+
+Det er samme feilklasse som DD-fasitene: en verdi målt i én fordeling, brukt
+til å velge i en annen.
+
+### Hva dette betyr for MesterAI-gapet
+
+Atferdsprofilen sa MesterAI kaster ess/konge oftere enn oss. Målingen her sier
+at det bare er trygt hvis de ekstra honnørene er KONGER, i korte farger. Nevro
+kaster 0,010 ess og 0,120 konger per vrak. Å øke kongeandelen er omtrent
+gratis; å øke essandelen koster −2,5 poeng per ess.
+
+Å «ligne mer på MesterAI» på det aggregerte tallet «vraket ess/konge» ville
+altså vært å kopiere et snitt uten å kopiere betingelsen det gjelder under.
