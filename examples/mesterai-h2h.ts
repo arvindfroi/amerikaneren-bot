@@ -29,6 +29,7 @@
  * |---|---|---|
  * | `--kandidat` | nevro | `nevro`, `e1:<fil>`, `sd:<motpart>`, `pimc` eller `graadig` |
  * | `--sdverdener` | 12 | verdener SD-kandidaten sampler per kortvalg |
+ * | `--maksrunder` | 0 | kapp kampen etter saa mange runder (0 = spill til 100) |
  * | `--par` | 8 | antall speilede par (= 2 kamper hver) |
  * | `--froe` | 550000 | frøbase; par p bruker frø `froe + p` |
  * | `--parfra`/`--partil` | – | skard: kjør bare parene [fra, til) (parallelle prosesser) |
@@ -101,6 +102,8 @@ const tidMs = flagg("ms", 450);
 const låsteVerdener = flagg("verdener", 0);
 /** Verdener SD-kandidaten (`sd:<motpart>`) sampler per kortvalg. */
 const sdVerdener = flagg("sdverdener", 12);
+/** 0 = spill hele kampen til maalpoenget, som foer. */
+const maksRunder = flagg("maksrunder", 0);
 const adapterSti = tekstFlagg("adapter", "arena/adapter/.build/release/adapter");
 const utSti = tekstFlagg("ut", "analyse/mesterai-h2h.jsonl");
 
@@ -214,6 +217,17 @@ async function spillKamp(
   let guard = 0;
   while (state.fase !== "FERDIG" && guard++ < 20_000) {
     if (state.fase === "RUNDE_SLUTT") {
+      // KORTE KAMPER (--maksrunder). En hel kamp til 100 poeng er ~16 runder;
+      // med en SD-kandidat (tolv verdener × en hel utspilling per kortvalg) tar
+      // den over ti minutter, og da rekker en natt ikke nok PAR til at noe kan
+      // skilles. Kappes kampen, faller kostnaden proporsjonalt og antallet par
+      // stiger tilsvarende.
+      //
+      // FORBEHOLDET, som må stå: poeng PER RUNDE er fortsatt veldefinert og er
+      // enheten rapporten bruker, men «kampseire» og sluttspurten mot 100 er
+      // det ikke. Tall fra en kappet kjøring skal derfor bare settes mot andre
+      // kappede kjøringer – aldri mot de fulle kampene fra 25.–26. juli.
+      if (maksRunder > 0 && runder >= maksRunder) break;
       const res = utfør(state, { type: "NESTE" });
       state = res.state;
       for (const h of res.hendelser) {
@@ -304,6 +318,7 @@ async function hoved(): Promise<void> {
           mesterSeter,
           // Begge feltene logges så en linje alene sier hvilken MesterAI som spilte.
           ms: låsteVerdener > 0 ? null : tidMs,
+          maksRunder: maksRunder > 0 ? maksRunder : null,
           verdener: låsteVerdener > 0 ? låsteVerdener : null,
           poeng: res.poeng,
           mesterPoeng,
