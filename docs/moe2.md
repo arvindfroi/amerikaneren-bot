@@ -2135,3 +2135,49 @@ disk**; rapporten regnes på nytt med
 Til sammenlikning: sd-r2 alene ligger +0,499 ± 0,178 bak MesterAI over 36 par
 (`analyse/h2h-sdr2-*.jsonl`). Det tallet ble først synlig etter at
 par-grupperingen i rapporten ble rettet til å nøkle på frø.
+
+---
+
+## Konvensjonsvaktene mot MesterAI: 80 % av gapet lukket
+
+Målt over natta, 26. juli. Vakt og kontroll kjørte side om side på samme
+frøbånd, så sammenligningen er parret på giving og sete.
+
+| | mot MesterAI, poeng/runde/sete | kamper | kontrakter innfridd |
+|---|---|---|---|
+| sd-r2 (kontroll) | **+0,473 ± 0,047** | 1 326 | 70 % (MesterAI 73 %) |
+| **sd-r2 + vakt:at** | **+0,096 ± 0,055** | 944 | **75 %** (MesterAI 73 %) |
+
+Positivt tall = MesterAI er foran.
+
+**Parret på 588 felles (giving, sete): vakt:at er +11,20 ± 3,31 poeng per kamp
+bedre enn kontrollen (3,4 SE), bedre i 329 av 588.**
+
+To ting er verdt å lese to ganger:
+
+1. **Gapet til MesterAI er redusert fra 0,473 til 0,096 poeng per runde** –
+   80 % av det som var igjen. 0,096 ± 0,055 er 1,7 SE fra null, altså
+   praktisk talt jevnt.
+2. **Vi innfrir nå flere kontrakter enn MesterAI: 75 % mot 73 %.** Det tallet
+   var 60 % mot 80 % på SD-budet da fasegapet ble målt. Spilleføringen –
+   som var 104 % av hele tapet – er ikke lenger der vi taper.
+
+### Hva vakten faktisk er
+
+To deterministiske regler, ingen læring, null beregningskostnad:
+
+- **slå aldri ditt eget etterlyste kort** (Arvinds konvensjon: makkeren tar
+  stikket med det, du sparer honnøren og avslører makkeren gratis)
+- **på et garantert stikk: aldri betal med trumf**
+
+De overstyrer 5,9 % av kortvalgene. Resten er nettet.
+
+### Og sd-r2 hadde IKKE rettet det selv
+
+Konvensjonsmålingen viser at sd-r2 slår sitt eget etterlyste kort i **50 %**
+av kontraktene – nøyaktig som sd-r1. DAgger-runden fikset det ikke. Nevro
+ligger på 1 %, MesterAI på 7 %. Vakten tar sd-r2 til 1 %.
+
+Det bekrefter diagnosen: SD-læreren maksimerer forventet utfall per kortvalg
+og kan ikke se strukturell verdi som ligger utenfor det ene trekket. Mer data
+av samme slag ville ikke ha løst det – en regel gjorde det på ett forsøk.

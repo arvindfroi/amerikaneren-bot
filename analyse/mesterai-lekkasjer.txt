@@ -1,0 +1,108 @@
+=== MESTERAIS LEKKASJER: hvor spiller den suboptimalt, og hva koster det? ===
+
+Runder:            320
+Frøbase:           660000 (12 runder per kamp)
+MesterAI:          450 ms per kortvalg, alle fire seter
+SD-prising:        64 verdener per stilling, NevroHjerne spiller ut
+Tidsbruk:          145.7 min
+Skrevet:           2026-07-26T04:10:14.031Z
+Merke:             450 ms per kortvalg; TUNG maskinlast (4 mesterai-h2h, 2 e1-orakel, graf-puls, atferd-puls, konvensjonsmaaling)
+
+Δ = SD-verdi(alternativ) − SD-verdi(MesterAIs valg), i NØYAKTIG de samme
+verdenene. POSITIVT betyr at MesterAI tapte på sitt valg; nær null eller
+negativt betyr at «avviket» var riktig – en ofring, ikke en tabbe.
+
+EV/runde = frekvens × Δ. Det er tallet som rangerer: en lekkasje som
+oppstår i 2 % av rundene og koster 0,1 stikk er ikke verdt noe.
+
+Rader med n < 50 er merket USIKKER. «±» er standardfeilen til snittet.
+
+1) LEKKASJER MED HYPOTESE – MesterAI gjorde det avvikende. Sortert på |EV/runde|.
+   Alternativet følger av stillingen, ikke av evalueringen, så Δ er
+   forventningsrett: ingen argmax å bli lurt av.
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+  situasjon                         anledn  utløst   andel     n     Δpoeng       ±   Δstikk       ±  frek/rd   EVpoeng       ±  EVstikk       ±
+  ikke-tatt-stikk                     2154     272    13 %   272      0.913   0.145    0.199   0.021     0.85     0.776   0.124    0.169   0.018
+  ikke-tatt-stikk/flere igjen         1579     225    14 %   225      0.761   0.138    0.155   0.021     0.70     0.535   0.097    0.109   0.015
+  ikke-tatt-stikk/forsvarer           1128     173    15 %   173      0.873   0.111    0.176   0.023     0.54     0.472   0.060    0.095   0.013
+  vrak-honnoer                         320      52    16 %    52     -2.873   0.619   -0.303   0.058     0.16    -0.467   0.101   -0.049   0.009
+  trumf-ikke-lengst                    320      26     8 %    26      5.552   1.119    0.778   0.124     0.08     0.451   0.091    0.063   0.010  ← USIKKER
+  ikke-tatt-stikk/siste hånd           575      47     8 %    47      1.644   0.512    0.406   0.056     0.15     0.241   0.075    0.060   0.008  ← USIKKER
+  ikke-tatt-stikk/spillefører          674      63     9 %    63      1.190   0.539    0.173   0.052     0.20     0.234   0.106    0.034   0.010
+  garantert-dyrt                      2167     700    32 %   700     -0.083   0.036    0.003   0.007     2.19    -0.182   0.078    0.007   0.015
+  garantert-dyrt/forsvarer             321     125    39 %   125     -0.292   0.102    0.039   0.017     0.39    -0.114   0.040    0.015   0.007
+  renons-ikke-trumfet                  463      59    13 %    59      0.616   0.532    0.148   0.054     0.18     0.114   0.098    0.027   0.010
+  renons-ikke-trumfet/spillefører      349      43    12 %    43      0.554   0.711    0.115   0.067     0.13     0.074   0.095    0.015   0.009  ← USIKKER
+  ikke-tatt-stikk/makker               352      36    10 %    36      0.624   0.203    0.354   0.060     0.11     0.070   0.023    0.040   0.007  ← USIKKER
+  garantert-honnoer                   2001      63     3 %    63      0.265   0.220    0.154   0.031     0.20     0.052   0.043    0.030   0.006
+  garantert-dyrt/spillefører           260     113    43 %   113     -0.104   0.160   -0.003   0.013     0.35    -0.037   0.057   -0.001   0.005
+  aapning-etterlyst                    168      19    11 %    19      0.526   0.514    0.089   0.053     0.06     0.031   0.031    0.005   0.003  ← USIKKER
+  garantert-dyrt/makker               1586     462    29 %   462     -0.021   0.025   -0.005   0.009     1.44    -0.031   0.036   -0.007   0.013
+  renons-ikke-trumfet/forsvarer         67       9    13 %     9      0.906   0.847    0.181   0.113     0.03     0.025   0.024    0.005   0.003  ← USIKKER
+  renons-ikke-trumfet/makker            47       7    15 %     7      0.623   0.275    0.310   0.136     0.02     0.014   0.006    0.007   0.003  ← USIKKER
+  garantert-brent-trumf               1693       6     0 %     6     -0.301   0.190    0.560   0.078     0.02    -0.006   0.004    0.010   0.001  ← USIKKER
+
+2) KONTROLL – de SAMME situasjonene der MesterAI gjorde det konvensjonelle.
+   Δ er da prisen på avviket den IKKE tok. Er lekkasjen ekte, skal
+   kontrollraden ha MOTSATT fortegn av lekkasjeraden. Ligger begge nær
+   null, er «regelen» ikke verdt noe i den stillingen.
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+  situasjon                         anledn  utløst   andel     n     Δpoeng       ±   Δstikk       ±  frek/rd   EVpoeng       ±  EVstikk       ±
+  ikke-tatt-stikk                     2154     272    13 %   353     -4.256   0.375   -0.541   0.023     5.88   -25.028   2.208   -3.181   0.133
+  ikke-tatt-stikk/spillefører          674      63     9 %   159     -8.008   0.727   -0.727   0.030     1.91   -15.291   1.388   -1.388   0.057
+  renons-ikke-trumfet                  463      59    13 %   143     -5.791   0.730   -0.610   0.031     1.26    -7.311   0.922   -0.771   0.040
+  ikke-tatt-stikk/forsvarer           1128     173    15 %   140     -1.899   0.256   -0.398   0.035     2.98    -5.667   0.764   -1.187   0.104
+  garantert-dyrt                      2167     700    32 %   244     -0.513   0.085   -0.187   0.018     4.58    -2.351   0.389   -0.857   0.083
+  garantert-dyrt/makker               1586     462    29 %   175     -0.364   0.052   -0.183   0.019     3.51    -1.278   0.183   -0.643   0.065
+  garantert-dyrt/spillefører           260     113    43 %    21     -2.750   1.052   -0.295   0.074     0.46    -1.263   0.483   -0.136   0.034  ← USIKKER
+  ikke-tatt-stikk/makker               352      36    10 %    49     -1.069   0.225   -0.582   0.069     0.99    -1.055   0.222   -0.575   0.069  ← USIKKER
+  aapning-etterlyst                    168      19    11 %    55     -1.962   0.357   -0.283   0.038     0.47    -0.913   0.166   -0.132   0.017
+  garantert-dyrt/forsvarer             321     125    39 %    43     -0.941   0.224   -0.189   0.034     0.61    -0.576   0.137   -0.116   0.021  ← USIKKER
+
+3) UDEFINERT SØK – ingen hypotese, bare «hvor mye taper MesterAI på sitt
+   eget valg?».
+
+   `anger` er KRYSSVALIDERT: beste kort velges på halve verdenene og
+   måles på de andre, begge veier. Den måler derfor ikke anger mot et
+   optimum, men mot ÉN konkret motkandidat – en SD-velger med de samme
+   64 verdenene. Negativt Δ betyr at MesterAI slår den velgeren,
+   og det er i seg selv et svar: da kan ikke SD med dette budsjettet
+   brukes til å lete opp lekkasjer i kortspillet dens.
+   Her prises bare et UTVALG av beslutningene, mens frekvensen er den
+   ekte raten per runde – derfor er n mye mindre enn «utløst», og
+   EV-kolonnen er ganget opp ~40x. Les EV± før EV.
+
+   `bud-ett-hakk-opp/ned` er DETERMINISTISK etterpåklokskap på
+   budvinnerens eget poengdelta, ikke SD. Med ±2n for et tallbud er
+   fortegnet lett å lese: å by ett hakk opp koster −(4n+2) når det
+   ryker og gir +2 når det holder. `ned` har det ekstra forbeholdet at
+   budrunden holdes fast: med et lavere bud kunne en annen tatt
+   kontrakten, så den raden er et tak, ikke et tilbud.
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+  situasjon                         anledn  utløst   andel     n     Δpoeng       ±   Δstikk       ±  frek/rd   EVpoeng       ±  EVstikk       ±
+  bud-ett-hakk-opp                     320     320   100 %   320    -12.588   1.091    0.000   0.000     1.00   -12.588   1.091    0.000   0.000
+  anger                              11791   11791   100 %  1471      0.146   0.030    0.018   0.003    36.85     5.388   1.121    0.675   0.123
+  anger/spillefører                   3362    3362   100 %   422      0.431   0.095    0.037   0.007    10.51     4.529   0.996    0.386   0.078
+  bud-ett-hakk-ned                     320     320   100 %   320      2.975   0.703    0.000   0.000     1.00     2.975   0.703    0.000   0.000
+  anger/7+ kort                       2718    2718   100 %   374      0.312   0.084    0.043   0.009     8.49     2.649   0.716    0.367   0.075
+  anger/stikk 5-8                     4289    4289   100 %   538      0.169   0.057    0.021   0.005    13.40     2.271   0.768    0.282   0.070
+  anger/4-6 kort                      3617    3617   100 %   442      0.180   0.064    0.013   0.006    11.30     2.033   0.723    0.147   0.071
+  anger/stikk 1-4                     4205    4205   100 %   567      0.151   0.048    0.019   0.007    13.14     1.979   0.636    0.253   0.087
+  anger/stikk 9-12                    3297    3297   100 %   366      0.105   0.047    0.013   0.004    10.30     1.085   0.488    0.133   0.043
+  anger/forsvarer                     5759    5759   100 %   731      0.034   0.025    0.006   0.004    18.00     0.613   0.449    0.103   0.067
+  anger/2-3 kort                      5456    5456   100 %   655      0.029   0.021    0.008   0.004    17.05     0.494   0.359    0.131   0.060
+  anger/makker                        2670    2670   100 %   318      0.026   0.015    0.023   0.008     8.34     0.217   0.127    0.191   0.069
+
+LESEVEILEDNING
+  Δpoeng er egne poeng minus snittet av de tre andres, målt over
+  64 verdener. Δstikk er lagets stikk i den samme utspillingen.
+  FORBEHOLDET: fasiten er SD med NevroHjerne som utspiller. Den er
+  godkjent gjennom porten (+0,718 mot poeng), men den er ikke Gud – en
+  linje som bare betaler seg mot et sterkere forsvar enn NevroHjerne blir
+  undervurdert her. Tallene er et anslag med kjent fortegn, ikke en dom.
