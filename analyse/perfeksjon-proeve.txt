@@ -1,0 +1,34 @@
+
+=== Perfeksjonsverdi per stikk, kontrakt 9, 15 givere ===
+Spillefører: vab:e1-modell/sd-r2.bin. De tre andre setene er NevroHjerne.
+Grunnlinje: 9.933 lagstikk.
+
+Tallene er stikk vunnet ved å la orakelet ta ETT kortvalg, mot samme giv
+uten substitusjon. Nedstrømseffekten er med – runden spilles normalt videre.
+
+stikk         LOVLIG orakel (SD)    JUKSENDE orakel (DD)
+--------------------------------------------------------
+1                 -0.267 ± 0.267          +0.133 ± 0.307
+2                 -0.067 ± 0.067          -0.067 ± 0.067
+3                 +0.267 ± 0.267          +0.000 ± 0.258
+4                 -0.067 ± 0.228          -0.200 ± 0.327
+5                 +0.067 ± 0.067          +0.000 ± 0.098
+6                 +0.200 ± 0.200          +0.133 ± 0.215
+7                 +0.200 ± 0.145          +0.000 ± 0.098
+8                 +0.000 ± 0.000          -0.133 ± 0.215
+9                 +0.000 ± 0.000          -0.067 ± 0.067
+10                -0.067 ± 0.067          +0.000 ± 0.000
+11                +0.000 ± 0.000          +0.000 ± 0.000
+12                +0.000 ± 0.000          +0.000 ± 0.000
+--------------------------------------------------------
+SUM                       +0.267                  -0.200
+
+LESEVEILEDNING. Summen er IKKE hva vi ville vunnet ved å spille perfekt hele
+runden – hvert tall er målt med resten av runden spilt som før, og
+gevinstene overlapper. Den er et anslag på hvor mye som ligger igjen, og
+fordelingen over stikk sier HVOR det ligger.
+
+Kolonnen «lovlig» er ferdighet vi kan hente: orakelet ser bare det setet selv
+ser. Differansen mellom de to kolonnene er informasjon vi aldri kan ha,
+uansett hvor god boten blir. Er de like store, er det ikke informasjon som
+skiller oss fra taket – da er det spilleferdighet, og den kan trenes.

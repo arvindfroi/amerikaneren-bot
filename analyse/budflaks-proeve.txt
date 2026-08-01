@@ -1,0 +1,30 @@
+
+=== Hva burde man by? 30 hender x 15 trekninger per bud ===
+Budgiverens 12 kort holdes faste; de 40 andre deles ut på nytt hver gang.
+Spillefører: vakt:ab:e1:e1-modell/sd-r2.bin, NevroHjerne i de andre setene.
+
+bud      forventet poeng    lagstikk   spredning   innfridd
+-----------------------------------------------------------
+7                  12.69        9.26        1.33      100 %
+8                  11.80        9.19        1.30       97 %
+9                   7.92        9.36        1.35       73 %
+10                 -1.51        9.30        1.30       20 %
+11                -11.54        9.30        1.35        3 %
+
+OPTIMALT BUD mot referansene, samme hender:
+  poengoptimalt bud (denne målingen)   7.63
+  SD-orakelets bud                     8.73
+  NevroHjernes åpningsbud              5.00  (n=30)
+  differanse optimalt − SD             -1.10
+
+Å by SD-budet i stedet for det poengoptimale koster 6.31 poeng per hånd (n=30).
+
+FORBEHOLD. «Optimalt» her er optimalt MOT NEVRO-MOTSTAND og med vår egen
+spilleføring. En sterkere motstand presser det optimale budet ned, og en
+bedre spillefører løfter det. Tallet er et anslag på RETNINGEN og
+størrelsesordenen, ikke en fasit som kan kopieres inn i budnettet.
+
+Merk også at spredningen i lagstikk er flaksen i ren form: den kommer fra
+talongen, fra hvor makkerkortet ligger og fra fordelingen. Er den stor, skal
+budet ligge langt under forventningen – det er nettopp derfor menneskene
+melder 8,95 der SD sier 9,40 og likevel vinner.
