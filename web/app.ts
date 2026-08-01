@@ -21,6 +21,8 @@ import {
 } from "../src/motor.ts";
 import { NeatAgent } from "../src/neat/agent.ts";
 import { genomFraJson } from "../src/neat/genom.ts";
+import { E1Agent } from "../src/e1/agent.ts";
+import { Konvensjonsvakt, lesVaktflagg } from "../src/moe2/konvensjonsvakt.ts";
 import { AMERIKANER, PASS, SOLO, type Bud } from "../src/regler.ts";
 
 // --- Oppsett ----------------------------------------------------------------
@@ -35,6 +37,39 @@ const MENNESKE = 0;
 const LOKAL = location.protocol === "http:";
 const MESTER_URL = `${location.origin}/mester`;
 const MESTER_SETER = [1, 2, 3]; // botsetene styres av MesterAI i bro-modus
+
+// --- Vår beste bot ----------------------------------------------------------
+// sd-r2 er E1-nettet trent på single-dummy-fasit i to DAgger-runder, pakket i
+// konvensjonsvakten («at»): slå aldri ditt eget etterlyste kort, og brenn aldri
+// trumf på et stikk laget alt har sikret. Alt utenom kortspillet – bud, vrak og
+// trumfvalg – gjøres av NevroHjerne, som er bygget inn i bunten (src/nevro).
+//
+// Dette er NØYAKTIG den agenten som er målt mot appens MesterAI: +0,170 ± 0,043
+// poeng per runde per sete bak MesterAI over 788 speilede par, mot NevroHjernes
+// +1,068 ± 0,163. Vakten alene er verdt +0,319 ± 0,060 over rent sd-r2.
+// Nettleseren laster derfor `src/e1/agent.ts` – den samme klassen benken kjører
+// – i stedet for en kopi av kortvalget som kunne kommet i utakt.
+const VAKTFLAGG = "at";
+let botLaster: Promise<Konvensjonsvakt> | null = null;
+function besteBot(): Promise<Konvensjonsvakt> {
+  botLaster ??= fetch(DATA_URL + "sdr2.b64")
+    .then((r) => {
+      if (!r.ok) throw new Error(`sd-r2-vekter: HTTP ${r.status}`);
+      return r.text();
+    })
+    .then((b64) => {
+      const rå = atob(b64.trim());
+      const bytes = new Uint8Array(rå.length);
+      for (let i = 0; i < rå.length; i++) bytes[i] = rå.charCodeAt(i);
+      // Ett delt eksemplar for alle tre botsetene – slik benken kjører den.
+      return new Konvensjonsvakt(E1Agent.fraBytes(bytes, {}, "sdr2.b64"), lesVaktflagg(VAKTFLAGG));
+    })
+    .catch((feil: unknown) => {
+      botLaster = null; // la neste forsøk prøve på nytt
+      throw feil;
+    });
+  return botLaster;
+}
 
 /** Serialiserer en handling til adapterens JSON-format (som arena-adapteren). */
 function handlingTilAdapter(h: Handling): Record<string, unknown> {
@@ -176,12 +211,13 @@ async function initPimcWorker(): Promise<void> {
   });
 }
 
-/** Be workeren pondere på `s` i inntil `ms` (no-op utenfor PIMC-spillfasen). */
-function ponder(s: GameState, ms: number): void {
-  if (motstander !== "PIMC" || worker === null || ms < 120) return;
-  if (s.fase === "SPILL" && s.iTur !== null && s.iTur !== MENNESKE) {
-    worker.postMessage({ type: "pondre", state: s, ms });
-  }
+/**
+ * Pondering hoerte til PIMC-solveren, som er fjernet som motstander.
+ * NevroHjerne bruker mikrosekunder per trekk og har ingenting aa pondre paa.
+ * Funksjonen staar som no-op saa kallstedene ikke maa rives ut.
+ */
+function ponder(_s: GameState, _ms: number): void {
+  /* ingen motstander bruker worker-pondering lenger */
 }
 
 /** PIMC-beslutning i workeren; faller tilbake til rask synkron ved feil. */
@@ -205,19 +241,42 @@ async function pimcHandling(s: GameState): Promise<Handling> {
   }
 }
 
-/** Motstandertype: PIMC-solver, et trent NEAT-nett, eller appens MesterAI. */
-type Motstander = "PIMC" | "C4" | "D1" | "MesterAI";
+/**
+ * Motstandertype: PIMC-solveren, et trent NEAT-nett, appens nevronett eller
+ * appens fulle MesterAI.
+ */
+/**
+ * Bare ÉN motstander står igjen på nett: vår egen beste bot.
+ *
+ * C4 og D1 er evolusjonslinjer som er MÅLT til å spille kort dårligere enn å
+ * velge tilfeldig (anger 1,07–1,15 mot gulvet 1,035 på orakelbenken). PIMC
+ * taper 72,6 ± 8,5 poeng per kamp mot MesterAI, og NevroHjerne 44,8 ± 6,6 –
+ * mot vår beste bots 5,0 ± 1,5. Å la de svake stå ga familien motstandere som
+ * verken var sterke eller lærerike, og delte innsamlingen på fire bots i
+ * stedet for å samle den der den er verdt noe.
+ *
+ * MesterAI blir stående, men vises bare i bro-modus (spillet servert lokalt
+ * over HTTP fra laptopen) – den kan ikke kjøre i nettleseren.
+ */
+type Motstander = "Vaar" | "MesterAI";
 const MOTSTANDER_INFO: Record<Motstander, string> = {
-  PIMC: "PIMC – solveren (vanskeligst)",
-  C4: "C4 – evolusjonsnettet",
-  D1: "D1 – gradientnettet",
+  Vaar: "Vår beste bot – sd-r2 med konvensjonsvakt 🤖",
   MesterAI: "MesterAI – appens mester 🏆",
 };
 /** MesterAI vises kun i bro-modus (spillet servert lokalt over HTTP). */
 const MOTSTANDERE = (): Motstander[] =>
-  LOKAL ? ["PIMC", "C4", "D1", "MesterAI"] : ["PIMC", "C4", "D1"];
-let motstander: Motstander = "PIMC";
-let nettAgenter: NeatAgent[] | null = null; // sete 1–3 ved C4/D1
+  LOKAL ? ["Vaar", "MesterAI"] : ["Vaar"];
+let motstander: Motstander = "Vaar";
+
+/**
+ * Et nett som fører sitt eget sete. NeatAgent (C4/D1) og NevroSpiller (appens
+ * nevronett) har samme lille grensesnitt, så spilløkka trenger bare én vei.
+ */
+interface SeteAgent {
+  velgHandling(s: GameState): Handling;
+  nyKamp(): void;
+}
+let nettAgenter: SeteAgent[] | null = null; // sete 1–3 ved Nevro/C4/D1
 
 const FARGE_TEGN: Record<Farge, string> = { S: "♠", H: "♥", R: "♦", K: "♣" };
 const FARGE_NAVN: Record<Farge, string> = { S: "spar", H: "hjerter", R: "ruter", K: "kløver" };
@@ -247,7 +306,7 @@ function si(tekst: string): void {
 function logg(type: string, data: unknown): void {
   const hendelse = {
     spillId,
-    navn: `${spillerNavn} vs ${motstander}${motstander === "PIMC" ? `/${styrke}` : ""}`,
+    navn: `${spillerNavn} vs ${motstander}`,
     type,
     data,
     tid: new Date().toISOString(),
@@ -273,14 +332,15 @@ async function start(navn: string): Promise<void> {
   spillerNavn = navn || "familien";
   spillId = Math.random().toString(36).slice(2, 10);
   nettAgenter = null;
-  if (motstander === "C4" || motstander === "D1") {
-    rot.innerHTML = `<div class="panel start"><h2>Laster ${motstander}-nettet…</h2></div>`;
+  if (motstander === "Vaar") {
+    // Vår beste bot: vektene lastes én gang og bufres i nettleseren. ÉTT delt
+    // eksemplar fører alle tre botsetene, slik benken kjører den.
+    rot.innerHTML = `<div class="panel start"><h2>Laster vår beste bot…</h2></div>`;
     try {
-      const svar = await fetch(DATA_URL + motstander.toLowerCase() + ".json");
-      const genom = genomFraJson(await svar.text());
-      nettAgenter = [1, 2, 3].map(() => new NeatAgent(structuredClone(genom), { læringsrate: 0 }));
+      const bot = await besteBot();
+      nettAgenter = [bot, bot, bot];
     } catch {
-      rot.innerHTML = `<div class="panel start"><h2>Klarte ikke laste ${motstander}-nettet 😕</h2>
+      rot.innerHTML = `<div class="panel start"><h2>Klarte ikke laste boten 😕</h2>
         <button class="stor bekreft" id="tilbake">Tilbake</button></div>`;
       document.getElementById("tilbake")!.onclick = () => startskjerm();
       return;
@@ -302,7 +362,8 @@ async function start(navn: string): Promise<void> {
     } catch { /* faller tilbake til synkron RASK i pimcHandling */ }
   }
   state = opprettSpill({ antallSpillere: 4 }, (Date.now() ^ (Math.random() * 1e9)) >>> 0);
-  for (const a of nettAgenter ?? []) a.nyKamp();
+  // Ett delt eksemplar fører alle tre setene, så nullstill det bare én gang.
+  for (const a of new Set(nettAgenter ?? [])) a.nyKamp();
   if (motstander === "MesterAI") {
     broKø = Promise.resolve();
     void broPost({ type: "nyKamp", mesterSeter: MESTER_SETER });
@@ -691,15 +752,8 @@ function startskjerm(): void {
           role="radio" aria-checked="${m === motstander}">${MOTSTANDER_INFO[m]}</button>`)
         .join("")}
     </div>
-    ${motstander === "PIMC"
-      ? `<p style="margin:0 0 0.6vh">Styrke:</p>
-    <div class="knapper motstandere" role="radiogroup" aria-label="Styrke">
-      ${(Object.keys(STYRKER) as Styrke[])
-        .map((s) => `<button class="stor motstander${s === styrke ? " aktiv" : ""}" data-styrke="${s}"
-          role="radio" aria-checked="${s === styrke}">${STYRKER[s].navn}</button>`)
-        .join("")}
-    </div>`
-      : ""}
+    <!-- Styrkevalget hoerte til PIMC, som er fjernet. Nevronettet bruker
+         mikrosekunder per trekk, saa det finnes ingen tidsbudsjett aa velge. -->
     <label for="navn">Hvem spiller? (for dataloggen)</label>
     <input id="navn" type="text" placeholder="f.eks. mamma" autocomplete="off">
     <button class="stor bekreft" id="start-knapp">Start spillet</button>

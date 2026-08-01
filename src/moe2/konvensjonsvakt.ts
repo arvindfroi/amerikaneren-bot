@@ -37,6 +37,7 @@
  * SPESIFIKASJON: «vakt:<flagg>:<indre kandidat>», f.eks.
  *   vakt:a:e1:e1-modell/sd-r2.bin     bare åpningsvakten (billigste under)
  *   vakt:h:e1:e1-modell/sd-r2.bin     åpningsvakten, men HØYESTE under
+ *   vakt:l:e1:e1-modell/sd-r2.bin     ALLTID laveste trumf ut (menneskeregelen)
  *   vakt:t:e1:e1-modell/sd-r2.bin     bare «garantert: aldri trumf»
  *   vakt:b:e1:e1-modell/sd-r2.bin     bare «garantert: alltid billigst»
  *   vakt:at:e1:e1-modell/sd-r2.bin    begge (billigst-varianten av vakt 2 er b)
@@ -57,6 +58,25 @@ export interface Vaktvalg {
    * legger UNDER kortet, ikke at man legger lavest. Måles for seg.
    */
   readonly åpningHøyest?: boolean;
+  /**
+   * Vakt 3: som budvinner i stikk 1, spill ALLTID din laveste trumf.
+   *
+   * Dette er en STERKERE regel enn `åpning`, ikke en variant av den. `åpning`
+   * griper bare inn når utspillet ville slått det etterlyste kortet; den lar et
+   * lovlig, men middels høyt utspill stå. Denne griper alltid.
+   *
+   * Grunnlaget er menneskedataene (analyse/menneskedata-2026-08-01.md): på 304
+   * parrede stillinger spiller menneskene sin laveste trumf i 99,3 % av
+   * kontraktene, NevroHjerne i 44,7 %, SD-orakelet i 22,4 %.
+   *
+   * MERK at SD er UENIG i denne regelen. SD-rolloutens motstandermodell ER
+   * NevroHjerne, så SD svarer på hva som er best mot nevro – ikke mot et
+   * menneske. Konvensjonens påståtte verdi er å tvinge forsvaret til et valg,
+   * og det forutsetter en motstander som kan presses. Regelen kan derfor godt
+   * tape en måling mot nevro og likevel være riktig mot mennesker. Den skal
+   * ikke adopteres på benken alene.
+   */
+  readonly åpningLavest?: boolean;
   /** Vakt 2, mild: på et garantert stikk, aldri trumf når et avkast er lovlig. */
   readonly garantiIkkeTrumf: boolean;
   /** Vakt 2, streng: på et garantert stikk, alltid det billigste lovlige kortet. */
@@ -71,11 +91,13 @@ export function lesVaktflagg(flagg: string): Vaktvalg {
   for (const tegn of flagg) {
     if (tegn === "a") valg = { ...valg, åpning: true };
     else if (tegn === "h") valg = { ...valg, åpning: true, åpningHøyest: true };
+    else if (tegn === "l") valg = { ...valg, åpningLavest: true };
     else if (tegn === "t") valg = { ...valg, garantiIkkeTrumf: true };
     else if (tegn === "b") valg = { ...valg, garantiBilligst: true };
     else {
       throw new Error(
-        `Ukjent vaktflagg «${tegn}» (a = åpning/billigst, h = åpning/høyest, t = ikke trumf, b = billigst)`,
+        `Ukjent vaktflagg «${tegn}» (a = åpning/billigst, h = åpning/høyest, ` +
+          `l = åpning/alltid lavest, t = ikke trumf, b = billigst)`,
       );
     }
   }
@@ -161,6 +183,14 @@ export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg
   const trumf = s.trumf;
   const lovlige = lovligeKort(s, sete);
   if (lovlige.length <= 1) return valgt;
+
+  // Vakt 3 må stå FØR vakt 1: den er strengere og gjelder nøyaktig den samme
+  // stillingen (budvinnerens utspill i stikk 1). Slår den inn, er vakt 1
+  // automatisk oppfylt – den laveste trumfen kan ikke slå det etterlyste.
+  if (valg.åpningLavest === true && s.bord.length === 0 && s.stikkSpilt === 0 && sete === s.budvinner) {
+    const trumfKort = lovlige.filter((k) => k.farge === trumf);
+    if (trumfKort.length > 0) return billigste(trumfKort, trumf);
+  }
 
   if (valg.åpning && slårEgetEtterlyst(s, sete, valgt)) {
     const trygge = lovlige.filter((k) => !slårEgetEtterlyst(s, sete, k));
