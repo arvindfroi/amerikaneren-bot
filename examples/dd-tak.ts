@@ -40,12 +40,14 @@ let kontrakt = 9;
 let skardI = 0;
 let skardN = 1;
 let kandidatSpek = "vakt:ab:e1:e1-modell/sd-r2.bin";
+let fraStikk = 3;
 let ut = "analyse/dd-tak-0.jsonl";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--kamper") kamper = Number(process.argv[++i]);
   else if (a === "--kontrakt") kontrakt = Number(process.argv[++i]);
   else if (a === "--kandidat") kandidatSpek = process.argv[++i]!;
+  else if (a === "--fraStikk") fraStikk = Number(process.argv[++i]);
   else if (a === "--ut") ut = process.argv[++i]!;
   else if (a === "--skard") {
     const [x, y] = (process.argv[++i] ?? "0/1").split("/");
@@ -96,9 +98,23 @@ for (let f = 0; f < kamper; f++) {
     s = utfør(s, s.budvinner === budsete ? fører.velgHandling(s) : nevro.velgHandling(s)).state;
   }
   if (s.fase !== "SPILL") continue;
-  const start = s;
 
-  // Vår faktiske linje.
+  // SPILL FØRST `fraStikk` STIKK NORMALT. Full DD fra stikk 1 er 48 kort og
+  // sprenger 4 GB heap – seks skard krasjet på nøyaktig det. Fra stikk 4 er
+  // stillingen 9 kort per hånd og løses på 61 ms. Taket måles derfor fra der,
+  // og er da «hva som var å hente FRA denne stillingen», gitt at åpningen ble
+  // spilt som vi spiller den. Det er et ærligere spørsmål uansett: åpningen
+  // er den delen vakten alt har fikset.
+  g = 0;
+  while (s.fase === "SPILL" && s.stikkSpilt < fraStikk && g++ < 400) {
+    s = utfør(s, s.iTur === budsete ? fører.velgHandling(s) : nevro.velgHandling(s)).state;
+  }
+  if (s.fase !== "SPILL") continue;
+  const start = s;
+  const stikkFør = (start.stikkVunnet[budsete] ?? 0) +
+    (start.makker !== null ? (start.stikkVunnet[start.makker] ?? 0) : 0);
+
+  // Vår faktiske linje videre.
   g = 0;
   while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && g++ < 400) {
     s = utfør(s, s.iTur === budsete ? fører.velgHandling(s) : nevro.velgHandling(s)).state;
@@ -116,7 +132,10 @@ for (let f = 0; f < kamper; f++) {
   const rot = rotVerdier(byggDDOppsett(start, verden));
   const tak = Math.max(...rot.map((r) => r.lagStikk));
 
-  appendFileSync(ut, JSON.stringify({ frø, budsete, vårt, tak, sek: (Date.now() - t0) / 1000 }) + "\n");
+  appendFileSync(
+    ut,
+    JSON.stringify({ frø, budsete, fraStikk, stikkFør, vårt, tak, sek: (Date.now() - t0) / 1000 }) + "\n",
+  );
   n++;
   process.stdout.write(`\r  skard ${skardI}: ${n} givere   `);
 }
