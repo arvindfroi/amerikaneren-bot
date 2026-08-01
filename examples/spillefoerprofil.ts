@@ -1,0 +1,203 @@
+/**
+ * SPILLEFØRERPROFILEN – speilbildet av forsvarsprofil.ts.
+ *
+ *   node examples/spillefoerprofil.ts nevro e1:e1-modell/sd-r2.bin \
+ *        vakt:at:e1:e1-modell/sd-r2.bin --kamper 1500 --kontrakt 9
+ *
+ * HVORFOR. Fasegapet mot MesterAI (`analyse/fasegap-sdr2-*.jsonl`) sier at hele
+ * tapet ligger i spillefører­rollen, og at det avgjørende tallet er
+ * `lagstikk − SD`: −0,01 for oss, +0,30 for MesterAI. Med hånden holdt fast av
+ * orakelet er det spilleføringens eget bidrag.
+ *
+ * Det tallet var tvetydig, for det kunne like gjerne bety at FORSVARET vårt er
+ * svakere enn nevro – som er motstandermodellen SD antar. Forsvarsmålingen
+ * avkreftet det: sd-r2 forsvarer identisk med nevro (+0,005 ± 0,042 stikk over
+ * 573 givere), selv om 40 % av kortvalgene er forskjellige. Da må resten ligge
+ * i spilleføringen, og her måles den direkte.
+ *
+ * OPPSETTET er forsvarsprofilens, speilvendt: kontrakten TVINGES på ett sete,
+ * kandidaten fører den, og de tre andre setene er NevroHjerne. Alle
+ * kandidatene får NØYAKTIG de samme giverne og den samme motstanden, så
+ * differansen er parret og måles på identisk materiale.
+ *
+ * REFERANSEN er den samme som fasegapet bruker: `analyserGiv` + `sdBud` gir
+ * hva giva bærer for akkurat det setet. `lagstikk − SD` kan derfor leses rett
+ * mot MesterAIs +0,30 fra fasegaprapporten – samme metrikk, samme enhet.
+ *
+ * MERK at SD-referansen selv er en nevro-rollout. «lagstikk − SD ≈ 0» betyr
+ * altså «vi fører kontrakten omtrent som nevro ville gjort», ikke «vi henter
+ * alt som er å hente». Det er nettopp poenget: MesterAI ligger over den
+ * referansen, så en fasit bygget på nevro-rollouts kan ikke lære oss dit.
+ */
+
+import { writeFileSync } from "node:fs";
+
+import { lovligeHandlinger, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
+import { NevroAgent, besteTrumf } from "../src/nevro/index.ts";
+import { analyserGiv, sdBud, tømCache } from "../src/neat/singledummy.ts";
+import { E1Agent, lesE1Nett } from "../src/e1/nett.ts";
+import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
+
+let kamper = 1500;
+let kontrakt = 9;
+let utFil = "analyse/spillefoerprofil.txt";
+const spesser: string[] = [];
+for (let i = 2; i < process.argv.length; i++) {
+  const a = process.argv[i]!;
+  if (a === "--kamper") kamper = Number(process.argv[++i]);
+  else if (a === "--kontrakt") kontrakt = Number(process.argv[++i]);
+  else if (a === "--ut") utFil = process.argv[++i]!;
+  else spesser.push(a);
+}
+
+type Velger = { nyKamp(): void; velgHandling(s: GameState): Handling };
+
+function lagKandidat(spec: string): { navn: string; lag: () => Velger } {
+  const vakt = delVaktspek(spec);
+  if (vakt !== null) {
+    const indre = lagKandidat(vakt.indre);
+    return { navn: `v${vakt.flagg}:${indre.navn}`.slice(0, 14), lag: () => new Konvensjonsvakt(indre.lag(), vakt.valg) };
+  }
+  if (spec === "nevro") return { navn: "NevroHjerne", lag: () => new NevroAgent() };
+  if (spec.startsWith("e1:")) {
+    const fil = spec.slice(3);
+    const nett = lesE1Nett(fil);
+    return { navn: fil.split(/[\\/]/).pop()!.replace(".bin", "").slice(0, 14), lag: () => new E1Agent(nett) };
+  }
+  throw new Error(`Ukjent kandidat «${spec}» (bruk nevro, e1:<fil> eller vakt:<flagg>:<indre>)`);
+}
+
+/** Tvinger kontrakten `k` på `budsete`. Null hvis giva ikke tåler det. */
+function oppsett(frø: number, budsete: number, k: number): GameState | null {
+  let s = opprettSpill({ antallSpillere: 4 }, frø);
+  let g = 0;
+  while (s.fase === "BUDRUNDE" && s.iTur !== budsete && g++ < 8) {
+    s = utfør(s, { type: "BUD", spiller: s.iTur!, bud: "PASS" }).state;
+  }
+  if (s.fase !== "BUDRUNDE" || s.iTur !== budsete) return null;
+  // Samme filter som forsvarsprofil.ts: giva må i det minste være i nærheten
+  // av kontrakten, ellers måler vi håpløse hender i stedet for spilleføring.
+  if (besteTrumf(s.hender[budsete] ?? []).estimat < k - 3.5) return null;
+  try {
+    s = utfør(s, { type: "BUD", spiller: budsete, bud: k }).state;
+  } catch {
+    return null;
+  }
+  g = 0;
+  while (s.fase === "BUDRUNDE" && g++ < 8) s = utfør(s, { type: "BUD", spiller: s.iTur!, bud: "PASS" }).state;
+  return s.fase === "BUDRUNDE" ? null : s;
+}
+
+interface Rad {
+  readonly lagStikk: number[];
+  readonly motSD: number[];
+  readonly klarte: number[];
+  /** Kortvalg der kandidaten valgte noe annet enn nevro ville gjort. */
+  valg: number;
+  ulikNevro: number;
+}
+const nyRad = (): Rad => ({ lagStikk: [], motSD: [], klarte: [], valg: 0, ulikNevro: 0 });
+
+/** SD-estimatet for `sete` i denne giva – nøyaktig referansen fasegapet bruker. */
+const sdOrakel = new NevroAgent();
+function sdFor(frø: number, sete: number): number | null {
+  const friskt = opprettSpill({ antallSpillere: 4 }, frø);
+  try {
+    return sdBud(analyserGiv(friskt, sdOrakel), sete, friskt.giving.antallStikk);
+  } catch {
+    return null;
+  }
+}
+
+function kjør(lag: () => Velger, r: Rad, frø: number): void {
+  const budsete = frø % 4;
+  let s = oppsett(frø, budsete, kontrakt);
+  if (s === null) return;
+  const sd = sdFor(frø, budsete);
+  if (sd === null) return;
+
+  const kandidat = lag();
+  kandidat.nyKamp();
+  const nevro = new NevroAgent();
+  const skygge = new NevroAgent();
+  skygge.nyKamp();
+
+  let g = 0;
+  while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && g++ < 400) {
+    const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner! : s.iTur!;
+    if (iTur !== budsete) {
+      s = utfør(s, nevro.velgHandling(s)).state;
+      continue;
+    }
+    const h = kandidat.velgHandling(s);
+    if (h.type === "SPILL" && lovligeHandlinger(s).fase === "SPILL") {
+      r.valg++;
+      const n = skygge.velgHandling(s);
+      if (n.type !== "SPILL" || n.kort.farge !== h.kort.farge || n.kort.verdi !== h.kort.verdi) r.ulikNevro++;
+    } else {
+      // Hold skyggen i takt med linja også gjennom vrak og trumfvalg.
+      skygge.velgHandling(s);
+    }
+    s = utfør(s, h).state;
+  }
+
+  const stikk = s.stikkVunnet;
+  const lagStikk = (stikk[budsete] ?? 0) + (s.makker !== null ? (stikk[s.makker] ?? 0) : 0);
+  r.lagStikk.push(lagStikk);
+  r.motSD.push(lagStikk - sd);
+  r.klarte.push(lagStikk >= kontrakt ? 1 : 0);
+}
+
+const kandidater = spesser.map(lagKandidat);
+if (kandidater.length === 0) throw new Error("Oppgi minst én kandidat");
+
+const rader = kandidater.map(() => nyRad());
+for (let i = 0; i < kandidater.length; i++) {
+  for (let f = 0; f < kamper; f++) kjør(kandidater[i]!.lag, rader[i]!, 1_700_000 + f);
+  tømCache();
+  process.stdout.write(`\r  ${i + 1}/${kandidater.length} maalt   `);
+}
+console.log();
+
+const snitt = (v: readonly number[]): number => v.reduce((a, b) => a + b, 0) / v.length;
+const parretSE = (a: readonly number[], b: readonly number[]): number => {
+  const d = a.map((x, i) => x - b[i]!);
+  const m = snitt(d);
+  let sq = 0;
+  for (const x of d) sq += (x - m) * (x - m);
+  return Math.sqrt(sq / (d.length - 1) / d.length);
+};
+
+const linjer: string[] = [];
+const ut = (s: string): void => { linjer.push(s); console.log(s); };
+const kol = (v: string[]): string => v.map((x) => x.padStart(15)).join("");
+const rad = (navn: string, v: string[]): void => ut(navn.padEnd(30) + kol(v));
+const pst = (a: number, b: number): string => (b === 0 ? "–" : `${Math.round((100 * a) / b)} %`);
+
+ut(`\n=== Spillefører­profil, tvungen kontrakt ${kontrakt}, ${kamper} givere ===`);
+ut(`Kandidaten fører; de tre andre setene er NevroHjerne. Parret på giver.\n`);
+rad("", kandidater.map((k) => k.navn));
+ut("-".repeat(30 + 15 * kandidater.length));
+rad("kontrakter spilt", rader.map((r) => String(r.lagStikk.length)));
+rad("innfridd", rader.map((r) => pst(r.klarte.reduce((a, b) => a + b, 0), r.klarte.length)));
+rad("lagstikk", rader.map((r) => snitt(r.lagStikk).toFixed(3)));
+rad("lagstikk − SD", rader.map((r) => (snitt(r.motSD) >= 0 ? "+" : "") + snitt(r.motSD).toFixed(3)));
+const g0 = rader[0]!;
+rad(
+  `  mot ${kandidater[0]!.navn} (±SE)`,
+  rader.map((r, i) =>
+    i === 0 || r.lagStikk.length !== g0.lagStikk.length
+      ? "–"
+      : `${snitt(r.lagStikk) - snitt(g0.lagStikk) >= 0 ? "+" : ""}${(snitt(r.lagStikk) - snitt(g0.lagStikk)).toFixed(3)}±${parretSE(r.lagStikk, g0.lagStikk).toFixed(3)}`,
+  ),
+);
+rad("kortvalg (n)", rader.map((r) => String(r.valg)));
+rad("  ulikt nevro", rader.map((r) => pst(r.ulikNevro, r.valg)));
+ut(`
+MesterAI ligger på lagstikk − SD = +0,30 i fasegaprapporten, målt i hele
+kamper mot oss. Tallet over er målt mot NevroHjerne-motstand, så nivåene er
+ikke direkte sammenliknbare – men RANGERINGEN mellom kandidatene er det, og
+det er den som sier om et tiltak flytter spilleføringen i det hele tatt.`);
+
+writeFileSync(utFil, linjer.join("\n") + "\n");
+console.log(`\nSkrev ${utFil}`);

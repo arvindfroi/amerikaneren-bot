@@ -1,0 +1,30 @@
+
+=== Forsvarsprofil, kontrakt 9, 1500 givere (nevro spillefører) ===
+
+                                      NevroHjerne          sd-r2      vat:sd-r2
+-------------------------------------------------------------------------------
+givere spilt ut                               573            573            573
+KONTRAKTEN FALT                              26 %           25 %           26 %
+budlagets stikk                             9.389          9.394          9.377
+  stikk mot NevroHjerne (±SE)                   –   +0.005±0.042   -0.012±0.043
+
+Færre stikk til budlaget = bedre forsvar. Positivt tall over betyr
+altså at kandidaten forsvarer DÅRLIGERE enn den første kolonnen.
+
+kortvalg (n)                                 6876           6876           6876
+likt valg som nevro                         100 %           60 %           60 %
+
+BUDLAGET leder og vi kunne ta                1079           1026           1032
+  -> tok stikket                             82 %           95 %           95 %
+
+MEDFORSVARER leder (alt vårt)                 856            829            838
+  -> slo vårt eget stikk                     29 %           36 %           35 %
+  -> kastet honnør bort                       2 %            2 %            2 %
+
+renons + har trumf                            107            102            111
+  -> trumfet inn                             74 %           98 %           89 %
+
+utspill                                       754            786            787
+  -> spilte trumf ut                         10 %            7 %            7 %
+  -> spilte honnør ut                        29 %           23 %           23 %
+

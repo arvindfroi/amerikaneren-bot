@@ -23,6 +23,8 @@ import { readFileSync } from "node:fs";
 import { type Kort } from "../src/kort.ts";
 import { lovligeHandlinger, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
 import { genomFraJson, NeatAgent } from "../src/neat/index.ts";
+import { E1Agent, lesE1Nett } from "../src/e1/nett.ts";
+import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 import { besteTrumf, NevroAgent } from "../src/nevro/index.ts";
 import { stikkvinner } from "../src/motor.ts";
 
@@ -76,12 +78,22 @@ interface Profil {
   utspillHøyt: number;
   // Divergens mot nevro på identisk stilling
   likSomNevro: number;
+  /**
+   * UTFALLET, per giver. Atferd er bare interessant hvis den koster stikk, så
+   * dette er raden som avgjør. `klarte[i]` er 1 hvis budlaget hentet hjem
+   * kontrakten i giver i, `lagStikk[i]` er stikkene de fikk. Parret: alle
+   * kandidatene forsvarer NØYAKTIG de samme giverne mot den samme
+   * spilleføringen, så differansen måles på identisk materiale.
+   */
+  klarte: number[];
+  lagStikk: number[];
 }
 
 const nyProfil = (): Profil => ({
   valg: 0, makkerLeder: 0, makkerLederOgViSlo: 0, makkerLederOgViKastetHøyt: 0,
   kunneTa: 0, tokDet: 0, renonsMedTrumf: 0, trumfetInn: 0,
   utspill: 0, utspillTrumf: 0, utspillHøyt: 0, likSomNevro: 0,
+  klarte: [], lagStikk: [],
 });
 
 /** Ville `kort` vunnet stikket slik det står nå? */
@@ -157,15 +169,57 @@ function kjør(lag: () => Velger, p: Profil, frø: number): void {
     }
     s = utfør(s, h).state;
   }
+
+  // UTFALLET. Budlaget er budgiveren pluss makkeren; makkeren spilles av nevro
+  // i alle armene, så det eneste som varierer mellom kandidatene er det ene
+  // forsvarssetet. Kontrakten er tvungen og lik, så «klarte» kan leses direkte.
+  const stikk = s.stikkVunnet;
+  const lagStikk = (stikk[budsete] ?? 0) + (s.makker !== null ? (stikk[s.makker] ?? 0) : 0);
+  p.lagStikk.push(lagStikk);
+  p.klarte.push(lagStikk >= kontrakt ? 1 : 0);
 }
 
-const kandidater: { navn: string; lag: () => Velger }[] = [];
-for (const f of filer) {
-  const rå = JSON.parse(readFileSync(f, "utf8")) as { genom?: unknown };
-  const gen = genomFraJson(rå.genom !== undefined ? JSON.stringify(rå.genom) : readFileSync(f, "utf8"));
-  kandidater.push({ navn: f.split(/[\\/]/).pop()!.replace(".json", "").slice(0, 16), lag: () => new NeatAgent(gen, { læringsrate: 0 }) });
+/**
+ * Kandidatspesifikasjon, samme språk som benkene ellers: en genomfil,
+ * «nevro», «e1:<vektfil>» eller «vakt:<flagg>:<indre>».
+ *
+ * Grunnen til at E1 og vakten må inn HER er at forsvaret aldri har vært målt
+ * for dem. Fasegapet mot MesterAI viser -0,01 stikk mot SD for oss og +0,30
+ * for MesterAI som spillefører, men det tallet er tvetydig: det kan bety at
+ * MesterAI fører bedre, ELLER at forsvaret vårt er svakere enn nevros, som er
+ * motstandermodellen SD antar. Med nevro som tvungen spillefører og kandidaten
+ * i forsvarssetet er spilleføringen holdt fast, og bare forsvaret varierer.
+ */
+function lagKandidat(spec: string): { navn: string; lag: () => Velger } {
+  const vakt = delVaktspek(spec);
+  if (vakt !== null) {
+    const indre = lagKandidat(vakt.indre);
+    return {
+      navn: `v${vakt.flagg}:${indre.navn}`.slice(0, 16),
+      lag: () => new Konvensjonsvakt(indre.lag(), vakt.valg),
+    };
+  }
+  if (spec === "nevro") return { navn: "NevroHjerne", lag: () => new NevroAgent() };
+  if (spec.startsWith("e1:")) {
+    const fil = spec.slice(3);
+    const nett = lesE1Nett(fil);
+    return {
+      navn: fil.split(/[\\/]/).pop()!.replace(".bin", "").slice(0, 16),
+      lag: () => new E1Agent(nett),
+    };
+  }
+  const rå = JSON.parse(readFileSync(spec, "utf8")) as { genom?: unknown };
+  const gen = genomFraJson(rå.genom !== undefined ? JSON.stringify(rå.genom) : readFileSync(spec, "utf8"));
+  return {
+    navn: spec.split(/[\\/]/).pop()!.replace(".json", "").slice(0, 16),
+    lag: () => new NeatAgent(gen, { læringsrate: 0 }),
+  };
 }
-kandidater.push({ navn: "NevroHjerne", lag: () => new NevroAgent() });
+
+const kandidater: { navn: string; lag: () => Velger }[] = filer.map(lagKandidat);
+if (!filer.includes("nevro")) {
+  kandidater.push({ navn: "NevroHjerne", lag: () => new NevroAgent() });
+}
 
 const profiler = kandidater.map(() => nyProfil());
 for (let i = 0; i < kandidater.length; i++) {
@@ -178,6 +232,33 @@ const rad = (navn: string, v: string[]): void => console.log(navn.padEnd(34) + v
 console.log(`\n=== Forsvarsprofil, kontrakt ${kontrakt}, ${kamper} givere (nevro spillefører) ===\n`);
 rad("", kandidater.map((k) => k.navn));
 console.log("-".repeat(34 + 15 * kandidater.length));
+
+// UTFALLET FØRST. Atferdsradene under er bare diagnose; det er denne som sier
+// om forsvaret faktisk virker. Alle kandidatene forsvarte de samme giverne mot
+// den samme spilleføringen, så differansen er parret.
+const snitt = (v: readonly number[]): number => v.reduce((a, b) => a + b, 0) / v.length;
+const parretSE = (a: readonly number[], b: readonly number[]): number => {
+  const d = a.map((x, i) => x - b[i]!);
+  const m = snitt(d);
+  let sq = 0;
+  for (const x of d) sq += (x - m) * (x - m);
+  return Math.sqrt(sq / (d.length - 1) / d.length);
+};
+const grunn = profiler[0]!;
+rad("givere spilt ut", profiler.map((p) => String(p.klarte.length)));
+rad("KONTRAKTEN FALT", profiler.map((p) => pst(p.klarte.length - p.klarte.reduce((a, b) => a + b, 0), p.klarte.length)));
+rad("budlagets stikk", profiler.map((p) => snitt(p.lagStikk).toFixed(3)));
+rad(
+  `  stikk mot ${kandidater[0]!.navn} (±SE)`,
+  profiler.map((p, i) =>
+    i === 0 || p.lagStikk.length !== grunn.lagStikk.length
+      ? "–"
+      : `${(snitt(p.lagStikk) - snitt(grunn.lagStikk) >= 0 ? "+" : "")}${(snitt(p.lagStikk) - snitt(grunn.lagStikk)).toFixed(3)}±${parretSE(p.lagStikk, grunn.lagStikk).toFixed(3)}`,
+  ),
+);
+console.log("\nFærre stikk til budlaget = bedre forsvar. Positivt tall over betyr");
+console.log("altså at kandidaten forsvarer DÅRLIGERE enn den første kolonnen.\n");
+
 rad("kortvalg (n)", profiler.map((p) => String(p.valg)));
 rad("likt valg som nevro", profiler.map((p) => pst(p.likSomNevro, p.valg)));
 console.log();
