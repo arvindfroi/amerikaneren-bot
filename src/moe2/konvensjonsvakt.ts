@@ -37,7 +37,7 @@
  * SPESIFIKASJON: «vakt:<flagg>:<indre kandidat>», f.eks.
  *   vakt:a:e1:e1-modell/sd-r2.bin     bare åpningsvakten (billigste under)
  *   vakt:h:e1:e1-modell/sd-r2.bin     åpningsvakten, men HØYESTE under
- *   vakt:l:e1:e1-modell/sd-r2.bin     ALLTID laveste trumf ut (menneskeregelen)
+ *   vakt:l:e1:e1-modell/sd-r2.bin     laveste trumf ut NAAR etterlysningen er garantert
  *   vakt:t:e1:e1-modell/sd-r2.bin     bare «garantert: aldri trumf»
  *   vakt:b:e1:e1-modell/sd-r2.bin     bare «garantert: alltid billigst»
  *   vakt:at:e1:e1-modell/sd-r2.bin    begge (billigst-varianten av vakt 2 er b)
@@ -45,7 +45,7 @@
 
 import { likeKort, type Kort } from "../kort.ts";
 import { lovligeKort, stikkvinner, type GameState, type Handling } from "../motor.ts";
-import { billigste, dyreste, garantertSynlig, lagetSynlig } from "./synlig.ts";
+import { billigste, dyreste, garantertSynlig, lagetSynlig, ukjenteKort } from "./synlig.ts";
 
 /** Hvilke av reglene som er slått på. */
 export interface Vaktvalg {
@@ -59,22 +59,30 @@ export interface Vaktvalg {
    */
   readonly åpningHøyest?: boolean;
   /**
-   * Vakt 3: som budvinner i stikk 1, spill ALLTID din laveste trumf.
+   * Vakt 3: som budvinner i stikk 1, spill laveste trumf – MEN BARE når det
+   * etterlyste kortet er garantert.
    *
-   * Dette er en STERKERE regel enn `åpning`, ikke en variant av den. `åpning`
-   * griper bare inn når utspillet ville slått det etterlyste kortet; den lar et
-   * lovlig, men middels høyt utspill stå. Denne griper alltid.
+   * BETINGELSEN ER HELE REGELEN. Arvind formulerte konvensjonen presist: man
+   * spiller ut laveste trumf når man har etterlyst den høyeste trumfen man
+   * ikke selv har, altså når stikket er sikret. Sitter en forsvarer med en
+   * trumf over etterlysningen, kan kortet slås, og da er utspillet et ekte
+   * valg – det kan lønne seg å presse den høye trumfen ut.
    *
-   * Grunnlaget er menneskedataene (analyse/menneskedata-2026-08-01.md): på 304
-   * parrede stillinger spiller menneskene sin laveste trumf i 99,3 % av
-   * kontraktene, NevroHjerne i 44,7 %, SD-orakelet i 22,4 %.
+   * Er stikket derimot garantert, gir ENHVER trumf under etterlysningen
+   * nøyaktig samme utfall: makkeren tar stikket med det etterlyste kortet.
+   * Da er alt over den laveste ren sløsing – et kort brent uten å kjøpe noe.
+   * Det er samme form som vakt 1: den forbyr en tabbe der utfallet er kjent,
+   * i stedet for å gjette i en stilling der det ikke er det.
    *
-   * MERK at SD er UENIG i denne regelen. SD-rolloutens motstandermodell ER
-   * NevroHjerne, så SD svarer på hva som er best mot nevro – ikke mot et
-   * menneske. Konvensjonens påståtte verdi er å tvinge forsvaret til et valg,
-   * og det forutsetter en motstander som kan presses. Regelen kan derfor godt
-   * tape en måling mot nevro og likevel være riktig mot mennesker. Den skal
-   * ikke adopteres på benken alene.
+   * FØRSTE FORSØK VAR UBETINGET, og målte null: −0,009 stikk på 1092
+   * kontrakter og +0,00 ± 0,02 poeng på grådigbenken. Den versjonen fyrte
+   * også i stillingene der etterlysningen kunne slås, altså der utspillet
+   * betyr noe. Det er en annen regel enn denne, og den er forkastet.
+   *
+   * Menneskedataene (analyse/menneskedata-2026-08-01.md) sier at menneskene
+   * spiller laveste trumf i 99,3 % av kontraktene og etterlyser høyeste
+   * lovlige i 304 av 304 – de to henger sammen: å kalle høyest er nettopp det
+   * som gjør stikket garantert så ofte som mulig.
    */
   readonly åpningLavest?: boolean;
   /**
@@ -198,6 +206,24 @@ export function garantertVårt(s: GameState, sete: number): boolean {
   return garantertSynlig(s, sete, våre);
 }
 
+/**
+ * Er det etterlyste kortet garantert å ta stikk 1?
+ *
+ * Det holder at ingen ukjent trumf ligger OVER etterlysningen. Ukjent vil si
+ * verken på egen hånd, i eget vrak eller spilt – `ukjenteKort` regner alle
+ * tre. Ligger de høye trumfene hos oss selv eller i vraket, kan ingen forsvarer
+ * slå kortet, og makkeren tar stikket med det (makkerplikten tvinger det ned).
+ *
+ * Merk at etterlysningen selv er «ukjent» for oss – den ligger jo hos makkeren
+ * – men den er ikke høyere enn seg selv, så den teller ikke som trussel.
+ */
+function etterlystGarantert(s: GameState, sete: number): boolean {
+  const e = s.etterlyst;
+  if (e === null || s.trumf === null) return false;
+  const trumf = s.trumf;
+  return !ukjenteKort(s, sete).some((k) => k.farge === trumf && k.verdi > e.verdi);
+}
+
 /** Ville `kort` tatt stikket slik bordet står nå? */
 function vinnerMed(s: GameState, sete: number, kort: Kort): boolean {
   return stikkvinner(s.bord.concat({ spiller: sete, kort }), s.trumf!) === sete;
@@ -215,10 +241,12 @@ export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg
   const lovlige = lovligeKort(s, sete);
   if (lovlige.length <= 1) return valgt;
 
-  // Vakt 3 må stå FØR vakt 1: den er strengere og gjelder nøyaktig den samme
-  // stillingen (budvinnerens utspill i stikk 1). Slår den inn, er vakt 1
-  // automatisk oppfylt – den laveste trumfen kan ikke slå det etterlyste.
-  if (valg.åpningLavest === true && s.bord.length === 0 && s.stikkSpilt === 0 && sete === s.budvinner) {
+  // Vakt 3 må stå FØR vakt 1: der den slår inn, er vakt 1 automatisk oppfylt –
+  // den laveste trumfen kan ikke slå det etterlyste kortet.
+  if (
+    valg.åpningLavest === true && s.bord.length === 0 && s.stikkSpilt === 0 &&
+    sete === s.budvinner && etterlystGarantert(s, sete)
+  ) {
     const trumfKort = lovlige.filter((k) => k.farge === trumf);
     if (trumfKort.length > 0) return billigste(trumfKort, trumf);
   }

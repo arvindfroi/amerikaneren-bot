@@ -75,33 +75,52 @@ test("vakt 1: åpningsutspillet slår ikke det etterlyste kortet", () => {
   assert.equal(kortId(vaktKort(s, 0, k("S", 3), A_ÅPNING)), kortId(k("S", 3)));
 });
 
-test("vakt 3 «l»: alltid laveste trumf ut, også når vakt 1 er fornøyd", () => {
-  // Menneskeregelen. Poenget er at den griper der vakt 1 IKKE griper: alle de
-  // tre trumfene under damen lar det etterlyste stå, så «a» lar dem alle
-  // passere – men «l» krever den aller laveste.
-  const L_LAVEST: Vaktvalg = {
-    åpning: false, åpningLavest: true, garantiIkkeTrumf: false, garantiBilligst: false,
-  };
+const L_LAVEST: Vaktvalg = {
+  åpning: false, åpningLavest: true, garantiIkkeTrumf: false, garantiBilligst: false,
+};
+
+test("vakt 3 «l»: laveste trumf ut NÅR det etterlyste er garantert", () => {
+  // Etterlyst er spar dame, og spilleføreren sitter selv med esset og kongen.
+  // Da finnes ingen ukjent trumf over damen, makkerplikten tvinger damen ned,
+  // og stikket er sikret uansett hvilken lav trumf vi åpner med. Alt over den
+  // laveste er da sløsing.
   const s = stilling({
     trumf: "S",
     etterlyst: k("S", 12),
     budvinner: 0,
     iTur: 0,
-    hender: [[k("S", 11), k("S", 7), k("S", 3), k("H", 2)], [], [], []],
+    hender: [[k("S", 14), k("S", 13), k("S", 7), k("S", 3), k("H", 2)], [], [], []],
   });
-  // Vakt 1 ser ingen feil i knekten – den slår ikke damen.
-  assert.equal(slårEgetEtterlyst(s, 0, k("S", 11)), false);
-  assert.equal(kortId(vaktKort(s, 0, k("S", 11), A_ÅPNING)), kortId(k("S", 11)));
-  // Vakt 3 tvinger treeren uansett hva nettet ville spilt.
-  assert.equal(kortId(vaktKort(s, 0, k("S", 11), L_LAVEST)), kortId(k("S", 3)));
+  // Vakt 1 ser ingen feil i sjueren – den slår ikke damen – så «a» lar den stå.
+  assert.equal(slårEgetEtterlyst(s, 0, k("S", 7)), false);
+  assert.equal(kortId(vaktKort(s, 0, k("S", 7), A_ÅPNING)), kortId(k("S", 7)));
+  // Vakt 3 krever den aller laveste.
   assert.equal(kortId(vaktKort(s, 0, k("S", 7), L_LAVEST)), kortId(k("S", 3)));
+  assert.equal(kortId(vaktKort(s, 0, k("S", 14), L_LAVEST)), kortId(k("S", 3)));
   assert.equal(kortId(vaktKort(s, 0, k("S", 3), L_LAVEST)), kortId(k("S", 3)));
 
   // Den gjelder BARE budvinnerens utspill i stikk 1.
-  const senere = stilling({ ...s, stikkSpilt: 3 });
-  assert.equal(kortId(vaktKort(senere, 0, k("S", 11), L_LAVEST)), kortId(k("S", 11)));
-  const forsvarer = stilling({ ...s, budvinner: 1 });
-  assert.equal(kortId(vaktKort(forsvarer, 0, k("S", 11), L_LAVEST)), kortId(k("S", 11)));
+  assert.equal(kortId(vaktKort(stilling({ ...s, stikkSpilt: 3 }), 0, k("S", 7), L_LAVEST)), kortId(k("S", 7)));
+  assert.equal(kortId(vaktKort(stilling({ ...s, budvinner: 1 }), 0, k("S", 7), L_LAVEST)), kortId(k("S", 7)));
+});
+
+test("vakt 3 «l» holder seg UNNA når etterlysningen kan slås", () => {
+  // Samme stilling, men nå mangler vi kongen. Den ligger et ukjent sted, så en
+  // forsvarer kan stikke over damen. Da er utspillet et ekte valg – det kan
+  // lønne seg å presse kongen ut – og regelen skal ikke gripe inn.
+  const s = stilling({
+    trumf: "S",
+    etterlyst: k("S", 12),
+    budvinner: 0,
+    iTur: 0,
+    hender: [[k("S", 14), k("S", 7), k("S", 3), k("H", 2)], [], [], []],
+  });
+  assert.equal(kortId(vaktKort(s, 0, k("S", 7), L_LAVEST)), kortId(k("S", 7)));
+
+  // Ligger kongen i VÅRT EGET vrak, er den ute av spillet og stikket sikret
+  // igjen – vraket er informasjon budvinneren har lov til å bruke.
+  const medVrak = stilling({ ...s, vrak: [k("S", 13)] });
+  assert.equal(kortId(vaktKort(medVrak, 0, k("S", 7), L_LAVEST)), kortId(k("S", 3)));
 });
 
 test("vakt 1, variant «h»: høyeste utspill som fortsatt lar det etterlyste stå", () => {
