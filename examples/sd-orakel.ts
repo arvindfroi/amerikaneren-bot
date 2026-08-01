@@ -55,8 +55,8 @@ import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { lagRng } from "../src/kort.ts";
-import { lovligeKort, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
-import { e1SpillTrekk, E1_SPILL_DIM } from "../src/e1/trekk.ts";
+import { lovligeHandlinger, lovligeKort, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
+import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2 } from "../src/e1/trekk.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { vurderKortSD } from "../src/moe2/sdkort.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
@@ -112,6 +112,35 @@ let utforsk = 0.15;
 let fraStikk = 0;
 let maks = 0;
 let motpartSpek = "nevro";
+/**
+ * BUDSPREDNING: andel runder der kontrakten TVINGES til et trukket bud i
+ * stedet for å overlates til nevros budrunde.
+ *
+ * MÅLT PÅ sd-vakt-dataene 2026-08-02, 22 544 stillinger:
+ *
+ *   bud  7   0,03 %      bud 10   36,5 %
+ *   bud  8    6,5 %      bud 11    1,6 %
+ *   bud  9   55,3 %
+ *
+ * 92 % av all treningsdata er bud 9 eller 10, fordi det er dét nevro byr.
+ * Nettet får kontrakten som trekk (indeks 225) og kan i prinsippet spille
+ * ulikt under ulike kontrakter – men det har aldri sett en niende av dem.
+ *
+ * DET ER EN SELVFORSTERKENDE FELLE, og den binder budrunden til kortspillet:
+ * `analyse/budflaks.txt` måler at det poengoptimale budet ligger rundt 7,6,
+ * altså nøyaktig der dataene er tomme. Vi tør ikke by lavere fordi nettet
+ * ikke kan spille lavere, og nettet lærer aldri å spille lavere fordi vi
+ * ikke byr lavere.
+ *
+ * PRISEN er at stillingene blir mindre realistiske: en hånd som aldri ville
+ * blitt meldt 12, meldes 12 her. Det er en bevisst byttehandel – dekning mot
+ * realisme – og derfor er standarden 0,5 og ikke 1: halvparten av rundene
+ * beholder nevros egen budfordeling, så den naturlige fordelingen fortsatt
+ * dominerer der den finnes.
+ */
+let budspredning = 0.5;
+/** Kontraktene som trekkes uniformt. Tyngden ligger med vilje i tynne data. */
+const BUDSTIGE = [7, 8, 8, 9, 10, 11, 11, 12];
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--ut") utFil = process.argv[++i] ?? utFil;
@@ -129,6 +158,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--fraStikk") fraStikk = Number(process.argv[++i]);
   else if (a === "--maks") maks = Number(process.argv[++i]);
   else if (a === "--motpart") motpartSpek = process.argv[++i] ?? "nevro";
+  else if (a === "--budspredning") budspredning = Number(process.argv[++i]);
 }
 
 // EGEN UTMAPPE. `verktoy/e1-tren.py` leser alle `skard-*.jsonl` i en mappe og
@@ -198,11 +228,21 @@ alleKamper: for (let k = 0; k < kamper; k++) {
   const frø = frøBase + skardI * 1_000_000 + k;
   let s = opprettSpill({ antallSpillere: 4 }, frø);
   let guard = 0;
+  /** Kontrakten denne runden tvinges til, eller null = la nevro by fritt. */
+  let tvungetBud: number | null = null;
+  let harBydd = false;
   while (s.fase !== "FERDIG" && guard++ < 20_000) {
     if (s.fase === "RUNDE_SLUTT") {
       if (s.rundeNr + 1 >= 30) break;
       s = utfør(s, { type: "NESTE" }).state;
+      tvungetBud = null;
+      harBydd = false;
       continue;
+    }
+    // Trekk kontrakt for runden ved første budhandling.
+    if (s.fase === "BUDRUNDE" && tvungetBud === null && !harBydd && budspredning > 0) {
+      if (rng() < budspredning) tvungetBud = BUDSTIGE[Math.floor(rng() * BUDSTIGE.length)]!;
+      else tvungetBud = 0; // 0 = denne runden går til nevro
     }
     let h: Handling;
     if (s.fase === "SPILL" && s.iTur !== null) {
@@ -229,7 +269,11 @@ alleKamper: for (let k = 0; k < kamper; k++) {
               // + 35 egne), `nt` er NEATs 318 – og de er LETTE å forveksle: tre
               // feil på én dag kom av nettopp det. Uten begge kan ikke
               // NEAT-genomer scores på angerbenken.
-              t: Array.from(e1SpillTrekk(s, sete), (x) => Math.round(x * 10_000) / 10_000),
+              // `t` skrives nå i v2-bredde (340). De 273 første indeksene er
+              // BIT FOR BIT de samme som før, så gamle rader og nye kan
+              // blandes i samme treningssett – de gamle mangler bare halen,
+              // og halens siste indeks er nettopp flagget som sier det.
+              t: Array.from(e1SpillTrekk(s, sete, E1_SPILL_DIM_V2), (x) => Math.round(x * 10_000) / 10_000),
               nt: lagInn(spillerVisning(s, sete), "SPILL", s.giving.antallStikk, s.regler.målPoeng).map(
                 (x) => Math.round(x * 10_000) / 10_000,
               ),
@@ -253,10 +297,27 @@ alleKamper: for (let k = 0; k < kamper; k++) {
         rng() < utforsk
           ? { type: "SPILL", spiller: sete, kort: lovlige[Math.floor(rng() * lovlige.length)]! }
           : spiller.velgHandling(s);
+    } else if (s.fase === "BUDRUNDE" && tvungetBud !== null && tvungetBud > 0) {
+      // TVUNGEN KONTRAKT. Se BUDSTIGE for hvorfor: uten dette er 92 % av
+      // dataene bud 9-10, og nettet kan bare spille de kontraktene.
+      const lov = lovligeHandlinger(s);
+      const tall = lov.fase === "BUDRUNDE" ? lov.bud.filter((b): b is number => typeof b === "number") : [];
+      if (!harBydd && tall.includes(tvungetBud)) {
+        harBydd = true;
+        h = { type: "BUD", spiller: s.iTur!, bud: tvungetBud };
+      } else if (!harBydd && tall.length > 0 && Math.min(...tall) > tvungetBud) {
+        // Budet er alt overbudt av en tidligere runde i samme budrunde.
+        // Da faller runden tilbake til nevro i stedet for aa tvinges hoyere -
+        // aa presse budet opp ville laget nettopp den skjevheten vi fjerner.
+        tvungetBud = 0;
+        h = nevro.velgHandling(s);
+      } else {
+        h = { type: "BUD", spiller: s.iTur!, bud: "PASS" };
+      }
     } else {
-      // Bud, vrak og trumfvalg tas alltid av nevro - ogsaa i DAgger-runden.
-      // Det er de fasene sd-nettet ikke eier, og aa la det bestemme dem ville
-      // endret kontraktfordelingen og dermed hva stillingene er.
+      // Vrak og trumfvalg tas alltid av nevro - ogsaa i DAgger-runden. Det er
+      // de fasene sd-nettet ikke eier. Budrunden gaar hit naar kontrakten
+      // ikke tvinges.
       h = nevro.velgHandling(s);
     }
     s = utfør(s, h).state;
@@ -269,5 +330,6 @@ alleKamper: for (let k = 0; k < kamper; k++) {
 }
 
 console.log(
-  `Ferdig: ${merket} stillinger à ${E1_SPILL_DIM} trekk, SD med ${verdener} verdener → ${ut}`,
+  `Ferdig: ${merket} stillinger à ${E1_SPILL_DIM_V2} trekk (v1 ${E1_SPILL_DIM} + minneblokk), ` +
+    `SD med ${verdener} verdener, budspredning ${budspredning} → ${ut}`,
 );

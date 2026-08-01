@@ -1,0 +1,22 @@
+
+=== Hukommelseshullet i E1s trekkuttrekk ===
+300 givere, kontrakt 9, budvinner spilt av vakt:ab:e1:e1-modell/sd-r2.bin.
+
+VRAKET SELV (kjent bare for budvinneren, aldri kodet):
+  honnørandel i vraket (V/D/K/E)          10.9 %  (131/1200)
+
+SETT FRA BUDVINNEREN – 3600 kortvalg:
+  stillinger der «høyeste ute» i minst én
+  farge egentlig er vraket av en selv     18.9 %
+  det samme talt per farge                6.3 %  (803/12674)
+  døde kort talt som «ute», per stilling  4.00 av 4
+
+SETT FRA ET FORSVARERSETE – 10800 kortvalg:
+  døde kort talt som «ute», per stilling  4.00 av 4
+  (forsvareren vet ikke HVILKE fire, men vet at de finnes – heller ikke
+   det antallet er kodet i dag.)
+
+LESEVEILEDNING. Dette er et hull i INFORMASJONEN nettet får, ikke et målt
+tap i stikk. At hullet finnes betyr ikke at det koster noe – det må måles
+for seg. Men det er lovlig informasjon vi kaster bort, og et menneske ved
+bordet kaster den ikke: man husker hva man selv la ned.

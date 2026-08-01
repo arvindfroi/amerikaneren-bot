@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { E1_SPILL_DIM } from "../src/e1/trekk.ts";
+import { E1_SPILL_DIM, E1_SPILL_DIM_V2 } from "../src/e1/trekk.ts";
 import { ANTALL_INN } from "../src/neat/trekk.ts";
 
 /**
@@ -20,7 +20,8 @@ import { ANTALL_INN } from "../src/neat/trekk.ts";
  * – JSON har ingen typer – og oppdages først som en trening som ikke lærer.
  */
 
-const TREKK_T = 273;
+const TREKK_T = 273; // v1: kodingen sd-r2.bin og eldre nett ble trent med
+const TREKK_T2 = 340; // v2: v1 + minneblokken (eget vrak, korrigert «ute»)
 const TREKK_NT = 318;
 
 /** Nøklene e1-orakel skriver, uten den fasitspesifikke (`dybde`/`sdVerdener`). */
@@ -28,6 +29,7 @@ const FELLESNØKLER = ["t", "nt", "v", "n", "frø", "stikk"] as const;
 
 test("konstantene er de forventede, så resten av testen betyr noe", () => {
   assert.equal(E1_SPILL_DIM, TREKK_T);
+  assert.equal(E1_SPILL_DIM_V2, TREKK_T2);
   assert.equal(ANTALL_INN, TREKK_NT);
   assert.notEqual(TREKK_T, TREKK_NT, "hele forvekslingsfaren avhenger av at de er ulike");
 });
@@ -54,7 +56,7 @@ test("sd-orakel skriver e1-formatet", () => {
 
     const t = r["t"] as number[];
     const nt = r["nt"] as number[];
-    assert.equal(t.length, TREKK_T, "t skal være E1-vektoren (273), ikke NEAT-vektoren");
+    assert.equal(t.length, TREKK_T2, "t skal være E1-vektoren i v2 (340), ikke NEAT-vektoren");
     assert.equal(nt.length, TREKK_NT, "nt skal være NEAT-vektoren (318), ikke E1-vektoren");
     assert.ok(t.every((x) => Number.isFinite(x)));
     assert.ok(nt.every((x) => Number.isFinite(x)));
@@ -92,7 +94,15 @@ test("nøklene stemmer med ekte e1-orakel-data på disk", (t) => {
     for (const n of FELLESNØKLER) {
       assert.ok(n in r, `e1-orakel-linjen i ${m} mangler «${n}» – formatene har glidd fra hverandre`);
     }
-    assert.equal((r["t"] as number[]).length, TREKK_T);
+    // Dataene på disk kan være fra før minneblokken fantes. Begge bredder er
+    // lovlige – de 273 første indeksene betyr det samme i v1 og v2, og det er
+    // nettopp derfor de to settene kan blandes i én trening. Alt ANNET enn de
+    // to er formatglidning, og det er det denne påstanden vokter.
+    const bredde = (r["t"] as number[]).length;
+    assert.ok(
+      bredde === TREKK_T || bredde === TREKK_T2,
+      `e1-orakel-linjen i ${m} har ${bredde} trekk, forventet ${TREKK_T} (v1) eller ${TREKK_T2} (v2)`,
+    );
     assert.equal((r["nt"] as number[]).length, TREKK_NT);
     return;
   }

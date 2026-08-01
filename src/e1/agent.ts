@@ -22,7 +22,7 @@ import { lovligeKort, type GameState, type Handling } from "../motor.ts";
 import { velgHandling as pimcVelg } from "../bot/bot.ts";
 import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { kortIndeks, NevroAgent } from "../nevro/index.ts";
-import { e1SpillTrekk, E1_SPILL_DIM } from "./trekk.ts";
+import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2 } from "./trekk.ts";
 
 /**
  * Leser et E1-nett fra rå bytes og verifiserer at formen stemmer med
@@ -34,8 +34,14 @@ export function e1NettFraBytes(bytes: Uint8Array, kilde = "vektene"): NevroNett 
   const nett = nettFraBytes(bytes);
   if (nett.length !== 1) throw new Error(`E1: forventet ett nett i ${kilde}, fikk ${nett.length}`);
   const første = nett[0]!.lag[0]!;
-  if (første.inn !== E1_SPILL_DIM) {
-    throw new Error(`E1: nettet tar ${første.inn} trekk, men trekkuttrekket gir ${E1_SPILL_DIM}`);
+  // To lovlige bredder: v1 (273) er kodingen sd-r2.bin og eldre nett ble
+  // trent med, v2 (340) legger minneblokken oppå. Alt annet er en feil, og
+  // skal si fra – et nett med gal inngangsbredde ville ellers gitt tause
+  // søppelvalg i stedet for en feilmelding.
+  if (første.inn !== E1_SPILL_DIM && første.inn !== E1_SPILL_DIM_V2) {
+    throw new Error(
+      `E1: nettet tar ${første.inn} trekk, men trekkuttrekket gir ${E1_SPILL_DIM} (v1) eller ${E1_SPILL_DIM_V2} (v2)`,
+    );
   }
   const siste = nett[0]!.lag[nett[0]!.lag.length - 1]!;
   if (siste.ut !== 52) throw new Error(`E1: siste lag har ${siste.ut} utganger, forventet 52`);
@@ -65,6 +71,8 @@ export function settE1Filleser(f: (fil: string) => NevroNett): void {
 
 export class E1Agent {
   private readonly nett: NevroNett;
+  /** Bredden NETTET ble trent med – ikke nødvendigvis den nyeste kodingen. */
+  private readonly dim: number;
   private readonly nevro: NevroAgent;
   private readonly søkFaser: readonly SøkeFase[];
   private readonly søkVerdener: number;
@@ -72,6 +80,7 @@ export class E1Agent {
 
   constructor(nett: NevroNett, nevro: NevroAgent = new NevroAgent(), opts: E1Opts = {}) {
     this.nett = nett;
+    this.dim = nett.lag[0]!.inn;
     this.nevro = nevro;
     this.søkFaser = opts.søkFaser ?? [];
     this.søkVerdener = opts.søkVerdener ?? 12;
@@ -111,7 +120,7 @@ export class E1Agent {
   velgKort(state: GameState, sete: number): Kort {
     const lovlige = lovligeKort(state, sete);
     if (lovlige.length === 1) return lovlige[0]!;
-    const logits = forover(this.nett, e1SpillTrekk(state, sete));
+    const logits = forover(this.nett, e1SpillTrekk(state, sete, this.dim));
     let beste = lovlige[0]!;
     for (const k of lovlige) if (logits[kortIndeks(k)]! > logits[kortIndeks(beste)]!) beste = k;
     return beste;
@@ -119,7 +128,7 @@ export class E1Agent {
 
   /** Kortene rangert best først – prior til søket (HybridAgent-mønsteret). */
   rangerKort(state: GameState, sete: number, lovlige: readonly Kort[]): Kort[] {
-    const logits = forover(this.nett, e1SpillTrekk(state, sete));
+    const logits = forover(this.nett, e1SpillTrekk(state, sete, this.dim));
     return lovlige.slice().sort((a, b) => logits[kortIndeks(b)]! - logits[kortIndeks(a)]!);
   }
 }
