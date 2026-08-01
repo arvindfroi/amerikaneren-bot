@@ -58,6 +58,11 @@
       "se": 0.04947507094117078,
       "n": 303
     },
+    "SPILL lagstikk − SD (menneske)": {
+      "snitt": 0.30033003300330036,
+      "se": 0.07419049042971713,
+      "n": 303
+    },
     "VRAK nevro: snittvalør": {
       "snitt": 6.3050986842105265,
       "se": 0.09603450822497817,
@@ -206,36 +211,6 @@
     "UTSPILL nevro: laveste trumf på hånd": {
       "snitt": 0.4473684210526316,
       "se": 0.02856466908251787,
-      "n": 304
-    },
-    "UTSPILL SD: trumf ut": {
-      "snitt": 1,
-      "se": 0,
-      "n": 304
-    },
-    "UTSPILL SD: valør på utspillet": {
-      "snitt": 6.904605263157895,
-      "se": 0.20338442523777203,
-      "n": 304
-    },
-    "UTSPILL SD: lavt kort (≤7)": {
-      "snitt": 0.5888157894736842,
-      "se": 0.02826744944547286,
-      "n": 304
-    },
-    "UTSPILL SD: LAV TRUMF ut (≤7)": {
-      "snitt": 0.5888157894736842,
-      "se": 0.02826744944547286,
-      "n": 304
-    },
-    "UTSPILL SD: høyeste trumf på hånd": {
-      "snitt": 0.08881578947368421,
-      "se": 0.016342815158547106,
-      "n": 304
-    },
-    "UTSPILL SD: laveste trumf på hånd": {
-      "snitt": 0.2236842105263158,
-      "se": 0.02393952670590533,
       "n": 304
     }
   }

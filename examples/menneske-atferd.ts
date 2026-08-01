@@ -224,6 +224,24 @@ for (const r of runder) {
     legg(boks("BUD/kontrakt laget tok"), r.lagStikk);
     legg(boks("BUD/kontrakt bom menneske |bud−fasit|"), Math.abs(r.mbud - r.lagStikk));
     legg(boks("BUD/kontrakt bom SD |sd−fasit|"), Math.abs(sd - r.lagStikk));
+    /**
+     * SPILLEFØRINGENS EGET BIDRAG, i den ENE enheten som gjør mennesker,
+     * MesterAI og botene direkte sammenliknbare.
+     *
+     * `lagstikk − SD` holder hånden fast: SD-orakelet sier hva giva bærer for
+     * akkurat det setet, og differansen er hva spilleføringen hentet utover
+     * det. Den er uavhengig av hva som ble meldt, så menneskenes systematiske
+     * underbud forstyrrer den ikke.
+     *
+     * Målestokken fra de andre benkene, samme konstruksjon av SD:
+     *   NevroHjerne  −0,00   MesterAI  +0,30   vakt:ab  +0,39
+     *
+     * FORBEHOLD som må stå her: menneskets motstandere og makker på nettsiden
+     * er VÅRE bots (PIMC eller nevro), mens MesterAIs +0,30 er målt mot vår
+     * bot i arenaen. Konstruksjonen er den samme, men motstanden er ikke, så
+     * tallene er sammenliknbare i enhet og ikke i oppsett.
+     */
+    legg(boks("SPILL lagstikk − SD (menneske)"), r.lagStikk - sd);
   }
   tømCache();
 }

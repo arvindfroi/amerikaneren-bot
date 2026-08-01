@@ -20,6 +20,8 @@ BUD/kontrakt laget tok                        9.703   0.079    303
 BUD/kontrakt bom menneske |bud−fasit|         1.287   0.058    303
 BUD/kontrakt bom SD |sd−fasit|                1.007   0.049    303
 
+SPILL lagstikk − SD (menneske)                0.300   0.074    303
+
 VRAK nevro: snittvalør                        6.305   0.096    304
 VRAK nevro: ess/konge                         0.042   0.005    304
 VRAK nevro: i senere trumf                    0.005   0.002    304
@@ -52,11 +54,5 @@ UTSPILL nevro: lavt kort (≤7)                 0.770   0.024    304
 UTSPILL nevro: LAV TRUMF ut (≤7)              0.770   0.024    304
 UTSPILL nevro: høyeste trumf på hånd          0.069   0.015    304
 UTSPILL nevro: laveste trumf på hånd          0.447   0.029    304
-UTSPILL SD: trumf ut                          1.000   0.000    304
-UTSPILL SD: valør på utspillet                6.905   0.203    304
-UTSPILL SD: lavt kort (≤7)                    0.589   0.028    304
-UTSPILL SD: LAV TRUMF ut (≤7)                 0.589   0.028    304
-UTSPILL SD: høyeste trumf på hånd             0.089   0.016    304
-UTSPILL SD: laveste trumf på hånd             0.224   0.024    304
 
 * = under 50 observasjoner, for tynt til å lese som funn.
