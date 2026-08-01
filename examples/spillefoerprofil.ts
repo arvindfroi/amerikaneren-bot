@@ -143,15 +143,29 @@ interface Rad {
 }
 const nyRad = (): Rad => ({ lagStikk: [], motSD: [], klarte: [], valg: 0, ulikNevro: 0 });
 
-/** SD-estimatet for `sete` i denne giva – nøyaktig referansen fasegapet bruker. */
+/**
+ * SD-estimatet for `sete` i denne giva – nøyaktig referansen fasegapet bruker.
+ *
+ * BUFRET på (frø, sete). Giva er den samme for alle kandidatene, så estimatet
+ * er det også, og `analyserGiv` koster ~10 ms. Uten bufferen ville en
+ * faktoriell kjøring med 36 kandidater brukt en halvtime på å regne ut det
+ * samme tallet 36 ganger.
+ */
 const sdOrakel = new NevroAgent();
+const sdBuffer = new Map<string, number | null>();
 function sdFor(frø: number, sete: number): number | null {
+  const nøkkel = `${frø}|${sete}`;
+  const truffet = sdBuffer.get(nøkkel);
+  if (truffet !== undefined) return truffet;
   const friskt = opprettSpill({ antallSpillere: 4 }, frø);
+  let svar: number | null;
   try {
-    return sdBud(analyserGiv(friskt, sdOrakel), sete, friskt.giving.antallStikk);
+    svar = sdBud(analyserGiv(friskt, sdOrakel), sete, friskt.giving.antallStikk);
   } catch {
-    return null;
+    svar = null;
   }
+  sdBuffer.set(nøkkel, svar);
+  return svar;
 }
 
 function kjør(lag: () => Velger, r: Rad, frø: number): void {
@@ -264,4 +278,19 @@ ikke direkte sammenliknbare – men RANGERINGEN mellom kandidatene er det, og
 det er den som sier om et tiltak flytter spilleføringen i det hele tatt.`);
 
 writeFileSync(utFil, linjer.join("\n") + "\n");
+// RÅTALLENE per giver. Tabellen over parrer bare mot den første kandidaten;
+// et faktorielt oppsett trenger alle kolonnene for å regne hovedeffekter og
+// interaksjoner. Skrives ved siden av tekstrapporten.
+writeFileSync(
+  utFil.replace(/\.txt$/, "") + ".json",
+  JSON.stringify(
+    {
+      rolle, kontrakt, kamper, andre: andre.navn,
+      kandidater: kandidater.map((k, i) => ({ navn: k.navn, spek: spesser[i] })),
+      lagStikk: rader.map((r) => r.lagStikk),
+      motSD: rader.map((r) => r.motSD),
+    },
+    null,
+  ) + "\n",
+);
 console.log(`\nSkrev ${utFil}`);
