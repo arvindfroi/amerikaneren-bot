@@ -1,0 +1,242 @@
+{
+  "brukteRunder": 813,
+  "paretteStillinger": 304,
+  "avvistHånd": 0,
+  "mål": {
+    "BUD sd-estimat for hånden": {
+      "snitt": 8.846248462484624,
+      "se": 0.0554499693246805,
+      "n": 813
+    },
+    "BUD passandel (aldri tallbud)": {
+      "snitt": 0.23862238622386223,
+      "se": 0.01495814122599506,
+      "n": 813
+    },
+    "BUD menneskets høyeste bud": {
+      "snitt": 8.289176090468498,
+      "se": 0.038979587909794146,
+      "n": 619
+    },
+    "BUD avvik menneske − SD": {
+      "snitt": -0.6655896607431341,
+      "se": 0.06470852087381702,
+      "n": 619
+    },
+    "BUD andel bud ≥ 9": {
+      "snitt": 0.42326332794830374,
+      "se": 0.01987466729128334,
+      "n": 619
+    },
+    "BUD andel bud ≥ 7": {
+      "snitt": 0.9822294022617124,
+      "se": 0.005314510208948896,
+      "n": 619
+    },
+    "BUD/kontrakt SD sa": {
+      "snitt": 9.402640264026402,
+      "se": 0.08342636084312052,
+      "n": 303
+    },
+    "BUD/kontrakt mennesket meldte": {
+      "snitt": 8.950495049504951,
+      "se": 0.0418489239336447,
+      "n": 303
+    },
+    "BUD/kontrakt laget tok": {
+      "snitt": 9.702970297029703,
+      "se": 0.07887390505161092,
+      "n": 303
+    },
+    "BUD/kontrakt bom menneske |bud−fasit|": {
+      "snitt": 1.2871287128712872,
+      "se": 0.058393740121019465,
+      "n": 303
+    },
+    "BUD/kontrakt bom SD |sd−fasit|": {
+      "snitt": 1.0066006600660067,
+      "se": 0.04947507094117078,
+      "n": 303
+    },
+    "VRAK nevro: snittvalør": {
+      "snitt": 6.3050986842105265,
+      "se": 0.09603450822497817,
+      "n": 304
+    },
+    "VRAK nevro: ess/konge": {
+      "snitt": 0.04194078947368421,
+      "se": 0.005491473065274791,
+      "n": 304
+    },
+    "VRAK nevro: i senere trumf": {
+      "snitt": 0.004934210526315789,
+      "se": 0.0023125360820214274,
+      "n": 304
+    },
+    "VRAK ENIGHET (kort av 4)": {
+      "snitt": 0.7582236842105263,
+      "se": 0.015046696750077066,
+      "n": 304
+    },
+    "VRAK menneske: snittvalør": {
+      "snitt": 6.098684210526316,
+      "se": 0.08940590214725076,
+      "n": 304
+    },
+    "VRAK menneske: ess/konge": {
+      "snitt": 0.018092105263157895,
+      "se": 0.003721182804141169,
+      "n": 304
+    },
+    "VRAK menneske: i senere trumf": {
+      "snitt": 0,
+      "se": 0,
+      "n": 304
+    },
+    "VRAK menneske: farger tømt": {
+      "snitt": 0.8256578947368421,
+      "se": 0.03323763867493804,
+      "n": 304
+    },
+    "TRUMF menneske: trumflengde": {
+      "snitt": 5.993421052631579,
+      "se": 0.053736821009278644,
+      "n": 304
+    },
+    "TRUMF menneske: valgte lengste": {
+      "snitt": 0.930921052631579,
+      "se": 0.014568269511647561,
+      "n": 304
+    },
+    "TRUMF menneske: valgte «sterkeste»": {
+      "snitt": 0.9046052631578947,
+      "se": 0.016876036188691226,
+      "n": 304
+    },
+    "TRUMF nevro: trumflengde": {
+      "snitt": 6.003289473684211,
+      "se": 0.053433922004901525,
+      "n": 304
+    },
+    "TRUMF nevro: valgte lengste": {
+      "snitt": 0.9473684210526315,
+      "se": 0.012828070479511391,
+      "n": 304
+    },
+    "TRUMF nevro: valgte «sterkeste»": {
+      "snitt": 0.9276315789473685,
+      "se": 0.014884731216564666,
+      "n": 304
+    },
+    "TRUMF ENIGHET om farge": {
+      "snitt": 0.9111842105263158,
+      "se": 0.0163428151585471,
+      "n": 304
+    },
+    "TRUMF nevro: etterlyst valør": {
+      "snitt": 12.921052631578947,
+      "se": 0.06372924934482273,
+      "n": 304
+    },
+    "TRUMF menneske: etterlyst valør": {
+      "snitt": 12.986842105263158,
+      "se": 0.06405566686008327,
+      "n": 304
+    },
+    "TRUMF menneske: etterlyste høyeste lovlige": {
+      "snitt": 1,
+      "se": 0,
+      "n": 304
+    },
+    "UTSPILL menneske: trumf ut": {
+      "snitt": 1,
+      "se": 0,
+      "n": 304
+    },
+    "UTSPILL menneske: valør på utspillet": {
+      "snitt": 3.1710526315789473,
+      "se": 0.08381646880227012,
+      "n": 304
+    },
+    "UTSPILL menneske: lavt kort (≤7)": {
+      "snitt": 0.9868421052631579,
+      "se": 0.006546297304013087,
+      "n": 304
+    },
+    "UTSPILL menneske: LAV TRUMF ut (≤7)": {
+      "snitt": 0.9868421052631579,
+      "se": 0.006546297304013087,
+      "n": 304
+    },
+    "UTSPILL menneske: høyeste trumf på hånd": {
+      "snitt": 0,
+      "se": 0,
+      "n": 304
+    },
+    "UTSPILL menneske: laveste trumf på hånd": {
+      "snitt": 0.993421052631579,
+      "se": 0.004644335355129548,
+      "n": 304
+    },
+    "UTSPILL nevro: trumf ut": {
+      "snitt": 1,
+      "se": 0,
+      "n": 304
+    },
+    "UTSPILL nevro: valør på utspillet": {
+      "snitt": 5.134868421052632,
+      "se": 0.17894267059375185,
+      "n": 304
+    },
+    "UTSPILL nevro: lavt kort (≤7)": {
+      "snitt": 0.7697368421052632,
+      "se": 0.024185888748566198,
+      "n": 304
+    },
+    "UTSPILL nevro: LAV TRUMF ut (≤7)": {
+      "snitt": 0.7697368421052632,
+      "se": 0.024185888748566198,
+      "n": 304
+    },
+    "UTSPILL nevro: høyeste trumf på hånd": {
+      "snitt": 0.06907894736842106,
+      "se": 0.014568269511647563,
+      "n": 304
+    },
+    "UTSPILL nevro: laveste trumf på hånd": {
+      "snitt": 0.4473684210526316,
+      "se": 0.02856466908251787,
+      "n": 304
+    },
+    "UTSPILL SD: trumf ut": {
+      "snitt": 1,
+      "se": 0,
+      "n": 304
+    },
+    "UTSPILL SD: valør på utspillet": {
+      "snitt": 6.904605263157895,
+      "se": 0.20338442523777203,
+      "n": 304
+    },
+    "UTSPILL SD: lavt kort (≤7)": {
+      "snitt": 0.5888157894736842,
+      "se": 0.02826744944547286,
+      "n": 304
+    },
+    "UTSPILL SD: LAV TRUMF ut (≤7)": {
+      "snitt": 0.5888157894736842,
+      "se": 0.02826744944547286,
+      "n": 304
+    },
+    "UTSPILL SD: høyeste trumf på hånd": {
+      "snitt": 0.08881578947368421,
+      "se": 0.016342815158547106,
+      "n": 304
+    },
+    "UTSPILL SD: laveste trumf på hånd": {
+      "snitt": 0.2236842105263158,
+      "se": 0.02393952670590533,
+      "n": 304
+    }
+  }
+}

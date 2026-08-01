@@ -1,0 +1,62 @@
+=== ATFERDSPROFIL: MENNESKENE fra nettsiden ===
+Kilde: Val Town-valen arvindfroi/amerikaneren-data, 813 runder, 117 partier.
+Runder med gjenskapt hånd: 813. Parrede utspillsstillinger: 304.
+KORREKTHETSPORTEN – runder forkastet fordi kortene ikke stemte: 0
+  Rekonstruksjonen holder.
+
+mål                                           verdi      SE      n
+------------------------------------------------------------------
+
+BUD sd-estimat for hånden                     8.846   0.055    813
+BUD passandel (aldri tallbud)                 0.239   0.015    813
+BUD menneskets høyeste bud                    8.289   0.039    619
+BUD avvik menneske − SD                      -0.666   0.065    619
+BUD andel bud ≥ 9                             0.423   0.020    619
+BUD andel bud ≥ 7                             0.982   0.005    619
+
+BUD/kontrakt SD sa                            9.403   0.083    303
+BUD/kontrakt mennesket meldte                 8.950   0.042    303
+BUD/kontrakt laget tok                        9.703   0.079    303
+BUD/kontrakt bom menneske |bud−fasit|         1.287   0.058    303
+BUD/kontrakt bom SD |sd−fasit|                1.007   0.049    303
+
+VRAK nevro: snittvalør                        6.305   0.096    304
+VRAK nevro: ess/konge                         0.042   0.005    304
+VRAK nevro: i senere trumf                    0.005   0.002    304
+VRAK ENIGHET (kort av 4)                      0.758   0.015    304
+VRAK menneske: snittvalør                     6.099   0.089    304
+VRAK menneske: ess/konge                      0.018   0.004    304
+VRAK menneske: i senere trumf                 0.000   0.000    304
+VRAK menneske: farger tømt                    0.826   0.033    304
+
+TRUMF menneske: trumflengde                   5.993   0.054    304
+TRUMF menneske: valgte lengste                0.931   0.015    304
+TRUMF menneske: valgte «sterkeste»            0.905   0.017    304
+TRUMF nevro: trumflengde                      6.003   0.053    304
+TRUMF nevro: valgte lengste                   0.947   0.013    304
+TRUMF nevro: valgte «sterkeste»               0.928   0.015    304
+TRUMF ENIGHET om farge                        0.911   0.016    304
+TRUMF nevro: etterlyst valør                 12.921   0.064    304
+TRUMF menneske: etterlyst valør              12.987   0.064    304
+TRUMF menneske: etterlyste høyeste lovlige    1.000   0.000    304
+
+UTSPILL menneske: trumf ut                    1.000   0.000    304
+UTSPILL menneske: valør på utspillet          3.171   0.084    304
+UTSPILL menneske: lavt kort (≤7)              0.987   0.007    304
+UTSPILL menneske: LAV TRUMF ut (≤7)           0.987   0.007    304
+UTSPILL menneske: høyeste trumf på hånd       0.000   0.000    304
+UTSPILL menneske: laveste trumf på hånd       0.993   0.005    304
+UTSPILL nevro: trumf ut                       1.000   0.000    304
+UTSPILL nevro: valør på utspillet             5.135   0.179    304
+UTSPILL nevro: lavt kort (≤7)                 0.770   0.024    304
+UTSPILL nevro: LAV TRUMF ut (≤7)              0.770   0.024    304
+UTSPILL nevro: høyeste trumf på hånd          0.069   0.015    304
+UTSPILL nevro: laveste trumf på hånd          0.447   0.029    304
+UTSPILL SD: trumf ut                          1.000   0.000    304
+UTSPILL SD: valør på utspillet                6.905   0.203    304
+UTSPILL SD: lavt kort (≤7)                    0.589   0.028    304
+UTSPILL SD: LAV TRUMF ut (≤7)                 0.589   0.028    304
+UTSPILL SD: høyeste trumf på hånd             0.089   0.016    304
+UTSPILL SD: laveste trumf på hånd             0.224   0.024    304
+
+* = under 50 observasjoner, for tynt til å lese som funn.
