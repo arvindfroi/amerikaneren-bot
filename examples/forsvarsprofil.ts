@@ -31,10 +31,22 @@ import { stikkvinner } from "../src/motor.ts";
 const filer: string[] = [];
 let kamper = 400;
 let kontrakt = 9;
+/**
+ * Hvem som spiller de tre andre setene – MEDFORSVAREREN inkludert.
+ *
+ * Målt 2026-08-01 på makkersetet: kandidatens verdi var +0,021 ± 0,035 bak
+ * NevroHjerne som spillefører og +0,120 ± 0,030 bak vår beste. Seks ganger
+ * forskjell. En medspiller som ikke kan utnytte støtten MASKERER verdien av
+ * setet vi måler. Forsvar er like mye et lagspill, så det samme forbeholdet
+ * gjelder her: med nevro som medforsvarer kan et bedre forsvar se verdiløst
+ * ut uten å være det.
+ */
+let andreSpec = "nevro";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--kamper") kamper = Number(process.argv[++i]);
   else if (a === "--kontrakt") kontrakt = Number(process.argv[++i]);
+  else if (a === "--andre") andreSpec = process.argv[++i]!;
   else filer.push(a);
 }
 
@@ -106,9 +118,10 @@ function kjør(lag: () => Velger, p: Profil, frø: number): void {
   const budsete = frø % 4;
   let s = oppsett(frø, budsete, kontrakt);
   if (s === null) return;
-  const nevro = new NevroAgent();
+  const andre = lagAndre();
+  andre.nyKamp();
   let g = 0;
-  while ((s.fase === "VRAK" || s.fase === "VELG") && g++ < 20) s = utfør(s, nevro.velgHandling(s)).state;
+  while ((s.fase === "VRAK" || s.fase === "VELG") && g++ < 20) s = utfør(s, andre.velgHandling(s)).state;
   if (s.fase !== "SPILL") return;
 
   const forsvarere = [0, 1, 2, 3].filter((x) => x !== budsete && x !== s!.makker);
@@ -125,7 +138,7 @@ function kjør(lag: () => Velger, p: Profil, frø: number): void {
   while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && g++ < 400) {
     const iTur = s.iTur!;
     if (iTur !== sete) {
-      s = utfør(s, nevro.velgHandling(s)).state;
+      s = utfør(s, andre.velgHandling(s)).state;
       continue;
     }
     const lov = lovligeHandlinger(s);
@@ -216,6 +229,7 @@ function lagKandidat(spec: string): { navn: string; lag: () => Velger } {
   };
 }
 
+const lagAndre = lagKandidat(andreSpec).lag;
 const kandidater: { navn: string; lag: () => Velger }[] = filer.map(lagKandidat);
 if (!filer.includes("nevro")) {
   kandidater.push({ navn: "NevroHjerne", lag: () => new NevroAgent() });

@@ -1,0 +1,18 @@
+
+=== Rolleprofil «makker», tvungen kontrakt 9, 1200 givere ===
+NevroHjerne fører; kandidaten holder det etterlyste kortet. Parret på giver.
+
+                                  NevroHjerne      vab:sd-r2         PIMC24
+---------------------------------------------------------------------------
+kontrakter spilt                          425            425            425
+innfridd                                 80 %           78 %           77 %
+lagstikk                                9.548          9.581          9.447
+lagstikk − SD                          +0.038         +0.071         -0.064
+  mot NevroHjerne (±SE)                     –   +0.033±0.057   -0.101±0.053
+kortvalg (n)                             5100           5100           5100
+  ulikt nevro                             0 %           38 %           45 %
+
+MesterAI ligger på lagstikk − SD = +0,30 i fasegaprapporten, målt i hele
+kamper mot oss. Tallet over er målt mot NevroHjerne-motstand, så nivåene er
+ikke direkte sammenliknbare – men RANGERINGEN mellom kandidatene er det, og
+det er den som sier om et tiltak flytter spilleføringen i det hele tatt.
