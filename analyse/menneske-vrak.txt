@@ -1,0 +1,18 @@
+
+=== Menneskets vrak og trumfvalg mot botens, 303 kontrakter ===
+(0 runder hoppet over: manglende kortlogg eller budrunde som ikke lot seg gjenskape)
+Kortspillet fra stikk 1 gjøres av vakt:ab:e1:e1-modell/sd-r2.bin i ALLE armene, nevro i de andre setene.
+
+A  botens vrak    + botens trumf      9.759 lagstikk
+B  MENNESKETS vrak + botens trumf     9.729
+C  MENNESKETS vrak + MENNESKETS trumf 9.723
+
+  verdien av menneskets VRAK    (B − A)  -0.030 ± 0.051
+  verdien av menneskets TRUMF   (C − B)  -0.007 ± 0.022
+  hele menneskebeslutningen     (C − A)  -0.036 ± 0.054
+
+Positivt = menneskets valg gir FLERE lagstikk enn botens, på samme giv.
+
+FORBEHOLD: menneskets vrak ble valgt med menneskets egen plan i tankene og
+spilles her ut av boten vår. Målingen svarer på «er menneskets valg bedre
+FOR OSS», ikke «er mennesket bedre til å vrake».
