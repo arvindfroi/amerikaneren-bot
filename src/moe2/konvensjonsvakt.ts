@@ -78,20 +78,28 @@ export interface Vaktvalg {
    */
   readonly åpningLavest?: boolean;
   /**
-   * Vakt 4: kan ingen av kortene dine vinne stikket, legg det billigste.
+   * Vakt 4: kan ingen av kortene dine TA stikket, legg det billigste.
    *
-   * Dette er den eneste regelen her som er BEVISELIG gratis. Er stikket
-   * uvinnelig for oss – ikke ett eneste lovlig kort slår kortet som leder –
-   * så taper kortet uansett hvilket vi velger. Da er alt over det billigste
-   * rent tap: en honnør brent uten å kjøpe noe.
+   * Kriteriet er «ingen av mine lovlige kort vinner stikket slik bordet står»,
+   * og det dekker to stillinger som ser ulike ut men er samme sak:
    *
-   * Merk hva regelen IKKE gjør. Den rører ikke stikk der makkeren leder (det
-   * er `garantiIkkeTrumf`/`garantiBilligst` sitt område) og ikke stikk vi kan
-   * vinne (der er valget ekte). Den gjelder bare når utfallet av VÅRT valg er
-   * likegyldig for hvem som tar stikket.
+   *   MOTSTANDEREN leder og jeg nås ikke opp. Kortet er tapt uansett.
+   *   MEDSPILLEREN leder og jeg kan ikke ta det fra ham. Da avgjøres stikket
+   *   mellom ham og motstanderne bak meg, og mitt kort er uten innflytelse.
+   *
+   * I begge tilfeller er valget mitt likegyldig for hvem som vinner, så alt
+   * over det billigste er dødvekt. Kan jeg derimot ta stikket, er valget ekte,
+   * og regelen holder seg unna.
+   *
+   * FORBEHOLD, og grunnen til at dette er en hypotese og ikke et bevis: å
+   * kaste seg tom i en farge for å kunne trumfe senere har verdi, og
+   * `billigste` velger ikke kortet som best tømmer en farge. Regelen er derfor
+   * bare gratis innenfor ETT stikk. Empirisk gjør `garantiBilligst` det samme
+   * på garanterte stikk og måler positivt (+0,059), så utvidelsen er verdt å
+   * prøve – men den skal måles, ikke antas.
    *
    * Signalering finnes ikke i denne motoren – ingen medspiller leser valøren
-   * på et tapt kort – så det er ingen skjult verdi i å legge høyt.
+   * på et tapt kort – så der er det ingen skjult verdi å ødelegge.
    */
   readonly kastBilligst?: boolean;
   /** Vakt 2, mild: på et garantert stikk, aldri trumf når et avkast er lovlig. */
@@ -226,15 +234,11 @@ export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg
     return billigste(trygge, trumf);
   }
 
-  // Vakt 4: uvinnelig stikk. Står bordet tomt, er det ikke noe stikk å tape
-  // ennå. Leder en medspiller, hører stillingen til vakt 2 og ikke hit.
+  // Vakt 4: stikket kan ikke tas av oss. Står bordet tomt, er det ikke noe
+  // stikk å tape ennå. Ellers gjelder regelen uansett hvem som leder – se
+  // kommentaren over `kastBilligst` for hvorfor de to tilfellene er samme sak.
   if (valg.kastBilligst === true && s.bord.length > 0) {
-    const leder = stikkvinner(s.bord, trumf);
-    const våre = lagetSynlig(s, sete);
-    const medspillerLeder = våre !== null && våre.includes(leder);
-    if (!medspillerLeder && !lovlige.some((k) => vinnerMed(s, sete, k))) {
-      return billigste(lovlige, trumf);
-    }
+    if (!lovlige.some((k) => vinnerMed(s, sete, k))) return billigste(lovlige, trumf);
   }
 
   if ((valg.garantiIkkeTrumf || valg.garantiBilligst) && garantertVårt(s, sete)) {
