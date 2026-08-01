@@ -1,0 +1,32 @@
+
+=== Samme hånd, samme kontrakt, samme motstand: mennesket mot boten ===
+49 menneskeledede kontrakter fra nevro-partiene (254 hoppet over).
+
+KORREKTHETSPRØVEN – runder der gjenskapingen ga et ANNET stikktall enn loggen: 28
+  Budrunden her er kunstig, saa den gjenskapte verdenen er ikke den ekte.
+  Det er greit: BEGGE armene ligger i den samme gjenskapte verdenen, saa
+  skjevheten rammer dem likt og kan ikke forklare differansen under.
+
+  mennesket   9.265 lagstikk
+  vår bot     9.735 lagstikk
+  differanse  +0.469 ± 0.206   (2.3 SE)
+
+Positivt = boten henter flere stikk enn mennesket gjorde, på nøyaktig
+samme kort, samme kontrakt og mot nøyaktig samme motstandere.
+
+--- ETTERORD: DENNE MAALINGEN ER IKKE GYLDIG ---
+
+254 av 303 kontrakter ble hoppet over, og de ble det paa et kriterium som
+henger sammen med utfallet: menneskets loggede kort maa fortsatt vaere LOVLIG
+i den gjenskapte verdenen. Den kunstige budrunden endrer nevros kortspill,
+som endrer stikkrekkefoelgen, som gjoer menneskets kortsekvens ulovlig - og
+det skjer oftest naar linja avviker mest.
+
+De 49 som overlevde er altsaa nettopp de rundene der den gjenskapte verdenen
+lignet den ekte. Det er et skjevt utvalg, og +0,469 ± 0,206 kan ikke leses
+som «boten er bedre enn mennesket».
+
+HVA SOM SKAL TIL: nettsiden logger i dag bare MENNESKETS valg. For aa
+gjenskape en runde eksakt trengs hele budrunden (alle fire seter) og helst
+alle fire seters kortvalg. Det er en LOGGE-endring, ikke en spillendring.
+Med den paa plass blir denne maalingen gyldig med n=303 i stedet for 49.
