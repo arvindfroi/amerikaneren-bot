@@ -44,6 +44,7 @@
  * | `--utforsk` | 0.15 | andel trekk der spilleren velger tilfeldig, for spredning |
  * | `--fraStikk` | 0 | merk bare stillinger fra og med dette stikket |
  * | `--maks` | 0 | stopp etter så mange merkede stillinger (0 = ingen grense) |
+ * | `--motpart` | nevro | rollout-policyen SD spiller verdenene ferdig med |
  *
  * Skrivingen skjer linje for linje til fil (append + flush). Kjøringer som
  * varer i timer må aldri ha resultatene sine i et rør: et avbrudd skal koste
@@ -58,6 +59,7 @@ import { lovligeKort, opprettSpill, utfør, type GameState, type Handling } from
 import { e1SpillTrekk, E1_SPILL_DIM } from "../src/e1/trekk.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { vurderKortSD } from "../src/moe2/sdkort.ts";
+import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 import { kortIndeks, NevroAgent } from "../src/nevro/index.ts";
 import { spillerVisning } from "../src/motor.ts";
 import { lagInn } from "../src/neat/trekk.ts";
@@ -109,6 +111,7 @@ let rolleVekt = 3;
 let utforsk = 0.15;
 let fraStikk = 0;
 let maks = 0;
+let motpartSpek = "nevro";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--ut") utFil = process.argv[++i] ?? utFil;
@@ -125,6 +128,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--utforsk") utforsk = Number(process.argv[++i]);
   else if (a === "--fraStikk") fraStikk = Number(process.argv[++i]);
   else if (a === "--maks") maks = Number(process.argv[++i]);
+  else if (a === "--motpart") motpartSpek = process.argv[++i] ?? "nevro";
 }
 
 // EGEN UTMAPPE. `verktoy/e1-tren.py` leser alle `skard-*.jsonl` i en mappe og
@@ -139,6 +143,39 @@ mkdirSync(dirname(ut), { recursive: true });
 // alle fire seter, og en fasit skal genereres med nøyaktig den modellen den
 // ble validert med.
 const nevro = new NevroAgent();
+
+/**
+ * ROLLOUT-POLICYEN, altså hvem som spiller de samplede verdenene ferdig.
+ *
+ * Standard er nevro, og det skal den være for å reprodusere den fasiten som
+ * bestod godkjenningsporten. `--motpart` finnes fordi den er blitt en
+ * flaskehals: målt 2026-08-01 henter `vakt:ab:e1:sd-r2` +0,26 stikk MER enn
+ * SD-estimatet som spillefører (`lagstikk − SD` = +0,26 mot nevros −0,00).
+ * Eleven er altså allerede over læreren, og en fasit som sier «dette er hva
+ * nevro ville hentet» kan ikke peke høyere enn nevro.
+ *
+ * Byttes rollouten til en sterkere spiller, blir merkelappen «dette er hva en
+ * god spiller ville hentet». Det er en annen fasit, ikke en bedre versjon av
+ * den samme, og den MÅ gjennom godkjenningsporten på nytt før den brukes til
+ * trening. Uavhengig støtte for at retningen er riktig: mot MesterAI taper
+ * `sd:e1:sd-r2` +0,351 mens `sd:nevro` taper +0,468 – en sterkere
+ * motstandermodell i SD er allerede målt til å hjelpe.
+ */
+function lagMotpart(spec: string): { navn: string; velgHandling(s: GameState): Handling } {
+  const vakt = delVaktspek(spec);
+  if (vakt !== null) {
+    const indre = lagMotpart(vakt.indre);
+    const pakket = new Konvensjonsvakt(indre, vakt.valg);
+    return { navn: `v${vakt.flagg}:${indre.navn}`, velgHandling: (s) => pakket.velgHandling(s) };
+  }
+  if (spec === "nevro") return { navn: "NevroHjerne", velgHandling: (s) => nevro.velgHandling(s) };
+  if (spec.startsWith("e1:")) {
+    const agent = E1Agent.fraFil(spec.slice(3));
+    return { navn: spec, velgHandling: (s) => agent.velgHandling(s) };
+  }
+  throw new Error(`Ukjent --motpart «${spec}» (bruk nevro, e1:<fil> eller vakt:<flagg>:<indre>)`);
+}
+const motpart = lagMotpart(motpartSpek);
 /**
  * Stillingskilden. Standard er nevro (runde 1); med --spiller er det nettet
  * som selv skal laere, og da er dette DAgger-runde 2.
@@ -149,7 +186,7 @@ const spiller = spillerFil !== null ? E1Agent.fraFil(spillerFil) : nevro;
 // sa hva som faktisk kjoerte.
 console.log(
   `stillingskilde: ${spillerFil ?? "NevroHjerne"}` +
-    `  |  motstandermodell i SD-rollout: NevroHjerne  |  ${verdener} verdener`,
+    `  |  motstandermodell i SD-rollout: ${motpart.navn}  |  ${verdener} verdener`,
 );
 const rng = lagRng((frøBase + skardI * 7919) >>> 0);
 let merket = 0;
@@ -176,7 +213,7 @@ alleKamper: for (let k = 0; k < kamper; k++) {
       const erFoerer = s.budvinner === sete;
       const p = Math.min(1, sjanse * (erFoerer ? rolleVekt : 1));
       if (lovlige.length >= 2 && s.stikkSpilt >= fraStikk && rng() < p) {
-        const vurdert = vurderKortSD(s, sete, nevro, { verdener, rng });
+        const vurdert = vurderKortSD(s, sete, motpart, { verdener, rng });
         // Tom liste = ingen verden lot seg trekke. Da skal INGENTING skrives:
         // å behandle «ingen data» som «alle valg er like gode» var mekanismen
         // som gjorde `lærForsvar` verre enn ingenting.
