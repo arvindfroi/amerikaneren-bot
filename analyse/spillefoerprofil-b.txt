@@ -1,0 +1,18 @@
+
+=== Spillefører­profil, tvungen kontrakt 9, 3000 givere ===
+Kandidaten fører; de tre andre setene er NevroHjerne. Parret på giver.
+
+                                        sd-r2       va:sd-r2      vat:sd-r2      vab:sd-r2       vb:sd-r2
+---------------------------------------------------------------------------------------------------------
+kontrakter spilt                         1092           1092           1092           1092           1092
+innfridd                                 82 %           86 %           87 %           87 %           83 %
+lagstikk                                9.674          9.889          9.933          9.941          9.733
+lagstikk − SD                          +0.131         +0.346         +0.390         +0.398         +0.190
+  mot sd-r2 (±SE)                           –   +0.215±0.026   +0.259±0.027   +0.267±0.028   +0.059±0.013
+kortvalg (n)                            13104          13104          13104          13104          13104
+  ulikt nevro                            55 %           50 %           51 %           52 %           57 %
+
+MesterAI ligger på lagstikk − SD = +0,30 i fasegaprapporten, målt i hele
+kamper mot oss. Tallet over er målt mot NevroHjerne-motstand, så nivåene er
+ikke direkte sammenliknbare – men RANGERINGEN mellom kandidatene er det, og
+det er den som sier om et tiltak flytter spilleføringen i det hele tatt.

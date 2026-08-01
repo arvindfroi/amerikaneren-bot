@@ -77,6 +77,23 @@ export interface Vaktvalg {
    * ikke adopteres på benken alene.
    */
   readonly åpningLavest?: boolean;
+  /**
+   * Vakt 4: kan ingen av kortene dine vinne stikket, legg det billigste.
+   *
+   * Dette er den eneste regelen her som er BEVISELIG gratis. Er stikket
+   * uvinnelig for oss – ikke ett eneste lovlig kort slår kortet som leder –
+   * så taper kortet uansett hvilket vi velger. Da er alt over det billigste
+   * rent tap: en honnør brent uten å kjøpe noe.
+   *
+   * Merk hva regelen IKKE gjør. Den rører ikke stikk der makkeren leder (det
+   * er `garantiIkkeTrumf`/`garantiBilligst` sitt område) og ikke stikk vi kan
+   * vinne (der er valget ekte). Den gjelder bare når utfallet av VÅRT valg er
+   * likegyldig for hvem som tar stikket.
+   *
+   * Signalering finnes ikke i denne motoren – ingen medspiller leser valøren
+   * på et tapt kort – så det er ingen skjult verdi i å legge høyt.
+   */
+  readonly kastBilligst?: boolean;
   /** Vakt 2, mild: på et garantert stikk, aldri trumf når et avkast er lovlig. */
   readonly garantiIkkeTrumf: boolean;
   /** Vakt 2, streng: på et garantert stikk, alltid det billigste lovlige kortet. */
@@ -92,6 +109,7 @@ export function lesVaktflagg(flagg: string): Vaktvalg {
     if (tegn === "a") valg = { ...valg, åpning: true };
     else if (tegn === "h") valg = { ...valg, åpning: true, åpningHøyest: true };
     else if (tegn === "l") valg = { ...valg, åpningLavest: true };
+    else if (tegn === "k") valg = { ...valg, kastBilligst: true };
     else if (tegn === "t") valg = { ...valg, garantiIkkeTrumf: true };
     else if (tegn === "b") valg = { ...valg, garantiBilligst: true };
     else {
@@ -172,6 +190,11 @@ export function garantertVårt(s: GameState, sete: number): boolean {
   return garantertSynlig(s, sete, våre);
 }
 
+/** Ville `kort` tatt stikket slik bordet står nå? */
+function vinnerMed(s: GameState, sete: number, kort: Kort): boolean {
+  return stikkvinner(s.bord.concat({ spiller: sete, kort }), s.trumf!) === sete;
+}
+
 // --- Selve vakten ------------------------------------------------------------
 
 /**
@@ -201,6 +224,17 @@ export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg
     // uansett bortkastet, og da er billigst det eneste rimelige.
     if (valg.åpningHøyest === true && s.bord.length === 0) return dyreste(trygge, trumf);
     return billigste(trygge, trumf);
+  }
+
+  // Vakt 4: uvinnelig stikk. Står bordet tomt, er det ikke noe stikk å tape
+  // ennå. Leder en medspiller, hører stillingen til vakt 2 og ikke hit.
+  if (valg.kastBilligst === true && s.bord.length > 0) {
+    const leder = stikkvinner(s.bord, trumf);
+    const våre = lagetSynlig(s, sete);
+    const medspillerLeder = våre !== null && våre.includes(leder);
+    if (!medspillerLeder && !lovlige.some((k) => vinnerMed(s, sete, k))) {
+      return billigste(lovlige, trumf);
+    }
   }
 
   if ((valg.garantiIkkeTrumf || valg.garantiBilligst) && garantertVårt(s, sete)) {
