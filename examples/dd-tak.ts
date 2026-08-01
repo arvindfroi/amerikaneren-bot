@@ -28,7 +28,7 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { opprettSpill, utfør, type GameState } from "../src/index.ts";
+import { opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
 import { NevroAgent, besteTrumf } from "../src/nevro/index.ts";
 import { byggDDOppsett } from "../src/solver/sampler.ts";
 import { rotVerdier, kortTilInt } from "../src/solver/dds.ts";
@@ -41,6 +41,18 @@ let skardI = 0;
 let skardN = 1;
 let kandidatSpek = "vakt:ab:e1:e1-modell/sd-r2.bin";
 let fraStikk = 3;
+/**
+ * FORSVARSMODUS. Settes den, spiller HOVEDKANDIDATEN baade budvinner- og
+ * makkersetet OG det ene forsvarssetet, mens dette setet spilles av spec-en
+ * her. Da er alt annet holdt fast, og forskjellen i `vaart` mellom to
+ * kjoeringer med ulik `--forsvarer` isolerer forsvarskvaliteten mot ETT og
+ * samme DD-tak.
+ *
+ * Merk hva `vaart - tak` betyr her: DD loeser med BEGGE sider perfekte, saa
+ * tallet blander vaart forsvars svakhet med spillefoererens. Det er
+ * DIFFERANSEN mellom to forsvarere som er ren.
+ */
+let forsvarerSpek: string | null = null;
 let ut = "analyse/dd-tak-0.jsonl";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
@@ -48,6 +60,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--kontrakt") kontrakt = Number(process.argv[++i]);
   else if (a === "--kandidat") kandidatSpek = process.argv[++i]!;
   else if (a === "--fraStikk") fraStikk = Number(process.argv[++i]);
+  else if (a === "--forsvarer") forsvarerSpek = process.argv[++i]!;
   else if (a === "--ut") ut = process.argv[++i]!;
   else if (a === "--skard") {
     const [x, y] = (process.argv[++i] ?? "0/1").split("/");
@@ -60,6 +73,13 @@ mkdirSync(dirname(ut), { recursive: true });
 const vakt = delVaktspek(kandidatSpek)!;
 const nett = lesE1Nett(vakt.indre.slice(3));
 const nevro = new NevroAgent();
+function lagAgent(spec: string): { velgHandling(s: GameState): Handling; nyKamp(): void } {
+  const v = delVaktspek(spec);
+  if (v !== null) return new Konvensjonsvakt(lagAgent(v.indre), v.valg);
+  if (spec === "nevro") return new NevroAgent();
+  if (spec.startsWith("e1:")) return new E1Agent(lesE1Nett(spec.slice(3)));
+  throw new Error("ukjent agentspesifikasjon: "+spec);
+}
 
 function oppsett(frø: number, budsete: number): GameState | null {
   let s = opprettSpill({ antallSpillere: 4 }, frø);
@@ -99,6 +119,27 @@ for (let f = 0; f < kamper; f++) {
   }
   if (s.fase !== "SPILL") continue;
 
+  /**
+   * SETEFORDELINGEN. I spillefører­modus er det bare budsetet som er vårt.
+   * I forsvarsmodus holdes ALT annet fast på hovedkandidaten – budvinner,
+   * makker og den ene medforsvareren – slik at det eneste som varierer
+   * mellom to kjøringer er det ene forsvarssetet. Da er differansen i `vårt`
+   * ren forsvarskvalitet, målt mot ett og samme DD-tak.
+   */
+  const testsete = forsvarerSpek === null
+    ? budsete
+    : [0, 1, 2, 3].find((p) => p !== budsete && p !== s!.makker)!;
+  const underTest = forsvarerSpek === null ? fører : lagAgent(forsvarerSpek);
+  const resten = lagAgent(kandidatSpek);
+  underTest.nyKamp();
+  resten.nyKamp();
+  const velgFor = (st: GameState, sete: number): Handling =>
+    sete === testsete
+      ? underTest.velgHandling(st)
+      : forsvarerSpek === null
+        ? nevro.velgHandling(st)
+        : resten.velgHandling(st);
+
   // SPILL FØRST `fraStikk` STIKK NORMALT. Full DD fra stikk 1 er 48 kort og
   // sprenger 4 GB heap – seks skard krasjet på nøyaktig det. Fra stikk 4 er
   // stillingen 9 kort per hånd og løses på 61 ms. Taket måles derfor fra der,
@@ -107,7 +148,7 @@ for (let f = 0; f < kamper; f++) {
   // er den delen vakten alt har fikset.
   g = 0;
   while (s.fase === "SPILL" && s.stikkSpilt < fraStikk && g++ < 400) {
-    s = utfør(s, s.iTur === budsete ? fører.velgHandling(s) : nevro.velgHandling(s)).state;
+    s = utfør(s, velgFor(s, s.iTur!)).state;
   }
   if (s.fase !== "SPILL") continue;
   const start = s;
@@ -117,7 +158,7 @@ for (let f = 0; f < kamper; f++) {
   // Vår faktiske linje videre.
   g = 0;
   while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && g++ < 400) {
-    s = utfør(s, s.iTur === budsete ? fører.velgHandling(s) : nevro.velgHandling(s)).state;
+    s = utfør(s, velgFor(s, s.iTur!)).state;
   }
   const stikk = s.stikkVunnet;
   const vårt = (stikk[budsete] ?? 0) + (s.makker !== null ? (stikk[s.makker] ?? 0) : 0);
@@ -134,7 +175,7 @@ for (let f = 0; f < kamper; f++) {
 
   appendFileSync(
     ut,
-    JSON.stringify({ frø, budsete, fraStikk, stikkFør, vårt, tak, sek: (Date.now() - t0) / 1000 }) + "\n",
+    JSON.stringify({ frø, budsete, testsete, fraStikk, stikkFør, vårt, tak, sek: (Date.now() - t0) / 1000 }) + "\n",
   );
   n++;
   process.stdout.write(`\r  skard ${skardI}: ${n} givere   `);
