@@ -167,6 +167,41 @@ for (let i = 2; i < process.argv.length; i++) {
 const ut = utFil ?? `sd-data/skard-${skardI}.jsonl`;
 mkdirSync(dirname(ut), { recursive: true });
 
+/**
+ * `appendFileSync` med retry på EBUSY/EPERM.
+ *
+ * HVORFOR DETTE ER NØDVENDIG, og det kostet flere timers generering å finne:
+ * på Windows åpner `[System.IO.File]::OpenText` – som statusskriptene og hver
+ * ad hoc radtelling bruker – fila med `FileShare.Read`. Den NEKTER andre å
+ * skrive mens lesingen pågår. Et skard som tilfeldigvis skrev i det øyeblikket
+ * fikk `EBUSY: resource busy or locked` og DØDE.
+ *
+ * Det forklarte alle de «mystiske» skarddødene 2026-08-02: sd-dagger-skard som
+ * stoppet på 2 876 og 3 332 rader i stedet for ~5 200, og 8 av 14
+ * sd-nevro-skard som forsvant. Overvåkingen drepte det den overvåket.
+ *
+ * Leserne er rettet til å dele skrivetilgang, men rettelsen hører HIT også:
+ * en generator som har brukt timer på å samle data skal ikke dø av at noen
+ * ser på fila. Antivirus og sikkerhetskopiering tar samme lås.
+ */
+function skrivRobust(fil: string, tekst: string, forsøk = 40): void {
+  for (let i = 0; i < forsøk; i++) {
+    try {
+      appendFileSync(fil, tekst);
+      return;
+    } catch (e) {
+      const kode = (e as NodeJS.ErrnoException).code;
+      if (kode !== "EBUSY" && kode !== "EPERM" && kode !== "EACCES") throw e;
+      // Kort, voksende pause. Låsen varer millisekunder, ikke sekunder.
+      const til = Date.now() + Math.min(250, 5 * (i + 1));
+      while (Date.now() < til) {
+        /* opptatt venting – dette er en batchprosess uten hendelsesløkke å gi tid til */
+      }
+    }
+  }
+  throw new Error(`Ga opp aa skrive til ${fil} etter ${forsøk} forsoek (fila er laast av en annen prosess)`);
+}
+
 // Nevro er BÅDE den som spiller partiene (stillingskilden) og motstander-
 // modellen SD-evalueringen spiller verdenene ferdig med. Det er ikke en
 // forglemmelse: SD-fasiten som bestod porten var definert med NevroHjerne i
@@ -262,7 +297,7 @@ alleKamper: for (let k = 0; k < kamper; k++) {
           // kjenne rekkefølgen lovligeKort tilfeldigvis hadde.
           const verdi: Record<number, number> = {};
           for (const v of vurdert) verdi[kortIndeks(v.kort)] = Math.round(v.verdi * 1000) / 1000;
-          appendFileSync(
+          skrivRobust(
             ut,
             JSON.stringify({
               // De to trekkvektorene er ulike kodinger – `t` er 273 (appens 238

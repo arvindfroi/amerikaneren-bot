@@ -38,8 +38,17 @@ function Tell-Rader {
     foreach ($f in Get-ChildItem $sti -Filter *.jsonl -ErrorAction SilentlyContinue) {
       # StreamReader framfor Get-Content: filene er ~25 MB hver og vokser mens
       # vi leser. Get-Content ville lastet alt i minnet for aa telle linjer.
-      $r = [System.IO.File]::OpenText($f.FullName)
-      try { while ($null -ne $r.ReadLine()) { $sum++ } } finally { $r.Close() }
+      #
+      # DELT SKRIVETILGANG ER KRITISK, ikke en detalj. [IO.File]::OpenText
+      # aapner med FileShare.Read, som NEKTER skardene aa skrive mens vi
+      # teller - de doer da med «EBUSY: resource busy or locked». Det skjedde
+      # gjentatte ganger 2026-08-02 og kostet flere timers generering foer
+      # aarsaken ble funnet: overvaakingen drepte det den overvaaket.
+      $fs = [System.IO.File]::Open(
+        $f.FullName, [System.IO.FileMode]::Open,
+        [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+      $r = New-Object System.IO.StreamReader($fs)
+      try { while ($null -ne $r.ReadLine()) { $sum++ } } finally { $r.Close(); $fs.Dispose() }
     }
   }
   return $sum
