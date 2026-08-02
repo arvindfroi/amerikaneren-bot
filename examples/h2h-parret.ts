@@ -150,6 +150,22 @@ const d = par.map((p) => p.d);
 const pos = d.filter((x) => x > 0).length;
 const neg = d.filter((x) => x < 0).length;
 
+/** Snittet etter at `andel` av verdiene er kuttet i HVER ende. */
+function trimmet(v: readonly number[], andel: number): number {
+  if (v.length === 0) return NaN;
+  const w = [...v].sort((a, b) => a - b);
+  const k = Math.floor(w.length * andel);
+  const midt = w.slice(k, w.length - k);
+  return midt.length ? midt.reduce((a, x) => a + x, 0) / midt.length : NaN;
+}
+
+function median(v: readonly number[]): number {
+  if (v.length === 0) return NaN;
+  const w = [...v].sort((a, b) => a - b);
+  const m = w.length >> 1;
+  return w.length % 2 ? w[m]! : (w[m - 1]! + w[m]!) / 2;
+}
+
 /** Tosidig tegntest, eksakt binomial med p=0,5. */
 function tegntest(k: number, n: number): number {
   if (n === 0) return NaN;
@@ -188,6 +204,16 @@ if (par.length < 2) {
     `  ${navn.b} − ${navn.a} = ${fmt(m)} ± ${s.toFixed(4)}   (${(m / s).toFixed(1)} SE), n=${par.length}`,
     `  positiv i ${pos} av ${par.length} par (${neg} negative, ${par.length - pos - neg} like)` +
       (dublett > 0 ? `   [${dublett} dupliserte B-kamper hoppet over]` : ""),
+    // TRIMMET SNITT NAAR SNITT OG TEGNTEST ER UENIGE.
+    //
+    // Prosjektets egen regel: «Er de to uenige, er det snittet som skal
+    // mistros» - fordi poengfordelingen har +/-50 (amerikaner) og +/-100
+    // (solo) i halene, og et snitt kan baeres av noen faa slike. ISMCTS ble
+    // felt paa nettopp dette: snitt +0,898, trimmet +0,030.
+    //
+    // Holder det trimmede snittet, er ikke tallet baaret av utliggere, og da
+    // er tegntesten bare svak - ikke uenig. Kollapser det, biter regelen.
+    `  trimmet snitt (10 % hver side): ${fmt(trimmet(d, 0.1))}   median: ${fmt(median(d))}`,
     `  tegntest, tosidig: p = ${tegntest(pos, pos + neg).toFixed(3)}`,
     ``,
     `PORTEN: n >= 200 par. Naa: ${par.length}. ${par.length >= 200 ? "NAADD." : `Mangler ${200 - par.length}.`}`,
