@@ -566,11 +566,34 @@ function trumfUte(s: GameState, sete: number): number {
  */
 function forsvarerLaTrumf(s: GameState, sete: number, trumf: Farge): boolean | null {
   if (s.stikkSpilt === 0) return null;
-  const forrige = s.historikk[s.stikkSpilt - 1];
-  if (forrige === undefined) return null;
   const vårt = lagetSynlig(s, sete);
   if (vårt === null) return null;
-  return forrige.kort.some((kp) => !vårt.includes(kp.spiller) && kp.kort.farge === trumf);
+
+  /**
+   * FØRSTE VERSJON SPURTE BARE OM FORRIGE STIKK, og den var feil på en måte
+   * som målte −0,261 ± 0,047 (−5,6 SE). «Ingen forsvarer la trumf i forrige
+   * stikk» er trivielt sant når forrige stikk var et SIDEFARGESTIKK – da
+   * følger forsvarerne farge, og legger selvsagt ikke trumf. Regelen trodde
+   * forsvaret var tomt i massevis av stillinger der det var fullt.
+   *
+   * DENNE VERSJONEN ER EKSAKT, og det er følgeplikten som gjør den mulig:
+   * ble TRUMF spilt ut, MÅ enhver som har trumf legge trumf. En forsvarer som
+   * la et sidekort på et trumfutspill er derfor BEVIST tom for trumf – ikke
+   * antatt, bevist. Alle trumfutspill i historikken sjekkes, ikke bare det
+   * siste, for en renons forblir en renons.
+   */
+  const alle = Array.from({ length: s.antallSpillere }, (_, i) => i);
+  const forsvarere = alle.filter((i) => !vårt.includes(i));
+  if (forsvarere.length === 0) return null;
+
+  const bevistTom = new Set<number>();
+  for (const stikk of s.historikk) {
+    if (stikk.kort[0]?.kort.farge !== trumf) continue; // bare trumfutspill beviser noe
+    for (const kp of stikk.kort) {
+      if (kp.kort.farge !== trumf) bevistTom.add(kp.spiller);
+    }
+  }
+  return forsvarere.some((f) => !bevistTom.has(f));
 }
 
 export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg): Kort {
