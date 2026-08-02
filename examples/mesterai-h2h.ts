@@ -66,8 +66,10 @@ import { velgHandling as pimcVelg, type BotOpts } from "../src/bot/bot.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
+import { Budagent, lesBudmodell } from "../src/moe2/budagent.ts";
 import { EksaktSluttspill, delEksaktSpek } from "../src/moe2/eksaktagent.ts";
 import { Budvakt, delBudspek } from "../src/moe2/budvakt.ts";
+import { handNett } from "../src/moe2/handnett.ts";
 import { delSDSpek, SDAgent } from "../src/moe2/sdagent.ts";
 import { grådigHandling } from "./graadig.ts";
 import {
@@ -137,7 +139,8 @@ function lagKandidat(spec: string): Kandidat {
   const bv = delBudspek(spec);
   if (bv !== null) {
     const indre = lagKandidat(bv.indre);
-    const pakket = new Budvakt({ velgHandling: (s) => indre.velg(s) }, bv.valg, new NevroAgent());
+    const nett = bv.valg.nettFil === null ? null : handNett(bv.valg.nettFil);
+    const pakket = new Budvakt({ velgHandling: (s) => indre.velg(s) }, bv.valg, new NevroAgent(), nett);
     return {
       navn: spec,
       nyKamp: (frø) => indre.nyKamp(frø),
@@ -151,6 +154,33 @@ function lagKandidat(spec: string): Kandidat {
   if (eks !== null) {
     const indre = lagKandidat(eks.indre);
     const pakket = new EksaktSluttspill({ velgHandling: (s) => indre.velg(s) }, eks.valg);
+    return {
+      navn: spec,
+      nyKamp: (frø) => indre.nyKamp(frø),
+      velg: (s) => pakket.velgHandling(s),
+    };
+  }
+  /**
+   * «budm:<modellfil>:<indre>» – budmodellen (src/moe2/budagent.ts) lagt
+   * utenpå en annen kandidat. Den overtar BARE budrunden.
+   *
+   * Grunnen til at den måles her og ikke bare på egen benk: mot tre
+   * NevroHjerne-motstandere hentet den +2,138 ± 0,090 poeng per runde, og
+   * 95 % av det kom av å ta kontrakter nevro PASSER PÅ. MesterAI byr 94 %
+   * likt med nevro, så den bør ha samme svakhet – men «bør» er ikke målt, og
+   * MesterAI er den eneste motstanderen som faktisk kan straffe et for
+   * aggressivt bud.
+   */
+  if (spec.startsWith("budm:")) {
+    const rest = spec.slice(5);
+    const skille = rest.indexOf(":");
+    const modellFil = rest.slice(0, skille);
+    const indre = lagKandidat(rest.slice(skille + 1));
+    const modell = lesBudmodell(modellFil);
+    const pakket = new Budagent(
+      { velgHandling: (s) => indre.velg(s), nyKamp: () => {} },
+      modell,
+    );
     return {
       navn: spec,
       nyKamp: (frø) => indre.nyKamp(frø),
