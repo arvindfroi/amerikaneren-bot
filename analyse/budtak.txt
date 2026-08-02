@@ -1,0 +1,43 @@
+
+=== HVOR MYE ER IGJEN AA HENTE I BUDET? ===
+2337 hender i BEGGE settene (0 hoppet over).
+Samme hender, UAVHENGIGE verdenstrekninger. Alt lest av paa sett B.
+
+nivaa                         poeng/runde
+--------------------------------------------------------------
+KONSTANT (bud 9)               +5.019 ± 0.105
+BUDMODELLEN                    +5.690 ± 0.087
+PER HAAND, K=24 (valgt A)      +5.313 ± 0.089   <- en POLICY, ikke et tak
+NAIVT   (valgt paa B)          +6.395 ± 0.082   <- oppblaast
+--------------------------------------------------------------
+
+MODELLEN HAR TATT:   +0.670 ± 0.046 over «by alltid 9»
+MOT PER-HAAND K=24:  -0.376 ± 0.041
+
+ADVARSEL OM TOLKNING, og den er en RETTELSE av dette skriptets egen
+foerste utgave. «Valgt paa A, lest paa B» fjerner forbannelsen fra
+AVLESNINGEN, men ikke fra VALGET: aa plukke bud per haand ut fra 24
+trekninger er i seg selv en stoeyete policy. Prosjektet har maalt at argmax
+over per-haand-estimater taper mot en KONSTANT under K ~ 48, og 24 er godt
+under. Raden er derfor IKKE et tak - den er en konkurrent, og den taper.
+
+Er tallet negativt, betyr det at ingen av de tre alternativene vi kan
+konstruere - fast bud, mu-boettetabell, per-haand-argmax - slaar modellen.
+Det er ikke det samme som at taket er naadd. Det er at vi ikke kan SE taket
+herfra, og at aa finne det krever flere verdener per haand, ikke smartere
+statistikk paa de 24 vi har.
+
+VINNERENS FORBANNELSE: +1.082 poeng/runde.
+Det er hva argmax over 24 stoeyete trekninger later som den henter, og som
+forsvinner naar budet velges paa ett sett og leses av paa et annet. Et tall
+regnet paa ETT datasett ville vaert saa mye for hoeyt.
+
+HVA «IGJEN AA HENTE» ER, og hva det IKKE er. ev[N] er allerede snittet over
+makkerens kort og talongen, saa den tilfeldigheten er midlet BORT foer
+sammenlikningen - den kan ikke dukke opp som et gap mellom to EV-nivaaer.
+Resten er derfor ren HAANDVURDERING: hva en perfekt mu ville hentet med
+noeyaktig den informasjonen budgiveren allerede sitter med.
+
+Tallet er litt KONSERVATIVT: A-argmax treffer ikke alltid det sant beste
+budet, saa orakelraden er en nedre grense for det ekte taket.
+

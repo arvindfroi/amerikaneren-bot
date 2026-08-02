@@ -60,6 +60,8 @@ import { handTrekk, HAND_DIM } from "../src/moe2/handtrekk.ts";
 
 let hender = 4000;
 let trekninger = 24;
+/** null = bruk håndfrøet, altså gammel oppførsel. Se kommentaren ved `rng`. */
+let trekkFrø: number | null = null;
 let skardI = 0;
 let skardN = 1;
 /**
@@ -78,6 +80,7 @@ for (let i = 2; i < process.argv.length; i++) {
   if (a === "--hender") hender = Number(process.argv[++i]);
   else if (a === "--trekninger") trekninger = Number(process.argv[++i]);
   else if (a === "--froe") frøBase = Number(process.argv[++i]);
+  else if (a === "--trekkfroe") trekkFrø = Number(process.argv[++i]);
   else if (a === "--kandidat") kandidatSpek = process.argv[++i]!;
   else if (a === "--ut") ut = process.argv[++i] ?? null;
   else if (a === "--skard") {
@@ -179,7 +182,24 @@ function spillHandling(giv: GameState, sete: number, mittBud: number | null): nu
   return [0, 1, 2, 3].map((p) => s.totalPoeng[p] ?? 0);
 }
 
-const rng = lagRng((frøBase + skardI * 7919) >>> 0);
+/**
+ * TREKNINGSFRØET ER SKILT FRA HÅNDFRØET, og det er hele poenget med
+ * `--trekkfroe`.
+ *
+ * Uten skillet seeder samme tall både hvilke HENDER som lages og hvilke
+ * VERDENER som trekkes til dem. To kjøringer gir da enten identiske data
+ * eller helt ulike hender – aldri de samme hendene med UAVHENGIGE trekninger.
+ *
+ * Det siste er nødvendig for å måle hvor mye et bedre μ er verdt. `ev[N]` er
+ * et snitt over 24 trekninger, altså støyete, og argmax over det per hånd gir
+ * vinnerens forbannelse. Prosjektet har allerede blitt lurt av den én gang:
+ * «+1,18 i budhodrom» var ren argmax-støy, og splitt-halv målte −0,825.
+ *
+ * Med to uavhengige sett kan budet VELGES på sett A og LESES AV på sett B.
+ * Da er tallet forventningsrett, og differansen til modellens eget valg er
+ * det ekte rommet en perfekt håndvurdering ville hentet.
+ */
+const rng = lagRng(((trekkFrø ?? frøBase) + skardI * 7919) >>> 0);
 const t0 = Date.now();
 let skrevet = 0;
 
