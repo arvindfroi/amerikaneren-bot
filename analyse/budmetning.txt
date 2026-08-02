@@ -1,0 +1,45 @@
+
+=== HVOR METTET ER BUDMODELLEN? ===
+12039 hender fra bud-data (0 hoppet over), modell e1-modell/bud-gbt.json.
+ev[N] er snitt over 24 verdenstrekninger – altsaa forventet utbytte GITT
+haanden, over makkerens kort og talongen.
+
+nivaa                          poeng/runde      hva det er
+--------------------------------------------------------------------------
+KONSTANT (bud 9)              +5.254 ± 0.046   gulvet: ett bud for alle
+BUDMODELLEN                    +5.885 ± 0.039   det vi har
+KALIBRERT (mu-boette)          +5.846 ± 0.039   taket med SAMME informasjon
+FASIT (per haand)              +6.580 ± 0.037   uoppnaaelig, og oppblaast
+--------------------------------------------------------------------------
+
+METNING = (budm − konstant) / (kalibrert − konstant) = 106.6 %
+
+Rommet som FINNES aa hente: +0.592 poeng/runde.
+Rommet budm har tatt:       +0.632.
+Rommet som staar igjen:     -0.039.
+
+UREDUSERBART (makker + talong): +0.734 poeng/runde.
+Det er avstanden fra det beste en modell med vaar informasjon kan gjoere,
+til det beste i etterpaaklokskap. Arvind: «den burde ikke angre paa stikk
+som den vet at den fikk fra makker eller fra inbytten.» Dette tallet ER den
+angeren, og den skal IKKE trekkes fra modellens score.
+
+FORBEHOLD: FASIT-raden er argmax over 24 stoeyete trekninger og lider av
+vinnerens forbannelse (prosjektet maalte vippepunktet til K ~ 48). Den er
+en OEVRE grense for det ureduserbare, ikke et estimat av det.
+
+PER MU-BOETTE  (hva modellen byr mot hva boetta burde bydd)
+  boette   n     mu      budm-snitt   kalibrert bud   ev budm   ev kal
+     0   1003    7.96        7.76             8    +1.292   +1.297
+     1   1003    8.35        8.00             8    +2.180   +2.180
+     2   1003    8.59        8.00             8    +2.697   +2.697
+     3   1004    8.77        8.00             8    +3.085   +3.085
+     4   1003    8.93        8.78             9    +3.854   +3.837
+     5   1003    9.07        9.00             9    +4.998   +4.998
+     6   1003    9.22        9.00             9    +5.822   +5.822
+     7   1004    9.38        9.00             9    +6.664   +6.664
+     8   1003    9.54        9.00             9    +7.898   +7.898
+     9   1003    9.72        9.00             9    +9.150   +9.150
+    10   1003    9.95        9.00             9   +10.338  +10.338
+    11   1004   10.36        9.35             9   +12.640  +12.183
+
