@@ -60,3 +60,11 @@ mester-data/
 # kommandoen i docs/moe2.md. `budgrense-givere-*.jsonl` (én linje per kamp)
 # er små og ligger i git.
 analyse/budgrense-runder-*.jsonl
+# håndvurdering: (trekk → SD)-datasettet fra examples/handvurdering.ts --data.
+# Hundrevis av MB, regenereres på minutter fordi fasiten er gratis.
+hand-data/
+# håndvurderingens holdout, delt paa GIV (verktoy/hand-tren.py --dumpholdout)
+hand-frys/
+# rundelogger fra spillmaalingen av haandvurderingen – samme grunn som
+# budgrense-runder: titalls MB, destillert til analyse/handvurdering.{txt,json}
+analyse/handvurdering-runder-*.jsonl
