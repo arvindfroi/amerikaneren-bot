@@ -196,6 +196,48 @@ export interface Vaktvalg {
    * betingelsen som er feil, og da er hele vakt 5 død.
    */
   readonly draBilligst?: boolean;
+  /**
+   * Vakt 6: som MAKKER, spill laveste trumf tilbake i stikk 2.
+   *
+   * STILLINGEN er nesten obligatorisk i Amerikaneren: budvinneren spiller ut
+   * lav trumf og etterlyser den høyeste trumfen han ikke har, makkeren legger
+   * det etterlyste kortet og tar stikket. Så sitter makkeren – nå avslørt –
+   * med utspillet, og det er hans første frie valg i runden.
+   *
+   * MÅLT PÅ UTFALLET, ikke mot et orakel. Arvind foreslo det: «er det mulig å
+   * gjøre regret basert på om kontrakten ble felt i stedet for å bruke en
+   * løsning?» Det er både mulig og bedre. DD ble avvist av porten (−0,609) og
+   * er skadelig å følge; SD er godkjent men så støyete at argmax over den blir
+   * vinnerens forbannelse – den blåste opp budtaket mitt fra ingenting til
+   * «+1,18». Her legges kortet i den EKTE giva og runden spilles ferdig.
+   * Agentene er deterministiske, så hver differanse er EKSAKT for den giva.
+   * Ingen sampling, ingen antakelse om perfekt spill.
+   *
+   * 4 360 giver, kontrakt 9, parret på giv, mot det boten faktisk spilte:
+   *
+   *   regel                        poengdiff        innfridd
+   *   laveste trumf              +0,084 ± 0,031      85,0 %
+   *   høyeste trumf              +0,061 ± 0,032      84,7 %
+   *   BOTEN I DAG                      –            83,8 %
+   *   laveste sidekort           −0,063 ± 0,033      83,1 %
+   *   høyeste sidekort           −0,066 ± 0,032      82,9 %
+   *   lengste sidefarge, høyest  −0,088 ± 0,033      82,6 %
+   *
+   * Alle fire sidefargereglene er negative, begge trumfreglene positive.
+   * Boten spiller selv trumf her i bare 24 % av stillingene.
+   *
+   * IKKE HINDSIGHT-SKJEVT, selv om den ekte giva er kjent: regelen velger kort
+   * ut fra egen hånd og trumffargen alene og ser aldri giva. Snittet over
+   * mange giver er derfor forventningsrett for regelen. Det målingen IKKE
+   * dekker er at kortet der bare byttes inn i ETT stikk – derfor må flagget
+   * måles i full kamp før det adopteres.
+   *
+   * HVORFOR LAVESTE OG IKKE HØYESTE: de to er innenfor en standardfeil av
+   * hverandre (+0,084 mot +0,061), så rangeringen mellom dem er ikke avgjort.
+   * Laveste velges fordi den er billigere – den brenner ikke en høy trumf – og
+   * fordi det er konvensjonen menneskene faktisk spiller.
+   */
+  readonly makkerTrumfTilbake?: boolean;
   /** Vakt 2, mild: på et garantert stikk, aldri trumf når et avkast er lovlig. */
   readonly garantiIkkeTrumf: boolean;
   /** Vakt 2, streng: på et garantert stikk, alltid det billigste lovlige kortet. */
@@ -217,6 +259,7 @@ export function lesVaktflagg(flagg: string): Vaktvalg {
     else if (tegn === "d") valg = { ...valg, ikkeDraTrumf: true, draTerskel: 3 };
     else if (tegn === "D") valg = { ...valg, ikkeDraTrumf: true, draTerskel: 4 };
     else if (tegn === "e") valg = { ...valg, ikkeDraTrumf: true, draTerskel: 3, draBilligst: true };
+    else if (tegn === "m") valg = { ...valg, makkerTrumfTilbake: true };
     else {
       throw new Error(
         `Ukjent vaktflagg «${tegn}» (a = åpning/billigst, h = åpning/høyest, ` +
@@ -342,6 +385,19 @@ export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg
   const trumf = s.trumf;
   const lovlige = lovligeKort(s, sete);
   if (lovlige.length <= 1) return valgt;
+
+  /**
+   * Vakt 6: makkeren har tatt stikk 1 og sitter med utspillet i stikk 2.
+   * Betingelsene er nøyaktig de målingen ble gjort på – ett stikk spilt,
+   * tomt bord, setet ER makkeren, og makkeren tok forrige stikk.
+   */
+  if (
+    valg.makkerTrumfTilbake === true && s.bord.length === 0 && s.stikkSpilt === 1 &&
+    s.makker === sete && s.historikk[0]?.vinner === sete
+  ) {
+    const trumfKort = lovlige.filter((k) => k.farge === trumf);
+    if (trumfKort.length > 0) return billigste(trumfKort, trumf);
+  }
 
   /**
    * Vakt 5 står FØRST fordi den bare gjelder utspill der bordet er tomt og

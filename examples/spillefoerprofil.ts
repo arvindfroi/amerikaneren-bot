@@ -64,6 +64,7 @@ let rolle: "spillefører" | "makker" = "spillefører";
  * svak. Settes `--andre vakt:ab:e1:...`, føres kontrakten av vår beste
  * spillefører, og da måles makkeren i den stillingen den faktisk skal virke i.
  */
+let frøBase = 1_700_000;
 let andreSpec = "nevro";
 const spesser: string[] = [];
 for (let i = 2; i < process.argv.length; i++) {
@@ -229,7 +230,7 @@ if (andreSpec !== "nevro") {
 
 const rader = kandidater.map(() => nyRad());
 for (let i = 0; i < kandidater.length; i++) {
-  for (let f = 0; f < kamper; f++) kjør(kandidater[i]!.lag, rader[i]!, 1_700_000 + f);
+  for (let f = 0; f < kamper; f++) kjør(kandidater[i]!.lag, rader[i]!, frøBase + f);
   tømCache();
   process.stdout.write(`\r  ${i + 1}/${kandidater.length} maalt   `);
 }

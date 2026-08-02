@@ -1,0 +1,30 @@
+
+=== Makkerens utspill i stikk 2, maalt paa UTFALLET ===
+4360 giver. Kandidat: vakt:ab:e1:e1-modell/sd-r2.bin, kontrakt 9.
+Hvert kandidatkort spilles i den EKTE giva og runden spilles ferdig.
+Agentene er deterministiske, saa hver differanse er EKSAKT for den giva.
+
+Botens eget valg: trumf ut i 24 % av stillingene.
+Botens egen innfrielsesrate: 83.8 %
+
+regel                          mot botens valg        innfridd
+------------------------------------------------------------------
+laveste trumf                  +0.084 ± 0.031 (2.7 SE)     85.0 %
+hoeyeste trumf                 +0.061 ± 0.032 (1.9 SE)     84.7 %
+laveste uansett                -0.037 ± 0.033 (-1.1 SE)     83.4 %
+korteste sidefarge, hoeyest    -0.058 ± 0.033 (-1.7 SE)     83.0 %
+hoeyeste uansett               -0.063 ± 0.032 (-2.0 SE)     82.9 %
+laveste sidekort               -0.063 ± 0.033 (-1.9 SE)     83.1 %
+hoeyeste sidekort              -0.066 ± 0.032 (-2.1 SE)     82.9 %
+lengste sidefarge, hoeyest     -0.088 ± 0.033 (-2.7 SE)     82.6 %
+------------------------------------------------------------------
+
+Positivt = regelen gir makkersetet MER poengdifferanse enn det boten
+faktisk spilte, parret paa giv.
+
+FORBEHOLD. Dette er en HINDSIGHT-maaling: den ekte giva er kjent, saa et
+kort kan vinne fordi kortene tilfeldigvis laa slik. Per stilling betyr
+tallet derfor ingenting. Snittet over mange giver for en FAST regel er
+derimot gyldig - det er akkurat den formen en konvensjonsvakt har - men
+en vinnende regel maa likevel maales i full kamp foer den adopteres,
+fordi den her bare byttes inn i ETT stikk.
