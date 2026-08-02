@@ -77,6 +77,13 @@ for (let i = 2; i < process.argv.length; i++) {
     if (r !== "spillefører" && r !== "makker") throw new Error(`--rolle må være spillefører eller makker, ikke «${r}»`);
     rolle = r;
   } else if (a === "--andre") andreSpec = process.argv[++i]!;
+  // Disjunkte frøbånd lar flere prosesser dele samme måling; radene pooles
+  // etterpå. Uten dette er benken enttrådet og n vokser i skilpaddefart.
+  else if (a === "--froe") frøBase = Number(process.argv[++i]);
+  // ALT annet regnes som en kandidatspesifikasjon. Derfor MÅ hvert flagg ha
+  // sin egen gren over: et flagg som mangler her havner her nede og feiler
+  // som «ukjent kandidat» – nøyaktig det som skjedde da `--froe` ble lagt
+  // til uten at denne grenen kom med.
   else spesser.push(a);
 }
 

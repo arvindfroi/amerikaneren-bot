@@ -236,6 +236,31 @@ export interface Vaktvalg {
    * hverandre (+0,084 mot +0,061), så rangeringen mellom dem er ikke avgjort.
    * Laveste velges fordi den er billigere – den brenner ikke en høy trumf – og
    * fordi det er konvensjonen menneskene faktisk spiller.
+   *
+   * ===================== BEKREFTET I FULL KAMP. ADOPTERT. ==================
+   *
+   * Rollebenken «makker», tvungen kontrakt 9, ti DISJUNKTE frøbånd kjørt hver
+   * for seg og poolet – ikke ett langt løp, så skardene er uavhengige:
+   *
+   *   per skard:  +0,044  +0,067  +0,027  +0,037  +0,013
+   *               +0,089  +0,007  +0,040  +0,029  +0,051
+   *
+   *   POOLET      +0,0404 ± 0,0075   (5,4 SE), 11 060 kontrakter
+   *   tegntest    positiv i 10 av 10 skard
+   *
+   * Effekten er mindre enn den enkeltstikksmålingen antydet (+0,084), og det
+   * er ventet: der byttes kortet bare i ETT stikk, mens vakten spiller hele
+   * runden etterpå og noe av gevinsten tas tilbake. Retningen og fortegnet
+   * står, og 10 av 10 skard er strengere enn SE-en alene.
+   *
+   * RISIKOEN FOR SKADE ANDRE STEDER ER STRUKTURELT NULL: betingelsen krever
+   * at setet ER makkeren, at nøyaktig ett stikk er spilt, at bordet er tomt
+   * og at makkeren tok stikk 1. Regelen kan ikke fyre i noen annen stilling,
+   * så den kan ikke røre spilleføring eller forsvar.
+   *
+   * FØRSTE MÅLTE FORBEDRING PÅ DENNE ØKTEN, og den kom av Arvinds egen idé om
+   * å måle på utfallet i stedet for mot et orakel. Tre forsøk målt mot
+   * orakler i samme økt endte alle negativt.
    */
   readonly makkerTrumfTilbake?: boolean;
   /** Vakt 2, mild: på et garantert stikk, aldri trumf når et avkast er lovlig. */
