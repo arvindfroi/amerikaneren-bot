@@ -123,11 +123,26 @@ const nøkkel = (r: Rad): string => `${r.froe}|${r.par}|${r.side}`;
 const kartA = new Map<string, Rad>();
 for (const r of A) kartA.set(nøkkel(r), r);
 
+/**
+ * BEGGE SIDER AVDUPLISERES PÅ NØKKEL. Skardene deles på par-intervaller, og
+ * intervallene kan overlappe når de startes om – da ville den samme giva talt
+ * flere ganger og n blitt kunstig høy uten at noe så galt ut. Kampen er
+ * deterministisk gitt (frø, par, side), så duplikatene er identiske; det er
+ * tellingen som er problemet, ikke innholdet.
+ */
+const settB = new Set<string>();
+let dublett = 0;
 const par: { k: string; a: number; b: number; d: number }[] = [];
 for (const r of B) {
-  const a = kartA.get(nøkkel(r));
+  const k = nøkkel(r);
+  const a = kartA.get(k);
   if (a === undefined) continue;
-  par.push({ k: nøkkel(r), a: dpr(a), b: dpr(r), d: dpr(r) - dpr(a) });
+  if (settB.has(k)) {
+    dublett++;
+    continue;
+  }
+  settB.add(k);
+  par.push({ k, a: dpr(a), b: dpr(r), d: dpr(r) - dpr(a) });
 }
 par.sort((x, y) => x.k.localeCompare(y.k));
 
@@ -171,7 +186,8 @@ if (par.length < 2) {
   linjer.push(
     `PARRET paa (froe, par, side) – samme giv, samme MesterAI-motstander:`,
     `  ${navn.b} − ${navn.a} = ${fmt(m)} ± ${s.toFixed(4)}   (${(m / s).toFixed(1)} SE), n=${par.length}`,
-    `  positiv i ${pos} av ${par.length} par (${neg} negative, ${par.length - pos - neg} like)`,
+    `  positiv i ${pos} av ${par.length} par (${neg} negative, ${par.length - pos - neg} like)` +
+      (dublett > 0 ? `   [${dublett} dupliserte B-kamper hoppet over]` : ""),
     `  tegntest, tosidig: p = ${tegntest(pos, pos + neg).toFixed(3)}`,
     ``,
     `PORTEN: n >= 200 par. Naa: ${par.length}. ${par.length >= 200 ? "NAADD." : `Mangler ${200 - par.length}.`}`,
