@@ -538,12 +538,32 @@ def main() -> None:
     logg.write(json.dumps({"type": "overlapp", "tid": time.strftime("%Y-%m-%d %H:%M:%S"), **rapport}, ensure_ascii=False) + "\n")
 
     for spek in args.kjor:
-        navn, mix, skjult = spek.split(":")
+        # VALGFRITT FJERDE LEDD: «navn:mapper:skjult:bredde» kutter trekkene til
+        # de første `bredde` kolonnene.
+        #
+        # Dette er ablasjonen som isolerer minneblokken. Indeks 0-272 i v2 er
+        # BIT-IDENTISKE med v1 (se src/e1/trekk.ts), så «:273» gir nøyaktig et
+        # v1-nett trent på nøyaktig de samme radene, samme holdout og samme
+        # initialisering. Forskjellen mellom de to kjøringene kan da bare komme
+        # fra de 67 minnetrekkene – ikke fra data, splitt eller flaks.
+        deler = spek.split(":")
+        if len(deler) == 3:
+            navn, mix, skjult = deler
+            bredde = TREKK_DIM
+        elif len(deler) == 4:
+            navn, mix, skjult, b = deler
+            bredde = int(b)
+            if bredde > TREKK_DIM:
+                raise SystemExit(f"{navn}: bredde {bredde} > trekkbredden {TREKK_DIM}")
+        else:
+            raise SystemExit(f"Ugyldig --kjor «{spek}»: forventet navn:mapper:skjult[:bredde]")
         mix_mapper = [m for m in mix.split(",") if m]
         mix_idx = [mapper.index(m) for m in mix_mapper]
         tren_maske = numpy.isin(KILDE, numpy.array(mix_idx, dtype=numpy.int8)) & ~er_hold & ~lekk
         tren_idx = torch.from_numpy(numpy.flatnonzero(tren_maske)).to(enhet)
-        dims = [TREKK_DIM] + [int(x) for x in skjult.split(",")] + [KORT]
+        # Utsnitt, ikke kopi – Xg ligger allerede på GPU-en og er flere hundre MB.
+        Xk = Xg if bredde == TREKK_DIM else Xg[:, :bredde]
+        dims = [bredde] + [int(x) for x in skjult.split(",")] + [KORT]
         modell = E1Nett(dims).to(enhet)
         antall = sum(q.numel() for q in modell.parameters())
         ut = os.path.join(args.utmappe, f"{navn}.bin")
@@ -587,7 +607,7 @@ def main() -> None:
             for i in range(0, tren_idx.numel(), args.batch):
                 j = tren_idx[perm[i : i + args.batch]]
                 w = Wt[perm[i : i + args.batch]]
-                tap = maskert_tap(modell(Xg[j]), Vg[j], Mg[j], args.tau, w)
+                tap = maskert_tap(modell(Xk[j]), Vg[j], Mg[j], args.tau, w)
                 opt.zero_grad(set_to_none=True)
                 tap.backward()
                 opt.step()
@@ -595,8 +615,8 @@ def main() -> None:
                 biter += 1
             plan.step()
             modell.eval()
-            tr_tap, tr_treff, tr_anger = maal_i_biter(modell, Xg, Vg, Mg, args.tau, tm)
-            ho_tap, ho_treff, ho_anger = maal_i_biter(modell, Xg, Vg, Mg, args.tau, hold_idx)
+            tr_tap, tr_treff, tr_anger = maal_i_biter(modell, Xk, Vg, Mg, args.tau, tm)
+            ho_tap, ho_treff, ho_anger = maal_i_biter(modell, Xk, Vg, Mg, args.tau, hold_idx)
             rad = {
                 "type": "epoke",
                 "navn": navn,

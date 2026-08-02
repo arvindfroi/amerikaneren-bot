@@ -90,14 +90,43 @@ Alle seks aksene i oppsettet er riktige for første gang:
 
 | akse | rettet i dag |
 |---|---|
-| trekk | v2 (340) med minneblokken — budvinneren husker sitt eget vrak |
+| ~~trekk~~ | ~~v2 (340) med minneblokken~~ — **MÅLT SKADELIG, se under** |
 | kontrakter | spredt, ikke 92 % bud 9–10 |
 | rollout-policy | `vakt:abmp`, ikke nevro |
 | stillingskilde | nettet selv (DAgger), ikke nevro |
 | rollevekt | 3× spillefører — den bærer 100 % av gapet |
 | verdener | 12, det målte nivået |
 
-De fire første var alle feil i vektene som kjører i dag. **Utgangsprøve:**
+### Minneblokken er forkastet, og det første nettet strøk utgangsprøven
+
+Ablasjonen: to nett, samme 245 569 rader, samme holdout, samme form
+512→384→256. Eneste forskjell er om kolonne 273–339 finnes. Så begge målt i
+spill mot dagens vekter, 400 givere × 4 seter, friskt frøbånd 900 000.
+
+| | holdout-anger | poeng/kamp | parret mot v1 |
+|---|---|---|---|
+| sd-r2 (dagens) | — | **+76,61 ± 0,07** | **+0,76 ± 0,05**, 326/394 |
+| ablasjon-v1 (273) | 0,9693 | +75,85 ± 0,07 | — |
+| ablasjon-v2 (340) | 0,9898 | +75,56 ± 0,07 | −0,29 ± 0,05, 141/388 |
+
+To uavhengige mål, samme fortegn, p = 0,000 i spill: **minneblokken er ikke
+nøytral, den er skadelig.** Historien bak den var god — budvinneren bør huske
+sitt eget vrak — og det holdt ikke. Aksen strykes.
+
+Og dagens vekter slår begge de nye med 0,76 poeng, positivt i 326 av 394
+givere. Det er ikke støy, og det er utgangsprøven i §4 som feiler.
+
+**Hva det IKKE beviser:** at spredte kontrakter, DAgger-stillinger eller
+rollevekten er feil. De nettene er trent på ~400 partier og overtilpasser fra
+epoke 5 — treningsangeren faller til 0,59 mens holdout stiger, og gapet vokser
+monotont. Det er en datamengdefeil, ikke en aksefeil. Minneblokken er den
+eneste aksen som er isolert og felt.
+
+**Den underliggende lærdommen:** vi har telt rader når statistikken lever på
+partier. 255 000 rader, noen hundre partier, holdout på 14 av dem. Målet
+«300 000 rader» er formulert i feil enhet.
+
+De tre gjenstående aksene er fortsatt utestående. **Utgangsprøve:**
 parret måling mot dagens nett på friskt frøbånd. `lagstikk − SD` skal ikke
 falle på kontrakt 9–10 og skal stige på 7–8 og 11–12.
 
@@ -189,8 +218,8 @@ utplassering — nettsiden og arenabenken — ikke en ny komponent.
 
 | krav | status | hvorfor det er et krav |
 |---|---|---|
-| kortnettet trent på v2 + spredte kontrakter + DAgger | 228k rader, treneren røyktestet | fire målte defekter i dagens vekter |
-| den nye vekten målt parret mot dagens | ikke startet | et nett kan bli verre; det har skjedd åtte ganger i dette prosjektet |
+| kortnettet trent på spredte kontrakter + DAgger | **v2-aksen forkastet**; data samles videre | tre gjenstående defekter i dagens vekter |
+| den nye vekten målt parret mot dagens | **STRØK: −0,76 ± 0,05, 326/394** | et nett kan bli verre; nå ni ganger |
 | budmodellen har et MesterAI-tall | n=34 av 200 par | +2,14 er målt mot nevro-byding, ikke mot en som kan straffe overbud |
 
 **Budtallet krympet da det ble målt riktig.** Den ad hoc-regnede differansen var på
@@ -242,10 +271,16 @@ vet hva er — og 136 runder mot dagens bot er allerede for lite til å skille
 Nettsiden bygger i dag `Konvensjonsvakt(E1Agent.fraBytes(bytes, {}), flagg)` —
 altså nett + regler, ingen søk. Adams v1 er samme form med fire endringer:
 
-1. nye vekter (v2-trekk, spredte kontrakter, DAgger-stillinger)
+1. ~~nye vekter~~ — **utgår.** De strøk utgangsprøven med −0,76. Adams v1
+   bruker `sd-r2`, altså dagens vekter.
 2. vaktflaggene `abmp` i stedet for `at` — `m` og `p` er målt i dag
 3. budmodellen (`bud-gbt.json`) lagt utenpå, hvis MesterAI-tallet holder
 4. ingen søk — fire former er målt, ingen slår nettet
+
+**Adams v1 er da `vakt:abmp:e1:sd-r2`.** Punkt 2 alene er en ekte forbedring
+over det som står ute nå (`vakt:at`): `m` måler +0,0404 ± 0,0075 og var
+positiv i 10 av 10 disjunkte frøbånd, `p` +0,0039 ± 0,0010 i 9 av 10. Det er
+mindre enn vi håpet i går, men det er målt, og det er mer enn null.
 
 ### Om noe ikke rekker
 
