@@ -36,12 +36,14 @@ let kandidatSpek = "vakt:ab:e1:e1-modell/sd-r2.bin";
 let toppN = 20;
 let verdener = 12;
 let ut = "analyse/sdvrak-0.jsonl";
+let medSeende = false;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--givere") givere = Number(process.argv[++i]);
   else if (a === "--kandidat") kandidatSpek = process.argv[++i]!;
   else if (a === "--topp") toppN = Number(process.argv[++i]);
   else if (a === "--verdener") verdener = Number(process.argv[++i]);
+  else if (a === "--seende") medSeende = true;
   else if (a === "--ut") ut = process.argv[++i]!;
   else if (a === "--skard") {
     const [x, y] = (process.argv[++i] ?? "0/1").split("/");
@@ -58,11 +60,11 @@ type Velger = { velgHandling(s: GameState): Handling; nyKamp(): void };
 const lagBot = (): Velger => new Konvensjonsvakt(new E1Agent(nett), vakt.valg);
 
 /** Kjører runden ferdig fra VRAK. `sdvrak` bytter ut BARE vrakvalget. */
-function spill(start: GameState, sdvrak: boolean): number | null {
+function spill(start: GameState, sdvrak: boolean, seende = false): number | null {
   const seter: Velger[] = [0, 1, 2, 3].map(() => lagBot());
   for (const b of seter) b.nyKamp();
   const vrakvelger = sdvrak
-    ? new SDVrak(seter[start.budvinner!]!, { topp: toppN, verdener, motpart: nevro, frø: start.frø })
+    ? new SDVrak(seter[start.budvinner!]!, { topp: toppN, verdener, motpart: nevro, frø: start.frø, seende })
     : null;
   let s = start;
   let g = 0;

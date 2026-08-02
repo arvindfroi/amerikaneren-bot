@@ -43,7 +43,7 @@ import { lagRng } from "../kort.ts";
 import type { GameState, Handling } from "../motor.ts";
 import { kortIndeks } from "../nevro/trekk.ts";
 import { evaluerHybrid } from "../solver/dds.ts";
-import { alleVrak, fastTrumfvalg, kortFraIndeks } from "./eksperter/vrak.ts";
+import { alleVrak, fastTrumfvalg, kortFraIndeks, lagVrakstilling } from "./eksperter/vrak.ts";
 import { besteIndeks, trekkVerdener, vurderVrakSD, type Utspiller } from "./sdkort.ts";
 
 /** Agenten SD-vraket legger seg utenpå. */
@@ -63,6 +63,17 @@ export interface SDVrakOpts {
   readonly dybde?: number;
   /** Motstandermodellen som spiller verdenene ferdig inne i SD. */
   readonly motpart?: Utspiller;
+  /**
+   * DIAGNOSE, IKKE SPILLER. Bruk den SEENDE grovsilen – `lagVrakstilling`,
+   * som løser på de ekte hendene til alle fire. Den er ulovlig ved bordet, og
+   * finnes her av én grunn: den blinde silen måler −0,432 ± 0,065, og da må
+   * vi vite HVA som svikter. Vinner den seende, er silen problemet og SD-en
+   * er frisk. Taper den også, transporterer ikke SD-vraket seg til en spiller
+   * i det hele tatt, og hele linjen skal legges ned.
+   *
+   * Et resultat målt med denne skal ALDRI siteres som botens styrke.
+   */
+  readonly seende?: boolean;
   readonly frø?: number;
 }
 
@@ -136,6 +147,7 @@ export class SDVrak implements Innagent {
       verdener: opts.verdener ?? 12,
       dybde: opts.dybde ?? 6,
       frø: opts.frø ?? 0x5eed,
+      seende: opts.seende ?? false,
       motpart: opts.motpart ?? null,
     };
   }
@@ -151,8 +163,14 @@ export class SDVrak implements Innagent {
     const motpart = this.opts.motpart ?? (this.indre as unknown as Utspiller);
     const rng = lagRng((this.opts.frø + Math.imul(this.teller++, 0x9e3779b1)) >>> 0);
 
-    const silVerdener = trekkVerdener(state, bv, this.opts.silVerdener, rng);
-    const skår = silVerdener.length === 0 ? null : blindVrakskår(state, silVerdener, this.opts.dybde);
+    let skår: { handlinger: number[][]; verdi: number[] } | null;
+    if (this.opts.seende) {
+      const rå = lagVrakstilling(state, { dybde: this.opts.dybde });
+      skår = rå === null ? null : { handlinger: rå.handlinger.map((h) => [...h]), verdi: [...rå.verdi] };
+    } else {
+      const silVerdener = trekkVerdener(state, bv, this.opts.silVerdener, rng);
+      skår = silVerdener.length === 0 ? null : blindVrakskår(state, silVerdener, this.opts.dybde);
+    }
     // Ingen verden lot seg trekke, eller stillingen er ikke skårbar. Da skal
     // det IKKE gjettes: den indre agenten er en fullgod spiller, og en
     // tilfeldig kandidat ville vært strengt verre enn den.

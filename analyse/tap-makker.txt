@@ -1,0 +1,28 @@
+
+=== Tap per stikk mot taket – makker ===
+1175 beslutninger, kandidat vakt:ab:e1:e1-modell/sd-r2.bin, kontrakt 9.
+Anger = (beste lovlige kort) − (kortet vi spilte), begge løst eksakt med
+alle kort synlige. Alltid ≥ 0.
+
+stikk   beslutninger   anger/beslutning   andel med feil   andel av tapet
+---------------------------------------------------------------------------
+   3            131             0.3740            28.2 %            19.9 %
+   4            133             0.3008            24.8 %            16.3 %
+   5            125             0.3200            22.4 %            16.3 %
+   6            126             0.3254            24.6 %            16.7 %
+   7            128             0.2266            18.8 %            11.8 %
+   8            120             0.1333            11.7 %             6.5 %
+   9            130             0.1615            13.1 %             8.5 %
+  10            148             0.0405             4.1 %             2.4 %
+  11            134             0.0299             2.2 %             1.6 %
+---------------------------------------------------------------------------
+SUM                       246.00 stikk over 1175 beslutninger
+
+LESEVEILEDNING. «Andel av tapet» er kolonnen som svarer på hvor i runden
+stikkene forsvinner – den summerer til 100 %. «Anger/beslutning» sier hvor
+dyrt et enkeltvalg er der; de to skiller seg fordi antallet beslutninger
+er ulikt per stikk (sent i runden er mange kort tvungne).
+
+Taket forutsetter perfekt spill av ALLE med alle kort synlige. Anger mot
+det er ferdighet PLUSS informasjon vi ikke kan ha. Sammenlikningen mellom
+stikk er gyldig; nivået er det ikke.
