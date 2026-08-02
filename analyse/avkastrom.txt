@@ -1,0 +1,29 @@
+
+=== ER AVKASTET ET EKTE VALG? ===
+300 giver, 14400 kortvalg totalt.
+
+Vakt 4 fyrer i 5113 stillinger (35.5 % av alle kortvalg).
+
+FARGER UTVALGET SPENNER OVER:
+  1 farge :   2591  (50.7 %)
+  2 farger:   1566  (30.6 %)
+  3 farger:    956  (18.7 %)
+
+  bare ÉN farge: 2591 av 5113 (50.7 %)
+
+billigste og minstBrukFor velger ULIKT i 5 av 5113 (0.1 %)
+
+EKSEMPLER:
+    hånd HQ KQ HA HK | trumf S | lovlige HQ KQ HA HK → billigste HQ, minstBrukFor KQ
+    hånd S7 H8 RQ RK R7 R2 | trumf H | lovlige S7 H8 RQ RK R7 R2 → billigste R2, minstBrukFor S7
+    hånd RA SA RK KK | trumf H | lovlige RA SA RK KK → billigste RK, minstBrukFor KK
+    hånd S9 K3 R3 KK S4 KJ K4 S8 | trumf R | lovlige S9 K3 R3 KK S4 KJ K4 S8 → billigste K3, minstBrukFor S4
+    hånd SK SA RK | trumf K | lovlige SK SA RK → billigste SK, minstBrukFor RK
+
+TOLKNING. Er «én farge»-andelen høy, er det FØLGEPLIKTEN som gjør at
+«hvilket kort har jeg minst bruk for» sjelden er et valg: er man i den
+ledede fargen, ligger alle lovlige kort i den, og da er minst nyttig lik
+lavest valør. Regelen er ikke feil - den har bare lite å arbeide med.
+Er derimot «ulikt» null mens flere farger forekommer, er det en
+koblingsfeil og ikke en egenskap ved spillet.
+

@@ -43,9 +43,10 @@
  *   vakt:at:e1:e1-modell/sd-r2.bin    begge (billigst-varianten av vakt 2 er b)
  */
 
-import { likeKort, type Kort } from "../kort.ts";
+import { likeKort, type Farge, type Kort } from "../kort.ts";
 import { lovligeKort, stikkvinner, type GameState, type Handling } from "../motor.ts";
 import { billigste, dyreste, garantertSynlig, lagetSynlig, ukjenteKort } from "./synlig.ts";
+import { minstBrukFor } from "./nytte.ts";
 
 /** Hvilke av reglene som er slått på. */
 export interface Vaktvalg {
@@ -110,6 +111,27 @@ export interface Vaktvalg {
    * på et tapt kort – så der er det ingen skjult verdi å ødelegge.
    */
   readonly kastBilligst?: boolean;
+  /**
+   * Vakt 4, variant: samme betingelse som `k`, men kast kortet vi har MINST
+   * BRUK FOR i stedet for det med lavest valør.
+   *
+   * ARVINDS INNVENDING MOT `k`, ordrett: «dette burde gi utslag hvis den vet
+   * hva "billigste" betyr i denne sammenhengen. Det bør enten være å legge på
+   * det laveste man har i serien / forsøke å bli kvitt en annen serie (hvis
+   * man har trumf) / spare på kort med høy valør eller serier som tvinger frem
+   * trumfen til motstandere. billig her betyr egentlig "jeg kan ikke ta
+   * stikket så hvilket lovlige kort har jeg minst bruk for"»
+   *
+   * Han har rett i at `billigste` ikke gjør noe av dette – den er en ren
+   * valørregel og ser ikke hånden. Se `nytte.ts` for de fire kravene og
+   * vektene.
+   *
+   * DETTE SKILLER «NÅR» FRA «HVA», nøyaktig som `e` gjorde for `d`. `k` med
+   * `billigste` måler −0,048 ± 0,031 over 11 200 giv. Måler `n` positivt, var
+   * det kortvalget som var feil. Måler den også negativt, er det betingelsen,
+   * og da er hele vakt 4 død.
+   */
+  readonly kastNytte?: boolean;
   /**
    * Vakt 5: som budvinner, IKKE spill trumf ut når mange trumf står ute.
    *
@@ -295,10 +317,99 @@ export interface Vaktvalg {
    * enn den som ble målt.
    */
   readonly makkerTrumferFørst?: boolean;
+  /**
+   * Vakt 8 (`A`): makkeren spiller ESS i sidefarge i stikk 2 – ellers HØYESTE
+   * trumf.
+   *
+   * ARVINDS BESKRIVELSE AV ÅPNINGSFLYTEN, som denne og `C`/`S` kommer av:
+   * «i neste stikk er det makker sin tur å spille ut, også spiller den ut
+   * enten en ess eller den høyeste trumfen den har.»
+   *
+   * DEN MOTSIER `m`, SOM ER ADOPTERT. `m` spiller LAVESTE trumf. Begrunnelsen
+   * i koden var at laveste og høyeste lå innenfor én standardfeil av hverandre
+   * (+0,084 mot +0,061) og at laveste «er konvensjonen menneskene faktisk
+   * spiller». Den siste halvdelen var min antakelse, og Arvind sier nå at den
+   * er feil. Da står valget på et tall som aldri skilte dem.
+   *
+   * ESS-VARIANTEN ER ALDRI TESTET. De fem armene som ble målt var: laveste
+   * trumf, høyeste trumf, laveste sidekort, høyeste sidekort, lengste
+   * sidefarge/høyest. «Høyeste sidekort» er ikke det samme som «ess HVIS du
+   * har et» – den spiller en konge eller en dame når esset mangler, og det er
+   * et helt annet kort.
+   *
+   * MEKANISMEN ER FØLGEPLIKTEN, og Arvind har rett i den: `lovligeKort` gir
+   * `følg.length > 0 ? følg : hånd.slice()`, altså MÅ man følge farge når man
+   * kan – også når fargen er trumf. Spilles høyeste trumf ut, må derfor alle
+   * som HAR trumf legge trumf. Det er hele verdien: ett kort trekker to eller
+   * tre av motpartens ut. (Bare den som er RENONS står fritt, og han kan velge
+   * å ikke trumfe.)
+   *
+   * ESSET virker på en beslektet, svakere måte: det kan bare slås ved at noen
+   * er renons i fargen OG velger å trumfe, og sjansen for renons er lavest
+   * TIDLIG. Derfor er esset tryggest i stikk 2.
+   */
+  readonly makkerEssFørst?: boolean;
+  /**
+   * Vakt 9 (`C`): budvinneren spiller HØYESTE trumf ut etter å ha tatt et
+   * stikk – men bare mens forsvaret fortsatt har trumf.
+   *
+   * Arvind: «Hvis budvinner måtte ta stikket så plasserer den ut den høyeste
+   * trumfen ut for å kontrollere spillet ... når man har muligheten til å bli
+   * kvitt 3/2 trumf med 1 så skaper man verdi.»
+   *
+   * REGNESTYKKET ER FØLGEPLIKTEN: alle som har trumf MÅ legge trumf på et
+   * trumfutspill. Ett kort ut trekker altså opptil tre inn. Det er derfor
+   * høyeste og ikke laveste – den skal også VINNE stikket, ellers betaler man
+   * for uttrekket med utspillet.
+   *
+   * DETTE ER DET MOTSATTE AV `d`, som er forkastet. `d` sa «ikke dra trumf når
+   * ≥3 står ute» og målte −0,171. Vi har aldri testet den andre retningen, og
+   * det er den retningen dataene peker: menneskene spiller 0,443 av trumfene
+   * sine i stikk 1–4 mot botens 0,382 (+0,061 ± 0,010, 5,9 SE), med like mange
+   * trumf å begynne med.
+   *
+   * BETINGELSEN ER ARVINDS, ikke et antall: har forsvaret ingen trumf igjen,
+   * er det ingenting å trekke ut, og da er en høy trumf bortkastet. Se `S`.
+   */
+  readonly førerTrumfKontroll?: boolean;
+  /**
+   * Vakt 10 (`S`): slutt å dra trumf når forsvaret er tomt for trumf.
+   *
+   * Arvind: «Hadde kortene vært sjevt fordelt og B og M satt igjen med resten
+   * av trumf ... så hadde man ikke trengt å hive på mer trumf, siden da
+   * spiller man bare ut sin egen.»
+   *
+   * PROXYEN ER OBSERVERBAR, og det er grunnen til at akkurat denne
+   * formuleringen er valgt: vi kan ikke se forsvarets hender, men vi kan se om
+   * en FORSVARER la trumf i forrige stikk. Arvind bruker selv det kriteriet:
+   * «hvis makker vinner stikket og det ikke bare var han og budvinner som
+   * plasserte trumf på forrige stikk så repeterer han det.»
+   *
+   * Proxyen er ikke perfekt – en forsvarer kan ha trumf og la være å bruke den
+   * – men den bruker bare informasjon setet faktisk har.
+   */
+  readonly stoppTrumfNårTomt?: boolean;
   /** Vakt 2, mild: på et garantert stikk, aldri trumf når et avkast er lovlig. */
   readonly garantiIkkeTrumf: boolean;
   /** Vakt 2, streng: på et garantert stikk, alltid det billigste lovlige kortet. */
   readonly garantiBilligst: boolean;
+  /**
+   * Vakt 2, variant: på et garantert stikk, kast kortet vi har MINST BRUK FOR
+   * i stedet for det med lavest valør.
+   *
+   * DETTE ER STEDET INNVENDINGEN BITER HARDEST, og det er en regel jeg
+   * foreslår – ikke en Arvind ba om. Hans innvending gjaldt `k`, men den er
+   * sterkere her: på et garantert stikk er stikket ALLEREDE vårt, så kortet
+   * er fullstendig fritt. Nettopp der burde «hvilket kort har jeg minst bruk
+   * for» avgjøre. I stedet legger vi laveste valør.
+   *
+   * Og `b` fyrer langt oftere enn `k`, så den samme feilen koster mer.
+   *
+   * Arvind om `t`: «i utgangspunktet så har man jo [et valg], og da hiver man
+   * det som blir et tilsynelatende sikkert stikk senere.» Et fritt avkast er
+   * nettopp anledningen til å tømme en farge man vil trumfe i.
+   */
+  readonly garantiNytte?: boolean;
 }
 
 export const INGEN_VAKT: Vaktvalg = { åpning: false, garantiIkkeTrumf: false, garantiBilligst: false };
@@ -311,6 +422,11 @@ export function lesVaktflagg(flagg: string): Vaktvalg {
     else if (tegn === "h") valg = { ...valg, åpning: true, åpningHøyest: true };
     else if (tegn === "l") valg = { ...valg, åpningLavest: true };
     else if (tegn === "k") valg = { ...valg, kastBilligst: true };
+    else if (tegn === "n") valg = { ...valg, kastNytte: true };
+    else if (tegn === "N") valg = { ...valg, garantiNytte: true };
+    else if (tegn === "A") valg = { ...valg, makkerEssFørst: true };
+    else if (tegn === "C") valg = { ...valg, førerTrumfKontroll: true };
+    else if (tegn === "S") valg = { ...valg, stoppTrumfNårTomt: true };
     else if (tegn === "t") valg = { ...valg, garantiIkkeTrumf: true };
     else if (tegn === "b") valg = { ...valg, garantiBilligst: true };
     else if (tegn === "d") valg = { ...valg, ikkeDraTrumf: true, draTerskel: 3 };
@@ -438,6 +554,25 @@ function trumfUte(s: GameState, sete: number): number {
   return ukjenteKort(s, sete).filter((k) => k.farge === trumf).length;
 }
 
+/**
+ * La en FORSVARER trumf i forrige stikk?
+ *
+ * Proxyen for «har forsvaret trumf igjen», og Arvinds eget kriterium: «det
+ * ikke bare var han og budvinner som plasserte trumf på forrige stikk».
+ *
+ * INFORMASJONSDISIPLIN: laget leses gjennom `lagetSynlig`, som ikke røper
+ * makkeren før det etterlyste kortet er lagt. Vet vi ikke hvem som er
+ * forsvarer, svarer vi `null` og reglene som spør holder seg unna.
+ */
+function forsvarerLaTrumf(s: GameState, sete: number, trumf: Farge): boolean | null {
+  if (s.stikkSpilt === 0) return null;
+  const forrige = s.historikk[s.stikkSpilt - 1];
+  if (forrige === undefined) return null;
+  const vårt = lagetSynlig(s, sete);
+  if (vårt === null) return null;
+  return forrige.kort.some((kp) => !vårt.includes(kp.spiller) && kp.kort.farge === trumf);
+}
+
 export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg): Kort {
   if (s.fase !== "SPILL" || s.trumf === null) return valgt;
   const trumf = s.trumf;
@@ -462,6 +597,57 @@ export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg
       (k) => stikkvinner([...s.bord, { spiller: sete, kort: k }], trumf) === sete && k.farge === trumf,
     );
     if (vinnende.length > 0) return billigste(vinnende, trumf);
+  }
+
+  /**
+   * Vakt 8 (`A`): makkeren i stikk 2 – ess i sidefarge, ellers HØYESTE trumf.
+   * Samme betingelse som vakt 6, og den står FØR den, så `A` overstyrer `m`
+   * når begge er på. Det er med vilje: de er to svar på samme spørsmål, og et
+   * flagg som stille tapte mot et annet ville vært umulig å tolke.
+   */
+  if (
+    valg.makkerEssFørst === true && s.bord.length === 0 && s.stikkSpilt === 1 &&
+    s.makker === sete && s.historikk[0]?.vinner === sete
+  ) {
+    const ess = lovlige.filter((k) => k.farge !== trumf && k.verdi === 14);
+    // Flere ess: ta det i den KORTESTE sidefargen. Den er nærmest renons, og
+    // et ess som ikke tas nå kan bli trumfet senere.
+    if (ess.length > 0) {
+      const hånd = s.hender[sete] ?? lovlige;
+      return ess.reduce((a, b) =>
+        hånd.filter((x) => x.farge === b.farge).length < hånd.filter((x) => x.farge === a.farge).length ? b : a,
+      );
+    }
+    const trumfKort = lovlige.filter((k) => k.farge === trumf);
+    if (trumfKort.length > 0) return dyreste(trumfKort, trumf);
+  }
+
+  /**
+   * Vakt 10 (`S`): forsvaret er tomt for trumf – slutt å dra trumf.
+   *
+   * Står FØR vakt 9, for den er en BREMS på den. Er forsvaret tomt, er en høy
+   * trumf ut bortkastet: det finnes ingenting å trekke ut, og kortet kunne
+   * tatt et stikk senere uansett.
+   */
+  if (
+    valg.stoppTrumfNårTomt === true && s.bord.length === 0 && s.stikkSpilt > 0 &&
+    valgt.farge === trumf && forsvarerLaTrumf(s, sete, trumf) === false
+  ) {
+    const andre = lovlige.filter((k) => k.farge !== trumf);
+    if (andre.length > 0) return dyreste(andre, trumf);
+  }
+
+  /**
+   * Vakt 9 (`C`): budvinneren tok forrige stikk og forsvaret har trumf igjen –
+   * spill HØYESTE trumf for å ta kontrollen.
+   */
+  if (
+    valg.førerTrumfKontroll === true && s.bord.length === 0 && s.stikkSpilt > 0 &&
+    sete === s.budvinner && s.historikk[s.stikkSpilt - 1]?.vinner === sete &&
+    forsvarerLaTrumf(s, sete, trumf) === true
+  ) {
+    const trumfKort = lovlige.filter((k) => k.farge === trumf);
+    if (trumfKort.length > 0) return dyreste(trumfKort, trumf);
   }
 
   /**
@@ -517,15 +703,27 @@ export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg
   // Vakt 4: stikket kan ikke tas av oss. Står bordet tomt, er det ikke noe
   // stikk å tape ennå. Ellers gjelder regelen uansett hvem som leder – se
   // kommentaren over `kastBilligst` for hvorfor de to tilfellene er samme sak.
-  if (valg.kastBilligst === true && s.bord.length > 0) {
-    if (!lovlige.some((k) => vinnerMed(s, sete, k))) return billigste(lovlige, trumf);
+  if ((valg.kastBilligst === true || valg.kastNytte === true) && s.bord.length > 0) {
+    if (!lovlige.some((k) => vinnerMed(s, sete, k))) {
+      // `n` ser HELE hånden, ikke bare utvalget: hvor mange kort vi har igjen
+      // i fargen avgjør om kastet bringer oss nærmere renons, og det kan ikke
+      // leses av de lovlige kortene alene.
+      if (valg.kastNytte === true) return minstBrukFor(lovlige, s.hender[sete] ?? lovlige, trumf);
+      return billigste(lovlige, trumf);
+    }
   }
 
-  if ((valg.garantiIkkeTrumf || valg.garantiBilligst) && garantertVårt(s, sete)) {
-    if (valg.garantiBilligst) return billigste(lovlige, trumf);
+  if (
+    (valg.garantiIkkeTrumf || valg.garantiBilligst || valg.garantiNytte) &&
+    garantertVårt(s, sete)
+  ) {
+    const hånd = s.hender[sete] ?? lovlige;
+    const velg = (utvalg: readonly Kort[]): Kort =>
+      valg.garantiNytte === true ? minstBrukFor(utvalg, hånd, trumf) : billigste(utvalg, trumf);
+    if (valg.garantiBilligst || valg.garantiNytte) return velg(lovlige);
     if (valgt.farge === trumf) {
       const avkast = lovlige.filter((k) => k.farge !== trumf);
-      if (avkast.length > 0) return billigste(avkast, trumf);
+      if (avkast.length > 0) return velg(avkast);
     }
   }
 
