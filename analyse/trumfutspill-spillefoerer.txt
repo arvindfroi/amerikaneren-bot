@@ -1,0 +1,23 @@
+
+=== Koster det å spille trumf ut? spillefoerer ===
+1156 beslutninger; bare UTSPILL (pos 0) sammenlignes.
+
+«rå» sammenligner trumfutspill mot alle andre utspill. «stratifisert»
+sammenligner bare INNENFOR samme stikknummer og samme antall lovlige kort,
+så de to gruppene er stilt likt på det vi vet ellers skiller dem.
+
+gruppe                          n     rå differanse     stratifisert     celler
+--------------------------------------------------------------------------------
+alle trumfutspill               387   +0.239 ±0.054   +0.172 ±0.059      9
+≥3 trumf fortsatt ute            85   +0.657 ±0.114   +0.451 ±0.130      7
+≤2 trumf ute                    302   +0.122 ±0.054   +0.094 ±0.058      9
+≥4 trumf ute                     48   +0.668 ±0.149   +0.452 ±0.162      5
+≥3 ute OG vi har høyeste         77   +0.759 ±0.119   +0.555 ±0.133      7
+--------------------------------------------------------------------------------
+
+Positivt = trumfutspillet koster MER anger enn et annet utspill i samme
+stilling. Faller det stratifiserte tallet sammen mens det rå står, var
+signalet en egenskap ved stillingen og ikke ved valget.
+
+Dette er fortsatt leting i data vi alt har sett. En regel bygget herfra må
+måles parret på et FRISKT frøbånd før den er noe.

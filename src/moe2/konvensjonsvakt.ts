@@ -110,6 +110,92 @@ export interface Vaktvalg {
    * på et tapt kort – så der er det ingen skjult verdi å ødelegge.
    */
   readonly kastBilligst?: boolean;
+  /**
+   * Vakt 5: som budvinner, IKKE spill trumf ut når mange trumf står ute.
+   *
+   * FUNNET, og hvordan det ble funnet. `examples/tap-per-stikk.ts` måler anger
+   * mot taket per beslutning; `examples/regelgraving.ts` leter i den etter
+   * kjennetegn. Spilleførerens dyreste vane er å trumfe: i 254 av 511
+   * trumfvalg var det beste kortet IKKE trumf, og de bar 57 % av hele tapet.
+   * Motsatt vei fantes ingen feil – undertrumfing målte −0,02.
+   *
+   * ATFERDSPROFILEN SIER UAVHENGIG DET SAMME: vi spiller trumf ut i 58 % av
+   * utspillene, MesterAI i 51 %.
+   *
+   * MIN FØRSTE HYPOTESE VAR FEIL. Jeg trodde skillet var mestertrumfen – at
+   * man drar trumf når man selv har den høyeste. Dataene sier nei: «trumf ut
+   * MED høyeste» måler +0,29, og den DYRESTE cellen er nettopp «≥3 ute OG vi
+   * har høyeste» (+0,56). Skillet går på HVOR MANGE trumf som står ute, ikke
+   * på hvem som har den øverste.
+   *
+   * KONTROLLERT FOR FORVEKSLING. «≥3 ute» opptrer tidlig, og tidlige stikk har
+   * høyere anger uansett; mange lovlige kort gir også høyere anger. Begge er
+   * egenskaper ved stillingen, ikke ved valget. `examples/trumfutspill.ts`
+   * sammenligner derfor bare innenfor samme stikknummer OG samme antall
+   * lovlige kort. Signalet svekkes og står:
+   *
+   *   gruppe                    rå          stratifisert
+   *   alle trumfutspill      +0,239        +0,172 ± 0,059
+   *   ≥3 trumf ute           +0,657        +0,451 ± 0,130
+   *   ≤2 trumf ute           +0,122        +0,094 ± 0,058
+   *
+   * DENNE REGELEN HAR EN ANNEN FORM ENN «a», og det er en risiko som skal stå
+   * her. «a» forbyr en tabbe med kjent utfall – å slå sitt eget etterlyste
+   * kort kan aldri lønne seg. Å dra trumf KAN være riktig; dette er et
+   * forskjøvet skjønn, ikke et forbud. Prosjektets egen erfaring er at bare
+   * forbudsformen har målt positivt («k» døde, «a» levde). Regelen kan derfor
+   * godt måle null, og den er ikke adoptert før en parret måling på et FRISKT
+   * frøbånd sier noe annet.
+   *
+   * MÅLES PÅ POENG, IKKE PÅ ANGER. Angeren er målt mot et dobbelt-dummy-tak,
+   * og å FØLGE dobbelt dummy er allerede målt skadelig (−0,609 gjennom
+   * godkjenningsporten). At en regel senker DD-anger er derfor ikke i seg selv
+   * et argument for den.
+   *
+   * ======================= FORKASTET. MÅLT, IKKE ANTATT. ===================
+   *
+   * Parret mot `vakt:ab` på 2 000 givere, tvungen kontrakt 9, alle tre andre
+   * seter spilt av kontrollen:
+   *
+   *   kandidat     lagstikk   lagstikk − SD   mot kontrollen
+   *   vakt:ab        9,840        +0,311            –
+   *   vakt:abd       9,669        +0,140      −0,171 ± 0,028
+   *   vakt:abD       9,734        +0,204      −0,106 ± 0,022
+   *   vakt:abe       9,629        +0,099      −0,211 ± 0,029
+   *
+   * BEGGE erstatningene taper, og `d` og `e` spiller motsatt kort. Da er det
+   * ikke valget av kort som er feil – det er BETINGELSEN. Regelen er død.
+   *
+   * HVORFOR SIGNALET LØY, og dette er lærdommen som er verdt mer enn regelen:
+   * angeren ble målt mot DOBBELT DUMMY. Kjørt på nytt mot SD-fasiten – den
+   * som faktisk bestod porten, +0,718 – snur fortegnet fullstendig:
+   *
+   *   situasjon                         DD-anger        SD-anger
+   *   vi spilte trumf                  +0,217          −0,222 ± 0,103
+   *   vi trumfet, beste ikke trumf     +0,723          +1,199
+   *   vi trumfet ikke, beste trumf     −0,019          +0,939
+   *
+   * Under SD er det INGEN overtrumfing: å spille trumf måler bedre enn
+   * snittet, og de to feilretningene er like store. «Spilleføreren trumfer
+   * for mye» var et artefakt av å måle avstand til en policy vi allerede
+   * hadde målt som dårligere enn vår egen.
+   *
+   * Flaggene beholdes som `k` beholdes: et forkastet forsøk med tallet sitt
+   * er billigere å ha stående enn å finne på igjen om et halvt år.
+   */
+  readonly ikkeDraTrumf?: boolean;
+  /** Terskel for vakt 5: hvor mange trumf ute som gjør utspillet forbudt. */
+  readonly draTerskel?: number;
+  /**
+   * Vakt 5, variant: legg det BILLIGSTE sidekortet i stedet for det dyreste.
+   *
+   * Førsteversjonen spilte `dyreste`, og målte −0,171 ± 0,028. Regelen har to
+   * uavhengige deler – NÅR den slår inn, og HVA den spiller i stedet – og et
+   * negativt tall på den ene kombinasjonen skiller dem ikke. Denne prøver
+   * samme betingelse med motsatt erstatning. Slår begge negativt ut, er det
+   * betingelsen som er feil, og da er hele vakt 5 død.
+   */
+  readonly draBilligst?: boolean;
   /** Vakt 2, mild: på et garantert stikk, aldri trumf når et avkast er lovlig. */
   readonly garantiIkkeTrumf: boolean;
   /** Vakt 2, streng: på et garantert stikk, alltid det billigste lovlige kortet. */
@@ -128,6 +214,9 @@ export function lesVaktflagg(flagg: string): Vaktvalg {
     else if (tegn === "k") valg = { ...valg, kastBilligst: true };
     else if (tegn === "t") valg = { ...valg, garantiIkkeTrumf: true };
     else if (tegn === "b") valg = { ...valg, garantiBilligst: true };
+    else if (tegn === "d") valg = { ...valg, ikkeDraTrumf: true, draTerskel: 3 };
+    else if (tegn === "D") valg = { ...valg, ikkeDraTrumf: true, draTerskel: 4 };
+    else if (tegn === "e") valg = { ...valg, ikkeDraTrumf: true, draTerskel: 3, draBilligst: true };
     else {
       throw new Error(
         `Ukjent vaktflagg «${tegn}» (a = åpning/billigst, h = åpning/høyest, ` +
@@ -235,11 +324,40 @@ function vinnerMed(s: GameState, sete: number, kort: Kort): boolean {
  * Kortet vakten ville lagt i stedet for `valgt`. Returnerer `valgt` uendret
  * når ingen regel slår inn – det er hovedtilfellet.
  */
+/**
+ * Hvor mange trumf setet IKKE kan se – altså står ute hos de andre.
+ *
+ * `ukjenteKort` er allerede vrak-bevisst: budvinneren vet at hans egne fire
+ * vrakede kort er døde, en forsvarer vet det ikke. Det er nøyaktig riktig
+ * her, og grunnen til at regelen ikke bygger sin egen telling.
+ */
+function trumfUte(s: GameState, sete: number): number {
+  if (s.trumf === null) return 0;
+  const trumf = s.trumf;
+  return ukjenteKort(s, sete).filter((k) => k.farge === trumf).length;
+}
+
 export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg): Kort {
   if (s.fase !== "SPILL" || s.trumf === null) return valgt;
   const trumf = s.trumf;
   const lovlige = lovligeKort(s, sete);
   if (lovlige.length <= 1) return valgt;
+
+  /**
+   * Vakt 5 står FØRST fordi den bare gjelder utspill der bordet er tomt og
+   * stikk 1 er unnagjort – altså stillinger ingen av de andre vaktene rører.
+   * Skulle de likevel overlappe en dag, er rekkefølgen dokumentert her og
+   * ikke tilfeldig: vakt 3 gjelder BARE stikk 1, og vakt 5 gjelder aldri der.
+   */
+  if (
+    valg.ikkeDraTrumf === true && s.bord.length === 0 && s.stikkSpilt > 0 &&
+    sete === s.budvinner && valgt.farge === trumf &&
+    trumfUte(s, sete) >= (valg.draTerskel ?? 3)
+  ) {
+    const andre = lovlige.filter((k) => k.farge !== trumf);
+    // Har vi bare trumf igjen, er det ikke noe valg å ta og regelen tier.
+    if (andre.length > 0) return valg.draBilligst === true ? billigste(andre, trumf) : dyreste(andre, trumf);
+  }
 
   // Vakt 3 må stå FØR vakt 1: der den slår inn, er vakt 1 automatisk oppfylt –
   // den laveste trumfen kan ikke slå det etterlyste kortet.

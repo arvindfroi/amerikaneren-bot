@@ -45,6 +45,8 @@ import { NevroAgent, besteTrumf } from "../src/nevro/index.ts";
 import { byggDDOppsett } from "../src/solver/sampler.ts";
 import { rotVerdier, kortTilInt } from "../src/solver/dds.ts";
 import { E1Agent, lesE1Nett } from "../src/e1/nett.ts";
+import { vurderKortSD } from "../src/moe2/sdkort.ts";
+import { lagRng } from "../src/kort.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 
 let kamper = 200;
@@ -56,6 +58,22 @@ let kandidatSpek = "vakt:ab:e1:e1-modell/sd-r2.bin";
 /** Hvilket sete som måles: spillefoerer, makker eller forsvarer. */
 let rolle = "spillefoerer";
 let ut = "analyse/tap-per-stikk-0.jsonl";
+/**
+ * HVILKEN FASIT ANGEREN MAALES MOT. Dette er ikke en detalj, det er hele
+ * gyldigheten av maalingen.
+ *
+ *   dd  dobbelt dummy, alle kort synlige. Maaler avstand til et tak ingen
+ *       kan naa. AVVIST som fasit av godkjenningsporten: -0,609 korrigert
+ *       korrelasjon mot poeng. Aa foelge den er MAALT skadelig.
+ *   sd  single dummy, samplede verdener. GODKJENT av porten: +0,718.
+ *
+ * Foerste graverunde brukte dd og fant at spillefoereren «trumfer for mye».
+ * Regelen som fulgte (vakt-flagg d) maalte -0,171 +/- 0,028 - altsaa verre.
+ * Det var ikke uflaks: aa lete etter regler i DD-anger er aa lete etter
+ * steder vi avviker fra en policy vi allerede vet er daarligere enn vaar
+ * egen. Signalet var ekte og pekte feil vei.
+ */
+let fasit = "sd";
 let rapport: string | null = null;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
@@ -66,6 +84,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--rolle") rolle = process.argv[++i]!;
   else if (a === "--ut") ut = process.argv[++i]!;
   else if (a === "--rapport") rapport = process.argv[++i]!;
+  else if (a === "--fasit") fasit = process.argv[++i]!;
   else if (a === "--skard") {
     const [x, y] = (process.argv[++i] ?? "0/1").split("/");
     skardI = Number(x);
@@ -197,6 +216,7 @@ function oppsett(frø: number, budsete: number): GameState | null {
   return s.fase === "BUDRUNDE" ? null : s;
 }
 
+const sdRng = lagRng((0x5d + skardI * 7919) >>> 0);
 let n = 0;
 for (let f = 0; f < kamper; f++) {
   if (f % skardN !== skardI) continue;
@@ -236,13 +256,34 @@ for (let f = 0; f < kamper; f++) {
           makkerVerden: s.makker,
         };
         const t0 = Date.now();
-        const rot = rotVerdier(byggDDOppsett(s, verden));
+        // SD sampler verdener og er den fasiten som bestod porten. DD loeser
+        // den ekte verdenen eksakt og er et TAK, ikke en laerer.
+        const sdVerdi = new Map<number, number>();
+        let rot: { kort: number; lagStikk: number }[] = [];
+        if (fasit === "sd") {
+          for (const v of vurderKortSD(s, iTur, nevro, { verdener: 12, rng: sdRng })) {
+            sdVerdi.set(kortTilInt(v.kort), v.verdi);
+          }
+          if (sdVerdi.size === 0) {
+            s = utfør(s, valgt).state;
+            continue;
+          }
+        } else {
+          rot = rotVerdier(byggDDOppsett(s, verden));
+        }
         const sek = (Date.now() - t0) / 1000;
         // `rotVerdier` gir lagstikk for budlaget. Måler vi et FORSVARERSETE,
         // er setets egen interesse det motsatte: det vil ha budlaget NED.
         // Uten dette fortegnet ville forsvarsangeren blitt målt opp-ned.
         const forsvarer = målsete !== s.budvinner && målsete !== s.makker;
         const verdiAv = (k: number): number => {
+          if (fasit === "sd") {
+            const v = sdVerdi.get(k);
+            // SD-maalet er alt setets EGNE poeng minus de andres, saa
+            // fortegnet er allerede riktig for rollen. DD gir lagstikk for
+            // budlaget og maa snus for en forsvarer.
+            return v === undefined ? NaN : v;
+          }
           const r = rot.find((x) => x.kort === k);
           return r === undefined ? NaN : forsvarer ? -r.lagStikk : r.lagStikk;
         };

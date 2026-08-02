@@ -1,0 +1,43 @@
+
+=== Regelgraving: hva kjennetegner de dyre kortvalgene? ===
+2236 beslutninger fra 3 fil(er).
+Grunnlinje: 1.0151 anger per beslutning.
+
+Rader med «·» ser FASITEN og kan aldri bli en regel – de viser bare at
+feilen finnes. De øvrige er uttrykt i det setet lovlig vet.
+
+situasjon                              n      anger    mot resten   andel av tapet
+--------------------------------------------------------------------------------------
+mange valg (≥5 lovlige)                1218     1.4927   +1.0491 ±0.0972    80.1 %
+· vi trumfet, beste var IKKE trumf      257     2.0763   +1.1990 ±0.2132    23.5 %
+trumf ut, >=3 trumf fortsatt ute        164     2.2278   +1.3087 ±0.2583    16.1 %
+· vi trumfet IKKE, beste var trumf      301     1.8277   +0.9390 ±0.1989    24.2 %
+· trumf ut m/hoeyeste, beste ikke trumf    203     1.6140   +0.6587 ±0.2084    14.4 %
+vi var renons i utspilt farge           462     1.1950   +0.2267 ±0.1394    24.3 %
+trumf ut UTEN aa ha hoeyeste             65     1.5804   +0.5823 ±0.4262     4.5 %
+makker ledet OG vi trumfet              120     1.3007   +0.3018 ±0.2528     6.9 %
+· vi lavest, beste var høyest           140     1.1308   +0.1234 ±0.2363     7.0 %
+vi var sist i stikket (pos 3)           246     1.0693   +0.0609 ±0.1655    11.6 %
+vi har hoeyeste trumf ute              1795     1.0207   +0.0286 ±0.1241    80.7 %
+vi trumfet inn ved renons               320     1.0394   +0.0284 ±0.1409    14.7 %
+vi spilte LAVEST av de lovlige          547     1.0109   -0.0055 ±0.1242    24.4 %
+vårt eget lag ledet stikket alt         305     0.9352   -0.0926 ±0.1438    12.6 %
+MAKKEREN ledet stikket                  305     0.9352   -0.0926 ±0.1438    12.6 %
+makker ledet OG vi spilte høyest         64     0.7266   -0.2970 ±0.2073     2.0 %
+vi spilte ut (pos 0)                   1455     0.9340   -0.2321 ±0.1137    59.9 %
+vi spilte trumf                        1094     0.9015   -0.2224 ±0.1026    43.5 %
+vi spilte trumf ut (pos 0)              692     0.8183   -0.2851 ±0.1054    24.9 %
+vi spilte HØYEST av de lovlige          753     0.6328   -0.5764 ±0.0956    21.0 %
+makkeren var avslørt                   2236     1.0151   +1.0151 ±NaN   100.0 %
+· vi høyest, beste var lavest           201     0.6496   -0.4017 ±0.1386     5.8 %
+trumf ut MED hoeyeste                   627     0.7393   -0.3833 ±0.1030    20.4 %
+trumf ut, <=2 trumf ute                 528     0.3805   -0.8308 ±0.0912     8.9 %
+--------------------------------------------------------------------------------------
+
+Sortert etter hvor mange standardfeil differansen er fra null.
+
+INGEN AV DISSE ER ET FUNN. Dette er leting over mange hypoteser i data vi
+allerede har sett, som er oppskriften på å finne mønstre som ikke finnes.
+En kandidat blir et funn først når den er implementert som regel og målt
+PARRET på et FRISKT frøbånd. To ganger før har et utvalgt tall falt sammen
+når det ble målt ordentlig.
