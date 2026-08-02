@@ -1,0 +1,34 @@
+
+=== Bordprofil: fire vakt:abmp:e1:e1-modell/sd-r2.bin mot hverandre ===
+47532 runder (47525 med tallmelding).
+
+KONTRAKTEN
+  snittbud                       9.31
+  kontraktprosent                75.1 %
+  lagstikk                       9.71
+  slakk (lagstikk − bud)         0.39
+  amerikaner/solo                0.014726920811242952 %
+
+  TIL SAMMENLIKNING: menneskene innfrir 83,2 % paa snittbud 8,95 med
+  slakk +0,75 (812 loggede runder). MesterAI innfrir 73 %.
+
+POENG PER RUNDE, ETTER ROLLE
+  budvinner                      +9.18 ± 0.07   (n=47525)
+  makker                         +4.59 ± 0.04   (n=47525)
+  forsvarer                      +1.15 ± 0.00   (n=95050)
+  sum over alle fire setene      16.06 per runde
+
+BUDFORDELING
+  bud  7                         0.0 %
+  bud  8                         6.8 %
+  bud  9                        56.5 %
+  bud 10                        35.3 %
+  bud 11                         1.5 %
+
+SYMMETRIKONTROLLEN – med fire like agenter SKAL disse vaere like
+  poeng per sete       3.98   4.00   4.06   4.02
+  per POSISJON         4.72   4.17   3.71   3.46   (0 = foerste budgiver)
+
+  Spriker «per sete», er det benken som er skjev. Spriker «per posisjon»
+  mens setene er like, er det en EKTE posisjonsfordel i reglene – og da er
+  det verdt aa vite hvilken plass ved bordet som loenner seg.

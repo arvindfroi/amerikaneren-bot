@@ -1,0 +1,31 @@
+
+=== Vraket: hva gjoer boten, og loenner det seg? ===
+7413 giver, tvungen kontrakt 9, kandidat vakt:abmp:e1:e1-modell/sd-r2.bin.
+
+HVA BOTEN GJOER (beskrivelse, ikke dom)
+  farger toemt av vraket        0.86
+    fordelt                     0: 24 %   1: 66 %   2: 10 %   3: 0 %
+  vraket en honnoer (K/D/E)     14.0 % av givene
+  vraket et trumfkandidatkort   5.4 %
+  trumf som kom i talongen      1.18 kort per giv
+    av dem BEHOLDT              98.6 %
+  tapere igjen etter vraket     4.93
+
+LOENNER DET SEG? Faste vrakregler mot botens eget valg, parret paa giv.
+
+regel                          mot boten              toemte farger   innfridd
+-------------------------------------------------------------------------------
+toem flest farger              -1.571 ± 0.133 (-11.8 SE)          1.16     79.5 %
+lavest utenfor trumf           -1.952 ± 0.142 (-13.7 SE)          0.18     78.3 %
+toem EN hel farge              -2.170 ± 0.145 (-15.0 SE)          1.01     77.6 %
+lavest uansett                 -7.681 ± 0.179 (-42.8 SE)          0.07     60.0 %
+BOTEN                                               –          0.86     84.5 %
+-------------------------------------------------------------------------------
+
+Positivt = regelen gir budvinneren MER poengdifferanse enn botens eget
+vrak, paa noeyaktig samme giv. Slaar «toem flest farger» boten, vraker
+boten for lite aggressivt - slaar den ikke, gjoer boten alt det Arvind
+beskriver, og mer aggresjon koster.
+
+MERK at vraket skjer FOER trumfen velges, saa alle reglene gjetter at den
+lengste fargen blir trumf. Det er samme antakelse som fastTrumfvalg gjoer.
