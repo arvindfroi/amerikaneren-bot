@@ -83,6 +83,20 @@ def tell_linjer(fil: str) -> int:
             n += blokk.count(b"\n")
 
 
+def voks(a, rader: int):
+    """`a` kopiert inn i et NULLSTILT array med `rader` rader.
+
+    IKKE `numpy.resize`. Den fyller de nye radene med GJENTATT gammelt
+    innhold i stedet for nuller, og `M` er en maske som bare skrives der
+    `v` faktisk har nøkler. Gjenbrukt søppel der ville slått på tapsledd
+    for kort som aldri ble målt – en feil som ikke krasjer, og derfor er
+    verre enn IndexError-en den skulle fjerne.
+    """
+    b = numpy.zeros((rader,) + a.shape[1:], dtype=a.dtype)
+    b[: a.shape[0]] = a
+    return b
+
+
 def sig64(linje: str) -> int:
     """De første 8 bytene av md5 som uint64 – linjesignatur for duplikat- og
     overlappsjekk. Samme rolle som hexdigest[:16] i e1-tren.py, bare som tall,
@@ -92,17 +106,25 @@ def sig64(linje: str) -> int:
 
 
 def les(mapper: list[str]):
-    """Alle `skard-*.jsonl` i `mapper` → (X, V, M, FRO, KILDE, SIG).
+    """Alle `*.jsonl` i `mapper` → (X, V, M, FRO, KILDE, SIG).
 
     KILDE er indeksen inn i `mapper`, så en kjøring kan velge sin egen
     delmengde uten at noe leses om igjen. SIG brukes til duplikatfjerning og
     til overlappsrapporten.
+
+    MØNSTERET ER `*.jsonl`, IKKE `skard-*.jsonl`. Det sto `skard-*` før, og
+    det var en stillegående datatapsfeil: `sd-spredt/` inneholder både
+    `skard-*.jsonl` og `b-*.jsonl`, og b-filene er de STØRSTE – 152 000 av
+    170 000 rader. Med `skard-*` ble de utelatt uten et eneste varsel, fordi
+    «fant ingen filer»-vakten under er fornøyd så lenge ETT mønstertreff
+    finnes i mappen. Treningen ville altså kjørt på en tredel av dataene og
+    rapportert full suksess.
     """
     filer: list[tuple[int, str]] = []
     for i, mappe in enumerate(mapper):
-        f = sorted(glob.glob(os.path.join(mappe, "skard-*.jsonl")))
+        f = sorted(glob.glob(os.path.join(mappe, "*.jsonl")))
         if not f:
-            raise SystemExit(f"Fant ingen skard-*.jsonl i {mappe}")
+            raise SystemExit(f"Fant ingen *.jsonl i {mappe}")
         filer += [(i, x) for x in f]
 
     t0 = time.time()
@@ -179,6 +201,15 @@ def les(mapper: list[str]):
                     ugyldig += 1
                     continue
                 sett.add(s)
+                # RADENE KAN VÆRE FLERE ENN TELLINGEN FANT. Skardene skriver
+                # fortsatt mens treningen leser, så filene vokser mellom
+                # `tell_linjer` og denne løkken. Uten dette blir det en
+                # IndexError etter flere minutters innlesing – eller, om noen
+                # «fikser» det med en break, stille tap av de nyeste radene.
+                if n >= X.shape[0]:
+                    ny = int(X.shape[0] * 1.2) + 4096
+                    print(f"  (utvider {X.shape[0]} → {ny} rader; filene vokser)", flush=True)
+                    X, V, M, FRO, KILDE, SIG = (voks(a, ny) for a in (X, V, M, FRO, KILDE, SIG))
                 X[n] = t
                 for k, val in v.items():
                     i = int(k)
@@ -449,8 +480,32 @@ def main() -> None:
     er_hold &= KILDE == hm
     hold_idx_np = numpy.flatnonzero(er_hold)
 
+    # SAMME GIV I EN ANNEN MAPPE ER LEKKASJE, og den må kastes ut av
+    # treningen – ikke flyttes inn i holdouten.
+    #
+    # Generatorene kjører på frøbånd som kan overlappe: sd-spredt spenner
+    # 80–91 mill. og sd-dagger 85–98 mill., med 58 givere felles. En giv som
+    # havner i holdouten via sd-spredt ligger da også i sd-daggers
+    # treningsrader, og holdout-tapet ville målt på stillinger nettet har
+    # sett. Alternativet – å la dem bli holdout også – er utelukket med vilje:
+    # holdouten skal være NØYAKTIG det samme utvalget for kandidater som ikke
+    # har sett alle mappene, ellers er to målinger ikke sammenlignbare.
+    hold_arr = numpy.fromiter(hold_froe, dtype=numpy.int64, count=len(hold_froe))
+    lekk = numpy.isin(FRO, hold_arr) & (KILDE != hm)
+    if lekk.any():
+        tapt = {}
+        for i, m in enumerate(mapper):
+            c = int((lekk & (KILDE == i)).sum())
+            if c:
+                tapt[m] = c
+        print(
+            f"\nLEKKASJE LUKET: {int(lekk.sum())} treningsrader kastet fordi giva "
+            f"ligger i holdouten via {args.holdoutmappe} – {tapt}"
+        )
+        rapport["lekkasje_luket"] = {"rader": int(lekk.sum()), "per_mappe": tapt}
+
     # INVARIANTEN: ingen giver i to deler. Sjekkes, ikke antas.
-    tren_froe = set(FRO[~er_hold].tolist())
+    tren_froe = set(FRO[~er_hold & ~lekk].tolist())
     krysning = hold_froe & tren_froe
     if krysning:
         raise SystemExit(
@@ -486,7 +541,7 @@ def main() -> None:
         navn, mix, skjult = spek.split(":")
         mix_mapper = [m for m in mix.split(",") if m]
         mix_idx = [mapper.index(m) for m in mix_mapper]
-        tren_maske = numpy.isin(KILDE, numpy.array(mix_idx, dtype=numpy.int8)) & ~er_hold
+        tren_maske = numpy.isin(KILDE, numpy.array(mix_idx, dtype=numpy.int8)) & ~er_hold & ~lekk
         tren_idx = torch.from_numpy(numpy.flatnonzero(tren_maske)).to(enhet)
         dims = [TREKK_DIM] + [int(x) for x in skjult.split(",")] + [KORT]
         modell = E1Nett(dims).to(enhet)

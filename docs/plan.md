@@ -189,9 +189,47 @@ utplassering — nettsiden og arenabenken — ikke en ny komponent.
 
 | krav | status | hvorfor det er et krav |
 |---|---|---|
-| kortnettet trent på v2 + spredte kontrakter + DAgger | data samles | fire målte defekter i dagens vekter |
+| kortnettet trent på v2 + spredte kontrakter + DAgger | 228k rader, treneren røyktestet | fire målte defekter i dagens vekter |
 | den nye vekten målt parret mot dagens | ikke startet | et nett kan bli verre; det har skjedd åtte ganger i dette prosjektet |
-| budmodellen har et MesterAI-tall | n=38 av ~200 | +2,14 er målt mot nevro-byding, ikke mot en som kan straffe overbud |
+| budmodellen har et MesterAI-tall | n=34 av 200 par | +2,14 er målt mot nevro-byding, ikke mot en som kan straffe overbud |
+
+**Budtallet krympet da det ble målt riktig.** Den ad hoc-regnede differansen var på
+dobbelt skala – `kandidatPoeng` er summen over BEGGE kandidatsetene. Rettet, og
+med flere par:
+
+| n par | budm − abmp | tegntest |
+|---|---|---|
+| 27 | +0,723 ± 0,330 (2,2 SE) | p = 0,44 |
+| 34 | **+0,373 ± 0,414 (0,9 SE)** | p = 0,61 |
+
+Halvert på syv par og ikke lenger til å skille fra null. Verktøyet er nå
+`examples/h2h-parret.ts`, ikke et engangsregnestykke.
+
+Og mekanismen er ikke den samme som mot nevro. Der kom 95 % av +2,14 fra å ta
+kontrakter nevro **passet** på. Mot MesterAI vinner budm **færre** budrunder
+(8,52 mot 8,63) og klarer flere (77,4 % mot 72,5 %). +2,14 er derfor ingen
+spådom for denne benken.
+
+### Tre defekter i treneren, funnet ved å røykteste før GPU-kjøringen
+
+Alle tre er av samme slag: de krasjer ikke, de lyver.
+
+| defekt | virkning |
+|---|---|
+| `glob("skard-*.jsonl")` | `sd-spredt/b-*.jsonl` – **143 491 av 174 414 rader** – var usynlige. «Fant ingen filer»-vakten tier så lenge ett mønstertreff finnes i mappen |
+| telling før innlesing | skardene skriver mens treneren leser, så arrayene renner over. En «fiks» med `break` ville tapt de nyeste radene i stillhet |
+| `numpy.resize` som vekst | fyller nye rader med gjentatt gammelt innhold, ikke nuller. `M` er en maske – søppel der slår på tapsledd for kort som aldri ble målt |
+
+Den fjerde stoppet kjøringen som den skulle: **giv-lekkasje**. Generatorene ble
+startet på overlappende frøbånd – sd-spredt 80–91 mill., sd-dagger 85–98 mill.,
+58 givere felles – så fire holdout-givere lå i treningen via den andre mappen.
+Holdout-tapet ville målt på stillinger nettet hadde sett. Rettingen kaster de
+radene ut av treningen i stedet for å flytte dem inn i holdouten, fordi
+holdouten må være nøyaktig samme utvalg for kandidater som ikke har sett alle
+mappene.
+
+**For neste generasjonsrunde: gi hver generator sitt eget frøbånd.** Overlappet
+her var en ren oppstartsfeil fra min side, ikke noe ved metoden.
 
 **Rekkefølgen er ikke forhandlingsbar, og grunnen er ikke forsiktighet.**
 Familien er den eneste kilden vi har til menneskedata. Setter vi ut en
