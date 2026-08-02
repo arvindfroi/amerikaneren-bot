@@ -1,0 +1,22 @@
+
+=== GATE 2: kandidat i ett sete, nevro i de tre andre ===
+8400 (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.
+
+arm                                        poeng/runde for setet
+--------------------------------------------------------------------
+KONTROLL                                   +0.000 ± 0.110
+vakt:at:e1:e1-modell/sd-r2.bin             +1.066 ± 0.109
+vakt:abmp:e1:e1-modell/sd-r2.bin           +1.073 ± 0.109
+budm:e1-modell/bud-gbt.json:vakt:abmp:e1:e1-modell/sd-r2.bin +2.951 ± 0.125
+--------------------------------------------------------------------
+
+PARRET mot KONTROLL (miljoet mot seg selv i samme sete):
+  vakt:at:e1:e1-modell/sd-r2.bin           +1.0657 ± 0.0962 (11.1 SE)  2805/4835  p=0.000
+  vakt:abmp:e1:e1-modell/sd-r2.bin         +1.0727 ± 0.0963 (11.1 SE)  2747/4835  p=0.000
+  budm:e1-modell/bud-gbt.json:vakt:abmp:e1:e1-modell/sd-r2.bin +2.9512 ± 0.1310 (22.5 SE)  4056/6574  p=0.000
+
+KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet
+i oppsettet, og ingen av de andre tallene kan leses.
+
+PORTEN: en ny vekt adopteres bare om den er positiv med margin OG
+positiv i klart over halvparten av parene. Aldri adoptere paa stoey.

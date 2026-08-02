@@ -46,6 +46,8 @@ import { dirname, join, basename } from "node:path";
 
 import { opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
 import { E1Agent, lesE1Nett } from "../src/e1/nett.ts";
+import { NevroAgent } from "../src/nevro/index.ts";
+import { Budagent, lesBudmodell } from "../src/moe2/budagent.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 import { Ensemble, type EnsembleModus } from "../src/moe2/ensemble.ts";
 
@@ -167,11 +169,31 @@ const lesNett = (fil: string): ReturnType<typeof lesE1Nett> => {
 };
 
 /**
- * Indre agent av spekken etter `vakt:<flagg>:`. To former:
- *   e1:<fil>                      – ett nett
- *   ens:<modus>:<fil1,fil2,...>   – flere nett som stemmer
+ * Én spek → én agent. Formene nøstes, så en hel stige kan skrives på én linje:
+ *
+ *   nevro
+ *   e1:<fil>
+ *   ens:<modus>:<fil1,fil2,...>
+ *   vakt:<flagg>:<indre>
+ *   budm:<modellfil>:<indre>
+ *
+ * Rekursjonen er poenget: `budm:...:vakt:abmp:e1:sd-r2.bin` er budmodellen
+ * utenpå konvensjonsvakten utenpå nettet, og hvert lag kan tas av for seg.
+ * Det er den eneste måten å vise hva HVERT lag er verdt.
  */
 function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp(): void } {
+  if (indre === "nevro") return new NevroAgent();
+  if (indre.startsWith("vakt:")) {
+    const v = delVaktspek(indre);
+    if (v === null) throw new Error(`Ugyldig vaktspek «${indre}»`);
+    return new Konvensjonsvakt(lagIndre(v.indre), v.valg);
+  }
+  if (indre.startsWith("budm:")) {
+    const rest = indre.slice(5);
+    const skille = rest.indexOf(":");
+    if (skille < 0) throw new Error(`Ugyldig budm-spek «${indre}» – forventet budm:<modellfil>:<indre>`);
+    return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(rest.slice(0, skille)));
+  }
   if (indre.startsWith("e1:")) return new E1Agent(lesNett(indre.slice(3)));
   if (indre.startsWith("ens:")) {
     const rest = indre.slice(4);
@@ -191,11 +213,7 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
   throw new Error(`Ukjent indre agent «${indre}» (e1:<fil> eller ens:<modus>:<filer>)`);
 }
 
-function lagVelger(spek: string): Velger {
-  const v = delVaktspek(spek);
-  if (v === null) throw new Error(`Ugyldig vaktspek «${spek}» – forventet vakt:<flagg>:<indre>`);
-  return new Konvensjonsvakt(lagIndre(v.indre), v.valg);
-}
+const lagVelger = (spek: string): Velger => lagIndre(spek) as Velger;
 
 mkdirSync(dirname(ut), { recursive: true });
 const armer: { navn: string; spek: string }[] = [
