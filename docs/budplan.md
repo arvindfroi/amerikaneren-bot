@@ -39,19 +39,28 @@ den Arvind beskrev.
 Det eneste tallet som er målt uten etterpåklokskap er fra `budregner.ts`:
 120 trekninger å velge på, 120 **helt andre** å måle på.
 
-| K trekninger | mot «by alltid 9» |
-|---|---|
-| 12 | −0,527 |
-| 24 | −0,395 |
-| 48 | +0,082 |
-| 120 | **+0,177 ± 0,080** |
-| ∞ med etterpåklokskap | +0,306 ← *ikke oppnåelig* |
+| K trekninger | runder per bud | mot «by alltid 9» |
+|---|---|---|
+| 3 | 24 | −2,098 ± 0,166 |
+| 6 | 48 | −1,175 ± 0,116 |
+| 12 | 96 | −0,722 ± 0,096 |
+| 24 | 192 | −0,300 ± 0,084 |
+| 48 | 384 | −0,048 ± 0,057 |
+| 120 | 960 | **+0,097 ± 0,046** |
+| ∞ med etterpåklokskap | – | +0,31 ← *ikke oppnåelig* |
 
-Så: **~+0,18 poengdifferanse per budgiverrunde**, for åpningsbudet alene, fra
-første budgiverposisjon.
+Så: **~+0,10 poengdifferanse per budgiverrunde**, for åpningsbudet alene, fra
+første budgiverposisjon – og det koster 960 fullt utspilte runder per bud.
+
+> **Rettet 2026-08-02.** Første versjon av dette avsnittet sa +0,177 ± 0,080.
+> Det var målt på 150 hender. På 410 hender er tallet +0,097 ± 0,046. De to er
+> forenlige innenfor støyen, men det lavere er det bedre anslaget, og premien
+> er dermed omtrent halvparten av det jeg først skrev. Vippepunktet der en
+> regner slår en konstant ligger rundt K = 48–60, ikke K = 40.
 
 Til sammenlikning er hele gapet MesterAI − NevroHjerne **+1,068 per
-runde/sete**. Åpningsbudet alene er altså rundt en sjettedel av det.
+runde/sete**. Åpningsbudet alene er altså rundt en tiendedel av det – og
+tiendedelen er nettopp tallet stoppkriteriet i §6 er skrevet mot.
 
 Hele budflaten er større enn åpningsbudet – alle fire seter melder, og en
 budrunde har flere beslutninger. En rimelig, men **udokumentert**, gjetning er
@@ -117,12 +126,42 @@ og mål parret. **Utgangsprøve:** `lagstikk − SD` skal ikke falle på kontrak
 
 Uten dette måler alle senere faser et bud vi ikke kan spille.
 
-### Fase 0b — fullfør handlingsrommet
-Amerikaner og solo inn i alle budmålinger. Boten melder dem i 0 % av 1 409
-beslutninger, mens innsatsene er ±50 og ±100 mot et tallbuds ±18.
-**Utgangsprøve:** vet vi hvor stor andel av hendene der de er den beste
-handlingen. Er det 0 %, er dagens oppførsel riktig og saken er lukket.
-*(Kjører nå.)*
+### Fase 0b — fullfør handlingsrommet — ✅ FERDIG, LUKKET
+Amerikaner og solo lagt inn i handlingsrommet og målt på 410 hender:
+
+| handling | forventet poengdiff | beste på så mange hender |
+|---|---|---|
+| bud 9 | **+2,494** | **84,1 %** |
+| bud 8 | −1,441 | 7,3 % |
+| bud 10 | −2,558 | 7,3 % |
+| bud 7 | −2,795 | 1,0 % |
+| PASS | −2,769 | 0,2 % |
+| bud 11 | −11,930 | 0,0 % |
+| AMERIKANER | −38,607 | **0,0 %** |
+| SOLO | −101,917 | **0,0 %** |
+
+Null av 410. Solo på −101,9 betyr at den praktisk talt aldri går inn – den
+krever alle tolv stikk alene. **Botens 0 % er riktig oppførsel, ikke et hull.**
+Stoppkriteriet i §6 er dermed utløst for denne delen, og den er lukket.
+
+FORBEHOLD som skal stå: dette er 410 tilfeldige hender. En hånd med alle
+trumfene ville rettferdiggjort en amerikaner, men slike hender er så sjeldne at
+en policy som aldri melder den taper tilnærmet ingenting. Det er *frekvensen*
+som lukker saken, ikke at meldingen aldri kan være riktig.
+
+EN HYPOTESE SOM BLE MOTBEVIST underveis, verdt å skrive ned: jeg trodde de to
+katastrofemeldingene ødela regneren, fordi argmax over støy nå hadde to måter
+å tape 40–100 poeng på. Beskjæring av handlingsrommet ble målt direkte:
+
+| handlingsrom | K=120 |
+|---|---|
+| alle 8 | +0,097 ± 0,046 |
+| uten amerikaner/solo | +0,097 ± 0,046 |
+| bare de som noen gang er best | +0,099 ± 0,046 |
+| bare 8/9/10 | +0,109 ± 0,046 |
+
+Beskjæring er verdt ~+0,01. Hypotesen var feil, og problemet ligger et helt
+annet sted: støyen i selve etikettene. Det er fase 2.
 
 ### Fase 1 — utvid beslutningsrommet
 Dagens datasett dekker bare **åpningsbudet fra første budgiver**, med policyen
