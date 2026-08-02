@@ -1,0 +1,24 @@
+
+=== PARRET SAMMENLIKNING MOT MESTERAI ===
+
+A = abmp   analyse/h2h-abmp-*.jsonl   (257 kamper)
+B = budm   analyse/h2h-budm-*.jsonl   (51 kamper)
+
+MARGINALT (hver arm mot MesterAI, alle kamper den har):
+  abmp       -0.2680 ± 0.128   n=257
+  budm       -0.0724 ± 0.279   n=51
+
+PARRET paa (froe, par, side) – samme giv, samme MesterAI-motstander:
+  budm − abmp = +0.7231 ± 0.3300   (2.2 SE), n=27
+  positiv i 16 av 27 par (11 negative, 0 like)
+  tegntest, tosidig: p = 0.442
+
+PORTEN: n >= 200 par. Naa: 27. Mangler 173.
+
+Gapet til MesterAI for dagens beste bot er 0,273 poeng per runde. Holder
+dette tallet, gaar Adams forbi Washington med +0.4501.
+
+BUDATFERD paa de parrede kampene (per kamp):
+  arm        budrunder vunnet   kontrakter klart   klarrate
+  abmp                 8.63               6.26       72.5 %
+  budm                 8.52               6.59       77.4 %
