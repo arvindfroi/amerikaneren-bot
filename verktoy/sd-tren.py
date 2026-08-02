@@ -54,7 +54,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-TREKK_DIM = 273  # src/e1/trekk.ts – 238 fra appen + 35 egne
+# BREDDEN LESES AV DATAENE, den er ikke hardkodet lenger.
+#
+# `src/e1/trekk.ts` har to lovlige bredder:
+#   v1  273 = 238 fra appen + 35 egne
+#   v2  340 = v1 + minneblokken (eget vrak, korrigert «hva er ute»)
+#
+# Den hardkodede 273-en var en STUM FELLE: innlesingen hopper over hver rad
+# der `len(t)` ikke stemmer, så et v2-datasett ville gitt «0 gyldige rader»
+# etter timer med generering – eller, om noen senere fjernet sjekken, trent
+# på feiljusterte kolonner uten å feile.
+LOVLIGE_DIM = (273, 340)
+TREKK_DIM = None  # settes av `finn_dim()` ved innlesing
 KORT = 52
 
 
@@ -99,6 +110,38 @@ def les(mapper: list[str]):
     for _, f in filer:
         tak += tell_linjer(f)
     print(f"Teller {tak} linjer i {len(filer)} filer ({time.time() - t0:.0f}s)", flush=True)
+
+    # BREDDEN AVGJOERES AV DATAENE, og den maa vaere ÉN. Blandes 273 og 340 i
+    # samme trening, ville halvparten av radene blitt hoppet over i stillhet -
+    # nettopp den fellen den hardkodede konstanten var.
+    global TREKK_DIM
+    bredder: dict[int, int] = {}
+    for _, f in filer:
+        with open(f, "r", encoding="utf-8") as fh:
+            for linje in fh:
+                linje = linje.strip()
+                if not linje:
+                    continue
+                try:
+                    t = json.loads(linje).get("t")
+                except json.JSONDecodeError:
+                    continue
+                if t:
+                    bredder[len(t)] = bredder.get(len(t), 0) + 1
+                    break
+    if not bredder:
+        raise SystemExit("Fant ingen lesbare rader med «t» i datamappene")
+    if len(bredder) > 1:
+        raise SystemExit(
+            f"BLANDEDE TREKKBREDDER i datasettet: {bredder}. "
+            "273 (v1) og 340 (v2) kan ikke trenes sammen - de 273 foerste "
+            "indeksene betyr riktignok det samme, men resten ville vaert "
+            "nuller uten at nettet fikk vite at de MANGLER. Del settene."
+        )
+    TREKK_DIM = next(iter(bredder))
+    if TREKK_DIM not in LOVLIGE_DIM:
+        raise SystemExit(f"Ukjent trekkbredde {TREKK_DIM}, forventet en av {LOVLIGE_DIM}")
+    print(f"Trekkbredde: {TREKK_DIM} ({'v2 med minneblokk' if TREKK_DIM == 340 else 'v1'})", flush=True)
 
     X = numpy.zeros((tak, TREKK_DIM), dtype=numpy.float32)
     V = numpy.zeros((tak, KORT), dtype=numpy.float32)
