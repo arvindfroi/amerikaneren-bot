@@ -1,0 +1,23 @@
+
+=== SD-soek fra stikk N og ut, nettet foer det ===
+419 giver, tvungen kontrakt 9. Basis: vakt:abmp:e1:e1-modell/sd-r2.bin i alle seter.
+Bare BUDVINNERENS sete soeker; alt annet er identisk.
+
+arm              lagstikk mot basis        ms per runde
+-----------------------------------------------------------
+stikk 9, K=12  -0.3198 ± 0.0527 (-6.1 SE)        175
+stikk 9, K=24  -0.3174 ± 0.0527 (-6.0 SE)        329
+stikk 7, K=12  -0.1838 ± 0.0539 (-3.4 SE)        892
+stikk 7, K=24  -0.1599 ± 0.0529 (-3.0 SE)       1757
+stikk 5, K=12  -0.0095 ± 0.0469 (-0.2 SE)       2466
+stikk 5, K=24  +0.0215 ± 0.0468 (0.5 SE)       4946
+-----------------------------------------------------------
+
+Positivt = soeket henter stikk. Kolonnen til hoeyre er hva det KOSTER;
+en gevinst maa leses mot den. Nettsiden taaler noen hundre ms per
+kortvalg - menneskene bruker 4,1 s paa sine.
+
+SAMMENLIKN MED DEN EKSAKTE VARIANTEN, som ble maalt paa samme akse:
+terskel 2 -> -0,017, terskel 3 -> -0,289, terskel 4 -> -0,778. Blir
+SD-kurven positiv der DD-kurven var negativ, er det FASITEN i soeket som
+var feil - ikke soek som idé.
