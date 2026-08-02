@@ -1,0 +1,34 @@
+
+=== Regelgraving: hva kjennetegner de dyre kortvalgene? ===
+477 beslutninger fra 2 fil(er).
+Grunnlinje: 0.3878 anger per beslutning.
+
+Rader med «·» ser FASITEN og kan aldri bli en regel – de viser bare at
+feilen finnes. De øvrige er uttrykt i det setet lovlig vet.
+
+situasjon                              n      anger    mot resten   andel av tapet
+--------------------------------------------------------------------------------------
+· vi trumfet, beste var IKKE trumf      116     0.9741   +0.7747 ±0.0906    61.1 %
+mange valg (≥5 lovlige)                 256     0.5547   +0.3601 ±0.0629    76.8 %
+vi spilte trumf                         239     0.4979   +0.2206 ±0.0663    64.3 %
+vi spilte ut (pos 0)                    317     0.4322   +0.1322 ±0.0654    74.1 %
+vi trumfet inn ved renons                65     0.4615   +0.0853 ±0.0926    16.2 %
+· vi lavest, beste var høyest            40     0.4500   +0.0678 ±0.1426     9.7 %
+vi var renons i utspilt farge            96     0.3854   -0.0030 ±0.0771    20.0 %
+vårt eget lag ledet stikket alt          60     0.3500   -0.0433 ±0.0864    11.4 %
+MAKKEREN ledet stikket                   60     0.3500   -0.0433 ±0.0864    11.4 %
+· vi trumfet IKKE, beste var trumf       50     0.3400   -0.0534 ±0.0997     9.2 %
+vi spilte HØYEST av de lovlige          140     0.3286   -0.0839 ±0.0720    24.9 %
+· vi høyest, beste var lavest            53     0.2830   -0.1179 ±0.0861     8.1 %
+vi spilte LAVEST av de lovlige          124     0.3065   -0.1100 ±0.0711    20.5 %
+vi var sist i stikket (pos 3)            44     0.1818   -0.2270 ±0.0890     4.3 %
+makkeren var avslørt                    477     0.3878   +0.3878 ±NaN   100.0 %
+--------------------------------------------------------------------------------------
+
+Sortert etter hvor mange standardfeil differansen er fra null.
+
+INGEN AV DISSE ER ET FUNN. Dette er leting over mange hypoteser i data vi
+allerede har sett, som er oppskriften på å finne mønstre som ikke finnes.
+En kandidat blir et funn først når den er implementert som regel og målt
+PARRET på et FRISKT frøbånd. To ganger før har et utvalgt tall falt sammen
+når det ble målt ordentlig.

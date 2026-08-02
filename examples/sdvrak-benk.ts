@@ -92,8 +92,15 @@ for (let f = 0; f < givere; f++) {
 
   const a = spill(s, false);
   const b = spill(s, true);
+  // Den SEENDE armen er en DIAGNOSE, ikke en spiller: grovsilen der løser på
+  // de ekte hendene til alle fire. Den finnes bare for å skille to
+  // forklaringer på at den blinde taper – er det silen, eller er det SD-en?
+  const c = medSeende ? spill(s, true, true) : null;
   if (a === null || b === null) continue;
-  appendFileSync(ut, JSON.stringify({ frø, budvinner: s.budvinner, dagens: a, sdvrak: b }) + "\n");
+  appendFileSync(
+    ut,
+    JSON.stringify({ frø, budvinner: s.budvinner, dagens: a, sdvrak: b, seende: c }) + "\n",
+  );
   n++;
   process.stdout.write(`\r  skard ${skardI}: ${n} givere   `);
 }

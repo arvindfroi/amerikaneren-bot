@@ -137,6 +137,48 @@ const nevro = new NevroAgent();
 const lagBot = (): { velgHandling(s: GameState): Handling; nyKamp(): void } =>
   vakt !== null && nett !== null ? new Konvensjonsvakt(new E1Agent(nett), vakt.valg) : new NevroAgent();
 
+/**
+ * TRUMFBILDET slik setet lovlig ser det.
+ *
+ * Overtrumfing bærer 61 % av spilleførerens tap (`analyse/regelgraving-*`),
+ * så disse feltene finnes for å finne den STRUKTURELLE formen på feilen. Det
+ * klassiske skillet i stikkspill er om man sitter med den høyeste trumfen
+ * som er ute: gjør man det, trekker man trumf; gjør man det ikke, gir hvert
+ * trumfutspill motparten et gratis stikk å velge tidspunkt for.
+ *
+ * Alt utledes av egen hånd og de åpent spilte kortene – ingen skjulte hender.
+ */
+function trumfbilde(
+  s: GameState,
+  sete: number,
+  egen: readonly { farge: string; verdi: number }[],
+  trumf: string | null,
+): Record<string, number | boolean> {
+  if (trumf === null) return { trumfIgjenUte: -1, harHøyesteTrumf: false, egneTrumf: 0 };
+  const sett = new Set<string>();
+  for (const k of egen) sett.add(`${k.farge}${k.verdi}`);
+  for (const stikk of s.historikk) for (const kp of stikk.kort) sett.add(`${kp.kort.farge}${kp.kort.verdi}`);
+  for (const kp of s.bord) sett.add(`${kp.kort.farge}${kp.kort.verdi}`);
+  // Budvinneren vet i tillegg at hans eget vrak er dødt.
+  if (sete === s.budvinner) for (const k of s.vrak) sett.add(`${k.farge}${k.verdi}`);
+
+  let ute = 0;
+  let høyestUte = 0;
+  for (let v = 2; v <= 14; v++) {
+    if (sett.has(`${trumf}${v}`)) continue;
+    ute++;
+    if (v > høyestUte) høyestUte = v;
+  }
+  const egneTrumf = egen.filter((k) => k.farge === trumf);
+  const minHøyeste = egneTrumf.reduce((a, k) => Math.max(a, k.verdi), 0);
+  return {
+    trumfIgjenUte: ute,
+    // Sitter vi med en trumf høyere enn alt som fortsatt er ute?
+    harHøyesteTrumf: minHøyeste > høyestUte,
+    egneTrumf: egneTrumf.length,
+  };
+}
+
 function oppsett(frø: number, budsete: number): GameState | null {
   let s = opprettSpill({ antallSpillere: 4 }, frø);
   let g = 0;
@@ -211,6 +253,40 @@ for (let f = 0; f < kamper; f++) {
           if (Number.isFinite(v) && v > beste) beste = v;
         }
         if (Number.isFinite(vårt) && Number.isFinite(beste)) {
+          /**
+           * KJENNETEGN VED BESLUTNINGEN, logget for å kunne LETE etter en
+           * regel i ettertid. Tapsfordelingen sier HVOR vi blør (stikk 3–7);
+           * disse feltene er det som skal til for å si HVA vi gjør galt der.
+           *
+           * Konvensjonsvakten er bygget av nettopp slike funn, og formen som
+           * har virket er alltid den samme: en strukturelt gjenkjennelig
+           * bommert som kan forbys uten å kunne ta noe fra oss. Feltene er
+           * derfor valgt slik at de kan uttrykkes av en regel som bare ser
+           * det setet selv ser.
+           */
+          const trumf = s.trumf;
+          const bordet = s.bord;
+          const led = bordet[0]?.kort.farge ?? null;
+          const egen = s.hender[iTur] ?? [];
+          const besteKort = lovlige.find((k) => verdiAv(kortTilInt(k)) === beste) ?? lovlige[0]!;
+          const valgtKort = valgt.kort;
+          // Hvem leder stikket akkurat nå, og er det makkeren vår?
+          let ledende: number | null = null;
+          if (bordet.length > 0) {
+            let best = bordet[0]!;
+            for (const kp of bordet) {
+              const bTrumf = best.kort.farge === trumf;
+              const kTrumf = kp.kort.farge === trumf;
+              if (kTrumf && !bTrumf) best = kp;
+              else if (kTrumf === bTrumf && kp.kort.farge === best.kort.farge && kp.kort.verdi > best.kort.verdi) {
+                best = kp;
+              }
+            }
+            ledende = best.spiller;
+          }
+          const laget = (p: number | null): boolean =>
+            p !== null && (p === s!.budvinner || p === s!.makker);
+          const sorterte = [...lovlige].sort((a, b) => a.verdi - b.verdi);
           appendFileSync(
             ut,
             JSON.stringify({
@@ -219,6 +295,23 @@ for (let f = 0; f < kamper; f++) {
               valg: lovlige.length,
               anger: Math.round((beste - vårt) * 1000) / 1000,
               sek,
+              // posisjon i stikket: 0 = vi spiller ut, 3 = vi er sist
+              pos: bordet.length,
+              // fulgte vi farge, eller var vi renons?
+              renons: led !== null && !egen.some((k) => k.farge === led),
+              // trumf involvert
+              vårTrumf: valgtKort.farge === trumf,
+              besteTrumf: besteKort.farge === trumf,
+              // høyeste/laveste av de lovlige
+              vårHøyest: valgtKort.verdi === sorterte[sorterte.length - 1]!.verdi,
+              vårLavest: valgtKort.verdi === sorterte[0]!.verdi,
+              besteHøyest: besteKort.verdi === sorterte[sorterte.length - 1]!.verdi,
+              besteLavest: besteKort.verdi === sorterte[0]!.verdi,
+              // ledet vårt eget lag stikket da vi skulle spille?
+              egetLagLedet: laget(ledende),
+              makkerLedet: ledende !== null && ledende === s.makker && iTur !== s.makker,
+              makkerAvslørt: s.makkerAvslørt,
+              ...trumfbilde(s, iTur, egen, trumf),
             }) + "\n",
           );
           n++;
