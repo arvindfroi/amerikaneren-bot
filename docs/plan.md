@@ -177,18 +177,40 @@ godt.** Det er fase 4 i `budplan.md` — iterert beste svar — og det er umålt
 
 ---
 
-## 7. Adams
+## 7. Adams på banen
 
-Arvind: *«imorgen så vil jeg at Adams skal være på banen.»*
+**Adams er kodenavnet på boten vi bygger. MesterAI er Washington.** Navnet er
+valgt: John Adams etterfulgte George Washington, og det er nøyaktig oppdraget.
 
-Jeg vet ikke hva Adams er, og skriver derfor ikke inn antakelser om det.
-Planen over er skrevet så den kan ta imot en ny komponent på tre steder uten
-omskriving:
+Arvind: *«imorgen så vil jeg at Adams skal være på banen.»* Det betyr
+utplassering — nettsiden og arenabenken — ikke en ny komponent.
 
-- som **kandidat** på alle benkene (`mesterai-h2h.ts`, `spillefoerprofil.ts`,
-  regresjonsdataene) — spec-parseren tar en ny prefiks på én linje, slik
-  `budm:` ble lagt inn
-- som **motstandermodell** i SD-rolloutene (`--motpart`)
-- som **stillingskilde** i DAgger (`--spiller`)
+### Hva som må stå før Adams settes ut
 
-Målestokken i §3 gjelder uansett hva den er.
+| krav | status | hvorfor det er et krav |
+|---|---|---|
+| kortnettet trent på v2 + spredte kontrakter + DAgger | data samles | fire målte defekter i dagens vekter |
+| den nye vekten målt parret mot dagens | ikke startet | et nett kan bli verre; det har skjedd åtte ganger i dette prosjektet |
+| budmodellen har et MesterAI-tall | n=38 av ~200 | +2,14 er målt mot nevro-byding, ikke mot en som kan straffe overbud |
+
+**Rekkefølgen er ikke forhandlingsbar, og grunnen er ikke forsiktighet.**
+Familien er den eneste kilden vi har til menneskedata. Setter vi ut en
+uvalidert Adams, bruker vi opp runder vi ikke får igjen på å måle noe vi ikke
+vet hva er — og 136 runder mot dagens bot er allerede for lite til å skille
+±1 poeng per runde.
+
+### Det som utplasseres
+
+Nettsiden bygger i dag `Konvensjonsvakt(E1Agent.fraBytes(bytes, {}), flagg)` —
+altså nett + regler, ingen søk. Adams v1 er samme form med fire endringer:
+
+1. nye vekter (v2-trekk, spredte kontrakter, DAgger-stillinger)
+2. vaktflaggene `abmp` i stedet for `at` — `m` og `p` er målt i dag
+3. budmodellen (`bud-gbt.json`) lagt utenpå, hvis MesterAI-tallet holder
+4. ingen søk — fire former er målt, ingen slår nettet
+
+### Om noe ikke rekker
+
+Da settes den delen ikke ut. En Adams med nye vekter og gamle bud er fortsatt
+et framskritt; en Adams med et ubekreftet budnett er et eksperiment på
+familien.
