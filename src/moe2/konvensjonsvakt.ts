@@ -263,6 +263,38 @@ export interface Vaktvalg {
    * orakler i samme økt endte alle negativt.
    */
   readonly makkerTrumfTilbake?: boolean;
+  /**
+   * Vakt 7: som MAKKER, trumf før budvinneren når det vinner stikket.
+   *
+   * ARVINDS HYPOTESE, ordrett: «det er bedre at makker trumfer et kort enn
+   * budvinner hvis det gir de et stikk. dette forutsetter at noen andre
+   * spiller ut og at budvinner spiller ut etter makkeren. siden da kan
+   * budvinner spare en trumf OG kvitte seg med et svakt kort.»
+   *
+   * MEKANISMEN ER MÅLT, ikke bare utfallet – og det er forskjellen på å vite
+   * AT noe virker og å vite HVORFOR. `examples/makkertrumf.ts`, 3 920
+   * stillinger, hvert kandidatkort lagt i den EKTE giva og runden spilt
+   * ferdig med deterministiske agenter:
+   *
+   *   arm            poengdiff       laget vant   FØRER BRUKTE   innfridd
+   *                  mot boten       stikket      TRUMF
+   *   trumf        +0,115 ± 0,021      98,1 %        9,3 %        75,8 %
+   *   ikke trumf   −0,438 ± 0,037      67,7 %       41,6 %        68,0 %
+   *   BOTEN              –             92,0 %       15,9 %        74,1 %
+   *
+   * Kolonnen i midten ER hypotesen: trumfer makkeren, må budvinneren bruke
+   * trumf i 9,3 % av tilfellene. Lar makkeren være, må han det i 41,6 % –
+   * 4,5 ganger så ofte. Laget vinner stikket for én trumf i stedet for to,
+   * og budvinneren kaster et svakt kort i stedet.
+   *
+   * Boten gjør allerede det riktige i 81 % av stillingene. Regelen dekker de
+   * siste 19 %, og de koster: 74,1 % innfrielse mot regelens 75,8 %.
+   *
+   * TRUMFEN MÅ VINNE. Å trumfe under en høyere trumf gir ikke laget stikket,
+   * det brenner bare et kort. Uten den betingelsen er dette en annen regel
+   * enn den som ble målt.
+   */
+  readonly makkerTrumferFørst?: boolean;
   /** Vakt 2, mild: på et garantert stikk, aldri trumf når et avkast er lovlig. */
   readonly garantiIkkeTrumf: boolean;
   /** Vakt 2, streng: på et garantert stikk, alltid det billigste lovlige kortet. */
@@ -285,6 +317,7 @@ export function lesVaktflagg(flagg: string): Vaktvalg {
     else if (tegn === "D") valg = { ...valg, ikkeDraTrumf: true, draTerskel: 4 };
     else if (tegn === "e") valg = { ...valg, ikkeDraTrumf: true, draTerskel: 3, draBilligst: true };
     else if (tegn === "m") valg = { ...valg, makkerTrumfTilbake: true };
+    else if (tegn === "p") valg = { ...valg, makkerTrumferFørst: true };
     else {
       throw new Error(
         `Ukjent vaktflagg «${tegn}» (a = åpning/billigst, h = åpning/høyest, ` +
@@ -410,6 +443,26 @@ export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg
   const trumf = s.trumf;
   const lovlige = lovligeKort(s, sete);
   if (lovlige.length <= 1) return valgt;
+
+  /**
+   * Vakt 7: makkeren trumfer FØR budvinneren, når det vinner stikket.
+   *
+   * Betingelsene er nøyaktig de målingen ble gjort på: en FORSVARER spilte ut,
+   * budvinneren har ikke lagt kort ennå i dette stikket, og setet er makkeren.
+   * Da spilles den billigste trumfen som faktisk VINNER stikket slik bordet
+   * står. At den må vinne er en del av regelen: å trumfe under en høyere
+   * trumf gir ikke laget stikket, det brenner bare et kort.
+   */
+  if (
+    valg.makkerTrumferFørst === true && s.makker === sete && sete !== s.budvinner &&
+    s.bord.length > 0 && s.bord[0]!.spiller !== s.budvinner && s.bord[0]!.spiller !== s.makker &&
+    s.bord.every((kp) => kp.spiller !== s.budvinner)
+  ) {
+    const vinnende = lovlige.filter(
+      (k) => stikkvinner([...s.bord, { spiller: sete, kort: k }], trumf) === sete && k.farge === trumf,
+    );
+    if (vinnende.length > 0) return billigste(vinnende, trumf);
+  }
 
   /**
    * Vakt 6: makkeren har tatt stikk 1 og sitter med utspillet i stikk 2.
