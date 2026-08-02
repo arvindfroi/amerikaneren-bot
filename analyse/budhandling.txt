@@ -37,3 +37,29 @@ TALLET ER ET ANSLAG PÅ ØVRE GRENSE. «Beste handling per hånd» velges HER
 med fasit i hånd – vi har simulert alle seks handlingene på nøyaktig denne
 hånden. En ekte budvurdering må gjette det fra kortene alene, og henter
 derfor mindre. Gapet er hva en budmodell har å spille om.
+
+==============================================================================
+ETTERORD, 2. august: TALLET +1,18 OVER SKAL IKKE SITERES.
+==============================================================================
+
+«Å velge den poengbeste handlingen per hånd» er valgt med ETTERPÅKLOKSKAP på
+de samme 30 trekningene tallet leses av på. Da plukker man like mye den
+heldigste MÅLINGEN som den beste HANDLINGEN – vinnerens forbannelse.
+
+Målt direkte i `examples/buddata.ts`, som skriver hver etikett i to
+uavhengige halvdeler (12 trekninger hver):
+
+  velg på alt, les av på alt (som over)      +0,603 over «by alltid 9»
+  velg på halvdel B, les av på halvdel B     +1,062
+  VELG PÅ HALVDEL A, LES AV PÅ HALVDEL B     −0,825 ± 0,095   (8,7 SE)
+
+Per-hånd-argmax fra et støyete anslag er altså VERRE enn å by 9 hver gang.
+Taket var ikke der.
+
+DET FINNES LIKEVEL EKTE SIGNAL, og det må ikke forveksles med det over.
+Samspillsleddet hånd × handling – det eneste som kan skille hender – har
+r = 0,433 mellom de to uavhengige halvdelene, og 60 % av variansen er ekte.
+Forskjellen er at en REGRESJONSMODELL pooler over hender i stedet for å ta
+maks av seks støyete tall. Den henter +0,041 ± 0,012 poeng per budgiverrunde
+over «by alltid 9» (holdout n=2368, 3,5 SE) – ekte, men lite, og modellen
+avviker fra det faste budet i bare 3 % av hendene.

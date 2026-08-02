@@ -200,6 +200,21 @@ for (let h = 0; h < hender; h++) {
 
   /** Handling → forventede EGNE poeng. */
   const ev: Record<number, number> = {};
+  /**
+   * HALVDELENE. `diffA` regnes av de 12 første trekningene, `diffB` av de 12
+   * siste – på nøyaktig samme hånd og samme handlinger.
+   *
+   * De finnes for å svare på om taket i det hele tatt er ekte. Velger man den
+   * beste handlingen etter et STØYETE anslag, ser valget bedre ut enn det er:
+   * man plukker like mye den heldigste målingen som den beste handlingen. Det
+   * er vinnerens forbannelse, og den blåser opp ethvert «tak» regnet med
+   * etterpåklokskap på de samme dataene.
+   *
+   * Velg på A, les av på B, og forbannelsen forsvinner: A-støyen er
+   * uavhengig av B. Faller taket sammen da, var det aldri der.
+   */
+  const diffA: Record<number, number> = {};
+  const diffB: Record<number, number> = {};
   /** Handling → forventet DIFFERANSE: egne minus snittet av de tre andre. */
   const diff: Record<number, number> = {};
   const n: Record<number, number> = {};
@@ -221,6 +236,12 @@ for (let h = 0; h < hender; h++) {
       mangler = true;
       break;
     }
+    const halv = Math.floor(d.length / 2);
+    const mid = (v: number[]): number => Math.round((v.reduce((a, x) => a + x, 0) / v.length) * 1000) / 1000;
+    if (halv >= 2) {
+      diffA[handling] = mid(d.slice(0, halv));
+      diffB[handling] = mid(d.slice(halv));
+    }
     ev[handling] = Math.round((p.reduce((a, x) => a + x, 0) / p.length) * 1000) / 1000;
     diff[handling] = Math.round((d.reduce((a, x) => a + x, 0) / d.length) * 1000) / 1000;
     n[handling] = p.length;
@@ -233,6 +254,8 @@ for (let h = 0; h < hender; h++) {
       t: Array.from(t, (x) => Math.round(x * 10_000) / 10_000),
       ev,
       diff,
+      diffA,
+      diffB,
       n,
       trekninger,
       frø: (frøBase + h) >>> 0,
