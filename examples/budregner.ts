@@ -39,6 +39,7 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname } from "node:path";
 
 import { lovligeHandlinger, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
+import { AMERIKANER, SOLO, type Bud } from "../src/regler.ts";
 import { lagRng, nyStokk, stokk, kortId, type Kort } from "../src/kort.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 import { E1Agent, lesE1Nett } from "../src/e1/nett.ts";
@@ -55,7 +56,22 @@ let rapport: string | null = null;
 const VELG = 120;
 const MÅL = 120;
 const BUD = [7, 8, 9, 10, 11];
-const HANDLINGER = [0, ...BUD];
+/**
+ * AMERIKANER og SOLO kodes som -1 og -2, siden 0 er PASS og 7-11 er tallbud.
+ *
+ * ARVIND: «ikke slik at den aldri byr amerikaneren og solo amerikaneren».
+ * Atferdsprofilen bekrefter at boten melder dem i 0 % av 1 409 beslutninger.
+ * Innsatsene er store nok til at det maa maales og ikke antas:
+ *
+ *   amerikaner   budvinner +/-50, makker +/-25   krever ALLE 12 stikk
+ *   solo         budvinner +/-100                krever alle 12 ALENE
+ *
+ * mot et vanlig bud 9 sine +/-18. En amerikaner som gaar inn er verdt nesten
+ * tre bud 9. Spoersmaalet er hvor ofte den gaar inn.
+ */
+const AMK = -1;
+const SOL = -2;
+const HANDLINGER = [0, ...BUD, AMK, SOL];
 /** K-verdiene kurven måles på. Må alle være ≤ VELG. */
 const K_ER = [3, 6, 12, 24, 48, 120];
 
@@ -111,15 +127,34 @@ if (rapport !== null) {
       fast = h;
     }
   }
+  const navn = (k: number): string =>
+    k === 0 ? "PASS" : k === AMK ? "AMERIKANER" : k === SOL ? "SOLO" : `bud ${k}`;
   const linjer = [
     `\n=== Loenner det seg aa REGNE paa budet? ===`,
     `${rader.length} hender. Kandidat i eget sete: ${kandidatSpek}.`,
     `${VELG} trekninger aa velge paa, ${MÅL} HELT ANDRE aa maale paa.`,
-    `Referanse: den beste FASTE handlingen (${fast === 0 ? "PASS" : "bud " + fast}).`,
+    `Referanse: den beste FASTE handlingen (${navn(fast)}).`,
     ``,
-    `K = trekninger regneren faar bruke. Kostnad = 6·K fulle runder per bud.`,
+    `HVER HANDLING FOR SEG, snitt over maaleblokken. Dette svarer paa Arvinds`,
+    `spoersmaal om hvorfor boten aldri melder amerikaner eller solo.`,
     ``,
-    `   K   runder/bud   mot «by alltid ${fast}»          velger ${fast} i`,
+    `handling        forventet poengdiff   beste paa saa mange hender`,
+    `-----------------------------------------------------------------`,
+    ...HANDLINGER.map((h) => {
+      const v = rader.map((r) => r.mål[String(h)] ?? NaN).filter(Number.isFinite);
+      const beste = rader.filter((r) => {
+        let b = HANDLINGER[0]!;
+        for (const g of HANDLINGER) if ((r.mål[String(g)] ?? -1e9) > (r.mål[String(b)] ?? -1e9)) b = g;
+        return b === h;
+      }).length;
+      return `${navn(h).padEnd(14)} ${snitt(v).toFixed(3).padStart(14)}        ` +
+        `${((100 * beste) / Math.max(1, rader.length)).toFixed(1).padStart(6)} %`;
+    }),
+    `-----------------------------------------------------------------`,
+    ``,
+    `K = trekninger regneren faar bruke. Kostnad = ${HANDLINGER.length}·K fulle runder per bud.`,
+    ``,
+    `   K   runder/bud   mot «${navn(fast)}»              velger ${navn(fast)} i`,
     `--------------------------------------------------------------------`,
   ];
   for (const K of K_ER) {
@@ -140,7 +175,7 @@ if (rapport !== null) {
     }
     const m = snitt(d);
     linjer.push(
-      `${String(K).padStart(4)}   ${String(6 * K).padStart(10)}   ` +
+      `${String(K).padStart(4)}   ${String(HANDLINGER.length * K).padStart(10)}   ` +
         `${(m >= 0 ? "+" : "") + m.toFixed(3)} ± ${se(d).toFixed(3)}  (${(m / se(d)).toFixed(1)} SE)   ` +
         `${((100 * sammeSomFast) / rader.length).toFixed(0).padStart(6)} %`,
     );
@@ -208,7 +243,15 @@ function omtrekk(mal: GameState, sete: number, hånd: readonly Kort[], rng: () =
 }
 
 /** Poengdifferansen for `sete` etter aa ha bydd `mittBud` (null = pass). */
-function spill(giv: GameState, sete: number, mittBud: number | null): number | null {
+/** Handlingskoden til det budet motoren forstaar. */
+function budAv(handling: number): Bud | null {
+  if (handling === 0) return null;
+  if (handling === AMK) return AMERIKANER;
+  if (handling === SOL) return SOLO;
+  return handling;
+}
+
+function spill(giv: GameState, sete: number, mittBud: Bud | null): number | null {
   let s = giv;
   let harBydd = false;
   let g = 0;
@@ -258,7 +301,7 @@ for (let h = 0; h < hender; h++) {
     const v: number[] = [];
     const m: number[] = [];
     for (let k = 0; k < giver.length; k++) {
-      const r = spill(giver[k]!, sete, handling === 0 ? null : handling);
+      const r = spill(giver[k]!, sete, budAv(handling));
       if (r === null) continue;
       if (k < VELG) v.push(Math.round(r * 1000) / 1000);
       else m.push(r);
