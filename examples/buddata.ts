@@ -129,7 +129,7 @@ function omtrekk(mal: GameState, sete: number, hånd: readonly Kort[], rng: () =
  * likevel – risikoen for å miste kontrakten er en ekte kostnad ved å by lavt,
  * og den skal ligge inne i tallet.
  */
-function spillHandling(giv: GameState, sete: number, mittBud: number | null): number | null {
+function spillHandling(giv: GameState, sete: number, mittBud: number | null): number[] | null {
   let s = giv;
   let harBydd = false;
   let g = 0;
@@ -171,7 +171,12 @@ function spillHandling(giv: GameState, sete: number, mittBud: number | null): nu
     const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner! : s.iTur!;
     s = utfør(s, seter[iTur]!.velgHandling(s)).state;
   }
-  return s.totalPoeng[sete] ?? 0;
+  // HELE poengvektoren, ikke bare vaar egen. Arvind: «det er ikke bare
+  // poengene dine som teller, men ogsaa at du straffer motstanderne». Et bud
+  // som gir oss 5 og motstanderne 2 er bedre enn ett som gir oss 6 og dem 8,
+  // og egne poeng alene kan ikke skille de to. Med vektoren lagret kan BEGGE
+  // maal regnes ut i ettertid uten aa generere dataene paa nytt.
+  return [0, 1, 2, 3].map((p) => s.totalPoeng[p] ?? 0);
 }
 
 const rng = lagRng((frøBase + skardI * 7919) >>> 0);
@@ -193,15 +198,21 @@ for (let h = 0; h < hender; h++) {
   const giver: GameState[] = [];
   for (let k = 0; k < trekninger; k++) giver.push(omtrekk(mal, sete, hånd, rng));
 
-  /** Handling → [forventet poeng, antall trekninger som talte]. */
+  /** Handling → forventede EGNE poeng. */
   const ev: Record<number, number> = {};
+  /** Handling → forventet DIFFERANSE: egne minus snittet av de tre andre. */
+  const diff: Record<number, number> = {};
   const n: Record<number, number> = {};
   let mangler = false;
   for (const handling of [0, ...BUD]) {
     const p: number[] = [];
+    const d: number[] = [];
     for (const giv of giver) {
       const r = spillHandling(giv, sete, handling === 0 ? null : handling);
-      if (r !== null) p.push(r);
+      if (r === null) continue;
+      const egne = r[sete]!;
+      p.push(egne);
+      d.push(egne - (r.reduce((a, x) => a + x, 0) - egne) / 3);
     }
     // En handling uten trekninger er ikke «verdi 0» – den er ukjent. Å skrive
     // en null der ville lært nettet at handlingen er middelmådig. Da droppes
@@ -211,6 +222,7 @@ for (let h = 0; h < hender; h++) {
       break;
     }
     ev[handling] = Math.round((p.reduce((a, x) => a + x, 0) / p.length) * 1000) / 1000;
+    diff[handling] = Math.round((d.reduce((a, x) => a + x, 0) / d.length) * 1000) / 1000;
     n[handling] = p.length;
   }
   if (mangler) continue;
@@ -220,6 +232,7 @@ for (let h = 0; h < hender; h++) {
     JSON.stringify({
       t: Array.from(t, (x) => Math.round(x * 10_000) / 10_000),
       ev,
+      diff,
       n,
       trekninger,
       frø: (frøBase + h) >>> 0,
