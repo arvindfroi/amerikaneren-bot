@@ -1,0 +1,24 @@
+
+=== Naar spilles trumfene? Menneskene mot boten, samme giver ===
+303 runder mennesket meldte selv (0 hoppet over).
+Boten er vakt:abmp:e1:e1-modell/sd-r2.bin, tvunget til samme kontrakt paa samme giv.
+
+                                menneske      bot        differanse
+------------------------------------------------------------------------
+andel trumf spilt i stikk 1-4   0.443       0.382     +0.061 ± 0.010  (5.9 SE)
+snittstikk for trumfspill       5.011       5.054     -0.042 ± 0.071  (-0.6 SE)
+trumf igjen etter stikk 4       3.360       3.749     -0.389 ± 0.060  (-6.5 SE)
+trumf paa haanden totalt        5.990       5.997     -0.007 ± 0.008  (-0.8 SE)
+------------------------------------------------------------------------
+
+POSITIV differanse paa «andel i stikk 1-4» = mennesket trekker trumf
+TIDLIGERE enn boten. Negativ «snittstikk» betyr det samme.
+
+FORBEHOLD. Maalingen ser hvilke kort som ble spilt, ikke hvem som hadde
+utspillet. Et menneske som spiller trumf tidlig kan ha gjort det fordi det
+LEDET ofte. Forskjellen er en beskrivelse av hva som skjedde, ikke et bevis
+paa en strategi - og skal hypotesen bli en regel, maa den maales med
+utfallsmetoden som alt annet.
+
+MERK OGSAA at boten her har NEVRO som motspillere, mens mennesket moette
+nettsidens boter. Trumftimingen paavirkes av hvem som leder stikkene.
