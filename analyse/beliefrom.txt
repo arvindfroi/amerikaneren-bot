@@ -1,0 +1,34 @@
+
+=== HVOR STORT ER BELIEFROMMET? ===
+120 giver, vakt:abmp:e1:e1-modell/sd-r2.bin. Talt med tellVerdener() i solver/eksakt.ts,
+altsaa antall verdener som er FORENLIGE med det setet faktisk har sett.
+
+stikk    n     median      75 %       90 %    | uten renonser  | flervalg
+------------------------------------------------------------------------
+    0    480 9016925415356.5 mill. 83281325016834.1 mill. 83281325016834.1 mill. | 28553597148628.8 mill. |     60 %
+    1    480 819105086530.1 mill. 2680707555916.8 mill. 9016925415356.5 mill. | 819105086530.1 mill. |     81 %
+    2    480 3833856548.3 mill. 22944120070.9 mill. 75715596233.9 mill. | 22944120070.9 mill. |     89 %
+    3    480 83059865.8 mill. 624487139.0 mill. 2081623796.8 mill. | 624487139.0 mill. |     88 %
+    4    480 1005138.8 mill. 8632546.7 mill. 55373243.9 mill. | 16406887.1 mill. |     85 %
+    5    480 19629.2 mill. 130363.8 mill. 696515.3 mill. | 412275.6 mill. |     86 %
+    6    480 440.7 mill. 2555.1 mill. 7804.7 mill. | 9777.3 mill. |     85 %
+    7    480  9.2 mill. 54.0 mill. 164.0 mill. |  214.4 mill. |     86 %
+    8    480     254.1k 1.2 mill.  3.2 mill. |    4.2 mill. |     83 %
+    9    480       6.3k     26.5k      86.8k |        69.3k |     83 %
+   10    480        138       525       2.0k |          840 |     88 %
+   11    480          5         9         30 |            5 |      0 %
+------------------------------------------------------------------------
+
+«uten renonser» er raa-antallet foer det observerte spillet trekkes fra.
+Avstanden mellom de to kolonnene ER trosoppdateringen, malt i verdener.
+
+«flervalg» er andelen stillinger med mer enn ett lovlig kort. Bare der kan
+STRATEGIFUSJON oppstaa - og fusjon er hele PBS' fortrinn over eksakt PIMC.
+Prosjektet har allerede maalt hva fusjonen koster: +0,14 +/- 0,19 (n=2665),
+altsaa ikke til aa skille fra null.
+
+LESEVEILEDNING. En PBS-loesning maa representere HELE posterioren. Der
+medianen er under noen tusen er det haandterbart; i millionklassen er det
+ikke det. Kurven sier derfor hvor i runden en slik loesning kan begynne -
+og fusjonstallet sier om den ville vaert verdt noe naar den kunne.
+
