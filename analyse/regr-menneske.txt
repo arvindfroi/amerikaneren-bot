@@ -1,0 +1,30 @@
+
+=== Regresjon med fast effekt per giv ===
+2665 rader, 533 giver, 5 agenter.
+Utfall: poengdiff. Basiskategori: nevro (alle koeffisienter leses MOT den).
+Standardfeil klynget paa giv – de fire setene deler kort.
+
+M1: BARE AGENT-DUMMYER
+  agent=MENNESKE           +  3.7167 ± 0.5222      7.1 SE
+  agent=e1-sd-r2           +  1.4853 ± 0.3444      4.3 SE
+  agent=vaktabe1-sd-r2     +  1.6579 ± 0.3790      4.4 SE
+  agent=vaktabmpe1-sd-r2   +  1.5772 ± 0.3796      4.2 SE
+
+M2: AGENT + ATFERD (atferden som mediator)
+  (utgaar - ingen atferdskolonner)
+
+MEDIASJON – hvor mye av agentkanten forklarer atferden?
+
+  agent                     M1        M2      forklart
+  ------------------------------------------------------
+  (ingen atferdskolonner i dette datasettet – mediasjonen utgaar)
+  ------------------------------------------------------
+
+  Hoey «forklart» = kanten gaar GJENNOM den maalte atferden, og da vet vi
+  hva som skal endres. Lav = agenten virker gjennom noe vi IKKE har maalt,
+  og da er det neste sted aa lete.
+
+FORBEHOLD. Atferdsmaalene er utfall av de samme valgene som gir poengene,
+ikke uavhengige aarsaker. M2 skal derfor leses som en DEKOMPONERING av hvor
+kanten viser seg, ikke som et kausalt anslag paa hva som ville skjedd om man
+endret atferden alene.
