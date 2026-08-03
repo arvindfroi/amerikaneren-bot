@@ -901,3 +901,38 @@ orakel enn det som faktisk lager fasiten**, og konklusjonen «orakelet er
 uttømt» kan være et artefakt av det. Spekken er rettet til
 `ork:<rolle>:<verdener>:<indre>` der `indre` ER rollout-policyen, og §10 må
 leses med det forbeholdet til den nye målingen er inne.
+
+
+## 12. Orakelet var ikke uttømt — det var feilspesifisert (3. august, sen kveld)
+
+`ork:`-benken i §10 brukte **NevroHjerne** som rollout-policy, mens `sd-v4` ble
+generert med `--motpart vakt:abmp:e1:ftf1.bin`. Jeg målte altså et svakere
+orakel enn det som lager fasiten, og konkluderte «uttømt» på det.
+
+Kjørt på nytt med `indre` som rollout-policy, samme frøbånd, n=2800:
+
+| orakelet spiller | feil policy (nevro) | **korrekt policy (oss)** |
+|---|---|---|
+| **spillefører** | −0,357 | **+0,896 ± 0,418 (+2,14 SE)** |
+| makker | −0,078 | +0,009 ± 0,082 |
+| forsvar | −0,153 | −0,130 ± 0,171 |
+
+Førersetet svinger **+1,25** bare av å rette hvem orakelet forestiller seg
+sitter ved bordet. Totalt per runde **+0,2240 ± 0,1047**, tegntest **205/145**
+(z = 3,2). Trimmet snitt er +0,0079, altså drevet av store utslag — men to av
+tre kriterier peker samme vei, og det er første gang tegntesten er klart
+positiv.
+
+**Mekanismen er ren:** `vurderSD` lar motparten spille verdenene ferdig i ALLE
+seter. Er den modellen svakere enn bordet, undervurderes systematisk de linjene
+som krever god oppfølging — og spillefører er nettopp setet som har flest slike
+linjer å planlegge. Med riktig modell blir evalueringen korrekt spesifisert.
+
+**Hva det betyr:** ett-plys framoverblikk ER en fungerende forbedringsoperator
+for spillefører. Da er selvspill farbart, og §9s «øyne-linjen er avsluttet» må
+leses om: de fem armene ble alle destillert fra et feilspesifisert orakel.
+
+**Ikke adoptert.** +2,14 SE er et oppdagelsestall, og åtte av dem har krympet i
+dag. Replikering kjører i frøbånd 14 400 000 med 900 givere × 6, sammen med to
+akser: 24 verdener, og `sik:`-operatoren som bare overstyrer når den parrede
+marginen overstiger støyen.
