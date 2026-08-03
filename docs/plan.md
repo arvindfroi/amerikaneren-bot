@@ -806,3 +806,62 @@ aldri fram**.
 Alle fire er sterkere signaler enn noe i øyne-linjen. **Benken kan nå skille
 dem:** SE 0,05 parret ved n=8000, mot hull på 0,12–0,22. Prisen er ~40 min per
 måling, og det er den reelle budsjettgrensen framover.
+
+## 10. Orakelets tak — målt per rolle, og det er nådd
+
+Arvind: *«hvor god er orakelet? vet vi at den er så god? hva er taket der?»*
+
+Spørsmålet felte dagens sterkeste funn. Makkerdiagnosen hvilte på at orakelet
+har rett i makkerstillinger — aldri vist. Godkjenningen var **aggregert**
+(korrelasjon mot poeng, SD +0,718 mot DD −0,609), «12 verdener holder» var
+aggregert, og rollout-policyen er NevroHjerne, boten vi slår med over ett poeng.
+
+`src/moe2/rolleorakel.ts` + spekken `ork:<rolle>:<indre>`: orakelet spiller ÉN
+rolle, `ftf1` alt annet. Frøbånd 9 900 000, n=2800. **Designet validerer seg
+selv** — hver arm måler eksakt 0,0000 i rollene den ikke rører.
+
+| orakelet spiller | n | effekt | SE | σ |
+|---|---|---|---|---|
+| spillefører | 700 | −0,3571 | 0,4427 | −0,81 |
+| makker | 700 | −0,0781 | 0,0754 | −1,04 |
+| forsvar | 1400 | −0,1529 | 0,1792 | −0,85 |
+| **vektet til hele spillet** | | **−0,1852** | 0,1436 | −1,29 |
+
+**Alle tre er negative.** Å følge orakelet er dårligere enn det nettet alt gjør,
+i hver eneste rolle. Førertallet har riktig fortegn og størrelsesorden mot den
+uavhengige +0,26 som alt sto i §2.
+
+### Konsekvens 1: makkerdiagnosen er falt
+
+De −15,6 pp og −10,1 pp måler at vi er **ulike** orakelet, ikke at vi tar feil.
+Spiller orakelet makkerrollen selv, taper det 0,078. Å trene nettet *nærmere*
+orakelet der — τ-sporet jeg foreslo — ville trolig gjort makkeren dårligere.
+**Eksperimentet er avlyst.**
+
+### Konsekvens 2: læreren er uttømt, og det forklarer hele dagen
+
+| | |
+|---|---|
+| finjusteringen som LAGET `ftf1` | +0,136 |
+| ekstra finjustering, 105k ferske rader | +0,005 |
+| ekstra finjustering, 278k ferske rader | +0,032 |
+
+Mer destillasjon gir mindre og mindre fordi **eleven har passert læreren**. Det
+er ikke en datamengdefeil og ikke en trekkfeil — det er taket i metoden. Alle
+tre trekk-blokkene i §9 ble målt mot nettopp dette taket, og det er derfor de
+alle måler null.
+
+### Hva som må til nå
+
+Ikke flere trekk, ikke mer data av samme slag. **En bedre fasit.** I den
+rekkefølgen de er billigst å prøve:
+
+1. **Flere verdener, målt PER ROLLE.** «32 gir ikke mer enn 12» ble målt
+   aggregert, og makkerstillinger har det minste spennet (gulv 0,336) — altså
+   der samplingsstøy biter hardest. Samme `ork:`-benk, bare skru opp tallet.
+2. **Bedre rollout-policy.** Orakelet spiller verdenene ferdig med NevroHjerne.
+   Bytt til `vakt:abmp:e1` og se om taket løfter seg.
+3. **Selvspill mot egen policy** i stedet for destillasjon fra et fast orakel —
+   den strukturelle kuren når eleven har passert læreren.
+
+Punkt 1 og 2 er timer, ikke dager, og bruker benken som alt er bygget.

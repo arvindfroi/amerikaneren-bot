@@ -50,6 +50,7 @@ import { NevroAgent } from "../src/nevro/index.ts";
 import { Budagent, lesBudmodell } from "../src/moe2/budagent.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 import { Ensemble, type EnsembleModus } from "../src/moe2/ensemble.ts";
+import { Rolleorakel, type Rolle } from "../src/moe2/rolleorakel.ts";
 
 let giver = 400;
 let frøBase = 900_000;
@@ -252,6 +253,24 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
     const skille = rest.indexOf(":");
     if (skille < 0) throw new Error(`Ugyldig budm-spek «${indre}» – forventet budm:<modellfil>:<indre>`);
     return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(rest.slice(0, skille)));
+  }
+  /**
+   * `ork:<rolle>:<indre>` - SD-ORAKELET spiller den rollen, det indre alt annet.
+   *
+   * Svarer paa om orakelet er et TAK i den rollen. Makkerens atferd avviker
+   * ~19 SE fra orakelets, men planen har alt et motbevis for spillefoerersetet
+   * (`lagstikk - SD` = +0,26 - nettet slaar laereren der). Fasiten ble godkjent
+   * paa en AGGREGERT korrelasjon, aldri per rolle.
+   */
+  if (indre.startsWith("ork:")) {
+    const rest = indre.slice(4);
+    const skille = rest.indexOf(":");
+    if (skille < 0) throw new Error(`Ugyldig ork-spek «${indre}» - forventet ork:<rolle>:<indre>`);
+    const rolle = rest.slice(0, skille) as Rolle;
+    if (rolle !== "foerer" && rolle !== "makker" && rolle !== "forsvar") {
+      throw new Error(`Ukjent rolle «${rolle}» (foerer, makker, forsvar)`);
+    }
+    return new Rolleorakel(lagIndre(rest.slice(skille + 1)), new NevroAgent(), rolle);
   }
   if (indre.startsWith("e1:")) return new E1Agent(lesNett(indre.slice(3)));
   /**

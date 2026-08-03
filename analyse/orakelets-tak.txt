@@ -1,0 +1,83 @@
+HVOR GODT ER ORAKELET? — MÅLT PER ROLLE, 3. august 2026
+========================================================
+
+Arvind: «hvor god er orakelet? vet vi at den er så god? hva er taket der?»
+
+Spørsmålet traff en svakhet i dagens sterkeste funn. Makkerens atferd ble målt
+mot SD-orakelet og avvek ~19 SE. Men den konklusjonen forutsetter at ORAKELET
+HAR RETT der, og det var aldri vist:
+
+  - Godkjenningen var AGGREGERT: korrigert korrelasjon mot poeng, SD +0,718 mot
+    DD −0,609. Ett tall for hele spillet, aldri per rolle.
+  - 12 verdener ble valgt fordi 32 ikke ga mer — også aggregert.
+  - Rollout-policyen er NevroHjerne, altså boten vi slår med over ett poeng.
+  - Planen hadde alt et motbevis for én rolle: `lagstikk − SD` = +0,26 som
+    spillefører. Nettet er bedre enn læreren sin der.
+
+MÅLINGEN
+--------
+`src/moe2/rolleorakel.ts` + spekken `ork:<rolle>:<indre>` i gate2: orakelet
+spiller ÉN rolle, `ftf1` alt annet. Froebaand 9 900 000, 700 givere x 6 skard,
+n=2800.
+
+DESIGNET VALIDERER SEG SELV: hver arm maaler EKSAKT 0,0000 i rollene den ikke
+roerer. Rollebyttet er altsaa isolert korrekt, og tallene under er rene.
+
+  arm            rolle orakelet spiller        effekt        SE     sigma
+  ork:foerer     spillefoerer   n= 700       -0,3571    0,4427     -0,81
+  ork:makker     makker         n= 700       -0,0781    0,0754     -1,04
+  ork:forsvar    forsvar        n=1400       -0,1529    0,1792     -0,85
+
+ALLE TRE ER NEGATIVE. Aa foelge orakelet er daarligere enn det nettet alt
+gjoer, i hver eneste rolle. Ingen naar signifikans hver for seg, men de peker
+samme vei, og foerer-tallet har riktig fortegn og stoerrelsesorden i forhold til
+den uavhengige +0,26 som alt sto i planen.
+
+VEKTET TIL HELE SPILLET (foerer 25 %, makker 25 %, forsvar 50 %):
+
+    -0,1852 +/- 0,1436   = -1,29 SE
+
+Altsaa: spilte orakelet alle fire seter, ville det tapt ~0,19 poeng per runde
+mot nettet det selv laerte opp.
+
+KONSEKVENS 1: MAKKERDIAGNOSEN ER FALT
+-------------------------------------
+De -15,6 pp og -10,1 pp maaler at vi er ULIKE orakelet, ikke at vi tar feil.
+Naar orakelet spiller makkerrollen selv, taper det 0,0781. Aa trene nettet
+NAERMERE orakelet i makkerstillinger - tau-sporet jeg foreslo - ville altsaa
+trolig gjort makkeren DAARLIGERE.
+
+Det eksperimentet er avlyst. Det var Arvinds spoersmaal som stoppet det, ikke
+en maaling jeg hadde planlagt.
+
+KONSEKVENS 2: LAEREREN ER UTTOEMT, I ALLE ROLLER
+------------------------------------------------
+Dette forklarer et moenster som har vaert der hele dagen uten aa vaere forstaatt:
+
+  ekstra finjustering paa 105k ferske rader      +0,005
+  ekstra finjustering paa 278k ferske rader      +0,032
+  finjusteringen som LAGET ftf1                  +0,136
+
+Mer destillasjon av SD gir mindre og mindre, fordi eleven har passert laereren.
+Det er ikke en datamengdefeil og heller ikke en trekkfeil - det er taket i
+metoden. Alle tre trekk-blokkene ble maalt mot nettopp dette taket.
+
+HVA SOM MAA TIL FOR AA KOMME VIDERE
+------------------------------------
+Ikke flere trekk, ikke mer data av samme slag, ikke skarpere destillasjon av
+det samme orakelet. Det trengs en BEDRE FASIT. Kandidatene, i den rekkefoelgen
+de er billigst aa proeve:
+
+  1. FLERE VERDENER I ORAKELET, maalt PER ROLLE denne gangen. «32 gir ikke mer
+     enn 12» ble maalt aggregert, og makkerstillinger har det minste spennet
+     (gulv 0,336) - altsaa nettopp der samplingsstoey biter hardest. Billig aa
+     avgjoere med samme `ork:`-benk: bare skru opp verdener.
+
+  2. BEDRE ROLLOUT-POLICY. Orakelet spiller verdenene ferdig med NevroHjerne,
+     en bot vi slaar med over ett poeng. `ork:` gjoer det maalbart aa bytte den
+     mot `vakt:abmp:e1` og se om taket loefter seg.
+
+  3. SELVSPILL MOT EGEN POLICY i stedet for destillasjon fra et fast orakel.
+     Det er den strukturelle kuren naar eleven har passert laereren.
+
+Punkt 1 og 2 er timer, ikke dager, og de bruker benken som alt er bygget.
