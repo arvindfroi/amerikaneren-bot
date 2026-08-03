@@ -374,6 +374,44 @@ def skriv_vekter(sti: str, modell: E1Nett) -> None:
             f.write(l.bias.detach().cpu().float().numpy().astype("<f4").tobytes())
 
 
+
+def les_vekter(sti: str):
+    """Inversen av `skriv_vekter`: appens format -> liste av (W, b) som numpy.
+
+    FINJUSTERING ER GRUNNEN TIL AT DEN FINNES. Maalt 2026-08-03: sd-r2 er trent
+    paa 4 824 794 stillinger, mens alt vi rakk aa generere paa ett doegn er
+    410 645 - 8,5 %. Seks nett trent fra bunnen paa den mengden strauk gate 2
+    med -0,35 til -0,69, uansett trekkbredde, arkitektur, froe og
+    rollout-policy. Datamengden var flaskehalsen, ikke designet.
+
+    Aa generere 4,4 mill. rader til tar ~19 timer. Men sd-r2 HAR allerede de
+    4,8 millionene bakt inn i vektene sine. Starter vi derfra og lar de nye
+    radene JUSTERE dem, arver vi hele det gamle datagrunnlaget gratis - og de
+    nye radene faar bidra med det de er gode for: spredte kontrakter, DAgger-
+    stillinger og riktig rollout-policy.
+
+    Det er en annen operasjon enn aa trene fra bunnen, og den kan feile paa sin
+    egen maate: for hoey laeringsrate glemmer det gamle («catastrophic
+    forgetting»). Derfor er --startlr satt lavt som standard, og resultatet maa
+    gjennom gate 2 som alt annet.
+    """
+    with open(sti, "rb") as f:
+        antall_nett = struct.unpack("<i", f.read(4))[0]
+        if antall_nett != 1:
+            raise SystemExit(f"{sti}: forventet 1 nett, fant {antall_nett}")
+        n_lag = struct.unpack("<i", f.read(4))[0]
+        lag = []
+        for _ in range(n_lag):
+            inn, ut = struct.unpack("<ii", f.read(8))
+            W = numpy.frombuffer(f.read(inn * ut * 4), dtype="<f4").reshape(ut, inn).copy()
+            b = numpy.frombuffer(f.read(ut * 4), dtype="<f4").copy()
+            lag.append((W, b))
+        rest = f.read()
+        if rest:
+            raise SystemExit(f"{sti}: {len(rest)} byte til overs - feil format?")
+    return lag
+
+
 # --- Hovedløkke -------------------------------------------------------------
 
 
@@ -403,6 +441,21 @@ def main() -> None:
     p.add_argument("--taal", type=int, default=6)
     p.add_argument("--tau", type=float, default=1.0)
     p.add_argument("--tremaal", type=int, default=200000, help="rader treningstapet måles på")
+    p.add_argument(
+        "--start",
+        default="",
+        help="FINJUSTER fra en eksisterende vektfil i stedet for tilfeldig start. "
+        "sd-r2 har 4,8 mill. stillinger bakt inn i vektene; de nye radene faar da "
+        "JUSTERE dem i stedet for aa konkurrere med dem fra bunnen.",
+    )
+    p.add_argument(
+        "--startlr",
+        type=float,
+        default=1e-4,
+        help="laeringsrate naar --start brukes. Lav med vilje: for hoey rate "
+        "glemmer nettet det gamle datagrunnlaget (catastrophic forgetting), og "
+        "da er finjusteringen bare en daarlig omtrening.",
+    )
     p.add_argument(
         "--initfroe",
         type=int,
@@ -596,6 +649,25 @@ def main() -> None:
         if enhet == "cuda":
             torch.cuda.manual_seed_all(args.initfroe)
         modell = E1Nett(dims).to(enhet)
+        if args.start:
+            # Formene MAA stemme. Et nett med andre lagstoerrelser kan ikke
+            # arve vektene, og en stille delvis lasting ville gitt et halvt
+            # tilfeldig nett som saa ferdigtrent ut.
+            start_lag = les_vekter(args.start)
+            if len(start_lag) != len(modell.lag):
+                raise SystemExit(
+                    f"{args.start} har {len(start_lag)} lag, {navn} har {len(modell.lag)}"
+                )
+            for i, (W, b) in enumerate(start_lag):
+                if tuple(modell.lag[i].weight.shape) != W.shape:
+                    raise SystemExit(
+                        f"{args.start} lag {i} er {W.shape}, {navn} venter "
+                        f"{tuple(modell.lag[i].weight.shape)}"
+                    )
+                with torch.no_grad():
+                    modell.lag[i].weight.copy_(torch.from_numpy(W))
+                    modell.lag[i].bias.copy_(torch.from_numpy(b))
+            print(f"  finjusterer fra {args.start} (lr {args.startlr})", flush=True)
         antall = sum(q.numel() for q in modell.parameters())
         ut = os.path.join(args.utmappe, f"{navn}.bin")
         print(
@@ -625,7 +697,9 @@ def main() -> None:
         g = torch.Generator(device="cpu").manual_seed(7)
         tm = tren_idx[torch.randperm(tren_idx.numel(), generator=g)[: args.tremaal].to(enhet)]
 
-        opt = torch.optim.AdamW(modell.parameters(), lr=args.lr, weight_decay=args.wd)
+        opt = torch.optim.AdamW(
+            modell.parameters(), lr=args.startlr if args.start else args.lr, weight_decay=args.wd
+        )
         plan = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epoker)
         beste = float("inf")
         beste_epoke = 0
