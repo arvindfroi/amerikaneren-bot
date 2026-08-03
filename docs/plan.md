@@ -222,6 +222,59 @@ godt.** Det er fase 4 i `budplan.md` — iterert beste svar — og det er umålt
 
 ---
 
+## 6b. Natten 2. → 3. august: hva som ble avgjort
+
+**ADAMS ER SATT UT.** `budm:bud-gbt.json : vakt:abmp : e1:sd-r2.bin` ligger på
+nettsiden fra 03.08. Val Town proxyer bundelen og budmodellen fra GitHub raw,
+så framtidige utplasseringer bare er en commit — med fallback til den gamle
+bundelen om GitHub svikter.
+
+**Budmodellen passerte porten:** +0,618 ± 0,166 (3,7 SE) parret over 203 par,
+trimmet snitt +0,545. Marginalt **+0,357 ± 0,129 mot MesterAI**, der `vakt:abmp`
+ligger −0,268. Første gang noe vi har måler positivt mot Washington.
+
+**Seks nye kortnett strøk gate 2**, og forklaringen er verken trekk,
+arkitektur, frø eller rollout-policy:
+
+| | rader |
+|---|---|
+| sd-r2 er trent på | **4 824 794** |
+| alt vi rakk å generere | **410 645** (8,5 %) |
+
+Det forklarer alle seks på én gang, og alle mine teorier om «ødelagte
+etiketter» var feil spor.
+
+**Finjustering løser det uten 19 timers generering.** `sd-tren.py --start`
+arver sd-r2s vekter og lar de nye radene justere dem. Første resultat på samme
+holdout: **0,8974** mot 0,9414 (fra bunnen, 405k) og 0,9558 (fra bunnen, 410k),
+og med NEGATIVT gap — ingen overtilpasning, der de seks snudde på epoke 3–7.
+
+**Fasegapet har flyttet seg.** Spilleføringen er nå jevn med MesterAI (+8,45
+mot +8,45 poeng per kontrakt). De to hullene som står igjen er makker (−86) og
+**forsvar (−110)** — og forsvaret vårt er målt til **−0,051 ± 0,063** mot
+NevroHjernes, altså ikke bedre.
+
+**`--rollevekt 3` er kalibrert mot en død bot.** Den ble valgt da spilleføreren
+bar 104 % av tapet. Den bærer 0 % nå. All videre generering bruker `1`.
+
+### Feil i metoden som ble funnet og rettet
+
+Alle av samme slag: de krasjer ikke, de rapporterer suksess.
+
+| feil | virkning |
+|---|---|
+| `glob("skard-*")` | 143 491 av 174 414 rader usynlige for treneren |
+| `numpy.resize` som vekst | masken fylt med gjenbrukt søppel |
+| overlappende frøbånd | holdout-giv i treningen |
+| **useedet vektinitialisering** | **ablasjoner målte ett frøs flaks** |
+| **`FileShare.Read` i tellingen** | **overvåkingen drepte generatorene (EBUSY)** |
+| `neat-evaluer` mot `grådig` | kortnett målt ved et bord vi aldri møter |
+
+Den fjerde felte konklusjonen «minneblokken er skadelig». Kjørt på tre seedede
+frø er den ikke målbart noe. **Trukket tilbake.**
+
+---
+
 ## 7. Adams på banen
 
 **Adams er kodenavnet på boten vi bygger. MesterAI er Washington.** Navnet er
