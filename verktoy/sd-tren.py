@@ -458,6 +458,21 @@ def main() -> None:
         "da er finjusteringen bare en daarlig omtrening.",
     )
     p.add_argument(
+        "--nyepoker",
+        type=int,
+        default=0,
+        help="epoker der BARE de nye inngangskolonnene trenes, med resten frosset. "
+        "Nullstilte kolonner starter paa 0 og maa naa skalaen resten av nettet "
+        "ligger paa; ved startlr rekker de ikke fram foer tidlig stopp slaar inn.",
+    )
+    p.add_argument(
+        "--nylr",
+        type=float,
+        default=1e-3,
+        help="laeringsrate under oppvarmingen. Kan vaere hoey uten fare: alt annet "
+        "enn de nye kolonnene er frosset, saa nettet KAN ikke glemme noe.",
+    )
+    p.add_argument(
         "--initfroe",
         type=int,
         default=1,
@@ -757,6 +772,77 @@ def main() -> None:
         # måler kurven utvalgsstøy i stedet for tilpasning.
         g = torch.Generator(device="cpu").manual_seed(7)
         tm = tren_idx[torch.randperm(tren_idx.numel(), generator=g)[: args.tremaal].to(enhet)]
+
+        # --- OPPVARMING AV DE NYE KOLONNENE ------------------------------------
+        #
+        # HVORFOR DEN MAA FINNES. Nullstilte nye kolonner gjoer at nettet starter
+        # identisk med startvekten - det er hele poenget - men det gjoer ogsaa at
+        # de nye vektene skal fra 0 til den skalaen resten av nettet ligger paa.
+        #
+        # MAALT 3. august, etter at telleblokken strauk gate 2 med +0,0008:
+        #
+        #   snitt |vekt|  v1-kolonnene      0,0895
+        #   snitt |vekt|  telleblokken      0,0028      <- 33x for smaa
+        #   bidrag til lag 0s foeraktivering, nye blokker som andel av v1: 2,1 %
+        #
+        # Nettet SAA dem knapt. Og det er ikke tilfeldig, det er aritmetikk:
+        # AdamW flytter hver vekt med omtrent lr per steg uansett gradient. Med
+        # 105k rader er det ~104 batcher per epoke, og tidlig stopp kom paa
+        # epoke 6:
+        #
+        #   625 steg x 7,5e-5 (cosinus-snitt) = 0,047 maksimal forflytning
+        #   0,0895                            = skalaen de skulle naa
+        #
+        # De KUNNE ikke komme fram, selv med perfekt konsistente gradienter.
+        # Nullstillingen som skulle gjoere forsoeket trygt, gjorde det umulig.
+        # Konklusjonen «telleblokken hjelper ikke» maalte altsaa treneren, ikke
+        # trekket.
+        #
+        # KUREN er en fase der BARE de nye kolonnene laerer, med hoey nok rate
+        # til aa naa skalaen. Alt annet er frosset, saa katastrofal glemsel er
+        # utelukket ved konstruksjon - ikke bare gjort usannsynlig med lav rate.
+        # Gradienten maskeres til null paa de gamle kolonnene; med wd=0 og et
+        # ferskt AdamW-moment betyr null gradient noeyaktig null oppdatering.
+        nye_fra = None
+        if args.start and args.nyepoker > 0:
+            start_bredde = les_vekter(args.start)[0][0].shape[1]
+            if bredde > start_bredde:
+                nye_fra = start_bredde
+        if nye_fra is not None:
+            for p in modell.parameters():
+                p.requires_grad_(False)
+            W0 = modell.lag[0].weight
+            W0.requires_grad_(True)
+            kolonnemaske = torch.zeros_like(W0)
+            kolonnemaske[:, nye_fra:] = 1.0
+            hake = W0.register_hook(lambda g: g * kolonnemaske)
+            oppv = torch.optim.AdamW([W0], lr=args.nylr, weight_decay=0.0)
+            print(
+                f"  varmer opp kolonne {nye_fra}-{bredde - 1} alene i {args.nyepoker} epoker "
+                f"(lr {args.nylr}), resten frosset",
+                flush=True,
+            )
+            for e in range(args.nyepoker):
+                modell.train()
+                perm = torch.randperm(tren_idx.numel(), device=enhet)
+                for i in range(0, tren_idx.numel(), args.batch):
+                    j = tren_idx[perm[i : i + args.batch]]
+                    w = Wt[perm[i : i + args.batch]]
+                    tap = maskert_tap(modell(Xk[j]), Vg[j], Mg[j], args.tau, w)
+                    oppv.zero_grad(set_to_none=True)
+                    tap.backward()
+                    oppv.step()
+                with torch.no_grad():
+                    ny_skala = W0[:, nye_fra:].abs().mean().item()
+                    gml_skala = W0[:, :nye_fra].abs().mean().item()
+                print(
+                    f"    oppvarming {e + 1}/{args.nyepoker}: snitt |vekt| ny {ny_skala:.5f} "
+                    f"vs gammel {gml_skala:.5f} ({ny_skala / max(1e-12, gml_skala) * 100:.1f} %)",
+                    flush=True,
+                )
+            hake.remove()
+            for p in modell.parameters():
+                p.requires_grad_(True)
 
         opt = torch.optim.AdamW(
             modell.parameters(), lr=args.startlr if args.start else args.lr, weight_decay=args.wd
