@@ -413,13 +413,83 @@ over det som står ute nå (`vakt:at`): `m` måler +0,0404 ± 0,0075 og var
 positiv i 10 av 10 disjunkte frøbånd, `p` +0,0039 ± 0,0010 i 9 av 10. Det er
 mindre enn vi håpet i går, men det er målt, og det er mer enn null.
 
-### Hva som går akkurat nå (3. august)
+### Hva som går akkurat nå (3. august, ettermiddag)
 
-**`sd-v3/` — telleblokken.** 14 skard genererer 356-brede data. Trenger
-~200k rader. Så: finjuster `ftf1` med `--start` og utvidet inngang, der de 16
-nye kolonnene er NULLSTILT. Nettet starter da identisk med det som spiller i
-dag og kan bare vinne på å ta tellingen i bruk. Gate 2 avgjør, replikert i
-minst to disjunkte frøbånd.
+**`sd-v4/` — auksjonsblokken.** 8 skard genererer 364-brede data i frøbåndet
+260 M. `sd-v3` ble stoppet på 105 813 rader og er brukt opp (se under).
+
+### Tre ting som ble oppdaget 3. august ettermiddag
+
+**1. Nettet som spiller er v1.** `ftf1.bin` og `sd-r2.bin` har begge 273
+innganger. Minneblokken (v2) er ALDRI tatt i bruk. Det betyr at en
+`--start`-utvidelse til 356 legger på 83 nye kolonner, ikke 16 — minneblokk og
+telleblokk som én pakke. Gate 2 på den ville ikke kunne si hvilken halvdel som
+virket. `verktoy/sd-tren.py` fikk derfor et femte `--kjor`-ledd `a-b` som
+nullstiller et kolonneintervall i en KOPI av dataen, så blokkene kan måles hver
+for seg. Verifisert: den maskerte armen har `|W[:,273:340]| = 0.000000`.
+
+**2. Telleblokken ga ingen gevinst på 105k rader.** Tre armer, samme rader,
+samme holdout, samme init-frø — det eneste som skilte dem var hvilke kolonner
+de så:
+
+| arm | ser | hold-anger |
+|---|---|---|
+| `v3n` (kontroll) | ingenting nytt | **0,6380** |
+| `v3k` | telleblokk | 0,6403 |
+| `v3m` | minne + telling | 0,6412 |
+
+Monotont dårligere jo mer informasjon. Det er mønsteret for at datamengden ikke
+betaler for ekstra kapasitet — 105k rader mot de 4,8 mill. som ligger i `ftf1`.
+
+**Gate 2 sa det samme** (n=1600, `analyse/telleblokk-gate2.txt`):
+
+| arm | n | snitt | SE | σ |
+|---|---|---|---|---|
+| `ftf1` (KONTROLL) | 1600 | **+0,0000** | 0,0000 | — |
+| `v3k` telleblokk | 1600 | +0,0062 | 0,1288 | +0,05 |
+| `v3n` ingen ny info | 1600 | +0,0054 | 0,1266 | +0,04 |
+
+Kontrollarmen måler eksakt 0,0000, så tabellen kan leses. Telleblokkens
+isolerte bidrag er `v3k − v3n = +0,0008`. Med SE 0,13 ville alt over ~0,26
+blitt sett — dette er et ekte null, ikke et knivsegg.
+
+**Det viktigste tallet står i kontrollarmen.** `v3n` er ren ekstra finjustering
+på 105k ferske rader, uten én ny informasjonskilde: **+0,005**. Finjusteringen
+som LAGET `ftf1` ga **+0,136**, replikert i fire frøbånd. Avkastningen på mer
+data av samme slag er i praksis uttømt. Det svekker håpet om at telleblokken
+bare trenger flere rader, og flytter tyngden over på trekk som bærer
+informasjon nettet ikke kan skaffe seg på noen annen måte.
+
+**3. Auksjonen er et større hull enn tellingen — og generatoren ødela den.**
+Fra hele budrunden kodet spillfasen bare hvem som vant (208–211), tallbudet
+(225) og Amerikaner/solo. Hva de andre bød fantes ikke, selv om
+`budrunde.sisteBud` ligger i staten hele spillet.
+
+`examples/budhull.ts` målte det først, stratifisert på vinnerbudet så alle
+forsvarerne i et stratum møter samme kontrakt:
+
+| innen samme kontrakt, høyt eget bud minus lavt | effekt |
+|---|---|
+| **honnører på hånd** | **+0,288 ± 0,022 (13,3 SE)** |
+| stikk faktisk tatt | +0,065 ± 0,026 (2,5 SE) |
+
+Signalet om håndstyrke er sterkt og vokser med kontrakten (+0,026 ved vinnerbud
+8, +0,275 ved 9, +0,477 ved 10). Omsetningen i stikk er nesten borte. **Den
+sprekken kan målingen ikke lukke:** enten er informasjonen lite handlingsbar,
+eller så er den handlingsbar og agenten klarte ikke bruke den fordi den ikke
+kan se den. Gate 2 avgjør.
+
+**FELLEN, funnet før to timers generering.** `--budspredning` tvinger
+kontrakten ved å la ett sete by og PASSE de tre andre
+(`examples/sd-orakel.ts:356`). Med 0,5 ville halvparten av radene vist «tre
+passet med en gang» som et artefakt av generatoren, ikke av hendene. `sd-v4`
+genereres derfor med `--budspredning 0`, og det er verifisert i dataen: 80 % av
+rundene har alle fire bydd, 20 % har tre — som stemmer med de 94,9 % `budhull`
+målte. Prisen er at kontraktsdekningen faller tilbake til den naturlige
+fordelingen; det er en bevisst byttehandel for ÉN ærlig auksjon per rad.
+
+En rikere variant finnes og er ikke prøvd: tving bare ÅPNINGSBUDET og la de
+andre setene by naturlig oppå. Da beholdes både dekning og ekte auksjon.
 
 **Ferdig og forkastet i dag:** rekalibrert budmodell (−0,005 ved replikering,
 og −0,143 som spillefører). Feilspesifikasjonen er ekte — `bud-gbt.json` er

@@ -1,0 +1,59 @@
+TELLEBLOKKEN GJENNOM GATE 2 — 3. august 2026
+=============================================
+
+Kandidatene er finjustert fra e1-modell/ftf1.bin med --start og utvidet
+inngang (273 -> 356, nye kolonner NULLSTILT, startlr 1e-4, initfroe 11,
+12 epoker med tidlig stopp). Alle tre armene delte NOEYAKTIG samme rader,
+samme holdout-splitt og samme init-froe; det eneste som skilte dem var
+hvilke kolonner som var synlige, maskert med --kjor-leddet «a-b».
+
+Data: sd-v3, 105 813 rader, froebaand 240 000 000 - 253 000 020.
+Benk:  examples/gate2.ts, froe 900000, 400 givere x 6 skard, parret paa
+       (giv, sete), miljoe vakt:abmp:e1:ftf1.bin.
+
+TRENING (holdout-anger, lavere er bedre)
+----------------------------------------
+  v3n   kontroll, ser ingenting nytt      0,6380   <- best
+  v3k   ser telleblokken (340-355)        0,6403
+  v3m   ser minne + telling (273-355)     0,6412   <- verst
+
+  Monotont daarligere jo mer informasjon nettet fikk. Vektnormene bekrefter
+  at maskeringen isolerte riktig: v3k har |W[:,273:340]| = 0,000000 eksakt,
+  mens |W[:,340:356]| = 21,6 - telleblokken BLE laert, den betalte bare ikke.
+
+GATE 2 (poeng per runde mot miljoeet, parret)
+---------------------------------------------
+  arm                      n      snitt        SE     sigma    trimmet
+  ftf1 (KONTROLL)       1600    +0,0000    0,0000         -    +0,0000
+  v3k  (telleblokk)     1600    +0,0062    0,1288     +0,05    +0,0099
+  v3n  (ingen ny info)  1600    +0,0054    0,1266     +0,04    +0,0125
+
+  KONTROLLARMEN MAALER EKSAKT 0,0000. Det er forutsetningen for at resten
+  av tabellen betyr noe, og den holder.
+
+  Telleblokkens isolerte bidrag er v3k - v3n = +0,0008. Ingenting.
+
+  Med SE 0,13 og n=1600 ville en effekt over ca. 0,26 poeng/runde blitt
+  sett ved 2 SE. Dette er altsaa ikke et knivsegg-resultat - det er et
+  ekte null paa denne datamengden.
+
+TO LESNINGER, OG MAALINGEN SKILLER DEM IKKE
+-------------------------------------------
+  1. Telleblokken hjelper ikke i seg selv.
+  2. 105k rader er for tynt til aa laere 8 192 nye vekter, naar ftf1 alt
+     har 4,8 mill. stillinger bakt inn. Holdout-angeren ble VERRE med
+     blokken, hvilket er forenlig med nettopp dette.
+
+DET STERKESTE SIGNALET LIGGER I KONTROLLARMEN
+---------------------------------------------
+  v3n er ren ekstra finjustering paa 105k ferske rader, uten en eneste ny
+  informasjonskilde. Den maalte +0,005.
+
+  Til sammenlikning ga finjusteringen som LAGET ftf1 +0,136, replikert i
+  fire disjunkte froebaand.
+
+  Avkastningen paa mer data av samme slag er altsaa i praksis uttoemt.
+  Det svekker haapet om at telleblokken bare trenger flere rader, og det
+  flytter tyngden over paa trekk som baerer informasjon nettet ikke kan
+  skaffe seg paa noen annen maate. Auksjonsblokken (v4) er den kandidaten:
+  maalt til 13,3 SE paa haandstyrke i examples/budhull.ts.
