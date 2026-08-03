@@ -38,6 +38,7 @@
 import { FARGER, type Farge, type Kort } from "../kort.ts";
 import { fyllPlanblokk, PLAN_ANTALL } from "./plan.ts";
 import { fyllTroblokk, TRO_ANTALL } from "./tro.ts";
+import { fyllVerdiblokk, VERDI_ANTALL } from "./verdi.ts";
 import type { GameState } from "../motor.ts";
 import { fargeIndeks, kortIndeks, SPILL_DIM, spillTrekk } from "../nevro/trekk.ts";
 
@@ -135,6 +136,19 @@ export const E1_SPILL_DIM_V5 = E1_SPILL_DIM_V4 + PLAN_ANTALL;
  * kort finnes bare i historikken. Krever derfor ny generering.
  */
 export const E1_SPILL_DIM_V6 = E1_SPILL_DIM_V5 + TRO_ANTALL;
+
+/**
+ * v7 (indeks 428–457): VERDIBLOKKEN – hva hånden er verdt AKKURAT NÅ.
+ *
+ * Se `src/e1/verdi.ts`. Telle- og troblokken sier hva som er SPILT; denne sier
+ * hva MINE kort er verdt gitt det – sikre stikk, sikre tapere, og forholdet
+ * mellom mine renonser og deres. Verdien av et kort er ikke en egenskap ved
+ * kortet, den er en funksjon av hva som er igjen ute, og den endrer seg hvert
+ * stikk.
+ *
+ * Ren funksjon av de 428 første trekkene, som planblokken.
+ */
+export const E1_SPILL_DIM_V7 = E1_SPILL_DIM_V6 + VERDI_ANTALL;
 
 const BASIS = SPILL_DIM;
 /** Der minneblokken begynner. */
@@ -328,5 +342,11 @@ export function e1SpillTrekk(state: GameState, sete: number, dim: number = E1_SP
 
   // --- TROBLOKKEN (v6, 376–427) --------------------------------------------
   fyllTroblokk(v, state, sete);
+
+  if (dim <= E1_SPILL_DIM_V6) return v;
+
+  // --- VERDIBLOKKEN (v7, 428–457) ------------------------------------------
+  // Regnes av de 428 foregående, ikke av `state`.
+  fyllVerdiblokk(v);
   return v;
 }
