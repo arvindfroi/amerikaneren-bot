@@ -42,16 +42,10 @@ const MESTER_URL = `${location.origin}/mester`;
 const MESTER_SETER = [1, 2, 3]; // botsetene styres av MesterAI i bro-modus
 
 // --- Vår beste bot ----------------------------------------------------------
-// sd-r2 er E1-nettet trent på single-dummy-fasit i to DAgger-runder, pakket i
-// konvensjonsvakten («at»): slå aldri ditt eget etterlyste kort, og brenn aldri
-// trumf på et stikk laget alt har sikret. Alt utenom kortspillet – bud, vrak og
-// trumfvalg – gjøres av NevroHjerne, som er bygget inn i bunten (src/nevro).
-//
-// Dette er NØYAKTIG den agenten som er målt mot appens MesterAI: +0,170 ± 0,043
-// poeng per runde per sete bak MesterAI over 788 speilede par, mot NevroHjernes
-// +1,068 ± 0,163. Vakten alene er verdt +0,319 ± 0,060 over rent sd-r2.
-// Nettleseren laster derfor `src/e1/agent.ts` – den samme klassen benken kjører
-// – i stedet for en kopi av kortvalget som kunne kommet i utakt.
+// Vrak og trumfvalg gjøres fortsatt av NevroHjerne, som er bygget inn i bunten
+// (src/nevro). Nettleseren laster `src/e1/agent.ts`, `konvensjonsvakt.ts` og
+// `budmodell.ts` – NØYAKTIG de klassene benken kjører – i stedet for kopier
+// som kunne kommet i utakt med det som er målt.
 // ---------------------------------------------------------------------------
 // ADAMS v1, satt ut 2026-08-03. Tre lag, og hvert av dem er målt for seg:
 //
@@ -68,16 +62,24 @@ const MESTER_SETER = [1, 2, 3]; // botsetene styres av MesterAI i bro-modus
 //                      frøbånd), `p` er makker trumfer før budvinneren når det
 //                      vinner stikket (+0,0039 ± 0,0010, 9 av 10).
 //
-//   e1:sd-r2           kortnettet. UENDRET, og det er en måling og ikke
-//                      latskap: seks nye vekter ble trent 2026-08-02/03 og alle
-//                      seks strøk gate 2 mot sd-r2, med −0,35 til −0,69 og opptil
-//                      9 SE. Årsaken viste seg å være datamengde – sd-r2 er
-//                      trent på 4 824 794 stillinger, de nye på 410 645.
+//   e1:ftf1            kortnettet, FINJUSTERT fra sd-r2. Seks nett trent fra
+//                      BUNNEN på de nye dataene strøk gate 2 med −0,35 til
+//                      −0,69 – årsaken var datamengde, ikke design: sd-r2 er
+//                      trent på 4 824 794 stillinger, de nye på 410 645 (8,5 %).
 //
-// Kortspillet er altså det samme som familien har møtt før. Det som er nytt er
-// budet, og det er der hele den målte gevinsten ligger.
+//                      Finjustering arver sd-r2s vekter og lar de nye radene
+//                      justere dem, så hele det gamle datagrunnlaget følger med
+//                      gratis. Målt i tre DISJUNKTE frøbånd mot sd-r2:
+//                      +0,206 / +0,079 / +0,123 → samlet +0,136 ± 0,038
+//                      (3,5 SE), og tegntesten er p=0,000 i hver eneste av dem.
+//
+//                      Læringsraten er 1e-4. Ved 3e-3 blir tallet −0,171:
+//                      nettet glemmer det gamle datagrunnlaget. Grensen er målt,
+//                      ikke gjettet.
 const VAKTFLAGG = "abmp";
 const BUDMODELL = "bud-gbt.json";
+/** Kortvektene. «sdr2.b64» ligger igjen som fallback om denne ikke kan hentes. */
+const KORTVEKTER = "adams-kort.b64";
 
 /** Vakten og budagenten deler dette grensesnittet; appen trenger ikke mer. */
 type Bot = { velgHandling(s: GameState): Handling; nyKamp(): void };
@@ -85,10 +87,17 @@ type Bot = { velgHandling(s: GameState): Handling; nyKamp(): void };
 let botLaster: Promise<Bot> | null = null;
 function besteBot(): Promise<Bot> {
   botLaster ??= Promise.all([
-    fetch(DATA_URL + "sdr2.b64").then((r) => {
-      if (!r.ok) throw new Error(`sd-r2-vekter: HTTP ${r.status}`);
-      return r.text();
-    }),
+    // Faller tilbake til sd-r2 om de finjusterte vektene ikke kan hentes.
+    // Da spiller boten som i gaar i stedet for aa ikke spille i det hele tatt.
+    fetch(DATA_URL + KORTVEKTER)
+      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .catch(() => {
+        console.warn(`${KORTVEKTER} kunne ikke hentes – faller tilbake til sd-r2.`);
+        return fetch(DATA_URL + "sdr2.b64").then((r) => {
+          if (!r.ok) throw new Error(`sd-r2-vekter: HTTP ${r.status}`);
+          return r.text();
+        });
+      }),
     // Budmodellen hentes ved siden av vektene. Feiler den, faller vi tilbake
     // til NevroHjernes budgivning i stedet for å la hele boten dø – kortspillet
     // er uendret og fortsatt det familien har møtt.
@@ -101,7 +110,7 @@ function besteBot(): Promise<Bot> {
       const bytes = new Uint8Array(rå.length);
       for (let i = 0; i < rå.length; i++) bytes[i] = rå.charCodeAt(i);
       // Ett delt eksemplar for alle tre botsetene – slik benken kjører den.
-      const kort = new Konvensjonsvakt(E1Agent.fraBytes(bytes, {}, "sdr2.b64"), lesVaktflagg(VAKTFLAGG));
+      const kort = new Konvensjonsvakt(E1Agent.fraBytes(bytes, {}, KORTVEKTER), lesVaktflagg(VAKTFLAGG));
       if (budRå === null) {
         console.warn("Budmodellen kunne ikke lastes – spiller med NevroHjernes bud.");
         return kort;
