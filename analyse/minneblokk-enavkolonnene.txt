@@ -1,0 +1,76 @@
+MINNEBLOKKEN: DE 52 EN-AV-KOLONNENE VAR SKADEN — 3. august 2026
+================================================================
+
+Arvind: «vi maa faa minne og telleblokk til aa fungere. det maa vaere daarlig
+implementert, fordi det skal funke.» Det viste seg aa vaere to feil, ikke en,
+og begge var i implementasjonen.
+
+FEIL 1: NULLSTILTE KOLONNER KOM ALDRI FRAM (rettet, se oppvarming-gate2.txt)
+---------------------------------------------------------------------------
+  AdamW flytter hver vekt ~lr per steg. 625 steg x 7,5e-5 = 0,047 mot en
+  maalskala paa 0,0895. Kolonnene KUNNE ikke naa fram foer tidlig stopp.
+  --nyepoker retter det: bidraget gikk fra 0,41 % til 8,30 %.
+
+FEIL 2: BLOKKEN SKADET PRESIS DET SETET DEN INFORMERTE
+-------------------------------------------------------
+  Med feil 1 rettet maalte minneblokken alene -0,3821. Rolledekomponert:
+
+    wmm   foerer   -1,4750 +/- 0,5740   (-2,57 SE)   <- HELE tapet
+          forsvar  +0,0329 +/- 0,1787
+          makker   -0,1191 +/- 0,0756
+
+  Spillefoereren er det ENESTE setet blokken baerer informasjon for - de
+  andre har nuller der. En blokk som skader noeyaktig det setet den
+  informerer, er ikke stoey. Da er kodingen feil.
+
+  DIAGNOSEN. Indeks 277-328 er 52 en-av-kolonner som sier NOEYAKTIG hvilke
+  fire kort foereren vraket. C(52,4) = 270 725 kombinasjoner mot 30k
+  foerer-rader: signaturen er saa godt som unik per giver. Nettet kan
+  memorere giver-spesifikke svar - og bare i foerersetet. Paa en ny giver
+  moeter det et usett 4-av-52-moenster, og de 52 kolonnene bidrar med en
+  tilfeldig vektet sum rett inn i foererens logits. Stoey, injisert presis
+  der og bare der.
+
+  DET FORKLARER OGSAA HVORFOR MER DATA IKKE HJALP. Halvering til 56 485
+  rader ga -0,3648 +/- 0,1809 mot -0,3821 +/- 0,1707 paa 105 813 - ingen
+  forskjell. Memorering av naer-unike moenstre er ikke datamengde-begrenset
+  i dette omraadet.
+
+TESTEN: SAMME BLOKK UTEN DE 52 KOLONNENE
+-----------------------------------------
+  wred beholder 273-276 (eget vrak per farge), 329-336 (korrigert «hva er
+  hoeyest/hvor mange ute»), 337 (korrigert antall usett) og 338-339
+  (flaggene). Alt sammen lav-kardinalitet og generaliserbart. Bare 277-328
+  maskert. Froebaand 2 500 000, alt annet identisk.
+
+  arm                          n     totalt        SE   trimmet   foerer
+  ftf1 (KONTROLL)           1600    +0,0000    0,0000   +0,0000        -
+  wmm  MED 277-328          1600    -0,3821    0,1707   -0,0315   -1,4750
+  wred UTEN 277-328         1600    +0,1788    0,1468   -0,0011   +0,5984
+  wredt UTEN, med telling   1600    +0,0717    0,1547   -0,0125   +0,3884
+
+  FOERERSETET: -1,4750 -> +0,5984. Et sprang paa +2,07 +/- 0,74 = 2,8 SE.
+
+HVA SOM ER ETABLERT, OG HVA SOM IKKE ER DET
+--------------------------------------------
+  ETABLERT: de 52 en-av-kolonnene er skadelige og skal ut. Sprangets
+  stoerrelse og at det ligger i noeyaktig det setet teorien peker paa, gjoer
+  dette til mer enn et sammentreff.
+
+  IKKE ETABLERT: at wred er en gevinst. +0,1788 er 1,22 SE, trimmet snitt er
+  -0,0011 og tegntesten 238/239 - doed jevn. Snittet drives av foerersetet,
+  som har SE 0,47 fordi foererutfall svinger mest. Sju tall er maalt to
+  ganger i dette prosjektet, og oppdagelsestallet var oppblaast hver gang.
+
+  Replikering kjoerer i froebaand 4 100 000 med 1100 givere x 6 skard - naer
+  tre ganger n, fordi signalet ligger i foerersetet og det er bare 25 % av
+  radene.
+
+KONSEKVENS FOR AUKSJONSBLOKKEN (v4)
+------------------------------------
+  Auksjonsblokken har 8 kolonner, alle lav-kardinalitet (bud/13 og et
+  flagg per sete). Den har IKKE en en-av-blokk, og kan derfor ikke feile paa
+  denne maaten. Men lærdommen generaliserer og skal staa: HOEY-KARDINALITET
+  I ET TREKK SOM BARE ETT SETE SER, ER EN MEMORERINGSFELLE. Sjekk alltid
+  rolledekomponeringen, ikke bare totalen - totalen skjulte dette bak et
+  gjennomsnitt over fire seter.
