@@ -1,0 +1,78 @@
+KOLONNEANALYSE — HVA HVER INNGANG FAKTISK BÆRER, 3. august 2026
+===============================================================
+
+Verktoey: verktoy/sd-kolonner.py (GPU). 356 kolonner x 5 stokkinger over
+112 894 stillinger tar minutter paa RTX 5080; en naiv CPU-loekke ville tatt
+timer. Arvind hadde rett i at dette er en GPU-jobb.
+
+TRE MAAL PER KOLONNE
+  dekning/kardinalitet  - kan kolonnen baere noe, og er den en memoreringsfelle
+  permutasjonsviktighet - hvor mye oeker angeren av aa stokke kolonnen
+  gradientsaliens       - hvor foelsomt tapet er for smaa endringer
+
+Stokking, ikke nullstilling: nullstilling flytter raden ut av fordelingen
+nettet er trent paa, og maaler da en blanding av viktighet og fordelingsskift.
+
+ROLLE UTLEDES AV TREKKENE (radene lagrer den ikke):
+  indeks 208 = 1 -> foerer;  227 = 1 -> makker;  ellers forsvar
+
+GRUNN-ANGER PER ROLLE (wred, 112 894 stillinger)
+  foerer   0,95991      <- fire ganger makkerens
+  forsvar  0,53986
+  makker   0,24459
+  Spillefoererens valg er de klart vanskeligste. Det er verdt aa huske naar
+  totaltall sammenliknes: et snitt over fire seter er dominert av et sete.
+
+PER BLOKK — wm24 (nettet som har vekter i ALLE blokkene)
+  blokk               kol      alle    foerer    makker   forsvar
+  app (nevro)         238   1,24363   3,19629   0,12694   0,63771
+  v1 egne              35   0,17214   0,42088   0,01090   0,10360
+  v2 vrak/farge         4   0,00484   0,01516   0,00016   0,00109
+  v2 vrak EN-AV        52   0,11525   0,38975   0,00082   0,01072   <-- !
+  v2 korrigert         11   0,01539   0,04346   0,00075   0,00603
+  v3 telling           16   0,01713   0,04395   0,00229   0,00858
+
+  De 52 en-av-kolonnene er den klart viktigste av de nye blokkene for
+  spillefoereren - 26 ganger de fire aggregerte vrakkolonnene. Nettet lener
+  seg tungt paa dem.
+
+PER BLOKK — wred (samme, med 277-328 og 340-355 maskert bort)
+  v2 vrak/farge         4   0,01384   0,04134   0,00054   0,00420
+  v2 korrigert         11   0,02697   0,06104   0,00250   0,01866
+
+  Uten en-av-kolonnene flytter foereren avhengigheten over paa de aggregerte
+  trekkene, og bruker dem ~3x saa mye som naar en-av-blokken var tilgjengelig.
+
+HVA SIGNATUREN FAKTISK ER — maalt, ikke antatt
+  I ett skard: 2 319 foererrader, 621 distinkte vraksignaturer, altsaa
+  3,73 rader per signatur. Signaturen er i praksis en RUNDE-ID: hver runde har
+  sitt eget vrak, og de ~3,7 merkede foererstillingene fra samme runde deler
+  den.
+
+  Det er memoreringsfellen, presist formulert: nettet kan bruke de 52
+  kolonnene til aa kjenne igjen HVILKEN RUNDE det er i, og passe de 3,7
+  stillingene derfra, uten aa laere noe som overfoeres. Paa en ny giver er
+  moensteret usett, og de 52 kolonnene bidrar med en tilfeldig vektet sum rett
+  inn i foererens logits.
+
+SAMMENSTILLINGEN SOM AVGJOER
+  blokk brukt av foerer      viktighet (i fordeling)   gate 2 i spill
+  52 en-av-kolonner                    0,390             -1,475
+  aggregerte vrakkolonner              0,102             +0,598
+
+  HOEY VIKTIGHET, NEGATIV GEVINST. Det er signaturen paa memorering, og det er
+  en gjenbrukbar skjerm: en blokk der nettet lener seg tungt i fordelingen men
+  taper i spill, laerer giveren og ikke spillet.
+
+FORBEHOLD SOM SKAL STAA
+  Viktigheten er maalt paa DATA NETTET ER TRENT PAA. For en memorert kolonne er
+  hoey viktighet der forventet, saa tallet 0,390 overdriver hvor mye ekte
+  signal blokken baerer. Det svekker ikke konklusjonen - gate 2 paa friske
+  givere er dommeren, og den sa -1,475 - men viktighetstallet alene kan ikke
+  brukes til aa rangere trekk. Skal det brukes slik, maa det maales paa
+  holdout.
+
+  De 40 viktigste kolonnene er ellers strukturelle fakta om stillingen:
+  220-223 (trumffargen), 212-215 (hvem som leder), 216-219 (makker),
+  271 (har jeg utspillet), 230 (lagets stikk). Ingen overraskelser der - men
+  det bekrefter at kodingen ikke har en stor doed sone.
