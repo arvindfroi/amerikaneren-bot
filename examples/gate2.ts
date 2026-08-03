@@ -52,6 +52,7 @@ import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 import { Ensemble, type EnsembleModus } from "../src/moe2/ensemble.ts";
 import { Rolleorakel, type Rolle } from "../src/moe2/rolleorakel.ts";
 import { Sikkerorakel } from "../src/moe2/sikkerorakel.ts";
+import { Vrakvelger } from "../src/moe2/vrakvelg.ts";
 
 let giver = 400;
 let frøBase = 900_000;
@@ -313,6 +314,23 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
       verdener,
       roller: rolle === "alle" ? [] : [rolle],
     });
+  }
+  /**
+   * `vv:<verdener>:<indre>` - VRAK OG TRUMF SOM ETT VALG.
+   *
+   * Erstatter NevroHjernes to uavhengige beslutninger med et parret SD-valg
+   * over doktrinstyrte (trumf, vrak)-kandidater. Trumfvalget er maalt til
+   * 32,4 +/- 3,0 poeng per kamp og er den siste beslutningen som fortsatt tas
+   * av en haandlagd formel fra appen.
+   */
+  if (indre.startsWith("vv:")) {
+    const d = indre.slice(3).split(":");
+    const verdener = Number(d[0]);
+    if (!Number.isFinite(verdener) || verdener < 1) {
+      throw new Error(`Ugyldig vv-spek «${indre}» - forventet vv:<verdener>:<indre>`);
+    }
+    const inn = lagIndre(d.slice(1).join(":"));
+    return new Vrakvelger(inn, inn as unknown as Parameters<typeof Vrakvelger>[1], { verdener });
   }
   if (indre.startsWith("e1:")) return new E1Agent(lesNett(indre.slice(3)));
   /**
