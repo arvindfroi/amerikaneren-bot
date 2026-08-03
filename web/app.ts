@@ -23,6 +23,9 @@ import { NeatAgent } from "../src/neat/agent.ts";
 import { genomFraJson } from "../src/neat/genom.ts";
 import { E1Agent } from "../src/e1/agent.ts";
 import { Konvensjonsvakt, lesVaktflagg } from "../src/moe2/konvensjonsvakt.ts";
+// Fra budmodell.ts og IKKE budagent.ts: den siste importerer node:fs paa
+// toppniva, og esbuild med nettleserplattform stopper paa den.
+import { Budagent, tolkBudmodell } from "../src/moe2/budmodell.ts";
 import { AMERIKANER, PASS, SOLO, type Bud } from "../src/regler.ts";
 
 // --- Oppsett ----------------------------------------------------------------
@@ -49,20 +52,66 @@ const MESTER_SETER = [1, 2, 3]; // botsetene styres av MesterAI i bro-modus
 // +1,068 ± 0,163. Vakten alene er verdt +0,319 ± 0,060 over rent sd-r2.
 // Nettleseren laster derfor `src/e1/agent.ts` – den samme klassen benken kjører
 // – i stedet for en kopi av kortvalget som kunne kommet i utakt.
-const VAKTFLAGG = "at";
-let botLaster: Promise<Konvensjonsvakt> | null = null;
-function besteBot(): Promise<Konvensjonsvakt> {
-  botLaster ??= fetch(DATA_URL + "sdr2.b64")
-    .then((r) => {
+// ---------------------------------------------------------------------------
+// ADAMS v1, satt ut 2026-08-03. Tre lag, og hvert av dem er målt for seg:
+//
+//   budm:bud-gbt.json  budmodellen. Forutsier (μ, σ) for lagstikk fra hånden og
+//                      regner EV(N) = P(vinner budrunden)·2N(2P(N)−1) analytisk
+//                      for hvert lovlige bud. Parret mot MesterAI på 203 par:
+//                      +0,618 ± 0,166 (3,7 SE), trimmet snitt +0,545.
+//                      FØRSTE GANG noe vi har måler POSITIVT mot MesterAI:
+//                      +0,357 ± 0,129 marginalt, der vakt:abmp ligger −0,268.
+//
+//   vakt:abmp          konvensjonsvakten. «at» ble byttet til «abmp»: `m` er
+//                      makker leder laveste trumf i stikk 2 etter å ha tatt
+//                      stikk 1 (+0,0404 ± 0,0075, positiv i 10 av 10 disjunkte
+//                      frøbånd), `p` er makker trumfer før budvinneren når det
+//                      vinner stikket (+0,0039 ± 0,0010, 9 av 10).
+//
+//   e1:sd-r2           kortnettet. UENDRET, og det er en måling og ikke
+//                      latskap: seks nye vekter ble trent 2026-08-02/03 og alle
+//                      seks strøk gate 2 mot sd-r2, med −0,35 til −0,69 og opptil
+//                      9 SE. Årsaken viste seg å være datamengde – sd-r2 er
+//                      trent på 4 824 794 stillinger, de nye på 410 645.
+//
+// Kortspillet er altså det samme som familien har møtt før. Det som er nytt er
+// budet, og det er der hele den målte gevinsten ligger.
+const VAKTFLAGG = "abmp";
+const BUDMODELL = "bud-gbt.json";
+
+/** Vakten og budagenten deler dette grensesnittet; appen trenger ikke mer. */
+type Bot = { velgHandling(s: GameState): Handling; nyKamp(): void };
+
+let botLaster: Promise<Bot> | null = null;
+function besteBot(): Promise<Bot> {
+  botLaster ??= Promise.all([
+    fetch(DATA_URL + "sdr2.b64").then((r) => {
       if (!r.ok) throw new Error(`sd-r2-vekter: HTTP ${r.status}`);
       return r.text();
-    })
-    .then((b64) => {
+    }),
+    // Budmodellen hentes ved siden av vektene. Feiler den, faller vi tilbake
+    // til NevroHjernes budgivning i stedet for å la hele boten dø – kortspillet
+    // er uendret og fortsatt det familien har møtt.
+    fetch(DATA_URL + BUDMODELL)
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null),
+  ])
+    .then(([b64, budRå]) => {
       const rå = atob(b64.trim());
       const bytes = new Uint8Array(rå.length);
       for (let i = 0; i < rå.length; i++) bytes[i] = rå.charCodeAt(i);
       // Ett delt eksemplar for alle tre botsetene – slik benken kjører den.
-      return new Konvensjonsvakt(E1Agent.fraBytes(bytes, {}, "sdr2.b64"), lesVaktflagg(VAKTFLAGG));
+      const kort = new Konvensjonsvakt(E1Agent.fraBytes(bytes, {}, "sdr2.b64"), lesVaktflagg(VAKTFLAGG));
+      if (budRå === null) {
+        console.warn("Budmodellen kunne ikke lastes – spiller med NevroHjernes bud.");
+        return kort;
+      }
+      try {
+        return new Budagent(kort, tolkBudmodell(budRå));
+      } catch (feil) {
+        console.warn("Budmodellen ble avvist:", feil);
+        return kort;
+      }
     })
     .catch((feil: unknown) => {
       botLaster = null; // la neste forsøk prøve på nytt

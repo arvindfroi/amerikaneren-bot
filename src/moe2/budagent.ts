@@ -36,109 +36,18 @@
 
 import { readFileSync } from "node:fs";
 
-import { lovligeHandlinger, type GameState, type Handling } from "../motor.ts";
-import { PASS } from "../regler.ts";
-import { budTrekk, BUD_DIM } from "./budtrekk.ts";
+import { tolkBudmodell, type Budmodell } from "./budmodell.ts";
 
-interface Node {
-  blad: boolean;
-  verdi?: number;
-  kol?: number;
-  terskel?: number;
-  v?: Node;
-  h?: Node;
-}
-interface Skog {
-  basis: number;
-  trær: Node[];
-}
-export interface Budmodell {
-  dim: number;
-  bud: number[];
-  rate: number;
-  vant: Record<string, number>;
-  mμ: Skog;
-  mσ: Skog;
-}
+/**
+ * HVOR KODEN FAKTISK LIGGER. Selve regnestykket og `Budagent` er flyttet til
+ * `budmodell.ts`, uten `node:fs`. Grunnen er nettsiden: esbuild med
+ * nettleserplattform stopper paa en toppniva-import av `node:fs`, og Adams
+ * skal kjoere i nettleseren med den SAMME klassen som benken bruker - ikke en
+ * kopi som kan komme i utakt. Denne fila legger bare fillesingen oppaa og
+ * re-eksporterer resten, saa alle eksisterende importer herfra virker uendret.
+ */
+export { Budagent, tolkBudmodell, type Budmodell, type Innagent } from "./budmodell.ts";
 
 export function lesBudmodell(fil: string): Budmodell {
-  const m = JSON.parse(readFileSync(fil, "utf8")) as Budmodell;
-  if (m.dim !== BUD_DIM) {
-    throw new Error(
-      `Budmodellen er trent med ${m.dim} trekk, men budTrekk gir ${BUD_DIM}. ` +
-        `Trekkene er endret siden modellen ble trent – tren den på nytt.`,
-    );
-  }
-  return m;
-}
-
-const forutsi = (n: Node, x: Float32Array): number =>
-  n.blad ? n.verdi! : forutsi(x[n.kol!]! <= n.terskel! ? n.v! : n.h!, x);
-const anslå = (s: Skog, x: Float32Array, rate: number): number =>
-  s.basis + rate * s.trær.reduce((a, t) => a + forutsi(t, x), 0);
-
-/** Normalfordelingens halesannsynlighet, Abramowitz–Stegun 7.1.26. */
-function Φ(z: number): number {
-  const t = 1 / (1 + 0.2316419 * Math.abs(z));
-  const d = 0.3989422804014327 * Math.exp((-z * z) / 2);
-  const p =
-    d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
-  return z >= 0 ? 1 - p : p;
-}
-
-export interface Innagent {
-  velgHandling(state: GameState): Handling;
-  nyKamp(): void;
-}
-
-export class Budagent implements Innagent {
-  private readonly indre: Innagent;
-  private readonly m: Budmodell;
-  /**
-   * Anslått verdi av å sitte som forsvarer. Målt over datasettet
-   * (`analyse/bud-kvant.txt`) og lagt inn som konstant: å estimere den per
-   * hånd ville krevd egne utspillinger i budøyeblikket, altså nettopp den
-   * kjøretidsregningen modellen finnes for å slippe.
-   */
-  private readonly evForsvar: number;
-
-  constructor(indre: Innagent, m: Budmodell, evForsvar = 2.5) {
-    this.indre = indre;
-    this.m = m;
-    this.evForsvar = evForsvar;
-  }
-
-  nyKamp(): void {
-    this.indre.nyKamp();
-  }
-
-  velgHandling(state: GameState): Handling {
-    if (state.fase !== "BUDRUNDE" || state.iTur === null) return this.indre.velgHandling(state);
-    const lov = lovligeHandlinger(state);
-    if (lov.fase !== "BUDRUNDE") return this.indre.velgHandling(state);
-    const tall = lov.bud.filter((b): b is number => typeof b === "number");
-    // Ingen tallbud igjen – da er valget uansett ikke modellens.
-    if (tall.length === 0) return this.indre.velgHandling(state);
-
-    const sete = state.iTur;
-    const x = budTrekk(state, sete);
-    const μ = anslå(this.m.mμ, x, this.m.rate);
-    const σ = Math.max(0.6, anslå(this.m.mσ, x, this.m.rate));
-
-    let beste: number | typeof PASS = PASS;
-    let bv = this.evForsvar;
-    for (const N of tall) {
-      const P = 1 - Φ((N - 0.5 - μ) / σ);
-      // Bud utenfor det modellen har sett budrunde-tall for: anta at et hoeyt
-      // bud vinner budrunden. Det er riktig retning - jo hoeyere bud, jo
-      // sjeldnere blir man overbudt - og feiler konservativt for de lave.
-      const p = this.m.vant[String(N)] ?? (N >= 11 ? 1 : 0);
-      const ev = p * (2 * N * (2 * P - 1)) + (1 - p) * this.evForsvar;
-      if (ev > bv) {
-        bv = ev;
-        beste = N;
-      }
-    }
-    return { type: "BUD", spiller: sete, bud: beste };
-  }
+  return tolkBudmodell(JSON.parse(readFileSync(fil, "utf8")));
 }
