@@ -64,7 +64,7 @@ import torch.nn.functional as F
 # der `len(t)` ikke stemmer, så et v2-datasett ville gitt «0 gyldige rader»
 # etter timer med generering – eller, om noen senere fjernet sjekken, trent
 # på feiljusterte kolonner uten å feile.
-LOVLIGE_DIM = (273, 340, 356)
+LOVLIGE_DIM = (273, 340, 356, 364)
 TREKK_DIM = None  # settes av `finn_dim()` ved innlesing
 KORT = 52
 

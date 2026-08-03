@@ -22,7 +22,7 @@ import { lovligeKort, type GameState, type Handling } from "../motor.ts";
 import { velgHandling as pimcVelg } from "../bot/bot.ts";
 import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { kortIndeks, NevroAgent } from "../nevro/index.ts";
-import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3 } from "./trekk.ts";
+import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4 } from "./trekk.ts";
 
 /**
  * Leser et E1-nett fra rå bytes og verifiserer at formen stemmer med
@@ -34,17 +34,20 @@ export function e1NettFraBytes(bytes: Uint8Array, kilde = "vektene"): NevroNett 
   const nett = nettFraBytes(bytes);
   if (nett.length !== 1) throw new Error(`E1: forventet ett nett i ${kilde}, fikk ${nett.length}`);
   const første = nett[0]!.lag[0]!;
-  // To lovlige bredder: v1 (273) er kodingen sd-r2.bin og eldre nett ble
-  // trent med, v2 (340) legger minneblokken oppå. Alt annet er en feil, og
+  // Fire lovlige bredder, hver et lag oppå det forrige: v1 (273) er kodingen
+  // sd-r2.bin og eldre nett ble trent med, v2 (340) legger minneblokken oppå,
+  // v3 (356) telleblokken, v4 (364) auksjonsblokken. Alt annet er en feil, og
   // skal si fra – et nett med gal inngangsbredde ville ellers gitt tause
   // søppelvalg i stedet for en feilmelding.
   if (
     første.inn !== E1_SPILL_DIM &&
     første.inn !== E1_SPILL_DIM_V2 &&
-    første.inn !== E1_SPILL_DIM_V3
+    første.inn !== E1_SPILL_DIM_V3 &&
+    første.inn !== E1_SPILL_DIM_V4
   ) {
     throw new Error(
-      `E1: nettet tar ${første.inn} trekk, men trekkuttrekket gir ${E1_SPILL_DIM} (v1), ${E1_SPILL_DIM_V2} (v2) eller ${E1_SPILL_DIM_V3} (v3)`,
+      `E1: nettet tar ${første.inn} trekk, men trekkuttrekket gir ${E1_SPILL_DIM} (v1), ` +
+        `${E1_SPILL_DIM_V2} (v2), ${E1_SPILL_DIM_V3} (v3) eller ${E1_SPILL_DIM_V4} (v4)`,
     );
   }
   const siste = nett[0]!.lag[nett[0]!.lag.length - 1]!;

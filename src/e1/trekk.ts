@@ -80,11 +80,43 @@ export const E1_SPILL_DIM_V2 = E1_SPILL_DIM + 67;
  */
 export const E1_SPILL_DIM_V3 = E1_SPILL_DIM_V2 + 16;
 
+/**
+ * v4 (indeks 356–363): AUKSJONEN. Hvor høyt hvert sete bød, og om det bød.
+ *
+ * HULLET. Fra hele budrunden koder `src/nevro/trekk.ts` inn i spillfasen bare
+ * hvem som vant (208–211), hva tallbudet ble (225) og Amerikaner/solo. Selve
+ * auksjonen – hvem som kjempet til 9 og ga seg, hvem som passet med en gang –
+ * finnes ikke i kodingen, selv om `state.budrunde.sisteBud` ligger i staten
+ * gjennom hele spillet.
+ *
+ * MÅLT, IKKE GJETTET (`examples/budhull.ts`, 3000 runder, 2026-08-03).
+ * Stratifisert på vinnerbudet, så alle forsvarerne i et stratum møter samme
+ * kontrakt, er forskjellen mellom forsvarere som bød høyt og lavt:
+ *
+ *   honnører på hånd  +0,288 ± 0,022  (13,3 SE)   ← sterkt signal
+ *   stikk faktisk tatt +0,065 ± 0,026  ( 2,5 SE)   ← nesten ingenting
+ *
+ * Og honnørsignalet vokser med kontrakten: +0,026 ved vinnerbud 8, +0,275 ved
+ * 9, +0,477 ved 10.
+ *
+ * DEN SPREKKEN ER HELE POENGET, og målingen kan ikke lukke den. Enten er det
+ * å vite at en forsvarer har et ekstra ess lite handlingsbart, ELLER så er det
+ * handlingsbart og agenten som spilte klarte ikke å bruke det – fordi den ikke
+ * kan se det. Gate 2 avgjør. Målingen sier bare at signalet FINNES og at
+ * kodingen er blind for det.
+ *
+ * IKKE FORVEKSL MED BUDMODELLEN. `bud-gbt.json` avgjør hva Adams SELV byr.
+ * Dette er noe annet: hva de ANDRE bød, brukt som informasjon under kortspill.
+ */
+export const E1_SPILL_DIM_V4 = E1_SPILL_DIM_V3 + 8;
+
 const BASIS = SPILL_DIM;
 /** Der minneblokken begynner. */
 const MINNE = E1_SPILL_DIM;
 /** Der telleblokken begynner. */
 const TELL = E1_SPILL_DIM_V2;
+/** Der auksjonsblokken begynner. */
+const AUKSJON = E1_SPILL_DIM_V3;
 
 /**
  * Motpartens sete sett fra `sete` (0 = meg selv, 1 = neste i tur, …).
@@ -231,6 +263,32 @@ export function e1SpillTrekk(state: GameState, sete: number, dim: number = E1_SP
   }
   for (const kp of state.bord) {
     v[TELL + relSete(sete, kp.spiller) * 4 + fargeIndeks(kp.kort.farge)]! += 1 / 13;
+  }
+
+  if (dim <= E1_SPILL_DIM_V3) return v;
+
+  // --- AUKSJONSBLOKKEN (v4, 356–363) ---------------------------------------
+  // Per relativt sete: hvor høyt det bød, og om det bød i det hele tatt.
+  //
+  // `state.budrunde.sisteBud` overlever inn i spillfasen (avsluttBudrunde
+  // rører den ikke), så informasjonen har ligget i staten hele tiden – bare
+  // ikke i kodingen.
+  //
+  // Normaliseringen deler på 13 som resten av blokken, ikke på budets eget
+  // spenn. Det er bevisst: budene er stikkantall, og 8 skal bety det samme
+  // her som v[225] og v[229] betyr.
+  for (let s = 0; s < 4; s++) {
+    const b = state.budrunde.sisteBud[s];
+    const r = relSete(sete, s);
+    if (typeof b === "number") {
+      v[AUKSJON + r * 2] = b / 13;
+      v[AUKSJON + r * 2 + 1] = 0;
+    } else {
+      // «Bød aldri» er ikke det samme som «bød 0», og et nett kan ikke skille
+      // dem hvis begge koder til 0. Egen flaggkolonne.
+      v[AUKSJON + r * 2] = 0;
+      v[AUKSJON + r * 2 + 1] = 1;
+    }
   }
   return v;
 }

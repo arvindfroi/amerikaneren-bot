@@ -56,7 +56,7 @@ import { dirname } from "node:path";
 
 import { lagRng } from "../src/kort.ts";
 import { lovligeHandlinger, lovligeKort, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
-import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3 } from "../src/e1/trekk.ts";
+import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4 } from "../src/e1/trekk.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { vurderKortSD } from "../src/moe2/sdkort.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
@@ -308,11 +308,13 @@ alleKamper: for (let k = 0; k < kamper; k++) {
               // BIT FOR BIT de samme som før, så gamle rader og nye kan
               // blandes i samme treningssett – de gamle mangler bare halen,
               // og halens siste indeks er nettopp flagget som sier det.
-              // BREDDEN ER V3. Den var hardkodet til V2, og da telleblokken
-              // ble lagt til i trekk.ts skrev generatoren fortsatt 340 -
-              // altsaa timevis med data UTEN den nye informasjonen, uten et
-              // eneste varsel. Fanget ved aa lese foerste rad etter oppstart.
-              t: Array.from(e1SpillTrekk(s, sete, E1_SPILL_DIM_V3), (x) => Math.round(x * 10_000) / 10_000),
+              // BREDDEN ER V4, OG MAA FOELGE trekk.ts. Den var hardkodet til
+              // V2, og da telleblokken ble lagt til i trekk.ts skrev
+              // generatoren fortsatt 340 - altsaa timevis med data UTEN den
+              // nye informasjonen, uten et eneste varsel. Fanget ved aa lese
+              // foerste rad etter oppstart. GJOER DET IGJEN etter hver gang
+              // kodingen utvides: `head -1 <mappe>/skard-0.jsonl` og tell.
+              t: Array.from(e1SpillTrekk(s, sete, E1_SPILL_DIM_V4), (x) => Math.round(x * 10_000) / 10_000),
               nt: lagInn(spillerVisning(s, sete), "SPILL", s.giving.antallStikk, s.regler.målPoeng).map(
                 (x) => Math.round(x * 10_000) / 10_000,
               ),
@@ -369,6 +371,6 @@ alleKamper: for (let k = 0; k < kamper; k++) {
 }
 
 console.log(
-  `Ferdig: ${merket} stillinger à ${E1_SPILL_DIM_V3} trekk (v1 ${E1_SPILL_DIM} + minneblokk + telleblokk), ` +
+  `Ferdig: ${merket} stillinger à ${E1_SPILL_DIM_V4} trekk (v1 ${E1_SPILL_DIM} + minne + telling + auksjon), ` +
     `SD med ${verdener} verdener, budspredning ${budspredning} → ${ut}`,
 );
