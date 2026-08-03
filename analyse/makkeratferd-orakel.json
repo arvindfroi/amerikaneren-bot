@@ -1,33 +1,33 @@
 {
   "spek": "budm:e1-modell/bud-gbt.json:vakt:abmp:e1:e1-modell/ftf1.bin",
-  "runder": 200,
-  "makkerbeslutninger": 1970,
-  "medValg": 1238,
+  "runder": 900,
+  "makkerbeslutninger": 8796,
+  "medValg": 5580,
   "overtaking": {
-    "brudd": 42,
-    "mulig": 853,
-    "andel": 0.0492379835873388
+    "brudd": 216,
+    "mulig": 3972,
+    "andel": 0.054380664652567974
   },
   "trumfslosing": {
-    "brudd": 4,
-    "mulig": 495,
-    "andel": 0.00808080808080808
+    "brudd": 26,
+    "mulig": 2353,
+    "andel": 0.011049723756906077
   },
   "honnorslosing": {
-    "brudd": 59,
-    "mulig": 826,
-    "andel": 0.07142857142857142
+    "brudd": 286,
+    "mulig": 3813,
+    "andel": 0.07500655651717808
   },
   "taptRedning": {
-    "brudd": 6,
-    "mulig": 124,
-    "andel": 0.04838709677419355
+    "brudd": 33,
+    "mulig": 547,
+    "andel": 0.0603290676416819
   },
   "orakel": {
-    "stillinger": 1238,
-    "overtaking": 0.041031652989449004,
-    "trumfslosing": 0.014141414141414142,
-    "honnorslosing": 0.2009685230024213,
-    "taptRedning": 0.1693548387096774
+    "stillinger": 5580,
+    "overtaking": 0.04506545820745216,
+    "trumfslosing": 0.011899702507437314,
+    "honnorslosing": 0.23052714398111723,
+    "taptRedning": 0.16087751371115175
   }
 }
