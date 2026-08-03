@@ -1,0 +1,126 @@
+KRYSSINDEKS over 6 modeller: e1-r1, ftf1, p5p, sd-r2, v4a, wred
+delta = oekning i anger naar kolonnen stokkes. Hoeyere = modellen lener seg mer paa den.
+
+PER BLOKK (sum av delta over kolonnene i blokken)
+blokk             kol       e1-r1        ftf1         p5p       sd-r2         v4a        wred
+egen haand         52      0.0848      0.1396      0.2023      0.0980      0.2366      0.1407
+spilte kort        52      0.0644      0.0989      0.1401      0.0260      0.1942      0.0895
+bordet naa         52      0.0826      0.2006      0.2240      0.1944      0.2332      0.2103
+etterlyst          52     -0.0121      0.0028      0.0062     -0.0008      0.0045      0.0015
+roller (rel)       12      0.0252      0.0863      0.0941      0.0455      0.1107      0.0661
+trumf/bud           8      0.0101      0.1453      0.1659      0.1278      0.1743      0.1406
+stikk/poeng        10      0.0097      0.0198      0.0115      0.0064      0.0207      0.0174
+fordeling           8      0.0008      0.0039      0.0014     -0.0024      0.0091      0.0133
+renonse            16      0.0157      0.0360      0.0481      0.0268      0.0584      0.0305
+ute + rest         11      0.0126      0.0389      0.0319      0.0103      0.0551      0.0332
+v2 vrak/farge       4           —           —      0.0000           —      0.0000      0.0021
+v2 vrak EN-AV      52           —           —      0.0000           —      0.0000      0.0000
+v2 korrigert       11           —           —      0.0000           —      0.0000      0.0094
+v3 telling         16           —           —      0.0000           —      0.0000      0.0000
+v4 auksjon          8           —           —      0.0000           —      0.0106           —
+v5 plan            12           —           —      0.0457           —           —           —
+
+STOERST UENIGHET blant de 273 kolonnene alle modellene har
+    iblokk               spenn       e1-r1        ftf1         p5p       sd-r2         v4a        wred
+  221trumf/bud          0.0428     -0.0001      0.0340      0.0427      0.0281      0.0396      0.0311
+  220trumf/bud          0.0413      0.0019      0.0367      0.0393      0.0293      0.0432      0.0358
+  222trumf/bud          0.0385      0.0042      0.0344      0.0427      0.0330      0.0407      0.0351
+  223trumf/bud          0.0353      0.0058      0.0352      0.0363      0.0329      0.0411      0.0349
+  271ute + rest         0.0197      0.0012      0.0194      0.0175      0.0106      0.0209      0.0169
+  212roller (rel)       0.0193     -0.0017      0.0152      0.0176      0.0107      0.0158      0.0112
+  230stikk/poeng        0.0122      0.0025      0.0147      0.0108      0.0105      0.0131      0.0131
+  102spilte kort        0.0115     -0.0014      0.0056      0.0057      0.0012      0.0101      0.0067
+  208roller (rel)       0.0114      0.0012      0.0057      0.0042     -0.0009      0.0105      0.0028
+   36egen haand         0.0112      0.0007      0.0084      0.0111      0.0071      0.0119      0.0092
+   51egen haand         0.0112      0.0058      0.0134      0.0169      0.0062      0.0168      0.0080
+   35egen haand         0.0101      0.0030      0.0047      0.0075      0.0012      0.0112      0.0056
+  213roller (rel)       0.0100      0.0061      0.0139      0.0146      0.0097      0.0160      0.0122
+   49egen haand         0.0098      0.0009      0.0067      0.0107      0.0050      0.0094      0.0064
+  216roller (rel)       0.0098      0.0048      0.0142      0.0146      0.0114      0.0125      0.0122
+  227trumf/bud          0.0098     -0.0010      0.0057      0.0050      0.0035      0.0088      0.0035
+  263ute + rest         0.0095      0.0019      0.0019      0.0023     -0.0028      0.0067      0.0030
+   37egen haand         0.0092      0.0038      0.0075      0.0111      0.0050      0.0130      0.0100
+   90spilte kort        0.0091     -0.0023      0.0034      0.0034      0.0018      0.0069      0.0020
+   38egen haand         0.0091      0.0094      0.0094      0.0118      0.0064      0.0155      0.0129
+
+KONSISTENT NEGATIVE (modellen blir BEDRE av aa miste kolonnen)
+    iblokk            antall<0     snitt
+  193etterlyst               5  -0.00076
+  202etterlyst               6  -0.00018
+  234stikk/poeng             5  -0.00015
+  270ute + rest              5   0.00003
+
+HVOR HVER MODELL HENTER VIKTIGHETEN SIN (andel av total, per rolle)
+modell            foerer    makker   forsvar
+e1-r1              79.3%     12.6%      8.1%
+ftf1               70.7%      8.3%     21.0%
+p5p                70.6%      4.7%     24.6%
+sd-r2              59.6%      6.4%     33.9%
+v4a                73.5%      1.3%     25.3%
+wred               63.0%      7.5%     29.5%
+
+
+=============================================================================
+LESNINGEN â€” fire funn, 4. august
+=============================================================================
+
+1. PLANBLOKKEN ER DEN MEST BRUKTE NYE BLOKKEN SOM ER LAGET
+
+     v5 plan   (p5p)    0,0457      <- fire ganger de andre
+     v4 auksjon (v4a)   0,0106
+     v2 minne  (wred)   0,0115      (vrak/farge 0,0021 + korrigert 0,0094)
+     v3 telling         0,0000      (maskert i alle armene som ble maalt)
+
+   Nettet lener seg hardere paa kontraktsregnskapet enn paa noen av
+   informasjonsblokkene. Det er en sterk prior for at den maaler positivt i
+   gate 2 - men bare en prior: de 52 en-av-kolonnene hadde viktighet 0,390 og
+   kostet -1,475 i spill.
+
+2. TRUMFIDENTITETEN ER DET STOERSTE SKILLET MELLOM MODELLENE
+
+     indeks 220-223 (hvilken farge er trumf)
+       e1-r1   0,0019 - 0,0058     <- bruker den knapt
+       alle andre  0,028 - 0,043
+
+   e1-r1 er den eldste modellen, destillert fra DOBBELT-DUMMY. Alle de
+   SD-trente lener seg tungt paa hvilken farge trumfen er; DD-modellen gjoer
+   det ikke. Det er et gullkorn i de nyere, og det peker paa noe reelt: under
+   DD spilles alle farger Â«perfektÂ», saa hvilken som er trumf betyr mindre.
+   Under realistisk spill betyr den alt.
+
+3. ETTERLYST-BLOKKEN (156-207) ER NAER DOED, OG LITT SKADELIG
+
+     e1-r1   -0,0121      sd-r2   -0,0008      resten   ~0,003-0,006
+
+   52 kolonner - 19 % av hele v1-kodingen - som baerer naer null, og som er
+   NEGATIV i de to eldste modellene. To av kolonnene (193, 202) er blant de
+   faa som er konsistent negative paa tvers.
+
+   Sannsynlig aarsak: makkerskapet leses av 216-219 i stedet, saa det
+   etterlyste kortets IDENTITET er redundant naar det foerst er lagt.
+   Kandidat for fjerning, men den maa maales - 52 kolonner er ogsaa 52
+   kolonner mindre aa overtilpasse paa.
+
+4. HELE MODELLFAMILIEN ER EN SPILLEFOERER-SPESIALIST
+
+     modell     foerer   makker   forsvar
+     e1-r1       79,3 %   12,6 %    8,1 %
+     ftf1        70,7 %    8,3 %   21,0 %
+     p5p         70,6 %    4,7 %   24,6 %
+     sd-r2       59,6 %    6,4 %   33,9 %
+     v4a         73,5 %    1,3 %   25,3 %
+     wred        63,0 %    7,5 %   29,5 %
+
+   HVER ENESTE modell legger 60-80 % av viktigheten sin i foerersetet og
+   1-13 % i makker. Og det speiler treningsvekten naesten eksakt: makker faar
+   8,2 % av vekten for 22,5 % av radene (`rollebalanser` i sd-tren.py).
+
+   Det er rasjonelt saa langt som det gaar - foererens gulv er 2,010 mot
+   makkerens 0,336 - men makker er ogsaa det stoerste MAALTE hullet mot
+   MesterAI (-0,22). Modellene bruker kapasiteten der innsatsen er hoeyest,
+   ikke der tapet er.
+
+   MERK at --rollebalanse ble proevd og maalte -0,0062 +/- 0,1113. Aa flytte
+   VEKTEN hjalp ikke. Denne tabellen sier hvorfor det ikke var nok: det er
+   ikke vekten som mangler, det er at makkerstillingenes MAAL er naer uniformt
+   (gulv 0,336), saa det finnes lite aa laere uansett hvor mye vekt de faar.
