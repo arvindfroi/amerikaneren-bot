@@ -763,3 +763,46 @@ posisjon (0,434 mot 0,208).
 Det er også en advarsel mot søk som kur: PIMC ble prøvd i VRAK/VELG og strøk
 med −0,256. Men søk i FORSVARETS TIDLIGE STIKK er aldri prøvd, og det er der
 gulvet er høyest (1,20 i 1. hånd mot 0,87 i 4.) — altså der det er mest å hente.
+
+## 9. Øyne-linjen er avsluttet på et velmålt nei (3. august, kveld)
+
+Fem armer, nøyaktig samme 278 798 rader (`sd-v4`), samme holdout, samme
+init-frø, samme 24 oppvarmingsepoker. Gate 2 på **n=8000** — prosjektets
+største kjøring og beste oppløsning.
+
+| blokk, isolert og parret mot kontrollarmen | bidrag | SE | σ |
+|---|---|---|---|
+| auksjon | +0,0453 | 0,0519 | +0,87 |
+| telling | −0,0058 | 0,0460 | −0,13 |
+| **alle tre sammen** | **−0,0777** | 0,0620 | −1,25 |
+| kontroll (ren ekstra finjustering) | +0,0317 | 0,0649 | +0,49 |
+
+Ingen når signifikans. Med SE ~0,05 utelukkes effekter over ~0,10 ved 2 SE.
+
+**Datamengden var en ekte del av forklaringen, men ikke nok.** På 105k rader
+var alle informasjonsarmer verre enn kontrollen på holdout; på 278k er to av
+tre bedre. Retningen snudde. Poengene fulgte ikke etter.
+
+**Kombinasjonen er verre enn delene** (−0,078 mot auksjonens +0,045). Arvinds
+hypotese var at blokkene ville virke sammen; målingen peker motsatt vei.
+
+**Det som står igjen fra linjen, og som er verdt mer enn resultatet:** to ekte
+implementasjonsfeil ble funnet fordi Arvind nektet å godta nullresultatene —
+oppvarmingen av nullstilte kolonner, og de 52 én-av-kolonnene som lærte nettet
+runde-ID i stedet for spill (fører −1,475 → +0,598, 2,8 SE innenfor samme
+bånd). Begge er generelle: **høy kardinalitet i et trekk som bare ÉTT sete ser,
+er en memoreringsfelle**, og **nullstilte kolonner må varmes opp eller de kommer
+aldri fram**.
+
+### Køen etter dette, rangert etter målt styrke
+
+| | signal | målt i poeng? |
+|---|---|---|
+| **makker: for gjerrig med honnør** | 7,5 % mot orakelets 23,1 % — **~19 SE** | nei |
+| **makker: for ivrig etter stikk** | 6,0 % mot orakelets 16,1 % — **~5,4 SE** | nei |
+| **forsvarets utspill** | fanget 0,208 mot 0,434 i 4. hånd | nei |
+| vrak+trumf som ÉTT valg | 37 doktrinebrudd per 2 000 runder | nei |
+
+Alle fire er sterkere signaler enn noe i øyne-linjen. **Benken kan nå skille
+dem:** SE 0,05 parret ved n=8000, mot hull på 0,12–0,22. Prisen er ~40 min per
+måling, og det er den reelle budsjettgrensen framover.

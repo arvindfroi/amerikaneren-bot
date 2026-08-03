@@ -1,0 +1,82 @@
+ØYNE-LINJEN: AVSLUTTET PÅ ET VELMÅLT NEI — 3. august 2026
+==========================================================
+
+Tre trekk-blokker ble bygget for å gi nettet informasjon det ikke hadde:
+
+  minneblokk (v2, 273-339)   hvilke fire kort budvinneren vraket - de er DØDE
+  telleblokk (v3, 340-355)   hvem som har spilt hvilke farger
+  auksjonsblokk (v4, 356-363) hvor høyt hvert sete bød
+
+Alle tre er lovlige, alle tre er informasjon et menneske bruker, og alle tre
+manglet helt i kodingen. Auksjonsblokken ble bygget etter en måling som viste
+13,3 SE på håndstyrke (`examples/budhull.ts`).
+
+TO EKTE IMPLEMENTASJONSFEIL BLE FUNNET UNDERVEIS, begge etter at Arvind nektet
+å godta et nullresultat. De står, uavhengig av utfallet:
+
+  1. NULLSTILTE KOLONNER NÅDDE ALDRI FRAM. AdamW flytter hver vekt ~lr per
+     steg; 625 steg x 7,5e-5 = 0,047 mot en målskala på 0,0895. Kolonnene
+     KUNNE ikke komme fram før tidlig stopp. `--nyepoker` retter det: bidraget
+     til lag 0 gikk fra 0,41 % til 8,30 % av v1s.
+
+  2. 52 EN-AV-KOLONNER VAR EN MEMORERINGSFELLE. Indeks 277-328 sier nøyaktig
+     hvilke fire kort føreren vraket - i praksis en RUNDE-ID (2 319 førerrader
+     gir 621 signaturer, 3,73 rader hver). Nettet lærte runden, ikke spillet.
+     Rolledekomponert lå HELE tapet i førersetet: -1,475 +/- 0,574. Maskeres
+     de bort, blir det +0,598 innenfor samme frøbånd - et sprang på 2,8 SE.
+
+DEN AVGJØRENDE MÅLINGEN
+-----------------------
+Fem armer, NØYAKTIG samme 278 798 rader (sd-v4, frøbånd 260-273 M), samme
+holdout, samme init-frø, samme 24 oppvarmingsepoker. Eneste forskjell er
+hvilke kolonner som er synlige. De 52 en-av-kolonnene er maskert i alle armer
+som har minneblokken, siden de er bevist skadelige.
+
+Gate 2: frøbånd 8 800 000, 2 000 givere x 6 skard, n=8000 - den største
+kjøringen i prosjektet, og den beste oppløsningen vi har hatt.
+
+  ISOLERT BIDRAG, parret per (giv, sete), mot kontrollarmen v4n:
+
+    blokk                    n      snitt        SE     sigma
+    auksjon               8000    +0,0453    0,0519     +0,87
+    telling               8000    -0,0058    0,0460     -0,13
+    alle tre              8000    -0,0777    0,0620     -1,25
+    kontroll (v4n-ftf1)   8000    +0,0317    0,0649     +0,49
+
+  INGEN NÅR SIGNIFIKANS. Med SE ~0,05 utelukkes effekter over ~0,10 ved 2 SE:
+
+    auksjon   ligger i  [-0,06, +0,15]
+    telling   ligger i  [-0,10, +0,08]
+    alle tre  ligger i  [-0,20, +0,04]
+
+  Trimmede snitt er alle ~0 (+0,0016 til +0,0042). Tegntestene er jevne.
+
+TO TING SOM ER VERDT Å TA MED VIDERE
+------------------------------------
+1. DATAMENGDEN VAR EN EKTE DEL AV FORKLARINGEN, men ikke nok. På 105k rader
+   var ALLE informasjonsarmer verre enn kontrollen på holdout. På 278k er to
+   av tre bedre (auksjon 0,7352 og telling 0,7396 mot kontrollens 0,7423).
+   Retningen snudde. Poengene fulgte ikke etter.
+
+2. KOMBINASJONEN ER VERRE ENN DELENE. -0,0777 mot auksjonens +0,0453. Arvinds
+   hypotese var at blokkene ville virke SAMMEN. Målingen peker motsatt vei:
+   hver ny blokk er kapasitet tatt fra noe som virket.
+
+OG DET SOM GJELDER HELE LINJEN
+------------------------------
+Kontrollarmen - ren ekstra finjustering på 278k ferske rader, uten en eneste
+ny informasjonskilde - måler +0,0317 +/- 0,0649. Finjusteringen som LAGET
+ftf1 ga +0,136, replikert i fire frøbånd. Avkastningen på mer data av samme
+slag er uttømt, og det gjelder uansett hvilke kolonner man legger på.
+
+LINJEN ER AVSLUTTET. Ikke fordi den var feil tenkt - hullene var ekte, og to
+implementasjonsfeil ble funnet ved å grave i den - men fordi den er målt
+grundig nok til at et nytt forsøk av samme type ikke fortjener maskintid.
+
+HVA SOM STÅR IGJEN, RANGERT ETTER MÅLT STYRKE
+----------------------------------------------
+  makkerens to atferdsavvik   ~19 SE og ~5,4 SE   (analyse/makkeratferd-orakel.json)
+  forsvarets utspill          fanget 0,208 mot 0,434 i 4. hånd
+  vrak+trumf som ETT valg     37 doktrinebrudd per 2 000 runder
+
+Alle tre er umålte i poeng. Alle tre er sterkere signaler enn noe i denne fila.
