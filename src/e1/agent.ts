@@ -22,7 +22,7 @@ import { lovligeKort, type GameState, type Handling } from "../motor.ts";
 import { velgHandling as pimcVelg } from "../bot/bot.ts";
 import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { kortIndeks, NevroAgent } from "../nevro/index.ts";
-import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2 } from "./trekk.ts";
+import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3 } from "./trekk.ts";
 
 /**
  * Leser et E1-nett fra rå bytes og verifiserer at formen stemmer med
@@ -38,9 +38,13 @@ export function e1NettFraBytes(bytes: Uint8Array, kilde = "vektene"): NevroNett 
   // trent med, v2 (340) legger minneblokken oppå. Alt annet er en feil, og
   // skal si fra – et nett med gal inngangsbredde ville ellers gitt tause
   // søppelvalg i stedet for en feilmelding.
-  if (første.inn !== E1_SPILL_DIM && første.inn !== E1_SPILL_DIM_V2) {
+  if (
+    første.inn !== E1_SPILL_DIM &&
+    første.inn !== E1_SPILL_DIM_V2 &&
+    første.inn !== E1_SPILL_DIM_V3
+  ) {
     throw new Error(
-      `E1: nettet tar ${første.inn} trekk, men trekkuttrekket gir ${E1_SPILL_DIM} (v1) eller ${E1_SPILL_DIM_V2} (v2)`,
+      `E1: nettet tar ${første.inn} trekk, men trekkuttrekket gir ${E1_SPILL_DIM} (v1), ${E1_SPILL_DIM_V2} (v2) eller ${E1_SPILL_DIM_V3} (v3)`,
     );
   }
   const siste = nett[0]!.lag[nett[0]!.lag.length - 1]!;

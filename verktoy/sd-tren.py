@@ -64,7 +64,7 @@ import torch.nn.functional as F
 # der `len(t)` ikke stemmer, så et v2-datasett ville gitt «0 gyldige rader»
 # etter timer med generering – eller, om noen senere fjernet sjekken, trent
 # på feiljusterte kolonner uten å feile.
-LOVLIGE_DIM = (273, 340)
+LOVLIGE_DIM = (273, 340, 356)
 TREKK_DIM = None  # settes av `finn_dim()` ved innlesing
 KORT = 52
 
@@ -163,7 +163,8 @@ def les(mapper: list[str]):
     TREKK_DIM = next(iter(bredder))
     if TREKK_DIM not in LOVLIGE_DIM:
         raise SystemExit(f"Ukjent trekkbredde {TREKK_DIM}, forventet en av {LOVLIGE_DIM}")
-    print(f"Trekkbredde: {TREKK_DIM} ({'v2 med minneblokk' if TREKK_DIM == 340 else 'v1'})", flush=True)
+    navn_dim = {273: 'v1', 340: 'v2 med minneblokk', 356: 'v3 med telleblokk'}[TREKK_DIM]
+    print(f"Trekkbredde: {TREKK_DIM} ({navn_dim})", flush=True)
 
     X = numpy.zeros((tak, TREKK_DIM), dtype=numpy.float32)
     V = numpy.zeros((tak, KORT), dtype=numpy.float32)
@@ -650,19 +651,43 @@ def main() -> None:
             torch.cuda.manual_seed_all(args.initfroe)
         modell = E1Nett(dims).to(enhet)
         if args.start:
-            # Formene MAA stemme. Et nett med andre lagstoerrelser kan ikke
-            # arve vektene, og en stille delvis lasting ville gitt et halvt
-            # tilfeldig nett som saa ferdigtrent ut.
+            # Formene maa stemme, med ÉN tillatt avvikelse: FOERSTE lag kan
+            # vaere BREDERE enn startvekten. Alt annet avvises.
+            #
+            # HVORFOR DEN AVVIKELSEN FINNES. Telleblokken (v3, 340-355) gir
+            # nettet informasjon det aldri har hatt: hvem som spilte hvilke
+            # farger. Aa legge til trekk betyr normalt aa trene fra bunnen -
+            # og seks nett trent fra bunnen paa 410k rader strauk gate 2 med
+            # -0,35 til -0,69, fordi sd-r2 har 4,8 millioner stillinger i
+            # vektene sine.
+            #
+            # Med NULLSTILTE nye kolonner starter nettet noeyaktig der
+            # startvekten er: de nye trekkene ganges med 0 og kan ikke endre
+            # ett eneste kortvalg. Nettet arver hele det gamle datagrunnlaget
+            # og kan bare vinne paa aa ta den nye informasjonen i bruk.
+            #
+            # DE OEVRIGE LAGENE MAA STEMME EKSAKT. En stille delvis lasting
+            # der ville gitt et halvt tilfeldig nett som saa ferdigtrent ut.
             start_lag = les_vekter(args.start)
             if len(start_lag) != len(modell.lag):
                 raise SystemExit(
                     f"{args.start} har {len(start_lag)} lag, {navn} har {len(modell.lag)}"
                 )
             for i, (W, b) in enumerate(start_lag):
-                if tuple(modell.lag[i].weight.shape) != W.shape:
-                    raise SystemExit(
-                        f"{args.start} lag {i} er {W.shape}, {navn} venter "
-                        f"{tuple(modell.lag[i].weight.shape)}"
+                mål = tuple(modell.lag[i].weight.shape)
+                if mål != W.shape:
+                    utvider = i == 0 and mål[0] == W.shape[0] and mål[1] > W.shape[1]
+                    if not utvider:
+                        raise SystemExit(
+                            f"{args.start} lag {i} er {W.shape}, {navn} venter {mål}. "
+                            "Bare FOERSTE lag kan utvides, og bare i bredden."
+                        )
+                    nye = mål[1] - W.shape[1]
+                    W = numpy.concatenate([W, numpy.zeros((W.shape[0], nye), dtype=W.dtype)], axis=1)
+                    print(
+                        f"  utvider inngangen {mål[1] - nye} → {mål[1]}: "
+                        f"{nye} nye kolonner NULLSTILT, saa nettet starter identisk",
+                        flush=True,
                     )
                 with torch.no_grad():
                     modell.lag[i].weight.copy_(torch.from_numpy(W))

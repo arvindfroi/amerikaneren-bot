@@ -254,6 +254,24 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
     return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(rest.slice(0, skille)));
   }
   if (indre.startsWith("e1:")) return new E1Agent(lesNett(indre.slice(3)));
+  /**
+   * `e1s:<fil>` - E1 med SOEK i VRAK og VELG.
+   *
+   * I dag gjoer NevroHjerne baade vraket og trumfvalget for Adams: E1Agent
+   * sender alt annet enn SPILL videre til `this.nevro`. To hele
+   * beslutningsfaser er altsaa overlatt til den svakeste komponenten i
+   * sammensetningen, og det er aldri maalt hva det koster.
+   *
+   * E1Agent har mekanismen fra foer (`soekFaser`), men ingen benk har kunnet
+   * be om den. Denne spekken gjoer det, saa spoersmaalet kan avgjoeres med
+   * tall i stedet for antakelse.
+   */
+  if (indre.startsWith("e1s:")) {
+    return new E1Agent(lesNett(indre.slice(4)), new NevroAgent(), {
+      søkFaser: ["VRAK", "VELG"],
+      søkVerdener: 12,
+    });
+  }
   if (indre.startsWith("ens:")) {
     const rest = indre.slice(4);
     const skille = rest.indexOf(":");

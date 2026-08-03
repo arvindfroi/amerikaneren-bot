@@ -44,10 +44,58 @@ export const E1_SPILL_DIM = SPILL_DIM + 35;
 
 /** v1 + 67 minnetrekk. Kodingen nye nett trenes med. */
 export const E1_SPILL_DIM_V2 = E1_SPILL_DIM + 67;
+/**
+ * v3 (indeks 340–355): HVEM som har spilt hvilke farger.
+ *
+ * HULLET, og det er det største som er funnet i kodingen. `src/nevro/trekk.ts`
+ * legger alle spilte kort i ÉN blokk (52–103) uten å si hvem som spilte dem.
+ * v1 legger til «spilte kort per farge» (242–245), men summert over alle fire
+ * setene. Renonsflaggene (246–261) er BINÆRE – de fanger bare endepunktet,
+ * «helt tom», ikke veien dit.
+ *
+ * Nettet kan derfor ikke skille «spillefører spilte tre spar, makkeren null»
+ * fra «spillefører null, makkeren tre». Det er nøyaktig slutningen en
+ * menneskelig forsvarer gjør hele tiden:
+ *
+ *   «Han har vist fem spar og to hjerter, og har tre kort igjen –
+ *    altså har han høyst ett hjerte.»
+ *
+ * MesterAI får formen implisitt ved å sample verdener. Mennesket teller.
+ * Adams har gjort ingen av delene.
+ *
+ * HVORFOR DET RAMMER FORSVARET HARDEST: en forsvarer må plassere
+ * spillefløyens form for å vite om et ess holder eller blir trumfet.
+ * Fasegapet mot MesterAI viser −0,12 poeng per runde i forsvarssetet, og
+ * forsvaret vårt er målt til −0,051 ± 0,063 mot NevroHjernes – altså ikke
+ * bedre, tross at nettet slår nevro med +1,07 totalt.
+ *
+ * LOVLIG INFORMASJON. Hvert stikk i historikken sier åpent hvem som la hvilket
+ * kort. Dette er ren telling av det som ligger på bordet, ikke et blikk i
+ * skjulte hender – samme klasse som renonsflaggene som alt finnes.
+ *
+ * INDEKSERINGEN ER RELATIV til setet, som resten av kodingen: rad 0 er meg
+ * selv. Egen rad er utledbar fra egen hånd og bærer lite, men den er med
+ * fordi uniform indeksering er mindre feilutsatt enn en hoppet rad – og
+ * indeksfeil i denne fila har kostet dette prosjektet dyrt før.
+ */
+export const E1_SPILL_DIM_V3 = E1_SPILL_DIM_V2 + 16;
 
 const BASIS = SPILL_DIM;
 /** Der minneblokken begynner. */
 const MINNE = E1_SPILL_DIM;
+/** Der telleblokken begynner. */
+const TELL = E1_SPILL_DIM_V2;
+
+/**
+ * Motpartens sete sett fra `sete` (0 = meg selv, 1 = neste i tur, …).
+ *
+ * Samme definisjon som `rel` i `src/nevro/trekk.ts`, som ikke er eksportert.
+ * Den er gjentatt her framfor å eksporteres, fordi appens koding (0–237) er
+ * en KONTRAKT mot NevroVekter.swift: endres eksportflaten der, er det lett å
+ * komme til å endre noe som må stå fast. Kopien er tre linjer og testes mot
+ * originalen i test/e1-telleblokk.test.ts.
+ */
+const relSete = (sete: number, annet: number): number => (annet - sete + 4) % 4;
 
 /** Alle kort som er spilt åpent denne runden (historikk + bordet). */
 function spilteKort(state: GameState): Kort[] {
@@ -164,5 +212,25 @@ export function e1SpillTrekk(state: GameState, sete: number, dim: number = E1_SP
   // setter den til 0 på gamle rader som ble merket før blokken fantes, slik
   // at nullene der leses som «ukjent» og ikke som «ingen døde kort».
   v[MINNE + 66] = 1;
+
+  if (dim <= E1_SPILL_DIM_V2) return v;
+
+  // --- TELLEBLOKKEN (v3, 340–355) ------------------------------------------
+  // Hvor mange kort av hver farge HVERT sete har lagt, relativt til meg.
+  // Rad r, farge f ligger på TELL + r * 4 + f.
+  //
+  // Både historikken og bordet telles: kortene som ligger ute NÅ er like
+  // offentlige som de som er samlet inn, og en forsvarer som skal plassere
+  // formen bruker begge.
+  //
+  // Normalisert på 13 som resten av kodingen, så en full farge blir 1.
+  for (const stikk of state.historikk) {
+    for (const kp of stikk.kort) {
+      v[TELL + relSete(sete, kp.spiller) * 4 + fargeIndeks(kp.kort.farge)]! += 1 / 13;
+    }
+  }
+  for (const kp of state.bord) {
+    v[TELL + relSete(sete, kp.spiller) * 4 + fargeIndeks(kp.kort.farge)]! += 1 / 13;
+  }
   return v;
 }
