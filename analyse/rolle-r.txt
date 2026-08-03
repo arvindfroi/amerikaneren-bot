@@ -1,0 +1,24 @@
+
+=== GATE 2: kandidat i ett sete, vakt:abmp:sd-r2 i de tre andre ===
+12000 (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.
+
+arm                                        poeng/runde for setet
+--------------------------------------------------------------------
+KONTROLL                                   +0.000 ± 0.091
+vakt:abmp:e1:e1-modell/ftf1.bin            +0.176 ± 0.091
+--------------------------------------------------------------------
+
+PARRET mot KONTROLL (miljoet mot seg selv i samme sete):
+  vakt:abmp:e1:e1-modell/ftf1.bin          +0.1763 ± 0.0582 (3.0 SE)  2219/4030  p=0.000
+
+PER ROLLE (rollen er KONTROLLENS, saa parene er de samme):
+  vakt:abmp:e1:e1-modell/ftf1.bin
+    foerer    n= 3000  +0.3808 ± 0.1868 (2.0 SE)  754/1286  p=0.000
+    makker    n= 3000  +0.0228 ± 0.0304 (0.7 SE)  402/773  p=0.281
+    forsvar   n= 6000  +0.1507 ± 0.0678 (2.2 SE)  1063/1971  p=0.001
+
+KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet
+i oppsettet, og ingen av de andre tallene kan leses.
+
+PORTEN: en ny vekt adopteres bare om den er positiv med margin OG
+positiv i klart over halvparten av parene. Aldri adoptere paa stoey.

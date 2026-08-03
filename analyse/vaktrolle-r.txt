@@ -1,0 +1,42 @@
+
+=== GATE 2: kandidat i ett sete, vakt:abmp:ftf1 (dagens Adams) i de tre andre ===
+10000 (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.
+
+arm                                        poeng/runde for setet
+--------------------------------------------------------------------
+KONTROLL                                   +0.000 ± 0.100
+e1:e1-modell/ftf1.bin                      -0.112 ± 0.100
+vakt:a:e1:e1-modell/ftf1.bin               -0.127 ± 0.100
+vakt:ab:e1:e1-modell/ftf1.bin              -0.006 ± 0.100
+vakt:abm:e1:e1-modell/ftf1.bin             -0.002 ± 0.100
+--------------------------------------------------------------------
+
+PARRET mot KONTROLL (miljoet mot seg selv i samme sete):
+  e1:e1-modell/ftf1.bin                    -0.1125 ± 0.0378 (-3.0 SE)  883/1681  p=0.040
+  vakt:a:e1:e1-modell/ftf1.bin             -0.1268 ± 0.0344 (-3.7 SE)  846/1606  p=0.034
+  vakt:ab:e1:e1-modell/ftf1.bin            -0.0065 ± 0.0092 (-0.7 SE)  345/720  p=0.280
+  vakt:abm:e1:e1-modell/ftf1.bin           -0.0021 ± 0.0014 (-1.5 SE)  1/9  p=0.039
+
+PER ROLLE (rollen er KONTROLLENS, saa parene er de samme):
+  e1:e1-modell/ftf1.bin
+    foerer    n= 2500  -0.2813 ± 0.1298 (-2.2 SE)  143/357  p=0.000
+    makker    n= 2500  -0.0572 ± 0.0412 (-1.4 SE)  421/908  p=0.031
+    forsvar   n= 5000  -0.0557 ± 0.0326 (-1.7 SE)  319/416  p=0.000
+  vakt:a:e1:e1-modell/ftf1.bin
+    foerer    n= 2500  -0.3385 ± 0.1138 (-3.0 SE)  106/282  p=0.000
+    makker    n= 2500  -0.0572 ± 0.0412 (-1.4 SE)  421/908  p=0.031
+    forsvar   n= 5000  -0.0557 ± 0.0326 (-1.7 SE)  319/416  p=0.000
+  vakt:ab:e1:e1-modell/ftf1.bin
+    foerer    n= 2500  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+    makker    n= 2500  -0.0259 ± 0.0367 (-0.7 SE)  345/720  p=0.280
+    forsvar   n= 5000  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+  vakt:abm:e1:e1-modell/ftf1.bin
+    foerer    n= 2500  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+    makker    n= 2500  -0.0084 ± 0.0056 (-1.5 SE)  1/9  p=0.039
+    forsvar   n= 5000  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+
+KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet
+i oppsettet, og ingen av de andre tallene kan leses.
+
+PORTEN: en ny vekt adopteres bare om den er positiv med margin OG
+positiv i klart over halvparten av parene. Aldri adoptere paa stoey.
