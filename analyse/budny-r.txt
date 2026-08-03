@@ -1,0 +1,24 @@
+
+=== GATE 2: kandidat i ett sete, budm:bud-gbt (utplassert) i de tre andre ===
+9600 (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.
+
+arm                                        poeng/runde for setet
+--------------------------------------------------------------------
+KONTROLL                                   +0.000 ± 0.107
+budm:e1-modell/bud-adams.json:vakt:abmp:e1:e1-modell/ftf1.bin +0.061 ± 0.108
+--------------------------------------------------------------------
+
+PARRET mot KONTROLL (miljoet mot seg selv i samme sete):
+  budm:e1-modell/bud-adams.json:vakt:abmp:e1:e1-modell/ftf1.bin +0.0608 ± 0.0333 (1.8 SE)  197/342  p=0.006
+
+PER ROLLE (rollen er KONTROLLENS, saa parene er de samme):
+  budm:e1-modell/bud-adams.json:vakt:abmp:e1:e1-modell/ftf1.bin
+    foerer    n= 2400  -0.1086 ± 0.0732 (-1.5 SE)  59/118  p=1.000
+    makker    n= 2400  +0.1268 ± 0.0524 (2.4 SE)  52/74  p=0.001
+    forsvar   n= 4800  +0.1125 ± 0.0489 (2.3 SE)  86/150  p=0.086
+
+KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet
+i oppsettet, og ingen av de andre tallene kan leses.
+
+PORTEN: en ny vekt adopteres bare om den er positiv med margin OG
+positiv i klart over halvparten av parene. Aldri adoptere paa stoey.
