@@ -511,6 +511,13 @@ def main() -> None:
         "da er finjusteringen bare en daarlig omtrening.",
     )
     p.add_argument(
+        "--laerroller",
+        default="",
+        help="ROLLESTYRT DESTILLASJON: bare rader i disse rollene (foerer,makker,"
+        "forsvar) laerer av orakelets etiketter. Alle andre rader faar STARTNETTETS "
+        "EGNE valg som maal - et anker, ikke en laerer. Krever --start.",
+    )
+    p.add_argument(
         "--rollebalanse",
         action="store_true",
         help="skaler stillingsvekten saa hver ROLLE bidrar proporsjonalt med sin "
@@ -830,6 +837,54 @@ def main() -> None:
             + "\n"
         )
 
+        # --- ROLLESTYRT DESTILLASJON ------------------------------------------
+        #
+        # MAALT 3./4. august med `ork:`-benken, orakelet mot nettet per rolle:
+        #
+        #     spillefoerer  +1,656 (24 verdener)
+        #     makker        +0,009
+        #     forsvar       -0,130
+        #
+        # Destillerer vi fra orakelet i ALLE roller, laerer nettet bort
+        # forsvarsspillet sitt - det er beviselig bedre enn laereren der.
+        # Arvind: «det boer destilleres der vi vet den spiller bedre, men hvis
+        # vi er bedre andre plasser som i forsvar/makker, saa bevarer vi det.»
+        #
+        # WARM START ALENE ER IKKE NOK. Den setter STARTPUNKTET, ikke retningen:
+        # vektene er delte, saa finjustering paa foererrader kan dra forsvaret
+        # med seg uten at en eneste rad ber om det. Derfor faar de oevrige
+        # rollene STARTNETTETS EGNE utganger som maal - selvdestillasjon, som
+        # holder atferden fast i stedet for aa la den drive.
+        #
+        # Maalet byttes i en KOPI av V, ikke i Vg: holdout-maalingene skal
+        # fortsatt vaere mot orakelet, ellers maaler vi hvor godt nettet
+        # imiterer seg selv.
+        Vt = Vg
+        if args.laerroller:
+            if not args.start:
+                raise SystemExit("--laerroller krever --start (ankeret er STARTNETTETS valg)")
+            navn_til_kode = {"foerer": 0, "makker": 1, "forsvar": 2}
+            laer = {navn_til_kode[x] for x in args.laerroller.split(",") if x}
+            if not laer:
+                raise SystemExit(f"Ugyldig --laerroller «{args.laerroller}»")
+            R_alle = rolle_av(Xg)
+            anker = ~torch.isin(R_alle, torch.tensor(sorted(laer), device=enhet))
+            Vt = Vg.clone()
+            with torch.no_grad():
+                stor_neg = torch.finfo(torch.float32).min
+                idx = torch.nonzero(anker, as_tuple=False).squeeze(1)
+                for i in range(0, idx.numel(), 16384):
+                    j = idx[i : i + 16384]
+                    logits = modell(Xk[j]).masked_fill(Mg[j] == 0, stor_neg)
+                    # Startnettets egen fordeling som maal. Samme skala som
+                    # orakelverdiene, saa `tau` betyr det samme for begge.
+                    Vt[j] = torch.softmax(logits / args.tau, dim=1) * Mg[j]
+            print(
+                f"  rollestyrt: {int((~anker).sum())} rader laerer av orakelet "
+                f"({args.laerroller}), {int(anker.sum())} rader ankres til startnettet",
+                flush=True,
+            )
+
         Wt = stillingsvekt(Vg[tren_idx], Mg[tren_idx])
         if args.rollebalanse:
             Rt = rolle_av(Xg[tren_idx])
@@ -907,7 +962,7 @@ def main() -> None:
                 for i in range(0, tren_idx.numel(), args.batch):
                     j = tren_idx[perm[i : i + args.batch]]
                     w = Wt[perm[i : i + args.batch]]
-                    tap = maskert_tap(modell(Xk[j]), Vg[j], Mg[j], args.tau, w)
+                    tap = maskert_tap(modell(Xk[j]), Vt[j], Mg[j], args.tau, w)
                     oppv.zero_grad(set_to_none=True)
                     tap.backward()
                     oppv.step()
@@ -938,7 +993,7 @@ def main() -> None:
             for i in range(0, tren_idx.numel(), args.batch):
                 j = tren_idx[perm[i : i + args.batch]]
                 w = Wt[perm[i : i + args.batch]]
-                tap = maskert_tap(modell(Xk[j]), Vg[j], Mg[j], args.tau, w)
+                tap = maskert_tap(modell(Xk[j]), Vt[j], Mg[j], args.tau, w)
                 opt.zero_grad(set_to_none=True)
                 tap.backward()
                 opt.step()
