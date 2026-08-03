@@ -544,7 +544,27 @@ mønstre er ikke datamengdebegrenset her.
 |---|---|---|---|
 | 2 500 000 (oppdagelse) | 1600 | +0,1788 | 0,1468 |
 | 4 100 000 (replikering) | 4400 | +0,1642 | 0,0902 |
-| **slått sammen** | **6000** | **+0,1682** | **0,0769 = 2,19 SE** |
+| **5 600 000 (andre replikering)** | 2800 | **−0,0602** | 0,1179 |
+| **slått sammen** | **8800** | **+0,1001** | **0,0644 = 1,55 SE** |
+
+**TRUKKET TILBAKE 3. august, senere samme dag.** Etter to bånd skrev jeg
+«første gang et oppdagelsestall i dette prosjektet ikke krympet ved
+replikering». Et tredje bånd motsier det: −0,0602, og totalen faller fra
+2,19 til 1,55 SE. **`wred` er ikke etablert, og skal ikke settes ut.**
+
+Verre for tolkningen: HVER rolle skifter fortegn mellom bånd.
+
+| rolle | 2,5M | 4,1M | 5,6M | slått sammen |
+|---|---|---|---|---|
+| fører | +0,598 | +0,459 | **−0,312** | +0,268 ± 0,209 |
+| makker | **−0,091** | +0,070 | +0,105 | +0,050 ± 0,030 |
+| forsvar | +0,104 | +0,064 | **−0,017** | +0,045 ± 0,073 |
+
+Førersetet har SE rundt 0,3–0,47 per bånd fordi førerutfall svinger mest. Med
+n=400–1100 per bånd er «+0,60» og «−0,31» ikke i konflikt — de er begge
+forenlige med null. Historien om at de 52 én-av-kolonnene skader føreren står
+fortsatt (spranget −1,475 → +0,598 var 2,8 SE INNENFOR ett bånd, altså parret
+på samme givere), men **at `wred` er en gevinst, er det ikke belegg for.**
 
 Førersetet gikk fra **−1,4750 til +0,5984** — et sprang på +2,07 ± 0,74. Og i
 replikeringen er **alle tre roller positive**, inkludert makker (+0,0703,
