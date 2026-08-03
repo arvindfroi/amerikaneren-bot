@@ -1,0 +1,75 @@
+OPPVARMING AV NYE KOLONNER — GATE 2, 3. august 2026
+====================================================
+
+BAKGRUNNEN. Telleblokken strauk gate 2 med +0,0008 (analyse/telleblokk-gate2.txt).
+Arvind nektet aa godta det: «det maa vaere daarlig implementert, fordi det skal
+funke». Det stemte, og feilen var maalbar.
+
+FEILEN
+------
+  snitt |vekt|  v1-kolonnene       0,0895
+  snitt |vekt|  telleblokken       0,0028      <- 33x for smaa
+  bidrag til lag 0s foeraktivering, nye blokker som andel av v1:  2,1 %
+
+  AdamW flytter hver vekt med omtrent lr per steg, uansett gradient. Med
+  105k rader er det ~104 batcher per epoke, og tidlig stopp kom paa epoke 6:
+
+    625 steg x 7,5e-5 (cosinus-snitt) = 0,047   maksimal forflytning
+    0,0895                            = skalaen de skulle naa
+
+  Kolonnene KUNNE ikke komme fram. Nullstillingen som gjoer at nettet starter
+  identisk med startvekten - selve tryggheten i forsoeket - gjorde det samtidig
+  umulig aa vinne. Konklusjonen «telleblokken hjelper ikke» maalte treneren.
+
+KUREN (--nyepoker / --nylr)
+---------------------------
+  En fase der BARE de nye kolonnene laerer, alt annet frosset. Da kan raten
+  vaere hoey uten at nettet kan glemme noe - utelukket ved konstruksjon, ikke
+  gjort usannsynlig med lav rate.
+
+  bidrag til lag 0 som andel av v1:
+    telleblokk alene    0,41 %  ->   8,30 %
+    minne + telling     2,11 %  ->  17,41 %
+
+GATE 2 (froe 900000, 400 givere x 6 skard, parret paa (giv, sete),
+        miljoe vakt:abmp:e1:ftf1.bin)
+-------------------------------------------------------------------
+  arm                        n      snitt        SE    sigma   tegn      trimmet
+  ftf1 (KONTROLL)         1600    +0,0000    0,0000        -      -      +0,0000
+  v3n  ingen ny info      1600    +0,0054    0,1266    +0,04  190/175    +0,0125
+  w3k  telling alene      1600    -0,0321    0,1015    -0,32  126/115    +0,0025
+  w3m  minne + telling    1600    +0,1631    0,1474    +1,11  212/199    +0,0167
+
+LESNINGEN, OG DEN ER IKKE «ADOPTER»
+-----------------------------------
+  1. Kontrollarmen maaler eksakt 0,0000. Tabellen kan leses.
+
+  2. KOMBINASJONEN OPPFOERER SEG HELT ANNERLEDES ENN DELENE. w3m +0,163 mot
+     w3k -0,032, en forskjell paa ~0,20. Det er foerste maalte tegn paa
+     avhengigheten Arvind beskrev: blokkene skal virke SAMMEN, ikke hver for
+     seg. En plausibel mekanisme finnes alt i src/e1/trekk.ts: telleblokken
+     sier hvem som spilte hvilke farger, men uten minneblokken tror nettet at
+     de fire vrakede kortene fortsatt lever - saa formregnskapet gaar ikke opp.
+
+  3. MEN 1,11 SE ER IKKE NOK, og snitt og trimmet snitt er uenige (+0,163 mot
+     +0,0167). Snittet drives av faa givere. Planens regel er at trimmet snitt
+     avgjoer naar de spriker, og da er dette ~null.
+
+  4. Sju tall er maalt to ganger i dette prosjektet. Oppdagelsestallet var
+     oppblaast HVER gang. +0,163 ved foerste maaling er noeyaktig den
+     stoerrelsen som har kommet ned til null foer.
+
+NESTE, OG DE ER VALGT FOR AA SKILLE FORKLARINGER
+------------------------------------------------
+  wmm   minne ALENE (telling maskert), 24 oppvarmingsepoker
+  wm24  minne + telling,               24 oppvarmingsepoker
+
+  wmm mot wm24 har samme oppvarming og skiller seg bare paa om telleblokken er
+  synlig - det isolerer tellingens bidrag GITT at minnet er paa plass, som er
+  nettopp det Arvind hevder er det som mangler.
+
+  wm24 mot w3m (8 epoker) sier om oppvarmingen var lang nok. Vektkurven var
+  fortsatt lineaert stigende ved epoke 8, altsaa ikke konvergert.
+
+  Gate 2 kjoeres i et DISJUNKT froebaand, saa dette blir en replikering og ikke
+  en ny oppdagelse paa samme giverne.
