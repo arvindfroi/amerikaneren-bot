@@ -86,6 +86,8 @@ import { NevroAgent } from "../src/nevro/index.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { analyserGiv, sdBud } from "../src/neat/singledummy.ts";
 import { grådigHandling } from "./graadig.ts";
+import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
+import { Budagent, lesBudmodell } from "../src/moe2/budagent.ts";
 import {
   Adapter,
   handlingFraJson,
@@ -187,7 +189,43 @@ function lagKandidat(spec: string): Kandidat {
     const agent = E1Agent.fraFil(spec.slice(3));
     return { navn: spec, nyKamp: () => agent.nyKamp(), velg: (s) => agent.velgHandling(s) };
   }
-  throw new Error(`Ukjent kandidat «${spec}» (bruk nevro, e1:<fil>, pimc eller graadig)`);
+  /**
+   * `vakt:<flagg>:<indre>` og `budm:<modellfil>:<indre>`, nøstet.
+   *
+   * HVORFOR DETTE MÅ INN. Da denne analysen ble kjørt 2026-08-01 var
+   * kandidaten det RÅ nettet, og seksjon 2B konkluderte med at «budgivningen
+   * kan ikke forklare noe som helst av gapet» – fordi begge sider brukte
+   * NevroHjerne til budet, og de 3 223 tallbudene var IDENTISKE.
+   *
+   * Nøyaktig den identiteten er brutt siden. Budmodellen måler +0,618 ± 0,166
+   * mot MesterAI, og dagens Adams er `budm:...:vakt:abmp:e1:sd-r2.bin`. Uten
+   * disse to formene kan verktøyet ikke se boten vi faktisk har, og
+   * rolledekomponeringen ville beskrevet en bot vi ikke lenger spiller.
+   */
+  if (spec.startsWith("vakt:")) {
+    const v = delVaktspek(spec);
+    if (v === null) throw new Error(`Ugyldig vaktspek «${spec}»`);
+    const indre = lagKandidat(v.indre);
+    const vakt = new Konvensjonsvakt(
+      { velgHandling: (s) => indre.velg(s), nyKamp: () => indre.nyKamp(0) },
+      v.valg,
+    );
+    return { navn: spec, nyKamp: (frø) => indre.nyKamp(frø), velg: (s) => vakt.velgHandling(s) };
+  }
+  if (spec.startsWith("budm:")) {
+    const rest = spec.slice(5);
+    const skille = rest.indexOf(":");
+    if (skille < 0) throw new Error(`Ugyldig budm-spek «${spec}» – forventet budm:<modellfil>:<indre>`);
+    const indre = lagKandidat(rest.slice(skille + 1));
+    const bud = new Budagent(
+      { velgHandling: (s) => indre.velg(s), nyKamp: () => indre.nyKamp(0) },
+      lesBudmodell(rest.slice(0, skille)),
+    );
+    return { navn: spec, nyKamp: (frø) => indre.nyKamp(frø), velg: (s) => bud.velgHandling(s) };
+  }
+  throw new Error(
+    `Ukjent kandidat «${spec}» (bruk nevro, e1:<fil>, pimc, graadig, vakt:<flagg>:<indre> eller budm:<fil>:<indre>)`,
+  );
 }
 
 const kandidat = lagKandidat(kandidatNavn);
