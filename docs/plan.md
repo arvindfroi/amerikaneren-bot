@@ -224,8 +224,9 @@ godt.** Det er fase 4 i `budplan.md` — iterert beste svar — og det er umålt
 
 ## 6b. Natten 2. → 3. august: hva som ble avgjort
 
-**ADAMS ER SATT UT.** `budm:bud-gbt.json : vakt:abmp : e1:sd-r2.bin` ligger på
-nettsiden fra 03.08. Val Town proxyer bundelen og budmodellen fra GitHub raw,
+**ADAMS ER SATT UT.** `budm:bud-gbt.json : vakt:abmp : e1:ftf1.bin` ligger på
+nettsiden fra 03.08. Alle tre lagene er målt hver for seg og adoptert etter
+prosjektets egne krav. Val Town proxyer bundelen og budmodellen fra GitHub raw,
 så framtidige utplasseringer bare er en commit — med fallback til den gamle
 bundelen om GitHub svikter.
 
@@ -244,10 +245,25 @@ arkitektur, frø eller rollout-policy:
 Det forklarer alle seks på én gang, og alle mine teorier om «ødelagte
 etiketter» var feil spor.
 
-**Finjustering løser det uten 19 timers generering.** `sd-tren.py --start`
-arver sd-r2s vekter og lar de nye radene justere dem. Første resultat på samme
-holdout: **0,8974** mot 0,9414 (fra bunnen, 405k) og 0,9558 (fra bunnen, 410k),
-og med NEGATIVT gap — ingen overtilpasning, der de seks snudde på epoke 3–7.
+**Finjustering løser det uten 19 timers generering, og den er ADOPTERT.**
+`sd-tren.py --start` arver sd-r2s vekter og lar de nye radene justere dem.
+Målt i spill mot sd-r2:
+
+| frøbånd | ftf1 mot sd-r2 |
+|---|---|
+| 7,3 mill. | +0,206 ± 0,065 (3,2 SE), 1721/3117, p=0,000 |
+| 9,1 mill. | +0,079 ± 0,067 (1,2 SE), 1740/3134, p=0,000 |
+| 11,7 mill. | +0,123 ± 0,068 (1,8 SE), 1704/3174, p=0,000 |
+| **samlet** | **+0,136 ± 0,038 (3,5 SE)** |
+
+Positiv i 3 av 3 disjunkte bånd, tegntest p=0,000 i hver. Det første nye
+kortnettet som slår sd-r2 i hele prosjektet.
+
+**Læringsraten er en målt grense, ikke et valg.** Ved 3e-3 måler nettet
+−0,171: det glemmer det gamle datagrunnlaget. Vendepunktet ligger rundt 1e-3.
+Og `ftf1` har HØYERE hold-anger enn `ftf3` (0,8974 mot 0,8673) men spiller
+bedre — anti-korrelasjonen mellom orakelanger og spillestyrke holdt hele
+natten, så alle fire ble rangert i SPILL.
 
 **Fasegapet har flyttet seg.** Spilleføringen er nå jevn med MesterAI (+8,45
 mot +8,45 poeng per kontrakt). De to hullene som står igjen er makker (−86) og
