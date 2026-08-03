@@ -37,6 +37,7 @@
 
 import { FARGER, type Farge, type Kort } from "../kort.ts";
 import { fyllPlanblokk, PLAN_ANTALL } from "./plan.ts";
+import { fyllTroblokk, TRO_ANTALL } from "./tro.ts";
 import type { GameState } from "../motor.ts";
 import { fargeIndeks, kortIndeks, SPILL_DIM, spillTrekk } from "../nevro/trekk.ts";
 
@@ -121,6 +122,19 @@ export const E1_SPILL_DIM_V4 = E1_SPILL_DIM_V3 + 8;
  * på ferdige datarader uten ny generering.
  */
 export const E1_SPILL_DIM_V5 = E1_SPILL_DIM_V4 + PLAN_ANTALL;
+
+/**
+ * v6 (indeks 376–427): TROBLOKKEN – hva HVER motstander kan ha på hånd.
+ *
+ * Se `src/e1/tro.ts`. Telleblokken (v3) ga ANTALL kort per sete og farge;
+ * denne gir HVILKE (høyeste og laveste rang spilt) og – viktigst – en ØVRE
+ * GRENSE for hvor mange av hver farge hvert sete kan ha igjen. Det gjør
+ * «nærmer seg renonse» til et tall i stedet for et binært endepunkt.
+ *
+ * Kan IKKE utledes av de foregående trekkene: spillertilordningen av spilte
+ * kort finnes bare i historikken. Krever derfor ny generering.
+ */
+export const E1_SPILL_DIM_V6 = E1_SPILL_DIM_V5 + TRO_ANTALL;
 
 const BASIS = SPILL_DIM;
 /** Der minneblokken begynner. */
@@ -309,5 +323,10 @@ export function e1SpillTrekk(state: GameState, sete: number, dim: number = E1_SP
   // Regnes av de 364 foregående, ikke av `state`. Samme funksjon brukes til å
   // utvide ferdige datarader, så de to kan ikke komme i utakt.
   fyllPlanblokk(v);
+
+  if (dim <= E1_SPILL_DIM_V5) return v;
+
+  // --- TROBLOKKEN (v6, 376–427) --------------------------------------------
+  fyllTroblokk(v, state, sete);
   return v;
 }

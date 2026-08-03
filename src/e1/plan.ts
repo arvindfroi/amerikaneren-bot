@@ -13,12 +13,22 @@
  *     er kontrakten sikret / matematisk tapt
  *     slakk               = stikk igjen − stikk som mangler
  *
- * Og poengreglene har et BRÅTT HOPP nøyaktig der: `beregnPoeng` gir budlaget
- * ±2n og ±n på `lagStikk >= n`, uten et eneste poeng for overstikk. Det
- * ellevte stikket i en niermelding er altså verdt omtrent ingenting for
- * budlaget – bare de 1/3 differansen det koster forsvaret. Verdien av et stikk
- * faller med en faktor på flere ganger i det øyeblikket kontrakten er i havn,
- * og nettet må lære det bruddet som en subtraksjon det aldri får se.
+ * Og poengreglene har et BRÅTT SKIFTE nøyaktig der: `beregnPoeng` gir budlaget
+ * ±2n og ±n på `lagStikk >= n`, uten et eneste poeng for overstikk.
+ *
+ * MEN OVERSTIKK ER IKKE VERDILØSE, og her tok jeg feil først. Hvert stikk
+ * budlaget tar NEKTER en forsvarer +1, og i differansemålet er det verdt 1/3.
+ * Det som skjer ved `lagStikk == bud` er derfor ikke at verdien forsvinner –
+ * det er at MÅLET SKIFTER: fra å sikre kontrakten til å holde motparten nede.
+ *
+ * Det samme gjelder i den andre enden. Er kontrakten matematisk tapt, er ±2n
+ * allerede avgjort, og hele resten av runden er utelukkende en kamp om å nekte
+ * forsvarerne stikk. To helt ulike spillemåter, og nettet må kunne skille dem.
+ *
+ * OG FØR BEGGE: «hvor mange mangler» er RISIKOMÅLET. Med tre stikk igjen og
+ * ett som mangler kan man spille trygt; med tre igjen og tre som mangler må
+ * man ta sjanser. Det er den vurderingen nettet i dag må gjette seg til fra en
+ * subtraksjon det aldri får se.
  *
  * DET SAMME GJELDER FORSVARET, og det er hele Arvinds forsvarsoppdrag:
  * «forsvarer må bli veldig god til å felle kontrakter». En forsvarer som vet
@@ -97,11 +107,12 @@ export function fyllPlanblokk(v: Float32Array): void {
   // 366: slakk, med fortegn bevart og klippet til [−1, 1]. Negativ slakk betyr
   // at kontrakten ikke lenger KAN klares.
   v[p + 2] = Math.max(-1, Math.min(1, slakk / 13));
-  // 367: kontrakten er i havn. Etter dette er flere stikk nesten verdiløse for
-  // budlaget – de gir null i seg selv, bare 1/3 i differanse fra å nekte
-  // forsvaret et stikk.
+  // 367: kontrakten er i havn. Etter dette SKIFTER målet – budlaget får ingenting
+  // for overstikk, men hvert stikk de tar nekter en forsvarer +1, verdt 1/3 i
+  // differansen. Fra «sikre kontrakten» til «holde motparten nede».
   v[p + 3] = bud > 0 && lagStikk >= bud ? 1 : 0;
-  // 368: kontrakten er matematisk tapt.
+  // 368: kontrakten er matematisk tapt. ±2n er avgjort, og resten av runden er
+  // utelukkende en kamp om å nekte forsvarerne stikk.
   v[p + 4] = bud > 0 && mangler > igjen ? 1 : 0;
   // 369: den kan fortsatt akkurat klares, uten et eneste stikk til overs.
   v[p + 5] = bud > 0 && mangler === igjen && mangler > 0 ? 1 : 0;

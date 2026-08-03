@@ -56,10 +56,11 @@ import { dirname } from "node:path";
 
 import { lagRng } from "../src/kort.ts";
 import { lovligeHandlinger, lovligeKort, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
-import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4 } from "../src/e1/trekk.ts";
+import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V6 } from "../src/e1/trekk.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { vurderKortSD } from "../src/moe2/sdkort.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
+import { Budagent, lesBudmodell } from "../src/moe2/budagent.ts";
 import { kortIndeks, NevroAgent } from "../src/nevro/index.ts";
 import { spillerVisning } from "../src/motor.ts";
 import { lagInn } from "../src/neat/trekk.ts";
@@ -238,14 +239,50 @@ function lagMotpart(spec: string): { navn: string; velgHandling(s: GameState): H
     const agent = E1Agent.fraFil(spec.slice(3));
     return { navn: spec, velgHandling: (s) => agent.velgHandling(s) };
   }
-  throw new Error(`Ukjent --motpart «${spec}» (bruk nevro, e1:<fil> eller vakt:<flagg>:<indre>)`);
+  if (spec.startsWith("budm:")) {
+    // BUDMODELLEN PAAVIRKER IKKE ROLLOUTENE - de starter i spillfasen, der budet
+    // alt er avgjort - men den maa kunne staa i en spek, fordi STILLINGSKILDEN
+    // under bruker samme byggefunksjon og der betyr den alt.
+    const rest = spec.slice(5);
+    const skille = rest.indexOf(":");
+    if (skille < 0) throw new Error(`Ugyldig budm-spek «${spec}» - forventet budm:<modellfil>:<indre>`);
+    const indre = lagMotpart(rest.slice(skille + 1));
+    const pakket = new Budagent(
+      { velgHandling: (s) => indre.velgHandling(s), nyKamp: () => {} },
+      lesBudmodell(rest.slice(0, skille)),
+    );
+    return { navn: `budm:${indre.navn}`, velgHandling: (s) => pakket.velgHandling(s) };
+  }
+  throw new Error(
+    `Ukjent spek «${spec}» (bruk nevro, e1:<fil>, vakt:<flagg>:<indre> eller budm:<fil>:<indre>)`,
+  );
 }
 const motpart = lagMotpart(motpartSpek);
 /**
  * Stillingskilden. Standard er nevro (runde 1); med --spiller er det nettet
  * som selv skal laere, og da er dette DAgger-runde 2.
+ *
+ * TAR NAA EN HEL SPEK, ikke bare en vektfil. Det var en ekte feilkobling:
+ * Adams spiller med `budm:bud-gbt.json`, men stillingskilden var et bart
+ * E1-nett. Maalt over 1 200 runder (`examples/kontraktskift.ts`) gir det en
+ * helt annen kontraktsfordeling:
+ *
+ *   bud     uten budmodell   med budmodell
+ *    8        13,4 %            0,2 %
+ *    9        62,0 %           52,5 %
+ *   10        23,8 %           47,3 %
+ *
+ * Bud 10 er altsaa naer halvparten av det Adams faktisk spiller og en
+ * fjerdedel av det den var trent paa. Nettet var undertrent paa noeyaktig de
+ * kontraktene det spiller mest.
  */
-const spiller = spillerFil !== null ? E1Agent.fraFil(spillerFil) : nevro;
+const spiller =
+  spillerFil !== null
+    ? (() => {
+        const a = lagMotpart(spillerFil.includes(":") ? spillerFil : `e1:${spillerFil}`);
+        return { velgHandling: (s: GameState) => a.velgHandling(s), nyKamp: () => {} };
+      })()
+    : nevro;
 // SKRIV HVEM SOM SPILLER. To ganger i dag har noe staatt «koblet» uten aa
 // vaere i bruk (muterRettet, spillFasit), og begge gangene fordi ingen linje
 // sa hva som faktisk kjoerte.
@@ -314,7 +351,7 @@ alleKamper: for (let k = 0; k < kamper; k++) {
               // nye informasjonen, uten et eneste varsel. Fanget ved aa lese
               // foerste rad etter oppstart. GJOER DET IGJEN etter hver gang
               // kodingen utvides: `head -1 <mappe>/skard-0.jsonl` og tell.
-              t: Array.from(e1SpillTrekk(s, sete, E1_SPILL_DIM_V4), (x) => Math.round(x * 10_000) / 10_000),
+              t: Array.from(e1SpillTrekk(s, sete, E1_SPILL_DIM_V6), (x) => Math.round(x * 10_000) / 10_000),
               nt: lagInn(spillerVisning(s, sete), "SPILL", s.giving.antallStikk, s.regler.målPoeng).map(
                 (x) => Math.round(x * 10_000) / 10_000,
               ),
@@ -371,6 +408,6 @@ alleKamper: for (let k = 0; k < kamper; k++) {
 }
 
 console.log(
-  `Ferdig: ${merket} stillinger à ${E1_SPILL_DIM_V4} trekk (v1 ${E1_SPILL_DIM} + minne + telling + auksjon), ` +
+  `Ferdig: ${merket} stillinger à ${E1_SPILL_DIM_V6} trekk (v1 ${E1_SPILL_DIM} + minne + telling + auksjon + plan + tro), ` +
     `SD med ${verdener} verdener, budspredning ${budspredning} → ${ut}`,
 );

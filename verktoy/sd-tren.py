@@ -64,7 +64,7 @@ import torch.nn.functional as F
 # der `len(t)` ikke stemmer, så et v2-datasett ville gitt «0 gyldige rader»
 # etter timer med generering – eller, om noen senere fjernet sjekken, trent
 # på feiljusterte kolonner uten å feile.
-LOVLIGE_DIM = (273, 340, 356, 364, 376)
+LOVLIGE_DIM = (273, 340, 356, 364, 376, 428)
 TREKK_DIM = None  # settes av `finn_dim()` ved innlesing
 KORT = 52
 
@@ -167,7 +167,7 @@ def les(mapper: list[str]):
     # ETTER at hele datasettet er lest inn - altsaa minutter kastet bort paa en
     # manglende ordbokoppfoering. Nettopp den klassen feil (hardkodet bredde)
     # er kommentert som «stum felle» over.
-    navn_dim = {273: "v1", 340: "v2 minneblokk", 356: "v3 telleblokk", 364: "v4 auksjonsblokk", 376: "v5 planblokk"}.get(
+    navn_dim = {273: "v1", 340: "v2 minneblokk", 356: "v3 telleblokk", 364: "v4 auksjonsblokk", 376: "v5 planblokk", 428: "v6 troblokk"}.get(
         TREKK_DIM, "ukjent"
     )
     print(f"Trekkbredde: {TREKK_DIM} ({navn_dim})", flush=True)
