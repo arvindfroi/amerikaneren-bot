@@ -318,8 +318,28 @@ async function pimcHandling(s: GameState): Promise<Handling> {
  */
 type Motstander = "Vaar" | "MesterAI";
 const MOTSTANDER_INFO: Record<Motstander, string> = {
-  Vaar: "Vår beste bot – sd-r2 med konvensjonsvakt 🤖",
+  Vaar: "Adams – budmodell + vakt + finjustert nett 🤖",
   MesterAI: "MesterAI – appens mester 🏆",
+};
+
+/**
+ * BOT-ID-EN SOM LOGGES, og hvorfor den ikke er den samme som nøkkelen.
+ *
+ * `navn`-feltet i hendelsesloggen er `<spiller> vs <bot>`, og ALL analyse
+ * grupperer på det. Nøkkelen «Vaar» har vært brukt siden 1. august, gjennom
+ * flere ulike boter – og da Adams ble satt ut 3. august kl. 03:40 rakk det å
+ * bli spilt 54 runder mot den FØR dette ble oppdaget, alle logget som «Vaar»
+ * og dermed umulige å skille fra de 89 mot forgjengeren. De reddes bare av
+ * tidsstempelet, og det er flaks, ikke design.
+ *
+ * Derfor logges nå en VERSJON. Gamle rader beholder «Vaar»; nye sier hva de
+ * faktisk møtte. Endres boten igjen, skal dette tallet endres samtidig –
+ * ellers blandes to populasjoner i én rad, og differansen måler hvilken bot
+ * som ble spilt mest.
+ */
+const BOT_ID: Record<Motstander, string> = {
+  Vaar: "Adams-v1",
+  MesterAI: "MesterAI",
 };
 /** MesterAI vises kun i bro-modus (spillet servert lokalt over HTTP). */
 const MOTSTANDERE = (): Motstander[] =>
@@ -364,7 +384,7 @@ function si(tekst: string): void {
 function logg(type: string, data: unknown): void {
   const hendelse = {
     spillId,
-    navn: `${spillerNavn} vs ${motstander}`,
+    navn: `${spillerNavn} vs ${BOT_ID[motstander]}`,
     type,
     data,
     tid: new Date().toISOString(),
