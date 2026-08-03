@@ -1,0 +1,94 @@
+=== FORSVARSPROFIL: dagens Adams mot NevroHjerne ===
+
+Kjørt 2026-08-03.
+  node examples/forsvarsprofil.ts "vakt:abmp:e1:e1-modell/sd-r2.bin" nevro \
+    --kamper 400 --andre "vakt:abmp:e1:e1-modell/sd-r2.bin"
+
+Kontrakt 9 tvunget, NevroHjerne som spillefører i begge armene, kandidaten i
+ett forsvarssete og VÅR EGEN BESTE BOT som medforsvarer. Det siste er ikke en
+detalj: skriptets egen toppkommentar advarer om at en svak medspiller MASKERER
+verdien av setet som måles (målt 6× forskjell på makkersetet 2026-08-01).
+
+BAKGRUNNEN. Fasegap mot MesterAI (24 par, 879 runder) sier at spilleføringen
+nå er JEVN (+8,45 mot +8,45 poeng per kontrakt, kvalitetseffekt +0,89), og at
+de to hullene som står igjen er makker (−86) og forsvar (−110). Halvparten av
+alle sete-runder er forsvar, og ingen forsvarsregel er noensinne bygget eller
+målt i dette prosjektet.
+
+UTFALLET – raden som avgjør
+-----------------------------------------------------------------
+                          vakt:abmp:sd-r2      NevroHjerne
+  givere spilt ut                     158              158
+  KONTRAKTEN FALT                    16 %             16 %
+  budlagets stikk                   9,867            9,816
+  differanse, parret på giv             –   −0,051 ± 0,063
+-----------------------------------------------------------------
+
+Færre stikk til budlaget = bedre forsvar. NevroHjerne gir budlaget 0,051 FÆRRE
+stikk enn oss, altså 0,8 SE i nevros favør – ikke til å skille fra null.
+
+  FORSVARET VÅRT ER IKKE MÅLBART BEDRE ENN NEVROHJERNES.
+
+Det er verdt å se mot at nettet slår nevro med +1,07 poeng per runde totalt
+(regresjon med giv-faste effekter). Hele den fordelen ligger altså i
+spillefører- og makkersetet. Forsvaret har vi aldri flyttet.
+
+ATFERDEN – hvor vi skiller oss
+-----------------------------------------------------------------
+                                        oss      nevro
+  budlaget leder og vi KUNNE ta        288        308
+    → tok stikket                     96 %       83 %
+  medforsvarer leder (alt vårt)        238        243
+    → slo vårt eget stikk             32 %       28 %
+    → kastet honnør bort               3 %        1 %
+  renons + har trumf                     9*        16*
+    → trumfet inn                     100 %      75 %
+  utspill                              182        189
+    → spilte trumf ut                   6 %        8 %
+    → spilte honnør ut                 26 %       31 %
+-----------------------------------------------------------------
+  * under 20 observasjoner, skal ikke leses
+
+VI TAR 13 PROSENTPOENG FLERE av de stikkene vi kunne tatt – og kontrakten
+faller like ofte. Aggresjonen betaler seg altså ikke: vi tar stikk vi ville
+fått uansett, og ikke de som avgjør.
+
+HVA SOM IKKE ER EN REGEL HER
+-----------------------------------------------------------------
+De 32 % der vi går over medforsvareren ser ut som sløsing, men er det ikke
+nødvendigvis. `garantertVårt` bruker `lagetSynlig` og virker for forsvarere,
+så flagget `b` dekker ALLEREDE de stillingene der stikket er sikret. De 32 %
+er derfor stillinger der en motstander fortsatt kan ta stikket, og der kan det
+være riktig å gå over. Det er skjønn, ikke en regel med kjent utfall – og
+skjønnsregler har 0 av 9 i dette prosjektet.
+
+HVA BRIDGE OG WHIST FAKTISK GIR
+-----------------------------------------------------------------
+De fleste konvensjoner overføres IKKE, av strukturelle grunner:
+
+  signaler (attitude/count/suit-preference)  motoren har ingen signalering,
+      og makkeren vår er samme nett – det leser dem ikke.
+  Rule of Eleven      forutsetter at makker leder fjerde-beste ved konvensjon.
+  lead through strength / up to weakness     forutsetter blindemann.
+
+Tre overføres, fordi de er rent lokale beslutninger: andre hånd lavt, tredje
+hånd høyt, dekk en honnør. Ingen av dem er målt her ennå.
+
+DEN EGENTLIGE MISTANKEN
+-----------------------------------------------------------------
+`sd-orakel.ts --rollevekt` merker spilleførerens stillinger oftere, og
+standardverdien er 3. Begrunnelsen i koden er en rolledekomponering fra
+26. juli:
+
+  spillefører   25 % av sete-runder   104 % av totaltapet
+  makker        25 %                   −7 %
+  forsvarer     50 %                    2 %
+
+Den var riktig da. Etter vaktene og budmodellen bærer spilleføreren 0 % av
+tapet, og hullene er i makker og forsvar. Rollevekten er altså kalibrert mot
+en bot som ikke finnes lenger, og har brukt tre firedeler av treningsdataene
+på rollen vi allerede har tatt igjen.
+
+sd-stor/ er restartet med `--rollevekt 1`. Uniform er ikke et veddemål – det
+er fraværet av en tommel på vekten. Å vekte forsvar OPP ville vært å
+overtilpasse til 24 par.
