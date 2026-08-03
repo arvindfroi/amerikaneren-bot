@@ -1,15 +1,15 @@
 
-=== Rolleprofil «spillefører», tvungen kontrakt 9, 1200 givere ===
+=== Rolleprofil «spillefører», tvungen kontrakt 9, 1600 givere ===
 Kandidaten fører; de tre andre setene er NevroHjerne. Parret på giver.
 
-                                    vab:sd-r2     vabmp:ftf1
+                                  vabmp:sd-r2     vabmp:ftf1
 ------------------------------------------------------------
-kontrakter spilt                          425            425
-innfridd                                 89 %           85 %
-lagstikk                                9.972          9.904
-lagstikk − SD                          +0.461         +0.393
-  mot vab:sd-r2 (±SE)                       –   -0.068±0.044
-kortvalg (n)                             5100           5100
+kontrakter spilt                          571            571
+innfridd                                 88 %           85 %
+lagstikk                                9.939          9.907
+lagstikk − SD                          +0.422         +0.391
+  mot vabmp:sd-r2 (±SE)                     –   -0.032±0.038
+kortvalg (n)                             6852           6852
   ulikt nevro                            52 %           54 %
 
 MesterAI ligger på lagstikk − SD = +0,30 i fasegaprapporten, målt i hele

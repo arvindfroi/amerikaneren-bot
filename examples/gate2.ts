@@ -79,6 +79,22 @@ interface Linje {
   sete: number;
   /** armnavn → poengdifferanse for setet. */
   d: Record<string, number>;
+  /**
+   * armnavn → rollen setet fikk i DEN armen: «foerer», «makker» eller
+   * «forsvar».
+   *
+   * ROLLEN KAN VARIERE MELLOM ARMENE, og det er hele grunnen til at den
+   * lagres per arm og ikke per rad. Endrer en arm budgivningen, vinner den
+   * budrunden oftere og havner i en annen rolle - og da maaler en
+   * rolledekomponering delvis hvem som bydde, ikke hvem som spilte best.
+   *
+   * Fasegapet mot MesterAI viser at spillefoeringen er JEVN (+8,45 mot +8,45
+   * poeng per kontrakt) mens hullene er makker (-86) og forsvar (-110).
+   * Uten denne kolonnen kan gate 2 ikke si hvilken av de tre en ny vekt
+   * flytter, og det er noeyaktig spoersmaalet Arvind stilte: «hvordan er den
+   * bedre da?»
+   */
+  r: Record<string, string>;
 }
 
 const sn = (v: readonly number[]): number => (v.length ? v.reduce((a, x) => a + x, 0) / v.length : NaN);
@@ -141,6 +157,32 @@ if (rapport !== null) {
         `(${(sn(d) / se(d)).toFixed(1)} SE)  ${pos}/${pos + neg}  p=${tegntest(pos, pos + neg).toFixed(3)}`,
     );
   }
+  // ROLLEDEKOMPONERING. Rollen tas fra KONTROLLARMEN, ikke fra kandidatens
+  // egen: endrer kandidaten budgivningen, havner den i en annen rolle, og da
+  // ville en gruppering paa dens EGEN rolle blandet «hvem bydde» inn i «hvem
+  // spilte best». Med kontrollens rolle som noekkel sammenliknes de to armene
+  // paa noeyaktig de samme (giv, sete)-parene.
+  if (R.some((r) => r.r)) {
+    L.push(``, `PER ROLLE (rollen er KONTROLLENS, saa parene er de samme):`);
+    for (const k of armer) {
+      if (k === "KONTROLL") continue;
+      L.push(`  ${k}`);
+      for (const rolle of ["foerer", "makker", "forsvar"]) {
+        const d = R.filter((x) => x.r?.["KONTROLL"] === rolle)
+          .map((x) => (x.d[k] ?? NaN) - (x.d["KONTROLL"] ?? NaN))
+          .filter(Number.isFinite);
+        if (d.length < 20) continue;
+        const pos = d.filter((x) => x > 0).length;
+        const neg = d.filter((x) => x < 0).length;
+        L.push(
+          `    ${rolle.padEnd(9)} n=${String(d.length).padStart(5)}  ` +
+            `${(sn(d) >= 0 ? "+" : "") + sn(d).toFixed(4)} ± ${se(d).toFixed(4)} ` +
+            `(${(sn(d) / se(d)).toFixed(1)} SE)  ${pos}/${pos + neg}  p=${tegntest(pos, pos + neg).toFixed(3)}`,
+        );
+      }
+    }
+  }
+
   L.push(
     ``,
     `KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet`,
@@ -222,7 +264,7 @@ const armer: { navn: string; spek: string }[] = [
 ];
 
 /** Spiller giva med `spek` i `sete` og miljoet i de tre andre. */
-function spill(frø: number, sete: number, spek: string): number | null {
+function spill(frø: number, sete: number, spek: string): { diff: number; rolle: string } | null {
   let s: GameState = opprettSpill({ antallSpillere: 4 }, frø);
   const v: Velger[] = [0, 1, 2, 3].map((p) => lagVelger(p === sete ? spek : miljøSpek));
   for (const b of v) b.nyKamp();
@@ -234,7 +276,11 @@ function spill(frø: number, sete: number, spek: string): number | null {
   if (s.fase === "BUDRUNDE" || s.budvinner === null) return null;
   const p = s.totalPoeng;
   const egne = p[sete] ?? 0;
-  return Math.round((egne - (p.reduce((a, x) => a + x, 0) - egne) / 3) * 1000) / 1000;
+  const rolle = sete === s.budvinner ? "foerer" : sete === s.makker ? "makker" : "forsvar";
+  return {
+    diff: Math.round((egne - (p.reduce((a, x) => a + x, 0) - egne) / 3) * 1000) / 1000,
+    rolle,
+  };
 }
 
 let n = 0;
