@@ -90,7 +90,7 @@ Alle seks aksene i oppsettet er riktige for første gang:
 
 | akse | rettet i dag |
 |---|---|
-| ~~trekk~~ | ~~v2 (340) med minneblokken~~ — **MÅLT SKADELIG, se under** |
+| trekk | v2 (340) med minneblokken — **nøytral**, ikke skadelig (retting 03.08) |
 | kontrakter | spredt, ikke 92 % bud 9–10 |
 | rollout-policy | `vakt:abmp`, ikke nevro |
 | stillingskilde | nettet selv (DAgger), ikke nevro |
@@ -109,9 +109,25 @@ spill mot dagens vekter, 400 givere × 4 seter, friskt frøbånd 900 000.
 | ablasjon-v1 (273) | 0,9693 | +75,85 ± 0,07 | — |
 | ablasjon-v2 (340) | 0,9898 | +75,56 ± 0,07 | −0,29 ± 0,05, 141/388 |
 
-To uavhengige mål, samme fortegn, p = 0,000 i spill: **minneblokken er ikke
-nøytral, den er skadelig.** Historien bak den var god — budvinneren bør huske
-sitt eget vrak — og det holdt ikke. Aksen strykes.
+**TRUKKET TILBAKE 2026-08-03.** Påstanden over var feil, og feilen var i
+treneren: vektinitialiseringen var aldri seedet, så de to armene skilte seg på
+startvekter i tillegg til trekkbredde — og vi kjørte n=1 av hver.
+
+Kjørt på nytt med tre seedede frø per arm, målt i spill på 6 000 (giv, sete):
+
+| frø | v1 | v2 | v2 − v1 |
+|---|---|---|---|
+| 11 | −0,572 | −0,508 | **+0,064** |
+| 22 | −0,353 | −0,615 | −0,262 |
+| 33 | −0,523 | −0,557 | −0,034 |
+
+Ett frø favoriserer v2, to favoriserer v1. Og variasjonen INNENFOR v1 er
+0,219 — nesten like stor som den største forskjellen mellom armene. Den
+opprinnelige −0,27 er nøyaktig frø 22s flaks.
+
+**Minneblokken er ikke skadelig. Den er ikke målbart noe.** Den kan bli
+stående. Arvind pekte på feilen: «vrak og utetelling burde ikke være skadelig,
+da er det noe annet som må være galt.»
 
 Og dagens vekter slår begge de nye med 0,76 poeng, positivt i 326 av 394
 givere. Det er ikke støy, og det er utgangsprøven i §4 som feiler.
