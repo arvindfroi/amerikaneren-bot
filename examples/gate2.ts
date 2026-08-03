@@ -124,7 +124,24 @@ if (rapport !== null) {
     for (const l of readFileSync(join(kat, f), "utf8").split("\n")) {
       if (l.trim() === "") continue;
       try {
-        R.push(JSON.parse(l) as Linje);
+        const rad = JSON.parse(l) as Linje;
+        // TOLERER DEN NOESTEDE FORMEN fra 2026-08-03. En tekstsubstitusjon
+        // traff ikke skriveren, saa `d` fikk hele {diff, rolle}-objektet i
+        // stedet for tallet - og rapporten ga NaN uten aa feile. Dataene er
+        // komplette, bare pakket feil, saa de pakkes ut her i stedet for aa
+        // kastes. Nye kjoeringer skriver flat form.
+        const foerste = Object.values(rad.d ?? {})[0] as unknown;
+        if (foerste !== null && typeof foerste === "object" && "diff" in (foerste as object)) {
+          const flat: Record<string, number> = {};
+          const roller: Record<string, string> = {};
+          for (const [k, v] of Object.entries(rad.d as unknown as Record<string, { diff: number; rolle: string }>)) {
+            flat[k] = v.diff;
+            roller[k] = v.rolle;
+          }
+          rad.d = flat;
+          rad.r = roller;
+        }
+        R.push(rad);
       } catch {
         continue;
       }
@@ -289,6 +306,7 @@ for (let f = 0; f < giver; f++) {
   const frø = (frøBase + f) >>> 0;
   for (let sete = 0; sete < 4; sete++) {
     const d: Record<string, number> = {};
+    const rr: Record<string, string> = {};
     let ok = true;
     for (const a of armer) {
       const r = spill(frø, sete, a.spek);
@@ -296,10 +314,11 @@ for (let f = 0; f < giver; f++) {
         ok = false;
         break;
       }
-      d[a.navn] = r;
+      d[a.navn] = r.diff;
+      rr[a.navn] = r.rolle;
     }
     if (!ok) continue;
-    appendFileSync(ut, JSON.stringify({ giv: frø, sete, d } satisfies Linje) + "\n");
+    appendFileSync(ut, JSON.stringify({ giv: frø, sete, d, r: rr } satisfies Linje) + "\n");
     n++;
   }
   process.stdout.write(`\r  skard ${skardI}: ${n} rader   `);
