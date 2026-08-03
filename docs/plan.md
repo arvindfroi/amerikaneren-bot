@@ -1195,3 +1195,46 @@ brukt «forkastet» om ting som er målt mot enten et feilspesifisert orakel ell
 en ødelagt trener. Det er for hardt. **Telleblokken, minneblokken, de ni
 regelforsøkene og de ti søkeforsøkene er UTESTÅENDE, ikke døde** — alle ble
 målt før 3. august, da rollout-policyen og oppvarmingen ble rettet.
+
+## 18. Planblokken konverterer ikke — og mønsteret er nå entydig
+
+Frøbånd 21 200 000, n=6000:
+
+| | mot `ftf1` | isolert mot kontrollarmen `p5n` |
+|---|---|---|
+| `p5p` plan | +0,0826 ± 0,0776 | **−0,0187 ± 0,0707** |
+| `p5alt` alle blokker | +0,0841 ± 0,0837 | −0,0172 ± 0,0777 |
+| `p5n` ingen ny info | +0,1013 ± 0,0746 | — |
+
+Kontrollarmen er BEST. Planblokken hadde 4× viktigheten til noen annen ny
+blokk (kryssindeksen) og gir null i poeng. Skjermen er nå bekreftet to ganger:
+**høy viktighet i fordelingen ≠ gevinst utenfor den.**
+
+### Fem blokker, samme svar
+
+| blokk | isolert bidrag |
+|---|---|
+| v2 minne | +0,100 ± 0,064 (tre bånd, fortegnsskifte) |
+| v3 telling | −0,006 ± 0,046 |
+| v4 auksjon | +0,045 ± 0,052 |
+| v5 plan | −0,019 ± 0,071 |
+| v6 tro / v7 verdi | ikke målt ennå (`sd-v7`) |
+
+### DEN VIKTIGSTE KONKLUSJONEN I HELE ØKTA
+
+Fem blokker med ny informasjon eller nytt regnestykke: **alle null.**
+Ett-plys framoverblikk med korrekt rollout-policy: **+0,414, z = 6,6.**
+
+> **Flaskehalsen er ikke hva nettet kan SE. Den er hva nettet kan REGNE UT.**
+
+Avledede trekk (plan, verdi) hjelper ikke, fordi de er funksjoner av det nettet
+allerede ser — et nett med 500 000 parametre kan regne dem selv. Ny informasjon
+(minne, telling, auksjon) hjelper ikke, fordi nettet allerede henter ut det
+datamengden tillater.
+
+Men et framoverblikk er ikke en ny inngang — det er en ny BEREGNING, og det er
+den eneste som har betalt.
+
+**Det setter ikke blokkene på båten**, det setter dem på hylla: alle fem ble
+målt på data generert med 12 verdener og uten budmodell i stillingskilden.
+`sd-v7` retter begge. Men prioren er nå svak, og maskintiden bør gå til søk.
