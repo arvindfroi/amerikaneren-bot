@@ -36,6 +36,7 @@
  */
 
 import { FARGER, type Farge, type Kort } from "../kort.ts";
+import { fyllPlanblokk, PLAN_ANTALL } from "./plan.ts";
 import type { GameState } from "../motor.ts";
 import { fargeIndeks, kortIndeks, SPILL_DIM, spillTrekk } from "../nevro/trekk.ts";
 
@@ -109,6 +110,17 @@ export const E1_SPILL_DIM_V3 = E1_SPILL_DIM_V2 + 16;
  * Dette er noe annet: hva de ANDRE bød, brukt som informasjon under kortspill.
  */
 export const E1_SPILL_DIM_V4 = E1_SPILL_DIM_V3 + 8;
+
+/**
+ * v5 (indeks 364–375): PLANBLOKKEN – kontraktsregnskapet, eksplisitt.
+ *
+ * Se `src/e1/plan.ts` for hele begrunnelsen. Kort: nettet ser budet, lagets
+ * stikk og stikk igjen, men ikke DIFFERANSEN – og poengreglene har et brått
+ * hopp nøyaktig der, siden overstikk ikke gir budlaget noe. Blokken er en ren
+ * funksjon av de 364 første trekkene, så den finnes bare ett sted og kan legges
+ * på ferdige datarader uten ny generering.
+ */
+export const E1_SPILL_DIM_V5 = E1_SPILL_DIM_V4 + PLAN_ANTALL;
 
 const BASIS = SPILL_DIM;
 /** Der minneblokken begynner. */
@@ -290,5 +302,12 @@ export function e1SpillTrekk(state: GameState, sete: number, dim: number = E1_SP
       v[AUKSJON + r * 2 + 1] = 1;
     }
   }
+
+  if (dim <= E1_SPILL_DIM_V4) return v;
+
+  // --- PLANBLOKKEN (v5, 364–375) -------------------------------------------
+  // Regnes av de 364 foregående, ikke av `state`. Samme funksjon brukes til å
+  // utvide ferdige datarader, så de to kan ikke komme i utakt.
+  fyllPlanblokk(v);
   return v;
 }

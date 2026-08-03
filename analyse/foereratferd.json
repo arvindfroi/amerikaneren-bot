@@ -1,0 +1,88 @@
+{
+  "spek": "budm:e1-modell/bud-gbt.json:vakt:abmp:e1:e1-modell/ftf1.bin",
+  "verdener": 12,
+  "runder": 120,
+  "beslutninger": 1246,
+  "vurdert": 1246,
+  "enige": 420,
+  "enighetsandel": 0.33707865168539325,
+  "alle": {
+    "n": 826,
+    "snittRangDiff": 0.3789346246973366,
+    "andelHoyere": 0.5242130750605327,
+    "orakelTrumfOftere": 0.1682808716707022,
+    "nettTrumfOftere": 0.18159806295399517,
+    "orakelVinnerOftere": 0.053268765133171914,
+    "nettVinnerOftere": 0.031476997578692496,
+    "andelUtspill": 0.7033898305084746,
+    "snittMargin": 0.7397094430992739
+  },
+  "sikre": {
+    "n": 11,
+    "snittRangDiff": 1.3636363636363635,
+    "andelHoyere": 0.6363636363636364,
+    "orakelTrumfOftere": 0.09090909090909091,
+    "nettTrumfOftere": 0.09090909090909091,
+    "orakelVinnerOftere": 0,
+    "nettVinnerOftere": 0.09090909090909091,
+    "andelUtspill": 0.36363636363636365,
+    "snittMargin": 2.7121212121212124
+  },
+  "perStikk": {
+    "0": {
+      "n": 90,
+      "sikre": 2,
+      "totalt": 0
+    },
+    "1": {
+      "n": 69,
+      "sikre": 1,
+      "totalt": 0
+    },
+    "2": {
+      "n": 96,
+      "sikre": 1,
+      "totalt": 0
+    },
+    "3": {
+      "n": 88,
+      "sikre": 0,
+      "totalt": 0
+    },
+    "4": {
+      "n": 87,
+      "sikre": 3,
+      "totalt": 0
+    },
+    "5": {
+      "n": 70,
+      "sikre": 2,
+      "totalt": 0
+    },
+    "6": {
+      "n": 75,
+      "sikre": 1,
+      "totalt": 0
+    },
+    "7": {
+      "n": 65,
+      "sikre": 0,
+      "totalt": 0
+    },
+    "8": {
+      "n": 76,
+      "sikre": 1,
+      "totalt": 0
+    },
+    "9": {
+      "n": 63,
+      "sikre": 0,
+      "totalt": 0
+    },
+    "10": {
+      "n": 47,
+      "sikre": 0,
+      "totalt": 0
+    }
+  }
+}
