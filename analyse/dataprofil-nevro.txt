@@ -1,0 +1,47 @@
+
+=== PROFIL AV TRENINGSDATAENE ===
+sd-nevro – 240 000 rader med >= 2 lovlige kort, 402 givere, 340 trekk
+
+SPENN = beste minus daarligste orakelverdi blant lovlige kort.
+Det er stillingens innsats: spenn 0 betyr at valget ikke kan tas feil.
+
+  snitt            3.252
+  median           1.000
+  10 % / 25 %      0.000 / 0.111
+  75 % / 90 %      4.722 / 10.084
+  99 %             22.722
+
+  spenn = 0        34 643 (14.4 %)  <- laerer ingenting
+  spenn < 0,25     82 224 (34.3 %)  <- naesten ingenting
+
+PER MAPPE
+  mappe             rader    spenn=0   snittspenn
+  sd-nevro         240000     14.4 %        3.252
+
+PER STIKK  (fordelingen avgjoer hvilken del av spillet nettet laerer)
+  stikk    rader   andel   snittspenn   spenn=0
+      0    18954   7.9 %        4.415     0.4 %
+      1    22649   9.4 %        4.533     0.8 %
+      2    22114   9.2 %        4.304     1.0 %
+      3    21952   9.1 %        4.149     1.4 %
+      4    22010   9.2 %        3.871     2.3 %
+      5    21886   9.1 %        3.587     3.7 %
+      6    21938   9.1 %        3.247     6.4 %
+      7    21995   9.2 %        2.835    12.0 %
+      8    21783   9.1 %        2.428    21.7 %
+      9    22274   9.3 %        1.776    38.4 %
+     10    22445   9.4 %        0.808    67.7 %
+
+ANTALL LOVLIGE KORT
+   2 kort:    52552 (21.9 %)
+   3 kort:    42274 (17.6 %)
+   4 kort:    31563 (13.2 %)
+   5 kort:    26726 (11.1 %)
+   6 kort:    21718 (9.0 %)
+   7 kort:    16826 (7.0 %)
+   8 kort:    14035 (5.8 %)
+   9 kort:    12211 (5.1 %)
+  10 kort:    10924 (4.6 %)
+  11 kort:    10664 (4.4 %)
+  12 kort:      507 (0.2 %)
+
