@@ -626,7 +626,26 @@ def main() -> None:
         # identiske vekter. Skal en arkitektur- eller trekkforskjell avgjøres,
         # må ablasjonen kjøres på flere `--initfroe` og fordelingene
         # sammenliknes.
+        # VALGFRITT FEMTE LEDD: «…:bredde:a-b» NULLSTILLER kolonne a til og med
+        # b, uten å endre bredden.
+        #
+        # HVORFOR DET IKKE HOLDER Å KUTTE. `:bredde` tar et PREFIKS. Trekkene
+        # ligger i lag: v1 er 0-272, minneblokken 273-339, telleblokken
+        # 340-355. Vil vi måle telleblokken ALENE, finnes det ikke noe prefiks
+        # som gir den – den ligger bakerst, bak 67 minnekolonner.
+        #
+        # Det ble oppdaget 2026-08-03: ftf1.bin, nettet som faktisk spiller,
+        # er 273 bredt. Minneblokken er aldri tatt i bruk. En «--start» til
+        # 356 legger derfor på 83 nye kolonner, ikke 16, og en gate 2 på den
+        # ville målt minneblokk OG telleblokk som én pakke. Passerer den, vet
+        # vi ikke hvilken halvdel som virket; stryker den, vet vi ikke hvilken
+        # som skadet. Maskering gjør de to skillbare.
+        nullsone = None
         deler = spek.split(":")
+        if len(deler) == 5:
+            *deler, sone = deler
+            a, _, b2 = sone.partition("-")
+            nullsone = (int(a), int(b2))
         if len(deler) == 3:
             navn, mix, skjult = deler
             bredde = TREKK_DIM
@@ -636,13 +655,30 @@ def main() -> None:
             if bredde > TREKK_DIM:
                 raise SystemExit(f"{navn}: bredde {bredde} > trekkbredden {TREKK_DIM}")
         else:
-            raise SystemExit(f"Ugyldig --kjor «{spek}»: forventet navn:mapper:skjult[:bredde]")
+            raise SystemExit(
+                f"Ugyldig --kjor «{spek}»: forventet navn:mapper:skjult[:bredde[:a-b]]"
+            )
+        if nullsone is not None and nullsone[1] >= bredde:
+            raise SystemExit(
+                f"{navn}: nullsone {nullsone[0]}-{nullsone[1]} ligger utenfor bredden {bredde}"
+            )
         mix_mapper = [m for m in mix.split(",") if m]
         mix_idx = [mapper.index(m) for m in mix_mapper]
         tren_maske = numpy.isin(KILDE, numpy.array(mix_idx, dtype=numpy.int8)) & ~er_hold & ~lekk
         tren_idx = torch.from_numpy(numpy.flatnonzero(tren_maske)).to(enhet)
         # Utsnitt, ikke kopi – Xg ligger allerede på GPU-en og er flere hundre MB.
         Xk = Xg if bredde == TREKK_DIM else Xg[:, :bredde]
+        if nullsone is not None:
+            # KOPI, ikke utsnitt. Å nulle inn i Xg ville stjålet kolonnene fra
+            # armene som kommer etter i samme kjøring – stille, og først synlig
+            # som et uforklarlig dårlig nett.
+            Xk = Xk.clone()
+            Xk[:, nullsone[0] : nullsone[1] + 1] = 0
+            print(
+                f"  nullstiller kolonne {nullsone[0]}-{nullsone[1]} "
+                f"({nullsone[1] - nullsone[0] + 1} trekk) i en KOPI av dataen",
+                flush=True,
+            )
         dims = [bredde] + [int(x) for x in skjult.split(",")] + [KORT]
         # Nullstilles FØR hver modell, ikke én gang for hele kjøringen: ellers
         # arver arm nr. 2 en RNG-tilstand som arm nr. 1 har flyttet på.
