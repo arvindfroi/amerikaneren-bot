@@ -456,9 +456,61 @@ blitt sett — dette er et ekte null, ikke et knivsegg.
 **Det viktigste tallet står i kontrollarmen.** `v3n` er ren ekstra finjustering
 på 105k ferske rader, uten én ny informasjonskilde: **+0,005**. Finjusteringen
 som LAGET `ftf1` ga **+0,136**, replikert i fire frøbånd. Avkastningen på mer
-data av samme slag er i praksis uttømt. Det svekker håpet om at telleblokken
-bare trenger flere rader, og flytter tyngden over på trekk som bærer
-informasjon nettet ikke kan skaffe seg på noen annen måte.
+data av samme slag er i praksis uttømt.
+
+### 4. Nullstillingen gjorde forsøket umulig — en ekte implementasjonsfeil
+
+Arvind nektet å godta nullresultatet: *«det må være dårlig implementert, fordi
+det skal funke.»* Det stemte, og feilen var aritmetisk:
+
+| | |
+|---|---|
+| snitt \|vekt\| v1-kolonnene | 0,0895 |
+| snitt \|vekt\| telleblokken | 0,0028 — **33× for små** |
+| nye blokkers bidrag til lag 0 | **2,1 %** av v1s |
+
+AdamW flytter hver vekt med omtrent `lr` per steg uansett gradient. Med 105k
+rader er det ~104 batcher per epoke, og tidlig stopp kom på epoke 6:
+
+- `625 steg × 7,5e-5 (cosinus-snitt) = 0,047` maksimal forflytning
+- `0,0895` = skalaen de skulle nå
+
+**Kolonnene kunne ikke komme fram.** Nullstillingen som gjør at nettet starter
+identisk med startvekten — selve tryggheten i forsøket — gjorde det samtidig
+umulig å vinne. Den forrige konklusjonen målte treneren, ikke trekket.
+
+`--nyepoker`/`--nylr` retter det: en fase der BARE de nye kolonnene lærer, alt
+annet frosset, så raten kan være høy uten at nettet kan glemme noe. Bidraget
+gikk til 8,3 % (telling) og 17,4 % (minne+telling); vektene til 98,5 % av
+riktig skala.
+
+### 5. Med feilen ute svarer målingen fortsatt nei — men mønsteret peker et sted
+
+| arm | bånd 900k | bånd 2,5M | trimmet |
+|---|---|---|---|
+| `w3m` minne+telling, 8 ep. | **+0,1631** | **−0,1654** | −0,0303 |
+| `wm24` samme, 24 ep. | — | −0,2467 | −0,0192 |
+| `wmm` minne alene, full skala | — | −0,3821 (−2,24 SE) | −0,0315 |
+
+`w3m` slått sammen over begge bånd: **−0,001 ± 0,104**. Null. Åttende gang et
+oppdagelsestall ikke replikerer — denne gangen snudde det fortegn.
+
+**Men jo mer de nye kolonnene brukes, jo verre går det:**
+
+| bidrag | resultat |
+|---|---|
+| 0,4 % | +0,006 |
+| 8,3 % | −0,032 |
+| 17,4 % | −0,165 |
+| 24,4 % | −0,382 |
+
+Det er signaturen til **overtilpasning**, ikke til ubrukelig informasjon. Ren
+støy ville gitt null uansett vekt. 105 813 rader skal her bære 42 496 nye
+vekter.
+
+**Det er en testbar påstand, ikke en unnskyldning:** med flere rader skal
+kurven flate ut og snu. Gjør den ikke det ved 200k+, er forklaringen feil og
+blokkene forkastes for godt.
 
 **3. Auksjonen er et større hull enn tellingen — og generatoren ødela den.**
 Fra hele budrunden kodet spillfasen bare hvem som vant (208–211), tallbudet

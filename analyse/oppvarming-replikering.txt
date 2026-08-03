@@ -1,0 +1,58 @@
+OPPVARMING — REPLIKERING I DISJUNKT FROEBAAND, 3. august 2026
+=============================================================
+
+Foerste maaling laa i froebaand 900 000. Denne ligger i 2 500 000. Ingen giver
+er delt, saa dette er en replikering og ikke en ny oppdagelse paa samme data.
+
+  arm                     baand 900k    baand 2,5M   trimmet 2,5M     SE
+  ftf1 (KONTROLL)            +0,0000       +0,0000        +0,0000  0,0000
+  w3m  minne+telling, 8ep    +0,1631       -0,1654        -0,0303  0,1456
+  wm24 minne+telling, 24ep         -       -0,2467        -0,0192  0,1698
+  wmm  minne alene,    24ep         -       -0,3821        -0,0315  0,1707
+
+  w3m slaatt sammen over begge baand:  -0,001 +/- 0,104.  Noeyaktig null.
+
+DET SOM ER BEVIST OG SKAL STAA
+------------------------------
+  Implementasjonsfeilen var ekte. Nullstilte kolonner kunne ikke naa skalaen
+  resten av nettet ligger paa foer tidlig stopp slo inn (625 steg x 7,5e-5 =
+  0,047 mot en maalskala paa 0,0895). Oppvarmingen retter det, maalt:
+
+    bidrag til lag 0 som andel av v1     0,41 %  ->   8,30 %  (telling alene)
+                                         2,11 %  ->  17,41 %  (minne+telling)
+    snitt |vekt| nye kolonner            3 %     ->  98,5 %   av gammel skala
+
+  Arvinds innvending - «det maa vaere daarlig implementert» - traff en ekte
+  feil. Den forrige konklusjonen maalte treneren, ikke trekket. Det staar,
+  uavhengig av at utfallet ikke endret seg.
+
+DET SOM IKKE ER BEVIST
+----------------------
+  At blokkene hjelper. Med feilen ute maaler de fortsatt <= 0.
+
+MOENSTERET, OG DET PEKER ET STED
+--------------------------------
+  Jo mer de nye kolonnene faktisk brukes, jo daarligere:
+
+    bidrag  0,4 %  (v3k, uten oppvarming)      +0,006
+    bidrag  8,3 %  (w3k)                       -0,032
+    bidrag 17,4 %  (w3m)                       -0,165   [baand 2,5M]
+    bidrag 24,4 %  (wmm, minne paa full skala) -0,382
+
+  Det er signaturen til OVERTILPASNING, ikke til ubrukelig informasjon. En
+  blokk som var ren stoey ville gitt null uansett vekt; en blokk som gir
+  monotont daarligere resultat jo mer den brukes, tilpasser seg data som ikke
+  baerer den. 105 813 rader skal her baere 42 496 nye vekter.
+
+  DET ER EN TESTBAR PAASTAND, ikke en unnskyldning: med flere rader skal
+  kurven flate ut og snu. Hvis den IKKE gjoer det ved 200k+, er forklaringen
+  feil og blokkene skal forkastes for godt.
+
+NESTE
+-----
+  sd-v4 (364 brede, ekte budrunder, froebaand 260 M) genererer mot ~200k
+  rader. Der kjoeres alle fire kombinasjonene paa NOEYAKTIG samme rader med
+  maskering: kontroll / telling / minne / auksjon, og kombinasjonene.
+
+  Samme oppvarming, samme init-froe. Da er datamengden den ENESTE variabelen
+  som er endret siden denne tabellen, og kurven over kan leses av direkte.
