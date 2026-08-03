@@ -648,7 +648,7 @@ alltid ta det inn. Budet må justeres når spillet blir bedre. Og: blir vi veldi
 gode i forsvar, kan det bli lønnsomt å **la motparten få kontrakter vi kan
 felle**.
 
-### «Aldri hiv ut trumf» — allerede oppfylt, målt
+### «Aldri hiv ut trumf» — RETTET 3. august, det ER et hull
 
 Vraking skjer FØR trumfvalg (`motor.ts`), så regelen er egentlig et krav om
 kobling mellom to beslutninger. Adams tar dem uavhengig: `velgVrak` bruker et
@@ -659,12 +659,44 @@ trumf av hånden som ble igjen. Likevel, målt over 2000 runder
 | | |
 |---|---|
 | runder der et vraket kort ble trumffargen | 36 (1,8 %) |
-| trumfkort vraket totalt | 37 |
-| ...hvorav knekt eller høyere | **0** |
+| trumfkort vraket totalt | **37 brudd** |
 
-Nettet har lært koblingen implisitt. **Ikke et hull.** Kontrafaktualen i samme
-skript (+0,97 «stikk») skal ignoreres — `estimerStikk` belønner trumflengde, så
-enhver bytting som legger til et trumfkort hever tallet.
+**MIN FØRSTE LESNING VAR FEIL OG ER TRUKKET.** Jeg rapporterte «ingen knekt
+eller høyere» som om verdien på det vrakede trumfkortet gjorde bruddet mildere,
+og konkluderte «ikke et hull». Arvind: *«jeg snakker ikke om knekt og høyere.
+jeg snakker om å hive ut det som blir trumffarge. man hiver aldri ut der. ikke
+en 2er engang.»* Regelen er absolutt. Da er alle 37 brudd, ikke null.
+
+Kontrafaktualen i samme skript (+0,97 «stikk») skal fortsatt ignoreres —
+`estimerStikk` belønner trumflengde, så enhver bytting som legger til et
+trumfkort hever tallet uansett.
+
+### VRAKDOKTRINEN (Arvind, 3. august) — spesifikasjon, ikke parafrase
+
+1. **Trumf og vrak er ÉN beslutning.** «Trumfvalg skjer etter vrak, men det
+   henger sammen, og vi bestemmer oss for det når vi har 16 kort og skal hive
+   ut 4. Det er da vi tar de beslutningene.»
+2. **Aldri vrak i fargen som blir trumf — ikke en toer engang.**
+3. **Heller vrak en urelatert knekt, dame eller til og med konge** enn et lavt
+   trumfkort.
+4. **RENONSE ER MÅLET, og det er derfor en knekt kan ofres.** «Knekt kan jeg
+   ofte hive pga jeg vil bli kvitt suits fordi renonse er bra for spillefører —
+   da kan man bruke trumf.» Å vrake seg TOM i en farge er en gevinst i seg
+   selv, ikke et tap av kortverdi.
+
+**Hva det betyr for koden.** `velgVrak` scorer kort uten å vite hva trumfen
+blir, og `besteTrumf` velger etterpå av det som ble igjen. Doktrinen krever det
+motsatte: velg paret (trumf, vrak) sammen. Kandidatrommet er lite nok til å
+enumereres — 4 trumffarger × C(16,4) = 7 280 par, og `estimerStikk` koster
+ingenting. `src/moe2/eksperter/vrak.ts` gjør alt halve jobben (den fikser
+trumfen av hånden som BLIR IGJEN), men den er ikke i det som spiller.
+
+**Uprøvd og billig å måle før noe bygges:**
+- Hvor ofte gjør vraket oss RENONSE i minst én farge?
+- Hvor ofte etterlater vraket en singleton vi kunne blitt kvitt? (Å la ett kort
+  stå igjen i en farge er etter doktrinen bortkastet — enten tøm den eller la
+  den være.)
+- Hvor ofte vraker vi ned i en farge uten å tømme den?
 
 ### Hvor ferdigheten faktisk mangler (`verktoy/forsvarsprofil.py`)
 

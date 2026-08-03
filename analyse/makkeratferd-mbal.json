@@ -1,0 +1,33 @@
+{
+  "spek": "budm:e1-modell/bud-gbt.json:vakt:abmp:e1:e1-modell/mbal.bin",
+  "runder": 200,
+  "makkerbeslutninger": 1943,
+  "medValg": 1226,
+  "overtaking": {
+    "brudd": 50,
+    "mulig": 860,
+    "andel": 0.05813953488372093
+  },
+  "trumfslosing": {
+    "brudd": 8,
+    "mulig": 488,
+    "andel": 0.01639344262295082
+  },
+  "honnorslosing": {
+    "brudd": 62,
+    "mulig": 834,
+    "andel": 0.07434052757793765
+  },
+  "taptRedning": {
+    "brudd": 6,
+    "mulig": 137,
+    "andel": 0.043795620437956206
+  },
+  "orakel": {
+    "stillinger": 1226,
+    "overtaking": 0.04883720930232558,
+    "trumfslosing": 0.014344262295081968,
+    "honnorslosing": 0.21103117505995203,
+    "taptRedning": 0.17518248175182483
+  }
+}

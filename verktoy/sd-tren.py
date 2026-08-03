@@ -347,6 +347,53 @@ def stillingsvekt(verdi, maske, tak: float = 8.0):
     return (beste - verst).clamp(min=0.0, max=tak) + 0.05
 
 
+def rolle_av(X):
+    """0 = spillefører, 1 = makker, 2 = forsvar. Utledet av trekkene.
+
+    Indeks 208 er «budvinneren er meg» (relativ koding, r=0), 227 er «jeg er på
+    budvinnerens side». Kontrakten står i src/nevro/trekk.ts.
+    """
+    er_forer = X[:, 208] > 0.5
+    pa_laget = X[:, 227] > 0.5
+    return torch.where(er_forer, 0, torch.where(pa_laget, 1, 2))
+
+
+def rollebalanser(vekt, rolle):
+    """Skalerer vekten så HVER ROLLE bidrar proporsjonalt med sin radandel.
+
+    MÅLT PÅ sd-v3 (112 894 rader) FØR denne fantes:
+
+        rolle          andel rader    andel VEKT   vekt/rad
+        spillefører        28,2 %        44,3 %      3,223
+        makker             22,5 %         8,2 %      0,744
+        forsvar            49,4 %        47,5 %      1,971
+
+    `stillingsvekt` er spennet mellom beste og verste lovlige kort. Makkerens
+    valg har lite spenn, så treneren forteller nettet at makkerstillinger
+    knapt betyr noe – de får 8,2 % av vekten for 22,5 % av radene.
+
+    OG MAKKER ER DET STØRSTE MÅLTE HULLET: −0,22 mot MesterAI, mot forsvarets
+    −0,12 som får 47,5 % av vekten. Vekten er feilfordelt i forhold til hvor
+    poengene faktisk tapes. Rollens `fanget` er også lavest av alle: 0,262 mot
+    spillefører 0,432 (`verktoy/forsvarsprofil.py`).
+
+    ARGUMENTET FOR DEN GAMLE VEKTEN STÅR LIKEVEL: er spennet lite, er det lite
+    å hente per beslutning, og kapasitet brukt der er kapasitet tatt fra
+    spillefører. Derfor er dette et FLAGG og ikke en ny standard – gate 2
+    avgjør, som alt annet.
+    """
+    ut = vekt.clone()
+    for r in (0, 1, 2):
+        m = rolle == r
+        n = int(m.sum())
+        if n == 0:
+            continue
+        # Mål: samme snittvekt i hver rolle, med det globale snittet bevart,
+        # så det samlede tapsnivået (og dermed lærings­raten) ikke flyttes.
+        ut[m] = vekt[m] / vekt[m].mean() * vekt.mean()
+    return ut
+
+
 @torch.no_grad()
 def maal_i_biter(modell, X, V, M, tau: float, idx, batch: int = 65536):
     """Uvektet tap, treffrate og anger over `idx` – i biter, så 3 mill. rader
@@ -462,6 +509,13 @@ def main() -> None:
         help="laeringsrate naar --start brukes. Lav med vilje: for hoey rate "
         "glemmer nettet det gamle datagrunnlaget (catastrophic forgetting), og "
         "da er finjusteringen bare en daarlig omtrening.",
+    )
+    p.add_argument(
+        "--rollebalanse",
+        action="store_true",
+        help="skaler stillingsvekten saa hver ROLLE bidrar proporsjonalt med sin "
+        "radandel. Uten den faar makker 8,2 %% av vekten for 22,5 %% av radene, "
+        "fordi makkervalg har lite spenn - og makker er det stoerste maalte hullet.",
     )
     p.add_argument(
         "--nyepoker",
@@ -777,6 +831,22 @@ def main() -> None:
         )
 
         Wt = stillingsvekt(Vg[tren_idx], Mg[tren_idx])
+        if args.rollebalanse:
+            Rt = rolle_av(Xg[tren_idx])
+            # IKKE `navn` som loekkevariabel: den er KJOERINGENS navn, og ble
+            # skygget her - loggen sa «forsvar ferdig» i stedet for «mbal
+            # ferdig». Filnavnet var riktig fordi `ut` regnes ut foer, saa feilen
+            # var usynlig i alt annet enn teksten.
+            for r, rollenavn in ((0, "spillefoerer"), (1, "makker"), (2, "forsvar")):
+                m = Rt == r
+                if int(m.sum()) > 0:
+                    print(
+                        f"  {rollenavn:13} {int(m.sum()):7d} rader, snittvekt {float(Wt[m].mean()):.3f}"
+                        f" -> andel av vekt {float(Wt[m].sum() / Wt.sum()) * 100:5.1f} %",
+                        flush=True,
+                    )
+            Wt = rollebalanser(Wt, Rt)
+            print("  rollebalansert: hver rolle bidrar naa proporsjonalt med radandelen", flush=True)
         # Fast utvalg for treningstapet. Må være FAST gjennom kjøringen, ellers
         # måler kurven utvalgsstøy i stedet for tilpasning.
         g = torch.Generator(device="cpu").manual_seed(7)
