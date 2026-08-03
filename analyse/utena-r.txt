@@ -1,0 +1,36 @@
+
+=== GATE 2: kandidat i ett sete, vakt:abmp:ftf1 i de tre andre ===
+12000 (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.
+
+arm                                        poeng/runde for setet
+--------------------------------------------------------------------
+KONTROLL                                   +0.000 ± 0.092
+vakt:b:e1:e1-modell/ftf1.bin               +0.003 ± 0.092
+vakt:bmp:e1:e1-modell/ftf1.bin             +0.017 ± 0.091
+vakt:bm:e1:e1-modell/ftf1.bin              +0.016 ± 0.091
+--------------------------------------------------------------------
+
+PARRET mot KONTROLL (miljoet mot seg selv i samme sete):
+  vakt:b:e1:e1-modell/ftf1.bin             +0.0033 ± 0.0183 (0.2 SE)  458/974  p=0.068
+  vakt:bmp:e1:e1-modell/ftf1.bin           +0.0170 ± 0.0163 (1.0 SE)  79/135  p=0.058
+  vakt:bm:e1:e1-modell/ftf1.bin            +0.0161 ± 0.0163 (1.0 SE)  81/150  p=0.369
+
+PER ROLLE (rollen er KONTROLLENS, saa parene er de samme):
+  vakt:b:e1:e1-modell/ftf1.bin
+    foerer    n= 3000  +0.0681 ± 0.0651 (1.0 SE)  79/135  p=0.058
+    makker    n= 3000  -0.0548 ± 0.0332 (-1.6 SE)  379/839  p=0.006
+    forsvar   n= 6000  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+  vakt:bmp:e1:e1-modell/ftf1.bin
+    foerer    n= 3000  +0.0681 ± 0.0651 (1.0 SE)  79/135  p=0.058
+    makker    n= 3000  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+    forsvar   n= 6000  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+  vakt:bm:e1:e1-modell/ftf1.bin
+    foerer    n= 3000  +0.0681 ± 0.0651 (1.0 SE)  79/135  p=0.058
+    makker    n= 3000  -0.0036 ± 0.0039 (-0.9 SE)  2/15  p=0.007
+    forsvar   n= 6000  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+
+KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet
+i oppsettet, og ingen av de andre tallene kan leses.
+
+PORTEN: en ny vekt adopteres bare om den er positiv med margin OG
+positiv i klart over halvparten av parene. Aldri adoptere paa stoey.
