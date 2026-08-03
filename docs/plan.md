@@ -291,6 +291,52 @@ frø er den ikke målbart noe. **Trukket tilbake.**
 
 ---
 
+## 6c. Mønsteret, med tolv datapunkter bak seg
+
+Det tydeligste som kom ut av 2.–3. august er ikke et enkelttall, men en
+sortering. Alt vi har prøvd faller i to bunker, og de har motsatt fortegn.
+
+**Bedre ØYNE virker.** Å gi boten informasjon eller kalibrering den ikke hadde:
+
+| tiltak | målt |
+|---|---|
+| budmodellen | **+0,618 ± 0,166** mot MesterAI |
+| finjustering av kortnettet | **+0,146**, positiv i 4 av 4 frøbånd |
+| vaktflagg `m` og `p` | +0,040 og +0,004 |
+| telleblokken (v3) | uprøvd — genererer |
+
+**Maskineri utenpå virker ikke.** Ti søkeforsøk og ni av elleve regelforsøk:
+
+| | |
+|---|---|
+| DD-søk | −0,29 … −0,78 |
+| SD fra stikk 9/7/5 | −0,32 / −0,17 / +0,02 |
+| ISMCTS | replikerte ikke |
+| eksakt enumerasjon | −0,017 … −0,778 |
+| PIMC i kortspill | verre |
+| **PIMC i VRAK/VELG** | **−0,256 ± 0,089** |
+| `d`/`D`/`e`, `h`, `k`, `l` | alle negative eller null |
+| ensembler av 31 nett | ikke målt bedre |
+| PBS | regnbar bare der spillet er avgjort |
+
+Arvind: *«man regner bedre hvis man har bedre øyne.»* Det er nøyaktig det
+tallene sier, og rekkefølgen betyr noe: et regnestykke på feil premiss blir
+bare presist feil.
+
+**Og en advarsel som gjelder begge bunkene.** Sju tall ble målt to ganger i
+døgnet, og oppdagelsestallet var oppblåst hver eneste gang:
+
+| | oppdaget | replikert |
+|---|---|---|
+| minneblokken «skadelig» | −0,27 | −0,077 (ett frøs flaks) |
+| finjustering `ftf1` | +0,206 | +0,136 poolet |
+| fjerne flagg `a` | +0,017 | +0,005 |
+| **rekalibrert budmodell** | **+0,061** | **−0,005** |
+
+Ingenting adopteres på ett frøbånd. Ikke én gang har det holdt.
+
+---
+
 ## 7. Adams på banen
 
 **Adams er kodenavnet på boten vi bygger. MesterAI er Washington.** Navnet er
@@ -366,6 +412,41 @@ altså nett + regler, ingen søk. Adams v1 er samme form med fire endringer:
 over det som står ute nå (`vakt:at`): `m` måler +0,0404 ± 0,0075 og var
 positiv i 10 av 10 disjunkte frøbånd, `p` +0,0039 ± 0,0010 i 9 av 10. Det er
 mindre enn vi håpet i går, men det er målt, og det er mer enn null.
+
+### Hva som går akkurat nå (3. august)
+
+**`sd-v3/` — telleblokken.** 14 skard genererer 356-brede data. Trenger
+~200k rader. Så: finjuster `ftf1` med `--start` og utvidet inngang, der de 16
+nye kolonnene er NULLSTILT. Nettet starter da identisk med det som spiller i
+dag og kan bare vinne på å ta tellingen i bruk. Gate 2 avgjør, replikert i
+minst to disjunkte frøbånd.
+
+**Ferdig og forkastet i dag:** rekalibrert budmodell (−0,005 ved replikering,
+og −0,143 som spillefører). Feilspesifikasjonen er ekte — `bud-gbt.json` er
+trent mot en spillefører som klarer 89 % av niere mens Adams klarer 85 % — men
+å rette den gjør modellen mer forsiktig, og forsiktighet er feil retning.
+Hele gevinsten kommer av å ta kontrakter motparten lar ligge.
+
+### Køen, rangert etter målt hull
+
+| | hull mot MesterAI | status |
+|---|---|---|
+| **makker** | **−0,22** | urørt. To regler verdt 0,007 til sammen |
+| **forsvar** | **−0,12** | ingen regler. Forsvaret er målt likt NevroHjernes (−0,051 ± 0,063) |
+| spillefører | jevnt (+8,45 mot +8,45) | ingenting uten noe kvalitativt nytt |
+| budets μ/σ | taket usynlig herfra | rekalibrering prøvd og forkastet |
+
+### Måleevnen er den ikke-tekniske flaskehalsen
+
+Familiebenken har SD ≈ 9–11 poeng per runde. Det gir:
+
+- **~400 runder** for å oppdage en effekt på 1,0
+- **~1 600 runder** for 0,5
+
+De 136 rundene som ga «−0,04» hadde SE rundt ±1,2. Det tallet kunne aldri
+skilt en jevn bot fra en som er ett poeng bedre. **Å bevise overmenneskelig
+spill krever flere runder, ikke bare en bedre bot** — og det er derfor
+MesterAI-benken må bære dommen i mellomtiden.
 
 ### Om noe ikke rekker
 
