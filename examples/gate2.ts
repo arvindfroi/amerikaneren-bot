@@ -51,6 +51,7 @@ import { Budagent, lesBudmodell } from "../src/moe2/budagent.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 import { Ensemble, type EnsembleModus } from "../src/moe2/ensemble.ts";
 import { Rolleorakel, type Rolle } from "../src/moe2/rolleorakel.ts";
+import { Sikkerorakel } from "../src/moe2/sikkerorakel.ts";
 
 let giver = 400;
 let frøBase = 900_000;
@@ -281,6 +282,37 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
     }
     const inn = lagIndre(d.slice(2).join(":"));
     return new Rolleorakel(inn, inn as unknown as Parameters<typeof Rolleorakel>[1], rolle, { verdener });
+  }
+  /**
+   * `sik:<sigma>:<verdener>:<indre>` - SIKKERORAKELET.
+   *
+   * Overstyrer `indre` bare der den PARREDE marginen mellom beste og nest
+   * beste kort overstiger sigma ganger sin egen SE. sigma=0 er dagens raa
+   * orakel; hoey sigma er ren champion. De to ytterpunktene er valideringen.
+   */
+  if (indre.startsWith("sik:")) {
+    // sik:<rolle>:<sigma>:<verdener>:<indre>
+    //
+    // ROLLEN ER MED FORDI KOSTNADEN ER REELL: uten den evalueres HVER
+    // beslutning med K verdener x alle lovlige kort, og en enkelt maaling tar
+    // timer. Med rollen blir den dessuten direkte sammenlignbar med ork:-benken,
+    // som er sigma=0-varianten av noeyaktig det samme.
+    const d = indre.slice(4).split(":");
+    const rolle = d[0] as Rolle;
+    if (rolle !== "foerer" && rolle !== "makker" && rolle !== "forsvar" && rolle !== "alle") {
+      throw new Error(`Ukjent rolle «${rolle}» (foerer, makker, forsvar, alle)`);
+    }
+    const sigma = Number(d[1]);
+    const verdener = Number(d[2]);
+    if (!Number.isFinite(sigma) || !Number.isFinite(verdener) || verdener < 1) {
+      throw new Error(`Ugyldig sik-spek «${indre}» - forventet sik:<rolle>:<sigma>:<verdener>:<indre>`);
+    }
+    const inn = lagIndre(d.slice(3).join(":"));
+    return new Sikkerorakel(inn, inn as unknown as Parameters<typeof Sikkerorakel>[1], {
+      sigma,
+      verdener,
+      roller: rolle === "alle" ? [] : [rolle],
+    });
   }
   if (indre.startsWith("e1:")) return new E1Agent(lesNett(indre.slice(3)));
   /**
