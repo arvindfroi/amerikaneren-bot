@@ -1017,3 +1017,78 @@ optimert sammen.
 ikke søke. **En gevinst som ikke lar seg destillere inn i vektene er en gevinst
 familien aldri møter.** Enhver søkebasert forbedring må derfor ha et
 destillasjonssteg i planen fra starten, ikke som et etterpåheng.
+
+## 14. FØRERORAKELET REPLIKERTE — og ble sterkere (3./4. august)
+
+| bånd | snitt | SE |
+|---|---|---|
+| 11 100 000 | +0,2240 | 0,1047 |
+| 14 400 000 (disjunkt) | +0,2330 | 0,0917 |
+| **slått sammen, n=6400** | **+0,2291** | **0,0690 = 3,32 SE** |
+
+**Første gang i dette prosjektet et oppdagelsestall ikke krympet**, og det sies
+etter TO bånd, ikke ett.
+
+| arm | totalt | fører | tegntest |
+|---|---|---|---|
+| `ork:foerer:12` | +0,2330 ± 0,0917 | +0,932 | 269/179 — 60,0 %, z = 4,3 |
+| **`ork:foerer:24`** | **+0,4141 ± 0,0936** | **+1,656** | **286/148 — 65,9 %, z = 6,6** |
+| `sik:foerer:1.5:12` | +0,1108 ± 0,0484 | +0,443 | 72/26 — **73,5 %**, z = 4,6 |
+
+**Å doble verdenene nesten dobler gevinsten.** Det motsier «32 verdener gir
+ingenting utover 12» — som ble målt AGGREGERT, ikke per rolle.
+
+**Konfidensterskelen virker som designet:** griper inn i 98 av 434 givere, men
+treffer i 73,5 % av dem. Halv effekt, minste feilmargin av alle tre.
+
+Trimmet snitt er lite (+0,009), men medianforskjellen ER null fordi agentene
+ofte velger likt. Tegntesten er riktig statistikk her, og z = 6,6 er ingen
+haleeffekt.
+
+### 14.1 ROLLESTYRT DESTILLASJON — Arvinds krav, og en designkonsekvens
+
+> *«det bør destilleres der vi vet den spiller bedre, men hvis vi er bedre
+> andre plasser som i forsvar/makker, så bevarer vi det.»*
+
+Orakelet med korrekt rollout-policy, per rolle:
+
+| rolle | orakelet mot nettet |
+|---|---|
+| **spillefører** | **+1,656** (24 verdener) |
+| makker | +0,009 |
+| **forsvar** | **−0,130** |
+
+Destillerer vi fra orakelet i ALLE roller, lærer nettet bort forsvarsspillet
+sitt. Treningen må derfor ha to slags rader:
+
+- **førerrader → orakelets etiketter.** Der er læreren beviselig bedre.
+- **makker- og forsvarsrader → NETTETS EGNE valg som mål.** Et anker, ikke en
+  lærer. Uten det kan finjusteringen drive de rollene selv om ingen rad ber om
+  det — vektene er delte.
+
+Warm start alene er ikke nok: den setter startpunktet, ikke retningen.
+
+### 14.2 `sd-v7` genererer nå, med ALT som er rettet i dag
+
+| akse | verdi | hvorfor |
+|---|---|---|
+| bredde | 428 (v6) | plan- og troblokken med |
+| verdener | **24** | +0,414 mot 12-verdeners +0,233 |
+| stillingskilde | `budm:bud-gbt.json:vakt:abmp:e1:ftf1` | bud 10 er 47 % av det Adams spiller, 24 % av det den var trent på |
+| rollout-policy | `vakt:abmp:e1:ftf1` | den feilen kostet −1,25 i førersetet |
+| budspredning | 0 | ekte auksjoner, ellers er v4-blokken et generatorartefakt |
+| rollevekt | 5 | føreren er der læreren har noe å lære bort |
+| frøbånd | 280 M | disjunkt fra alt |
+
+### 14.3 Rangerte mangler, per 4. august
+
+| # | mangel | målt innsats | status |
+|---|---|---|---|
+| 1 | **vrak + trumfvalg som ÉN beslutning** | trumfvalg 32,4 ± 3,0 poeng/kamp | urørt, håndlagd formel i begge armer |
+| 2 | **søk i vrak/velg med korrekt rollout** | ti forsøk, alle feilspesifisert | må gjøres om |
+| 3 | **motstandermodellering over runder** | 988 loggede familierunder ubrukt | krok finnes (`trekkVerdenBelief`) |
+| 4 | **destillasjon av `ork:foerer:24`** | +0,414/runde | `sd-v7` genererer |
+| 5 | **bud × kortspill ko-optimering** | hver ~halve boten | aldri gjort |
+| 6 | **forsvarets utspill** | fanget 0,208 mot 0,434 i 4. hånd | uprøvd |
+| 7 | makkerens mål | differanse gjør makker lunken (7 mot 18 ved bud 9) | design, ikke feil |
+| 8 | vaktene | +0,024 ± 0,060 med alt annet på | kandidat for FJERNING |
