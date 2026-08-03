@@ -163,7 +163,13 @@ def les(mapper: list[str]):
     TREKK_DIM = next(iter(bredder))
     if TREKK_DIM not in LOVLIGE_DIM:
         raise SystemExit(f"Ukjent trekkbredde {TREKK_DIM}, forventet en av {LOVLIGE_DIM}")
-    navn_dim = {273: 'v1', 340: 'v2 med minneblokk', 356: 'v3 med telleblokk'}[TREKK_DIM]
+    # .get, ikke [], og med 364 med: oppslaget ville ellers kastet KeyError
+    # ETTER at hele datasettet er lest inn - altsaa minutter kastet bort paa en
+    # manglende ordbokoppfoering. Nettopp den klassen feil (hardkodet bredde)
+    # er kommentert som «stum felle» over.
+    navn_dim = {273: "v1", 340: "v2 minneblokk", 356: "v3 telleblokk", 364: "v4 auksjonsblokk"}.get(
+        TREKK_DIM, "ukjent"
+    )
     print(f"Trekkbredde: {TREKK_DIM} ({navn_dim})", flush=True)
 
     X = numpy.zeros((tak, TREKK_DIM), dtype=numpy.float32)
@@ -655,12 +661,18 @@ def main() -> None:
         # ville målt minneblokk OG telleblokk som én pakke. Passerer den, vet
         # vi ikke hvilken halvdel som virket; stryker den, vet vi ikke hvilken
         # som skadet. Maskering gjør de to skillbare.
+        # Flere soner skilles med «+»: «277-328+340-355» nullstiller begge.
+        # Trengs fordi blokkene ligger i lag og det som skal isoleres ikke
+        # alltid er sammenhengende - f.eks. «minneblokken UTEN de 52
+        # en-av-kolonnene, og uten telleblokken».
         nullsone = None
         deler = spek.split(":")
         if len(deler) == 5:
             *deler, sone = deler
-            a, _, b2 = sone.partition("-")
-            nullsone = (int(a), int(b2))
+            nullsone = []
+            for bit in sone.split("+"):
+                a, _, b2 = bit.partition("-")
+                nullsone.append((int(a), int(b2)))
         if len(deler) == 3:
             navn, mix, skjult = deler
             bredde = TREKK_DIM
@@ -673,10 +685,9 @@ def main() -> None:
             raise SystemExit(
                 f"Ugyldig --kjor «{spek}»: forventet navn:mapper:skjult[:bredde[:a-b]]"
             )
-        if nullsone is not None and nullsone[1] >= bredde:
-            raise SystemExit(
-                f"{navn}: nullsone {nullsone[0]}-{nullsone[1]} ligger utenfor bredden {bredde}"
-            )
+        for a, b2 in nullsone or []:
+            if b2 >= bredde or a > b2:
+                raise SystemExit(f"{navn}: nullsone {a}-{b2} er ugyldig for bredden {bredde}")
         mix_mapper = [m for m in mix.split(",") if m]
         mix_idx = [mapper.index(m) for m in mix_mapper]
         tren_maske = numpy.isin(KILDE, numpy.array(mix_idx, dtype=numpy.int8)) & ~er_hold & ~lekk
@@ -688,12 +699,10 @@ def main() -> None:
             # armene som kommer etter i samme kjøring – stille, og først synlig
             # som et uforklarlig dårlig nett.
             Xk = Xk.clone()
-            Xk[:, nullsone[0] : nullsone[1] + 1] = 0
-            print(
-                f"  nullstiller kolonne {nullsone[0]}-{nullsone[1]} "
-                f"({nullsone[1] - nullsone[0] + 1} trekk) i en KOPI av dataen",
-                flush=True,
-            )
+            for a, b2 in nullsone:
+                Xk[:, a : b2 + 1] = 0
+            vist = ", ".join(f"{a}-{b2} ({b2 - a + 1} trekk)" for a, b2 in nullsone)
+            print(f"  nullstiller kolonne {vist} i en KOPI av dataen", flush=True)
         dims = [bredde] + [int(x) for x in skjult.split(",")] + [KORT]
         # Nullstilles FØR hver modell, ikke én gang for hele kjøringen: ellers
         # arver arm nr. 2 en RNG-tilstand som arm nr. 1 har flyttet på.
