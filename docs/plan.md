@@ -1158,3 +1158,40 @@ til forgjengeren, som ER solid målt (1 065 runder, SE 0,32). Og tallet gjelder
    i minst én av dem, og familien spiller alltid til 100.
 7. **Hvem som får utspillet neste stikk.** Utledbart, men ikke eksplisitt — og
    det styrer hele planleggingen.
+
+## 17. Vrak+trumf som ett valg — på hylla, med en forklaring som gjelder bredt
+
+Frøbånd 19 900 000, n=3600, mot `ftf1`:
+
+| arm | totalt | SE | σ | tegn |
+|---|---|---|---|---|
+| `vv:12` | +0,0758 | 0,1038 | +0,73 | 207/212 |
+| `vv:24` | +0,1889 | 0,1040 | +1,82 | 212/198 |
+
+Skalerer med verdener som førerorakelet, men tegntesten er jevn (z = 0,69) mot
+førerorakelets z = 6,6. **Ikke etablert. På hylla, ikke forkastet.**
+
+**FORKLARINGEN GJELDER MER ENN DETTE FORSØKET.** Ved vrak er ingenting spilt
+ennå, så verdensrommet er på sitt aller største og 24 utvalg er nesten
+ingenting. Førerorakelet virker fordi det står midt i runden, der hvert spilt
+kort og hver renonse har skåret bort muligheter.
+
+> **Verdien av samplet søk vokser når verdensrommet krymper. De tidligste
+> beslutningene er de vanskeligste å søke i.**
+
+Det forklarer også hvorfor de ti tidligere søkeforsøkene i VRAK/VELG feilet, og
+det peker på hva som må til for å lykkes der: enten mange flere verdener, eller
+en bedre prior over hva motparten har — altså **motstandermodellen** (§13.3),
+som er nettopp et middel til å krympe verdensrommet.
+
+**Tre ting som ikke er utelukket her:** kandidatgenereringen er doktrinstyrt og
+prøver ~6 vrak per trumffarge, ikke alle C(16,4); verdenstallet er ikke drevet
+høyere enn 24; og `estimerStikk` kan allerede være nær optimal.
+
+### Ordbruk rettet, 4. august
+
+Arvind: *«ikke gi opp på konsepter, men du kan legge de på hylla.»* Planen har
+brukt «forkastet» om ting som er målt mot enten et feilspesifisert orakel eller
+en ødelagt trener. Det er for hardt. **Telleblokken, minneblokken, de ni
+regelforsøkene og de ti søkeforsøkene er UTESTÅENDE, ikke døde** — alle ble
+målt før 3. august, da rollout-policyen og oppvarmingen ble rettet.
