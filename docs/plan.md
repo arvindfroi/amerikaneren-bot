@@ -865,3 +865,39 @@ rekkefølgen de er billigst å prøve:
    den strukturelle kuren når eleven har passert læreren.
 
 Punkt 1 og 2 er timer, ikke dager, og bruker benken som alt er bygget.
+
+## 11. Benken framover (Arvinds beslutning, 3. august)
+
+*«jeg vil bevege meg vekk fra mesterAI benk fordi det tar for lang tid, og vi
+har vel slått den.»*
+
+**Gate 2 er arbeidsbenken.** SE 0,05 parret ved n=8000, minutter per måling.
+MesterAI-benken brukes **én gang før noe settes ut**, som anker — ikke i løkka.
+
+### Men «slått den» er ikke målt, og det skal stå
+
+| måling | resultat | n |
+|---|---|---|
+| `vakt:abmp:e1:sd-r2` mot MesterAI | −0,273 ± 0,130 | 257 |
+| samme + budmodellen | −0,218 ± 0,322 | **38** |
+| budmodellens marginale bidrag | +0,357 ± 0,129 | — |
+
+Legger man bidraget oppå, havner man rundt null til svakt positivt. Men det er
+en **sammensetning av tre målinger**, ikke én måling. Den eneste direkte
+målingen av hele Adams-stakken har n=38 og er ikke til å konkludere fra.
+Sannsynligvis jevnt, muligens litt foran. **Ikke bevist slått.**
+
+### Risikoen ved å bare bruke gate 2
+
+Gate 2 måler forbedring **mot oss selv**. En bot kan bli bedre til å slå sin
+egen forgjenger uten å bli bedre mot andre — særlig når kandidaten er finjustert
+fra miljøet den måles mot. Derfor ankeret før utplassering.
+
+### Feil i min egen orakelmåling, funnet 3. august kveld
+
+`ork:`-benken i §10 brukte **NevroHjerne** som rollout-policy. Men `sd-v4` ble
+generert med `--motpart vakt:abmp:e1:ftf1.bin`. Jeg målte altså et **svakere
+orakel enn det som faktisk lager fasiten**, og konklusjonen «orakelet er
+uttømt» kan være et artefakt av det. Spekken er rettet til
+`ork:<rolle>:<verdener>:<indre>` der `indre` ER rollout-policyen, og §10 må
+leses med det forbeholdet til den nye målingen er inne.

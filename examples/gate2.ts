@@ -263,14 +263,24 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
    * paa en AGGREGERT korrelasjon, aldri per rolle.
    */
   if (indre.startsWith("ork:")) {
-    const rest = indre.slice(4);
-    const skille = rest.indexOf(":");
-    if (skille < 0) throw new Error(`Ugyldig ork-spek «${indre}» - forventet ork:<rolle>:<indre>`);
-    const rolle = rest.slice(0, skille) as Rolle;
+    // ork:<rolle>:<verdener>:<indre>
+    //
+    // ROLLOUT-POLICYEN ER `indre`, IKKE NevroHjerne. Foerste maaling brukte
+    // nevro, mens treningsdataen ble generert med vaar sterke bot som motpart -
+    // altsaa ble et svakere orakel maalt enn det som lager fasiten. Med `indre`
+    // som motpart forestiller orakelet seg at bordet spiller som oss, som er
+    // den korrekt spesifiserte varianten.
+    const d = indre.slice(4).split(":");
+    const rolle = d[0] as Rolle;
     if (rolle !== "foerer" && rolle !== "makker" && rolle !== "forsvar") {
       throw new Error(`Ukjent rolle «${rolle}» (foerer, makker, forsvar)`);
     }
-    return new Rolleorakel(lagIndre(rest.slice(skille + 1)), new NevroAgent(), rolle);
+    const verdener = Number(d[1]);
+    if (!Number.isFinite(verdener) || verdener < 1) {
+      throw new Error(`Ugyldig verdenstall i «${indre}» - forventet ork:<rolle>:<verdener>:<indre>`);
+    }
+    const inn = lagIndre(d.slice(2).join(":"));
+    return new Rolleorakel(inn, inn as unknown as Parameters<typeof Rolleorakel>[1], rolle, { verdener });
   }
   if (indre.startsWith("e1:")) return new E1Agent(lesNett(indre.slice(3)));
   /**

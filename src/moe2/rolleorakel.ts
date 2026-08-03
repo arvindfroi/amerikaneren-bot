@@ -24,8 +24,18 @@
  * lik eller verre, måler de 19 SE-ene bare at vi er ulike orakelet – og da er
  * hele makkerdiagnosen bygget på sand.
  *
- * KOSTNADEN er reell: SD med 12 verdener per beslutning i den valgte rollen.
+ * KOSTNADEN er reell: SD med N verdener per beslutning i den valgte rollen.
  * Derfor er rollen et valg og ikke «alle».
+ *
+ * ROLLOUT-POLICYEN ER EN EGEN AKSE, OG DEN VAR FEIL I FOERSTE MAALING.
+ * Foerste kjoering brukte NevroHjerne som `motpart` - men treningsdataen i
+ * sd-v4 ble generert med `--motpart vakt:abmp:e1:ftf1.bin`, altsaa vaar sterke
+ * bot. Jeg maalte derfor et SVAKERE orakel enn det som faktisk lager fasiten,
+ * og konklusjonen «orakelet er uttoemt» kunne vaere et artefakt av nettopp det.
+ *
+ * `motpart` er modellen orakelet FORESTILLER seg at de andre bruker. Er den
+ * svakere enn bordet, undervurderer evalueringen systematisk linjer som krever
+ * god oppfoelging - og da maaler man modellfeilen, ikke orakelets tak.
  */
 
 import { lagRng } from "../kort.ts";
