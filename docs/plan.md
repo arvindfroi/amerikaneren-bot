@@ -509,8 +509,62 @@ støy ville gitt null uansett vekt. 105 813 rader skal her bære 42 496 nye
 vekter.
 
 **Det er en testbar påstand, ikke en unnskyldning:** med flere rader skal
-kurven flate ut og snu. Gjør den ikke det ved 200k+, er forklaringen feil og
-blokkene forkastes for godt.
+kurven flate ut og snu.
+
+### 6. Overtilpasningsforklaringen var feil — og rollen avslørte den ekte feilen
+
+Halvering av treningssettet endret ingenting: `wmmh` på 56 485 rader ga
+**−0,3648 ± 0,1809** mot `wmm` på 105 813 raders **−0,3821 ± 0,1707**. Var
+datamengden variabelen, skulle halvering gjort det klart verre.
+
+Rolledekomponeringen sa hvor tapet lå:
+
+| `wmm` | | |
+|---|---|---|
+| **fører** | **−1,4750 ± 0,5740 (−2,57 SE)** | hele tapet |
+| forsvar | +0,0329 | |
+| makker | −0,1191 | |
+
+Spillefører er det **eneste** setet minneblokken bærer informasjon for — de
+andre har nuller der. En blokk som skader presis det setet den informerer, er
+ikke støy. Da er kodingen feil.
+
+**Indeks 277–328 er 52 én-av-kolonner** som sier nøyaktig hvilke fire kort
+føreren vraket. `C(52,4) = 270 725` kombinasjoner mot ~30k førerrader: nær unik
+signatur per giver. Nettet memorerer giverspesifikke svar, og på en ny giver
+bidrar de 52 kolonnene med en tilfeldig vektet sum rett inn i førerens logits.
+Det forklarer også hvorfor mer data ikke hjalp — memorering av nær-unike
+mønstre er ikke datamengdebegrenset her.
+
+### 7. Minneblokken uten de 52 kolonnene — REPLIKERT POSITIV
+
+`wred` beholder 273–276, 329–336, 337 og flaggene; bare 277–328 er maskert.
+
+| frøbånd | n | snitt | SE |
+|---|---|---|---|
+| 2 500 000 (oppdagelse) | 1600 | +0,1788 | 0,1468 |
+| 4 100 000 (replikering) | 4400 | +0,1642 | 0,0902 |
+| **slått sammen** | **6000** | **+0,1682** | **0,0769 = 2,19 SE** |
+
+Førersetet gikk fra **−1,4750 til +0,5984** — et sprang på +2,07 ± 0,74. Og i
+replikeringen er **alle tre roller positive**, inkludert makker (+0,0703,
++1,67 SE) som er det største dokumenterte hullet (−0,22).
+
+**Dette er første gang et oppdagelsestall i dette prosjektet ikke krympet ved
+replikering.** De sju foregående gjorde det hver gang.
+
+**Forbeholdet skal stå:** trimmet snitt er +0,0106 og tegntesten 615/594. Altså
+er gevinsten konsentrert i givere med store utslag — i praksis førersetet. Her
+er trimming trolig et dårlig kriterium: 5 % av hver hale er nettopp de giverne
+der spillefører avgjør mye, så trimmingen fjerner signalet, ikke støyen. Og
+poeng summeres over runder, så det er snittet som bestemmer i lengden.
+
+Telleblokken hjelper fortsatt ikke: `wredt` (samme, men med telling synlig) ga
++0,0717 mot `wred`s +0,1788.
+
+**Lærdommen som generaliserer:** høy kardinalitet i et trekk som bare ÉTT sete
+ser, er en memoreringsfelle. Se alltid rolledekomponeringen — totalen skjulte
+dette bak et snitt over fire seter.
 
 **3. Auksjonen er et større hull enn tellingen — og generatoren ødela den.**
 Fra hele budrunden kodet spillfasen bare hvem som vant (208–211), tallbudet
