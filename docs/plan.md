@@ -1092,3 +1092,69 @@ Warm start alene er ikke nok: den setter startpunktet, ikke retningen.
 | 6 | **forsvarets utspill** | fanget 0,208 mot 0,434 i 4. hånd | uprøvd |
 | 7 | makkerens mål | differanse gjør makker lunken (7 mot 18 ved bud 9) | design, ikke feil |
 | 8 | vaktene | +0,024 ± 0,060 med alt annet på | kandidat for FJERNING |
+
+## 15. Adams-v1 mot familien — første tall, 3. august
+
+| bot | runder | menneskets differanse | SE | tegn (menneske/bot) |
+|---|---|---|---|---|
+| **Adams-v1** | 107 | **−1,813** | 1,113 | 42 / **65** |
+| forrige bot | 1 065 | **+2,798** | 0,324 | 652 / 413 |
+
+Sete 0 er mennesket (`web/app.ts: const MENNESKE = 0`), så negativt betyr at
+boten vinner. **Adams slår mennesket med 1,81 per runde; forgjengeren tapte med
+2,80.** Et sprang på **4,61 poeng per runde**.
+
+**Forbeholdet:** SE ±1,11 på 107 runder, altså 1,63 SE — ikke signifikant
+alene. Tegntesten (65/42, z = 2,2) er sterkere. Det som overbeviser er avstanden
+til forgjengeren, som ER solid målt (1 065 runder, SE 0,32). Og tallet gjelder
+ÉN motstander, ikke hele familien.
+
+## 16. Hva som går inn i botens vurdering — og de sju hullene
+
+### Det som spiller i dag (`ftf1`, 273 trekk)
+
+| indeks | hva |
+|---|---|
+| 0–51 | egen hånd |
+| 52–103 | alle spilte kort — **uten hvem som spilte dem** |
+| 104–155 | kortene på bordet nå |
+| 156–207 | det etterlyste kortet, hvis ikke lagt |
+| 208–219 | budvinner, utspiller, makker (relativt) |
+| 220–227 | trumf, vinnerbud, amerikaner, er jeg på budlaget |
+| 228–237 | stikk spilt/egne/lagets, poengandeler, stikk per sete, solo |
+| 238–245 | egen fargefordeling, spilte kort per farge (summert) |
+| 246–261 | renonse per sete × farge — **binært** |
+| 262–272 | høyeste ute, antall ute, stikk igjen, har utspillet, bias |
+
+### Bygget natt til 4. august, ikke satt ut
+
+| blokk | trekk | legger til |
+|---|---|---|
+| v2 minne | 273–339 | budvinnerens vrak |
+| v3 telling | 340–355 | antall per sete × farge |
+| v4 auksjon | 356–363 | hva hvert sete bød |
+| v5 plan | 364–375 | mangler, sikret, tapt, slakk |
+| v6 tro | 376–427 | ytterpunkter spilt per sete × farge, **øvre grense** |
+| v7 verdi | 428–457 | sikre stikk, sikre tapere, **tvingning** |
+
+### DE SJU HULLENE SOM FORTSATT STÅR
+
+1. **Hvilke SPESIFIKKE kort hvert sete har spilt.** v6 gir ytterpunktene.
+   Full tilordning er 4 × 52 = 208 trekk — eneste eksakte koding, og dyr.
+2. **Rekkefølgen i stikket.** Vi ser hva som ligger, ikke i hvilken orden.
+   «Andre hånd lavt, tredje hånd høyt» er signaler som ikke finnes i kodingen.
+3. **Budsekvensen**, ikke bare sluttbudet per sete. Hvem åpnet, hvem hoppet,
+   hvem ga seg først — borte.
+4. **Forsvarernes side av talongen.** v2 dekker budvinneren. Forsvarerne vet at
+   fire kort er døde, men ikke hvilke — og at budvinneren VET det. Asymmetrien
+   er ukodet.
+5. **Motstandermodell over runder.** Ingenting. Kroken (`trekkVerdenBelief`)
+   står ubrukt. Se §13.3.
+6. **KAMPSITUASJONEN.** 231–232 gir poengandeler mot 100, men ikke «hvem kan
+   vinne KAMPEN denne runden». Nær 100 endrer det optimal risiko fullstendig —
+   å felle lederen kan være verdt mer enn egne poeng. **Undervurdert:** de andre
+   hullene er informasjon om hånden; dette er informasjon om hva som er verdt å
+   gjøre. En bot som spiller likt på 20–20–20–20 og på 95–40–40–40 spiller feil
+   i minst én av dem, og familien spiller alltid til 100.
+7. **Hvem som får utspillet neste stikk.** Utledbart, men ikke eksplisitt — og
+   det styrer hele planleggingen.
