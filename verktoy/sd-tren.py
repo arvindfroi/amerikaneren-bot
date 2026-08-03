@@ -404,6 +404,15 @@ def main() -> None:
     p.add_argument("--tau", type=float, default=1.0)
     p.add_argument("--tremaal", type=int, default=200000, help="rader treningstapet måles på")
     p.add_argument(
+        "--initfroe",
+        type=int,
+        default=1,
+        help="frø for VEKTINITIALISERINGEN, nullstilt før hver modell. Var useedet "
+        "til 2026-08-03, slik at armene i en ablasjon skilte seg på startvekter "
+        "i tillegg til det som skulle måles. Kjør samme ablasjon på flere frø "
+        "for å skille effekt fra initialiseringsflaks.",
+    )
+    p.add_argument(
         "--overlappmot",
         default="",
         help="mapper det skal rapporteres overlapp mot (f.eks. e1-frys,sd-frys)",
@@ -543,9 +552,26 @@ def main() -> None:
         #
         # Dette er ablasjonen som isolerer minneblokken. Indeks 0-272 i v2 er
         # BIT-IDENTISKE med v1 (se src/e1/trekk.ts), så «:273» gir nøyaktig et
-        # v1-nett trent på nøyaktig de samme radene, samme holdout og samme
-        # initialisering. Forskjellen mellom de to kjøringene kan da bare komme
-        # fra de 67 minnetrekkene – ikke fra data, splitt eller flaks.
+        # v1-nett trent på nøyaktig de samme radene og samme holdout.
+        #
+        # RETTELSE 2026-08-03. Her sto det tidligere «og samme initialisering.
+        # Forskjellen mellom de to kjøringene kan da bare komme fra de 67
+        # minnetrekkene – ikke fra data, splitt eller flaks.» Det var USANT:
+        # vektene ble aldri seedet. `E1Nett(dims)` trakk fra den globale
+        # RNG-tilstanden, som flyttet seg mellom kjøringene, så armene skilte
+        # seg på initialisering I TILLEGG til trekkbredde – og vi kjørte n=1
+        # av hver.
+        #
+        # Konklusjonen «minneblokken er skadelig» (−0,27 i spill) hvilte på
+        # den påstanden og er derfor IKKE belagt. Arvind fant feilen ved å
+        # nekte å godta at strengt mer informasjon kan gjøre et nett dårligere.
+        #
+        # `--initfroe` nullstiller nå frøet før HVER modell, så to armer i
+        # samme kjøring trekker fra samme tilstand. Det fjerner drift mellom
+        # armene, men ikke variansen mellom FRØ: ulike former kan ikke få
+        # identiske vekter. Skal en arkitektur- eller trekkforskjell avgjøres,
+        # må ablasjonen kjøres på flere `--initfroe` og fordelingene
+        # sammenliknes.
         deler = spek.split(":")
         if len(deler) == 3:
             navn, mix, skjult = deler
@@ -564,6 +590,11 @@ def main() -> None:
         # Utsnitt, ikke kopi – Xg ligger allerede på GPU-en og er flere hundre MB.
         Xk = Xg if bredde == TREKK_DIM else Xg[:, :bredde]
         dims = [bredde] + [int(x) for x in skjult.split(",")] + [KORT]
+        # Nullstilles FØR hver modell, ikke én gang for hele kjøringen: ellers
+        # arver arm nr. 2 en RNG-tilstand som arm nr. 1 har flyttet på.
+        torch.manual_seed(args.initfroe)
+        if enhet == "cuda":
+            torch.cuda.manual_seed_all(args.initfroe)
         modell = E1Nett(dims).to(enhet)
         antall = sum(q.numel() for q in modell.parameters())
         ut = os.path.join(args.utmappe, f"{navn}.bin")
