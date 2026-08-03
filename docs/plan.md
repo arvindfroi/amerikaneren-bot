@@ -629,3 +629,85 @@ MesterAI-benken må bære dommen i mellomtiden.
 Da settes den delen ikke ut. En Adams med nye vekter og gamle bud er fortsatt
 et framskritt; en Adams med et ubekreftet budnett er et eksperiment på
 familien.
+
+## 8. Forsvar og makker — oppdraget, og hvor hullet faktisk er
+
+### Arvinds krav, 3. august (skal stå som spesifikasjon, ikke parafrase)
+
+**Forsvar.** Må bli veldig god til å **felle kontrakter** — både ved å jobbe
+sammen med den andre forsvareren, og ved å **ta stikk selv** (det gir poeng).
+Krevende.
+
+**Makker.** Også vanskelig, men må bli mye bedre. Spiller stikkene sånn passe
+allerede. Må kunne spille optimalt **rundt trumf og renonse**. Viktig: hvordan
+man **sparer på kort og bruker kort optimalt**, og erkjenne at **budvinnerens
+kort generelt er mer verdifulle**. **Lagstikk ligger i bunnen.**
+
+**Tvers over.** Vraking og trumfvalg må være veldig bra — aldri hive ut trumf,
+alltid ta det inn. Budet må justeres når spillet blir bedre. Og: blir vi veldig
+gode i forsvar, kan det bli lønnsomt å **la motparten få kontrakter vi kan
+felle**.
+
+### «Aldri hiv ut trumf» — allerede oppfylt, målt
+
+Vraking skjer FØR trumfvalg (`motor.ts`), så regelen er egentlig et krav om
+kobling mellom to beslutninger. Adams tar dem uavhengig: `velgVrak` bruker et
+nett hvis inngang (`byttTrekk`) ikke har trumf, og `velgTrumfOgEtterlys` velger
+trumf av hånden som ble igjen. Likevel, målt over 2000 runder
+(`examples/vraktrumf.ts`):
+
+| | |
+|---|---|
+| runder der et vraket kort ble trumffargen | 36 (1,8 %) |
+| trumfkort vraket totalt | 37 |
+| ...hvorav knekt eller høyere | **0** |
+
+Nettet har lært koblingen implisitt. **Ikke et hull.** Kontrafaktualen i samme
+skript (+0,97 «stikk») skal ignoreres — `estimerStikk` belønner trumflengde, så
+enhver bytting som legger til et trumfkort hever tallet.
+
+### Hvor ferdigheten faktisk mangler (`verktoy/forsvarsprofil.py`)
+
+Målt som **fanget = (gulv − vår) / gulv**, der gulvet er angeren et tilfeldig
+lovlig kort ville gitt i nøyaktig samme stilling. Det kontrollerer for
+vanskelighetsgrad: et høyt angertall kan bety dårlig spill ELLER vanskelige
+valg, og de krever motsatt handling.
+
+| rolle | n | gulv | vår | **fanget** |
+|---|---|---|---|---|
+| spillefører | 31 796 | 2,0100 | 1,1414 | 0,432 |
+| forsvar | 55 748 | 0,9130 | 0,5908 | 0,353 |
+| **makker** | 25 350 | 0,3358 | 0,2477 | **0,262** |
+
+Makker henter ut minst av tilgjengelig ferdighet — uavhengig bekreftelse på at
+−0,22 mot MesterAI er det største hullet.
+
+**Forsvaret dekomponert. Posisjon dominerer:**
+
+| posisjon i stikket | n | fanget |
+|---|---|---|
+| **1. hånd (utspill)** | 7 190 | **0,208** |
+| 2. hånd | 15 983 | 0,313 |
+| 3. hånd | 16 187 | 0,398 |
+| 4. hånd | 16 388 | 0,434 |
+
+| | fanget |
+|---|---|
+| spillefører har alt lagt | 0,400 |
+| **spillefører har IKKE lagt** | **0,244** |
+| medforsvarer har alt lagt | 0,398 |
+| medforsvarer har IKKE lagt | 0,331 |
+
+**Og tidlig spill er langt verre enn sent:** stikk 0–4 ligger på 0,23–0,29,
+stikk 10 på 0,830. Sent spill er nesten tvunget og lar seg regne ut; tidlig
+spill krever en plan.
+
+### Hva det peker på
+
+Forsvarets hull er **utspillet og de første stikkene**, ikke sluttspillet.
+Samspillet med medforsvareren er en ekte men mindre akse (0,398 mot 0,331) enn
+posisjon (0,434 mot 0,208).
+
+Det er også en advarsel mot søk som kur: PIMC ble prøvd i VRAK/VELG og strøk
+med −0,256. Men søk i FORSVARETS TIDLIGE STIKK er aldri prøvd, og det er der
+gulvet er høyest (1,20 i 1. hånd mot 0,87 i 4.) — altså der det er mest å hente.

@@ -1,0 +1,51 @@
+FORSVARSPROFIL  nett=e1-modell/ftf1.bin  data=sd-v3
+fanget = (gulv - vaar) / gulv. 1,0 = som orakelet, 0,0 = som terningkast.
+
+ROLLE spillefoerer   n= 31796  gulv 2.0100  vaar 1.1414  fanget 0.432
+ROLLE makker         n= 25350  gulv 0.3358  vaar 0.2477  fanget 0.262
+ROLLE forsvar        n= 55748  gulv 0.9130  vaar 0.5908  fanget 0.353
+
+SAMSPILL: har medforsvareren alt lagt i dette stikket?
+situasjon                              n     gulv     vaar   fanget
+medforsvarer har lagt              19083   0.8640   0.5203    0.398
+medforsvarer har IKKE lagt         36665   0.9385   0.6275    0.331
+
+AA TA STIKK: har spillefoereren alt lagt?
+situasjon                              n     gulv     vaar   fanget
+spillefoerer har lagt              40250   0.8831   0.5299    0.400
+spillefoerer har IKKE lagt         15498   0.9907   0.7492    0.244
+
+POSISJON I STIKKET
+situasjon                              n     gulv     vaar   fanget
+1. haand                            7190   1.1989   0.9496    0.208
+2. haand                           15983   0.8530   0.5861    0.313
+3. haand                           16187   0.8894   0.5359    0.398
+4. haand                           16388   0.8694   0.4924    0.434
+
+TRUMF I SPILL
+situasjon                              n     gulv     vaar   fanget
+trumf finnes                       55748   0.9130   0.5908    0.353
+
+STIKKNUMMER
+situasjon                              n     gulv     vaar   fanget
+stikk 0                             4685   0.8011   0.6201    0.226
+stikk 1                             5039   1.0690   0.7773    0.273
+stikk 2                             5051   1.2970   0.9902    0.237
+stikk 3                             5223   1.2317   0.8803    0.285
+stikk 4                             5129   1.1585   0.8442    0.271
+stikk 5                             5145   1.0777   0.7337    0.319
+stikk 6                             5118   0.9779   0.6312    0.355
+stikk 7                             5093   0.8516   0.4738    0.444
+stikk 8                             5017   0.7069   0.3139    0.556
+stikk 9                             5086   0.5233   0.1769    0.662
+stikk 10                            5162   0.3367   0.0571    0.830
+
+KRYSS: posisjon x medforsvarer
+situasjon                              n     gulv     vaar   fanget
+1. haand, med etter meg             7190   1.1989   0.9496    0.208
+2. haand, med etter meg            13174   0.8634   0.5818    0.326
+2. haand, med foer meg              2809   0.8042   0.6064    0.246
+3. haand, med etter meg            13414   0.8981   0.5364    0.403
+3. haand, med foer meg              2773   0.8471   0.5331    0.371
+4. haand, med etter meg             2887   0.8204   0.4578    0.442
+4. haand, med foer meg             13501   0.8799   0.4998    0.432

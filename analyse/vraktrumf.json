@@ -1,0 +1,37 @@
+{
+  "spek": "budm:e1-modell/bud-gbt.json:vakt:abmp:e1:e1-modell/ftf1.bin",
+  "frø0": 6000000,
+  "runder": 2000,
+  "medVrakITrumf": 36,
+  "andel": 0.018,
+  "trumfkortVraketTotalt": 37,
+  "perRunde": 0.0185,
+  "hvorAvHonnoer": 0,
+  "estimertTaptStikk": {
+    "snitt": 0.9652777777777781,
+    "se": 0.027804550589960994,
+    "n": 36
+  },
+  "fordelingAntall": [
+    {
+      "antall": 0,
+      "runder": 1964
+    },
+    {
+      "antall": 1,
+      "runder": 35
+    },
+    {
+      "antall": 2,
+      "runder": 1
+    },
+    {
+      "antall": 3,
+      "runder": 0
+    },
+    {
+      "antall": 4,
+      "runder": 0
+    }
+  ]
+}
