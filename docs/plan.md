@@ -936,3 +936,84 @@ leses om: de fem armene ble alle destillert fra et feilspesifisert orakel.
 dag. Replikering kjører i frøbånd 14 400 000 med 900 givere × 6, sammen med to
 akser: 24 verdener, og `sik:`-operatoren som bare overstyrer når den parrede
 marginen overstiger støyen.
+
+## 13. Køen etter 3. august, med begrunnelse
+
+### 13.1 Søk er IKKE avgjort — de ti forsøkene delte en feilkobling
+
+`ork:`-benken viste at rollout-policyen er alt: førersetet gikk fra **−0,357
+til +0,896** bare av å bytte hvem orakelet forestiller seg spiller resten.
+
+De ti søkeforsøkene i §2 brukte enten:
+
+- **DD inne i hver verden** (`src/bot/bot.ts` løser eksakt) — og DD er målt til
+  korrelasjon **−0,609** mot poeng, avvist gjennom godkjenningsporten, eller
+- **SD med NevroHjerne som utspiller** — `sdagent.ts` sier det selv: *«Til nå
+  har det alltid vært NevroHjerne»*.
+
+**Ingen av dem testet søk med korrekt spesifisert utspilling.** «Søk er
+avsluttet som linje» hviler derfor på ti målinger som alle hadde feil modell av
+hvordan hånden ville bli spilt ferdig. Skal linjen lukkes, må den lukkes på
+nytt.
+
+### 13.2 Vrak og trumfvalg — urørt, og den dyreste beslutningen
+
+`E1Agent` sender VRAK og VELG til `estimerStikk`, en håndlagd formel, i BEGGE
+armer av hver måling gjort til nå. Fasedelingen på D1 målte trumfvalget til
+**32,4 ± 3,0 poeng per kamp** — den dyreste enkeltbeslutningen i spillet.
+
+Og Arvinds vrakdoktrin (§8) er ikke implementert: trumf og vrak skal velges som
+ÉN beslutning med 16 kort på hånd. Kandidatrommet er `4 × C(16,4) = 7 280` par
+— lite nok til å enumereres eksakt. `src/moe2/eksperter/vrak.ts` gjør allerede
+halve jobben (fikser trumfen av hånden som BLIR IGJEN), men den er ikke i det
+som spiller.
+
+### 13.3 Motstandermodellering over runder (Arvinds design, 4. august)
+
+> *«det skal skje over mange runder med samme motstander. at den adapterer
+> gjennom mange runder for å bli bedre med/mot de andre. byr de høyt eller
+> lavt, hvordan spiller de ut. jeg ser for meg at den husker hvor lang
+> trumfserie du hadde siste gangene du bød 9, og tar det i betraktning når den
+> gjetter hva hånden din er nå.»*
+
+**Kroken finnes allerede.** `src/solver/sampler.ts` har `trekkVerdenBelief`,
+som vekter samplede verdener etter `budForenlighet` — men den er en HÅNDLAGD
+BEFOLKNINGSFORMEL: «bud n ⇒ forvent styrke rundt X». Den vet ikke *hvem* som
+bød. Å bytte den mot en lært, per-motstander-tabell er hele tiltaket, og det
+rører ingenting annet.
+
+**Fasiten er gratis og perfekt.** Når en runde er ferdig, er alle kort spilt —
+altså er HELE giva kjent i ettertid. For hver runde kan vi derfor logge, per
+spiller: hva de bød, og hva de faktisk hadde (trumflengde i egen lengste farge,
+honnører, fordeling). Det er et fullverdig veiledet signal uten noen ekstra
+kostnad.
+
+**Estimatoren må krympe mot befolkningen.** Etter tre runder mot en ny
+motstander finnes det ikke nok observasjoner til et individuelt anslag. Riktig
+form er derfor et krympingsestimat: start på befolkningssnittet (dagens
+`budForenlighet`), og flytt mot individet i takt med antall observasjoner. Da
+kan modellen slås på fra første runde uten å skade.
+
+**Hvorfor dette er den riktige linjen, og ikke bare en til:** målet er å slå
+FAMILIEN, ikke å finne en likevekt. Mot en fast motstanderpopulasjon er det
+maksimale et **beste svar**. Budmodellen er allerede et beste svar mot passiv
+byding — de +2,138 kommer av å utnytte at motparten passer for mye. Vi har
+**988 loggede runder** med familiens faktiske spill som ligger ubrukt.
+
+**Rekkefølge:** (1) logg giv + bud per spiller ved rundeslutt, (2) bygg
+krympingsestimatoren, (3) bytt `budForenlighet` mot den, (4) mål med `ork:`- og
+`sik:`-benkene, som allerede finnes.
+
+### 13.4 Budet og kortspillet er aldri ko-optimert
+
+Budmodellen er verdt **+1,072 i situ** (§ lagdekomponering) og er trent mot en
+FAST kortspiller. Blir kortnettet bedre på bud 10, bør budmodellen by
+annerledes — og omvendt. De to er halvparten av boten hver, og de er aldri
+optimert sammen.
+
+### 13.5 Alt må kunne destilleres
+
+`ork:foerer` koster sekunder per trekk. Nettsiden kjører i nettleseren og kan
+ikke søke. **En gevinst som ikke lar seg destillere inn i vektene er en gevinst
+familien aldri møter.** Enhver søkebasert forbedring må derfor ha et
+destillasjonssteg i planen fra starten, ikke som et etterpåheng.
