@@ -35,6 +35,7 @@ import {
   E1_SPILL_DIM_V7,
   E1_SPILL_DIM_V8,
   E1_SPILL_DIM_V9,
+  E1_SPILL_DIM_V10,
 } from "../src/e1/trekk.ts";
 import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
@@ -52,6 +53,7 @@ test("LOVLIGE_BREDDER inneholder nøyaktig konstantene i trekk.ts", () => {
     E1_SPILL_DIM_V7,
     E1_SPILL_DIM_V8,
     E1_SPILL_DIM_V9,
+    E1_SPILL_DIM_V10,
   ];
   assert.deepEqual([...LOVLIGE_BREDDER], ventet);
 });
@@ -106,6 +108,7 @@ test("sd-orakel skriver en bredde som staar i listen", () => {
     E1_SPILL_DIM_V7,
     E1_SPILL_DIM_V8,
     E1_SPILL_DIM_V9,
+    E1_SPILL_DIM_V10,
   };
   const bredde = verdier[navn];
   assert.ok(bredde !== undefined, `ukjent konstant ${navn} i sd-orakel.ts`);

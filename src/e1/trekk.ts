@@ -41,6 +41,7 @@ import { fyllTroblokk, TRO_ANTALL } from "./tro.ts";
 import { fyllVerdiblokk, VERDI_ANTALL } from "./verdi.ts";
 import { fyllDødeblokk, DØDE_ANTALL } from "./dode.ts";
 import { fyllSanser, SANS_ANTALL } from "./sanser.ts";
+import { fyllHvemLa, HVEMLA_ANTALL } from "./hvemla.ts";
 import type { GameState } from "../motor.ts";
 import { fargeIndeks, kortIndeks, SPILL_DIM, spillTrekk } from "../nevro/trekk.ts";
 
@@ -175,6 +176,18 @@ export const E1_SPILL_DIM_V8 = E1_SPILL_DIM_V7 + DØDE_ANTALL;
  * står blokken på null – det er den ærlige verdien når vi ikke vet noe.
  */
 export const E1_SPILL_DIM_V9 = E1_SPILL_DIM_V8 + SANS_ANTALL;
+
+/**
+ * v10 (indeks 558–713): HVEM LA HVA – spillhistorikken, ikke et sammendrag.
+ *
+ * Se `src/e1/hvemla.ts`. `spillTrekk` kastet spillertilordningen når den
+ * skrev spilte kort (`.map(k => k.kort)`), så alt nettet visste om HVEM var
+ * avledet: renonsflagg, antall per farge, høyeste og laveste rang. La sete 2
+ * hjerter K, 7, 3 kunne det ikke skilles fra K, 9, 3.
+ *
+ * Krever `state`, som troblokken. Ren offentlig informasjon.
+ */
+export const E1_SPILL_DIM_V10 = E1_SPILL_DIM_V9 + HVEMLA_ANTALL;
 
 const BASIS = SPILL_DIM;
 /** Der minneblokken begynner. */
@@ -389,5 +402,10 @@ export function e1SpillTrekk(
 
   // --- SANSEBLOKKEN (v9, 470–557) ------------------------------------------
   fyllSanser(v, state, sete, tro);
+
+  if (dim <= E1_SPILL_DIM_V9) return v;
+
+  // --- HVEM LA HVA (v10, 558–713) ------------------------------------------
+  fyllHvemLa(v, state, sete);
   return v;
 }

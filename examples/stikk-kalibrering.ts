@@ -47,6 +47,12 @@ let frøBase = 660_000_000;
 let spek = "nevro";
 let trofil = "e1-modell/tro.bin";
 let ut = "analyse/stikkkal.jsonl";
+/**
+ * «nett» bruker trosnettet, «uniform» fordeler alt likt paa de tre skjulte
+ * setene. Den andre er REFERANSEN: regnestykket er identisk, saa forskjellen
+ * maaler hva TROEN tilfoerer og ikke hva formelen gjoer.
+ */
+let kilde = "nett";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--giver") givere = Number(process.argv[++i]);
@@ -54,6 +60,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--spek") spek = process.argv[++i]!;
   else if (a === "--tro") trofil = process.argv[++i]!;
   else if (a === "--ut") ut = process.argv[++i]!;
+  else if (a === "--kilde") kilde = process.argv[++i]!;
 }
 
 type Agent = { velgHandling(s: GameState): Handling; nyKamp(): void };
@@ -108,7 +115,10 @@ for (let g = 0; g < givere; g++) {
     if (s.fase === "SPILL" && h.type === "SPILL" && s.trumf !== null) {
       const x = new Float32Array(TRO_INN);
       x.set(e1SpillTrekk(s, iTur, E1_SPILL_DIM_V8));
-      const ford = trosnett.fordeling(x);
+      const ford =
+        kilde === "uniform"
+          ? Array.from({ length: 52 }, () => [1 / 3, 1 / 3, 1 / 3, 0])
+          : trosnett.fordeling(x);
       const v = new Float32Array(STIKK_FRA + STIKK_ANTALL);
       fyllStikksjanse(v, s, iTur, ford);
       ventende.push({

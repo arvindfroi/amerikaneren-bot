@@ -22,7 +22,7 @@ import { lovligeKort, type GameState, type Handling } from "../motor.ts";
 import { velgHandling as pimcVelg } from "../bot/bot.ts";
 import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { kortIndeks, NevroAgent } from "../nevro/index.ts";
-import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V5, E1_SPILL_DIM_V6, E1_SPILL_DIM_V7, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9 } from "./trekk.ts";
+import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V5, E1_SPILL_DIM_V6, E1_SPILL_DIM_V7, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9, E1_SPILL_DIM_V10 } from "./trekk.ts";
 
 /**
  * Leser et E1-nett fra rå bytes og verifiserer at formen stemmer med
@@ -48,6 +48,7 @@ export const LOVLIGE_BREDDER = [
   E1_SPILL_DIM_V7,
   E1_SPILL_DIM_V8,
   E1_SPILL_DIM_V9,
+  E1_SPILL_DIM_V10,
 ] as const;
 
 export function e1NettFraBytes(bytes: Uint8Array, kilde = "vektene"): NevroNett {
