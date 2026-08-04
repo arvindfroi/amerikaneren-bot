@@ -296,9 +296,15 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
     const hode = rest.slice(0, skille);
     const at = hode.lastIndexOf("@");
     const fil = at < 0 ? hode : hode.slice(0, at);
-    const ev = at < 0 ? 2.5 : Number(hode.slice(at + 1));
+    // «@<ev>» eller «@<ev>/<sigmagulv>». Begge er KALIBRERTE ANSLAG mot et
+    // tidligere kortnett, ikke regler - se kommentaren over.
+    const hale = at < 0 ? "" : hode.slice(at + 1);
+    const strek = hale.indexOf("/");
+    const ev = at < 0 ? 2.5 : Number(strek < 0 ? hale : hale.slice(0, strek));
+    const sg = strek < 0 ? 0.6 : Number(hale.slice(strek + 1));
     if (!Number.isFinite(ev)) throw new Error(`Ugyldig evForsvar i «${indre}»`);
-    return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(fil), ev);
+    if (!Number.isFinite(sg) || sg <= 0) throw new Error(`Ugyldig sigmagulv i «${indre}»`);
+    return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(fil), ev, sg);
   }
   /**
    * `ork:<rolle>:<indre>` - SD-ORAKELET spiller den rollen, det indre alt annet.

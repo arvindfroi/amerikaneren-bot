@@ -80,11 +80,19 @@ export class Budagent implements Innagent {
   private readonly indre: Innagent;
   private readonly m: Budmodell;
   private readonly evForsvar: number;
+  /**
+   * Gulv på usikkerheten i stikkanslaget. Er σ overvurdert, trekkes P mot 0,5
+   * og modellen slutter å skille gode hender fra dårlige – den byr for likt
+   * på alt. Gulvet ble satt til 0,6 mot et tidligere kortnett, og hører derfor
+   * til samme klasse som `evForsvar`: et KALIBRERT ANSLAG, ikke en regel.
+   */
+  private readonly σGulv: number;
 
-  constructor(indre: Innagent, m: Budmodell, evForsvar = 2.5) {
+  constructor(indre: Innagent, m: Budmodell, evForsvar = 2.5, σGulv = 0.6) {
     this.indre = indre;
     this.m = m;
     this.evForsvar = evForsvar;
+    this.σGulv = σGulv;
   }
 
   nyKamp(): void {
@@ -101,7 +109,7 @@ export class Budagent implements Innagent {
     const sete = state.iTur;
     const x = budTrekk(state, sete);
     const μ = anslå(this.m.mμ, x, this.m.rate);
-    const σ = Math.max(0.6, anslå(this.m.mσ, x, this.m.rate));
+    const σ = Math.max(this.σGulv, anslå(this.m.mσ, x, this.m.rate));
 
     let beste: number | typeof PASS = PASS;
     let bv = this.evForsvar;

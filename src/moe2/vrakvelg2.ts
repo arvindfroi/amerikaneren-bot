@@ -58,43 +58,10 @@ import { BOTTABELL, Motstandermodell } from "./motstander.ts";
  * minst én av de tre siste finnes ingen kandidater, og velgeren faller
  * tilbake til det indre laget.
  */
-export interface Vrakpolicy {
-  readonly ikkeTrumf: boolean;
-  readonly ikkeEss: boolean;
-  readonly ikkeKonge: boolean;
-  readonly laveste: boolean;
-  readonly renonse: boolean;
-  readonly dobbelRenonse: boolean;
-}
-
-export const INGEN_POLICY: Vrakpolicy = {
-  ikkeTrumf: false,
-  ikkeEss: false,
-  ikkeKonge: false,
-  laveste: false,
-  renonse: false,
-  dobbelRenonse: false,
-};
-
-/** Leser flaggstrengen, f.eks. «telrd». */
-export function lesVrakflagg(flagg: string): Vrakpolicy {
-  let v = INGEN_POLICY;
-  for (const tegn of flagg) {
-    if (tegn === "t") v = { ...v, ikkeTrumf: true };
-    else if (tegn === "e") v = { ...v, ikkeEss: true };
-    else if (tegn === "k") v = { ...v, ikkeKonge: true };
-    else if (tegn === "l") v = { ...v, laveste: true };
-    else if (tegn === "r") v = { ...v, renonse: true };
-    else if (tegn === "d") v = { ...v, dobbelRenonse: true };
-    else {
-      throw new Error(
-        `Ukjent vrakflagg «${tegn}» (t = ikke trumf, e = ikke ess, k = ikke konge, ` +
-          `l = laveste, r = renonse, d = dobbel renonse)`,
-      );
-    }
-  }
-  return v;
-}
+// Flaggene bor i `vrakpolicy.ts` fordi `vrakrang.ts` trenger BARE dem, og
+// denne fila drar med seg verdenssampleren og dermed node:worker_threads.
+export { INGEN_POLICY, lesVrakflagg, type Vrakpolicy } from "./vrakpolicy.ts";
+import { lesVrakflagg, type Vrakpolicy } from "./vrakpolicy.ts";
 
 export interface Vrakvelg2Opts {
   readonly verdener?: number;

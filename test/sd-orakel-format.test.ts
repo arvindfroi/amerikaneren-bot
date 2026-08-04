@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { E1_SPILL_DIM, E1_SPILL_DIM_V2 } from "../src/e1/trekk.ts";
+import { E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V6 } from "../src/e1/trekk.ts";
 import { ANTALL_INN } from "../src/neat/trekk.ts";
 
 /**
@@ -22,6 +22,18 @@ import { ANTALL_INN } from "../src/neat/trekk.ts";
 
 const TREKK_T = 273; // v1: kodingen sd-r2.bin og eldre nett ble trent med
 const TREKK_T2 = 340; // v2: v1 + minneblokken (eget vrak, korrigert «ute»)
+/**
+ * Bredden `sd-orakel.ts` FAKTISK skriver, hentet fra samme symbol som den
+ * bruker – ikke et tall skrevet av her.
+ *
+ * Testen sto med 340 hardkodet mens orakelet var gaatt videre til 428, saa den
+ * hadde ikke voktet noe siden trekkblokk v3. En vakt som er bundet til et tall
+ * i stedet for til koden slutter aa vokte i det oeyeblikket koden flytter seg,
+ * og sier ingenting mens den gjoer det. Poenget her er at `t` er E1-vektoren og
+ * `nt` NEAT-vektoren – de ble forvekslet tre ganger 25. juli – og det poenget
+ * holder uansett hvilken versjon blokka er paa.
+ */
+const TREKK_T_NAA = E1_SPILL_DIM_V6;
 const TREKK_NT = 318;
 
 /** Nøklene e1-orakel skriver, uten den fasitspesifikke (`dybde`/`sdVerdener`). */
@@ -56,7 +68,12 @@ test("sd-orakel skriver e1-formatet", () => {
 
     const t = r["t"] as number[];
     const nt = r["nt"] as number[];
-    assert.equal(t.length, TREKK_T2, "t skal være E1-vektoren i v2 (340), ikke NEAT-vektoren");
+    assert.equal(
+      t.length,
+      TREKK_T_NAA,
+      `t skal være E1-vektoren (${TREKK_T_NAA}), ikke NEAT-vektoren (${TREKK_NT})`,
+    );
+    assert.notEqual(t.length, TREKK_NT, "t og nt er ombyttet");
     assert.equal(nt.length, TREKK_NT, "nt skal være NEAT-vektoren (318), ikke E1-vektoren");
     assert.ok(t.every((x) => Number.isFinite(x)));
     assert.ok(nt.every((x) => Number.isFinite(x)));

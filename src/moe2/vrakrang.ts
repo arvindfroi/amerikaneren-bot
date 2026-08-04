@@ -34,7 +34,7 @@ import { FARGER, type Farge, type Kort } from "../kort.ts";
 import { lovligeEtterlys, utfør, type GameState, type Handling } from "../motor.ts";
 import { forover, type NevroNett } from "../nevro/nett.ts";
 import { NevroAgent } from "../nevro/index.ts";
-import { lesVrakflagg, type Vrakpolicy } from "./vrakvelg2.ts";
+import { lesVrakflagg, type Vrakpolicy } from "./vrakpolicy.ts";
 import { vraktrekk, VRAK_DIM } from "./vraktrekk.ts";
 
 const nøkkel = (k: Kort): string => `${k.farge}${k.verdi}`;

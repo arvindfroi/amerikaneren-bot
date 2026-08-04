@@ -44,10 +44,11 @@ const MESTER_URL = `${location.origin}/mester`;
 const MESTER_SETER = [1, 2, 3]; // botsetene styres av MesterAI i bro-modus
 
 // --- Vår beste bot ----------------------------------------------------------
-// Vrak og trumfvalg gjøres fortsatt av NevroHjerne, som er bygget inn i bunten
-// (src/nevro). Nettleseren laster `src/e1/agent.ts`, `konvensjonsvakt.ts` og
-// `budmodell.ts` – NØYAKTIG de klassene benken kjører – i stedet for kopier
-// som kunne kommet i utakt med det som er målt.
+// Vrak og trumfvalg gjøres av den lærte rangereren (`vrakrang.ts`), med
+// NevroHjernes eget par alltid blant kandidatene – så den kan bare forbedre.
+// Nettleseren laster `src/e1/agent.ts`, `konvensjonsvakt.ts`, `budmodell.ts` og
+// `vrakrang.ts` – NØYAKTIG de klassene benken kjører – i stedet for kopier som
+// kunne kommet i utakt med det som er målt.
 // ---------------------------------------------------------------------------
 // ADAMS v1, satt ut 2026-08-03. Tre lag, og hvert av dem er målt for seg:
 //
@@ -80,6 +81,28 @@ const MESTER_SETER = [1, 2, 3]; // botsetene styres av MesterAI i bro-modus
 //                      ikke gjettet.
 const VAKTFLAGG = "abmp";
 const BUDMODELL = "bud-gbt.json";
+/**
+ * BUDTERSKELEN. Beslutningsregelen ser ut som en avveining mot verdien av å
+ * forsvare, men leddet `(1−p)·evForsvar` kansellerer mot terskelen:
+ *
+ *     p·2N(2P−1) + (1−p)·e > e   ⟺   2N(2P−1) > e
+ *
+ * `evForsvar` er altså en REN TERSKEL på kontraktens forventningsverdi. Den
+ * sto på 2,5 – satt da kortnettet var svakere – så boten krevde at en kontrakt
+ * var verdt over 2,5 poeng før den bød i det hele tatt. Risikonøytralt optimum
+ * er 0, og fordi μ anslås av en modell trent på det GAMLE nettet (og derfor
+ * undervurderer hvor mange stikk dagens nett tar), ligger optimum under 0.
+ *
+ * Målt på gate 2, kontrollarmen nøyaktig 0,0000 i alle bånd:
+ *
+ *     bånd 133 M   +0,2342 ± 0,0757    bånd 147 M   +0,3812 ± 0,0707
+ *     slått sammen +0,3127 ± 0,0517 (6,05 SE), 3 757 avgjorte giver
+ *
+ * −3,0 er MIDTEN av et platå: −2, −3 og −5 målte likt, −8 falt til −0,07.
+ * Midten er valgt framfor kanten fordi platået flytter seg når kortnettet
+ * endres, og da ryker kanten først.
+ */
+const BUDTERSKEL = -3.0;
 /** Kortvektene. «sdr2.b64» ligger igjen som fallback om denne ikke kan hentes. */
 const KORTVEKTER = "adams-kort.b64";
 // VRAK OG TRUMF med den lærte rangereren. Måles per budvinnerrunde på
@@ -170,7 +193,7 @@ function besteBot(): Promise<Bot> {
         console.warn("Budmodellen kunne ikke lastes – spiller med NevroHjernes bud.");
       } else {
         try {
-          bot = new Budagent(kort, tolkBudmodell(budRå));
+          bot = new Budagent(kort, tolkBudmodell(budRå), BUDTERSKEL);
         } catch (feil) {
           console.warn("Budmodellen ble avvist:", feil);
         }
@@ -401,7 +424,7 @@ const BOT_ID: Record<Motstander, string> = {
   // ID-EN MAA BYTTES VED HVER UTPLASSERING. Uten det blandes familiens runder
   // mot v1 og v2 i samme rad i Val Town-basen, og da kan ingen av dem maales.
   // Det var slik v1 kunne skilles fra forgjengeren og vise +4,61 poeng/runde.
-  Vaar: "Adams-v2",
+  Vaar: "Adams-v3",
   MesterAI: "MesterAI",
 };
 /** MesterAI vises kun i bro-modus (spillet servert lokalt over HTTP). */
