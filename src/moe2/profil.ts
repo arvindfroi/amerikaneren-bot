@@ -101,10 +101,21 @@ export const tiltro = (a: Anslag, k = 12): number => (a.n <= 0 ? 0 : a.n / (a.n 
 /**
  * Alt vi måler om én spiller.
  *
- * HVERT FELT ER VALGT FORDI DET ER OBSERVERBART UTEN Å SE KORTENE HENNES.
- * Alt her kan leses av den offentlige loggen: hva hun bød, om kontrakten
- * holdt, hva hun spilte. Ingenting krever fasit, og profilen kan derfor
- * bygges live under en kamp like godt som i etterkant.
+ * VED RUNDESLUTT ER ALT AVDEKKET, og det er profilen sin store fordel.
+ *
+ * Hver spiller har lagt tolv kort, og alle tolv står i stikkhistorikken. Hånden
+ * hun HADDE er dermed kjent i etterkant, selv om den var skjult mens det sto
+ * på. Det er ikke lekkasje – det er nøyaktig slik et menneske bygger en
+ * lesning på en medspiller også.
+ *
+ * SKILLET SOM MÅ HOLDES:
+ *
+ *   UNDER runden   bare det som er spilt. Dette styrer verdenstrekkeren, og
+ *                  her ville et oppslag i fasiten vært juks.
+ *   VED SLUTTEN    alt. Dette fyller profilen, og her er det bare observasjon.
+ *
+ * Uten det skillet ville profilen vært blind for det viktigste den kan vite:
+ * hva hun bød MED HVILKEN HÅND.
  */
 export interface Profil {
   readonly id: string;
@@ -130,12 +141,37 @@ export interface Profil {
   /**
    * DD-ANGER per ekte valg – hvor langt fra perfekt spill hun ligger.
    *
-   * Dette er «er hun en god spiller» som et tall, og det eneste feltet som
-   * krever ettertanke: det kan bare regnes når hele giva er logget, og full
-   * runde-logging kom først 3. august. Det fylles derfor sakte. `n` sier hvor
-   * mye det er verdt, og krympingen gjør resten.
+   * Dette er «er hun en god spiller» som et tall. Regnes av stikkhistorikken
+   * ved rundeslutt, når alle fire hender er kjent.
    */
   readonly anger: Anslag;
+
+  // --- Det som krever de avdekte kortene ---------------------------------
+
+  /** Trumflengde da hun bød. «Bød 10 med bare 4 trumf.» */
+  readonly trumflengdeVedBud: Anslag;
+  /** Honnører (kn/D/K/E) da hun bød. */
+  readonly honnorerVedBud: Anslag;
+  /**
+   * OVERBUD: budet minus det hånden egentlig bar.
+   *
+   * Positivt = hun byr høyere enn kortene tilsier. Dette er tallet som gjør
+   * Arvinds strategi mulig: en som systematisk overbyr skal man LA få
+   * kontrakten, fordi den ryker oftere enn hun tror.
+   */
+  readonly overbud: Anslag;
+  /**
+   * FLAKS: klarte hun den uten at den var til å klare?
+   *
+   * 1 når kontrakten holdt SELV OM dobbeltdummy sier den ikke skulle det,
+   * −1 når den røk selv om den var i havn med perfekt spill, 0 ellers.
+   *
+   * HVORFOR DETTE ER ET EGET FELT OG IKKE STØY. «Hun klarte tre av fire» er
+   * ikke det samme som «hun er god» – det kan være at kortene falt hennes vei.
+   * Uten dette leddet ville profilen forvekslet flaks med ferdighet, og det er
+   * nøyaktig feilen Arvind advarte mot: «han klarte det pga flaks».
+   */
+  readonly flaks: Anslag;
 }
 
 export const tomProfil = (id: string): Profil => ({
@@ -147,6 +183,10 @@ export const tomProfil = (id: string): Profil => ({
   poeng: TOMT,
   trumfutspill: TOMT,
   anger: TOMT,
+  trumflengdeVedBud: TOMT,
+  honnorerVedBud: TOMT,
+  overbud: TOMT,
+  flaks: TOMT,
 });
 
 /**
@@ -171,9 +211,21 @@ export const BEFOLKNING = {
   poeng: 5.2,
   trumfutspill: 0.14,
   anger: 0.426,
+  trumflengdeVedBud: 4.6,
+  honnorerVedBud: 1.6,
+  /** Et gjennomsnittsmenneske byr omtrent det hånden bærer. */
+  overbud: 0.0,
+  /** Flaksen midler til null over mange runder – det er definisjonen på flaks. */
+  flaks: 0.0,
 } as const;
 
-/** Én runde slik profilen ser den. Alt er offentlig informasjon. */
+/**
+ * Én runde slik profilen ser den ETTER at den er ferdig.
+ *
+ * Feltene under streken krever de avdekte kortene, og de er valgfrie: en runde
+ * som ikke ble logget fullstendig gir fortsatt de øverste, bare med mindre
+ * innhold. Profilen skal ikke miste en observasjon fordi én del manglet.
+ */
 export interface Rundeobservasjon {
   readonly id: string;
   /** Budet hun avga, eller `null` for pass. */
@@ -185,7 +237,35 @@ export interface Rundeobservasjon {
   readonly poeng: number;
   /** Bare når hun ikke var budvinner og faktisk ledet et stikk. */
   readonly ledetTrumf?: boolean;
+
+  // --- Fra de avdekte kortene ---------------------------------------------
+
+  /** Antall trumf på hånden hennes den runden. */
+  readonly trumflengde?: number;
+  /** Antall kort med verdi ≥ 11 på hånden. */
+  readonly honnorer?: number;
+  /**
+   * Hva dobbeltdummy sier laget hennes SKULLE tatt med perfekt spill.
+   * Sammen med `lagStikk` skiller det flaks fra ferdighet.
+   */
+  readonly ddLagStikk?: number;
+  /** Snittanger per ekte valg denne runden, fra stikkhistorikken. */
+  readonly angerSnitt?: number;
 }
+
+/**
+ * Hva et bud «burde» vært, gitt hånden.
+ *
+ * GROV MED VILJE. Den skal ikke være en budmodell – den skal bare gi et
+ * konsistent nullpunkt slik at OVERBUD blir sammenliknbart mellom spillere.
+ * Feilen i formelen treffer alle likt og faller ut av sammenlikningen; det er
+ * differansen mellom personer vi er ute etter, ikke et absolutt nivå.
+ *
+ * Kalibrert mot de målte familietallene: bud 7 kom med 4,32 lengste og 1,18
+ * honnører, bud 9 med 5,00 og 2,31.
+ */
+export const budFraHand = (trumflengde: number, honnorer: number): number =>
+  5.5 + 0.55 * trumflengde + 0.45 * honnorer;
 
 /** Oppdaterer profilen med én runde. Rene data inn, ny profil ut. */
 export function oppdater(p: Profil, o: Rundeobservasjon): Profil {
@@ -203,6 +283,26 @@ export function oppdater(p: Profil, o: Rundeobservasjon): Profil {
   }
   if (!o.varBudvinner && o.ledetTrumf !== undefined) {
     ut = { ...ut, trumfutspill: legg(ut.trumfutspill, o.ledetTrumf ? 1 : 0) };
+  }
+
+  // --- Det de avdekte kortene gir ----------------------------------------
+  if (o.trumflengde !== undefined && o.bud !== null) {
+    ut = { ...ut, trumflengdeVedBud: legg(ut.trumflengdeVedBud, o.trumflengde) };
+    if (o.honnorer !== undefined) {
+      ut = {
+        ...ut,
+        honnorerVedBud: legg(ut.honnorerVedBud, o.honnorer),
+        overbud: legg(ut.overbud, o.bud - budFraHand(o.trumflengde, o.honnorer)),
+      };
+    }
+  }
+  if (o.angerSnitt !== undefined) ut = { ...ut, anger: legg(ut.anger, o.angerSnitt) };
+
+  // FLAKS: klarte hun noe som ikke var til å klare, eller omvendt?
+  if (o.varBudvinner && o.klarte !== undefined && o.ddLagStikk !== undefined && o.bud !== null) {
+    const skulleKlart = o.ddLagStikk >= o.bud;
+    const f = o.klarte === skulleKlart ? 0 : o.klarte ? 1 : -1;
+    ut = { ...ut, flaks: legg(ut.flaks, f) };
   }
   return ut;
 }

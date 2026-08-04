@@ -121,3 +121,91 @@ test("profilen bærer ingen navn", () => {
   assert.equal(Object.keys(p).filter((k) => k === "navn").length, 0);
   assert.equal(p.id, "a1b2c3");
 });
+
+/**
+ * DE AVDEKTE KORTENE. Ved rundeslutt har alle lagt tolv kort, og hånden hver
+ * spiller HADDE står i stikkhistorikken. Det er ikke lekkasje – det er slik en
+ * medspiller bygger en lesning også – men det må skilles skarpt fra hva som er
+ * kjent UNDER runden, der et oppslag i fasiten ville vært juks.
+ */
+/**
+ * HVOR MANGE RUNDER KOSTER EN OVERBEVISNING? Testen dokumenterer farten, ikke
+ * bare retningen.
+ *
+ * John byr 10 med 4 trumf og 1 honnoer. Sant overbud er +1,85. Med k=12:
+ *
+ *   etter 10 runder   0,45 x 1,85 = 0,84   – merkbart, men ikke nok til aa
+ *                                            snu en beslutning
+ *   etter 30 runder   0,71 x 1,85 = 1,32   – naa vet boten det
+ *
+ * Foerste utkast av denne testen krevde over 1,0 etter ti runder og feilet.
+ * Den hadde rett: krympingen ER saa treg, og det er meningen. Tallet under er
+ * derfor maalt, ikke oensket.
+ */
+test("«bød 10 med bare 4 trumf» gir positivt overbud", () => {
+  let p = tomProfil("john");
+  for (let i = 0; i < 30; i++) {
+    p = oppdater(p, {
+      id: "john",
+      bud: 10,
+      varBudvinner: true,
+      klarte: false,
+      lagStikk: 8,
+      poeng: -20,
+      trumflengde: 4,
+      honnorer: 1,
+    });
+  }
+  const ob = krymp(p.overbud, BEFOLKNING.overbud);
+  assert.ok(ob > 1.25, `etter 30 runder skal overbudet vaere tydelig, var ${ob.toFixed(2)}`);
+  assert.ok(ob < 1.85, "og fortsatt ikke helt framme ved individet");
+  // Og trumflengden skal vise det den faktisk saa.
+  assert.equal(krymp(p.trumflengdeVedBud, BEFOLKNING.trumflengdeVedBud, 0), 4);
+});
+
+test("en som byr etter kortene sine har overbud rundt null", () => {
+  let p = tomProfil("nokternt");
+  for (let i = 0; i < 20; i++) {
+    // 5 trumf og 2 honnoerer -> budFraHand = 5,5 + 2,75 + 0,9 = 9,15
+    p = oppdater(p, {
+      id: "nokternt",
+      bud: 9,
+      varBudvinner: true,
+      klarte: true,
+      lagStikk: 10,
+      poeng: 18,
+      trumflengde: 5,
+      honnorer: 2,
+    });
+  }
+  assert.ok(Math.abs(krymp(p.overbud, BEFOLKNING.overbud)) < 0.35);
+});
+
+test("FLAKS skilles fra ferdighet: klarte noe dobbeltdummy sier var uklarbart", () => {
+  let heldig = tomProfil("heldig");
+  let dyktig = tomProfil("dyktig");
+  for (let i = 0; i < 10; i++) {
+    // Klarte 9, men perfekt spill ville gitt bare 8 -> hun var heldig.
+    heldig = oppdater(heldig, {
+      id: "heldig", bud: 9, varBudvinner: true, klarte: true,
+      lagStikk: 9, poeng: 18, ddLagStikk: 8,
+    });
+    // Klarte 9, og perfekt spill ga 10 -> ingen flaks involvert.
+    dyktig = oppdater(dyktig, {
+      id: "dyktig", bud: 9, varBudvinner: true, klarte: true,
+      lagStikk: 9, poeng: 18, ddLagStikk: 10,
+    });
+  }
+  // BEGGE har klart 10 av 10. Uten flaksleddet ville de sett like ut.
+  assert.equal(krymp(heldig.klarte, BEFOLKNING.klarte), krymp(dyktig.klarte, BEFOLKNING.klarte));
+  assert.ok(krymp(heldig.flaks, BEFOLKNING.flaks) > 0.3, "den heldige skal skille seg ut");
+  assert.ok(Math.abs(krymp(dyktig.flaks, BEFOLKNING.flaks)) < 1e-9, "den dyktige skal ligge paa null");
+});
+
+test("en runde uten avdekte kort mister ikke de andre feltene", () => {
+  let p = tomProfil("x");
+  p = oppdater(p, { id: "x", bud: 9, varBudvinner: true, klarte: true, lagStikk: 10, poeng: 18 });
+  assert.equal(p.klarte.n, 1, "klarte skal telles selv uten kortinfo");
+  assert.equal(p.overbud.n, 0, "overbud kan ikke regnes uten haanden");
+  assert.equal(p.flaks.n, 0, "flaks kan ikke regnes uten DD-fasit");
+});
