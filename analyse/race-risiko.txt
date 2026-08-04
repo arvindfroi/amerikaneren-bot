@@ -1,0 +1,17 @@
+161 ekte runder, race til 100, 30000 simuleringer per rad
+Variansen skrus naar forskjellen er over 12 poeng. Snittet er UROERT.
+
+  bak    foran    P(mennesket vinner)
+  1,00   1,00            11.78 %   (dagens: ingen stillingsbevissthet)
+  1.20   1.00            11.29 %  <-
+  1.40   1.00            10.89 %  <-
+  1.00   0.80            11.98 %
+  1.00   0.60            12.61 %
+  1.20   0.80            11.63 %
+  1.40   0.70            10.84 %  <-
+  1.60   0.60            10.95 %  <-
+  2.00   0.50             9.89 %  <-
+
+SNITTET ER UROERT I ALLE RADER. Alt som skiller dem er NAAR boten tar
+risiko - ikke hvor god den er. Er utslaget lite, er stillingsbevissthet
+ikke verdt en linje kode.

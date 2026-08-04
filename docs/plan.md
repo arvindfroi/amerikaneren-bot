@@ -212,6 +212,52 @@ logger nå hele historikken, vraket, trumfen, etterlysningen og makkeren ved
 rundeslutt. Hver framtidig runde er treningsdata uten et eneste
 gjenskapingssteg.
 
+## S3a. STØRSTE UUTNYTTEDE FUNN: racet belønner varians når man ligger bak
+
+**Vi måler alt i poeng per runde. Målet er å vinne kamper til 100. De er ikke
+samme sak.**
+
+`verktoy/race-risiko.py` skrur variansen uten å røre snittet — `delta' = snitt
++ s·(delta − snitt)` — og simulerer racet på 161 ekte runder:
+
+| variansfaktor når BAK | mennesket vinner racet |
+|---|---|
+| 1,0 *(i dag)* | 11,94 % |
+| 1,5 | 10,39 % |
+| 2,0 | 9,04 % |
+| **3,0** | **7,03 %** |
+
+**Snittet er urørt i hver eneste rad.** Alt som skiller dem er NÅR boten tar
+risiko.
+
+Å gå fra 11,76 % til 7,03 % svarer til et skift på **~+0,55 poeng per runde** i
+race-tabellen — mer enn hele Adams-v3-forbedringen, fra en beslutningsregel som
+koster null modellkompleksitet.
+
+### Og motsatt: å spille trygt når man LEDER gir ingenting
+
+| variansfaktor når FORAN | |
+|---|---|
+| 1,0 | 12,12 % |
+| 0,8 | 11,72 % |
+| 0,6 | 12,26 % |
+| 0,4 | 12,90 % |
+
+Ren støy, om ikke svakt skadelig. Grunnen er at i et race vinner du ved å NÅ
+100 først, ikke ved å ha størst margin. Kveler man variansen mens man leder,
+bremser man seg selv mot mål og gir motparten flere runder å ta igjen på.
+
+### Spaken finnes allerede
+
+**Budterskelen ER en variansknott.** Platået fra −2 til −5 målte likt i snitt,
+og −8 kostet bare −0,07. Å senke terskelen når boten ligger bak gir flere
+marginale kontrakter — mer varians — til nesten ingen snittkostnad.
+
+**FORBEHOLDET SOM SKAL STÅ:** at boten faktisk kan tredoble variansen uten å
+tape snitt er en antakelse. Tallet er et TAK for hva stillingsbevissthet kan
+gi, ikke et anslag på hva den vil gi. Men selv 1,5× er 1,55 prosentpoeng, og
+det er fem ganger forventningen fra nattens blokktrening.
+
 ## S3b. I KØEN: flerfortsettelses-orakelet (Brown & Sandholm 2019)
 
 Pluribus søker til en dybdegrense, og der velger hver spiller mellom **fire
@@ -271,6 +317,43 @@ da er beste svar riktig mål. Der går vi motsatt vei, og det er et valg, ikke e
 forglemmelse. Nash faller uansett bort i et firespillerspill med skiftende,
 delvis skjulte makkerskap.
 
+## S3bb. TROSMODELLEN: øyne som bare en maskin kan ha
+
+Arvind, 4. august: *«jeg vet at john doe ikke har noen rutere igjen fordi i
+runde 3 så hev han på en spar […] dermed tror jeg john doe har hjerter ess.»*
+
+Det er en **slutningskjede**, og vi hadde bare første ledd. Troblokken (v6)
+sier «John kan ha HØYST tre hjerter». Kjeden trenger «John har hjerter ess med
+sannsynlighet 0,7». Forskjellen på å telle og å vite.
+
+`examples/tro-data.ts` + `verktoy/tro-tren.py`. Fasiten er **gratis**: ved
+rundeslutt vet vi hvor hvert kort lå. Ingen SD-evaluering, ingen rollouts —
+bare spilling. Målt ~40× raskere per prosess enn SD-korpuset.
+
+**Første kjøring, 187 000 rader:**
+
+| | treffrate |
+|---|---|
+| uniform | 25,0 % |
+| **kapasitet** *(alt en perfekt teller kan få til)* | **31,5 %** |
+| **modellen** | **43,5 %** |
+| **modellen, bare honnører** | **47,4 %** |
+
+Kapasitetsreferansen er ikke en stråmann — den vekter hver plassering etter
+hvor mange kort den har igjen, altså alt som følger av offentlig informasjon.
+
+**Og den er bedre på honnørene enn på totalen.** Det er riktig vei: de fleste
+usette kort er små og likegyldige, det er essene som avgjør stikk.
+
+**Hvorfor dette er mer enn en trekkblokk.** Verdenstrekkeren vekter i dag
+verdener bare etter BUDET (`budForenlighet`), ikke etter spillet. Det er
+grunnen søket vårt ikke kunne virke — det samplet nesten tilfeldige verdener.
+[Solinas et al. (AAAI-19)](https://arxiv.org/abs/1903.09604) rapporterer
+«substantial increase in cardplay strength» i Skat av nettopp denne fiksen.
+
+**IKKE VIST ENDA:** at bedre tro gir flere STIKK. Treffrate er forutsetningen,
+ikke gevinsten.
+
 ## S3c. PARKERT: motstandermodellen (`src/moe2/profil.ts` er bygget)
 
 Arvind, 4. august: *«jeg vil at john doe skal starte et spill mot botten og
@@ -300,6 +383,47 @@ spiller tilfeldig, skal den falle tilbake til nøytralt, ikke til noe verre.
 **Farten er målt, ikke ønsket:** en som byr 10 med 4 trumf gir overbud +0,84
 etter ti runder og +1,32 etter tretti (sant nivå +1,85). Krympingen er så treg
 med vilje.
+
+## S3d. FORSKNINGSAGENDAEN: hva vi ikke vet, rangert etter hva det ville endret
+
+### α-μ retter nøyaktig de to feilene som felte søket vårt
+
+[Cazenave & Ventos](https://arxiv.org/pdf/1911.07960) angriper PIMCs to kjente
+teoretiske defekter:
+
+| defekt | hva den gjør | deres fiks |
+|---|---|---|
+| **strategy fusion** | søket later som det kan spille ulikt i hver verden, men må velge ÉTT trekk | **spiller samme trekk i alle verdener under søket** |
+| **non-locality** | lokalt beste trekk er globalt dårlig | Pareto-fronter som tilstandsevaluering |
+
+Målt hos dem, 500 giver med 20 verdener: **62,0 % mot PIMCs 60,2 %** på fulle
+kort, 48,2 % mot 46,4 % med 36 kort igjen.
+
+**MEN KOSTNADEN ER AVGJØRENDE FOR OSS:** 1,2 sekunder per trekk selv med
+transposisjonstabeller og kutt. Vår bot svarer umiddelbart i nettleseren. α-μ
+er teoretisk riktig og praktisk utenfor rekkevidde slik den står — med mindre
+den destilleres til et nett, som er det vi allerede gjør med SD-orakelet.
+
+**Og merk hva sammenlikningen deres er:** α-μ mot PIMC, der begge søker. Vi har
+INGEN søk. Spranget fra ingenting til PIMC er trolig større enn fra PIMC til
+α-μ, og det er det spranget vi bør måle først.
+
+### Det vi bør lete etter, i rekkefølge
+
+1. **Skat-stigen.** Kermit er state of the art, og forbedringene kom i en
+   rekkefølge. Å vite hvor mye hvert trinn var verdt DER ville erstattet
+   gjetningene våre med tall. Vi anslår i dag at troen er verdt mest — det er
+   en hypotese, ikke kunnskap.
+2. **Hvordan lært tro SKAL brukes.** Som trekk i policy-nettet, eller som
+   sampler for søk? ReBeL og «public belief states» kan ha en tredje vei.
+   Dette avgjør neste steg og vi vet det ikke.
+3. **Hvor dypt resonnementet skal gå.** Arvinds kjede inneholder «budvinneren
+   hev lave kort FORDI det egnet han best» — resonnement om motpartens
+   beslutningsprosess, ikke om kortene. Når koster nivå 2 mer enn det smaker?
+4. **Race-optimalt spill.** Bridge-litteraturen sier at scoringsformen endrer
+   optimal risiko (matchpoints → ta sjanser, IMPs → spill trygt). Vårt race er
+   nærmere matchpoints. Men vi har målt effekten selv (S3a) og fant den større
+   enn litteraturen ville antydet — der bør vi stole på egen måling.
 
 ## S4. Det som er lagt på hylla, og hvorfor det ikke er forkastet
 
