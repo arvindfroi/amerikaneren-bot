@@ -1508,3 +1508,54 @@ Arvind ba om det.
 
 **Første prøve: 8 kandidater per stilling, spenn 20,2 poeng mellom beste og
 verste.** Valget betyr mye. Problemet var aldri at det ikke er noe å hente.
+
+## 27. Hva «umulig å slå i det lange løpet» krever — regnet ut
+
+Adams-v1 mot mennesket: **−1,8131 per runde, SD 11,455** (107 runder).
+
+**Sannsynligheten for at mennesket ligger foran etter N runder:**
+
+| runder | mennesket foran |
+|---|---|
+| 10 | 1 av 3 |
+| 100 | 1 av 18 |
+| 200 | 1 av 79 |
+| **400** | **1 av 1 292** |
+| 800 | 1 av 264 000 |
+| 1600 | 1 av 8,2 milliarder |
+
+**Boten er allerede god nok — hvis ledelsen er ekte.** Det er det eneste som
+gjenstår å vise.
+
+**Og det er et MÅLESPØRSMÅL, ikke et botspørsmål:**
+
+| runder | ledelsens presisjon |
+|---|---|
+| 107 (i dag) | 1,64 SE |
+| 200 | 2,24 SE |
+| **400** | **3,17 SE** |
+| 1000 | 5,01 SE |
+
+Vi trenger ~400 menneskerunder for å feste ledelsen på 3 SE. Så følger resten
+av aritmetikk.
+
+**Konsekvens for prioritering:** familien må spille. 107 runder er ikke nok
+uansett hvor mye botten forbedres, og null runder er logget mot Adams-v2. En
+større ledelse kommer raskere dit — med 3,0 i stedet for 1,8 halveres antall
+runder som trengs — men uten spilte runder kan ingenting vises.
+
+### Hvorfor motstandermodellen ikke påvirker Adams i dag
+
+Adams-v2s kortspill er et RENT NETT. Det sampler ikke verdener, så budprioren
+i `trekkVerdenBelief` rører den ikke. Motstandermodellen hjelper bare agenter
+som søker — og søk kan ikke kjøre i nettleseren.
+
+**Veien er å bake den inn i TRENINGSDATAEN:** generer etiketter der verdenene
+samples med menneskeprioren og rolloutene bruker en menneskeklone, og destiller.
+Da lærer nettet å utnytte familiens tendenser, og gevinsten koster
+millisekunder ved spilletid.
+
+Byggeklossene finnes: `examples/menneske-atferd.ts` rekonstruerer hele giva fra
+frøet (motoren deler ut deterministisk), `analyse/menneskedata/` har 813
+loggede runder, og `src/moe2/mesterklone.ts` har mønsteret — bygg klonen som et
+påbygg på NevroHjerne, som allerede er enig med målet i to av tre kortvalg.
