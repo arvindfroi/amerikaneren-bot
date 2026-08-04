@@ -338,7 +338,15 @@ const MOTSTANDER_INFO: Record<Motstander, string> = {
  * som ble spilt mest.
  */
 const BOT_ID: Record<Motstander, string> = {
-  Vaar: "Adams-v1",
+  // Adams-v2, 4. august: kortvektene destillert fra 544 573 rader merket med
+  // 24-verdeners framoverblikk og korrekt rollout-policy. Gate 2 over TO
+  // disjunkte froebaand, n=14 000: +0,1434 +/- 0,0526 (2,72 SE), og forsvaret
+  // alene +0,1866 +/- 0,0609 (3,06 SE).
+  //
+  // ID-EN MAA BYTTES VED HVER UTPLASSERING. Uten det blandes familiens runder
+  // mot v1 og v2 i samme rad i Val Town-basen, og da kan ingen av dem maales.
+  // Det var slik v1 kunne skilles fra forgjengeren og vise +4,61 poeng/runde.
+  Vaar: "Adams-v2",
   MesterAI: "MesterAI",
 };
 /** MesterAI vises kun i bro-modus (spillet servert lokalt over HTTP). */
