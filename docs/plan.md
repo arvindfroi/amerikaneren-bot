@@ -1279,3 +1279,47 @@ Det eneste som kan flytte den grensen, er en bedre PRIOR over hva motparten har
 — altså motstandermodellen (§13.3). Den krymper ikke rommet matematisk, men den
 gjør at få samplede verdener bærer mer. Samme konklusjon som §17 nådde fra en
 annen kant.
+
+## 20. DESTILLASJONEN VIRKER — og rollestyringen var feil
+
+Frøbånd 23 500 000, n=6000, mot `ftf1`. Alle tre armene er destillert fra
+`sd-v7`: 544 573 rader, 24-verdeners orakel, korrekt rollout-policy,
+budmodellen som stillingskilde.
+
+| arm | totalt | SE | σ | trimmet | tegn |
+|---|---|---|---|---|---|
+| **`d7alle`** lærer overalt | **+0,2264** | 0,0826 | **+2,74** | +0,0186 | 987/920 |
+| `d7a` rollestyrt | −0,0554 | 0,0860 | −0,64 | −0,0532 | 1013/1260 |
+| `d7b` rollestyrt + blokker | −0,0541 | 0,0899 | −0,60 | −0,0985 | 1115/1437 |
+
+### `d7alle` per rolle
+
+| rolle | effekt | σ |
+|---|---|---|
+| fører | +0,3889 | +1,48 |
+| makker | −0,0369 | −0,89 |
+| **forsvar** | **+0,2768** | **+2,81** |
+
+### FEILEN, OG DEN ER PRINSIPIELL
+
+Jeg sluttet fra **«orakelet SPILLER dårlig i forsvar» (−0,130, `ork:`-benken)**
+til **«orakelet LÆRER BORT dårlig i forsvar»**. Det er to helt ulike ting:
+
+- **Å spille** orakelets valg er `argmax` over 12 støyete verdener. Støyen
+  treffer hver eneste beslutning. Atferdsmålingen viste at orakelet var SIKKERT
+  i bare 1,3 % av uenighetene.
+- **Å lære av** orakelets verdier lar nettet midle over tusenvis av liknende
+  stillinger. Støyen kanselleres.
+
+> **Destillasjon er en støydemper. En dårlig spiller kan være en god lærer.**
+
+Det forklarer også hvorfor ankeret SKADET: `d7a`s makker måler −0,1911
+(−3,72 SE). Selvdestillasjon mot startnettets egne logits er et langt svakere
+signal enn orakelets verdier, så ankeret erstattet god læring med ingen læring.
+
+Arvinds prinsipp — bevar der vi er bedre — var riktig. Jeg brukte feil måling
+til å avgjøre HVOR, og `ork:`-benken svarer på et annet spørsmål enn den jeg
+stilte den.
+
+**IKKE ADOPTERT ENNÅ.** +2,74 SE på ett bånd, med tegntest 987/920 (z = 1,53)
+og trimmet +0,019. Replikering kjører i frøbånd 25 800 000 med n=8000.

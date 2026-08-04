@@ -1,0 +1,55 @@
+Enhet: cuda (NVIDIA GeForce RTX 5080 Laptop GPU)
+Teller 544881 linjer i 14 filer (4s)
+Trekkbredde: 428 (v6 troblokk)
+  sd-v7/skard-0.jsonl: 39017 stillinger (totalt 39017)
+  sd-v7/skard-1.jsonl: 39137 stillinger (totalt 78154)
+  sd-v7/skard-10.jsonl: 39024 stillinger (totalt 117178)
+  sd-v7/skard-11.jsonl: 39318 stillinger (totalt 156496)
+  sd-v7/skard-12.jsonl: 39094 stillinger (totalt 195590)
+  sd-v7/skard-13.jsonl: 38775 stillinger (totalt 234365)
+  sd-v7/skard-2.jsonl: 38427 stillinger (totalt 272792)
+  sd-v7/skard-3.jsonl: 38997 stillinger (totalt 311789)
+  sd-v7/skard-4.jsonl: 38870 stillinger (totalt 350659)
+  sd-v7/skard-5.jsonl: 38529 stillinger (totalt 389188)
+  sd-v7/skard-6.jsonl: 38798 stillinger (totalt 427986)
+  sd-v7/skard-7.jsonl: 39064 stillinger (totalt 467050)
+  sd-v7/skard-8.jsonl: 38790 stillinger (totalt 505840)
+  sd-v7/skard-9.jsonl: 39041 stillinger (totalt 544881)
+Leste 544881 stillinger, hoppet over 0 dubletter og 0 ugyldige (38s)
+
+=== OVERLAPP ===
+{
+  "mapper": {
+    "sd-v7": {
+      "stillinger": 544881,
+      "givere": 1537
+    }
+  },
+  "overlapp": {},
+  "froebaand": {
+    "sd-v7": [
+      280000000,
+      293000107
+    ]
+  }
+}
+
+Giv-deling: 70 av 1537 givere i sd-v7 → holdout (25157 stillinger). Ingen giver i to deler.
+  finjusterer fra e1-modell/ftf1.bin (lr 0.0001)
+
+=== d7alle: sd-v7, 273 → 512 → 384 → 256 → 52 (449204 parametre) – trening 519724, holdout 25157 ===
+epoke 1/14: tren-tap 1.4470 hold-tap 1.4481 (gap +0.0011)  tren-anger 0.7134 hold-anger 0.7396 hold-treff 50.0 %
+epoke 2/14: tren-tap 1.4461 hold-tap 1.4487 (gap +0.0026)  tren-anger 0.6988 hold-anger 0.7310 hold-treff 50.1 %
+epoke 3/14: tren-tap 1.4467 hold-tap 1.4507 (gap +0.0039)  tren-anger 0.6890 hold-anger 0.7217 hold-treff 50.4 %
+epoke 4/14: tren-tap 1.4451 hold-tap 1.4502 (gap +0.0050)  tren-anger 0.6777 hold-anger 0.7220 hold-treff 50.4 %
+epoke 5/14: tren-tap 1.4458 hold-tap 1.4523 (gap +0.0065)  tren-anger 0.6701 hold-anger 0.7206 hold-treff 50.5 %
+epoke 6/14: tren-tap 1.4456 hold-tap 1.4530 (gap +0.0074)  tren-anger 0.6648 hold-anger 0.7149 hold-treff 50.7 %
+epoke 7/14: tren-tap 1.4450 hold-tap 1.4532 (gap +0.0082)  tren-anger 0.6593 hold-anger 0.7184 hold-treff 50.5 %
+epoke 8/14: tren-tap 1.4454 hold-tap 1.4543 (gap +0.0089)  tren-anger 0.6554 hold-anger 0.7200 hold-treff 50.5 %
+epoke 9/14: tren-tap 1.4454 hold-tap 1.4548 (gap +0.0094)  tren-anger 0.6527 hold-anger 0.7156 hold-treff 50.6 %
+epoke 10/14: tren-tap 1.4448 hold-tap 1.4546 (gap +0.0098)  tren-anger 0.6505 hold-anger 0.7134 hold-treff 50.6 %
+epoke 11/14: tren-tap 1.4452 hold-tap 1.4554 (gap +0.0102)  tren-anger 0.6492 hold-anger 0.7147 hold-treff 50.6 %
+epoke 12/14: tren-tap 1.4449 hold-tap 1.4552 (gap +0.0103)  tren-anger 0.6476 hold-anger 0.7147 hold-treff 50.7 %
+epoke 13/14: tren-tap 1.4450 hold-tap 1.4554 (gap +0.0104)  tren-anger 0.6471 hold-anger 0.7139 hold-treff 50.7 %
+epoke 14/14: tren-tap 1.4450 hold-tap 1.4554 (gap +0.0104)  tren-anger 0.6471 hold-anger 0.7139 hold-treff 50.7 %
+d7alle ferdig: beste hold-anger 0.7134 på epoke 10 → e1-modell/d7alle.bin
