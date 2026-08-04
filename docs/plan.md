@@ -271,6 +271,36 @@ da er beste svar riktig mål. Der går vi motsatt vei, og det er et valg, ikke e
 forglemmelse. Nash faller uansett bort i et firespillerspill med skiftende,
 delvis skjulte makkerskap.
 
+## S3c. PARKERT: motstandermodellen (`src/moe2/profil.ts` er bygget)
+
+Arvind, 4. august: *«jeg vil at john doe skal starte et spill mot botten og
+etterhvert gjennom spillet så blir botten bedre og bedre til å slå han. ingen
+data på forhånd.»*
+
+Modulen står med 12 tester. Den er **ikke koblet inn** — den venter til
++1-målet er nådd, etter Arvinds prioritering.
+
+**Slik den skal virke.** En løpende teori om hver enkelt ved bordet, bygget
+utelukkende av det som skjer ved bordet. Starter på «gjennomsnittsmenneske»,
+skjerpes hver runde. Boten spiller vanlig i starten og blir gradvis verre å
+møte — ikke fordi den er sterkere, men fordi den er skreddersydd mot deg.
+
+| | |
+|---|---|
+| **alt er bevis** | bud, vrak, trumfvalg, utspill, om han dukker — og betenkningstiden, som vi logger i ms |
+| **tre ting skilles** | stil (hvordan han velger), ferdighet (hvor godt han utfører), flaks (hvordan kortene falt) |
+| **tiltroen styrer** | tidlig nøytralt, senere utnyttende. Sikkerhet på to runder er verre enn ingen profil |
+| **ved rundeslutt ser den kort** | alle tolv kort er spilt og står i historikken. Ikke lekkasje — slik leser mennesker hverandre |
+
+**Det Arvind ikke sa, men som hører med:** makkeren må modelleres også (han
+etterlyses per runde); motstanderne tilpasser seg tilbake, så nye runder må
+veie tyngre enn gamle; og modellen må tåle å ta feil — møter den en som
+spiller tilfeldig, skal den falle tilbake til nøytralt, ikke til noe verre.
+
+**Farten er målt, ikke ønsket:** en som byr 10 med 4 trumf gir overbud +0,84
+etter ti runder og +1,32 etter tretti (sant nivå +1,85). Krympingen er så treg
+med vilje.
+
 ## S4. Det som er lagt på hylla, og hvorfor det ikke er forkastet
 
 Alle ble målt FØR 3. august, da rollout-policyen og oppvarmingen ble rettet.
