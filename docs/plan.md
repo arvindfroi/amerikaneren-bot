@@ -2577,3 +2577,72 @@ av virkelige runder tar alle 12), men den er ikke FORUTSIGBAR i budøyeblikket.
 
 SOLO er fortsatt utelatt med vilje: μ anslår LAGETS stikk, og å bruke det for
 et bud som krever at budvinneren alene tar alt ville systematisk overby.
+
+### ETTERLYSNINGEN ER ENDELIG AVKLART — høyeste trumf, og det er ikke nære på
+
+Avveiningen var ekte og verdt å teste: et lavere kall holder makkeren skjult
+lenger, fordi et høyt kall er en vinner som spilles tidlig og røper
+partnerskapet med en gang. Gate 2, 2 200 givere, 1 429 avgjorte:
+
+| arm | poeng/runde | tegntest |
+|---|---|---|
+| nivå 1 (nest høyeste) | **−1,272 ± 0,105** | **z = −13,25** |
+
+Den gamle målingen mot en svakere bot ga −0,911. Mot dagens stakk treffer det
+**hardere**, ikke mykere — hemmeligholdet blir mindre verdt jo bedre resten av
+laget spiller, fordi en svakere makker koster mer når makkeren faktisk kan
+utnytte styrke.
+
+EGENKONTROLLEN SOM GJØR TALLET TROVERDIG: makker- og forsvarsradene står på
+NØYAKTIG 0,0000. Laget endrer bare budvinnerens VELG, så hele utslaget skal
+ligge i spillførersetet — og det gjør det. En lekkasje til de andre setene
+ville betydd at klassen gjorde noe den ikke skulle.
+
+Spørsmålet er lukket. `Etterlysvelger` beholdes som måleinstrument, men nivå 0
+er og blir regelen.
+
+### Forsvarsverdien: gradienten peker NEDOVER, ikke oppover
+
+Første sveip målte bare oppover fra dagens koblede −3,0:
+
+| forsvarsverdi | poeng/runde | tegntest |
+|---|---|---|
+| −1,0 | −0,005 ± 0,032 | z = −2,01 |
+| 0,0 | −0,017 ± 0,038 | z = −2,31 |
+| +1,5 | −0,030 ± 0,044 | z = −2,98 |
+
+Monotont, og alle tre tegntestene signifikant negative. Optimum ligger altså
+på eller UNDER −3,0, og halve svaret manglet. Sveipen nedover gir:
+
+| forsvarsverdi | poeng/runde | tegntest |
+|---|---|---|
+| −14,0 («meld aldri 9») | −0,095 ± 0,032 | z = −2,95 |
+| −8,0 | −0,119 ± 0,031 | z = −2,82 |
+| −5,0 | −0,115 ± 0,032 | z = −2,63 |
+
+BEGGE RETNINGER TAPER. Den koblede verdien er et lokalt optimum til begge
+sider, og hypotesen om to sammenblandede størrelser var FEIL.
+
+Og grunnen er økonomisk, ikke tilfeldig: terskelen er «hva jeg kan få ved å
+ikke by», forsvarsverdien er «hva jeg får når jeg ikke vinner». Å ikke vinne
+auksjonen ER å forsvare. Det er **samme mengde per definisjon**, og da er det
+riktig at de er like. Koblingen er også nettopp det som får `p` til å
+kansellere i budspørsmålet og gir den rene algebraen `2N(2P−1) > e` som ga
++0,39 i utgangspunktet — å bryte den ville revet ned det resultatet.
+
+Parameteren beholdes som MÅLEINSTRUMENT (standard = terskelen, altså
+bit-identisk spill), ikke som en knapp som skal skrus på.
+
+BUD 9 ER INGEN GEST. Ytterpunktet −14,0 gjør det aritmetisk umulig å melde 9:
+leddet `(1−p)·fv` blir 0,903 × (−14) = −12,6, mens gevinstleddet på sitt beste
+bare kan bidra +1,75. Å fjerne bud 9 koster **−0,095**. Det vinner auksjonen
+bare 9,7 % av gangene, men de gangene er det riktig kontrakt.
+
+Kurven er asymmetrisk: nedover koster ~0,11, oppover ~0,02. Boten tåler å være
+litt for OPTIMISTISK om forsvaret langt bedre enn å være for pessimistisk.
+
+MEKANISMEN, som gjør retningen forståelig og ikke bare empirisk: med
+`vant[9] = 0,097` mot `vant[10] = 0,940` veier leddet `(1−p)·forsvarsverdi`
+langt tyngre for bud 9 enn for bud 10. En lavere forsvarsverdi straffer derfor
+bud 9 hardt og bud 10 nesten ikke — den skyver boten fra å avgi et bud som
+stort sett bare er en gest, til å faktisk kjempe om kontrakten.
