@@ -23,6 +23,8 @@ import { NeatAgent } from "../src/neat/agent.ts";
 import { genomFraJson } from "../src/neat/genom.ts";
 import { E1Agent } from "../src/e1/agent.ts";
 import { Konvensjonsvakt, lesVaktflagg } from "../src/moe2/konvensjonsvakt.ts";
+import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
+import { nettFraBytes } from "../src/nevro/nett.ts";
 // Fra budmodell.ts og IKKE budagent.ts: den siste importerer node:fs paa
 // toppniva, og esbuild med nettleserplattform stopper paa den.
 import { Budagent, tolkBudmodell } from "../src/moe2/budmodell.ts";
@@ -80,9 +82,55 @@ const VAKTFLAGG = "abmp";
 const BUDMODELL = "bud-gbt.json";
 /** Kortvektene. «sdr2.b64» ligger igjen som fallback om denne ikke kan hentes. */
 const KORTVEKTER = "adams-kort.b64";
+// VRAK OG TRUMF med den lærte rangereren. Måles per budvinnerrunde på
+// `examples/vrakbenk.ts`, som teller BARE de rundene og parrer på giv og
+// budvinner – tre disjunkte frøbånd, to miljøer:
+//
+//     nevro-miljø, bånd 45 M   +0,5770 ± 0,1563   tegn 575/433
+//     nevro-miljø, bånd 52 M   +0,4000 ± 0,1530   tegn 527/434
+//     Adams-miljø, bånd 61 M   +0,5752 ± 0,1925   tegn 350/228
+//
+// Snittet er haledrevet – trimmet ligger det på +0,15. Tegntesten er tallet
+// som bærer adopsjonen: 5,1 SE i Adams-miljøet, positiv i alle tre bånd. Den
+// er robust mot nettopp de halene. Formen er som ventet for et vrakvalg: som
+// regel nesten likegyldig, av og til avgjørende for runden.
+const VRAKRANGERER = "adams-vrak.b64";
+const VRAKFLAGG = "telrd";
 
 /** Vakten og budagenten deler dette grensesnittet; appen trenger ikke mer. */
 type Bot = { velgHandling(s: GameState): Handling; nyKamp(): void };
+
+function tilBytes(b64: string): Uint8Array {
+  const rå = atob(b64.trim());
+  const bytes = new Uint8Array(rå.length);
+  for (let i = 0; i < rå.length; i++) bytes[i] = rå.charCodeAt(i);
+  return bytes;
+}
+
+/**
+ * Legger rangereren utenpå boten, eller lar boten være om vektene mangler
+ * eller ikke ser riktige ut.
+ *
+ * `Vrakrangerer` KASTER på feil bredde i stedet for å score søppel. Det er med
+ * vilje: vrakvalget tas én gang per runde, så et stille feilvalg ville nesten
+ * ikke syntes i statistikken – og her, i nettleseren, ville ingen sett det i
+ * det hele tatt. Derfor fanger vi kastet og faller tilbake, i stedet for å la
+ * det bli en bot som velger tilfeldig uten at noen merker det.
+ */
+function medVrakrangerer(bot: Bot, b64: string | null): Bot {
+  if (b64 === null) {
+    console.warn("Vrakrangereren kunne ikke hentes – vraker som før.");
+    return bot;
+  }
+  try {
+    const nett = nettFraBytes(tilBytes(b64))[0];
+    if (nett === undefined) throw new Error("tomme vekter");
+    return new Vrakrangerer(bot, nett, VRAKFLAGG);
+  } catch (feil) {
+    console.warn("Vrakrangereren ble avvist:", feil);
+    return bot;
+  }
+}
 
 let botLaster: Promise<Bot> | null = null;
 function besteBot(): Promise<Bot> {
@@ -104,23 +152,30 @@ function besteBot(): Promise<Bot> {
     fetch(DATA_URL + BUDMODELL)
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null),
+    // Vrakrangereren. Samme vilkår som de to over: feiler den, vraker og
+    // velger trumf boten som i går. Ingen enkeltdel får lov til å ta ned
+    // resten – det er derfor familien alltid har noe å spille mot.
+    fetch(DATA_URL + VRAKRANGERER)
+      .then((r) => (r.ok ? r.text() : null))
+      .catch(() => null),
   ])
-    .then(([b64, budRå]) => {
-      const rå = atob(b64.trim());
-      const bytes = new Uint8Array(rå.length);
-      for (let i = 0; i < rå.length; i++) bytes[i] = rå.charCodeAt(i);
+    .then(([b64, budRå, vrakB64]) => {
       // Ett delt eksemplar for alle tre botsetene – slik benken kjører den.
-      const kort = new Konvensjonsvakt(E1Agent.fraBytes(bytes, {}, KORTVEKTER), lesVaktflagg(VAKTFLAGG));
+      const kort = new Konvensjonsvakt(
+        E1Agent.fraBytes(tilBytes(b64), {}, KORTVEKTER),
+        lesVaktflagg(VAKTFLAGG),
+      );
+      let bot: Bot = kort;
       if (budRå === null) {
         console.warn("Budmodellen kunne ikke lastes – spiller med NevroHjernes bud.");
-        return kort;
+      } else {
+        try {
+          bot = new Budagent(kort, tolkBudmodell(budRå));
+        } catch (feil) {
+          console.warn("Budmodellen ble avvist:", feil);
+        }
       }
-      try {
-        return new Budagent(kort, tolkBudmodell(budRå));
-      } catch (feil) {
-        console.warn("Budmodellen ble avvist:", feil);
-        return kort;
-      }
+      return medVrakrangerer(bot, vrakB64);
     })
     .catch((feil: unknown) => {
       botLaster = null; // la neste forsøk prøve på nytt
