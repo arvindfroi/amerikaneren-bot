@@ -507,6 +507,28 @@ function håndterHendelser(hendelser: readonly Hendelse[]): void {
         stikkVunnet: h.resultat.stikkVunnet,
         delta: h.resultat.delta,
         totalPoeng: h.totalPoeng,
+        // HELE RUNDEN, kort for kort og sete for sete.
+        //
+        // HVORFOR DEN MÅ LOGGES. Uten den kan en runde bare gjenskapes ved å
+        // spille den om igjen med NØYAKTIG den boten som satt der — og
+        // divergerer ett eneste kortvalg, endres stikkvinneren og hele
+        // turrekkefølgen forskyver seg. Målt 4. august: av 1 172 loggede
+        // runder lot bare 123 seg gjenskape, fordi de eldste ble spilt mot
+        // PIMC og ikke mot nettet.
+        //
+        // Med historikken logget trengs ingen gjenskaping i det hele tatt.
+        // Hver framtidig runde blir treningsdata for menneskeklonen — den
+        // eneste linjen som angriper målet direkte, siden et BESTE SVAR mot en
+        // fast motstanderpopulasjon slår enhver likevekt.
+        //
+        // INGEN NY LEKKASJE: klienten spiller hele runden lokalt og har alle
+        // hendene i minnet fra før. Dette skriver bare ned det den alt vet,
+        // ETTER at runden er ferdig.
+        historikk: state.historikk.map((st) => st.kort.map((kp) => [kp.spiller, kp.kort.farge, kp.kort.verdi])),
+        vrak: state.vrak.map((k) => [k.farge, k.verdi]),
+        trumf: state.trumf,
+        etterlyst: state.etterlyst === null ? null : [state.etterlyst.farge, state.etterlyst.verdi],
+        makker: state.makker,
       });
     } else if (h.type === "KAMP_SLUTT") {
       logg("kamp", { vinner: h.vinner, totalPoeng: state.totalPoeng, runder: state.rundeNr + 1 });

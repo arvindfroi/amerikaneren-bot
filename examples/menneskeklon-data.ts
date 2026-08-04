@@ -80,6 +80,56 @@ for (const [k, v] of Object.entries(BOTER)) agenter.set(k, lag(v));
 const nevroRef = new NevroAgent();
 mkdirSync(dirname(UT), { recursive: true });
 
+/**
+ * BUDRUNDEN MÅ TVINGES, ikke replayes.
+ *
+ * Første versjon lot boten by for sete 0 i stedet for mennesket. Da ble
+ * kontrakten en annen enn den som faktisk ble spilt, og de loggede kortene ble
+ * ulovlige: **1 066 av 1 172 runder forkastet**.
+ *
+ * Loggen sier hvem som vant og med hvilket bud (`runder-*.txt`). Auksjonen
+ * drives derfor dit direkte: budvinneren melder sitt bud, alle andre passer.
+ * Budhistorikken blir kunstig — det påvirker bare et nett som leser
+ * budtrekkene, og NevroHjerne gjør ikke det i kortspillet — men KONTRAKTEN og
+ * BUDVINNEREN blir de ekte, og det er det kortspillet henger på.
+ */
+interface Rundefakta {
+  readonly bv: number;
+  readonly bud: number;
+  readonly trumf: Farge | null;
+  readonly etterlyst: Kort | null;
+}
+const fakta = new Map<string, Rundefakta>();
+for (const fil of ["runder-1.txt", "runder-2.txt"]) {
+  let tekst = "";
+  try {
+    tekst = readFileSync(`analyse/menneskedata/${fil}`, "utf-8");
+  } catch {
+    continue;
+  }
+  for (const l of tekst.trim().split(/\r?\n/)) {
+    const f = l.split("|");
+    if (f.length < 10 || f[3] !== "tall") continue; // amerikaner/solo droppes
+    const tr = f[9] ?? "";
+    let trumf: Farge | null = null;
+    let etterlyst: Kort | null = null;
+    if (tr.length > 0) {
+      trumf = tr[0] as Farge;
+      const e = tr.slice(2);
+      if (e !== "-" && e.length > 1) {
+        etterlyst = { farge: e[0] as Farge, verdi: Number(e.slice(1)) as Kort["verdi"] };
+      }
+    }
+    fakta.set(`${f[0]}|${f[1]}`, {
+      bv: Number(f[2]),
+      bud: Number(f[4]),
+      trumf,
+      etterlyst,
+    });
+  }
+}
+console.log(`Rundefakta lest: ${fakta.size} runder med tallmelding`);
+
 let ok = 0;
 let forkastet = 0;
 let rader = 0;
@@ -121,13 +171,39 @@ for (const linje of readFileSync(INN, "utf-8").trim().split(/\r?\n/)) {
   agent.nyKamp();
   nevroRef.nyKamp();
 
+  const fk = fakta.get(`${spill}|${rn}`);
   const linjer: string[] = [];
   let i = 0;
   let gyldig = true;
+  let harBudt = false;
   let g = 0;
   while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && g++ < 600) {
     const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
     if (iTur === null || iTur === undefined) break;
+
+    // TVUNGEN BUDRUNDE: budvinneren fra loggen melder sitt bud, alle andre
+    // passer. Uten dette blir kontrakten en annen enn den som ble spilt.
+    if (s.fase === "BUDRUNDE" && fk !== undefined) {
+      const p = iTur;
+      if (p === fk.bv && !harBudt) {
+        harBudt = true;
+        s = utfør(s, { type: "BUD", spiller: p, bud: fk.bud }).state;
+      } else {
+        s = utfør(s, { type: "BUD", spiller: p, bud: "PASS" }).state;
+      }
+      continue;
+    }
+    // MENNESKETS EGEN TRUMF OG ETTERLYSNING når det var budvinner. Boten ville
+    // valgt noe annet, og da spilles en annen runde enn den loggede.
+    if (s.fase === "VELG" && fk !== undefined && fk.bv === MENNESKE && fk.trumf !== null) {
+      s = utfør(s, {
+        type: "VELG",
+        spiller: MENNESKE,
+        trumf: fk.trumf,
+        etterlyst: fk.etterlyst,
+      }).state;
+      continue;
+    }
 
     if (s.fase === "SPILL" && s.iTur === MENNESKE) {
       const kort = valgt[i];

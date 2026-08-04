@@ -1559,3 +1559,71 @@ Byggeklossene finnes: `examples/menneske-atferd.ts` rekonstruerer hele giva fra
 frøet (motoren deler ut deterministisk), `analyse/menneskedata/` har 813
 loggede runder, og `src/moe2/mesterklone.ts` har mønsteret — bygg klonen som et
 påbygg på NevroHjerne, som allerede er enig med målet i to av tre kortvalg.
+
+---
+
+# STATUS 4. august, ettermiddag — og veien videre
+
+## Det som er ute og virker
+
+**Adams-v2** = `budm:bud-gbt.json : vakt:abmp : e1:d7alle.bin`, verifisert live.
+Destillert fra 544 573 rader med 24-verdeners framoverblikk og korrekt
+rollout-policy. **+0,1434 ± 0,0526** over to disjunkte frøbånd, med forsvaret
+som sterkeste komponent (+0,1866 ± 0,0609).
+
+Mot mennesket leder forgjengeren **1,813 ± 1,107** per runde på 107 runder.
+Null runder logget mot v2 ennå.
+
+## De fire lærdommene som styrer alt videre
+
+1. **Rollout-policyen er alt.** Å bytte NevroHjerne mot vår egen bot i
+   SD-evalueringen flyttet førersetet fra −0,357 til +0,896. En modell som
+   beskriver feil motpart er verre enn ingen modell.
+
+2. **Destillasjon er en støydemper.** Orakelet SPILLER forsvar dårligere enn
+   nettet (−0,09) og LÆRER det likevel bort med +0,187. En dårlig spiller kan
+   være en god lærer. Det gjelder overalt hvor sanntidsstøy ødelegger argmax.
+
+3. **Flere kandidater gjør søk verre, ikke bedre.** Vinnerens forbannelse
+   vokser med antall trekninger. Ved vrak, der verdensrommet er 3,8 × 10¹⁴,
+   koster søket −0,51 per budvinnerrunde.
+
+4. **Høy viktighet i fordelingen ≠ gevinst utenfor den.** Planblokken hadde
+   4× viktigheten til noen annen ny blokk og ga −0,019. De 52 én-av-kolonnene
+   hadde 0,390 og kostet −1,475.
+
+## Køen, rangert
+
+| # | oppgave | status |
+|---|---|---|
+| 1 | **La familien spille mot v2** | blokkerer alt — se §27 |
+| 2 | vrak/trumf-rangeringsmodell | data genererer |
+| 3 | menneskeklonen | blokkert på data, nå fikset framover |
+| 4 | tredje omdreining av skrallen | `sd-v8`, anslag +0,06 |
+| 5 | bud × kortspill ko-optimering | aldri gjort |
+
+## Menneskeklonen: hvorfor den var blokkert, og hva som er gjort
+
+Klonen er den eneste linjen som angriper målet DIREKTE: mot en fast
+motstanderpopulasjon er det maksimale et **beste svar**, ikke en likevekt.
+
+Men den krever å gjenskape loggede runder, og det viste seg umulig i praksis:
+av 1 172 loggede runder lot bare **123** seg gjenskape. Årsaken er at replayen
+krever NØYAKTIG den boten som satt der — divergerer ett kortvalg, endres
+stikkvinneren og hele turrekkefølgen forskyver seg. De eldste rundene ble
+spilt mot PIMC (`"styrke":"MAKS"` i loggen), ikke mot nettet.
+
+**Korrekthetsporten fanget to av mine egne feil underveis**, og ingen av dem
+krasjet:
+
+- CRLF i eksportfilen gjorde at siste kort i hver linje ikke matchet regexen;
+  med `break` i parsingen ble 1 171 av 1 172 runder hoppet over i stillhet.
+- `blandeSeed(frø, rn) = frø + (rn+1)·M`, så runde `rn` krever
+  `opprettSpill(frø + rn·M)`. Jeg brukte `(rn+1)` og fikk feil giv i ALLE
+  runder — de ga bare kort mennesket aldri hadde.
+
+**Den varige løsningen er ikke bedre gjenskaping — det er å logge giva.**
+`web/app.ts` logger nå hele historikken, vraket, trumfen, etterlysningen og
+makkeren ved rundeslutt. Hver framtidig runde blir dermed treningsdata uten et
+eneste gjenskapingssteg. Ingen ny lekkasje: klienten spiller runden lokalt og
+har alt i minnet fra før.
