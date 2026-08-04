@@ -167,7 +167,7 @@ for (let i = skardI; i < kamper; i += skardN) {
       const sete = s.budvinner;
       const hånd = (s.hender[sete] ?? []).slice();
       const antall = s.giving.talong;
-      const par: { trumf: Farge; vrak: Kort[] }[] = [];
+      const par: { trumf: Farge; vrak: Kort[]; nevro?: boolean }[] = [];
       for (const trumf of FARGER) {
         for (const vrak of kandidater(hånd, trumf, antall)) par.push({ trumf, vrak });
       }
@@ -186,9 +186,14 @@ for (let i = skardI; i < kamper; i += skardN) {
         const eget = nevroValg(s, sete, hånd, antall);
         if (eget !== null) {
           const n = eget.vrak.map(nøkkel).sort().join(",");
-          if (!par.some((p) => p.trumf === eget.trumf && p.vrak.map(nøkkel).sort().join(",") === n)) {
-            par.push(eget);
-          }
+          const alt = par.find(
+            (p) => p.trumf === eget.trumf && p.vrak.map(nøkkel).sort().join(",") === n,
+          );
+          // MERKES uansett om den var der fra før. Uten merket finnes ingen
+          // referanse: modellens anger må måles MOT NevroHjernes egen, ellers
+          // vet vi ikke om den er bedre enn det som alt spiller.
+          if (alt !== undefined) alt.nevro = true;
+          else par.push({ ...eget, nevro: true });
         }
       }
       if (par.length >= 2) {
@@ -224,6 +229,7 @@ for (let i = skardI; i < kamper; i += skardN) {
                 Math.round(z * 10_000) / 10_000,
               ),
               v: Math.round((sum / verd.length) * 1000) / 1000,
+              ...(p.nevro === true ? { nevro: 1 } : {}),
             };
           });
           appendFileSync(
