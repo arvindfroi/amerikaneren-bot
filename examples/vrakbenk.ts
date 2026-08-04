@@ -76,10 +76,11 @@ function lag(spek: string): Agent {
   }
   if (spek.startsWith("vv2:")) {
     const d = spek.slice(4).split(":");
-    const inn = lag(d.slice(2).join(":"));
+    const inn = lag(d.slice(3).join(":"));
     return new Vrakvelger2(inn, inn as never, {
       verdener: Number(d[0]),
       policy: lesVrakflagg(d[1] ?? "telrd"),
+      sigma: Number(d[2] ?? 0),
     });
   }
   if (spek.startsWith("vv:")) {

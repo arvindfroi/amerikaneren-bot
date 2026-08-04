@@ -1407,3 +1407,56 @@ det konvensjonsvakter er til for.
 **Og jeg var i ferd med å rive dem ut** på en måling i et annet miljø (+0,024 ±
 0,060 med `ftf1` og budmodellen på). Med det nye nettet er de verdt −0,156 å
 miste. Et lag som måler null i én sammensetning kan være verdifullt i en annen.
+
+## 23. Vrak/trumf: presist målt, og søket TAPER
+
+### Den fokuserte benken var det som manglet
+
+`examples/vrakbenk.ts` teller bare runder der kandidaten var budvinner, og
+parrer på giv OG budvinner. Gate 2 dilutterer: valget tas i ~25 % av radene,
+resten er varians rundt et valg som aldri ble tatt.
+
+| måling | SE på førerbeslutningen |
+|---|---|
+| gate 2, n=2596 | ±0,507 |
+| **vrakbenken, n=3000** | **±0,250** |
+
+| | mot NevroHjerne | trimmet | tegn |
+|---|---|---|---|
+| `vv2` med policyer | **−0,5119 ± 0,2501** | −0,5714 | 711/849 |
+| `vv` første forsøk | −0,6306 ± 0,2534 | −0,6925 | 728/835 |
+
+Gate 2 sa −0,010 ± 0,126 og kunne ikke se det. **Søket koster en halv poeng
+per budvinnerrunde**, og alle tre kriteriene er enige.
+
+### Årsaken, med tall
+
+Ved vrak er ingenting spilt, så verdensrommet er **3,8 × 10¹⁴** (§19).
+`argmax` over 28 kandidater, hver anslått på 24 trukne verdener, plukker den
+kandidaten som fikk de SNILLESTE verdenene.
+
+> **Flere kandidater gjør det verre, ikke bedre.** Vinnerens forbannelse vokser
+> med antall trekninger.
+
+Policyene mine lager FLERE kandidater enn forrige forsøk, og forsterket dermed
+problemet i stedet for å løse det. Det er en generell lærdom om
+kandidatgenerering under støyete evaluering.
+
+### Kuren er den som alt virket
+
+`Vrakvelger2` har nå samme konfidensterskel som `sik:` fikk for kortspillet:
+behold verdien PER VERDEN, regn den parrede differansen mellom beste og nest
+beste, og la NevroHjerne bestemme når marginen ikke slår støyen.
+
+## 24. Skrallen konvergerer, men er ikke ferdig
+
+| orakelet mot | `ftf1` | Adams-v2 |
+|---|---|---|
+| fører | +1,656 | **+0,688 ± 0,389** (1,77 SE) |
+| forsvar | −0,130 | −0,091 ± 0,156 |
+
+Førergapet er krympet **60 %**. En tredje omdreining gir anslagsvis +0,06 mot
+forrige rundes +0,143 — fortsatt positivt, men avtagende.
+
+Og forsvarstallet bekrefter §20: orakelet SPILLER forsvar litt dårligere enn
+Adams-v2, men å LÆRE av det ga +0,187 ± 0,061. Destillasjon er en støydemper.

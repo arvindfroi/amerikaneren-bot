@@ -361,7 +361,7 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
     if (!Number.isFinite(verdener)) {
       throw new Error(`Ugyldig vv2-spek «${indre}» - forventet vv2:<verdener>:<flagg>:<indre>`);
     }
-    const inn = lagIndre(d.slice(2).join(":"));
+    const inn = lagIndre(d.slice(3).join(":"));
     return new Vrakvelger2(inn, inn as unknown as Parameters<typeof Vrakvelger2>[1], {
       verdener,
       policy: lesVrakflagg(d[1] ?? "telrd"),

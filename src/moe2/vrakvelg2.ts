@@ -105,6 +105,26 @@ export interface Vrakvelg2Opts {
   readonly budprior?: boolean;
   /** Kandidatpolicyene. Standard er «telrd». */
   readonly policy?: Vrakpolicy;
+  /**
+   * Minste PARREDE sigma før det indre lagets valg overstyres.
+   *
+   * MÅLT 4. august med `examples/vrakbenk.ts`, 3 000 budvinnerrunder: uten
+   * terskel er velgeren −0,5119 ± 0,2501 mot NevroHjerne, og alle tre
+   * kriteriene er enige (trimmet −0,571, tegn 711/849).
+   *
+   * ÅRSAKEN ER VINNERENS FORBANNELSE, og den er verst nettopp her. Ved vrak
+   * er ingenting spilt, så verdensrommet er 3,8 × 10¹⁴ (målt). `argmax` over
+   * 28 kandidater, hver anslått på 24 trukne verdener, plukker den KANDIDATEN
+   * SOM FIKK DE SNILLESTE VERDENENE — og med 28 trekninger er skjevheten stor.
+   * Flere kandidater gjør det verre, ikke bedre.
+   *
+   * Samme feil ble målt i kortspillet: orakelet var sikkert i bare 1,3 % av
+   * uenighetene med 12 verdener. Kuren som virket der var å overstyre BARE
+   * når den parrede marginen slår støyen, og det er den samme kuren her.
+   *
+   * 0 = overstyr alltid (dagens oppførsel, målt til −0,51).
+   */
+  readonly sigma?: number;
 }
 
 interface Par {
@@ -190,6 +210,7 @@ export class Vrakvelger2 {
   private readonly verdener: number;
   private readonly tak: number;
   private readonly policy: Vrakpolicy;
+  private readonly sigma: number;
   private readonly rng: () => number;
   private readonly prior: Motstandermodell | null;
   private valgt: Farge | null = null;
@@ -204,6 +225,7 @@ export class Vrakvelger2 {
     this.verdener = opts.verdener ?? 24;
     this.tak = opts.tak ?? 16;
     this.policy = opts.policy ?? lesVrakflagg("telrd");
+    this.sigma = opts.sigma ?? 0;
     this.rng = lagRng(opts.frø ?? 20_260_807);
     // BOTTABELL, ikke familietabellen: i selvspill byr `bud-gbt.json`, ikke et
     // menneske, og de to byr målbart ulikt.
@@ -269,10 +291,17 @@ export class Vrakvelger2 {
       return { type: "VRAK", spiller: sete, kort: beste.vrak };
     }
 
+    // Verdien PER VERDEN beholdes, ikke bare snittet. Uten den kan ingen si
+    // om det beste kandidatens forsprang er ekte eller trukket flaks - og med
+    // 28 kandidater er det stort sett flaks.
     let beste: Par | null = null;
     let besteVerdi = -Infinity;
+    let bestePer: number[] = [];
+    let nestPer: number[] = [];
+    let nestVerdi = -Infinity;
     for (const p of finalister) {
       let sum = 0;
+      const per: number[] = [];
       for (const hender of verdener) {
         let s = utfør(medVerden(state, hender, sete), {
           type: "VRAK",
@@ -291,15 +320,38 @@ export class Vrakvelger2 {
           s = utfør(s, this.motpart.velgHandling(s)).state;
         }
         const egne = s.totalPoeng[sete] ?? 0;
-        sum += egne - (s.totalPoeng.reduce((a, b) => a + b, 0) - egne) / 3;
+        const v = egne - (s.totalPoeng.reduce((a, b) => a + b, 0) - egne) / 3;
+        per.push(v);
+        sum += v;
       }
       const snitt = sum / verdener.length;
       if (snitt > besteVerdi) {
+        nestVerdi = besteVerdi;
+        nestPer = bestePer;
         besteVerdi = snitt;
+        bestePer = per;
         beste = p;
+      } else if (snitt > nestVerdi) {
+        nestVerdi = snitt;
+        nestPer = per;
       }
     }
     if (beste === null) return null;
+
+    // KONFIDENSTERSKELEN. Alle kandidatene deler verdener, så den riktige
+    // statistikken er den PARREDE differansen per verden - verden-effekten
+    // («denne giva var snill mot alle») kansellerer, og SE-en blir langt
+    // mindre enn to uavhengige lagt sammen.
+    if (this.sigma > 0 && nestPer.length === bestePer.length && bestePer.length > 1) {
+      const d = bestePer.map((x, i) => x - nestPer[i]!);
+      const m = d.reduce((a, b) => a + b, 0) / d.length;
+      const varians = d.reduce((a, x) => a + (x - m) ** 2, 0) / (d.length - 1);
+      const se = Math.sqrt(varians / d.length);
+      // Ikke sikker nok: la det indre laget bestemme. Å si «jeg vet ikke» er
+      // bedre enn å gjette, når gjetningen er målt til −0,51.
+      if (!(se > 1e-12 && m / se >= this.sigma)) return null;
+    }
+
     this.valgt = beste.trumf;
     return { type: "VRAK", spiller: sete, kort: beste.vrak };
   }
