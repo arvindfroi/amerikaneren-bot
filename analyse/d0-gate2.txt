@@ -1,0 +1,21 @@
+4 filer, 3 armer
+
+budm:e1-modell/bud-gbt.json@-3.0:vakt:abmp:e1:e1-modell/D0.bin
+   n=  7200  +0.0742 +/- 0.0815 (+0.91 SE)  trimmet -0.0031  tegn 892/959 (z=-1.56)
+   avgjorte giver: 1851 av 7200 (25.7 %)
+     makker   n=  1800  +0.0317 +/- 0.0376  trimmet -0.0033  z=-0.91
+     forsvar  n=  3600  +0.0593 +/- 0.0880  trimmet -0.0081  z=-1.00
+
+budm:e1-modell/bud-gbt.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  7200  +0.0000 +/- 0.0000 (+0.00 SE)  trimmet +0.0000  tegn 0/0 (z=+0.00)
+     makker   n=  1800  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  3600  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+budm:e1-modell/bud-gbt.json@-3.0:vakt:abmp:e1:e1-modell/C5.bin
+   n=  7200  -0.1408 +/- 0.0946 (-1.49 SE)  trimmet -0.0618  tegn 1103/1407 (z=-6.07)
+   avgjorte giver: 2510 av 7200 (34.9 %)
+     makker   n=  1800  -0.0506 +/- 0.0467  trimmet -0.0105  z=-2.13
+     forsvar  n=  3600  -0.0841 +/- 0.1050  trimmet -0.0258  z=-1.92
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.
