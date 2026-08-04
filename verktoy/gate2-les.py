@@ -91,7 +91,11 @@ def main():
         if s is None:
             continue
         n, m, se, tr, p, g, z = s
-        kort = navn.split(":")[1] if ":" in navn else navn
+        # HELE speken, ikke ett ledd. `navn.split(":")[1]` ga «bud-gbt.json»
+        # for BEGGE armene i vaktsveipen, saa fem forskjellige kandidater kom
+        # ut med samme etikett og resultatet var uleselig. En etikett som ikke
+        # skiller kandidatene fra hverandre er verre enn ingen etikett.
+        kort = navn
         avgjort = p + g
         si(f"{kort}")
         si(f"   n={n:6d}  {m:+.4f} +/- {se:.4f} ({m / se if se else 0:+.2f} SE)"

@@ -46,6 +46,8 @@ import { dirname, join, basename } from "node:path";
 
 import { opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
 import { E1Agent, lesE1Nett } from "../src/e1/nett.ts";
+import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
+import { nettFraBytes } from "../src/nevro/nett.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 import { Budagent, lesBudmodell } from "../src/moe2/budagent.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
@@ -271,6 +273,22 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
    * over en sveip er like utsatt for vinnerens forbannelse som argmax over
    * kandidater.
    */
+  /**
+   * `vr:<vektfil>:<flagg>:<indre>` – vrak- og trumfrangereren utenpå alt annet.
+   *
+   * Rå `nettFraBytes`, ikke E1-laderen: rangereren tar 24 trekk mens laderen
+   * håndhever kortnettets bredde, og den avvisningen er riktig – den fanget
+   * meg da jeg først prøvde. `Vrakrangerer` sjekker bredden selv.
+   */
+  if (indre.startsWith("vr:")) {
+    const rest = indre.slice(3);
+    const a = rest.indexOf(":");
+    const b = rest.indexOf(":", a + 1);
+    if (a < 0 || b < 0) throw new Error(`Ugyldig vr-spek «${indre}»`);
+    const nett = nettFraBytes(new Uint8Array(readFileSync(rest.slice(0, a))))[0];
+    if (nett === undefined) throw new Error(`Tomme vekter i «${rest.slice(0, a)}»`);
+    return new Vrakrangerer(lagIndre(rest.slice(b + 1)), nett, rest.slice(a + 1, b));
+  }
   if (indre.startsWith("budm:")) {
     const rest = indre.slice(5);
     const skille = rest.indexOf(":");
