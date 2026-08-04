@@ -2,11 +2,13 @@
 
 e1-modell/bud-gbt.json@1.5
    n=  3600  +0.1786 +/- 0.0499 (+3.58 SE)  trimmet +0.0000  tegn 77/43 (z=+3.10)
+   avgjorte giver: 120 av 3600 (3.3 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
      makker   n=   865  +0.0162 +/- 0.0147  trimmet +0.0000  z=+2.24
      forsvar  n=  1729  -0.0135 +/- 0.0121  trimmet +0.0000  z=-1.41
 
 e1-modell/bud-gbt.json@2.0
    n=  3600  +0.0715 +/- 0.0334 (+2.14 SE)  trimmet +0.0000  tegn 32/18 (z=+1.98)
+   avgjorte giver: 50 av 3600 (1.4 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
      makker   n=   887  +0.0004 +/- 0.0004  trimmet +0.0000  z=+1.00
      forsvar  n=  1766  +0.0002 +/- 0.0009  trimmet +0.0000  z=+0.00
 
@@ -17,6 +19,7 @@ e1-modell/bud-gbt.json
 
 e1-modell/bud-gbt.json@3.0
    n=  3600  -0.0815 +/- 0.0343 (-2.37 SE)  trimmet +0.0000  tegn 19/35 (z=-2.18)
+   avgjorte giver: 54 av 3600 (1.5 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
      makker   n=   917  -0.1421 +/- 0.0706  trimmet +0.0000  z=-2.98
      forsvar  n=  1823  -0.0894 +/- 0.0578  trimmet +0.0000  z=-0.35
 

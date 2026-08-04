@@ -12,6 +12,17 @@ TRE TALL, IKKE ETT. Snittet er utsatt for haler; det trimmede snittet viser
 hvor mye av det som ligger i ytterpunktene; tegntesten er robust mot begge og
 sier om kandidaten vinner OFTERE, uansett med hvor mye. Spriker de, står
 konklusjonen på det svakeste av dem – ikke det snilleste.
+
+DEN EFFEKTIVE n ER ANTALL AVGJORTE GIVER, ikke antall rader. For kandidater
+som bare endrer ÉN beslutning – et bud, et vrakvalg – er forskjellen eksakt
+null på de fleste giver. De nullene er ekte og hører med i snittet, men de
+presser SE-en ned uten å tilføre informasjon, og normaltilnærmingen bak SE-en
+holder ikke når fordelingen er så nullblåst.
+
+Det tok meg to bånd å se: `evForsvar` 1,5 målte +0,1786 ± 0,0499 (3,58 SE) i
+ett bånd og +0,0306 ± 0,0514 (0,59 SE) i det neste. SE-ene lovet en presisjon
+de ikke hadde, fordi bare ~120 av 3 600 giver faktisk endret seg. Derfor
+skrives «avgjorte» ut eksplisitt, og det ropes når de er få.
 """
 
 import argparse
@@ -81,9 +92,16 @@ def main():
             continue
         n, m, se, tr, p, g, z = s
         kort = navn.split(":")[1] if ":" in navn else navn
+        avgjort = p + g
         si(f"{kort}")
         si(f"   n={n:6d}  {m:+.4f} +/- {se:.4f} ({m / se if se else 0:+.2f} SE)"
            f"  trimmet {tr:+.4f}  tegn {p}/{g} (z={z:+.2f})")
+        # SE-en regnes over ALLE giver, men informasjonen sitter i de avgjorte.
+        # Er de faa, lyver SE-en om presisjonen - det gjorde den for evForsvar
+        # 1,5, som maalte 3,58 SE i ett baand og 0,59 SE i det neste.
+        if avgjort > 0:
+            merke = "   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten" if avgjort < 500 else ""
+            si(f"   avgjorte giver: {avgjort} av {n} ({100 * avgjort / n:.1f} %){merke}")
         for rolle in ("fører", "makker", "forsvar"):
             rs = stat(per_rolle[navn].get(rolle, []))
             if rs is not None:
