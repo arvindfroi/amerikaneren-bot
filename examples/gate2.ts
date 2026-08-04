@@ -53,6 +53,7 @@ import { Ensemble, type EnsembleModus } from "../src/moe2/ensemble.ts";
 import { Rolleorakel, type Rolle } from "../src/moe2/rolleorakel.ts";
 import { Sikkerorakel } from "../src/moe2/sikkerorakel.ts";
 import { Vrakvelger } from "../src/moe2/vrakvelg.ts";
+import { Etterlysvelger } from "../src/moe2/etterlys.ts";
 
 let giver = 400;
 let frøBase = 900_000;
@@ -331,6 +332,20 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
     }
     const inn = lagIndre(d.slice(1).join(":"));
     return new Vrakvelger(inn, inn as unknown as Parameters<typeof Vrakvelger>[1], { verdener });
+  }
+  /**
+   * `etl:<nivaa>:<indre>` - ETTERLYSNINGEN, den siste uundersoekte beslutningen.
+   *
+   * 0 = hoeyeste lovlige trumfkort (dagens regel), 1 = nest hoeyeste, osv.
+   * Endrer BARE etterlysningen; trumfen kommer fra det indre laget.
+   */
+  if (indre.startsWith("etl:")) {
+    const d = indre.slice(4).split(":");
+    const nivaa = Number(d[0]);
+    if (!Number.isFinite(nivaa) || nivaa < 0) {
+      throw new Error(`Ugyldig etl-spek «${indre}» - forventet etl:<nivaa>:<indre>`);
+    }
+    return new Etterlysvelger(lagIndre(d.slice(1).join(":")), nivaa);
   }
   if (indre.startsWith("e1:")) return new E1Agent(lesNett(indre.slice(3)));
   /**

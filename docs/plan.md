@@ -1365,3 +1365,45 @@ skiller ikke mellom «svak hånd» og «forsiktig spiller».
 verdensrommet er størst tidlig) og §19 (eksakthet er bare råd fra stikk 9)
 ender samme sted — det som mangler er en bedre PRIOR over hva motparten har.
 Dette er den prioren, og den er målt.
+
+## 22. Adams revidert top-down og bottom-up (4. august)
+
+### Top-down: to av fire beslutninger er urørt
+
+`examples/adams-revisjon.ts`, 400 runder:
+
+| beslutning | hvem tar den |
+|---|---|
+| BUDRUNDE | budmodellen — endrer nevros valg i **29,0 %** |
+| **VRAK** | **NevroHjerne, 100,0 %** |
+| **VELG** | **NevroHjerne, 100,0 %** |
+| SPILL | nettet — uenig med nevro i 56,9 %; vakten endrer 8,7 % |
+
+**Hullet kunne aldri ha vist seg:** NevroHjerne tar VRAK og VELG i BEGGE armer
+av hver måling prosjektet har gjort, så en forskjell kan per konstruksjon ikke
+komme derfra.
+
+### Bottom-up: to uundersøkte beslutninger, begge nå målt
+
+Frøbånd 37 000 000, n=6000, miljø = Adams-v2:
+
+| endring | effekt | σ | tegn |
+|---|---|---|---|
+| etterlys nest høyeste | −0,9111 ± 0,1105 | −8,24 | 304/669 |
+| etterlys tredje høyeste | −1,6411 ± 0,1215 | −13,51 | 274/872 |
+| fjern vaktene | −0,1563 ± 0,0495 | −3,16 | 566/455 |
+
+**ETTERLYSNINGEN: dagens regel er riktig, med stor margin.** Reglene tillater
+bare trumfkort (`lovligeEtterlys`), så valget er hvilken valør. NevroHjerne
+kaller alltid den høyeste. Hypotesen om at et lavere kort er bedre — fordi det
+holder partnerskapet skjult lenger — taper klart, og monotont: jo lavere, jo
+verre. En uundersøkt heuristikk viste seg riktig, og nå står det et tall bak.
+
+**VAKTENE SKAL IKKE FJERNES**, og tallet er lærerikt: tegntesten sier at det å
+fjerne dem er BEDRE i 566 av 1 021 givere — men snittet er −0,156. Vaktene
+koster små hyppige gevinster og forhindrer sjeldne katastrofer. Det er nøyaktig
+det konvensjonsvakter er til for.
+
+**Og jeg var i ferd med å rive dem ut** på en måling i et annet miljø (+0,024 ±
+0,060 med `ftf1` og budmodellen på). Med det nye nettet er de verdt −0,156 å
+miste. Et lag som måler null i én sammensetning kan være verdifullt i en annen.

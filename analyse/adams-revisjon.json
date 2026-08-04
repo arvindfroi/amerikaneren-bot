@@ -1,0 +1,22 @@
+{
+  "nett": "e1-modell/d7alle.bin",
+  "runder": 400,
+  "bud": {
+    "n": 1918,
+    "endret": 556
+  },
+  "vrak": {
+    "n": 400,
+    "fraNevro": 400
+  },
+  "velg": {
+    "n": 400,
+    "fraNevro": 400
+  },
+  "spill": {
+    "n": 19200,
+    "medValg": 14646,
+    "vaktEndret": 1268,
+    "nettMotNevro": 8335
+  }
+}
