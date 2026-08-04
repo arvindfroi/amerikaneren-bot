@@ -212,51 +212,62 @@ logger nå hele historikken, vraket, trumfen, etterlysningen og makkeren ved
 rundeslutt. Hver framtidig runde er treningsdata uten et eneste
 gjenskapingssteg.
 
-## S3a. STØRSTE UUTNYTTEDE FUNN: racet belønner varians når man ligger bak
+## S3a. STØRSTE UUTNYTTEDE FUNN: risiko skal styres av STILLINGEN
 
 **Vi måler alt i poeng per runde. Målet er å vinne kamper til 100. De er ikke
 samme sak.**
 
-`verktoy/race-risiko.py` skrur variansen uten å røre snittet — `delta' = snitt
-+ s·(delta − snitt)` — og simulerer racet på 161 ekte runder:
+### Først: en feil jeg gjorde, fordi den forklarer hva som er riktig
 
-| variansfaktor når BAK | mennesket vinner racet |
+Første forsøk skalerte botsetenes avvik uten å bevare rundens poengsum, og ga
+«mer varians er alltid bedre» i hver eneste stilling — s=3,0 vant overalt. Det
+var ikke en innsikt, det var en advarsel. Poengene per runde er tilnærmet
+bevart (ett lag får ~27, forsvarerne ~3), så modellen lagde runder der botlaget
+fikk tre ganger mer enn fysisk mulig.
+
+Den korrekte operasjonen skalerer avviket fra **rundens eget snitt**, som
+bevarer summen eksakt: en risikabel runde er risikabel for ALLE ved bordet,
+slik den er i virkeligheten. Boten kan ikke skru sin egen varians uten å skru
+motpartens.
+
+**Med den fiksen snudde svaret.** Det første tallet jeg skrev her (+0,55 for å
+ta risiko når man ligger bak) var galt.
+
+### Hva som faktisk gjelder
+
+| stilling | beste variansfaktor |
 |---|---|
-| 1,0 *(i dag)* | 11,94 % |
-| 1,5 | 10,39 % |
-| 2,0 | 9,04 % |
-| **3,0** | **7,03 %** |
+| boten leder klart (>10 poeng) | **0,60** — kvel støyen, la forspranget tale |
+| jevnt (±10) | 1,4 |
+| boten ligger bak (>10) | **2,00** — ta sjansen |
 
-**Snittet er urørt i hver eneste rad.** Alt som skiller dem er NÅR boten tar
-risiko.
+Det er den klassiske regelen, og den følger av at **boten er favoritten**:
+favoritten vil ha lite støy, underdogen vil ha mye. Utslagene er store — ved
+(menneske 90, bot 60) gir lav varians 88,8 % menneskeseier og høy 61,8 %.
 
-Å gå fra 11,76 % til 7,03 % svarer til et skift på **~+0,55 poeng per runde** i
-race-tabellen — mer enn hele Adams-v3-forbedringen, fra en beslutningsregel som
-koster null modellkompleksitet.
+### Hele politikken målt
 
-### Og motsatt: å spille trygt når man LEDER gir ingenting
-
-| variansfaktor når FORAN | |
+| | mennesket vinner racet |
 |---|---|
-| 1,0 | 12,12 % |
-| 0,8 | 11,72 % |
-| 0,6 | 12,26 % |
-| 0,4 | 12,90 % |
+| dagens spill (konstant) | 12,02 % |
+| alltid lav varians | 10,90 % |
+| **stillingsbevisst** | **6,27 %** |
 
-Ren støy, om ikke svakt skadelig. Grunnen er at i et race vinner du ved å NÅ
-100 først, ikke ved å ha størst margin. Kveler man variansen mens man leder,
-bremser man seg selv mot mål og gir motparten flere runder å ta igjen på.
+Nesten en halvering, tilsvarende et skift på **~+0,7 poeng per runde** i
+race-tabellen. Og det er en beslutningsregel, ikke en modell.
 
-### Spaken finnes allerede
+### Spaken finnes delvis
 
-**Budterskelen ER en variansknott.** Platået fra −2 til −5 målte likt i snitt,
-og −8 kostet bare −0,07. Å senke terskelen når boten ligger bak gir flere
-marginale kontrakter — mer varians — til nesten ingen snittkostnad.
+Budterskelen er en variansknott: lavere terskel gir flere marginale kontrakter.
+Platået −2 til −5 var flatt i snitt, så **mer** varians er nesten gratis.
 
-**FORBEHOLDET SOM SKAL STÅ:** at boten faktisk kan tredoble variansen uten å
-tape snitt er en antakelse. Tallet er et TAK for hva stillingsbevissthet kan
-gi, ikke et anslag på hva den vil gi. Men selv 1,5× er 1,55 prosentpoeng, og
-det er fem ganger forventningen fra nattens blokktrening.
+**MEN Å REDUSERE VARIANSEN KOSTER.** Å heve terskelen mot +3 målte −0,08, så
+0,6-armen er ikke gratis slik 2,0-armen er. Den realiserte gevinsten blir
+derfor lavere enn +0,7 — hvor mye lavere er ikke målt, og det er neste
+spørsmål, ikke et svar.
+
+**FORBEHOLDET SOM SKAL STÅ:** politikken antar at variansen kan skrus fra 0,6×
+til 2,0× uten å tape snitt. Det er ikke vist. Tallet er et TAK.
 
 ## S3b. I KØEN: flerfortsettelses-orakelet (Brown & Sandholm 2019)
 

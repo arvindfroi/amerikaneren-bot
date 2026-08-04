@@ -1,0 +1,33 @@
+Maal 100. 3000 simuleringer per (stilling, faktor).
+Snittet er uroert; bare variansen skrus.
+
+  mennesket   beste bot   |   s=0.6   s=1.0   s=1.5   s=2.0   s=3.0   BESTE
+  --------------------------------------------------------------------------
+         20           5   |    28.7    22.2    16.3    10.1     7.2   3.0
+         20          20   |    24.7    17.9    13.0     8.9     5.5   3.0
+         20          35   |    16.3    11.8     7.7     4.7     3.1   3.0
+         20          50   |     8.3     5.7     3.5     2.9     1.6   3.0
+         45          15   |    52.7    42.1    31.4    22.9    14.5   3.0
+         45          30   |    42.6    33.5    24.5    16.9    10.4   3.0
+         45          45   |    30.7    22.4    13.8    10.7     6.9   3.0
+         45          60   |    17.0    12.2     9.1     6.3     3.5   3.0
+         45          75   |     6.5     5.0     3.5     2.7     1.5   3.0
+         70          40   |    65.3    57.1    45.6    34.1    24.0   3.0
+         70          55   |    54.6    44.1    31.7    25.0    15.0   3.0
+         70          70   |    37.7    27.7    21.4    14.4     8.3   3.0
+         70          85   |    16.4    11.4     8.7     6.4     4.3   3.0
+         85          55   |    74.9    67.6    58.3    50.5    33.7   3.0
+         85          70   |    64.7    54.5    44.6    34.9    26.0   3.0
+         85          85   |    44.7    32.8    28.9    25.0    16.7   3.0
+         95          65   |    83.4    76.7    68.1    63.0    43.3   3.0
+         95          80   |    69.7    61.7    46.1    40.8    26.4   3.0
+         95          95   |    39.1    34.7    30.1    23.9    17.3   3.0
+
+HVA FORMEN SIER:
+  mennesket naer maal (>=85):   beste faktor i snitt 3.00
+  mennesket langt unna (<=45):  beste faktor i snitt 3.00
+  boten ligger bak:             beste faktor i snitt 3.00
+  boten ligger foran:           beste faktor i snitt 3.00
+
+Er de to foerste like, er det IKKE naerheten til maal som styrer, og
+politikken kan da vaere en funksjon av differansen alene.
