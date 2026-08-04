@@ -506,7 +506,7 @@ en samtale.
 
 | | målt på gate 2 | konklusjon |
 |---|---|---|
-| v8-trekkblokkene (D0) | +0,074 ± 0,082, trimmet 0, tegn −1,56 | **null — linja lagt ned** |
+| v8-trekkblokkene (D0) | +0,074 ± 0,082, trimmet 0, tegn −1,56 | **ikke avgjort** — se under |
 | rollebalansering (RB) | +0,114 ± 0,085, trimmet 0, tegn 965/964 | **null**, men se forbeholdet |
 | fra bunnen mot d7alle | −0,529 ± 0,111 | H2 bekreftet, verre enn anslått |
 
@@ -531,6 +531,37 @@ oppvarmingsraten river i de forhåndstrente vektene i stedet. Begge
 konklusjoner var riktige for sitt datagrunnlag, og det må stå — ellers
 gjeninnfører noen oppvarmingen på et lite korpus, eller fjerner den permanent
 og taper der.
+
+### «LINJA ER DØD» VAR FEIL, og korreksjonen er viktigere enn påstanden
+
+Jeg skrev først at trekkblokk-linja var lagt ned. Arvind spurte hvorfor, gitt
+hvor mange feil jeg hadde gjort med den underveis. Han hadde rett.
+
+**Rolledekomponeringen sier noe annet enn totalen.** D0 mot d7alle:
+
+| rolle | målt |
+|---|---|
+| makker | +0,032 ± 0,038 |
+| forsvar | +0,059 ± 0,088 |
+
+Ingen av dem er negative. De er for upresise til å si noe.
+
+**Tre grunner til at «død» var feil ord:**
+
+1. **Målingen var underpowered.** Med SE 0,082 kunne jeg ikke oppdaget +0,15
+   pålitelig. Et nullresultat med den presisjonen er *fravær av bevis*, ikke
+   *bevis på fravær*.
+2. **Korpuset var skjevt mot feil rolle.** Dødeblokken er et FORSVARERTREKK –
+   budvinneren vet hva han vraket, det er forsvarerne som må slutte seg til
+   det. Den ble testet på et korpus med 52,8 % førerrader.
+3. **Fem feil på rad i denne linja**, hvorav fire fikk et ekte signal til å se
+   ut som null, og den femte ble funnet ETTER konklusjonen. Med den historikken
+   er «denne gangen er det ekte null» en påstand uten belegg.
+
+**Det som ER etablert:** fra bunnen på 543 000 rader taper mot d7alle, −0,529
+± 0,111. Det er solid og en nyttig grense. Resten er uavklart, og linja
+fortjener samme omkamp som forsvarsvektingen: riktig generert korpus, og nok
+n til å skille +0,15 fra null.
 
 **FORBEHOLD SOM RAMMER ROLLEBALANSEN:** korpuset ble generert med `rolleVekt`
 = 3, standardverdien i koden, mens planen sa 1. Resultatet var **52,8 %
