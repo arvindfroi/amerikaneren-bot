@@ -90,9 +90,37 @@ som overlevde er de eneste som er satt ut.
 | linje | status | anslag |
 |---|---|---|
 | **1. Menneskeklonen** | data låst opp 4. aug | den eneste som angriper målet DIREKTE |
-| **2. Vrak/trumf-rangereren** | trent, ikke benket | holdout: 1,81 → 0,63 anger |
+| **2. Vrak/trumf-rangereren** | ✅ 3 bånd, adoptert | +0,49 per budvinnerrunde ≈ +0,12 totalt |
 | **3. Skrallen (selvspill)** | konvergerer | +0,06 neste omdreining |
-| **4. Bud × kortspill sammen** | aldri gjort | ukjent, hver er ~halve botten |
+| **4. Bud × kortspill sammen** | 🔄 i gang, se under | +0,155 fra ÉN konstant |
+
+### Hvorfor lag-mot-lag-kalibrering er billigst av alt
+
+Budmodellens beslutningsregel så ut som en avveining mot verdien av å forsvare:
+
+    ev = p·2N(2P−1) + (1−p)·evForsvar,   by hvis ev > evForsvar
+
+Men leddet `(1−p)·evForsvar` kansellerer mot terskelen:
+
+    p·2N(2P−1) + (1−p)·e > e   ⟺   2N(2P−1) > e
+
+**`evForsvar` er ikke verdien av å forsvare. Det er en ren terskel på
+kontraktens forventningsverdi.** Boten har krevd at en kontrakt er verdt over
+2,5 poeng før den byr, når risikonøytralt optimum er 0. Målt: `0,5` gir
+**+0,1512** (bånd 93 M) og **+0,1577 ± 0,0425** (bånd 105 M, 602 avgjorte).
+
+Lærdommen er større enn tallet: **konstanter som ble kalibrert mot en tidligere
+versjon av en annen komponent, er gratis gevinst så lenge de finnes.** De
+koster ingen trening — bare en sveip og to bånd. Hver gang kortnettet bedres,
+er budterskelen igjen for høy.
+
+### Den effektive n er antall AVGJORTE giver
+
+`evForsvar` 1,5 målte +0,1786 ± 0,0499 (3,58 SE) i ett bånd og +0,0306 ±
+0,0514 (0,59 SE) i det neste. Årsaken var ikke målingen, men lesningen: bare
+**120 av 3 600** giver endret seg. Resten er eksakte nuller som presser SE-en
+ned uten å tilføre informasjon. `verktoy/gate2-les.py` skriver nå ut avgjorte
+giver og roper under 500.
 
 ### Hvorfor menneskeklonen er øverst
 
