@@ -1,0 +1,46 @@
+{
+  "spek": "budm:e1-modell/bud-gbt.json:vakt:abmp:e1:e1-modell/d7alle.bin",
+  "runder": 1500,
+  "rader": [
+    {
+      "bud": 0,
+      "n": 3319,
+      "mLengste": 4.459,
+      "sdLengste": 0.734,
+      "mHonnør": 1.52,
+      "sdHonnør": 0.949
+    },
+    {
+      "bud": 7,
+      "n": 36,
+      "mLengste": 3.972,
+      "sdLengste": 0.167,
+      "mHonnør": 0,
+      "sdHonnør": 0
+    },
+    {
+      "bud": 8,
+      "n": 510,
+      "mLengste": 4.159,
+      "sdLengste": 0.554,
+      "mHonnør": 1.061,
+      "sdHonnør": 0.724
+    },
+    {
+      "bud": 9,
+      "n": 631,
+      "mLengste": 4.883,
+      "sdLengste": 0.794,
+      "mHonnør": 2.048,
+      "sdHonnør": 0.909
+    },
+    {
+      "bud": 10,
+      "n": 4,
+      "mLengste": 6.5,
+      "sdLengste": 0.577,
+      "mHonnør": 2.75,
+      "sdHonnør": 0.5
+    }
+  ]
+}

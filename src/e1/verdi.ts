@@ -53,7 +53,6 @@
  * feilen troblokkens øvre grense er testet mot.
  */
 
-import { fargeIndeks } from "../nevro/trekk.ts";
 
 /** v6-bredden denne blokken legger seg oppå. */
 export const VERDI_FRA = 428;

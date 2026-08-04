@@ -233,15 +233,79 @@ function budForenlighet(state: GameState, verden: Verden, observator: number): n
 }
 
 /**
+ * En lært budprior, i stedet for den håndlagde `budForenlighet`.
+ *
+ * `logVekt(sete, bud, originalhånd)` skal si hvor godt hånden passer med det
+ * setet bød. `src/moe2/motstander.ts` er implementasjonen, men typen holdes
+ * strukturell her: `sampler.ts` er kjernen og skal ikke avhenge av moe2.
+ */
+export interface Budprior {
+  logVekt(spiller: string, bud: number, hånd: readonly Kort[]): number;
+}
+
+/** Kortindeks → kort, invers av `kortTilInt`. */
+function intTilKort(c: number): Kort {
+  return { farge: FARGER[Math.floor(c / 13)]!, verdi: ((c % 13) + 2) as Kort["verdi"] };
+}
+
+/**
+ * Som `budForenlighet`, men med en LÆRT prior i stedet for en håndlagd formel.
+ *
+ * HVORFOR DET ER EN EGEN FUNKSJON OG IKKE EN ERSTATNING. Prioren beskriver ÉN
+ * budpolicy, og de er målbart ulike: familien byr 7 med 1,18 honnører i snitt,
+ * `bud-gbt.json` byr 7 med 0,000 (36 av 36 tilfeller). Brukes menneskenes
+ * tabell i selvspill, er prioren feilspesifisert — nøyaktig samme klasse feil
+ * som da SD-orakelet rullet ut med NevroHjerne mens bordet spilte som Adams,
+ * og førersetet målte −0,357 i stedet for +0,896.
+ *
+ * En prior som beskriver feil motpart er verre enn ingen prior: den skyver
+ * utvalget systematisk feil vei. Derfor er `prior` valgfri, og kalleren må
+ * velge tabellen som hører til bordet.
+ */
+function lærtForenlighet(
+  state: GameState,
+  verden: Verden,
+  observator: number,
+  prior: Budprior,
+  navn: (sete: number) => string,
+): number {
+  const spilteAv: number[][] = [];
+  for (let p = 0; p < state.antallSpillere; p++) spilteAv.push([]);
+  for (const s of state.historikk) for (const kp of s.kort) spilteAv[kp.spiller]!.push(kortTilInt(kp.kort));
+  for (const kp of state.bord) spilteAv[kp.spiller]!.push(kortTilInt(kp.kort));
+
+  let logW = 0;
+  for (let p = 0; p < state.antallSpillere; p++) {
+    if (p === observator) continue;
+    // BUDVINNEREN UTELATES. Hun tok opp talongen og vraket fire, så
+    // originalhånden er ikke rest + spilte kort — og prioren er målt på
+    // spillere som IKKE vant budet.
+    if (p === state.budvinner) continue;
+    const bud = state.budrunde.sisteBud[p];
+    if (bud === undefined) continue;
+    if (bud !== null && typeof bud !== "number") continue; // Amerikaner/solo
+    const hånd = [...verden.hender[p]!, ...spilteAv[p]!].map(intTilKort);
+    logW += prior.logVekt(navn(p), typeof bud === "number" ? bud : 0, hånd);
+  }
+  return logW;
+}
+
+/**
  * Som `trekkVerden`, men vekter mellom flere kandidatverdener etter hvor
  * godt de stemmer med budhistorikken (Belief-MC-idéen fra bridge-AI:
  * verdener samples ikke uniformt, men etter hva budene har avslørt).
+ *
+ * Med `prior` brukes en LÆRT budmodell i stedet for den håndlagde formelen.
+ * Kalleren har ansvaret for at prioren beskriver de som faktisk sitter ved
+ * bordet — se `lærtForenlighet`.
  */
 export function trekkVerdenBelief(
   state: GameState,
   observator: number,
   rng: () => number,
   kandidater = 3,
+  prior?: Budprior,
+  navn: (sete: number) => string = (s) => `sete${s}`,
 ): Verden | null {
   // Uten budinformasjon om noen andre er vektingen et nullbidrag.
   const harInfo = state.budrunde.sisteBud.some(
@@ -252,7 +316,15 @@ export function trekkVerdenBelief(
   const utvalg: { verden: Verden; logW: number }[] = [];
   for (let i = 0; i < kandidater; i++) {
     const v = trekkVerden(state, observator, rng);
-    if (v) utvalg.push({ verden: v, logW: budForenlighet(state, v, observator) });
+    if (v) {
+      utvalg.push({
+        verden: v,
+        logW:
+          prior === undefined
+            ? budForenlighet(state, v, observator)
+            : lærtForenlighet(state, v, observator, prior, navn),
+      });
+    }
   }
   if (utvalg.length === 0) return null;
   const maks = Math.max(...utvalg.map((u) => u.logW));
