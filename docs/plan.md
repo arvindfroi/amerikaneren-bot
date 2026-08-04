@@ -2692,3 +2692,96 @@ igjen krever trening:
 Punkt 1 er en forutsetning for at 2 og 3 skal være verdt å kjøre, og bør gjøres
 FØR korpuset genereres — ellers genereres 500k+ rader med etiketter fra den
 gamle samleren, og hele kjøringen må gjøres om.
+
+## 30. DØDREVISJONEN (5. august) — fem funn, to av dem store
+
+Arvind: «finn andre døde/råttne ting i stakken!»
+
+Verktøyet er `examples/dod-inngang.ts`, som måler to UAVHENGIGE ting per
+inngang: VARIANS over ekte stillinger (bærer den informasjon i det hele tatt?)
+og L1-VEKT inn i førstelaget (bruker nettet den?). De svarer på ulike
+spørsmål, og kombinasjonen «høy varians, null vekt» er det dyreste utfallet.
+
+### FUNN 1 (STØRST): den utrullede boten ser 273 av 714 trekk
+
+`d7alle.bin` — nettet i Adams-v3 — har **inn = 273**. Det er v1-kjernen alene.
+
+    v2-v4      91 trekk      USYNLIG
+    plan       12            USYNLIG
+    tro        52            USYNLIG
+    verdi      30            USYNLIG
+    døde       12            USYNLIG
+    sanser     88            USYNLIG   (v9, bygd og testet)
+    hvem la   156            USYNLIG   (v10, bygd og testet)
+
+**441 trekk, 62 % av v10-vektoren, når aldri fram til boten som spiller.**
+Sansene og hukommelsen er bygd, permutasjonstestet og lekkasjesikret — og den
+utrullede boten er blind for hver eneste av dem.
+
+Det er ikke en forglemmelse: de brede nettene ble trent og TAPTE mot det
+destillerte 273-nettet. Men det gjør spørsmålet skarpere, ikke mindre viktig.
+
+### FUNN 2: nettene BRUKER sansene når de får se dem
+
+Hypotesen har vært at nettet «ikke vet hva det skal gjøre med» de nye blokkene.
+Vektmålingen sier at det er feil for de fleste nettene:
+
+| nett | kjerne \|w\| | ekstrablokker \|w\| |
+|---|---|---|
+| A470 | 26,9 | 18,8 – **41,8** |
+| D3 | 45,9 | 18,9 – **45,8** |
+| B273 | 29,9 | ~11,8 |
+| RB | 45,8 | **1,6 – 7,9** |
+
+I A470 og D3 får PLAN-blokken mer vekt enn kjernen. Blokkene blir altså brukt.
+RB er det eneste nettet som kollapset tilbake på kjernen (18x mindre vekt), og
+det er RB som er avviket, ikke regelen.
+
+KONSEKVENS: at de brede nettene taper handler ikke om at trekkene ignoreres.
+Det må ligge i etikettene, i korpusets sammensetning, eller i at 470 innganger
+med samme datamengde bare er dårligere statistikk. Det er en annen diagnose enn
+den vi har jobbet ut fra, og den peker mot MER DATA / bedre etiketter, ikke mot
+å skrote blokkene.
+
+### FUNN 3: 49 døde innganger fordi etterlysningsregelen er deterministisk
+
+Indeks 156–207 er det etterlyste kortet som one-hot over 52 kort. Regelen tar
+ALLTID høyeste lovlige trumf — målt riktig med z = −13,25 — og da fyres bare
+~3 av de 52 lukene noen gang. **49 innganger er konstant null.**
+
+Ikke en bug, men bortkastet kapasitet: en one-hot over 52 der utfallsrommet
+reelt er 3. Bør kodes om til noe rangrelativt (hvor høyt kortet er blant de
+gjenværende trumfene) i stedet for hvilket kort det er.
+
+### FUNN 4: tre flagg som aldri fyrer i selvspill
+
+    224   «ingen trumf»    trumf velges alltid
+    226   erAmerikaner     meldes aldri (og det er MÅLT riktig)
+    237   erSolo           meldes aldri
+
+Sammen med funn 3 er det 52 av 273 kjerneinnganger — 19 % — som er konstante.
+(272, 339, 375 er tilsiktede konstantledd og teller ikke med.)
+
+### FUNN 5 (VIKTIGST FOR MÅLET): benken er blind for kampstillingen
+
+Indeks 231/232 er egen og andres poengandel. De er konstant null i revisjonen —
+og jeg antok først at nettet dermed aldri hadde sett en kampstilling. **Det var
+feil, og sjekken avslørte det:** `examples/sd-orakel.ts` spiller til `FERDIG`,
+altså HELE KAMPER, så poengandelen varierer i korpuset.
+
+Det er MÅLINGEN som er blind. `examples/gate2.ts` stopper ved `RUNDE_SLUTT` —
+én runde fra 0–0–0–0. Poengandelen er dermed pinnet til null i hvert eneste
+tall dette prosjektet har produsert.
+
+KONSEKVENSEN ER PRESIS OG ALVORLIG: enhver strategi som avhenger av stillingen
+— dristig spill når man ligger under, forsiktig når man leder, hele
+Dubins–Savage-linja — er USYNLIG for benken. Den kan verken oppdages,
+kalibreres eller adopteres. Og den ligger nøyaktig på målet «vi skal ikke kunne
+tape et race til 100».
+
+Dette er samme feilklasse som funn 1 og som trosnettet i §29: **måltallet og
+den utrullede stien er ikke den samme tingen.** Tre ganger på én dag.
+
+KUR: en kampnivå-benk som spiller til 100 og måler kampandel, ikke
+rundedifferanse. Den står allerede i køen; den er nå oppgradert fra «fint å ha»
+til FORUTSETNING for å kunne måle det målet faktisk er formulert som.
