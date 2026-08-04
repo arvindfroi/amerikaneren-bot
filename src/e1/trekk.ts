@@ -41,6 +41,7 @@ import { fyllTroblokk, TRO_ANTALL } from "./tro.ts";
 import { fyllVerdiblokk, VERDI_ANTALL } from "./verdi.ts";
 import { fyllDødeblokk, DØDE_ANTALL } from "./dode.ts";
 import { fyllSanser, SANS_ANTALL } from "./sanser.ts";
+import { TRO_INN } from "../moe2/trosnett.ts";
 import { fyllHvemLa, HVEMLA_ANTALL } from "./hvemla.ts";
 import type { GameState } from "../motor.ts";
 import { fargeIndeks, kortIndeks, SPILL_DIM, spillTrekk } from "../nevro/trekk.ts";
@@ -407,5 +408,37 @@ export function e1SpillTrekk(
 
   // --- HVEM LA HVA (v10, 558–713) ------------------------------------------
   fyllHvemLa(v, state, sete);
+  return v;
+}
+
+/**
+ * SANSEBLOKKEN FYLT — trekkfunksjonen med troen koblet på.
+ *
+ * REVISJONEN 5. AUGUST FANT AT SANSENE VAR 95 % DØDE. `e1SpillTrekk` tar
+ * `tro` som et VALGFRITT argument med standard `null`, og `fyllSanser`
+ * returnerer da etter bare de fire posisjonstrekkene. Stikksjansen (52),
+ * forventet fargelengde (16) og renonssannsynligheten (16) — 84 trekk — sto
+ * konstant null.
+ *
+ * OG INGEN KALLER SENDTE INN TROEN. Ikke `E1Agent`, ikke `Ensemble`, ikke et
+ * eneste orakel. Blokken var bygd, permutasjonstestet og registrert i alle
+ * fem breddestedene, og leverte nuller gjennom hver sti som fantes.
+ *
+ * Det er samme feilklasse som resten av revisjonen: DELEN VAR RIKTIG, MEN
+ * IKKE KOBLET TIL. Her er koblingen.
+ *
+ * ÉN OMGANG, ikke to: de første `TRO_INN` (= 470) verdiene i en v9-vektor er
+ * nøyaktig v8-vektoren, som er trosnettets inngang. Vi bygger altså vektoren
+ * én gang, leser prefikset som troens inngang, og fyller sansene på plass.
+ */
+export function e1SpillTrekkMedTro(
+  state: GameState,
+  sete: number,
+  dim: number,
+  trosnett: { fordeling(trekk: Float32Array): number[][] } | null,
+): Float32Array {
+  const v = e1SpillTrekk(state, sete, dim);
+  if (trosnett === null || dim < E1_SPILL_DIM_V9) return v;
+  fyllSanser(v, state, sete, trosnett.fordeling(v.subarray(0, TRO_INN) as Float32Array));
   return v;
 }

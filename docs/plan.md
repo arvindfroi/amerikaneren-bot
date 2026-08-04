@@ -2864,3 +2864,67 @@ den er en makkerregel og oppfører seg som en.
 +1,96 (fjern). Flere givere blir bedre uten den, men de sjeldne ±50-ene blir
 dyrere. For et race til 100 er det snittet som teller, så den blir stående —
 men den er IKKE avklart, og fortjener en egen måling med flere givere.
+
+## 32. SANSENE VAR IKKE I TAKT — 95 % av blokken var død (5. august)
+
+Arvind: «at alt funker og sanser er i takt … ingen rot».
+
+Revisjonen kjørte `examples/dod-inngang.ts --bredde 714`, som måler VARIANS per
+inngang uten å trenge et nett — altså om en blokk i det hele tatt bærer noe i
+ekte stillinger. Svaret:
+
+| blokk | trekk | døde | varians |
+|---|---|---|---|
+| tro 376–427 | 52 | 0 % | 9,6e-2 |
+| verdi 428–457 | 30 | 0 % | 1,1e-1 |
+| døde 458–469 | 12 | 0 % | 7,2e-2 |
+| **sanser 470–557** | **88** | **95 %** | **8,5e-3** |
+| hvem la 558–713 | 156 | 0 % | 1,0e-1 |
+
+**84 av 88 sansetrekk var konstant null.** Stikksjansen (52), forventet
+fargelengde (16) og renonssannsynligheten (16) — hele poenget med «gi nettet
+øyne» — leverte ingenting. Bare de fire posisjonstrekkene levde.
+
+### Årsaken er én standardverdi
+
+    export function e1SpillTrekk(state, sete, dim, tro = null)
+
+`tro` er VALGFRI. Og `fyllSanser` returnerer etter de fire posisjonstrekkene
+når den er `null`:
+
+    if (tro === null) return;
+
+**OG INGEN KALLER SENDTE DEN INN.** Ikke `E1Agent`, ikke `Ensemble`, ikke
+`sd-orakel`, ikke `e1-orakel`, ikke `mester-orakel`. Null av tolv kallsteder.
+
+Blokken var korrekt implementert, permutasjonstestet, lekkasjesikret og
+registrert i alle fem breddestedene som `test/e1-bredder.test.ts` håndhever.
+Den var bare aldri KOBLET TIL.
+
+Det er samme feilklasse som hele resten av revisjonen — trosnettet (§29), det
+273-brede nettet, den stillingsblinde benken, de sju parserkopiene: **delen var
+riktig, men lå ikke i stien.** Sjette gang på én dag.
+
+DET FARLIGSTE VAR AT DEN VAR I FERD MED Å BLI USYNLIG PERMANENT: hadde vi
+generert et v9-korpus og brukt timer på GPU, ville 88 av kolonnene vært nuller,
+nettet ville lært ingenting av dem, og konklusjonen ville blitt «sansene virker
+ikke» — nøyaktig den konklusjonen Arvind på forhånd advarte mot: «hvis det ikke
+funker så er det noe feil med implementering/kompatibiliteten».
+
+### Kuren
+
+`e1SpillTrekkMedTro(state, sete, dim, trosnett)` bygger vektoren ÉN gang og
+utnytter at de første `TRO_INN` (= 470) verdiene i en v9-vektor er nøyaktig
+v8-vektoren, altså trosnettets egen inngang. Prefikset leses som troens
+inngang, og sansene fylles på plass.
+
+`test/e1-sanser-koblet.test.ts` fastholder BEGGE halvdelene:
+
+  UTEN tro   høyst 4 trekk lever   (feilen, dokumentert så den ikke glemmes)
+  MED tro    over 40 lever         (koblingen, håndhevet)
+  og ikke ett eneste trekk UNDER blokken endrer seg
+
+### Konsekvens for treningsplanen
+
+v9 må IKKE brukes til korpusgenerering uten at trosnettet føres gjennom
+orakelet. Det er nå mulig; før var det umulig uten å vite det.

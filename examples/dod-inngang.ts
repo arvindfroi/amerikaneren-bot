@@ -14,8 +14,14 @@ import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 import { e1SpillTrekk } from "../src/e1/trekk.ts";
 
-const fil = process.argv[2] ?? "e1-modell/d7alle.bin";
-const nett = nettFraBytes(new Uint8Array(readFileSync(fil)))[0]!;
+// «--bredde <n>» maaler VARIANS alene, uten et nett. Det svarer paa om en
+// blokk baerer informasjon i ekte stillinger - noe man maa vite FOER man
+// bruker treningstid paa en bredde man ikke har et nett for enda.
+const bareBredde = process.argv[2] === "--bredde" ? Number(process.argv[3]) : 0;
+const fil = bareBredde ? "" : (process.argv[2] ?? "e1-modell/d7alle.bin");
+const nett = bareBredde
+  ? { lag: [{ inn: bareBredde, ut: 1, vekter: new Float32Array(bareBredde) }] }
+  : nettFraBytes(new Uint8Array(readFileSync(fil)))[0]!;
 const L = nett.lag[0]! as unknown as { inn: number; ut: number; vekter: ArrayLike<number> };
 const inn = L.inn;
 console.log(`nett ${fil}: inn=${inn}, foerste lag ${L.ut} noder`);
