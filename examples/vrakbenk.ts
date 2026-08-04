@@ -38,6 +38,12 @@ import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 import { Budagent, lesBudmodell } from "../src/moe2/budagent.ts";
 import { Vrakvelger } from "../src/moe2/vrakvelg.ts";
 import { Vrakvelger2, lesVrakflagg } from "../src/moe2/vrakvelg2.ts";
+import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
+// RÅ loader, ikke `lesE1Nett`: rangereren er 24 bred med ÉN utgang, og
+// E1-laderen håndhever E1-bredder. Den vakten fanget nettopp dette forsøket,
+// som den skal - et nett med feil form ville ellers gitt tause soppelvalg.
+import { readFileSync } from "node:fs";
+import { nettFraBytes } from "../src/nevro/nett.ts";
 
 let kandidatSpek: string[] = [];
 let miljøSpek = "nevro";
@@ -73,6 +79,12 @@ function lag(spek: string): Agent {
     const rest = spek.slice(5);
     const i = rest.indexOf(":");
     return new Budagent(lag(rest.slice(i + 1)), lesBudmodell(rest.slice(0, i)));
+  }
+  // vr:<vektfil>:<flagg>:<indre> - den LAERTE rangereren, uten soek.
+  if (spek.startsWith("vr:")) {
+    const d = spek.slice(3).split(":");
+    const nett = nettFraBytes(new Uint8Array(readFileSync(d[0]!)))[0]!;
+    return new Vrakrangerer(lag(d.slice(2).join(":")), nett, d[1] ?? "telrd");
   }
   if (spek.startsWith("vv2:")) {
     const d = spek.slice(4).split(":");
