@@ -252,11 +252,35 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
     if (v === null) throw new Error(`Ugyldig vaktspek «${indre}»`);
     return new Konvensjonsvakt(lagIndre(v.indre), v.valg);
   }
+  /**
+   * `budm:<modellfil>[@<evForsvar>]:<indre>`
+   *
+   * `@<evForsvar>` FINJUSTERER BUDLAGET MOT KORTLAGET. Beslutningsregelen er
+   *
+   *     ev = p · 2N(2P−1) + (1−p) · evForsvar,   by hvis ev > evForsvar
+   *
+   * der `evForsvar` er den ANTATTE verdien av å forsvare i stedet for å by.
+   * Den ble satt til 2,5 den gangen kortnettet var svakere. Blir boten bedre
+   * til å berge kontrakter, er 2,5 for høyt, og da byr den for forsiktig – den
+   * lar seg presse ut av budvinnerfeltet (±18/9, ±20/10) og ned i
+   * forsvarerfeltet (0–3), der nesten ingen poeng ligger.
+   *
+   * Tallet er altså ikke en fri parameter å søke i: det er ett bestemt ledd
+   * som er kalibrert mot en bot som ikke finnes lenger. Derfor SVEIPES det,
+   * og derfor må sveipet replikeres i disjunkt frøbånd som alt annet – argmax
+   * over en sveip er like utsatt for vinnerens forbannelse som argmax over
+   * kandidater.
+   */
   if (indre.startsWith("budm:")) {
     const rest = indre.slice(5);
     const skille = rest.indexOf(":");
     if (skille < 0) throw new Error(`Ugyldig budm-spek «${indre}» – forventet budm:<modellfil>:<indre>`);
-    return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(rest.slice(0, skille)));
+    const hode = rest.slice(0, skille);
+    const at = hode.lastIndexOf("@");
+    const fil = at < 0 ? hode : hode.slice(0, at);
+    const ev = at < 0 ? 2.5 : Number(hode.slice(at + 1));
+    if (!Number.isFinite(ev)) throw new Error(`Ugyldig evForsvar i «${indre}»`);
+    return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(fil), ev);
   }
   /**
    * `ork:<rolle>:<indre>` - SD-ORAKELET spiller den rollen, det indre alt annet.
