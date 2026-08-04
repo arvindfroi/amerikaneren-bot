@@ -1323,3 +1323,45 @@ stilte den.
 
 **IKKE ADOPTERT ENNÅ.** +2,74 SE på ett bånd, med tegntest 987/920 (z = 1,53)
 og trimmet +0,019. Replikering kjører i frøbånd 25 800 000 med n=8000.
+
+## 21. Motstandermodellen har data allerede — målt 4. august
+
+Arvind: *«jeg ser for meg at den husker hvor lang trumfserie du hadde siste
+gangene du bød 9.»*
+
+**DATAEN FANTES, og det var ikke åpenbart.** Val Town-loggen har ingen hender —
+men den har HVERT kortvalg mennesket gjør, og kortene et menneske spiller ER
+hånden. 1 172 runder har nøyaktig 12 `valg-kort`, altså en fullstendig hånd.
+
+Den ene komplikasjonen: er mennesket budvinner, tok det opp talongen og vraket
+fire, så de spilte kortene er ikke den utdelte hånden. Derfor brukes bare
+runder der mennesket IKKE vant budet — 768 av dem.
+
+| bud | runder | lengste farge | honnører | ess |
+|---|---|---|---|---|
+| passet | 298 | 4,40 | 1,27 | 0,60 |
+| bød 7 | 161 | 4,32 | 1,18 | 0,47 |
+| bød 8 | 226 | 4,51 | 1,79 | 0,87 |
+| **bød 9** | 67 | **5,00** | **2,31** | **1,24** |
+
+**Signalet er sterkt og er nøyaktig det Arvind beskrev.** Bud 9 mot bud 7:
++0,68 i lengste farge, **+1,13 honnører (≈ 7,5 SE)**, +0,77 ess.
+
+**OG EN TING TIL SOM ER BRUKBAR VED BORDET:** å passe og å by 7 ser helt like
+ut (1,27 mot 1,18 honnører). Informasjonen ligger i de HØYE budene; de lave
+skiller ikke mellom «svak hånd» og «forsiktig spiller».
+
+### Hva som gjenstår for å ta det i bruk
+
+1. `budForenlighet` i `src/solver/sampler.ts` er i dag en HÅNDLAGD
+   befolkningsformel som ikke vet hvem som bød. Den skal byttes mot disse
+   målte tallene.
+2. Krympingsestimator: start på befolkningstallene over, flytt mot individet
+   etter antall observasjoner. Da kan modellen stå på fra runde 1.
+3. Per spiller er tallene tilgjengelige i samme logg — navnene ligger BARE i
+   Val Town-basen og skal aldri i dette repoet.
+
+**Hvorfor dette er den riktige linjen:** både §17 (vrakvelgeren feilet fordi
+verdensrommet er størst tidlig) og §19 (eksakthet er bare råd fra stikk 9)
+ender samme sted — det som mangler er en bedre PRIOR over hva motparten har.
+Dette er den prioren, og den er målt.
