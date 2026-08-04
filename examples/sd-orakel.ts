@@ -51,7 +51,7 @@
  * den siste linjen, ikke alt.
  */
 
-import { appendFileSync, mkdirSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { lagRng } from "../src/kort.ts";
@@ -60,6 +60,8 @@ import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_
 import { E1Agent } from "../src/e1/nett.ts";
 import { vurderKortSD } from "../src/moe2/sdkort.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
+import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
+import { nettFraBytes } from "../src/nevro/nett.ts";
 import { Budagent, lesBudmodell } from "../src/moe2/budagent.ts";
 import { kortIndeks, NevroAgent } from "../src/nevro/index.ts";
 import { spillerVisning } from "../src/motor.ts";
@@ -239,22 +241,58 @@ function lagMotpart(spec: string): { navn: string; velgHandling(s: GameState): H
     const agent = E1Agent.fraFil(spec.slice(3));
     return { navn: spec, velgHandling: (s) => agent.velgHandling(s) };
   }
+  /**
+   * `vr:<vektfil>:<flagg>:<indre>` - vrak- og trumfrangereren.
+   *
+   * Som budmodellen paavirker den ikke ROLLOUTENE, som starter etter at trumf
+   * og vrak er avgjort. Men STILLINGSKILDEN bruker samme byggefunksjon, og der
+   * bestemmer den hvilke stillinger som i det hele tatt oppstaar. Uten den
+   * ville korpuset vaert merket paa stillinger Adams-v3 aldri havner i.
+   */
+  if (spec.startsWith("vr:")) {
+    const r = spec.slice(3);
+    const i = r.indexOf(":");
+    const j = r.indexOf(":", i + 1);
+    if (i < 0 || j < 0) throw new Error(`Ugyldig vr-spek «${spec}»`);
+    const nett = nettFraBytes(new Uint8Array(readFileSync(r.slice(0, i))))[0];
+    if (nett === undefined) throw new Error(`Tomme vekter i «${r.slice(0, i)}»`);
+    const indre = lagMotpart(r.slice(j + 1));
+    const pakket = new Vrakrangerer(
+      { velgHandling: (s) => indre.velgHandling(s), nyKamp: () => {} },
+      nett,
+      r.slice(i + 1, j),
+    );
+    return { navn: `vr:${indre.navn}`, velgHandling: (s) => pakket.velgHandling(s) };
+  }
   if (spec.startsWith("budm:")) {
     // BUDMODELLEN PAAVIRKER IKKE ROLLOUTENE - de starter i spillfasen, der budet
     // alt er avgjort - men den maa kunne staa i en spek, fordi STILLINGSKILDEN
     // under bruker samme byggefunksjon og der betyr den alt.
+    //
+    // «@<evForsvar>» MAA VAERE MED. Terskelen avgjoer hvor ofte og paa hvilket
+    // nivaa boten byr, og dermed hvilke kontrakter som i det hele tatt spilles.
+    // Merker vi et korpus med standardterskelen og spiller med -3,0, merker vi
+    // stillinger fra en annen bot enn den som skal laere av dem - samme klasse
+    // feil som kostet -0,357 mot +0,896 i orakelbenken.
     const rest = spec.slice(5);
     const skille = rest.indexOf(":");
     if (skille < 0) throw new Error(`Ugyldig budm-spek «${spec}» - forventet budm:<modellfil>:<indre>`);
+    const hode = rest.slice(0, skille);
+    const at = hode.lastIndexOf("@");
+    const fil = at < 0 ? hode : hode.slice(0, at);
+    const ev = at < 0 ? 2.5 : Number(hode.slice(at + 1));
+    if (!Number.isFinite(ev)) throw new Error(`Ugyldig evForsvar i «${spec}»`);
     const indre = lagMotpart(rest.slice(skille + 1));
     const pakket = new Budagent(
       { velgHandling: (s) => indre.velgHandling(s), nyKamp: () => {} },
-      lesBudmodell(rest.slice(0, skille)),
+      lesBudmodell(fil),
+      ev,
     );
-    return { navn: `budm:${indre.navn}`, velgHandling: (s) => pakket.velgHandling(s) };
+    return { navn: `budm@${ev}:${indre.navn}`, velgHandling: (s) => pakket.velgHandling(s) };
   }
   throw new Error(
-    `Ukjent spek «${spec}» (bruk nevro, e1:<fil>, vakt:<flagg>:<indre> eller budm:<fil>:<indre>)`,
+    `Ukjent spek «${spec}» (bruk nevro, e1:<fil>, vakt:<flagg>:<indre>, ` +
+      `vr:<vekter>:<flagg>:<indre> eller budm:<fil>[@<ev>]:<indre>)`,
   );
 }
 const motpart = lagMotpart(motpartSpek);
