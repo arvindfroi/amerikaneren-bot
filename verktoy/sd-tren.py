@@ -52,6 +52,21 @@ import time
 import numpy
 import torch
 import torch.nn as nn
+
+# Der det parsede korpuset mellomlagres. Egen mappe, gitignorert.
+#
+# SETT `SD_BUFFER` TIL EN STI I WSLs EGET FILSYSTEM naar treningen kjoeres
+# derfra. Maalt 4. august paa dette korpuset:
+#
+#     totalt         21m51s
+#     CPU-arbeid      3m15s
+#     resten          I/O-venting mot /mnt/c
+#
+# Aatte av ni deler av kjoeringen var Windows-filsystemet gjennom WSL, ikke
+# trening. Saa lenge innlesingen dominerer med en faktor sju, spiller
+# batchstoerrelse og GPU-utnyttelse nesten ingen rolle - da er det HER tiden
+# skal hentes, ikke i optimalisereren.
+BUFFERMAPPE = os.environ.get("SD_BUFFER", "sd-buffer")
 import torch.nn.functional as F
 
 # BREDDEN LESES AV DATAENE, den er ikke hardkodet lenger.
@@ -105,6 +120,22 @@ def sig64(linje: str) -> int:
     return int.from_bytes(hashlib.md5(linje.encode("utf-8")).digest()[:8], "big")
 
 
+def hurtigbuffer_navn(filer: list[tuple[int, str]]) -> str:
+    """Bufferfil bestemt av NØYAKTIG hvilke filer som leses, og av innholdet.
+
+    Nøkkelen tar med sti, størrelse og endringstidspunkt for hver fil. Vokser
+    en skardfil mens generatoren kjører, endres størrelsen og bufferet
+    forkastes. Uten den sjekken ville treningen kunnet lese et gammelt buffer
+    og rapportere full suksess på et korpus som ikke lenger finnes – nøyaktig
+    den klassen stille feil som resten av denne fila er skrevet for å unngå.
+    """
+    h = hashlib.md5()
+    for kilde, f in filer:
+        st = os.stat(f)
+        h.update(f"{kilde}:{f}:{st.st_size}:{int(st.st_mtime)}|".encode("utf-8"))
+    return os.path.join(BUFFERMAPPE, f"korpus-{h.hexdigest()[:16]}.npz")
+
+
 def les(mapper: list[str]):
     """Alle `*.jsonl` i `mapper` → (X, V, M, FRO, KILDE, SIG).
 
@@ -127,6 +158,19 @@ def les(mapper: list[str]):
             raise SystemExit(f"Fant ingen *.jsonl i {mappe}")
         filer += [(i, x) for x in f]
 
+    global TREKK_DIM
+    buffer = hurtigbuffer_navn(filer)
+    if os.path.exists(buffer):
+        t0 = time.time()
+        d = numpy.load(buffer)
+        TREKK_DIM = int(d["X"].shape[1])
+        print(
+            f"Buffer: {d['X'].shape[0]} stillinger a {TREKK_DIM} trekk fra {buffer} "
+            f"({time.time() - t0:.0f}s)",
+            flush=True,
+        )
+        return d["X"], d["V"], d["M"], d["FRO"], d["KILDE"], d["SIG"]
+
     t0 = time.time()
     tak = 0
     for _, f in filer:
@@ -136,7 +180,6 @@ def les(mapper: list[str]):
     # BREDDEN AVGJOERES AV DATAENE, og den maa vaere ÉN. Blandes 273 og 340 i
     # samme trening, ville halvparten av radene blitt hoppet over i stillhet -
     # nettopp den fellen den hardkodede konstanten var.
-    global TREKK_DIM
     bredder: dict[int, int] = {}
     for _, f in filer:
         with open(f, "r", encoding="utf-8") as fh:
@@ -167,7 +210,7 @@ def les(mapper: list[str]):
     # ETTER at hele datasettet er lest inn - altsaa minutter kastet bort paa en
     # manglende ordbokoppfoering. Nettopp den klassen feil (hardkodet bredde)
     # er kommentert som «stum felle» over.
-    navn_dim = {273: "v1", 340: "v2 minneblokk", 356: "v3 telleblokk", 364: "v4 auksjonsblokk", 376: "v5 planblokk", 428: "v6 troblokk", 458: "v7 verdiblokk"}.get(
+    navn_dim = {273: "v1", 340: "v2 minneblokk", 356: "v3 telleblokk", 364: "v4 auksjonsblokk", 376: "v5 planblokk", 428: "v6 troblokk", 458: "v7 verdiblokk", 470: "v8 doedeblokk"}.get(
         TREKK_DIM, "ukjent"
     )
     print(f"Trekkbredde: {TREKK_DIM} ({navn_dim})", flush=True)
@@ -233,7 +276,19 @@ def les(mapper: list[str]):
         f"({time.time() - t0:.0f}s)",
         flush=True,
     )
-    return X[:n], V[:n], M[:n], FRO[:n], KILDE[:n], SIG[:n]
+    ut = (X[:n], V[:n], M[:n], FRO[:n], KILDE[:n], SIG[:n])
+    # SKRIV BUFFERET. JSON-parsing av et millionkorpus tar minutter og gjentas
+    # for hver arm, hver ablasjon og hver replikering. Det er den storste
+    # enkeltkostnaden i treningen og den eneste som er ren sloesing.
+    try:
+        os.makedirs(BUFFERMAPPE, exist_ok=True)
+        numpy.savez(
+            buffer, X=ut[0], V=ut[1], M=ut[2], FRO=ut[3], KILDE=ut[4], SIG=ut[5]
+        )
+        print(f"Buffer skrevet: {buffer}", flush=True)
+    except OSError as e:
+        print(f"  (kunne ikke skrive buffer: {e})", flush=True)
+    return ut
 
 
 def er_holdout(froe: int, hfroe: int, andel: float) -> bool:
@@ -572,6 +627,24 @@ def main() -> None:
     mapper = [m for m in args.data.split(",") if m]
     if args.holdoutmappe not in mapper:
         raise SystemExit(f"--holdoutmappe {args.holdoutmappe} er ikke blant --data {mapper}")
+
+    # ALLE --kjor-MAPPER SJEKKES FOER INNLESINGEN, ikke etter.
+    #
+    # Uten dette gaar `mapper.index(m)` lenger nede paa en ValueError, og den
+    # kommer FOERST etter at hele korpuset er lest inn. Maalt 4. august: 22
+    # minutter for aa oppdage en skrivefeil paa fire tegn, fordi 18 av dem gikk
+    # med til aa parse JSON som deretter ble kastet. En sjekk som kan gjoeres
+    # paa ett sekund skal ikke koste tjueto minutter.
+    for spek in args.kjor:
+        deler = spek.split(":")
+        if len(deler) < 3:
+            raise SystemExit(f"Ugyldig --kjor «{spek}»: forventet navn:mapper:skjult[…]")
+        for m in (x for x in deler[1].split(",") if x):
+            if m not in mapper:
+                raise SystemExit(
+                    f"--kjor «{spek}» viser til mappen «{m}», som ikke er i "
+                    f"--data {mapper}. Legg den til i --data."
+                )
 
     X, V, M, FRO, KILDE, SIG = les(mapper)
     n = X.shape[0]

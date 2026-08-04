@@ -68,3 +68,4 @@ hand-frys/
 # rundelogger fra spillmaalingen av haandvurderingen – samme grunn som
 # budgrense-runder: titalls MB, destillert til analyse/handvurdering.{txt,json}
 analyse/handvurdering-runder-*.jsonl
+sd-buffer/
