@@ -485,6 +485,53 @@ De fortjener en ny sjanse med riktig oppsett, ikke en gravstein.
 
 ---
 
+## S4b. AVHENGIGHETSREGNSKAPET — hva som blir gammelt når noe endres
+
+Arvind, 4. august: *«budmodellen, burde ikke den spares til spillet er
+optimalt? den byr ok for øyeblikket også blir den utdatert hvis spillferdighet
+forbedres.»*
+
+Han har rett, og innsikten er større enn budmodellen. **Hver eneste gevinst
+hentet 4. august kom fra samme feil: en komponent kalibrert mot en tidligere
+versjon av en annen.** Budterskelen, vrakvalget, dødeblokken — og budmodellen
+selv, som er den største.
+
+Feilen er ikke at komponentene blir gamle. Det er at **ingen prosess sier når
+de skal fornyes.** Denne tabellen er den prosessen.
+
+### Avhengighetsgrafen
+
+Roten er **kortnettet**. Endres det, er alt under stale.
+
+| komponent | kalibrert mot | må kjøres på nytt når |
+|---|---|---|
+| **budmodellen** (`bud-gbt.json`) | utspillingspolicyen i `buddata.ts` | kortnettet, vaktflaggene eller vrakrangereren endres |
+| **budterskelen** (`evForsvar`) | budmodellens μ | budmodellen endres |
+| **vrakrangereren** (`vrakrang.bin`) | rollout-policyen i `vrakorakel.ts` | hele stakken endres |
+| **kortnettet** (`d7alle.bin`) | SD-orakelets stillingskilde OG rollout | seg selv — derfor iterasjon |
+| **trosnettet** (`tro.bin`) | stillingene botens spill produserer | stakken endres merkbart |
+| vaktflaggene (`abmp`) | kortnettet | målt 4. aug: fortsatt riktige |
+| befolkningsprioren i profilen | familiens faktiske spill | populasjonen endres |
+
+### Regelen
+
+> **Endres kortnettet, rekalibreres budmodellen. Alltid.**
+
+Det er billig nok til å gjentas: seks timer generering, og treningen er
+ridge-regresjon i lukket form — bit-identisk, ingen hyperparametre som kan
+settes feil. Det er vedlikehold, ikke et prosjekt.
+
+### Hvorfor det ikke er et argument for å vente
+
+Innvendingen «vent til spillet er optimalt» forutsetter at kortnettet snart
+endrer seg. Det gjør det ikke: fire kandidater natt til 5. august tapte alle
+mot `d7alle`, og nettet har stått uendret siden 3. august. Å vente betyr å
+betale feilkalibreringen hver runde på ubestemt tid.
+
+Og terskelen kan bare rette **nivået**. Skjevheten er hånd-avhengig — noen
+hender undervurderes mer enn andre — og en global konstant kan ikke rette
+formen. Det er residualen bare en retrening henter.
+
 ## S5. IDÉBEHOLDNINGEN — alt, ett sted
 
 Arvind, 4. august: *«husk å logge alt samme plass.»* Denne tabellen er
