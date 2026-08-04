@@ -22,7 +22,7 @@ import { lovligeKort, type GameState, type Handling } from "../motor.ts";
 import { velgHandling as pimcVelg } from "../bot/bot.ts";
 import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { kortIndeks, NevroAgent } from "../nevro/index.ts";
-import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V5, E1_SPILL_DIM_V6, E1_SPILL_DIM_V7, E1_SPILL_DIM_V8 } from "./trekk.ts";
+import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V5, E1_SPILL_DIM_V6, E1_SPILL_DIM_V7, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9 } from "./trekk.ts";
 
 /**
  * Leser et E1-nett fra rå bytes og verifiserer at formen stemmer med
@@ -30,28 +30,43 @@ import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_
  * ikke en linje: et nett med feil inngangsbredde ville ellers gitt tause
  * søppelvalg i stedet for en feilmelding.
  */
+/**
+ * Alle bredder trekkuttrekket kan gi, i versjonsrekkefølge.
+ *
+ * EKSPORTERT fordi `test/e1-bredder.test.ts` sjekker at den stemmer med
+ * `trekk.ts`, med `verktoy/sd-tren.py` og med det orakelet faktisk skriver.
+ * Uten den testen må fem steder holdes i takt for hånd, og det har feilet
+ * gjentatte ganger.
+ */
+export const LOVLIGE_BREDDER = [
+  E1_SPILL_DIM,
+  E1_SPILL_DIM_V2,
+  E1_SPILL_DIM_V3,
+  E1_SPILL_DIM_V4,
+  E1_SPILL_DIM_V5,
+  E1_SPILL_DIM_V6,
+  E1_SPILL_DIM_V7,
+  E1_SPILL_DIM_V8,
+  E1_SPILL_DIM_V9,
+] as const;
+
 export function e1NettFraBytes(bytes: Uint8Array, kilde = "vektene"): NevroNett {
   const nett = nettFraBytes(bytes);
   if (nett.length !== 1) throw new Error(`E1: forventet ett nett i ${kilde}, fikk ${nett.length}`);
   const første = nett[0]!.lag[0]!;
-  // ÅTTE lovlige bredder, hver et lag oppå det forrige: v1 (273) er kodingen
-  // sd-r2.bin og eldre nett ble trent med, så minne, telling, auksjon, plan,
-  // tro, verdi og døde. Alt annet er en feil, og
-  // skal si fra – et nett med gal inngangsbredde ville ellers gitt tause
-  // søppelvalg i stedet for en feilmelding.
-  if (
-    første.inn !== E1_SPILL_DIM &&
-    første.inn !== E1_SPILL_DIM_V2 &&
-    første.inn !== E1_SPILL_DIM_V3 &&
-    første.inn !== E1_SPILL_DIM_V4 &&
-    første.inn !== E1_SPILL_DIM_V5 &&
-    første.inn !== E1_SPILL_DIM_V6 &&
-    første.inn !== E1_SPILL_DIM_V7 &&
-    første.inn !== E1_SPILL_DIM_V8
-  ) {
+  // ÉN LISTE, ikke en kjede av &&-ledd.
+  //
+  // Den forrige formen var åtte `første.inn !== X &&` på rad, og den ble glemt
+  // da v8 kom: E1-agenten kjente ikke 470 selv om trekkuttrekket gjorde det.
+  // Feilen var ikke farlig – vakten ropte høylytt – men den kostet tid, og den
+  // samme glemselen traff `LOVLIGE_DIM` i sd-tren.py samme kveld.
+  //
+  // En LISTE kan sjekkes av en test. En kjede kan den ikke, og det er hele
+  // forskjellen: `test/e1-bredder.test.ts` holder nå alle stedene i takt.
+  if (!LOVLIGE_BREDDER.includes(første.inn as (typeof LOVLIGE_BREDDER)[number])) {
     throw new Error(
-      `E1: nettet tar ${første.inn} trekk, men trekkuttrekket gir ${E1_SPILL_DIM} (v1), ` +
-        `${E1_SPILL_DIM_V2} (v2), ${E1_SPILL_DIM_V3} (v3), ${E1_SPILL_DIM_V4} (v4), ${E1_SPILL_DIM_V5} (v5), ${E1_SPILL_DIM_V6} (v6), ${E1_SPILL_DIM_V7} (v7) eller ${E1_SPILL_DIM_V8} (v8)`,
+      `E1: nettet tar ${første.inn} trekk, men trekkuttrekket gir ` +
+        LOVLIGE_BREDDER.map((d, i) => `${d} (v${i + 1})`).join(", "),
     );
   }
   const siste = nett[0]!.lag[nett[0]!.lag.length - 1]!;

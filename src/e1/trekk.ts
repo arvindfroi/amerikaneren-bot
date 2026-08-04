@@ -40,6 +40,7 @@ import { fyllPlanblokk, PLAN_ANTALL } from "./plan.ts";
 import { fyllTroblokk, TRO_ANTALL } from "./tro.ts";
 import { fyllVerdiblokk, VERDI_ANTALL } from "./verdi.ts";
 import { fyllDødeblokk, DØDE_ANTALL } from "./dode.ts";
+import { fyllSanser, SANS_ANTALL } from "./sanser.ts";
 import type { GameState } from "../motor.ts";
 import { fargeIndeks, kortIndeks, SPILL_DIM, spillTrekk } from "../nevro/trekk.ts";
 
@@ -164,6 +165,17 @@ export const E1_SPILL_DIM_V7 = E1_SPILL_DIM_V6 + VERDI_ANTALL;
  */
 export const E1_SPILL_DIM_V8 = E1_SPILL_DIM_V7 + DØDE_ANTALL;
 
+/**
+ * v9 (indeks 470–557): SANSEBLOKKEN – det troen gjør mulig å REGNE UT.
+ *
+ * Se `src/e1/sanser.ts`. Stikksjanse per kort, forventet fargelengde og
+ * renonsanslag per sete, og posisjon i stikket.
+ *
+ * KREVER TROSNETTETS FORDELING, som sendes inn som fjerde argument. Uten den
+ * står blokken på null – det er den ærlige verdien når vi ikke vet noe.
+ */
+export const E1_SPILL_DIM_V9 = E1_SPILL_DIM_V8 + SANS_ANTALL;
+
 const BASIS = SPILL_DIM;
 /** Der minneblokken begynner. */
 const MINNE = E1_SPILL_DIM;
@@ -209,7 +221,12 @@ function renonser(state: GameState): boolean[][] {
   return ut;
 }
 
-export function e1SpillTrekk(state: GameState, sete: number, dim: number = E1_SPILL_DIM): Float32Array {
+export function e1SpillTrekk(
+  state: GameState,
+  sete: number,
+  dim: number = E1_SPILL_DIM,
+  tro: readonly (readonly number[])[] | null = null,
+): Float32Array {
   const v = new Float32Array(dim);
   v.set(spillTrekk(state, sete), 0);
 
@@ -367,5 +384,10 @@ export function e1SpillTrekk(state: GameState, sete: number, dim: number = E1_SP
 
   // --- DØDEBLOKKEN (v8, 458–469) -------------------------------------------
   fyllDødeblokk(v, state, sete);
+
+  if (dim <= E1_SPILL_DIM_V8) return v;
+
+  // --- SANSEBLOKKEN (v9, 470–557) ------------------------------------------
+  fyllSanser(v, state, sete, tro);
   return v;
 }

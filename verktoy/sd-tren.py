@@ -79,7 +79,11 @@ import torch.nn.functional as F
 # der `len(t)` ikke stemmer, så et v2-datasett ville gitt «0 gyldige rader»
 # etter timer med generering – eller, om noen senere fjernet sjekken, trent
 # på feiljusterte kolonner uten å feile.
-LOVLIGE_DIM = (273, 340, 356, 364, 376, 428, 458, 470)
+# HOLDES I TAKT AV `test/e1-bredder.test.ts`, som leser denne linja og
+# sammenlikner med `LOVLIGE_BREDDER` i src/e1/agent.ts. Det er den eneste
+# koblingen mellom TypeScript og Python som ingen typesjekk dekker, og den
+# driftet to ganger 4.-5. august foer testen fantes.
+LOVLIGE_DIM = (273, 340, 356, 364, 376, 428, 458, 470, 558)
 TREKK_DIM = None  # settes av `finn_dim()` ved innlesing
 KORT = 52
 
@@ -210,7 +214,7 @@ def les(mapper: list[str]):
     # ETTER at hele datasettet er lest inn - altsaa minutter kastet bort paa en
     # manglende ordbokoppfoering. Nettopp den klassen feil (hardkodet bredde)
     # er kommentert som «stum felle» over.
-    navn_dim = {273: "v1", 340: "v2 minneblokk", 356: "v3 telleblokk", 364: "v4 auksjonsblokk", 376: "v5 planblokk", 428: "v6 troblokk", 458: "v7 verdiblokk", 470: "v8 doedeblokk"}.get(
+    navn_dim = {273: "v1", 340: "v2 minneblokk", 356: "v3 telleblokk", 364: "v4 auksjonsblokk", 376: "v5 planblokk", 428: "v6 troblokk", 458: "v7 verdiblokk", 470: "v8 doedeblokk", 558: "v9 sanseblokk"}.get(
         TREKK_DIM, "ukjent"
     )
     print(f"Trekkbredde: {TREKK_DIM} ({navn_dim})", flush=True)
