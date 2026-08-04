@@ -212,6 +212,65 @@ logger nå hele historikken, vraket, trumfen, etterlysningen og makkeren ved
 rundeslutt. Hver framtidig runde er treningsdata uten et eneste
 gjenskapingssteg.
 
+## S3b. I KØEN: flerfortsettelses-orakelet (Brown & Sandholm 2019)
+
+Pluribus søker til en dybdegrense, og der velger hver spiller mellom **fire
+ulike fortsettelsesstrategier** eller en blanding av dem. Poenget er ikke å
+spare regnekraft — det er å hindre at søkeren blir for optimistisk om linjene
+mellom nåtilstanden og grensen. Forfatterne noterer at det virker **utenfor
+tomanns nullsumspill**, altså i vårt regime.
+
+**Vårt SD-orakel gjør det motsatte: hver verden rulles ut med ÉN policy —
+Adams selv.** Verdien av en stilling er regnet under antakelsen om at alle
+spiller nøyaktig som oss. Det er selvbekreftende, og skjevheten peker samme vei
+hver gang.
+
+Det kaster nytt lys på vårt eget spor: ti søkeforsøk i kortspillet målte
+negativt, og alle ble ført på «feil rollout-policy». Diagnosen var for smal.
+**Enhver ENKELT rollout-policy gjør søket selvbekreftende** — å bytte fra
+NevroHjerne til Adams fjernet én feil, ikke mekanismen.
+
+Og det biter hardest der hullet er: **forsvarsverdi regnet mot én bestemt
+fører er optimistisk per konstruksjon.** Forsvaret lærer å slå VÅR fører, ikke
+å spille mot spennet av førere det møter.
+
+### Den effektive varianten, som koster det samme
+
+Naiv flerfortsettelse ganger rollout-kostnaden med k. Det ville kuttet
+korpuset til en tredjedel for å rette en skjevhet — og diagnosen vår er at de
+tidligere blokkforsøkene var datamengdebegrenset, så den byttehandelen er ikke
+åpenbart riktig.
+
+Billigere, og nesten like riktig: **trekk fortsettelsen per verden i stedet for
+å kjøre alle k i hver verden.** Verden *w* spilles ferdig med policy `c(w)`
+trukket fra settet, og verdien aggregeres med en pessimistisk statistikk
+(f.eks. snittet av den dårligste halvparten) i stedet for et rent snitt over
+én policy. Samme antall rollouts, samme kostnad — men etikettene slutter å
+anta at motparten spiller som oss.
+
+Det er ikke identisk med Pluribus, som tar et eksplisitt minimum over
+motpartens valg. Det fanger korreksjonen, ikke garantien.
+
+### Fortsettelsessettet
+
+Perturbasjoner av det vi har, ikke nye nett — da er kostnaden per framoverpass
+uendret:
+
+| | |
+|---|---|
+| Adams-v3 | blueprint |
+| forsvarsaggressiv | tar stikk tidlig |
+| forsvarspassiv | dukker |
+| trumfgjerrig / trumfdragende | motsatte vaktflagg |
+
+### Hva som IKKE overføres
+
+Pluribus unngikk **bevisst** motstandermodellering: de møtte ukjente
+motstandere, og å tilpasse seg er selv utnyttbart. Vi møter en fast familie, og
+da er beste svar riktig mål. Der går vi motsatt vei, og det er et valg, ikke en
+forglemmelse. Nash faller uansett bort i et firespillerspill med skiftende,
+delvis skjulte makkerskap.
+
 ## S4. Det som er lagt på hylla, og hvorfor det ikke er forkastet
 
 Alle ble målt FØR 3. august, da rollout-policyen og oppvarmingen ble rettet.
