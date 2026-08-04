@@ -1,10 +1,120 @@
-# Planen: hvordan vi blir bedre enn menneskene og MesterAI
+# Planen: en Amerikaneren-bot mennesker ikke kan slå i det lange løpet
 
-Skrevet 2026-08-02, etter en dag med målinger som flyttet flere premisser.
+Skrevet 2026-08-02, omstrukturert 2026-08-04 da målet ble skjerpet.
 Erstatter `budplan.md` som hoveddokument; den står fortsatt for detaljene om
 budet.
 
-Arvinds mål, uendret: **slå familien.** MesterAI er mellomstasjonen.
+> **MÅLET, Arvinds ord 4. august: «lag en amerikaneren bot som er umulig for
+> mennesker å vinne mot i det lange løpet.»**
+
+Det er strengere enn «slå familien», og det er et annet slags mål: det handler
+ikke om å vinne en kveld, men om at ingen mengde spilling skal snu regnskapet.
+
+---
+
+# DEL I — STRATEGIEN
+
+## S1. Hva målet krever, i tall
+
+Med en ledelse på `m` poeng per runde og standardavvik `s` er sannsynligheten
+for at mennesket ligger foran etter `N` runder `Φ(−m√N/s)`. Målt på Adams-v1:
+**m = 1,813, s = 11,455.**
+
+| runder | mennesket foran |
+|---|---|
+| 100 | 1 av 18 |
+| 400 | 1 av 1 292 |
+| 800 | 1 av 264 000 |
+| 1600 | 1 av 8,2 milliarder |
+
+**Botten er allerede god nok — hvis ledelsen er ekte.** Med 107 runder er den
+1,64 SE. Ved 400 runder er den 3,17 SE, og da følger resten av aritmetikk.
+
+**Derfor har målet to halvdeler, og bare den ene handler om botten:**
+
+| | hva som trengs |
+|---|---|
+| **A. Vise ledelsen** | ~400 menneskerunder mot samme versjon |
+| **B. Gjøre den større** | hver +1,0 i ledelse ≈ halverer rundene som trengs |
+
+A kan ikke jobbes fram. Familien må spille. B er alt det andre.
+
+## S2. Metoden som har vist seg å virke
+
+Fire lærdommer, hver kjøpt med en måling som overrasket:
+
+1. **Rollout-policyen er alt.** Å bytte NevroHjerne mot vår egen bot i
+   SD-evalueringen flyttet førersetet fra −0,357 til **+0,896**. En modell som
+   beskriver feil motpart er verre enn ingen modell.
+
+2. **Destillasjon er en støydemper.** Orakelet SPILLER forsvar dårligere enn
+   nettet (−0,09) og LÆRER det likevel bort med **+0,187**. En dårlig spiller
+   kan være en god lærer. Det er nøkkelen overalt hvor sanntidsstøy ødelegger
+   `argmax`.
+
+3. **Flere kandidater gjør søk verre.** Vinnerens forbannelse vokser med
+   antall trekninger. Ved vrak, der verdensrommet er 3,8 × 10¹⁴, koster søket
+   −0,51 per budvinnerrunde.
+
+4. **Høy viktighet i fordelingen ≠ gevinst utenfor den.** Planblokken hadde 4×
+   viktigheten til noen annen ny blokk og ga −0,019.
+
+**Og porten som ikke bøyes:** parret på giv, replikert i disjunkte frøbånd,
+tegntest ved siden av snittet. Åtte oppdagelsestall er felt av den, og de to
+som overlevde er de eneste som er satt ut.
+
+## S3. De fire linjene, rangert etter forventet gevinst
+
+| linje | status | anslag |
+|---|---|---|
+| **1. Menneskeklonen** | data låst opp 4. aug | den eneste som angriper målet DIREKTE |
+| **2. Vrak/trumf-rangereren** | trent, ikke benket | holdout: 1,81 → 0,63 anger |
+| **3. Skrallen (selvspill)** | konvergerer | +0,06 neste omdreining |
+| **4. Bud × kortspill sammen** | aldri gjort | ukjent, hver er ~halve botten |
+
+### Hvorfor menneskeklonen er øverst
+
+Mot en **fast motstanderpopulasjon** er det maksimale et **beste svar**, ikke
+en likevekt — en likevektsstrategi gir bevisst fra seg gevinst mot utnyttbare
+motstandere. Budmodellen er allerede beviset: de +2,138 den henter kommer av å
+utnytte at motparten passer for mye.
+
+Nash er derfor **feil mål** her, ikke bare upraktisk: i et firespillerspill med
+skiftende, delvis skjulte partnerskap faller CFRs garanti bort uansett, og selv
+en ekte likevekt ville gitt fra seg det vi er ute etter.
+
+**Men Adams' kortspill er et rent nett som ikke sampler verdener**, så en
+motstandermodell kan ikke settes inn ved spilletid. Den må bakes inn i
+TRENINGSDATAEN: rull ut SD-verdenene med en klone av familien, og destiller.
+
+### Hva som blokkerte den, og hva som er gjort
+
+Klonen krever loggede runder gjenskapt. Av 1 172 lot bare **123** seg gjenskape:
+replayen krever nøyaktig den boten som satt der, og divergerer ett kortvalg
+forskyver hele turrekkefølgen. De eldste rundene ble spilt mot PIMC.
+
+**Løsningen er ikke bedre gjenskaping — det er å logge giva.** `web/app.ts`
+logger nå hele historikken, vraket, trumfen, etterlysningen og makkeren ved
+rundeslutt. Hver framtidig runde er treningsdata uten et eneste
+gjenskapingssteg.
+
+## S4. Det som er lagt på hylla, og hvorfor det ikke er forkastet
+
+Alle ble målt FØR 3. august, da rollout-policyen og oppvarmingen ble rettet.
+De fortjener en ny sjanse med riktig oppsett, ikke en gravstein.
+
+| | målt | hvorfor det kan snu |
+|---|---|---|
+| minneblokk, telling, auksjon, plan, verdi | alle ~0 | målt mot et feilspesifisert orakel |
+| søk i vrak/velg | −0,51 | kandidatene var dårligere enn NevroHjernes eget |
+| eksakt enumerering | −0,29…−0,78 | eksakt DD er feil modell av motparten |
+| ti søkeforsøk i kortspillet | negative | alle med feil rollout-policy |
+
+---
+
+# DEL II — MÅLEPROTOKOLLEN
+
+Alt under er kronologisk, med tall. Del I er destillatet.
 
 ---
 
