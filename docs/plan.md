@@ -594,6 +594,74 @@ kan ha. Strukturelt fraværende.
 Fjerdemann vet alt, andremann nesten ingenting. Utledbart av hvem som leder,
 men ikke eksplisitt. Billig, trolig lite verdt.
 
+## S4d. REVISJON AV ADAMS — komponenter, innganger, relasjoner
+
+Arvind, 5. august: *«gå gjennom hele adams og planene rundt den og let etter
+hull. se på alle komponentene og inputs og deres relasjon med hverandre.»*
+
+### Hva hver del faktisk ser
+
+| komponent | innganger | blindsone |
+|---|---|---|
+| **budmodellen** | 128 trekk, **alle om egen hånd** | ser ikke hva noen har bydd |
+| **vrakrangereren** | 24: form + bud sortert | ser ikke *hvilke* kort, ikke stillingen |
+| **vaktene** (`abmp`) | regler over tilstanden | statiske, målt 4. aug: fortsatt riktige |
+| **kortnettet** (`d7alle`) | **273 av 714 tilgjengelige** | alt fra v2 og oppover |
+
+### Hullene, etter alvorlighet
+
+**1. Det utrullede nettet leser 273 av 714 trekk.** Minne, telling, auksjon,
+plan, tro, verdi, døde, sanser og hvem-la-hva er alle UBRUKT i boten som
+spiller nå. Ni etasjer over et hus ingen bor i.
+
+**2. Budmodellen ser ikke budrunden.** Alle 128 trekk handler om egen hånd.
+Auksjonen kommer bare inn gjennom `vant[N]`, en fast populasjonstabell.
+Modellen kan derfor ikke vite at to spillere alt har bydd høyt, og at hånden
+hennes er verdt færre stikk i det rommet enn i et der alle passet. Strukturelt
+hull i komponenten som er verdt **+1,07**.
+
+**3. Vrakrangereren ser form, ikke kort.** Trekkene beskriver hånden etter
+vraket ved lengder, honnører og renonser. To vrak som gir samme form er
+identiske for den — kløver 2 eller kløver 5 fra en femkortsfarge uten
+honnører er samme tall.
+
+**4. Ingenting som spiller ser troen.** Trosnettet treffer 50,2 % på honnører
+og gjør orakelets verdener 4,86 pp bedre. Det mater bare trekk det utrullede
+nettet ikke kan lese.
+
+**5. Budmodellen og vrakrangereren ser ikke stillingen i racet.** Kortnettet
+ser den (231–232); de to andre gjør ikke. Og det er nettopp budterskelen
+race-analysen (S3a) pekte på som variansknotten.
+
+**6. Budmodellen og kortnettet deler ingen representasjon.** μ er en
+GBT-gjetning om håndens verdi; kortnettet er det som spiller den. Ingenting
+binder dem utover at buddataene genereres ved å spille ut med kortstakken — og
+da bare som et snitt.
+
+**7. Verdenstrekkeren vekter bare etter budet.** Troen gir +4,86 pp bedre
+verdener, ikke koblet inn. Og **vrakrangererens egne etiketter kom fra samme
+orakel**, så den arver svakheten.
+
+### Hva som er bygget mot hullene, natt til 5. august
+
+| hull | tiltak | status |
+|---|---|---|
+| 4 | trosnettet (`tro.bin`) | trent, 50,2 % på honnører |
+| 4 | sanseblokken v9 (stikksjanse, fargelengde, renonsanslag, posisjon) | bygget, 6 tester |
+| — | **hvem-la-hva v10** | bygget, 4 tester, lekkasjevakt |
+| 1 | — | **utestående: nettet må trenes på de nye breddene** |
+| 2 | — | **utestående: budmodellen ser fortsatt ikke budrunden** |
+
+### Og feilen v10 rettet, som er verdt å huske
+
+`spillTrekk` kastet spillertilordningen: `settKort(v, 52, stikk.kort.map((k) =>
+k.kort))`. Alt nettet visste om HVEM var avledet — renonsflagg, antall per
+farge, høyeste og laveste rang. La sete 2 hjerter K, 7, 3 kunne det ikke
+skilles fra K, 9, 3.
+
+Det rammet TROSNETTET hardest, siden grunnlaget for å gjette hvor et kort
+ligger nettopp ER hvem som la hva.
+
 ## S5. IDÉBEHOLDNINGEN — alt, ett sted
 
 Arvind, 4. august: *«husk å logge alt samme plass.»* Denne tabellen er
@@ -686,6 +754,20 @@ forsvarslinja fortjener en omkamp på et riktig generert korpus.
 | motstanderprofilen | — | parkert på Arvinds prioritering |
 | trosnettet | +4,86 pp verdenskvalitet | ledd fra verdener til poeng |
 
+### STATUS 5. august, 00:30
+
+| | |
+|---|---|
+| **Adams-v3 ute** | +0,598 ± 0,067, familien spiller mot den |
+| **budkorpuset genererer** | 220 000 hender bestilt, ~23 000/time, mot dagens kortstakk |
+| **v9 sanseblokken** | bygget + 6 tester. Stikksjanse kalibrert på 19 200 trekk |
+| **v10 hvem-la-hva** | bygget + 4 tester inkl. lekkasjevakt |
+| **breddedriften** | kan ikke gjenta seg: `test/e1-bredder.test.ts` binder fem steder i to språk |
+| 289 tester | grønne |
+
+**Utestående før v9/v10 kan måles:** korpus må genereres med de nye breddene,
+og trosnettet må retrenes med v10 (som er den blokken det trenger mest).
+
 ### OMSORTERT 5. august, etter gjennomgangen mot reglene
 
 Rekkefølgen under er endret av tre funn: at racet er kodet men målet ikke er
@@ -694,7 +776,8 @@ finnes i vektoren.
 
 | # | idé | hvorfor der | koster |
 |---|---|---|---|
-| **1** | **P(kortet vinner stikket)** fra trosnettet | mest beslutningsrelevante tall i kortspill, og maskineriet er bygget og målt (15,6 SE) | timer |
+| **0** | **budmodellen skal SE budrunden** | 128 trekk, alle om egen hånd. Komponenten er verdt +1,07 og vet ikke at noen har bydd 10 | timer |
+| **1** | **P(kortet vinner stikket)** ✅ bygget | kalibrert på 19 200 trekk, Brier 28 % bedre enn uniform | ferdig |
 | **2** | **budmodellen rekalibrert** | +1,07-komponent kalibrert mot en bot to generasjoner gammel | kjører |
 | **3** | **race-bevisst MÅL**, ikke trekk | boten ser stillingen, læringen gjør ikke; å endre målet er den eneste veien | dager |
 | **4** | **førerens form fra trosnettet** | forventet fargelengde per sete som lært posterior | timer |
