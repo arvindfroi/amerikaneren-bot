@@ -2646,3 +2646,49 @@ MEKANISMEN, som gjør retningen forståelig og ikke bare empirisk: med
 langt tyngre for bud 9 enn for bud 10. En lavere forsvarsverdi straffer derfor
 bud 9 hardt og bud 10 nesten ikke — den skyver boten fra å avgi et bud som
 stort sett bare er en gest, til å faktisk kjempe om kontrakten.
+
+## 29. HULLET: trosnettet kan ikke betale seg i dag — Adams trekker ikke verdener
+
+Trosnettet ble målt til **+4,86 prosentpoeng bedre verdenskvalitet** og sto i
+køen som «en målt gevinst som aldri er omsatt i poeng». Det var feil
+klassifisering, og revisjonen 5. august fant hvorfor.
+
+`trekkVerdenBelief` kalles fra nøyaktig tre steder:
+
+    src/bot/bot.ts        PIMC-boten        — IKKE i Adams
+    src/moe2/sdkort.ts    SD-agenten        — IKKE i Adams
+    src/e1/orakel.ts      E1-ORAKELET       — lager treningsetikettene
+
+Adams-v3 er `vr:vrakrang.bin:telrd : budm:… : vakt:abmp : e1:d7alle.bin`, og
+**både vrakrangereren og e1-nettet er rene fremovernett**. De trekker ikke en
+eneste verden under spill. En bedre verdenstrekker kan derfor ikke flytte
+Adams' poeng med en desimal i dag.
+
+DET GJØR IKKE TROSNETTET VERDILØST — det flytter det fra «billig poeng» til
+«treningsinvestering». Bedre verdener gir bedre orakeletiketter, som gir et
+bedre e1-nett etter retrening. Gevinsten er ekte, men den er nedstrøms for en
+treningskjøring og kan ikke høstes før.
+
+LÆRDOMMEN, og den generaliserer: **et måltall på en komponent er verdiløst
+hvis komponenten ikke ligger i stien den utrullede boten faktisk går.** +4,86
+pp var et ekte tall på en ekte forbedring av en samler Adams aldri kaller.
+Samme feilklasse som holdout-tallene som løy (D0: hold-anger 0,767 mot B273s
+0,851, og null på poeng).
+
+SJEKKEN SOM BURDE VÆRT GJORT FØRST, og som nå er billig å gjenta for enhver
+kandidat: `grep` etter kallstedet og se om det ligger i Adams-stakken.
+
+### Hva det betyr for køen
+
+De BILLIGE poengene er i praksis uttømt. Konstantauditen ga +0,127 av fem
+undersøkte konstanter, og de fire andre viste seg å være riktige. Det som står
+igjen krever trening:
+
+  1. Trosnettet inn i ORAKELETS sampler       (billig kode, betaler via 2–3)
+  2. Korpus på v10-bredde med bedre etiketter (lang kjøring)
+  3. Tren e1 på v9/v10 — sansene og hukommelsen som er bygd og testet,
+     men som nettet aldri har sett  (lang kjøring)
+
+Punkt 1 er en forutsetning for at 2 og 3 skal være verdt å kjøre, og bør gjøres
+FØR korpuset genereres — ellers genereres 500k+ rader med etiketter fra den
+gamle samleren, og hele kjøringen må gjøres om.
