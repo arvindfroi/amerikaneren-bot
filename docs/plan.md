@@ -502,12 +502,41 @@ en samtale.
 | samspill mellom de to | +0,08 (2 bånd) | superadditivt |
 | **Adams-v3 samlet** | **+0,598 ± 0,067** | ✅ ute 4. aug |
 
-### I luften
+### AVGJORT natt til 5. august — tre nullresultater
 
-| | forventet | avgjøres av |
+| | målt på gate 2 | konklusjon |
 |---|---|---|
-| v8-trekkblokkene | +0,04 | A mot B på identisk korpus |
-| troen → orakelets verdener | ukjent | to nett på samme radantall |
+| v8-trekkblokkene (D0) | +0,074 ± 0,082, trimmet 0, tegn −1,56 | **null — linja lagt ned** |
+| rollebalansering (RB) | +0,114 ± 0,085, trimmet 0, tegn 965/964 | **null**, men se forbeholdet |
+| fra bunnen mot d7alle | −0,529 ± 0,111 | H2 bekreftet, verre enn anslått |
+
+**HOLDOUT LYVER, og det er nattens viktigste funn.** D0 hadde hold-anger
+**0,767** mot B273s **0,851** — en klar forbedring i å etterlikne orakelet — og
+**null i poeng**. Blokkene gjør nettet flinkere til å gjette hva orakelet ville
+gjort, uten å gjøre det flinkere til å spille. Det devaluerer enhver
+holdout-basert beslutning tatt før dette.
+
+**OPPVARMINGEN ER FORSTÅTT.** Ren dose-respons over sju punkter:
+
+| oppvarming | skala | hold-anger |
+|---|---|---|
+| ingen | — | **0,7670** |
+| 2 / 3 / 5 | 51 / 63 / 84 % | 0,787 / 0,788 / 0,792 |
+| 8 / 11 / 24 | 110 / 134 / 219 % | 0,805 / 0,811 / 0,841 |
+
+All oppvarming skader nå. Det motsier ikke 3. august — det forklarer den:
+**oppvarming er en kur mot datamangel.** Med 105k rader nådde kolonnene 2,1 %
+av skala og kom aldri fram; med 543k lærer de selv, og den høye
+oppvarmingsraten river i de forhåndstrente vektene i stedet. Begge
+konklusjoner var riktige for sitt datagrunnlag, og det må stå — ellers
+gjeninnfører noen oppvarmingen på et lite korpus, eller fjerner den permanent
+og taper der.
+
+**FORBEHOLD SOM RAMMER ROLLEBALANSEN:** korpuset ble generert med `rolleVekt`
+= 3, standardverdien i koden, mens planen sa 1. Resultatet var **52,8 %
+førerrader** mot naturlige 25 %. Å vekte opp forsvar i TAPET kan ikke reparere
+et korpus som undersampler forsvar i DATAENE. Standardverdien er rettet, og
+forsvarslinja fortjener en omkamp på et riktig generert korpus.
 
 ### Bygget, ikke koblet
 

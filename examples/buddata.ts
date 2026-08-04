@@ -48,7 +48,7 @@
  * linjen ved avbrudd, ikke alt.
  */
 
-import { appendFileSync, mkdirSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { lovligeHandlinger, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
@@ -56,6 +56,8 @@ import { lagRng, nyStokk, stokk, kortId, type Kort } from "../src/kort.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 import { E1Agent, lesE1Nett } from "../src/e1/nett.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
+import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
+import { nettFraBytes } from "../src/nevro/nett.ts";
 import { handTrekk, HAND_DIM } from "../src/moe2/handtrekk.ts";
 
 let hender = 4000;
@@ -101,6 +103,26 @@ function lagKandidat(spec: string): () => Velger {
     return () => new Konvensjonsvakt(indre(), vakt.valg);
   }
   if (spec === "nevro") return () => new NevroAgent();
+  /**
+   * `vr:<vektfil>:<flagg>:<indre>` - vrak- og trumfrangereren.
+   *
+   * MAA VAERE MED naar bordet spiller med den. Utspillingen her starter FOER
+   * vraket, saa rangereren bestemmer hvilke fire kort som kastes og hvilken
+   * trumf som meldes - og dermed hva haanden faktisk er verdt. Uten den maales
+   * haandverdien for en bot som vraker daarligere enn den som skal bruke
+   * tallet.
+   */
+  if (spec.startsWith("vr:")) {
+    const r = spec.slice(3);
+    const i = r.indexOf(":");
+    const j = r.indexOf(":", i + 1);
+    if (i < 0 || j < 0) throw new Error("Ugyldig vr-spek: " + spec);
+    const nett = nettFraBytes(new Uint8Array(readFileSync(r.slice(0, i))))[0];
+    if (nett === undefined) throw new Error("Tomme vekter i " + r.slice(0, i));
+    const indre = lagKandidat(r.slice(j + 1));
+    const flagg = r.slice(i + 1, j);
+    return () => new Vrakrangerer(indre(), nett, flagg);
+  }
   if (spec.startsWith("e1:")) {
     const nett = lesE1Nett(spec.slice(3));
     return () => new E1Agent(nett);
