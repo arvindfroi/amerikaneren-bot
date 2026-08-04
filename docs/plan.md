@@ -133,6 +133,31 @@ som overlevde er de eneste som er satt ut.
 | **3. Skrallen (selvspill)** | konvergerer | +0,06 neste omdreining |
 | **4. Bud × kortspill sammen** | 🔄 i gang, se under | +0,155 fra ÉN konstant |
 
+### Hvor de resterende poengene MÅ komme fra
+
+Blandet bord, to Adams-v3 mot to NevroHjerne, 6 000 parrede giver
+(`examples/blandetbord.ts`, hver giv spilt to ganger med byttede seter):
+
+| rolle | Adams | NevroHjerne | forskjell |
+|---|---|---|---|
+| **fører** | +8,557 | +5,111 | +3,447 ± 0,429 (8,0 SE) |
+| makker | +3,827 | +4,003 | −0,176 ± 0,167 (−1,05 SE) |
+| forsvar | +1,102 | +1,115 | −0,013 ± 0,013 (−0,93 SE) |
+
+**Som makker og forsvarer er Adams ikke målbart bedre enn NevroHjerne.** Ved
+et bord med fire Adams er hvert sete fører bare 25 % av tiden. **De øvrige
+75 % av rundene spiller boten ikke bedre enn den gjorde før noen av
+forbedringene.**
+
+Førertallet er skjevt oppover — NevroHjerne vinner bare budrunden når Adams
+passer, altså på hender Adams vurderte som ikke verdt å ta. Men makker- og
+forsvarstallene har ikke det problemet: rollen tildeles av hvem som har det
+etterlyste kortet, ikke av hvem som valgte å by.
+
+Det følger direkte at målet på +2,5 **ikke kan nås fra førersetet alene**.
+Selv en perfekt fører ville bare flytte 25 % av rundene. Forsvar og
+makkerspill er tre firedeler av spillet og er urørt mark.
+
 ### Hvorfor lag-mot-lag-kalibrering er billigst av alt
 
 Budmodellens beslutningsregel så ut som en avveining mot verdien av å forsvare:
