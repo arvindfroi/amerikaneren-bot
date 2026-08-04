@@ -31,35 +31,20 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
-import { E1Agent } from "../src/e1/nett.ts";
-import { NevroAgent } from "../src/nevro/index.ts";
-import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
-import { Budagent, lesBudmodell } from "../src/moe2/budagent.ts";
+import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { lesInformasjon, tellKonfigurasjoner } from "../src/solver/eksakt.ts";
+import { lagIndre, ADAMS, tall } from "../src/moe2/agentspek.ts";
 
-const FRØ0 = Number(process.argv[2] ?? 18_000_000);
-const RUNDER = Number(process.argv[3] ?? 300);
+const FRØ0 = tall(process.argv[2], 18_000_000, "argv[2]");
+const RUNDER = tall(process.argv[3], 300, "argv[3]");
 const UT = process.argv[4] ?? "analyse/verdensrom.json";
 /** Tak: over dette gir tellingen opp, og stillingen regnes som «for stor». */
-const TAK = Number(process.argv[5] ?? 2_000_000);
-const SPEK = "budm:e1-modell/bud-gbt.json:vakt:abmp:e1:e1-modell/ftf1.bin";
+const TAK = tall(process.argv[5], 2_000_000, "argv[5]");
+// HARDKODET til ftf1.bin fram til 5. august – et helt annet nett enn det
+// utrullede. Nå den kanoniske stakken, og overstyrbar fra kommandolinja.
+const SPEK = process.argv[4] ?? ADAMS;
 
-function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp(): void } {
-  if (indre === "nevro") return new NevroAgent();
-  if (indre.startsWith("vakt:")) {
-    const v = delVaktspek(indre);
-    if (v === null) throw new Error(`Ugyldig vaktspek «${indre}»`);
-    return new Konvensjonsvakt(lagIndre(v.indre), v.valg);
-  }
-  if (indre.startsWith("budm:")) {
-    const rest = indre.slice(5);
-    const skille = rest.indexOf(":");
-    return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(rest.slice(0, skille)));
-  }
-  if (indre.startsWith("e1:")) return E1Agent.fraFil(indre.slice(3));
-  throw new Error(`Ukjent agent «${indre}»`);
-}
+
 
 const agent = lagIndre(SPEK);
 /** stikk → liste av verdenstall. */

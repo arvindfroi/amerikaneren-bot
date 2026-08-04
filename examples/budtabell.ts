@@ -20,33 +20,16 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
-import { E1Agent } from "../src/e1/nett.ts";
-import { NevroAgent } from "../src/nevro/index.ts";
-import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
-import { Budagent, lesBudmodell } from "../src/moe2/budagent.ts";
+import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { håndtrekk } from "../src/moe2/motstander.ts";
+import { lagIndre, ADAMS, tall } from "../src/moe2/agentspek.ts";
 
-const FRØ0 = Number(process.argv[2] ?? 33_000_000);
-const RUNDER = Number(process.argv[3] ?? 3000);
+const FRØ0 = tall(process.argv[2], 33_000_000, "argv[2]");
+const RUNDER = tall(process.argv[3], 3000, "argv[3]");
 const UT = process.argv[4] ?? "analyse/budtabell-bot.json";
-const SPEK = process.argv[5] ?? "budm:e1-modell/bud-gbt.json:vakt:abmp:e1:e1-modell/d7alle.bin";
+const SPEK = process.argv[5] ?? ADAMS;
 
-function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp(): void } {
-  if (indre === "nevro") return new NevroAgent();
-  if (indre.startsWith("vakt:")) {
-    const v = delVaktspek(indre);
-    if (v === null) throw new Error(`Ugyldig vaktspek «${indre}»`);
-    return new Konvensjonsvakt(lagIndre(v.indre), v.valg);
-  }
-  if (indre.startsWith("budm:")) {
-    const rest = indre.slice(5);
-    const skille = rest.indexOf(":");
-    return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(rest.slice(0, skille)));
-  }
-  if (indre.startsWith("e1:")) return E1Agent.fraFil(indre.slice(3));
-  throw new Error(`Ukjent agent «${indre}»`);
-}
+
 
 const agent = lagIndre(SPEK);
 /** bud (0 = passet uten tallbud) → observasjoner. */

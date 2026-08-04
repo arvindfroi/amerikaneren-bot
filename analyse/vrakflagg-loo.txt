@@ -1,0 +1,39 @@
+6 filer, 6 armer
+
+vr:e1-modell/vrakrang.bin:terd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  8000  +0.0202 +/- 0.0162 (+1.24 SE)  trimmet +0.0000  tegn 17/12 (z=+0.93)
+   avgjorte giver: 29 av 8000 (0.4 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     makker   n=  2000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  4000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  8000  +0.0000 +/- 0.0000 (+0.00 SE)  trimmet +0.0000  tegn 0/0 (z=+0.00)
+     makker   n=  2000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  4000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+vr:e1-modell/vrakrang.bin:telr:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  8000  -0.0127 +/- 0.0114 (-1.11 SE)  trimmet +0.0000  tegn 10/18 (z=-1.51)
+   avgjorte giver: 28 av 8000 (0.3 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     makker   n=  2000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  4000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+vr:e1-modell/vrakrang.bin:elrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  8000  -0.0347 +/- 0.0334 (-1.04 SE)  trimmet +0.0000  tegn 65/90 (z=-2.01)
+   avgjorte giver: 155 av 8000 (1.9 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     makker   n=  2000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  4000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+vr:e1-modell/vrakrang.bin:tlrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  8000  -0.0913 +/- 0.0337 (-2.71 SE)  trimmet +0.0000  tegn 61/106 (z=-3.48)
+   avgjorte giver: 167 av 8000 (2.1 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     makker   n=  2000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  4000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+vr:e1-modell/vrakrang.bin:teld:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  8000  -0.0970 +/- 0.0560 (-1.73 SE)  trimmet +0.0000  tegn 166/232 (z=-3.31)
+   avgjorte giver: 398 av 8000 (5.0 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     makker   n=  2000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  4000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.

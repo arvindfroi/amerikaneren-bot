@@ -57,6 +57,7 @@ import {
 } from "../src/moe2/konvensjonsvakt.ts";
 import { EksaktSluttspill, delEksaktSpek, type Eksaktvalg } from "../src/moe2/eksaktagent.ts";
 import { Budvakt, delBudspek, type Budvalg } from "../src/moe2/budvakt.ts";
+import { handNett } from "../src/moe2/handnett.ts";
 import { grådigHandling } from "./graadig.ts";
 
 // --- Argumenter -------------------------------------------------------------
@@ -196,7 +197,8 @@ function lagAgent(k: Kandidat, frø: number): Innagent | null {
   if (k.budvakt !== undefined) {
     const indre = lagAgent(k.indre!, frø);
     if (indre === null) throw new Error("Budvakten kan ikke pakkes rundt pimc-referansen");
-    return new Budvakt(indre, k.budvakt, budOrakel);
+    const nett = k.budvakt.nettFil === null ? null : handNett(k.budvakt.nettFil);
+    return new Budvakt(indre, k.budvakt, budOrakel, nett);
   }
   if (k.eksakt !== undefined) {
     const indre = lagAgent(k.indre!, frø);

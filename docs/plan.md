@@ -2785,3 +2785,82 @@ den utrullede stien er ikke den samme tingen.** Tre ganger på én dag.
 KUR: en kampnivå-benk som spiller til 100 og måler kampandel, ikke
 rundedifferanse. Den står allerede i køen; den er nå oppgradert fra «fint å ha»
 til FORUTSETNING for å kunne måle det målet faktisk er formulert som.
+
+### FUNN 6-8: måleverktøyene målte en annen bot enn den som spiller
+
+`lagIndre` — agentspek-parseren — fantes i SJU kopier. Driften var ikke
+kosmetisk:
+
+| verktøy | spekformer | kan parse `vr:` | budterskel |
+|---|---|---|---|
+| `gate2.ts` | 11 | ja | `@`-parameter |
+| de seks andre | 3 | **nei** | **standard 2,5** |
+
+De seks kunne altså ikke engang uttrykke Adams-v3, som krever `vr:`. Og de
+bygget `Budagent` UTEN terskelargument, altså standard **2,5** der Adams
+bruker **−3,0** — den samme konstanten som ga **+0,392** da den ble flyttet.
+
+To av dem hadde speken HARDKODET til `ftf1.bin`, et helt annet nett.
+
+**Hver atferdsanalyse prosjektet har kjørt — føreratferd, makkeratferd,
+kontraktskift, verdensrom, vraktrumf, budtabell — målte en bot uten
+vrakrangereren og med den gamle budterskelen.** Noen av de tallene står sitert
+i kodekommentarer som begrunnelse for designvalg.
+
+FUNN 7: `tsconfig.json` har `"exclude": [..., "test", "examples"]`. Gate 2 —
+harnisket hver eneste måling hviler på — har ALDRI vært typesjekket. Første
+kjøring med `tsconfig.kontroll.json` ga 128 feil. Blant dem en ekte type-løgn:
+`sik:`-grenen castet rollen til `Rolle`, som ikke inneholder `"alle"`, så
+`rolle === "alle"` var statisk alltid usann.
+
+FUNN 8: `Number(process.argv[n] ?? X)` uten validering. Sender du en spek der
+et frø ventes, blir frøet `NaN` — og alle giverne blir IDENTISKE. Målingen ser
+ferdig ut og er ren søppel. Det skjedde under selve migreringen.
+
+### Kuren, og den er strukturell
+
+  `src/moe2/agentspek.ts`            ÉN parser, pluss `ADAMS` (den utrullede
+                                     stakken, ett sted) og `tall()` (fail-fast)
+  `test/agentspek-en-parser.test.ts` håndhever at ingen fil lager sin egen
+                                     kopi, at ADAMS har alle fire lagene OG en
+                                     eksplisitt terskel, og at `tall()` kaster
+  `tsconfig.kontroll.json`           typesjekker examples + test
+
+Samme mønster som `test/e1-bredder.test.ts`: gjør driften umulig i stillhet i
+stedet for å rette den én gang til. 128 → 79 typefeil; alle som gjensto i de
+migrerte filene var ubrukte importer.
+
+`tall()`-testen fant med én gang et hull i sin egen vakt: `Number("")` er 0 og
+fullt endelig, så et tomt argument skled gjennom som et gyldig frø.
+
+## 31. Flaggrevisjonen — hvilke bokstaver bærer noe (5. august)
+
+Utelat-én på hver bokstav i `telrd` og `abmp`, mot den ekte Adams-stakken.
+Makker- og forsvarsradene står på 0,0000 der laget bare endrer budvinnerens
+valg — en egenkontroll på at hvert lag gjør nøyaktig det det skal.
+
+| bokstav | betydning | å FJERNE koster | tegntest | avgjorte |
+|---|---|---|---|---|
+| r | renonse | **−0,097** | z = −3,31 | 5,0 % |
+| e | ikke ess | **−0,091** | z = −3,48 | 2,1 % |
+| t | ikke trumf | −0,035 | z = −2,01 | 1,9 % |
+| d | dobbel renonse | −0,013 | z = −1,51 | 0,3 % |
+| **l** | laveste | **støy** | se under | 0,4 % |
+| b | garanti-billigst | −0,121 | **z = +1,96** | 9,4 % |
+| m | makker-trumf-tilbake | **−0,034** | z = −3,11 | 7,4 % |
+| a | åpning | +0,014 | z = +0,77 | 0,9 % |
+| p | makker-trumfer-først | −0,002 | z = −1,39 | **0,1 %** |
+
+`l` ER DØD, og det er replikasjonsregelen som avgjorde det: første frøbånd ga
++0,020 (z = +0,93), det disjunkte båndet ga −0,029 (z = −1,26). Fortegnet snur.
+Hadde vi bare kjørt det første, ville vi «funnet» en gevinst.
+
+`m` bærer verdien i vakten, og hele utslaget ligger i MAKKERSETET (−0,137) —
+den er en makkerregel og oppfører seg som en.
+
+`a` og `p` er inerte. `p` binder i 1 av 1 000 givere.
+
+`b` ER DEN ENE EKTE KONFLIKTEN: snittet sier −0,121 (behold), tegntesten sier
++1,96 (fjern). Flere givere blir bedre uten den, men de sjeldne ±50-ene blir
+dyrere. For et race til 100 er det snittet som teller, så den blir stående —
+men den er IKKE avklart, og fortjener en egen måling med flere givere.

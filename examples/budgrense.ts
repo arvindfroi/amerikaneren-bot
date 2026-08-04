@@ -57,6 +57,7 @@ import { NevroAgent } from "../src/nevro/index.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { Konvensjonsvakt, delVaktspek, type Innagent } from "../src/moe2/konvensjonsvakt.ts";
 import { Budvakt, delBudspek } from "../src/moe2/budvakt.ts";
+import { handNett } from "../src/moe2/handnett.ts";
 import { analyserGiv } from "../src/neat/singledummy.ts";
 import { grådigHandling } from "./graadig.ts";
 
@@ -155,7 +156,8 @@ function lagAgent(spec: string): { agent: Innagent; budvakt: Budvakt | null } {
   const bv = delBudspek(spec);
   if (bv !== null) {
     const indre = lagAgent(bv.indre);
-    const vakt = new Budvakt(indre.agent, bv.valg, orakel);
+    const nett = bv.valg.nettFil === null ? null : handNett(bv.valg.nettFil);
+    const vakt = new Budvakt(indre.agent, bv.valg, orakel, nett);
     return { agent: vakt, budvakt: vakt };
   }
   const kv = delVaktspek(spec);
