@@ -252,7 +252,10 @@ def main():
             beste = ho_anger
             skriv_vekter(args.ut, modell)
 
-    print(f"\nFerdig: beste hold-anger {beste:.4f} poeng → {args.ut}", flush=True)
+    # Ren ASCII. Windows-konsollen er cp1252, og en pil her tok ned skriptet
+    # ETTER at treningen var ferdig og vektene lagret - verste slaget: alt
+    # arbeidet gjort, og likevel en traceback som ser ut som en feilet kjoering.
+    print(f"\nFerdig: beste hold-anger {beste:.4f} poeng -> {args.ut}", flush=True)
     print(
         "ANGEREN ER TALLET SOM BETYR NOE. Treffraten sier hvor ofte modellen\n"
         "velger nøyaktig beste kandidat; angeren sier hva feilvalgene KOSTER.\n"
