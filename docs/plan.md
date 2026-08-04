@@ -485,6 +485,99 @@ De fortjener en ny sjanse med riktig oppsett, ikke en gravstein.
 
 ---
 
+## S5. IDÉBEHOLDNINGEN — alt, ett sted
+
+Arvind, 4. august: *«husk å logge alt samme plass.»* Denne tabellen er
+fasiten. Står en idé ikke her, finnes den ikke — og ingenting skal leve bare i
+en samtale.
+
+**Anslag i poeng per runde.** «Målt» betyr replikert i disjunkte frøbånd.
+
+### Banket
+
+| | målt | hvor |
+|---|---|---|
+| vrak/trumf-rangereren | +0,123 ± 0,036 | `vrakrang.ts` |
+| budterskelen −3,0 | +0,392 ± 0,056 | `budmodell.ts` |
+| samspill mellom de to | +0,08 (2 bånd) | superadditivt |
+| **Adams-v3 samlet** | **+0,598 ± 0,067** | ✅ ute 4. aug |
+
+### I luften
+
+| | forventet | avgjøres av |
+|---|---|---|
+| v8-trekkblokkene | +0,04 | A mot B på identisk korpus |
+| troen → orakelets verdener | ukjent | to nett på samme radantall |
+
+### Bygget, ikke koblet
+
+| | målt | hva som mangler |
+|---|---|---|
+| race-bevisst varians | +0,08 | god variansknott (se under) |
+| motstanderprofilen | — | parkert på Arvinds prioritering |
+| trosnettet | +4,86 pp verdenskvalitet | ledd fra verdener til poeng |
+
+### Identifisert, ikke bygget — rangert etter forventet gevinst
+
+**1. Retrene budmodellen mot dagens nett.** Den er verdt **+1,07** og er
+kalibrert mot en bot som ikke finnes. Terskelfiksen hentet +0,39 av
+feilkalibreringen som et *plaster*. Dette er den prinsipielle kuren, og den
+største enkeltkomponenten som står stille. Anslag: +0,2 til +0,5.
+
+**2. Vekte forsvar OPP i treningskorpuset.** 2v2-målingen: boten er ikke
+målbart bedre enn NevroHjerne som makker (−1,05 SE) og forsvarer (−0,93 SE) —
+**75 % av rundene**. Mistanken er mekanisk: førerens beslutninger flytter ±18
+poeng, forsvarerens ±1–3, så forsvarsgradientene drukner i tapet.
+`--rollevekt` finnes og står på 1; å vekte **motsatt vei** er aldri prøvd.
+Anslag: +0,1 til +0,3, og det er den eneste ideen som treffer tre firedeler av
+spillet.
+
+**3. Variansvalg blant like gode handlinger.** Budterskelen er en *dårlig*
+variansknott — den koster 0,31 i snitt for 13 % varians. En god knott er et
+valg mellom handlinger med LIKT snitt: blant bud innen ε av beste EV, velg
+høyest varians når du ligger bak. Koster ε per konstruksjon. Budmodellen
+regner alt EV per bud. Anslag: opptil +0,3 hvis ε kan holdes lav.
+
+**4. Flerfortsettelses-orakelet** (S3b). Fortsettelse trukket per verden, så
+det koster det samme som i dag. Anslag: ukjent.
+
+**5. Kampbenken.** Ikke en gevinst i seg selv — men forutsetningen for å måle
+3, race-varians og motstandermodellen i det hele tatt. Vi har aldri målt Adams
+på kampnivå, bare per runde, og målet er kamper.
+
+**6. Menneskeklonen.** Den eneste linja som angriper målet direkte. Venter på
+runder mot v3, ikke på arbeid.
+
+### Tynt — plausibelt, uten anslag
+
+Partnermodellering (makker etterlyses per runde, og en svak makker skal
+spilles annerledes) · betenkningstid som tell (vi logger ms, og en lang
+tenkepause betyr en jevn beslutning) · nivå-2-resonnement om HVORFOR de vraket
+som de gjorde · α-μ destillert til et nett (S3d).
+
+### Hvor det tar slutt, ærlig
+
+**Vi går ikke tom for ideer. Vi går tom for BILLIGE ideer.**
+
+Alt som er hentet 4. august kom fra samme mønster: *en konstant kalibrert mot
+en tidligere versjon, eller et trekk som manglet.* Budterskelen, vrakvalget,
+dødeblokken. Det mønsteret er nå høstet.
+
+De gjenværende deler seg i to:
+
+| | eksempler | egenskap |
+|---|---|---|
+| **dyre, trygge** | budmodell-retrening, forsvarsvekting, kampbenk | timer til dager, kjent metode, sannsynlig gevinst i tideler |
+| **billige, usikre** | variansvalg, flerfortsettelse | timer, kan måle null |
+
+**Ingen av dem er +1,0 alene.** Summen kan bli det — +0,3 fra budmodellen,
++0,2 fra forsvar, +0,2 fra troen, +0,1 fra varians — men det er fire
+uavhengige gevinster som alle må lykkes. Historikken 4. august er at **én av
+tre replikerer**.
+
+Det ærligste anslaget: **+1,0 er nåbart, men ikke fra én idé.** Det krever at
+fire til seks ting hver gir noen tideler.
+
 # DEL II — MÅLEPROTOKOLLEN
 
 Alt under er kronologisk, med tall. Del I er destillatet.
