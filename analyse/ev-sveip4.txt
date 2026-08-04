@@ -1,0 +1,33 @@
+6 filer, 5 armer
+
+e1-modell/bud-gbt.json@-2.0
+   n=  9600  +0.4026 +/- 0.0675 (+5.96 SE)  trimmet +0.2346  tegn 838/602 (z=+6.22)
+   avgjorte giver: 1440 av 9600 (15.0 %)
+     makker   n=  1927  +0.0026 +/- 0.0182  trimmet +0.0000  z=+4.11
+     forsvar  n=  4063  +0.0702 +/- 0.0240  trimmet +0.0000  z=-3.54
+
+e1-modell/bud-gbt.json@-1.0
+   n=  9600  +0.3499 +/- 0.0586 (+5.97 SE)  trimmet +0.0653  tegn 655/457 (z=+5.94)
+   avgjorte giver: 1112 av 9600 (11.6 %)
+     makker   n=  2033  +0.0044 +/- 0.0149  trimmet +0.0000  z=+3.92
+     forsvar  n=  4242  +0.0538 +/- 0.0197  trimmet +0.0000  z=-3.88
+
+e1-modell/bud-gbt.json@0.0
+   n=  9600  +0.2986 +/- 0.0495 (+6.03 SE)  trimmet +0.0000  tegn 479/311 (z=+5.98)
+   avgjorte giver: 790 av 9600 (8.2 %)
+     makker   n=  2143  -0.0045 +/- 0.0117  trimmet +0.0000  z=+3.33
+     forsvar  n=  4405  +0.0477 +/- 0.0168  trimmet +0.0000  z=-3.01
+
+e1-modell/bud-gbt.json@0.5
+   n=  9600  +0.2804 +/- 0.0437 (+6.41 SE)  trimmet +0.0000  tegn 392/234 (z=+6.31)
+   avgjorte giver: 626 av 9600 (6.5 %)
+     makker   n=  2193  +0.0008 +/- 0.0107  trimmet +0.0000  z=+3.29
+     forsvar  n=  4496  +0.0443 +/- 0.0158  trimmet +0.0000  z=-2.73
+
+e1-modell/bud-gbt.json
+   n=  9600  +0.0000 +/- 0.0000 (+0.00 SE)  trimmet +0.0000  tegn 0/0 (z=+0.00)
+     makker   n=  2400  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  4800  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.
