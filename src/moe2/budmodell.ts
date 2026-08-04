@@ -14,7 +14,7 @@
 
 import { lovligeHandlinger, type GameState, type Handling } from "../motor.ts";
 import { PASS } from "../regler.ts";
-import { budTrekk, BUD_DIM } from "./budtrekk.ts";
+import { budTrekk, BUD_DIM, BUD_DIM_V2 } from "./budtrekk.ts";
 
 interface Node {
   blad: boolean;
@@ -47,10 +47,20 @@ export function tolkBudmodell(rå: unknown): Budmodell {
   if (m === null || typeof m !== "object" || typeof m.dim !== "number") {
     throw new Error("Budmodellen mangler «dim» – er dette riktig fil?");
   }
-  if (m.dim !== BUD_DIM) {
+  // TO LOVLIGE BREDDER, og modellen sier selv hvilken den vil ha.
+  //
+  // v1 (128) er egen hånd alene. v2 (140) legger BUDRUNDEN oppå – revisjonen
+  // 5. august fant at modellen var blind for hva de andre hadde bydd.
+  //
+  // Sjekken er en ren utvidelse OG IKKE en oppmykning: en modell med en tredje
+  // bredde avvises fortsatt. Poenget er at `bud-gbt.json` (128) skal virke
+  // uendret mens en v2-modell kan trenes ved siden av – uten at en kodeendring
+  // kan velte budgivningen i den boten som står ute.
+  if (m.dim !== BUD_DIM && m.dim !== BUD_DIM_V2) {
     throw new Error(
-      `Budmodellen er trent med ${m.dim} trekk, men budTrekk gir ${BUD_DIM}. ` +
-        `Trekkene er endret siden modellen ble trent – tren den på nytt.`,
+      `Budmodellen er trent med ${m.dim} trekk, men budTrekk gir ${BUD_DIM} (v1) ` +
+        `eller ${BUD_DIM_V2} (v2). Trekkene er endret siden modellen ble trent – ` +
+        `tren den på nytt.`,
     );
   }
   if (!m.mμ?.trær || !m.mσ?.trær) throw new Error("Budmodellen mangler skogene mμ/mσ");
@@ -107,7 +117,8 @@ export class Budagent implements Innagent {
     if (tall.length === 0) return this.indre.velgHandling(state);
 
     const sete = state.iTur;
-    const x = budTrekk(state, sete);
+    // Modellens EGEN bredde, ikke den nyeste. Et v1-nett skal se v1-trekk.
+    const x = budTrekk(state, sete, this.m.dim);
     const μ = anslå(this.m.mμ, x, this.m.rate);
     const σ = Math.max(this.σGulv, anslå(this.m.mσ, x, this.m.rate));
 

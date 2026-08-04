@@ -38,14 +38,40 @@
 import { FARGER, type Farge, type Kort } from "../kort.ts";
 import type { GameState } from "../motor.ts";
 import { handTrekk, HAND_DIM } from "./handtrekk.ts";
+import { MINSTE_TALLBUD } from "../regler.ts";
 
 /** 105 fra `handTrekk` + 23 strukturtrekk. */
 export const BUD_DIM = HAND_DIM + 23;
 
-const B = HAND_DIM;
+/**
+ * v2 (indeks 128–139): BUDRUNDEN.
+ *
+ * REVISJONEN 5. AUGUST FANT AT MODELLEN VAR BLIND FOR AUKSJONEN. Alle 128
+ * trekk handlet om egen hånd. Auksjonen kom bare inn gjennom `vant[N]` – en
+ * FAST populasjonstabell over hvor ofte hvert bud vinner kontrakten.
+ *
+ * Modellen kunne derfor ikke vite at to spillere alt hadde bydd høyt. Og det
+ * betyr noe to veier:
+ *
+ *   HÅNDEN ER VERDT MINDRE. Har andre bydd høyt, sitter de med kortene. Samme
+ *   tolv kort er verdt færre stikk i det rommet enn i et der alle passet.
+ *
+ *   OG SANNSYNLIGHETEN FOR Å VINNE BUDRUNDEN ER EN ANNEN. `vant[N]` er et
+ *   populasjonssnitt; den vet ikke om noen alt har lagt seg på 10.
+ *
+ * VERSJONERT, IKKE UTVIDET. `tolkBudmodell` kaster hvis modellens `dim` ikke
+ * stemmer med trekkbredden. En ren utvidelse ville derfor AVVIST den
+ * utrullede `bud-gbt.json` og sendt Adams tilbake til NevroHjernes budgivning
+ * – en levende regresjon utløst av en ren kodeendring. Samme mønster som
+ * e1-blokkene: bredden er et argument, og gamle modeller virker uendret.
+ */
+export const BUD_DIM_V2 = BUD_DIM + 12;
 
-export function budTrekk(state: GameState, sete: number): Float32Array {
-  const v = new Float32Array(BUD_DIM);
+const B = HAND_DIM;
+const A = BUD_DIM;
+
+export function budTrekk(state: GameState, sete: number, dim: number = BUD_DIM): Float32Array {
+  const v = new Float32Array(dim);
   v.set(handTrekk(state, sete), 0);
 
   const hånd = state.hender[sete] ?? [];
@@ -124,5 +150,41 @@ export function budTrekk(state: GameState, sete: number): Float32Array {
   v[B + 20] = (L + sideEss) / 13;
   v[B + 21] = (serie + honn + sideEss) / 10;
   v[B + 22] = 1; // konstantledd
+
+  if (dim <= BUD_DIM) return v;
+
+  // --- BUDRUNDEN (v2, 128–139) ---------------------------------------------
+  //
+  // RELATIVT SETE, ikke absolutt, og IKKE sortert. Vrakrangereren sorterer
+  // budene høyest først og mister dermed HVEM som bød hva. Her beholdes det:
+  // at spilleren rett etter meg bød 10 er noe annet enn at spilleren rett før
+  // meg gjorde det, fordi den ene har handlet med mindre informasjon enn den
+  // andre.
+  const bud = state.budrunde.sisteBud;
+  const passet = state.budrunde.passet;
+  let høyeste = 0;
+  let antallBydd = 0;
+  let antallPasset = 0;
+  for (let r = 1; r <= 3; r++) {
+    const p = (sete + r) % 4;
+    const b = bud[p];
+    const tall = typeof b === "number" ? b : 0;
+    // AMERIKANER og SOLO kodes som 13 – over ethvert tallbud, som i budRang.
+    const kodet = b === "AMERIKANER" || b === "SOLO" ? 13 : tall;
+    v[A + (r - 1)] = kodet / 13;
+    v[A + 3 + (r - 1)] = passet[p] === true ? 1 : 0;
+    if (kodet > høyeste) høyeste = kodet;
+    if (kodet > 0) antallBydd++;
+    if (passet[p] === true) antallPasset++;
+  }
+  v[A + 6] = høyeste / 13;
+  v[A + 7] = antallBydd / 3;
+  v[A + 8] = antallPasset / 3;
+  // Hvor mange som fortsatt KAN by over meg. Er alle andre passet, er budet
+  // mitt uansett vinnende – og da er «vinner jeg budrunden» ikke et spørsmål.
+  v[A + 9] = (3 - antallPasset) / 3;
+  v[A + 10] = antallPasset === 3 ? 1 : 0;
+  // Hvor mye over minste tallbud den høyeste ligger. Null når ingen har bydd.
+  v[A + 11] = høyeste > 0 ? Math.min(1, (høyeste - MINSTE_TALLBUD) / 7) : 0;
   return v;
 }
