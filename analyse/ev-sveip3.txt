@@ -1,0 +1,21 @@
+6 filer, 3 armer
+
+e1-modell/bud-gbt.json@0.5
+   n=  9600  +0.1577 +/- 0.0425 (+3.71 SE)  trimmet +0.0000  tegn 351/251 (z=+4.08)
+   avgjorte giver: 602 av 9600 (6.3 %)
+     makker   n=  2179  +0.0116 +/- 0.0091  trimmet +0.0000  z=+3.65
+     forsvar  n=  4519  +0.0125 +/- 0.0170  trimmet +0.0000  z=-2.63
+
+e1-modell/bud-gbt.json@1.0
+   n=  9600  +0.0918 +/- 0.0366 (+2.51 SE)  trimmet +0.0000  tegn 261/193 (z=+3.19)
+   avgjorte giver: 454 av 9600 (4.7 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     makker   n=  2231  +0.0106 +/- 0.0089  trimmet +0.0000  z=+3.13
+     forsvar  n=  4591  +0.0141 +/- 0.0143  trimmet +0.0000  z=-1.90
+
+e1-modell/bud-gbt.json
+   n=  9600  +0.0000 +/- 0.0000 (+0.00 SE)  trimmet +0.0000  tegn 0/0 (z=+0.00)
+     makker   n=  2400  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  4800  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.
