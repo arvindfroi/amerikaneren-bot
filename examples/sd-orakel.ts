@@ -110,7 +110,22 @@ let sjanse = 0.35;
  * Rollen forblir representert - vi kutter ikke de andre, for et nett som
  * glemmer forsvar taper det vi alt har.
  */
-let rolleVekt = 3;
+/**
+ * 1, IKKE 3.
+ *
+ * Treeren ble valgt da spillefoereren bar 104 % av gapet mot MesterAI. Han
+ * baerer 0 % naa (maalt 3. august), og planen sa allerede «all videre
+ * generering bruker 1» - men standardverdien her sto igjen paa 3.
+ *
+ * Foelgen, oppdaget 4. august etter at 587 000 rader var generert: korpuset
+ * fikk 52,8 % foererrader mot naturlige 25 %. Forsvars- og makkerstillinger
+ * ble undersamplet i selve dataene, og da kan ingen vekting i TAPET reparere
+ * det - dekningen finnes rett og slett ikke.
+ *
+ * En standardverdi som motsier planen er verre enn ingen standardverdi: den
+ * virker, den krasjer ikke, og den gjoer noe annet enn det som staar skrevet.
+ */
+let rolleVekt = 1;
 let utforsk = 0.15;
 let fraStikk = 0;
 let maks = 0;
