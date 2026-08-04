@@ -532,6 +532,68 @@ Og terskelen kan bare rette **nivået**. Skjevheten er hånd-avhengig — noen
 hender undervurderes mer enn andre — og en global konstant kan ikke rette
 formen. Det er residualen bare en retrening henter.
 
+## S4c. HVA BOTEN SER — en gjennomgang mot reglene
+
+Arvind, 5. august: *«gå veldig grundig over hva den ser og husker … les reglene
+og tenk hvordan en bot hadde gjort dette optimalt, også se tilbake på vår
+bot.»*
+
+### Reglene, presist
+
+| | |
+|---|---|
+| 4 spillere, 12 kort hver | talong på 4 |
+| budvinneren tar talongen og vraker 4 | **4 kort er permanent døde** |
+| det etterlyste kortet MÅ være trumf | og budvinneren kan ikke ha det selv |
+| budvinneren MÅ åpne i trumf | i første stikk |
+| makkerplikt | den som har det etterlyste kortet må legge det i stikk 1 |
+| budlaget får ingenting for overstikk | forsvarerne får **+1 per eget stikk** |
+
+**De tre reglene om trumf låser hverandre.** Føreren leder trumf, makkeren har
+et trumfkort (det etterlyste ER trumf) og må følge farge — altså må han legge
+nettopp det kortet. **Målt: makkeren avsløres i stikk 1 i 400 av 400 runder.**
+
+Det forklarer et tidligere målt faktum: kolonneanalysen fant etterlyst-blokken
+(156–207, 52 kolonner) «nær død». Den er ikke ødelagt — den er **levende i ett
+stikk av tolv**. Det er ikke en feil, det er spillet.
+
+### Overraskelsen: racet er kodet, men målet er det ikke
+
+Indeks **231 og 232** er egne poeng og beste motstanders poeng, begge delt på
+målet. **Boten SER stillingen i racet.**
+
+Men den kan ikke bruke den, for **treningsmålet er per runde**. SD-orakelet
+lærer den å maksimere poeng i DENNE runden; ingen del av læringen vet at det
+finnes et race til 100.
+
+Det snur konklusjonen i S3a: race-bevisst spill mangler ikke informasjon, det
+mangler et **mål**. Å legge til trekk ville ikke hjulpet.
+
+### De fire hullene, rangert
+
+**1. «Vinner dette kortet stikket?» finnes ikke.**
+Det mest beslutningsrelevante tallet i kortspill. Vektoren har *mesterkort* —
+binært flagg for høyeste gjenværende i fargen — men ikke sannsynligheten for at
+akkurat dette kortet tar stikket NÅ, gitt hvem som har hva. Trosnettet gir
+P(kort → sete) for alle 52; derfra følger tolv tall, ett per lovlig kort.
+Billig, og bygget på noe målt til 15,6 SE.
+
+**2. Førerens form etter vraket.**
+Dødeblokken sier «fire kort borte, ingen trumf». Den sier ikke det en forsvarer
+trenger: føreren kastet fra sine svakeste farger, så han er kortere der enn en
+tilfeldig hånd. *Hvilken farge er trygg å lede?* Trosnettet vet det implisitt —
+forventet fargelengde per sete er en lært posterior i stedet for en
+kombinatorisk grense.
+
+**3. Sekvensering.**
+Nettet velger ett kort om gangen uten representasjon av en plan over flere
+stikk. «Trekk trumf to ganger, så løper kløveren» finnes ikke som en tanke den
+kan ha. Strukturelt fraværende.
+
+**4. Posisjon i stikket.**
+Fjerdemann vet alt, andremann nesten ingenting. Utledbart av hvem som leder,
+men ikke eksplisitt. Billig, trolig lite verdt.
+
 ## S5. IDÉBEHOLDNINGEN — alt, ett sted
 
 Arvind, 4. august: *«husk å logge alt samme plass.»* Denne tabellen er
@@ -624,7 +686,31 @@ forsvarslinja fortjener en omkamp på et riktig generert korpus.
 | motstanderprofilen | — | parkert på Arvinds prioritering |
 | trosnettet | +4,86 pp verdenskvalitet | ledd fra verdener til poeng |
 
-### Identifisert, ikke bygget — rangert etter forventet gevinst
+### OMSORTERT 5. august, etter gjennomgangen mot reglene
+
+Rekkefølgen under er endret av tre funn: at racet er kodet men målet ikke er
+det, at makkeren avsløres i stikk 1, og at «vinner dette kortet stikket» ikke
+finnes i vektoren.
+
+| # | idé | hvorfor der | koster |
+|---|---|---|---|
+| **1** | **P(kortet vinner stikket)** fra trosnettet | mest beslutningsrelevante tall i kortspill, og maskineriet er bygget og målt (15,6 SE) | timer |
+| **2** | **budmodellen rekalibrert** | +1,07-komponent kalibrert mot en bot to generasjoner gammel | kjører |
+| **3** | **race-bevisst MÅL**, ikke trekk | boten ser stillingen, læringen gjør ikke; å endre målet er den eneste veien | dager |
+| **4** | **førerens form fra trosnettet** | forventet fargelengde per sete som lært posterior | timer |
+| **5** | omkamp: blokker + forsvarsvekt på `rollevekt 1`-korpus | begge ble målt på 52,8 % førerrader | timer |
+| **6** | troen inn i SD-orakelets verdenstrekker | +4,86 pp verdenskvalitet, aldri konvertert til poeng | timer |
+| **7** | sekvensering / planlegging over flere stikk | strukturelt fraværende, men dyrt | dager |
+| **8** | kampbenken | forutsetning for 3 og motstandermodellen | timer |
+| 9 | variansvalg blant like gode bud | billig, usikkert | timer |
+| 10 | posisjon i stikket | billig, trolig lite verdt | minutter |
+| 11 | motstandermodellen | bygget, parkert på Arvinds prioritering | — |
+| 12 | menneskeklonen | venter på runder, ikke på arbeid | — |
+
+**Det som falt:** «trekkblokk-linja er død» er trukket tilbake (S4b). Den er
+ikke avgjort, og står som punkt 5.
+
+### Identifisert, ikke bygget — rangert etter forventet gevinst *(eldre liste, se omsorteringen over)*
 
 **1. Retrene budmodellen mot dagens nett.** Den er verdt **+1,07** og er
 kalibrert mot en bot som ikke finnes. Terskelfiksen hentet +0,39 av
