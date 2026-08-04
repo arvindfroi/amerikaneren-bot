@@ -56,7 +56,7 @@ import { dirname } from "node:path";
 
 import { lagRng } from "../src/kort.ts";
 import { lovligeHandlinger, lovligeKort, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
-import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V6 } from "../src/e1/trekk.ts";
+import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V6, E1_SPILL_DIM_V8 } from "../src/e1/trekk.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { vurderKortSD } from "../src/moe2/sdkort.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
@@ -351,7 +351,7 @@ alleKamper: for (let k = 0; k < kamper; k++) {
               // nye informasjonen, uten et eneste varsel. Fanget ved aa lese
               // foerste rad etter oppstart. GJOER DET IGJEN etter hver gang
               // kodingen utvides: `head -1 <mappe>/skard-0.jsonl` og tell.
-              t: Array.from(e1SpillTrekk(s, sete, E1_SPILL_DIM_V6), (x) => Math.round(x * 10_000) / 10_000),
+              t: Array.from(e1SpillTrekk(s, sete, E1_SPILL_DIM_V8), (x) => Math.round(x * 10_000) / 10_000),
               nt: lagInn(spillerVisning(s, sete), "SPILL", s.giving.antallStikk, s.regler.målPoeng).map(
                 (x) => Math.round(x * 10_000) / 10_000,
               ),
@@ -408,6 +408,6 @@ alleKamper: for (let k = 0; k < kamper; k++) {
 }
 
 console.log(
-  `Ferdig: ${merket} stillinger à ${E1_SPILL_DIM_V6} trekk (v1 ${E1_SPILL_DIM} + minne + telling + auksjon + plan + tro), ` +
+  `Ferdig: ${merket} stillinger à ${E1_SPILL_DIM_V8} trekk (v1 ${E1_SPILL_DIM} + minne + telling + auksjon + plan + tro + verdi + doede), ` +
     `SD med ${verdener} verdener, budspredning ${budspredning} → ${ut}`,
 );

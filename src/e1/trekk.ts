@@ -39,6 +39,7 @@ import { FARGER, type Farge, type Kort } from "../kort.ts";
 import { fyllPlanblokk, PLAN_ANTALL } from "./plan.ts";
 import { fyllTroblokk, TRO_ANTALL } from "./tro.ts";
 import { fyllVerdiblokk, VERDI_ANTALL } from "./verdi.ts";
+import { fyllDødeblokk, DØDE_ANTALL } from "./dode.ts";
 import type { GameState } from "../motor.ts";
 import { fargeIndeks, kortIndeks, SPILL_DIM, spillTrekk } from "../nevro/trekk.ts";
 
@@ -149,6 +150,19 @@ export const E1_SPILL_DIM_V6 = E1_SPILL_DIM_V5 + TRO_ANTALL;
  * Ren funksjon av de 428 første trekkene, som planblokken.
  */
 export const E1_SPILL_DIM_V7 = E1_SPILL_DIM_V6 + VERDI_ANTALL;
+
+/**
+ * v8 (indeks 458–469): DØDEBLOKKEN – de fire vrakede kortene.
+ *
+ * Se `src/e1/dode.ts`. Alle blokkene over teller «usett» som om hvert ukjent
+ * kort kunne ligge på en hånd. Fire av dem kan ikke: budvinneren vraket dem,
+ * og de er borte for godt. Denne blokken trekker dem fra, og gir i tillegg
+ * anslaget over utestående trumf – som er eksakt så lenge ingen vraker trumf.
+ *
+ * Krever `state`, som troblokken: talongstørrelsen og hvem som er budvinner
+ * finnes ikke i trekkvektoren.
+ */
+export const E1_SPILL_DIM_V8 = E1_SPILL_DIM_V7 + DØDE_ANTALL;
 
 const BASIS = SPILL_DIM;
 /** Der minneblokken begynner. */
@@ -348,5 +362,10 @@ export function e1SpillTrekk(state: GameState, sete: number, dim: number = E1_SP
   // --- VERDIBLOKKEN (v7, 428–457) ------------------------------------------
   // Regnes av de 428 foregående, ikke av `state`.
   fyllVerdiblokk(v);
+
+  if (dim <= E1_SPILL_DIM_V7) return v;
+
+  // --- DØDEBLOKKEN (v8, 458–469) -------------------------------------------
+  fyllDødeblokk(v, state, sete);
   return v;
 }

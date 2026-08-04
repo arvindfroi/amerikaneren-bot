@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V6 } from "../src/e1/trekk.ts";
+import { E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V8 } from "../src/e1/trekk.ts";
 import { ANTALL_INN } from "../src/neat/trekk.ts";
 
 /**
@@ -33,7 +33,7 @@ const TREKK_T2 = 340; // v2: v1 + minneblokken (eget vrak, korrigert «ute»)
  * `nt` NEAT-vektoren – de ble forvekslet tre ganger 25. juli – og det poenget
  * holder uansett hvilken versjon blokka er paa.
  */
-const TREKK_T_NAA = E1_SPILL_DIM_V6;
+const TREKK_T_NAA = E1_SPILL_DIM_V8;
 const TREKK_NT = 318;
 
 /** Nøklene e1-orakel skriver, uten den fasitspesifikke (`dybde`/`sdVerdener`). */
