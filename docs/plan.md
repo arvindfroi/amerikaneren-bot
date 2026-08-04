@@ -1460,3 +1460,51 @@ forrige rundes +0,143 — fortsatt positivt, men avtagende.
 
 Og forsvarstallet bekrefter §20: orakelet SPILLER forsvar litt dårligere enn
 Adams-v2, men å LÆRE av det ga +0,187 ± 0,061. Destillasjon er en støydemper.
+
+## 25. Konfidensterskelen snur fortegnet — og avslører den ekte feilen
+
+Vrakbenken, 3 000 budvinnerrunder mot NevroHjerne:
+
+| | effekt | overstyringer av 3000 |
+|---|---|---|
+| uten terskel | −0,5119 ± 0,2501 | alle |
+| **σ = 1,5** | **+0,0692 ± 0,0880** | 230 |
+| **σ = 3** | **+0,0421 ± 0,0269** | 34 |
+| `tel` med σ=2, 48 verdener | −0,5396 ± 0,1815 | 897 |
+
+Terskelen snur fortegnet, så vinnerens forbannelse var riktig diagnose. Men
+effekten er nå liten fordi den nesten aldri overstyrer.
+
+### Den siste raden er den viktigste
+
+`tel` er policyen med bare «kast de fire laveste». Den overstyrer 897 ganger og
+taper stort — selv med σ = 2.
+
+**Kandidatene var dårligere enn det de skulle slå.** NevroHjernes vrak er et
+NETT som scorer hvert kort; «de fire laveste» er en grov regel. Terskelen kan
+ikke redde en kandidatmengde som ikke inneholder noe bedre.
+
+**Rettet:** det indre lagets EGET valg er nå alltid en kandidat, både i
+`vrakorakel.ts` og i den lærte velgeren som kommer. En modell som ikke kan
+velge det bestående kan bare gjøre det verre.
+
+## 26. Vrak/trumf uten søk — Arvinds krav, og målingen er enig
+
+*«Når det kommer til vrak og trumf komboen så bør det ikke være søk. Du må
+finne noe bedre.»*
+
+Søk ved vrak er strukturelt håpløst: verdensrommet er 3,8 × 10¹⁴, og skjevheten
+i `argmax` vokser med antall kandidater. Men **støyen er et sanntidsproblem,
+ikke et læringsproblem** — samme lærdom som §20: orakelet spiller forsvar
+dårligere enn nettet (−0,09) og lærer det likevel bort med +0,187.
+
+`examples/vrakorakel.ts` merker (trumf, vrak)-par **offline** med 40 verdener,
+felles per stilling så kandidatene er parret, og skriver én linje per stilling
+med ALLE kandidatene — så modellen lærer å RANGERE, som er det valget krever.
+
+`src/moe2/vraktrekk.ts` gir 24 trekk: lengder og honnører sett fra trumfen,
+renonser, trumftopp, kontrakten vi vant på, og **hva de tre andre bød** — fordi
+Arvind ba om det.
+
+**Første prøve: 8 kandidater per stilling, spenn 20,2 poeng mellom beste og
+verste.** Valget betyr mye. Problemet var aldri at det ikke er noe å hente.

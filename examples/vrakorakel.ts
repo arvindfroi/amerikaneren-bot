@@ -128,6 +128,26 @@ function kandidater(hånd: readonly Kort[], trumf: Farge, antall: number): Kort[
 
 const agent = lag(spek);
 const motpart = lag(spek);
+/** Egen NevroHjerne, brukt bare til å hente DENS (trumf, vrak) som kandidat. */
+const nevroRef = new NevroAgent();
+
+/** NevroHjernes eget par: dens vrak, og trumfen den ville valgt etterpå. */
+function nevroValg(
+  s: GameState,
+  sete: number,
+  hånd: readonly Kort[],
+  antall: number,
+): { trumf: Farge; vrak: Kort[] } | null {
+  const h = nevroRef.velgHandling(s);
+  if (h.type !== "VRAK") return null;
+  const vrak = h.kort.slice();
+  // Trumfen NevroHjerne ville valgt: den regner den av hånden som BLIR IGJEN,
+  // så den må simuleres for å bli riktig.
+  const etter = utfør(s, { type: "VRAK", spiller: sete, kort: vrak }).state;
+  const v = nevroRef.velgHandling(etter);
+  if (v.type !== "VELG") return null;
+  return { trumf: v.trumf, vrak };
+}
 const prior = new Motstandermodell(BOTTABELL);
 const rng = lagRng((frøBase + skardI * 7919) >>> 0);
 mkdirSync(dirname(utFil), { recursive: true });
@@ -150,6 +170,26 @@ for (let i = skardI; i < kamper; i += skardN) {
       const par: { trumf: Farge; vrak: Kort[] }[] = [];
       for (const trumf of FARGER) {
         for (const vrak of kandidater(hånd, trumf, antall)) par.push({ trumf, vrak });
+      }
+      // DET INDRE LAGETS EGET VALG ER ALLTID EN KANDIDAT.
+      //
+      // MAALT 4. august: policyen «tel» - bare de fire laveste - overstyrte
+      // NevroHjerne 897 ganger av 3 000 og maalte -0,5396 +/- 0,1815. Feilen
+      // var ikke stoey, den var at KANDIDATENE VAR DAARLIGERE enn det de
+      // skulle slaa: NevroHjernes vrak er et NETT som scorer hvert kort,
+      // «de fire laveste» er en grov regel.
+      //
+      // Med dens eget valg i settet laerer modellen aa rangere alternativene
+      // MOT den, i stedet for aa late som den ikke finnes. En modell som ikke
+      // kan velge det bestaaende kan bare gjoere det verre.
+      {
+        const eget = nevroValg(s, sete, hånd, antall);
+        if (eget !== null) {
+          const n = eget.vrak.map(nøkkel).sort().join(",");
+          if (!par.some((p) => p.trumf === eget.trumf && p.vrak.map(nøkkel).sort().join(",") === n)) {
+            par.push(eget);
+          }
+        }
       }
       if (par.length >= 2) {
         // FELLES verdener for alle kandidatene i denne stillingen.
