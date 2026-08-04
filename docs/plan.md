@@ -256,18 +256,53 @@ favoritten vil ha lite støy, underdogen vil ha mye. Utslagene er store — ved
 Nesten en halvering, tilsvarende et skift på **~+0,7 poeng per runde** i
 race-tabellen. Og det er en beslutningsregel, ikke en modell.
 
-### Spaken finnes delvis
+### Teorien har et navn: Dubins & Savage (1965)
 
-Budterskelen er en variansknott: lavere terskel gir flere marginale kontrakter.
-Platået −2 til −5 var flatt i snitt, så **mer** varians er nesten gratis.
+Simuleringen gjenoppdaget et bevist resultat. Når målet er å NÅ ET MÅL FØRST
+(ikke å maksimere vekst), er optimal strategi **dristig** når p ≤ ½ og
+**forsiktig** når p ≥ ½. Boten har kanten, altså forsiktig — med mindre den
+ligger bak, og da er den lokalt underdog.
 
-**MEN Å REDUSERE VARIANSEN KOSTER.** Å heve terskelen mot +3 målte −0,08, så
-0,6-armen er ikke gratis slik 2,0-armen er. Den realiserte gevinsten blir
-derfor lavere enn +0,7 — hvor mye lavere er ikke målt, og det er neste
-spørsmål, ikke et svar.
+**Ikke Kelly.** Kelly maksimerer veksttakten på lang sikt og satser aldri alt.
+Vi bryr oss ikke om veksttakt, bare om å komme først, og der gir Kelly feil
+svar.
 
-**FORBEHOLDET SOM SKAL STÅ:** politikken antar at variansen kan skrus fra 0,6×
-til 2,0× uten å tape snitt. Det er ikke vist. Tallet er et TAK.
+### MÅLT MED EKTE GRENSER: gevinsten er +0,08, ikke +0,7
+
+Vekslingskursen mellom snitt og varians ble hentet ut av budterskel-sveipene:
+
+| evForsvar | snitt | SD |
+|---|---|---|
+| −8,0 | −0,071 | 13,658 |
+| −3,0 *(i dag)* | +0,234 | 12,070 |
+| −1,0 | **+0,350** | 11,448 |
+| +3,0 | −0,081 | 10,317 |
+
+Variansen kan bare skrus **0,855× til 1,13×**, ikke 0,6× til 2,0×, og begge
+ytterpunkter koster ~0,31 i snitt. Med de faktiske tallene:
+
+| politikk | mennesket vinner |
+|---|---|
+| dagens (alltid −3,0) | 11,95 % |
+| alltid dristig | 13,98 % |
+| alltid forsiktig | 14,49 % |
+| **stillingsbevisst** | **11,26 %** |
+
+**+0,69 prosentpoeng, altså ~+0,08 poeng per runde.** Begge faste ytterpunkter
+er verre enn i dag — snittkostnaden dominerer helt.
+
+### Men den peker på riktig knott
+
+**Budterskelen er en dårlig variansknott** fordi den endrer snittet mye. En
+GOD knott er et valg mellom handlinger med LIKT snitt og ulik varians:
+
+> Blant handlinger hvis EV ligger innen ε av den beste, velg den med høyest
+> varians når du ligger bak og lavest når du leder.
+
+Da koster det ε per konstruksjon, og ε kan være vilkårlig liten. Budmodellen
+regner allerede EV per bud, så tie-breaking på varians er noen få linjer.
+**Aldri prøvd.** Det er forskjellen på å skru en knott som koster, og å plukke
+gratis varians blant likeverdige valg.
 
 ## S3b. I KØEN: flerfortsettelses-orakelet (Brown & Sandholm 2019)
 
