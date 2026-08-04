@@ -22,7 +22,7 @@ import { lovligeKort, type GameState, type Handling } from "../motor.ts";
 import { velgHandling as pimcVelg } from "../bot/bot.ts";
 import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { kortIndeks, NevroAgent } from "../nevro/index.ts";
-import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V5, E1_SPILL_DIM_V6, E1_SPILL_DIM_V7, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9, E1_SPILL_DIM_V10 } from "./trekk.ts";
+import { e1SpillTrekkMedTro, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V5, E1_SPILL_DIM_V6, E1_SPILL_DIM_V7, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9, E1_SPILL_DIM_V10 } from "./trekk.ts";
 
 /**
  * Leser et E1-nett fra rå bytes og verifiserer at formen stemmer med
@@ -88,6 +88,18 @@ export interface E1Opts {
   readonly søkFaser?: readonly SøkeFase[];
   /** Verdener PIMC får per beslutning i de lånte fasene. */
   readonly søkVerdener?: number;
+  /**
+   * TROSNETTET, som fyller sanseblokken.
+   *
+   * Uten den er 84 av de 88 sansetrekkene konstant null – stikksjansen,
+   * forventet fargelengde og renonssannsynligheten regnes ut FRA troen, og
+   * `fyllSanser` returnerer tomhendt når den mangler. Et v9-nett uten dette
+   * satt spiller altså på 88 nuller uten at noe feiler.
+   *
+   * Valgfri fordi nettene under v9-bredde ikke har blokken i det hele tatt,
+   * og for dem er den et rent overheng.
+   */
+  readonly trosnett?: { fordeling(trekk: Float32Array): number[][] } | null;
 }
 
 /** Filleseren `nett.ts` registrerer. Null i nettleseren. */
@@ -103,6 +115,7 @@ export class E1Agent {
   private readonly nevro: NevroAgent;
   private readonly søkFaser: readonly SøkeFase[];
   private readonly søkVerdener: number;
+  private readonly trosnett: { fordeling(trekk: Float32Array): number[][] } | null;
   private teller = 0;
 
   constructor(nett: NevroNett, nevro: NevroAgent = new NevroAgent(), opts: E1Opts = {}) {
@@ -111,6 +124,15 @@ export class E1Agent {
     this.nevro = nevro;
     this.søkFaser = opts.søkFaser ?? [];
     this.søkVerdener = opts.søkVerdener ?? 12;
+    this.trosnett = opts.trosnett ?? null;
+    // FAIL-FAST. Et v9-nett uten trosnett spiller på 88 nuller, og INGENTING
+    // ville sagt fra – nøyaktig hvordan blokken kunne ligge død i utgangspunktet.
+    if (this.dim >= E1_SPILL_DIM_V9 && this.trosnett === null) {
+      throw new Error(
+        `Nettet er ${this.dim} bredt og har sanseblokken, men det er ikke gitt noe ` +
+          `trosnett. Da ville 84 av 88 sansetrekk vært konstant null. Send opts.trosnett.`,
+      );
+    }
   }
 
   static fraFil(fil: string, opts: E1Opts = {}): E1Agent {
@@ -147,7 +169,7 @@ export class E1Agent {
   velgKort(state: GameState, sete: number): Kort {
     const lovlige = lovligeKort(state, sete);
     if (lovlige.length === 1) return lovlige[0]!;
-    const logits = forover(this.nett, e1SpillTrekk(state, sete, this.dim));
+    const logits = forover(this.nett, e1SpillTrekkMedTro(state, sete, this.dim, this.trosnett));
     let beste = lovlige[0]!;
     for (const k of lovlige) if (logits[kortIndeks(k)]! > logits[kortIndeks(beste)]!) beste = k;
     return beste;
@@ -155,7 +177,7 @@ export class E1Agent {
 
   /** Kortene rangert best først – prior til søket (HybridAgent-mønsteret). */
   rangerKort(state: GameState, sete: number, lovlige: readonly Kort[]): Kort[] {
-    const logits = forover(this.nett, e1SpillTrekk(state, sete, this.dim));
+    const logits = forover(this.nett, e1SpillTrekkMedTro(state, sete, this.dim, this.trosnett));
     return lovlige.slice().sort((a, b) => logits[kortIndeks(b)]! - logits[kortIndeks(a)]!);
   }
 }
