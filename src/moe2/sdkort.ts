@@ -38,13 +38,22 @@
  * Ingen ser noe de ikke skal. Det er hele forskjellen fra DD.
  */
 
-import { FARGER, lovligeKort, utfør, type GameState, type Handling, type Kort, type Verdi } from "../index.ts";
+import {
+  FARGER,
+  likeKort,
+  lovligeKort,
+  utfør,
+  type GameState,
+  type Handling,
+  type Kort,
+  type Verdi,
+} from "../index.ts";
 // Konverteringen HENTES, den skrives ikke paa nytt. Foerste utkast rullet sin
 // egen med `i >> 4` mens den kanoniske bruker `floor(c / 13)` - to helt ulike
 // kodinger, og feilen ville gitt gale kort i stillhet. Tre av dagens feil var
 // av samme klasse (nt/t-vektorene), saa duplisert konvertering er forbudt her.
 import { intTilKort } from "../solver/dds.ts";
-import { trekkVerdenBelief } from "../solver/sampler.ts";
+import { trekkVerdenBelief, type Budprior } from "../solver/sampler.ts";
 
 /** Motstandermodellen som spiller runden ferdig. NevroAgent oppfyller det. */
 export interface Utspiller {
@@ -83,10 +92,39 @@ const standardMål = (s: GameState, spiller: number): number => {
  *
  * Observatørens hånd ER kjent, så den skal ikke erstattes – gjør vi det,
  * evaluerer vi en annen hånd enn den vi faktisk har.
+ *
+ * MAKKEREN MÅ FLYTTE MED. `state.makker` settes én gang, i VELG, som «den som
+ * sitter med det etterlyste kortet», og motoren rører den aldri igjen. Flytter
+ * vi kortene uten å flytte makkeren, sitter feltet igjen og peker på et sete
+ * som i denne verdenen IKKE er makker – og `avsluttRunde` gir da stikkene og
+ * poengene til feil lag. Konsekvensen var stum og stor: `lovligeKort`
+ * håndhever makkerplikten på HÅNDEN, så utspillingen ble riktig, men
+ * poengsummen den ble målt med var feil.
+ *
+ * Det bet nøyaktig i STIKK 1, som er den eneste stillingen der det etterlyste
+ * kortet fortsatt er uspilt og usett – makkerplikten legger det ned med én
+ * gang. Fra stikk 2 og ut er kortet spilt, `trekkVerdenBelief` lar det ligge og
+ * `state.makker` er allerede riktig. Åpningsutspillet, som er hele
+ * etterlysningskonvensjonen, lå altså i den ene stillingen feilen traff.
+ *
+ * Finner vi ikke kortet på noen hånd er det spilt, og da står `s.makker`.
+ * Er `s.makker` null (solo, eller ingen etterlysning) rører vi den ikke.
+ *
+ * FORBEHOLD, ikke fikset her: i BUDRUNDEN er talongens fire kort fortsatt i
+ * `state.talong`, og verdenstrekningen legger dem i en «død» bin som ikke
+ * kommer tilbake i `Verden`. Byttes hendene da, blir talongen den gamle og
+ * kortene kan dukke opp to steder. `vurderSD` skal derfor ikke kalles i
+ * BUDRUNDE-fasen; VRAK, VELG og SPILL er trygge, for der er talongen alt
+ * fordelt.
  */
-function medVerden(s: GameState, hender: readonly number[][], observator: number): GameState {
+export function medVerden(s: GameState, hender: readonly number[][], observator: number): GameState {
   const nye = s.hender.map((h, p) => (p === observator ? h : hender[p]!.map(intTilKort)));
-  return { ...s, hender: nye };
+  let makker = s.makker;
+  if (makker !== null && s.etterlyst !== null) {
+    const holder = nye.findIndex((h) => h.some((k) => likeKort(k, s.etterlyst!)));
+    if (holder >= 0) makker = holder;
+  }
+  return { ...s, hender: nye, makker };
 }
 
 export interface KortVurdering {
@@ -120,10 +158,14 @@ export function trekkVerdener(
   spiller: number,
   antall: number,
   rng: () => number,
+  prior?: Budprior,
 ): number[][][] {
   const ut: number[][][] = [];
   for (let v = 0; v < antall; v++) {
-    const w = trekkVerdenBelief(state, spiller, rng);
+    // Med `prior` vektes kandidatverdenene etter en LÆRT budmodell i stedet
+    // for den håndlagde formelen. Kalleren må sørge for at prioren beskriver
+    // dem som faktisk sitter ved bordet - se `laertForenlighet` i sampler.ts.
+    const w = trekkVerdenBelief(state, spiller, rng, 3, prior);
     if (w !== null) ut.push(w.hender);
   }
   return ut;

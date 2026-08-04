@@ -74,6 +74,24 @@ const BEFOLKNING: ReadonlyMap<number, Fordeling> = new Map([
   [9, { mLengste: 5.0, sdLengste: 0.881, mHonnør: 2.313, sdHonnør: 0.934 }],
 ]);
 
+/**
+ * BOTENS EGEN tabell, målt på `budm:bud-gbt.json` over 1 500 runder
+ * (`examples/budtabell.ts`, budvinneren utelatt).
+ *
+ * DEN MÅ FINNES SEPARAT. Familien og boten byr målbart ulikt: boten byr 7 med
+ * NULL honnører i 36 av 36 tilfeller, mennesket med 1,18 i snitt. Brukes
+ * menneskenes tabell i selvspill, er prioren feilspesifisert – og en prior som
+ * beskriver feil motpart er verre enn ingen prior, fordi den skyver utvalget
+ * systematisk feil vei. Samme klasse feil som da SD rullet ut med NevroHjerne.
+ */
+export const BOTTABELL: ReadonlyMap<number, Fordeling> = new Map([
+  [0, { mLengste: 4.459, sdLengste: 0.734, mHonnør: 1.52, sdHonnør: 0.949 }],
+  [7, { mLengste: 3.972, sdLengste: 0.167, mHonnør: 0.0, sdHonnør: 0.3 }],
+  [8, { mLengste: 4.159, sdLengste: 0.554, mHonnør: 1.061, sdHonnør: 0.724 }],
+  [9, { mLengste: 4.883, sdLengste: 0.794, mHonnør: 2.048, sdHonnør: 0.909 }],
+  [10, { mLengste: 6.5, sdLengste: 0.577, mHonnør: 2.75, sdHonnør: 0.5 }],
+]);
+
 /** Hvor mange observasjoner som skal til før individet veier like mye. */
 const KRYMPING = 12;
 
@@ -90,13 +108,14 @@ export function håndtrekk(kort: readonly Kort[]): Håndtrekk {
 }
 
 /** Befolkningsfordelingen for et bud, med nærmeste nabo utenfor 7–9. */
-function befolkning(bud: number): Fordeling {
-  const direkte = BEFOLKNING.get(bud);
+function befolkning(bud: number, tabell: ReadonlyMap<number, Fordeling> = BEFOLKNING): Fordeling {
+  const direkte = tabell.get(bud);
   if (direkte !== undefined) return direkte;
-  if (bud <= 0) return BEFOLKNING.get(0)!;
-  let beste = 7;
-  for (const b of [7, 8, 9]) if (Math.abs(b - bud) < Math.abs(beste - bud)) beste = b;
-  return BEFOLKNING.get(beste)!;
+  if (bud <= 0) return tabell.get(0) ?? BEFOLKNING.get(0)!;
+  const nøkler = [...tabell.keys()].filter((k) => k > 0);
+  let beste = nøkler[0] ?? 7;
+  for (const b of nøkler) if (Math.abs(b - bud) < Math.abs(beste - bud)) beste = b;
+  return tabell.get(beste) ?? BEFOLKNING.get(7)!;
 }
 
 interface Teller {
@@ -108,6 +127,12 @@ interface Teller {
 export class Motstandermodell {
   /** spillernøkkel → budnivå → observasjoner. */
   private readonly obs = new Map<string, Map<number, Teller>>();
+  private readonly tabell: ReadonlyMap<number, Fordeling>;
+
+  /** `tabell` velger hvilken BUDPOLICY prioren beskriver. Se `BOTTABELL`. */
+  constructor(tabell: ReadonlyMap<number, Fordeling> = BEFOLKNING) {
+    this.tabell = tabell;
+  }
 
   /**
    * Registrerer en FERDIG runde: hva spilleren bød, og hva hånden var.
@@ -141,7 +166,7 @@ export class Motstandermodell {
    * forkaster verdener som faktisk er mulige.
    */
   forventning(spiller: string, bud: number): Fordeling {
-    const b = befolkning(bud);
+    const b = befolkning(bud, this.tabell);
     const t = this.obs.get(spiller)?.get(bud);
     if (t === undefined || t.n === 0) return b;
     const v = t.n / (t.n + KRYMPING);

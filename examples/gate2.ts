@@ -54,6 +54,7 @@ import { Rolleorakel, type Rolle } from "../src/moe2/rolleorakel.ts";
 import { Sikkerorakel } from "../src/moe2/sikkerorakel.ts";
 import { Vrakvelger } from "../src/moe2/vrakvelg.ts";
 import { Etterlysvelger } from "../src/moe2/etterlys.ts";
+import { Vrakvelger2, lesVrakflagg } from "../src/moe2/vrakvelg2.ts";
 
 let giver = 400;
 let frøBase = 900_000;
@@ -346,6 +347,25 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
       throw new Error(`Ugyldig etl-spek «${indre}» - forventet etl:<nivaa>:<indre>`);
     }
     return new Etterlysvelger(lagIndre(d.slice(1).join(":")), nivaa);
+  }
+  /**
+   * `vv2:<verdener>:<finale>:<indre>` - VRAK OG TRUMF, andre forsoek.
+   *
+   * Harde skranker (aldri trumf, aldri ess i vraket), eksplisitte
+   * renonskandidater, budprior paa verdenene og en to-trinns trakt.
+   */
+  if (indre.startsWith("vv2:")) {
+    // vv2:<verdener>:<flagg>:<indre>, f.eks. vv2:24:telrd:nevro
+    const d = indre.slice(4).split(":");
+    const verdener = Number(d[0]);
+    if (!Number.isFinite(verdener)) {
+      throw new Error(`Ugyldig vv2-spek «${indre}» - forventet vv2:<verdener>:<flagg>:<indre>`);
+    }
+    const inn = lagIndre(d.slice(2).join(":"));
+    return new Vrakvelger2(inn, inn as unknown as Parameters<typeof Vrakvelger2>[1], {
+      verdener,
+      policy: lesVrakflagg(d[1] ?? "telrd"),
+    });
   }
   if (indre.startsWith("e1:")) return new E1Agent(lesNett(indre.slice(3)));
   /**
