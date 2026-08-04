@@ -39,6 +39,28 @@ for at mennesket ligger foran etter `N` runder `Φ(−m√N/s)`. Målt på Adams
 
 A kan ikke jobbes fram. Familien må spille. B er alt det andre.
 
+### A og B slåss om det samme, og det avgjør rekkefølgen
+
+**Hver utrulling nullstiller bevisklokka.** Runder spilt mot Adams-v1 sier
+ingenting om Adams-v2 — det er en annen spiller. Vi har 107 runder mot v1 og
+**0 mot v2**, som står ute nå.
+
+Så B gjør ikke bare A lettere, den ødelegger også arbeidet A har lagt ned. Det
+gir én riktig rekkefølge:
+
+1. **Samle forbedringer, ikke rull ut hver for seg.** En utrulling per
+   forbedring gir aldri mer enn en håndfull runder per versjon, og da får vi
+   aldri de 400.
+2. **Rull ut ÉN gang, når batchen er målt ferdig.**
+3. **Så fryse.** Ikke rør den mens runder samler seg, uansett hvor fristende
+   neste idé er.
+
+Regnestykket for hvor lenge man skal samle før utrulling: ledelse 1,81 krever
+~400 runder, 2,5 krever ~210, 3,0 krever ~145. Hver +0,5 i ledelse sparer
+altså flere titalls kvelder med kortspill. Men gevinsten flater ut — fra 3,0
+til 3,5 sparer bare ~25 runder. **Rundt en ledelse på 3 slutter det å lønne
+seg å vente, og da skal den ut og stå i fred.**
+
 ## S2. Metoden som har vist seg å virke
 
 Fire lærdommer, hver kjøpt med en måling som overrasket:
