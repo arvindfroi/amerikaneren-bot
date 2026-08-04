@@ -13,7 +13,7 @@
  */
 
 import { lovligeHandlinger, type GameState, type Handling } from "../motor.ts";
-import { PASS } from "../regler.ts";
+import { AMERIKANER, PASS, type Bud } from "../regler.ts";
 import { budTrekk, BUD_DIM, BUD_DIM_V2 } from "./budtrekk.ts";
 
 interface Node {
@@ -89,7 +89,27 @@ export interface Innagent {
 export class Budagent implements Innagent {
   private readonly indre: Innagent;
   private readonly m: Budmodell;
+  /**
+   * TERSKELEN: hvor godt et bud maa vaere for at det er verdt aa by i det hele
+   * tatt. Dette er `bv`-startverdien, og den forsvinner IKKE av seg selv.
+   */
   private readonly evForsvar: number;
+
+  /**
+   * FORSVARSVERDIEN: hva vi faar naar vi IKKE vinner budrunden.
+   *
+   * DETTE VAR SAMME KONSTANT SOM TERSKELEN, og det var en sammenblanding av to
+   * ulike stoerrelser. I spoersmaalet «skal jeg by?» kansellerer leddet
+   * (1−p)·forsvarsverdi seg mot terskelen og betyr ingenting. Men i valget
+   * MELLOM to bud gjoer det det ikke:
+   *
+   *   ev(N1) − ev(N2) = p1·2N1(2P1−1) − p2·2N2(2P2−1) + (p2−p1)·forsvarsverdi
+   *
+   * Leddet overlever naar p1 ≠ p2 – og etter at `vant[N]` ble rettet spriker
+   * de voldsomt (bud 9: 0,097, bud 10: 0,940). Konstanten styrer altsaa valget
+   * mellom 9 og 10 direkte, uten noen gang aa ha vaert maalt i den rollen.
+   */
+  private readonly forsvarsverdi: number;
   /**
    * Gulv på usikkerheten i stikkanslaget. Er σ overvurdert, trekkes P mot 0,5
    * og modellen slutter å skille gode hender fra dårlige – den byr for likt
@@ -98,11 +118,32 @@ export class Budagent implements Innagent {
    */
   private readonly σGulv: number;
 
-  constructor(indre: Innagent, m: Budmodell, evForsvar = 2.5, σGulv = 0.6) {
+  /**
+   * Forskyvning paa mu, det anslaatte lagstikket.
+   *
+   * MAALT 5. august paa 3 000 runder: modellen sier 9,804, laget tar 9,934 -
+   * en systematisk UNDERvurdering paa 0,130 stikk. Det gjoer boten litt for
+   * feig i hvert eneste bud.
+   *
+   * sigma er derimot perfekt kalibrert (1,227 mot faktisk 1,228), saa dette er
+   * en ren forskyvning og ikke en skalering.
+   */
+  private readonly μSkift: number;
+
+  constructor(
+    indre: Innagent,
+    m: Budmodell,
+    evForsvar = 2.5,
+    σGulv = 0.6,
+    μSkift = 0,
+    forsvarsverdi = evForsvar,
+  ) {
     this.indre = indre;
     this.m = m;
     this.evForsvar = evForsvar;
+    this.forsvarsverdi = forsvarsverdi;
     this.σGulv = σGulv;
+    this.μSkift = μSkift;
   }
 
   nyKamp(): void {
@@ -119,20 +160,58 @@ export class Budagent implements Innagent {
     const sete = state.iTur;
     // Modellens EGEN bredde, ikke den nyeste. Et v1-nett skal se v1-trekk.
     const x = budTrekk(state, sete, this.m.dim);
-    const μ = anslå(this.m.mμ, x, this.m.rate);
+    const μ = anslå(this.m.mμ, x, this.m.rate) + this.μSkift;
     const σ = Math.max(this.σGulv, anslå(this.m.mσ, x, this.m.rate));
 
-    let beste: number | typeof PASS = PASS;
+    let beste: Bud = PASS;
     let bv = this.evForsvar;
     for (const N of tall) {
       const P = 1 - Φ((N - 0.5 - μ) / σ);
       const p = this.m.vant[String(N)] ?? (N >= 11 ? 1 : 0);
-      const ev = p * (2 * N * (2 * P - 1)) + (1 - p) * this.evForsvar;
+      const ev = p * (2 * N * (2 * P - 1)) + (1 - p) * this.forsvarsverdi;
       if (ev > bv) {
         bv = ev;
         beste = N;
       }
     }
+
+    /**
+     * AMERIKANER. Krever NØYAKTIG det samme som bud 12 – alle stikk til
+     * budlaget – men betaler `mål/2` til budvinneren mot bud 12s `2 × 12`.
+     * Med målet 100 er det 50 mot 24: **dobbel innsats for identisk krav**.
+     *
+     * Sannsynligheten er derfor den SAMME P som for bud 12, og valget mellom
+     * dem er ren aritmetikk: over P = 0,5 er Amerikaner bedre, under er bud 12
+     * bedre fordi tapet er mindre. Ingen nye data trengs.
+     *
+     * Fram til nå løkket agenten bare over TALLBUD, så den kunne aldri melde
+     * Amerikaner uansett hvor god hånden var.
+     */
+    const kanAmerikaner = lov.bud.some((b) => b === AMERIKANER);
+    if (kanAmerikaner) {
+      const alle = state.giving.antallStikk;
+      const P = 1 - Φ((alle - 0.5 - μ) / σ);
+      const p = this.m.vant["AMERIKANER"] ?? 1;
+      // Satsen skalerer med maalet: mål/2 til budvinneren, mål/4 til makker.
+      const sats = state.regler.målPoeng / 2;
+      const ev = p * (sats * (2 * P - 1)) + (1 - p) * this.forsvarsverdi;
+      if (ev > bv) {
+        bv = ev;
+        beste = AMERIKANER;
+      }
+    }
+
+    /**
+     * SOLO ER IKKE MED, og det er et valg og ikke en forglemmelse.
+     *
+     * Solo krever at BUDVINNEREN ALENE tar alle stikk. `μ` anslår LAGETS
+     * stikk, med en makker som bidrar – så P(alene alle 12) er en helt annen
+     * størrelse, og systematisk lavere. Å bruke lagets P for solo ville gitt
+     * en bot som melder solo på hender der makkeren gjør halve jobben.
+     *
+     * Solo krever sitt eget anslag, målt for seg. Til det finnes, er det
+     * riktigere å la være enn å gjette.
+     */
     return { type: "BUD", spiller: sete, bud: beste };
   }
 }

@@ -301,10 +301,23 @@ function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp
     const hale = at < 0 ? "" : hode.slice(at + 1);
     const strek = hale.indexOf("/");
     const ev = at < 0 ? 2.5 : Number(strek < 0 ? hale : hale.slice(0, strek));
-    const sg = strek < 0 ? 0.6 : Number(hale.slice(strek + 1));
+    // «@<ev>/<sigmagulv>/<muskift>». Skiftet er MAALT: modellen undervurderer
+    // lagstikket med 0,130 i snitt over 3 000 runder.
+    const halen = strek < 0 ? "" : hale.slice(strek + 1);
+    const strek2 = halen.indexOf("/");
+    const sg = strek < 0 ? 0.6 : Number(strek2 < 0 ? halen : halen.slice(0, strek2));
+    const rest2 = strek2 < 0 ? "" : halen.slice(strek2 + 1);
+    const strek3 = rest2.indexOf("/");
+    const ms = strek2 < 0 ? 0 : Number(strek3 < 0 ? rest2 : rest2.slice(0, strek3));
+    if (!Number.isFinite(ms)) throw new Error(`Ugyldig muskift i «${indre}»`);
+    // Fjerde leddet: FORSVARSVERDIEN, som er en annen stoerrelse enn terskelen
+    // selv om de har delt konstant til naa. Uten den faller den tilbake paa
+    // terskelen, saa alle gamle spesifikasjoner spiller bit-identisk.
+    const fv = strek3 < 0 ? ev : Number(rest2.slice(strek3 + 1));
+    if (!Number.isFinite(fv)) throw new Error(`Ugyldig forsvarsverdi i «${indre}»`);
     if (!Number.isFinite(ev)) throw new Error(`Ugyldig evForsvar i «${indre}»`);
     if (!Number.isFinite(sg) || sg <= 0) throw new Error(`Ugyldig sigmagulv i «${indre}»`);
-    return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(fil), ev, sg);
+    return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(fil), ev, sg, ms, fv);
   }
   /**
    * `ork:<rolle>:<indre>` - SD-ORAKELET spiller den rollen, det indre alt annet.

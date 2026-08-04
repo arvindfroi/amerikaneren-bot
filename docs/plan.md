@@ -2479,3 +2479,101 @@ krasjet:
 makkeren ved rundeslutt. Hver framtidig runde blir dermed treningsdata uten et
 eneste gjenskapingssteg. Ingen ny lekkasje: klienten spiller runden lokalt og
 har alt i minnet fra før.
+
+## 28. De fire foreldede konstantene — målt, ikke gjettet (5. august)
+
+Arvind: «ta hånd om disse. ikke gjett, men ta å finn nøyaktige mål.»
+
+Fire konstanter i budmodellen var kalibrert mot eldre versjoner av andre
+komponenter og aldri målt på nytt. Mønsteret er det samme som har gitt de
+største gevinstene i prosjektet: *en konstant kalibrert mot en tidligere
+versjon av en annen komponent er gratis penger som ligger og råtner.*
+
+Men denne runden er også den beste påminnelsen om det motsatte: **«aldri målt»
+er ikke det samme som «feil».** To av fire var i orden.
+
+| konstant | forventning | MÅLT |
+|---|---|---|
+| `vant[N]` | skjev | **råtten** — bud 9 sto 0,662 mot faktiske 0,097. **+0,127 ± 0,043** |
+| σ-gulvet 0,6 | binder for hardt | **inert** — 0,3 og 1,0 gir BIT-IDENTISK spill |
+| μ | ukjent | **skjev +0,130 — men å rette den koster −0,09** |
+| `evForsvar` | to roller i én | splittet, måles |
+
+### σ er perfekt kalibrert, og det er derfor gulvet er dødt
+
+`examples/budkalibrering.ts`, 3 000 runder, budvinnerens anslag i budøyeblikket:
+
+    mu i snitt        9,804      faktisk lagstikk  9,934   SKJEVHET +0,130
+    sigma modellen sier   1,227
+    FAKTISK spredning     1,228   forhold 1,00x
+
+Usikkerhetsanslaget er altså riktig på tredje desimal. Gulvet på 0,6 binder
+nesten aldri, og når det først binder (1,8) koster det −0,083. **Ingenting å
+hente.** Konstanten er verken feil eller viktig.
+
+### μ-SKJEVHETEN ER ET SELEKSJONSARTEFAKT — og dette er den viktige lærdommen
+
+Skjevheten på +0,130 ser ut som gratis penger: modellen undervurderer, altså er
+boten for feig, altså legg til 0,130. Målingen sier det stikk motsatte:
+
+| arm | poeng/runde | tegntest |
+|---|---|---|
+| μ − 0,13 | +0,037 ± 0,045 | z = −0,10 (støy) |
+| μ + 0,13 | **−0,090 ± 0,046** | z = −1,97 |
+| μ + 0,30 | **−0,393 ± 0,071** | z = −4,99 |
+
+Monoton dose-respons, kontrollarmen nøyaktig 0,0000. Å legge til μ gjør det
+verre, jevnt og trutt.
+
+**Hvorfor?** Kalibreringen målte μ mot faktiske lagstikk *for budvinneren*. Men
+budvinnerne er ikke et tilfeldig utvalg — det er nettopp de hvis hender slo
+anslaget godt nok til å vinne auksjonen. Å betinge på «vant budrunden» velger
+ut de heldige. Skjevheten ligger i UTVALGET, ikke i modellen.
+
+Dette er vinnerens forbannelse med motsatt fortegn, og det er tredje gang i
+prosjektet en betinget måling har pekt feil vei. **Regel: en skjevhet målt på
+et utvalg som er selektert PÅ den størrelsen man måler, er ikke en skjevhet.**
+
+μ står urørt. `μSkift` beholdes som parameter (standard 0) fordi den gjorde
+målingen mulig og koster ingenting.
+
+### `evForsvar` var to størrelser med ett navn
+
+Konstanten tjente to roller samtidig:
+
+  TERSKELEN        `bv`-startverdien — hvor godt et bud må være for å bys.
+  FORSVARSVERDIEN  leddet `(1−p)·evForsvar` — hva vi får når vi IKKE vinner.
+
+I spørsmålet «skal jeg by?» kansellerer de mot hverandre. I valget MELLOM to
+bud gjør de det ikke:
+
+    ev(N1) − ev(N2) = p1·2N1(2P1−1) − p2·2N2(2P2−1) + (p2−p1)·forsvarsverdi
+
+Leddet overlever når p1 ≠ p2 — og etter at `vant[N]` ble rettet spriker de
+voldsomt (bud 9: 0,097 mot bud 10: 0,940). Konstanten styrer altså valget
+mellom 9 og 10 direkte, uten noen gang å ha vært målt i den rollen.
+Nå splittet i `examples/gate2.ts` som `@<terskel>/<σgulv>/<μskift>/<forsvarsverdi>`;
+utelates den, faller den tilbake på terskelen og alle gamle spesifikasjoner
+spiller bit-identisk.
+
+### AMERIKANER er lagt inn — og modellen har rett i å aldri melde den
+
+Agenten løkket bare over TALLBUD og kunne derfor aldri melde Amerikaner
+uansett hvor god hånden var. Nå er den med, med eksakt aritmetikk: den krever
+NØYAKTIG det samme som bud 12 (alle stikk), men betaler mål/2 = 50 mot bud 12s
+2 × 12 = 24. Samme P, dobbel innsats.
+
+0 meldinger på 3 000 runder — og det er **riktig**, ikke en feil:
+
+| μ | faktisk P(alle 12) | modellen sier |
+|---|---|---|
+| 10,5 | 20,4 % | 20,6 % |
+| 11,0 | **39,7 %** | 34,2 % |
+
+Selv på de beste hendene tar laget alle tolv i 40 % av tilfellene. Amerikaner
+krever 47 % for å slå terskelen, og ved μ = 11 gir bud 11 en EV på **+7,0** mot
+Amerikanerens **−10,3**. Tallbudet dominerer alltid. Situasjonen finnes (7,12 %
+av virkelige runder tar alle 12), men den er ikke FORUTSIGBAR i budøyeblikket.
+
+SOLO er fortsatt utelatt med vilje: μ anslår LAGETS stikk, og å bruke det for
+et bud som krever at budvinneren alene tar alt ville systematisk overby.

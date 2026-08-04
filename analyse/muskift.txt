@@ -1,0 +1,27 @@
+6 filer, 4 armer
+
+budm:e1-modell/bud-vant.json@-3.0/0.6/-0.13:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  8000  +0.0369 +/- 0.0453 (+0.81 SE)  trimmet +0.0000  tegn 187/189 (z=-0.10)
+   avgjorte giver: 376 av 8000 (4.7 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     makker   n=  2145  +0.0183 +/- 0.0996  trimmet +0.0000  z=-0.40
+     forsvar  n=  4187  +0.0104 +/- 0.0670  trimmet +0.0000  z=+0.14
+
+budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  8000  +0.0000 +/- 0.0000 (+0.00 SE)  trimmet +0.0000  tegn 0/0 (z=+0.00)
+     makker   n=  2000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  4000  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+budm:e1-modell/bud-vant.json@-3.0/0.6/0.13:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  8000  -0.0901 +/- 0.0460 (-1.96 SE)  trimmet +0.0000  tegn 177/216 (z=-1.97)
+   avgjorte giver: 393 av 8000 (4.9 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     makker   n=  1875  -0.0030 +/- 0.0066  trimmet +0.0000  z=+0.82
+     forsvar  n=  3777  +0.0134 +/- 0.0124  trimmet +0.0000  z=-1.21
+
+budm:e1-modell/bud-vant.json@-3.0/0.6/0.30:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  8000  -0.3926 +/- 0.0711 (-5.52 SE)  trimmet -0.1100  tegn 376/526 (z=-4.99)
+   avgjorte giver: 902 av 8000 (11.3 %)
+     makker   n=  1705  +0.0051 +/- 0.0122  trimmet +0.0000  z=+2.36
+     forsvar  n=  3492  +0.0347 +/- 0.0180  trimmet +0.0000  z=-1.86
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.
