@@ -117,7 +117,14 @@ console.log(
     `${"<1k".padStart(8)}${"<10k".padStart(8)}${"<100k".padStart(8)}`,
 );
 for (const r of rader) {
-  const f = (x: number): string => (Number.isFinite(x) ? Math.round(x).toLocaleString("nb-NO") : "—");
+  // Kort form: tallene naar 10^14 i stikk 0, og full gruppering sprengte
+  // kolonnebredden saa tabellen ble uleselig.
+  const f = (x: number): string => {
+    if (!Number.isFinite(x)) return "—";
+    if (x >= 1e6) return `${(x / 1e6).toPrecision(3)}M`;
+    if (x >= 1e3) return `${(x / 1e3).toPrecision(3)}k`;
+    return String(Math.round(x));
+  };
   console.log(
     `${String(r.stikk).padEnd(7)}${String(r.n).padStart(6)}${f(r.median).padStart(14)}${f(r.p90).padStart(14)}` +
       `${`${(r.under1k * 100).toFixed(0)} %`.padStart(8)}${`${(r.under10k * 100).toFixed(0)} %`.padStart(8)}` +

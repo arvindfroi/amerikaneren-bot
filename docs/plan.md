@@ -1238,3 +1238,44 @@ den eneste som har betalt.
 **Det setter ikke blokkene på båten**, det setter dem på hylla: alle fem ble
 målt på data generert med 12 verdener og uten budmodell i stillingskilden.
 `sd-v7` retter begge. Men prioren er nå svak, og maskintiden bør gå til søk.
+
+## 19. Hva kan optimeres 100 % matematisk — målt svar
+
+Arvind spurte hvilke deler av spillet som lar seg optimere eksakt.
+`examples/verdensrom.ts` teller forenlige verdener per stikk, 120 runder:
+
+| stikk | median forenlige verdener | andel under 100k |
+|---|---|---|
+| 0 | 3,8 × 10¹⁴ | 0 % |
+| 5 | 4,2 × 10⁹ | 0 % |
+| 7 | 1,1 × 10⁷ | 11 % |
+| 8 | 2,5 × 10⁵ | 40 % |
+| **9** | **6 300** | **92 %** |
+| **10** | **130** | **100 %** |
+| 11 | 5 | 100 % |
+
+**Uttømmende enumerering er råd fra stikk 9, triviell fra stikk 10.**
+
+### Og det er nøyaktig der vi allerede spiller godt
+
+Forsvarsprofilen (`verktoy/forsvarsprofil.py`) målte `fanget`:
+
+| stikk | fanget |
+|---|---|
+| 0–4 | 0,23 – 0,29 |
+| 9 | 0,662 |
+| 10 | **0,830** |
+
+**Eksaktheten er tilgjengelig presis der den trengs minst.** Der vi er svake —
+de fire første stikkene — er rommet 10⁹ til 10¹⁴ verdener, altså håpløst.
+
+Det forklarer `eksaktagent`s −0,29 … −0,78: den løser eksakt i sluttspillet, der
+det ikke er mye å hente, og faller tilbake på dobbelt-dummy der det er.
+
+**Linjen lukkes, og den lukkes med et tall.** Ikke fordi eksakt regning er feil,
+men fordi den bare er tilgjengelig i den delen av spillet vi alt behersker.
+
+Det eneste som kan flytte den grensen, er en bedre PRIOR over hva motparten har
+— altså motstandermodellen (§13.3). Den krymper ikke rommet matematisk, men den
+gjør at få samplede verdener bærer mer. Samme konklusjon som §17 nådde fra en
+annen kant.
