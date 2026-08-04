@@ -16,6 +16,45 @@ ikke om å vinne en kveld, men om at ingen mengde spilling skal snu regnskapet.
 
 ## S1. Hva målet krever, i tall
 
+**Målet, skjerpet 4. august.** Arvind: «jeg setter et mål om at vi ikke skal
+kunne tape mot mennesker i et race til 100 poeng (med mindre et mirakel
+skjer). klarer vi det så er jeg fornøyd!»
+
+Det er et **skarpere** krav enn «i det lange løpet», ikke et mildere. Et race
+varer ~17 runder. Snittet måler uendelig mange runder; racet måler halen over
+sytten.
+
+Spillet er allerede et race til 100 (`målPoeng: 100`), og 45 fullførte kamper
+ligger i Val Town-basen. Utfallet følger samme vendepunkt som poengmålingen:
+
+| periode | kamper | mennesket vant |
+|---|---|---|
+| 24. juli – 1. aug | 31 | 20 (65 %) |
+| 2. august | 5 | 2 (40 %) |
+| 3. august | 9 | **1 (11 %)** |
+
+En jevn spiller i et firemannsrace vinner 25 %. Mennesket lå altså klart over
+jevnt og ligger nå under.
+
+`verktoy/race100.py` bootstrapper hele runde-vektoren fra 161 ekte runder — en
+normaltilnærming duger ikke, fordi fordelingen er trimodal (budvinnerlaget
+±18/9 eller ±20/10, forsvarerne 0–3). **Den spådde 11,68 % menneskeseier; det
+observerte utfallet var 1 av 9 = 11,1 %.**
+
+| skift i poeng/runde | mennesket vinner racet | |
+|---|---|---|
+| 0 (i dag) | 11,7 % | |
+| **+1,0** | **4,8 %** | «kan ikke tape», 1 av 20 |
+| +2,0 | 1,6 % | |
+| **+2,5** | **0,9 %** | «med mindre et mirakel skjer» |
+| +5,0 | 0,03 % | |
+
+**Målet koster ~+2,5 poeng per runde over Adams slik han sto 3. august.** Hele
+budmodellen er verdt +1,07 og hele kortnettet +1,24, så det er omtrent å doble
+den samlede verdien av alt botten har.
+
+### Den gamle formuleringen, som fortsatt gjelder for halvdel A
+
 Med en ledelse på `m` poeng per runde og standardavvik `s` er sannsynligheten
 for at mennesket ligger foran etter `N` runder `Φ(−m√N/s)`. Målt på Adams-v1:
 **m = 1,813, s = 11,455.**
