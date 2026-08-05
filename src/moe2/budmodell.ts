@@ -130,6 +130,30 @@ export class Budagent implements Innagent {
    */
   private readonly μSkift: number;
 
+  /**
+   * PERSONAVHENGIG JUSTERING av forsvarsverdien, eller `null`.
+   *
+   * `evForsvar` er en KONSTANT der det burde stått en modell: hva forsvar er
+   * verdt avhenger av HVEM som vant budrunden. Mot en som berger 92 % av
+   * kontraktene sine er forsvar nesten verdiløst; mot en som berger 62 % er
+   * det verdt omtrent dobbelt så mye.
+   *
+   * MEN DEN ERSTATTER IKKE KONSTANTEN, den forskyver den. Sveipen 5. august
+   * målte at den koblede verdien er et lokalt optimum i BEGGE retninger, så
+   * nullpunktet er riktig. Profilen bidrar med et AVVIK rundt det, vektet av
+   * hvor mye vi faktisk vet om personen – null i første runde, voksende siden.
+   */
+  private forsvarsjustering: ((state: GameState) => number) | null;
+
+  /**
+   * Festes ETTER konstruksjon fordi agentspeken bygger innenfra og ut:
+   * `profil:` ligger utenpå `budm:`, så budagenten finnes allerede når
+   * profilboka opprettes.
+   */
+  settForsvarsjustering(f: ((state: GameState) => number) | null): void {
+    this.forsvarsjustering = f;
+  }
+
   constructor(
     indre: Innagent,
     m: Budmodell,
@@ -137,11 +161,13 @@ export class Budagent implements Innagent {
     σGulv = 0.6,
     μSkift = 0,
     forsvarsverdi = evForsvar,
+    forsvarsjustering: ((state: GameState) => number) | null = null,
   ) {
     this.indre = indre;
     this.m = m;
     this.evForsvar = evForsvar;
     this.forsvarsverdi = forsvarsverdi;
+    this.forsvarsjustering = forsvarsjustering;
     this.σGulv = σGulv;
     this.μSkift = μSkift;
   }
@@ -163,12 +189,17 @@ export class Budagent implements Innagent {
     const μ = anslå(this.m.mμ, x, this.m.rate) + this.μSkift;
     const σ = Math.max(this.σGulv, anslå(this.m.mσ, x, this.m.rate));
 
+    // Personavhengig forskyvning, null når vi ikke kjenner motparten.
+    const just = this.forsvarsjustering === null ? 0 : this.forsvarsjustering(state);
+    const terskel = this.evForsvar + just;
+    const fv = this.forsvarsverdi + just;
+
     let beste: Bud = PASS;
-    let bv = this.evForsvar;
+    let bv = terskel;
     for (const N of tall) {
       const P = 1 - Φ((N - 0.5 - μ) / σ);
       const p = this.m.vant[String(N)] ?? (N >= 11 ? 1 : 0);
-      const ev = p * (2 * N * (2 * P - 1)) + (1 - p) * this.forsvarsverdi;
+      const ev = p * (2 * N * (2 * P - 1)) + (1 - p) * fv;
       if (ev > bv) {
         bv = ev;
         beste = N;
@@ -194,7 +225,7 @@ export class Budagent implements Innagent {
       const p = this.m.vant["AMERIKANER"] ?? 1;
       // Satsen skalerer med maalet: mål/2 til budvinneren, mål/4 til makker.
       const sats = state.regler.målPoeng / 2;
-      const ev = p * (sats * (2 * P - 1)) + (1 - p) * this.forsvarsverdi;
+      const ev = p * (sats * (2 * P - 1)) + (1 - p) * fv;
       if (ev > bv) {
         bv = ev;
         beste = AMERIKANER;

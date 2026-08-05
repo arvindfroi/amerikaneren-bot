@@ -30,6 +30,7 @@ import { Vrakvelger } from "./vrakvelg.ts";
 import { Etterlysvelger } from "./etterlys.ts";
 import { Vrakvelger2, lesVrakflagg } from "./vrakvelg2.ts";
 import { Trosnett } from "./trosnett.ts";
+import { Profilagent, type Budjusterbar } from "./profilagent.ts";
 
 /**
  * Nettene leses ÉN gang og deles. `E1Agent` holder ingen tilstand mellom
@@ -364,6 +365,24 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
    * spilt på nuller uten at noe sa fra. `E1Agent` kaster derfor, og speken må
    * kunne uttrykke filen.
    */
+  /**
+   * `profil:<indre>` — MOTSTANDERMODELLEN.
+   *
+   * Bygger en løpende teori om hver ved bordet, utelukkende av det som skjer i
+   * kampen som spilles nå. Påvirker i dag forsvarsverdien i budgivningen: hva
+   * det er verdt å la den andre få kontrakten.
+   *
+   * Fester seg på budagenten om det finnes en. Uten `budm:` innenfor samler
+   * den bare kunnskap uten å bruke den — det er lovlig, og nyttig for å måle
+   * hva profilen VILLE sagt uten å la den påvirke spillet.
+   */
+  if (indre.startsWith("profil:")) {
+    const inn = lagIndre(indre.slice(7));
+    const bud = (inn as unknown as Partial<Budjusterbar>).settForsvarsjustering
+      ? (inn as unknown as Budjusterbar)
+      : null;
+    return new Profilagent(inn, bud);
+  }
   if (indre.startsWith("e1:")) {
     const rest = indre.slice(3);
     const at = rest.lastIndexOf("@");
