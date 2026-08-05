@@ -41,13 +41,16 @@
 import {
   FARGER,
   likeKort,
-  lovligeKort,
-  utfør,
-  type GameState,
-  type Handling,
   type Kort,
   type Verdi,
-} from "../index.ts";
+} from "../kort.ts";
+// DIREKTE FRA MODULENE, IKKE FRA «../index.ts».
+//
+// Barrel-fila re-eksporterer `neat`, som drar inn traadpoolen og dermed
+// `node:worker_threads` – og da nekter esbuild aa bunle for nettleser. Denne
+// fila ligger i kjeden til spilletids-soeket, saa ett barrel-import her gjorde
+// hele soeket uutrullbart. Samme feil som ga `vrakpolicy.ts` sin egen fil.
+import { lovligeKort, utfør, type GameState, type Handling } from "../motor.ts";
 // Konverteringen HENTES, den skrives ikke paa nytt. Foerste utkast rullet sin
 // egen med `i >> 4` mens den kanoniske bruker `floor(c / 13)` - to helt ulike
 // kodinger, og feilen ville gitt gale kort i stillhet. Tre av dagens feil var
