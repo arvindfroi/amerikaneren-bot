@@ -371,15 +371,29 @@ def froe_i(mappe: str) -> set:
 
 
 class E1Nett(nn.Module):
-    """MLP, ReLU på alle lag unntatt det siste – samme form appens loader forventer."""
+    """MLP, ReLU på alle lag unntatt det siste – samme form appens loader forventer.
 
-    def __init__(self, dims: list[int]):
+    DROPOUT er KUN aktiv under trening og er en ren identitet i eval-modus, så
+    eksportformatet er uroert – `skriv_vekter` ser de samme tette lagene.
+
+    Den finnes fordi 441 ekstra innganger paa 292k rader overtilpasser dobbelt
+    saa fort som kjernen alene: gapet mellom tren- og holdout-tap vokste
+    +0,025 mot +0,013 ved epoke 12. BEN-foredraget (PyData Berlin 2018) sier
+    det rett ut: «Overfitting was a huge problem (dropout worked best)».
+    """
+
+    def __init__(self, dims: list[int], dropout: float = 0.0):
         super().__init__()
         self.lag = nn.ModuleList([nn.Linear(dims[i], dims[i + 1]) for i in range(len(dims) - 1)])
+        self.dropout = nn.Dropout(dropout) if dropout > 0 else None
 
     def forward(self, x):
         for i, l in enumerate(self.lag):
             x = l(x)
+            # Dropout MELLOM lagene, ikke paa utgangen: det siste laget er
+            # logitene, og aa slippe dem tilfeldig ville vaert stoey paa fasiten.
+            if self.dropout is not None and i < len(self.lag) - 1:
+                x = self.dropout(x)
             if i < len(self.lag) - 1:
                 x = F.relu(x)
         return x
@@ -551,6 +565,7 @@ def main() -> None:
     p.add_argument("--batch", type=int, default=1024)
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--wd", type=float, default=0.0)
+    p.add_argument("--dropout", type=float, default=0.0, help="dropout mellom lagene under trening")
     p.add_argument("--taal", type=int, default=6)
     p.add_argument("--tau", type=float, default=1.0)
     p.add_argument("--tremaal", type=int, default=200000, help="rader treningstapet måles på")
@@ -847,7 +862,7 @@ def main() -> None:
         torch.manual_seed(args.initfroe)
         if enhet == "cuda":
             torch.cuda.manual_seed_all(args.initfroe)
-        modell = E1Nett(dims).to(enhet)
+        modell = E1Nett(dims, args.dropout).to(enhet)
         if args.start:
             # Formene maa stemme, med ÉN tillatt avvikelse: FOERSTE lag kan
             # vaere BREDERE enn startvekten. Alt annet avvises.
