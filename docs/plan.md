@@ -2928,3 +2928,101 @@ inngang, og sansene fylles på plass.
 
 v9 må IKKE brukes til korpusgenerering uten at trosnettet føres gjennom
 orakelet. Det er nå mulig; før var det umulig uten å vite det.
+
+## 33. ADAMS-V4 MOT V3 PÅ KAMPNIVÅ — og hva familietallene faktisk sier
+
+### v4 vinner klart, og mer enn rundetallet lovet
+
+24 000 parrede kamper til 100 poeng, `examples/kamp.ts`:
+
+| | |
+|---|---|
+| v4s vinnerandel | **0,3083** |
+| v3s vinnerandel (kontroll) | **0,2500** — nøyaktig som den skal |
+| differanse | **+5,83 pp ± 0,21 (27,5 SE)** |
+| tegntest | 1 765 opp / 560 ned (z = +25,0) |
+| sluttmargin | **+4,49 poeng ± 0,22** |
+
+Kontrollarmen traff 0,2500 på fire desimaler og det var 0 givavvik.
+
+v4 er altså **23 % mer sannsynlig å vinne et race til 100** enn v3. Eneste
+forskjell mellom dem er den rettede `vant[N]`-tabellen.
+
+TO TING SOM IKKE STEMTE MED FORVENTNINGEN, og begge er verdt å notere:
+
+  Jeg gjettet 27–28 % på forhånd. Det ble 30,8. Prediksjonen var for lav.
+
+  18,1 runder x 0,127 poeng ≈ 2,3 poeng akkumulert, men målt sluttmargin er
+  **+4,49** — omtrent det dobbelte. Årsaken er IKKE fastslått. To kandidater:
+  enten undervurderer rundebenken fordi den måler én runde fra 0–0–0–0, eller
+  så forsterker margin-mot-beste-motstander tallet fordi min gevinst også er
+  de andres tap. Dette bør måles, ikke gjettes.
+
+Uansett hvilken det er, peker begge samme vei: **rundedifferanse har
+systematisk undervurdert hva forbedringene er verdt i et faktisk race.** Det
+var hele begrunnelsen for §30 funn 5, og benken betalte seg umiddelbart.
+
+### Familiens ekte kamper — svaret på «har mennesker sjanse?»
+
+Fra Val Town-basen, `type='kamp'`. Grunnlinja er 25 %: ett menneske mot tre
+bots. (Ingen navn her; repoet er offentlig.)
+
+| motstander | kamper | mennesket vant | andel |
+|---|---|---|---|
+| PIMC/MAKS | 16 | 12 | **75 %** |
+| NevroHjerne | 13 | 8 | **62 %** |
+| Adams («Vaar») | 10 | 2 | 20 % |
+| Adams-v1 | 6 | 1 | 17 % |
+| Adams-v2 | 1 | 0 | — |
+| Adams-v3 | 2 | 0 | — |
+
+**Adams-linja samlet: 3 av 19 = 15,8 %.**
+
+FRAMGANGEN ER DRAMATISK — fra at familien slo PIMC tre av fire ganger til at
+de vinner under hver sjette mot Adams. Men vi er IKKE i mål:
+
+  målet «kan ikke tape»   4,7 % menneskeseier
+  målet «mirakel»         0,9 %
+  MÅLT                    15,8 %, 95 %-intervall ca. 5,5 % – 37,5 %
+
+Punktestimatet er rundt TRE GANGER for høyt, og intervallet er så bredt at vi
+i praksis ikke vet hvor vi står. Mot v3 spesifikt: **to kamper**. Det er ingen
+måling i det hele tatt.
+
+### Konsekvens: rådet om å ikke rulle ut v4 er TATT TILBAKE
+
+Jeg argumenterte mot å bruke en versjons-ID på +0,127 poeng/runde. Det var før
+kampbenken. **+5,8 pp vinnerandel er en annen sak**, og viktigere: uten
+familierunder mot v4 kan vi ikke måle om vi nærmer oss målet i det hele tatt.
+
+48 fullførte kamper i HELE basen er dessuten tynt uansett hvor god botten blir.
+Skal påstanden «mennesker har ikke sjanse» kunne tallfestes, må familien spille
+mange flere kamper mot ÉN og samme versjon.
+
+## 34. Policy-sveipen: alle avslåtte brytere målt inn igjen
+
+Konvensjonsvakten har 16 policyer; bare 4 (`abmp`) er på. Tolv var
+implementert og avslått, hver prøvd en gang mot en ELDRE stakk. Sveip A måler
+dem inn én og én mot dagens.
+
+| bryter | poeng/runde | tegntest | fyrer i |
+|---|---|---|---|
+| `t` garanti-ikke-trumf | **0,0000 eksakt** | — | **aldri** |
+| `N` garanti-nytte | +0,005 | z = +0,93 | 0,3 % |
+| `A` makker-ess-først | +0,003 | z = +0,41 | 9,0 % |
+| `C` fører-trumfkontroll | −0,023 | z = −1,79 | 9,1 % |
+| `k` kast-billigst | −0,025 | z = −1,17 | 14,8 % |
+| `n` kast-nytte | −0,025 | z = −1,22 | 14,8 % |
+| `S` stopp-trumf-når-tom | **−0,064** | z = −3,07 | 2,3 % |
+
+INGEN AV DEM HJELPER. Tre observasjoner er likevel verdt å ta med:
+
+  `t` er BIT-IDENTISK med dagens. Den er fullstendig skygget av `b`, som
+  allerede er på — to regler der den ene aldri kan komme til orde.
+
+  `A` fyrer i 9,0 % av giverne og lander likevel på +0,003. Den gjør noe ofte,
+  og det den gjør er verdiløst.
+
+  `k` og `n` gir nesten identiske tall (−0,0249 mot −0,0251, samme 1 418
+  avgjorte givere) selv om de er ulike regler. De ender trolig på samme kort i
+  praksis, og da er den ene overflødig.
