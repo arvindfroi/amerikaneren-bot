@@ -3502,3 +3502,49 @@ på 292k treningsrader er dårligere statistikk.
 MEN IKKE FORKAST DEM PÅ DETTE. Planen har den dokumenterte lærdommen: D0 hadde
 hold-anger 0,767 mot B273s 0,851 og målte NULL på poeng. Holdout og poeng har
 vært uenige før. Målingen på gate2 avgjør.
+
+## 44. MÅLESTOKKEN ER KALIBRERT — og familien spiller på Adams-v3-nivå
+
+Kampbenken, hver kandidat i ETT sete mot tre Adams-v4, 240 frø hver.
+Kontrollarmen traff 0,2500 i alle fire.
+
+| motstander | vinnerandel mot 3x Adams-v4 |
+|---|---|
+| NevroHjerne | **3,65 %** |
+| sd-r2 | 6,77 % |
+| ftf1 | 7,29 % |
+| **Adams-v3** | **20,21 %** |
+| *familien (19 ekte kamper)* | *15,8 %* |
+
+**FAMILIEN SPILLER OMTRENT PÅ ADAMS-V3-NIVÅ**, litt svakere. Det henger sammen
+med at de slår NevroHjerne 62 % av gangene mens NevroHjerne bare får 3,65 %
+mot v4.
+
+Adams-v3 er dermed en KONSERVATIV menneske-ekvivalent: litt sterkere enn
+familien, altså et strengere krav enn virkeligheten stiller.
+
+### Vekslingskursen mellom det vi måler og målet
+
+v3 mot tre v3 er 25 % per definisjon. v3 mot tre v4 er 20,21 %. v4 er +0,127
+poeng/runde bedre enn v3. Altså:
+
+    +0,127 poeng/runde i feltet  ->  −4,79 prosentpoeng for en FAST motstander
+
+Fra familiens 15,8 % til målet 5 % er −10,8 pp:
+
+    −10,8 pp  ->  ~+0,29 poeng per runde
+
+**Søket alene gir +0,3 replikert.** Til førsteordens rekker det.
+
+FORBEHOLDET ER EKTE: kurven flater sannsynligvis ut jo nærmere null man kommer
+— de siste prosentpoengene koster mer enn de første, fordi selv en perfekt bot
+taper på kortfordelingen alene. Dette er et estimat, ikke et løfte.
+
+Men det er FØRSTE GANG prosjektet har en vekslingskurs mellom rundepoeng og
+den størrelsen målet faktisk er formulert i. Uten den kunne vi ikke vite om
++0,3 var mye eller lite.
+
+### Den avgjørende målingen
+
+Stedfortrederen (v3) mot tre Adams-v4 MED søk i førersetet. Faller den fra
+20,21 % mot 5 %, er målet innen rekkevidde uten en eneste treningstime.
