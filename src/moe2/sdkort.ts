@@ -75,6 +75,23 @@ export interface SDOpts {
    * av hvilke hender som tilfeldigvis ble trukket.
    */
   readonly verdenerHender?: readonly (readonly number[][])[];
+  /**
+   * HVORDAN FLERE FORTSETTELSER SLÅS SAMMEN — Brown & Sandholm (2019).
+   *
+   * `"min"` er papirets egen form: motparten VELGER fortsettelse, så verdien
+   * er den fortsettelsen som skader oss mest. Det er valget som gjør
+   * evalueringen robust og ikke-utnyttbar.
+   *
+   * `"snitt"` er den mildere formen: robust i forventning i stedet for i verste
+   * fall. Tas med fordi Amerikaneren ikke er nullsum med faste lag — «motparten
+   * velger» er mindre entydig her enn i toparts-poker.
+   *
+   * MERK at `min` her IKKE lider av den vanlige minimums-skjevheten. Verdenen
+   * er FAST og hver fortsettelse er DETERMINISTISK, så vi tar ikke minimum av
+   * støyende estimater av samme størrelse – vi tar minimum over genuint ulike
+   * strategier. Det er nøyaktig den størrelsen papiret vil ha.
+   */
+  readonly fortsKombi?: "min" | "snitt";
 }
 
 export interface SDKortOpts extends SDOpts {
@@ -196,7 +213,7 @@ function spillFerdig(start: GameState, motpart: Utspiller): GameState {
 export function vurderSD(
   state: GameState,
   spiller: number,
-  motpart: Utspiller,
+  motpart: Utspiller | readonly Utspiller[],
   handlinger: readonly Handling[],
   opts: SDOpts,
 ): SDVurdering[] {
@@ -205,12 +222,29 @@ export function vurderSD(
   const verdener = opts.verdenerHender ?? trekkVerdener(state, spiller, opts.verdener, opts.rng);
   if (verdener.length === 0) return [];
 
+  /**
+   * FORTSETTELSENE. Én modell er det gamle oppsettet og gir BIT-IDENTISK
+   * resultat – ingen stille regresjon for noen som ikke ber om det nye.
+   */
+  const forts: readonly Utspiller[] = Array.isArray(motpart)
+    ? (motpart as readonly Utspiller[])
+    : [motpart as Utspiller];
+  const kombi = opts.fortsKombi ?? "min";
+
   const ut: SDVurdering[] = [];
   for (let i = 0; i < handlinger.length; i++) {
     let sum = 0;
     for (const hender of verdener) {
       const etter = utfør(medVerden(state, hender, spiller), handlinger[i]!).state;
-      sum += mål(spillFerdig(etter, motpart), spiller);
+      // Fortsettelsen velges INNE i verdenen: motpartens valg av strategi er
+      // et valg gitt kortene, ikke et snitt over ulike kortfordelinger.
+      let v = mål(spillFerdig(etter, forts[0]!), spiller);
+      for (let j = 1; j < forts.length; j++) {
+        const vj = mål(spillFerdig(etter, forts[j]!), spiller);
+        if (kombi === "min") v = Math.min(v, vj);
+        else v += vj;
+      }
+      sum += kombi === "min" ? v : v / forts.length;
     }
     ut.push({ indeks: i, verdi: sum / verdener.length, n: verdener.length });
   }
@@ -231,7 +265,7 @@ export function besteIndeks(vurdert: readonly SDVurdering[]): number {
 export function vurderKortSD(
   state: GameState,
   spiller: number,
-  motpart: Utspiller,
+  motpart: Utspiller | readonly Utspiller[],
   opts: SDKortOpts,
 ): KortVurdering[] {
   const lovlige = opts.kandidater ?? lovligeKort(state, spiller);
@@ -283,7 +317,7 @@ export function besteKortSD(
  */
 export function vurderVrakSD(
   state: GameState,
-  motpart: Utspiller,
+  motpart: Utspiller | readonly Utspiller[],
   kandidater: readonly (readonly number[])[],
   opts: SDOpts,
 ): SDVurdering[] {

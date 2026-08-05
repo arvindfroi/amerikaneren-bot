@@ -345,7 +345,22 @@ function lagMotpart(spec: string): { navn: string; velgHandling(s: GameState): H
       `vr:<vekter>:<flagg>:<indre> eller budm:<fil>[@<ev>]:<indre>)`,
   );
 }
-const motpart = lagMotpart(motpartSpek);
+/**
+ * FORTSETTELSENE — Brown & Sandholm (2019), dybdebegrenset soek med k
+ * fortsettelsesstrategier.
+ *
+ * Med EN modell antar evalueringen at motparten spiller noeyaktig slik. Det
+ * gjoer verdien skjev og utnyttbar, og planen beskrev symptomet lenge foer den
+ * navnga aarsaken: «er modellen svakere enn bordet, undervurderes systematisk
+ * de linjene som krever god oppfoelging».
+ *
+ * KOSTNADSNOEYTRALT: rollout-budsjettet er verdener x fortsettelser. 4 x 3
+ * koster det samme som dagens 12 x 1. Faerre verdener gir mer VARIANS, som
+ * midles ut over hundretusener av rader; en fortsettelse gir SKJEVHET, som
+ * ikke gjoer det.
+ */
+const fortsettelser = motpartSpek.split(",").map((x) => lagMotpart(x.trim()));
+const motpart = fortsettelser[0]!;
 /**
  * Stillingskilden. Standard er nevro (runde 1); med --spiller er det nettet
  * som selv skal laere, og da er dette DAgger-runde 2.
