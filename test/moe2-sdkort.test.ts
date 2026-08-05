@@ -9,6 +9,7 @@ import { kortIndeks } from "../src/neat/trekk.ts";
 import { intTilKort, kortTilInt } from "../src/solver/dds.ts";
 import {
   besteIndeks,
+  medVerden,
   trekkVerdener,
   vurderTrumfSD,
   vurderVrakSD,
@@ -113,4 +114,58 @@ test("SD-evalueringen sier fra når den ikke har data, i stedet for å gjette", 
   assert.equal(besteIndeks([]), -1);
   // Feil fase gir også tom liste, ikke et tall som ser gyldig ut.
   assert.deepEqual(vurderTrumfSD(s, nevro, [{ farge: 0, valør: 5 }], { verdener: 2, rng: lagRng(1) }), []);
+});
+
+test("makkeren flytter med verdenen: stikk 1 scores for RIKTIG lag", () => {
+  // Feilen som ble funnet 26. juli 2026. `state.makker` settes én gang, i VELG,
+  // og motoren rører den aldri igjen. `medVerden` byttet hendene uten å flytte
+  // makkeren, så i stikk 1 – den eneste stillingen der det etterlyste kortet
+  // fortsatt er uspilt og usett – pekte feltet på et sete som IKKE satt med
+  // kortet. `avsluttRunde` ga da stikkene til feil lag, og hele
+  // åpningskonvensjonen ble målt på en gal poengsum.
+  let s: GameState = opprettSpill({ antallSpillere: 4 }, 21_000_000);
+  let vakt = 0;
+  while (s.fase !== "SPILL" && s.fase !== "FERDIG" && vakt++ < 60) {
+    s = utfør(s, nevro.velgHandling(s)).state;
+  }
+  assert.equal(s.fase, "SPILL");
+  assert.equal(s.stikkSpilt, 0, "vi må stå i stikk 1, før det etterlyste er spilt");
+  assert.ok(s.etterlyst !== null && s.makker !== null);
+
+  const sete = s.iTur!;
+  const verdener = trekkVerdener(s, sete, 8, lagRng(4711));
+  assert.ok(verdener.length > 0);
+
+  let flyttet = 0;
+  for (const hender of verdener) {
+    const holder = hender.findIndex((h) => h.includes(kortIndeks(s.etterlyst!)));
+    assert.ok(holder >= 0, "det etterlyste kortet må ligge på en hånd i stikk 1");
+    if (holder !== s.makker) flyttet++;
+    const verden = medVerden(s, hender, sete);
+    assert.equal(verden.makker, holder, "makkeren er den som sitter med det etterlyste kortet");
+    assert.deepEqual(verden.hender[sete], s.hender[sete], "observatørens hånd står urørt");
+  }
+  // Uten flytting ville testen ikke bevist noe – kortet MÅ havne andre steder.
+  assert.ok(flyttet > 0, "verdenstrekningen flytter det etterlyste kortet");
+});
+
+test("makkeren står når det etterlyste kortet alt er spilt", () => {
+  // Fra stikk 2 og ut er kortet i historikken, ingen hånd har det, og da er
+  // `state.makker` allerede riktig. Da skal medVerden IKKE finne på noe.
+  let s: GameState = opprettSpill({ antallSpillere: 4 }, 21_000_000);
+  let vakt = 0;
+  while (s.fase !== "SPILL" && s.fase !== "FERDIG" && vakt++ < 60) {
+    s = utfør(s, nevro.velgHandling(s)).state;
+  }
+  while (s.fase === "SPILL" && s.stikkSpilt < 3 && vakt++ < 200) {
+    s = utfør(s, nevro.velgHandling(s)).state;
+  }
+  assert.equal(s.fase, "SPILL");
+  assert.ok(s.makker !== null);
+  const sete = s.iTur!;
+  const verdener = trekkVerdener(s, sete, 5, lagRng(99));
+  assert.ok(verdener.length > 0);
+  for (const hender of verdener) {
+    assert.equal(medVerden(s, hender, sete).makker, s.makker);
+  }
 });

@@ -53,12 +53,19 @@
  *       orakelet sier 9,00.
  *   bud:b8+0.5:vakt:at:e1:e1-modell/sd-r2.bin
  *       den LOVLIGE: 8 samplede verdener, by når snittet ≥ budet + 0,5.
+ *   bud:h@e1-modell/hand-a.bin@+0.5:vakt:at:e1:e1-modell/sd-r2.bin
+ *       den LÆRTE, også lovlig: håndvurderingsnettet i stedet for rollouts.
+ *       Se `src/moe2/handnett.ts`. Separatoren er «@» og ikke «:» fordi
+ *       kandidatspesifikasjonen deles på kolon, og ikke «+/−» alene fordi
+ *       filstier inneholder bindestrek.
  */
 
 import { kortId, lagRng, nyStokk, stokk, type Kort } from "../kort.ts";
 import { PASS, type Bud } from "../regler.ts";
 import { lovligeHandlinger, type GameState, type Handling } from "../motor.ts";
 import { analyserGiv, sdForSete, type Rollout } from "../neat/singledummy.ts";
+import type { NevroNett } from "../nevro/nett.ts";
+import { handSd } from "./handnett.ts";
 import type { Innagent } from "./konvensjonsvakt.ts";
 
 export interface Budvalg {
@@ -75,6 +82,11 @@ export interface Budvalg {
    * som ser alle fire hender og derfor jukser.
    */
   readonly verdener: number;
+  /**
+   * Sti til håndvurderingsnettet, eller null. Er den satt, kommer estimatet
+   * fra nettet og hverken fra orakelet eller fra rollouts.
+   */
+  readonly nettFil: string | null;
 }
 
 /**
@@ -85,8 +97,20 @@ export interface Budvalg {
  *   «b8+0.5», «b12-1»   LOVLIG estimator: 8 (12) samplede verdener, margin
  *                       +0,5 (−1). Fortegnet er obligatorisk her, ellers
  *                       kan ikke verdenstallet skilles fra marginen.
+ *   «h@<sti>@<margin>»  LOVLIG estimator: håndvurderingsnettet i `<sti>`.
  */
 export function lesBudflagg(flagg: string): Budvalg {
+  if (flagg.startsWith("h@")) {
+    const delt = flagg.split("@");
+    if (delt.length !== 3 || delt[1] === "" || delt[2] === "") {
+      throw new Error(`Ukjent håndnettflagg «${flagg}» (ventet «h@<sti>@<margin>»)`);
+    }
+    const margin = Number(delt[2]);
+    if (!Number.isFinite(margin)) {
+      throw new Error(`Ukjent margin «${delt[2]}» i «${flagg}»`);
+    }
+    return { margin, brukSnitt: false, verdener: 0, nettFil: delt[1]! };
+  }
   if (flagg.startsWith("b")) {
     const brudd = flagg.search(/[+-]/);
     if (brudd < 0) {
@@ -97,14 +121,14 @@ export function lesBudflagg(flagg: string): Budvalg {
     if (!Number.isInteger(verdener) || verdener < 1 || !Number.isFinite(margin)) {
       throw new Error(`Ukjent blind budmargin «${flagg}» (ventet «b<verdener><±margin>»)`);
     }
-    return { margin, brukSnitt: false, verdener };
+    return { margin, brukSnitt: false, verdener, nettFil: null };
   }
   const brukSnitt = flagg.startsWith("m");
   const tall = Number(brukSnitt ? flagg.slice(1) : flagg);
   if (!Number.isFinite(tall)) {
-    throw new Error(`Ukjent budmargin «${flagg}» (ventet et tall, evt. med «m»- eller «b»-prefiks)`);
+    throw new Error(`Ukjent budmargin «${flagg}» (ventet et tall, evt. med «m»-, «b»- eller «h@»-prefiks)`);
   }
-  return { margin: tall, brukSnitt, verdener: 0 };
+  return { margin: tall, brukSnitt, verdener: 0, nettFil: null };
 }
 
 /** Deler «bud:<margin>:<resten>» i margin og indre kandidatspesifikasjon. */
@@ -196,19 +220,30 @@ export function blindSd(s: GameState, sete: number, verdener: number, spiller: R
   return svar;
 }
 
-/** Hva vakten ville gjort med `bud` i denne stillingen. Ren funksjon, testbar. */
+/**
+ * Hva vakten ville gjort med `bud` i denne stillingen. Ren funksjon, testbar.
+ *
+ * `nett` må være satt når `valg.nettFil` er det – kallstedet laster filen, så
+ * denne funksjonen kan holdes fri for I/O. Mangler nettet, er det en feil og
+ * ikke en stille tilbakefall til orakelet: da hadde vi målt juks og trodd det
+ * var en lovlig spiller.
+ */
 export function budvaktBud(
   s: GameState,
   sete: number,
   bud: Bud,
   valg: Budvalg,
   orakel: Rollout,
+  nett: NevroNett | null = null,
 ): Bud {
   if (bud !== PASS) return bud;
   const b = lovligMinstebud(s);
   if (b === null) return bud;
   let sd: number;
-  if (valg.verdener > 0) {
+  if (valg.nettFil !== null) {
+    if (nett === null) throw new Error(`Budvakten mangler håndnettet «${valg.nettFil}»`);
+    sd = handSd(nett, s, sete);
+  } else if (valg.verdener > 0) {
     sd = blindSd(s, sete, valg.verdener, orakel);
   } else {
     const analyse = analyserGiv(s, orakel);
@@ -222,15 +257,17 @@ export class Budvakt implements Innagent {
   private readonly indre: Innagent;
   private readonly valg: Budvalg;
   private readonly orakel: Rollout;
+  private readonly nett: NevroNett | null;
   /** Hvor mange PASS vakten har gjort om til bud – kontroll på at den virker. */
   overstyrt = 0;
   /** Hvor mange PASS den indre agenten ga i det hele tatt. */
   passTotalt = 0;
 
-  constructor(indre: Innagent, valg: Budvalg, orakel: Rollout) {
+  constructor(indre: Innagent, valg: Budvalg, orakel: Rollout, nett: NevroNett | null = null) {
     this.indre = indre;
     this.valg = valg;
     this.orakel = orakel;
+    this.nett = nett;
   }
 
   nyKamp(): void {
@@ -241,7 +278,7 @@ export class Budvakt implements Innagent {
     const h = this.indre.velgHandling(state);
     if (h.type !== "BUD" || h.bud !== PASS) return h;
     this.passTotalt++;
-    const bud = budvaktBud(state, h.spiller, h.bud, this.valg, this.orakel);
+    const bud = budvaktBud(state, h.spiller, h.bud, this.valg, this.orakel, this.nett);
     if (bud === h.bud) return h;
     this.overstyrt++;
     return { type: "BUD", spiller: h.spiller, bud };

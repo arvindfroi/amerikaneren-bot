@@ -69,3 +69,12 @@ hand-frys/
 # budgrense-runder: titalls MB, destillert til analyse/handvurdering.{txt,json}
 analyse/handvurdering-runder-*.jsonl
 sd-buffer/
+
+# Korpus- og datamapper (store, regenererbare)
+bud-data/
+bud-data-gammel/
+bud-adams2/
+sd-v10/
+sd-lite/
+sd-roek/
+sd-roek-h/

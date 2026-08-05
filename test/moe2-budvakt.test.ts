@@ -34,7 +34,7 @@ import type { Innagent } from "../src/moe2/konvensjonsvakt.ts";
 
 const orakel = new NevroAgent();
 
-const ORAKEL0: Budvalg = { margin: 0, brukSnitt: false, verdener: 0 };
+const ORAKEL0: Budvalg = { margin: 0, brukSnitt: false, verdener: 0, nettFil: null };
 
 /** Frisk budrunde på en ekte giv. */
 function giv(frø: number): GameState {
@@ -46,23 +46,52 @@ function giv(frø: number): GameState {
 // ---------------------------------------------------------------------------
 
 test("lesBudflagg leser orakelmarginer med og uten fortegn", () => {
-  assert.deepEqual(lesBudflagg("0"), { margin: 0, brukSnitt: false, verdener: 0 });
-  assert.deepEqual(lesBudflagg("1"), { margin: 1, brukSnitt: false, verdener: 0 });
-  assert.deepEqual(lesBudflagg("-1"), { margin: -1, brukSnitt: false, verdener: 0 });
-  assert.deepEqual(lesBudflagg("m-0.6"), { margin: -0.6, brukSnitt: true, verdener: 0 });
+  assert.deepEqual(lesBudflagg("0"), { margin: 0, brukSnitt: false, verdener: 0, nettFil: null });
+  assert.deepEqual(lesBudflagg("1"), { margin: 1, brukSnitt: false, verdener: 0, nettFil: null });
+  assert.deepEqual(lesBudflagg("-1"), { margin: -1, brukSnitt: false, verdener: 0, nettFil: null });
+  assert.deepEqual(lesBudflagg("m-0.6"), { margin: -0.6, brukSnitt: true, verdener: 0, nettFil: null });
 });
 
 test("lesBudflagg leser den blinde varianten, og krever fortegn", () => {
-  assert.deepEqual(lesBudflagg("b8+0.5"), { margin: 0.5, brukSnitt: false, verdener: 8 });
-  assert.deepEqual(lesBudflagg("b12-1"), { margin: -1, brukSnitt: false, verdener: 12 });
+  assert.deepEqual(lesBudflagg("b8+0.5"), { margin: 0.5, brukSnitt: false, verdener: 8, nettFil: null });
+  assert.deepEqual(lesBudflagg("b12-1"), { margin: -1, brukSnitt: false, verdener: 12, nettFil: null });
   // Uten fortegn kan ikke verdenstallet skilles fra marginen.
   assert.throws(() => lesBudflagg("b8"), /mangler fortegn/);
   assert.throws(() => lesBudflagg("tull"), /Ukjent budmargin/);
 });
 
+test("lesBudflagg leser den LÆRTE varianten, med sti og margin", () => {
+  assert.deepEqual(lesBudflagg("h@e1-modell/hand-a.bin@+0.5"), {
+    margin: 0.5,
+    brukSnitt: false,
+    verdener: 0,
+    nettFil: "e1-modell/hand-a.bin",
+  });
+  // Bindestrek i stien er derfor stien får sin egen separator og ikke deles
+  // på fortegnet slik den blinde varianten gjør.
+  assert.deepEqual(lesBudflagg("h@e1-modell/hand-a.bin@-1"), {
+    margin: -1,
+    brukSnitt: false,
+    verdener: 0,
+    nettFil: "e1-modell/hand-a.bin",
+  });
+  assert.throws(() => lesBudflagg("h@bare-sti"), /Ukjent håndnettflagg/);
+  assert.throws(() => lesBudflagg("h@sti@tull"), /Ukjent margin/);
+});
+
+test("vakten nekter å bruke håndnettet hvis det ikke er lastet", () => {
+  // Alternativet – å falle stille tilbake på orakelet – ville målt juks og
+  // rapportert det som en lovlig spiller.
+  const s = giv(4242);
+  assert.throws(
+    () => budvaktBud(s, 0, PASS, lesBudflagg("h@finnes-ikke.bin@0"), orakel),
+    /mangler håndnettet/,
+  );
+});
+
 test("delBudspek deler spesifikasjonen og lar andre kandidater være", () => {
   assert.deepEqual(delBudspek("bud:0:vakt:at:e1:e1-modell/sd-r2.bin"), {
-    valg: { margin: 0, brukSnitt: false, verdener: 0 },
+    valg: { margin: 0, brukSnitt: false, verdener: 0, nettFil: null },
     flagg: "0",
     indre: "vakt:at:e1:e1-modell/sd-r2.bin",
   });
@@ -101,21 +130,21 @@ test("vakten rører aldri et bud som ikke er PASS", () => {
   const s = giv(4242);
   for (const bud of [5, 9, 12, "AMERIKANER", "SOLO"] as const) {
     // Margin −100 ville gjort om ethvert PASS til bud; her skal ingenting skje.
-    assert.equal(budvaktBud(s, 0, bud, { margin: -100, brukSnitt: false, verdener: 0 }, orakel), bud);
+    assert.equal(budvaktBud(s, 0, bud, { margin: -100, brukSnitt: false, verdener: 0, nettFil: null }, orakel), bud);
   }
 });
 
 test("vakten byr det MINSTE lovlige tallbudet, aldri noe annet", () => {
   const s = giv(4242);
   const etter = utfør(s, { type: "BUD", spiller: s.iTur!, bud: 7 }).state;
-  const bud = budvaktBud(etter, etter.iTur!, PASS, { margin: -100, brukSnitt: false, verdener: 0 }, orakel);
+  const bud = budvaktBud(etter, etter.iTur!, PASS, { margin: -100, brukSnitt: false, verdener: 0, nettFil: null }, orakel);
   assert.equal(bud, 8);
 });
 
 test("en umulig margin lar passet stå, en umulig lav margin byr alltid", () => {
   const s = giv(4242);
-  assert.equal(budvaktBud(s, 0, PASS, { margin: 100, brukSnitt: false, verdener: 0 }, orakel), PASS);
-  assert.equal(budvaktBud(s, 0, PASS, { margin: -100, brukSnitt: false, verdener: 0 }, orakel), MINSTE_TALLBUD);
+  assert.equal(budvaktBud(s, 0, PASS, { margin: 100, brukSnitt: false, verdener: 0, nettFil: null }, orakel), PASS);
+  assert.equal(budvaktBud(s, 0, PASS, { margin: -100, brukSnitt: false, verdener: 0, nettFil: null }, orakel), MINSTE_TALLBUD);
 });
 
 test("terskelen er nøyaktig SD − minstebud ≥ margin", () => {
@@ -123,9 +152,9 @@ test("terskelen er nøyaktig SD − minstebud ≥ margin", () => {
   const sd = analyserGiv(s, orakel).sd[0]!;
   const b = lovligMinstebud(s)!;
   // Akkurat på grensen skal den by; ett hakk over skal den passe.
-  assert.equal(budvaktBud(s, 0, PASS, { margin: sd - b, brukSnitt: false, verdener: 0 }, orakel), b);
+  assert.equal(budvaktBud(s, 0, PASS, { margin: sd - b, brukSnitt: false, verdener: 0, nettFil: null }, orakel), b);
   assert.equal(
-    budvaktBud(s, 0, PASS, { margin: sd - b + 0.001, brukSnitt: false, verdener: 0 }, orakel),
+    budvaktBud(s, 0, PASS, { margin: sd - b + 0.001, brukSnitt: false, verdener: 0, nettFil: null }, orakel),
     PASS,
   );
 });
@@ -211,13 +240,13 @@ class AlltidPass implements Innagent {
 
 test("Budvakt teller passene og overstyringene, og lar andre handlinger passere", () => {
   const s = giv(4242);
-  const vakt = new Budvakt(new AlltidPass(), { margin: -100, brukSnitt: false, verdener: 0 }, orakel);
+  const vakt = new Budvakt(new AlltidPass(), { margin: -100, brukSnitt: false, verdener: 0, nettFil: null }, orakel);
   const h = vakt.velgHandling(s);
   assert.deepEqual(h, { type: "BUD", spiller: s.iTur, bud: MINSTE_TALLBUD });
   assert.equal(vakt.passTotalt, 1);
   assert.equal(vakt.overstyrt, 1);
 
-  const streng = new Budvakt(new AlltidPass(), { margin: 100, brukSnitt: false, verdener: 0 }, orakel);
+  const streng = new Budvakt(new AlltidPass(), { margin: 100, brukSnitt: false, verdener: 0, nettFil: null }, orakel);
   assert.deepEqual(streng.velgHandling(s), { type: "BUD", spiller: s.iTur, bud: PASS });
   assert.equal(streng.passTotalt, 1);
   assert.equal(streng.overstyrt, 0);
