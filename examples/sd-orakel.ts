@@ -59,6 +59,7 @@ import { lovligeHandlinger, lovligeKort, opprettSpill, utfør, type GameState, t
 import { e1SpillTrekkMedTro, E1_SPILL_DIM, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9 } from "../src/e1/trekk.ts";
 import { LOVLIGE_BREDDER } from "../src/e1/agent.ts";
 import { Trosnett } from "../src/moe2/trosnett.ts";
+import { lagTrovekt } from "../src/moe2/troprior.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { vurderKortSD } from "../src/moe2/sdkort.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
@@ -172,6 +173,10 @@ const BUDSTIGE = [7, 8, 8, 9, 10, 11, 11, 12];
 let bredde = E1_SPILL_DIM_V8;
 /** Trosnettet. Kreves fra v9 og opp – uten det er 84 av 88 sansetrekk null. */
 let troFil: string | null = null;
+/** Kandidatverdener trosvekten får velge MELLOM. Uten troen er tallet uten mening. */
+let kandidater = 32;
+/** Hvordan flere fortsettelser slås sammen – se SDOpts.fortsKombi. */
+let fortsKombi: "min" | "snitt" | "cfr" = "cfr";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--ut") utFil = process.argv[++i] ?? utFil;
@@ -188,6 +193,8 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--utforsk") utforsk = Number(process.argv[++i]);
   else if (a === "--bredde") bredde = Number(process.argv[++i]);
   else if (a === "--tro") troFil = process.argv[++i] ?? null;
+  else if (a === "--kandidater") kandidater = Number(process.argv[++i]);
+  else if (a === "--fortskombi") fortsKombi = (process.argv[++i] ?? "cfr") as typeof fortsKombi;
   else if (a === "--fraStikk") fraStikk = Number(process.argv[++i]);
   else if (a === "--maks") maks = Number(process.argv[++i]);
   else if (a === "--motpart") motpartSpek = process.argv[++i] ?? "nevro";
@@ -428,7 +435,21 @@ alleKamper: for (let k = 0; k < kamper; k++) {
       const erFoerer = s.budvinner === sete;
       const p = Math.min(1, sjanse * (erFoerer ? rolleVekt : 1));
       if (lovlige.length >= 2 && s.stikkSpilt >= fraStikk && rng() < p) {
-        const vurdert = vurderKortSD(s, sete, motpart, { verdener, rng });
+        // FORTSETTELSENE (Brown & Sandholm) og TROSVEKTEN, begge på plass.
+        //
+        // Uten trosvekt vektes kandidatverdenene bare etter budet, og
+        // ingenting av hvordan folk har SPILT teller. Målt 5. august: +2,62 pp
+        // bedre verdenskvalitet ved 32 kandidater — men bare +0,68 ved 3,
+        // fordi importance sampling kun kan velge blant det som ble trukket.
+        const trovekt =
+          trosnett === null ? undefined : (lagTrovekt(trosnett, s, sete) ?? undefined);
+        const vurdert = vurderKortSD(s, sete, fortsettelser, {
+          verdener,
+          rng,
+          trovekt,
+          verdenKandidater: trovekt === undefined ? 3 : kandidater,
+          fortsKombi: fortsKombi,
+        });
         // Tom liste = ingen verden lot seg trekke. Da skal INGENTING skrives:
         // å behandle «ingen data» som «alle valg er like gode» var mekanismen
         // som gjorde `lærForsvar` verre enn ingenting.

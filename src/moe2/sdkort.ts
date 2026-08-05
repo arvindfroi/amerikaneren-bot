@@ -100,6 +100,16 @@ export interface SDOpts {
    * støy (signal/støy 0,27 ved 12 verdener).
    */
   readonly trovekt?: (v: Verden) => number;
+  /**
+   * Kandidatverdener trosvekten får velge MELLOM. Importance sampling kan bare
+   * plukke det som faktisk ble trukket: ved 3 kandidater ga troen +0,68 pp, ved
+   * 32 ga den +2,62. Uten `trovekt` er tallet uten mening.
+   *
+   * NAVNET ER «verdenKandidater» og ikke «kandidater» fordi `SDKortOpts` alt
+   * bruker det siste om kandidatKORT. To ulike ting, ett navn, er nøyaktig
+   * klassen feil som ikke feiler noe sted.
+   */
+  readonly verdenKandidater?: number;
 }
 
 export interface SDKortOpts extends SDOpts {
@@ -231,7 +241,7 @@ export function vurderSD(
   const mål = opts.mål ?? standardMål;
   const verdener =
     opts.verdenerHender ??
-    trekkVerdener(state, spiller, opts.verdener, opts.rng, undefined, opts.trovekt);
+    trekkVerdener(state, spiller, opts.verdener, opts.rng, undefined, opts.trovekt, opts.verdenKandidater);
   if (verdener.length === 0) return [];
 
   /**

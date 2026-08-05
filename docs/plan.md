@@ -3294,3 +3294,68 @@ Det er den billigste av de to brikkene, og den er allerede trent.
   6. Konvolusjoner over 4x13-rutenettet som egen akse paa treneren
 
 Punkt 3 er porten. Den finnes fordi vi nå har et tall som kan si nei.
+
+## 38. DD ER ALLEREDE AVVIST — og verdinettet arvet fellen (5. august)
+
+Arvind: «hva er vitsen med en DD når vi ikke skal jukse.»
+
+Svaret sto allerede i `src/moe2/sdkort.ts`, målt 25. juli:
+
+| fasit | metode | korrigert korrelasjon mot poeng |
+|---|---|---|
+| bud | single dummy | **+0,925** godkjent |
+| vrak | single dummy | +0,848 |
+| trumf | single dummy | +0,831 |
+| kortspill | single dummy | +0,718 |
+| trumf | **double dummy** | +0,234 avvist |
+| vrak | **double dummy** | +0,144 avvist |
+| kortspill | **double dummy** | **−0,609 AVVIST, feil fortegn** |
+
+DD på kortspill korrelerer NEGATIVT med faktiske poeng. Ikke svakere — motsatt.
+Verifisert på nytt 5. august: etikett-stien rører ikke DD-løseren, og
+rolloutene lar hvert sete spille med bare sin egen informasjon.
+
+**OG DET AVSLØRTE EN FELLE I MITT EGET FORSLAG.** BENs verdinett er en
+DD-prediktor. Hadde jeg kopiert den, ville jeg trent et nett til å forutsi
+nøyaktig den fasiten som måler −0,609 her.
+
+REGELEN: et verdinett må trenes på **SD-utfall** — hva som skjer når Adams
+spiller verdenen ut — aldri på perfekt spill. Da er det en komprimering av vår
+egen realistiske utspilling, ikke et fasitorakel.
+
+## 39. STRATEGIEN MOT +1–2 POENG (5.–6. august)
+
+Arvind ga 21 timer og et mål: +1–2 poeng.
+
+### Hvorfor korpuset IKKE er førstevalget
+
+Målt rate med alt på: 2,16 rader/s per kjerne, altså ~5 timer for 350k rader,
+pluss trening og måling. Og utfallet er UKJENT — de brede nettene har
+historisk tapt mot det destillerte 273-nettet.
+
+Det er en dårlig bruk av 21 timer når det finnes noe med målt oppside.
+
+### Det som HAR målt oppside: søk i selve spillet
+
+Adams spiller i dag uten søk — rene fremovernett. §13.1: de ti søkeforsøkene
+delte ÉN feilkobling, at rollout-policyen var feilspesifisert. Og `ork:`-benken
+målte at med RIKTIG policy er orakelet **+0,896 i førersetet**.
+
+Det tallet er i nøyaktig den størrelsesordenen målet krever. Og siden 5. august
+har søket fått:
+
+    riktig motstandermodell   (+1,25 i foerersetet, §13.1)
+    trosvektede verdener      (+2,62 pp verdenskvalitet ved 32 kandidater)
+    flere fortsettelser       (Brown & Sandholm)
+    CFR-loesning ved beslutningspunktet
+
+**Det krever null trening.** Alt er bygget og testet i dag.
+
+### Rekkefølgen
+
+  1. Mål søk per SETE mot Adams-v4 — hvilket sete betaler
+  2. Tun det som betaler: verdener, fortsettelser, kombinasjonsmodus
+  3. Bekreft på KAMPBENKEN, ikke bare rundebenken (den undervurderer 2,2x)
+  4. Korpuset kjøres som langskudd i bakgrunnen hvis maskinen har plass
+
+Punkt 3 er det som gjør at tallet er til å stole på.
