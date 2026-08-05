@@ -56,7 +56,9 @@ import { dirname } from "node:path";
 
 import { lagRng } from "../src/kort.ts";
 import { lovligeHandlinger, lovligeKort, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
-import { e1SpillTrekk, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V6, E1_SPILL_DIM_V8 } from "../src/e1/trekk.ts";
+import { e1SpillTrekkMedTro, E1_SPILL_DIM, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9 } from "../src/e1/trekk.ts";
+import { LOVLIGE_BREDDER } from "../src/e1/agent.ts";
+import { Trosnett } from "../src/moe2/trosnett.ts";
 import { E1Agent } from "../src/e1/nett.ts";
 import { vurderKortSD } from "../src/moe2/sdkort.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
@@ -159,6 +161,17 @@ let motpartSpek = "nevro";
 let budspredning = 0.5;
 /** Kontraktene som trekkes uniformt. Tyngden ligger med vilje i tynne data. */
 const BUDSTIGE = [7, 8, 8, 9, 10, 11, 11, 12];
+/**
+ * BREDDEN ER ET ARGUMENT, IKKE EN HARDKODET KONSTANT.
+ *
+ * Den var hardkodet til V2 en gang, og da telleblokken kom i `trekk.ts` skrev
+ * generatoren fortsatt 340 – timevis med data UTEN den nye informasjonen, uten
+ * et eneste varsel. Advarselen sto i koden; konstanten sto der like fullt, nå
+ * på V8. Så nå er den et argument som valideres mot `LOVLIGE_BREDDER`.
+ */
+let bredde = E1_SPILL_DIM_V8;
+/** Trosnettet. Kreves fra v9 og opp – uten det er 84 av 88 sansetrekk null. */
+let troFil: string | null = null;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--ut") utFil = process.argv[++i] ?? utFil;
@@ -173,11 +186,33 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--sjanse") sjanse = Number(process.argv[++i]);
   else if (a === "--rollevekt") rolleVekt = Number(process.argv[++i]);
   else if (a === "--utforsk") utforsk = Number(process.argv[++i]);
+  else if (a === "--bredde") bredde = Number(process.argv[++i]);
+  else if (a === "--tro") troFil = process.argv[++i] ?? null;
   else if (a === "--fraStikk") fraStikk = Number(process.argv[++i]);
   else if (a === "--maks") maks = Number(process.argv[++i]);
   else if (a === "--motpart") motpartSpek = process.argv[++i] ?? "nevro";
   else if (a === "--budspredning") budspredning = Number(process.argv[++i]);
 }
+
+// --- BREDDE OG TRO: valider FOER en eneste rad genereres ------------------
+//
+// Alt her feiler HOEYLYTT og umiddelbart. En generatorkjoering er timer lang,
+// og enhver feil som oppdages etterpaa koster hele kjoeringen.
+if (!(LOVLIGE_BREDDER as readonly number[]).includes(bredde)) {
+  throw new Error(
+    `Ukjent bredde ${bredde}. Lovlige: ${LOVLIGE_BREDDER.join(", ")}. ` +
+      `Skriver generatoren en bredde treneren ikke kjenner, hoppes hele korpuset over.`,
+  );
+}
+const trosnett =
+  troFil === null ? null : new Trosnett(nettFraBytes(new Uint8Array(readFileSync(troFil)))[0]!);
+if (bredde >= E1_SPILL_DIM_V9 && trosnett === null) {
+  throw new Error(
+    `Bredde ${bredde} har sanseblokken, men --tro mangler. Da ville 84 av 88 ` +
+      `sansetrekk vaert konstant null i HELE korpuset. Send --tro e1-modell/tro.bin.`,
+  );
+}
+console.error(`bredde ${bredde}, tro: ${troFil ?? "ingen"}`);
 
 // EGEN UTMAPPE. `verktoy/e1-tren.py` leser alle `skard-*.jsonl` i en mappe og
 // blander dem uten å se på innholdet. Havner SD-linjer i e1-data/, er begge
@@ -404,7 +439,9 @@ alleKamper: for (let k = 0; k < kamper; k++) {
               // nye informasjonen, uten et eneste varsel. Fanget ved aa lese
               // foerste rad etter oppstart. GJOER DET IGJEN etter hver gang
               // kodingen utvides: `head -1 <mappe>/skard-0.jsonl` og tell.
-              t: Array.from(e1SpillTrekk(s, sete, E1_SPILL_DIM_V8), (x) => Math.round(x * 10_000) / 10_000),
+              t: Array.from(e1SpillTrekkMedTro(s, sete, bredde, trosnett), (x) =>
+                Math.round(x * 10_000) / 10_000,
+              ),
               nt: lagInn(spillerVisning(s, sete), "SPILL", s.giving.antallStikk, s.regler.målPoeng).map(
                 (x) => Math.round(x * 10_000) / 10_000,
               ),
