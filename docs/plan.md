@@ -3398,3 +3398,58 @@ verdenene. Den riktige sammenlikningen er **8 verdener x 3 fortsettelser** mot
 fjerner skjevhet mens verdener bare demper varians.
 
 Uten denne målingen ville vi målt en konfigurasjon som aldri kunne rulles ut.
+
+## 41. NYTT MÅL: mennesket skal vinne 1 av 20 — og målestokken vi mangler
+
+Arvind, 6. august: «et menneske skal bare kunne slå oss i et race til 100 poeng
+1/20 ganger». Altså **5 %**.
+
+    grunnlinje (fire like spillere)        25,0 %
+    MÅLT mot Adams-linja (19 familiekamper) 15,8 %
+    MÅL                                      5,0 %
+
+Vi skal altså tredele menneskets sjanse fra der vi er.
+
+### Problemet: vi kan ikke SE om vi nærmer oss
+
+19 kamper gir et intervall fra 5,5 % til 37,5 %. Familien spiller ikke tusen
+kamper på bestilling, og hver utrulling splitter dataene på nytt. Med den
+målestokken kan vi ikke skille +0,1 fra +1,0.
+
+### Løsningen: en MENNESKE-EKVIVALENT motstander
+
+Finn en bot som vinner LIKE OFTE mot Adams som menneskene gjør — altså ~15,8 %
+— og bruk den som stedfortreder. Da kan vi kjøre 24 000 kamper på en time i
+stedet for å vente på familien.
+
+Den måler ikke om boten slår MENNESKER. Den måler om boten har blitt sterkere
+mot en motstander KALIBRERT til menneskelig styrke, og det er den eneste
+størrelsen vi kan følge tett nok til å styre etter.
+
+STIGEN som skal måles, hver i ett sete mot tre Adams-v4:
+
+    nevro (NevroHjerne)   familien slaar den 62 % - altsaa for svak?
+    mklon-512             menneskeklonen, trent paa 123 runder
+    ftf1, sd-r2           eldre nett
+    Adams-v3              vi VET denne: fikk 23,1 % mot v4
+
+Menneskene ligger på 15,8 %, altså SVAKERE enn Adams-v3. Stedfortrederen skal
+finnes mellom nevro og v3.
+
+### Hvorfor dette endrer hva som er verdt å gjøre
+
+Med en stedfortreder kan hver forbedring måles direkte i den valutaen målet er
+formulert i: **hvor ofte taper vi et race**. Ikke poeng per runde, ikke
+vinnerandel mot oss selv — den faktiske størrelsen.
+
+### Og distillasjonen endrer søkets rolle fullstendig
+
+Arvind: «ikke stress med at den bruker lang tid fordi vi distillerer det inn i
+en mindre modell etterpå».
+
+Da trenger søket ALDRI å rulles ut. Det er LÆREREN som lager etikettene, og det
+destillerte nettet spiller fort. 4,2 sekunder per trekk er da en engangskostnad
+i generering, ikke en byrde familien bærer.
+
+Konsekvens: søket skal skrus HARDERE enn tidsbudsjettet i §40 tilsa. Grensen er
+generatorens gjennomstrømning, ikke nettleserens tålmodighet.
