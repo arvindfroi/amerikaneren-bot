@@ -53,7 +53,7 @@ import {
 // kodinger, og feilen ville gitt gale kort i stillhet. Tre av dagens feil var
 // av samme klasse (nt/t-vektorene), saa duplisert konvertering er forbudt her.
 import { intTilKort } from "../solver/dds.ts";
-import { trekkVerdenBelief, type Budprior } from "../solver/sampler.ts";
+import { trekkVerdenBelief, type Budprior , type Verden } from "../solver/sampler.ts";
 
 /** Motstandermodellen som spiller runden ferdig. NevroAgent oppfyller det. */
 export interface Utspiller {
@@ -92,6 +92,14 @@ export interface SDOpts {
    * strategier. Det er nøyaktig den størrelsen papiret vil ha.
    */
   readonly fortsKombi?: "min" | "snitt" | "cfr";
+  /**
+   * TROSVEKT på verdenstrekkeren — se `src/moe2/troprior.ts`.
+   *
+   * Uten den vektes kandidatverdenene bare etter BUDET, og ingenting av
+   * hvordan folk har SPILT teller. `sd-stoy.ts` målte at etiketten da er mest
+   * støy (signal/støy 0,27 ved 12 verdener).
+   */
+  readonly trovekt?: (v: Verden) => number;
 }
 
 export interface SDKortOpts extends SDOpts {
@@ -176,13 +184,15 @@ export function trekkVerdener(
   antall: number,
   rng: () => number,
   prior?: Budprior,
+  trovekt?: (v: Verden) => number,
+  kandidater = 3,
 ): number[][][] {
   const ut: number[][][] = [];
   for (let v = 0; v < antall; v++) {
     // Med `prior` vektes kandidatverdenene etter en LÆRT budmodell i stedet
     // for den håndlagde formelen. Kalleren må sørge for at prioren beskriver
     // dem som faktisk sitter ved bordet - se `laertForenlighet` i sampler.ts.
-    const w = trekkVerdenBelief(state, spiller, rng, 3, prior);
+    const w = trekkVerdenBelief(state, spiller, rng, kandidater, prior, undefined, trovekt);
     if (w !== null) ut.push(w.hender);
   }
   return ut;
@@ -219,7 +229,9 @@ export function vurderSD(
 ): SDVurdering[] {
   if (handlinger.length === 0) return [];
   const mål = opts.mål ?? standardMål;
-  const verdener = opts.verdenerHender ?? trekkVerdener(state, spiller, opts.verdener, opts.rng);
+  const verdener =
+    opts.verdenerHender ??
+    trekkVerdener(state, spiller, opts.verdener, opts.rng, undefined, opts.trovekt);
   if (verdener.length === 0) return [];
 
   /**

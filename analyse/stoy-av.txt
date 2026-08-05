@@ -1,0 +1,13 @@
+30 stillinger, Adams som rollout-motpart
+
+trosnett: AV
+
+VERDENSKVALITET (12 verdener): 34.7 % av skjulte kort hos riktig spiller
+
+verdener   uenig om beste kort   spredning best-nest   stoey (SD mellom trekk)   signal/stoey
+    4          90.0 %             0.203               1.186            0.17
+   12          93.3 %             0.189               0.691            0.27
+   48          83.3 %             0.110               0.328            0.33
+
+Er «uenig om beste kort» hoey, rangerer etiketten stoey og nettet laerer stoey.
+signal/stoey under 1 betyr at forskjellen mellom kortene druknar i utvalgsstoeyen.

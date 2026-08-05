@@ -306,24 +306,28 @@ export function trekkVerdenBelief(
   kandidater = 3,
   prior?: Budprior,
   navn: (sete: number) => string = (s) => `sete${s}`,
+  ekstraVekt?: (v: Verden) => number,
 ): Verden | null {
-  // Uten budinformasjon om noen andre er vektingen et nullbidrag.
-  const harInfo = state.budrunde.sisteBud.some(
-    (b, p) => p !== observator && (b !== null || state.budrunde.passet[p]),
-  );
+  // Uten budinformasjon om noen andre er BUD-vektingen et nullbidrag – men
+  // `ekstraVekt` (troen) leser SPILLET og bidrar uansett hva budrunden sa.
+  const harInfo =
+    ekstraVekt !== undefined ||
+    state.budrunde.sisteBud.some(
+      (b, p) => p !== observator && (b !== null || state.budrunde.passet[p]),
+    );
   if (!harInfo || kandidater <= 1) return trekkVerden(state, observator, rng);
 
   const utvalg: { verden: Verden; logW: number }[] = [];
   for (let i = 0; i < kandidater; i++) {
     const v = trekkVerden(state, observator, rng);
     if (v) {
-      utvalg.push({
-        verden: v,
-        logW:
-          prior === undefined
-            ? budForenlighet(state, v, observator)
-            : lærtForenlighet(state, v, observator, prior, navn),
-      });
+      // Budvekten og trosvekten er UAVHENGIGE kilder – den ene leser
+      // auksjonen, den andre spillet – så log-vektene legges sammen.
+      const budW =
+        prior === undefined
+          ? budForenlighet(state, v, observator)
+          : lærtForenlighet(state, v, observator, prior, navn);
+      utvalg.push({ verden: v, logW: budW + (ekstraVekt === undefined ? 0 : ekstraVekt(v)) });
     }
   }
   if (utvalg.length === 0) return null;
