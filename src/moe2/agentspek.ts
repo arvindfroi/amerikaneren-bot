@@ -200,6 +200,24 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     }
     const restSpek = d.slice(2).join(":");
     const inn = lagIndre(restSpek);
+    /**
+     * ROLLOUT-MOTPARTEN MÅ VÆRE EN AGENT UTEN SØK.
+     *
+     * `Rolleorakel` fikk `inn` som motpart – men nestes to av dem
+     * (`ork:foerer:…:ork:forsvar:…:…`), er `inn` SELV et søk. Da starter hver
+     * eneste rollout i det ytre søket et nytt søk i det indre: søk inne i søk,
+     * eksponentielt. Målingen så bare «treg» ut; den var uendelig mye tregere
+     * enn den skulle.
+     *
+     * Motparten skal modellere hvordan de andre SPILLER, og de spiller uten
+     * søk. Derfor strippes alle `ork:`-lag av før motparten bygges.
+     */
+    let baseSpek = restSpek;
+    while (baseSpek.startsWith("ork:")) {
+      const b = baseSpek.slice(4).split(":");
+      baseSpek = b.slice(2).join(":");
+    }
+    const motpart = baseSpek === restSpek ? inn : lagIndre(baseSpek);
     const trosnett =
       troFil === null || troFil === ""
         ? null
@@ -212,12 +230,12 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
       if (byttet === restSpek) throw new Error(`Fant ingen «vakt:» å bytte til «${f}» i «${restSpek}»`);
       return lagIndre(byttet) as unknown as ConstructorParameters<typeof Rolleorakel>[1];
     });
-    return new Rolleorakel(inn, inn as unknown as ConstructorParameters<typeof Rolleorakel>[1], rolle, {
+    return new Rolleorakel(inn, motpart as unknown as ConstructorParameters<typeof Rolleorakel>[1], rolle, {
       verdener,
       trosnett,
       fortsettelser:
         fortsettelser.length > 0
-          ? [inn as unknown as ConstructorParameters<typeof Rolleorakel>[1], ...fortsettelser]
+          ? [motpart as unknown as ConstructorParameters<typeof Rolleorakel>[1], ...fortsettelser]
           : undefined,
     });
   }
