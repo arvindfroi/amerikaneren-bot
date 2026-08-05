@@ -3453,3 +3453,52 @@ i generering, ikke en byrde familien bærer.
 
 Konsekvens: søket skal skrus HARDERE enn tidsbudsjettet i §40 tilsa. Grensen er
 generatorens gjennomstrømning, ikke nettleserens tålmodighet.
+
+## 42. SØK I FØRERSETET — replikert, og det sterkeste funnet i økta
+
+Gate 2 mot Adams-v4, kontrollarm nøyaktig 0,0000 i begge bånd:
+
+| frøbånd | snitt | tegntest | avgjorte |
+|---|---|---|---|
+| 316 000 000 | **+0,387 ± 0,141** (2,74 SE) | **z = +2,96** | 11,2 % |
+| 947 000 000 (disjunkt) | **+0,239 ± 0,136** (1,75 SE) | **z = +3,27** | 12,0 % |
+
+Snittet falt fra +0,39 til +0,24 da flere givere kom inn — regresjon mot midten,
+som forventet av et oppdagelsestall. Men TEGNTESTEN BLE STERKERE, og den er den
+pålitelige statistikken når bare 12 % av giverne avgjøres.
+
+**Beste estimat ~+0,3 poeng per runde, replikert i to disjunkte bånd med z ≈ 3
+i begge.** På kampskala (rundebenken undervurderer 2,2x) tilsvarer det ~+0,7.
+
+Adams spiller i dag helt uten søk, så dette krever ingen treningstime.
+
+FORSVARSSETET ga +0,110 (z = +1,69) med trimmet snitt +0,233 i forsvarsraden —
+en BRED effekt over 23 % avgjorte givere, til forskjell fra førerens haledrevne.
+De to har ulik natur og kan trolig legges sammen, men den kombinerte armen er
+for dyr å måle direkte (søk i alle fire seter).
+
+## 43. SANSENE: negativt på holdout — men holdout har løyet før
+
+Korpus sd-v10: 306 040 rader, v10-bredde, trosvektede verdener over 32
+kandidater, tre fortsettelser, CFR-kombinasjon, Adams-v4 som både stillingskilde
+og rollout-motpart.
+
+FØRSTE FORSØK PÅ KONTROLL VAR UGYLDIG. `--kjor "b273:...:512,384,256"` angir
+SKJULTE lag, ikke inngangsbredde — begge nettene ble 714 brede og kom ut
+bit-identiske. Jeg trente aldri et 273-nett.
+
+Den ekte kontrollen bruker trenerens `nullsone`, som nullstiller kolonner i en
+KOPI av dataen. Da er arkitektur og parametertall identiske, og bare
+informasjonen skiller:
+
+| nett | sanser | hold-anger | hold-treff |
+|---|---|---|---|
+| kjerne273 (273-713 nullstilt) | av | **0,9334** | 59,5 % |
+| alt714 | på | 0,9618 | 59,3 % |
+
+**Kjernen alene er bedre.** Det stemmer med hypotesen om at 441 flere innganger
+på 292k treningsrader er dårligere statistikk.
+
+MEN IKKE FORKAST DEM PÅ DETTE. Planen har den dokumenterte lærdommen: D0 hadde
+hold-anger 0,767 mot B273s 0,851 og målte NULL på poeng. Holdout og poeng har
+vært uenige før. Målingen på gate2 avgjør.
