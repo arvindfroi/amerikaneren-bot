@@ -3619,3 +3619,57 @@ kraftig ut:
 
 Det er den eneste replikerte gevinsten som ikke krever mer trening, og med
 destillasjon planlagt trenger søket aldri å rulles ut — det kan være læreren.
+
+## 47. BILLIGSTE MENNESKE-SPESIFIKKE FUNN: vant[N] var løst for feil bord
+
+Arvind: «du finner billigere løsninger og får det til å funke. det skal funke
+mot ekte mennesker.»
+
+`vant[N]` er ikke en tuningparameter. Den er et FAKTUM om omgivelsene: hvor ofte
+bud N vinner budrunden. Og den ble regnet ut med damped fikspunkt-iterasjon over
+SELVSPILL — altså likevekten der fire Adams byr mot hverandre.
+
+**Boten spiller aldri det bordet.** Den sitter med ett menneske og to bots.
+
+### Målt mot Adams-linja i ekte familiekamper
+
+| menneskets bud | ganger | vant | SANT | `bud-vant` (v4) | `bud-gbt` (v3) |
+|---|---|---|---|---|---|
+| 8 | 13 | 0 | 0 % | 0,1 % | 10,9 % |
+| **9** | **34** | **12** | **35,3 %** | **9,7 %** | 66,2 % |
+| 10 | 57 | 57 | 100 % | 94,0 % | 97,7 % |
+
+Sannheten ligger MELLOM de to tabellene. `bud-vant` er 3,6x for lav på bud 9;
+`bud-gbt` er nesten dobbelt for høy.
+
+FØRSTE UTKAST AV DETTE FUNNET VAR OVERDREVET. Jeg regnet først på ALLE
+botversjoner og fikk 75,1 % for bud 9 — men det snittet er dominert av
+PIMC og NevroHjerne, som lar auksjonen ligge lavt. Adams-v3 har allerede løftet
+den: 79 % av rundene mot v3 vinnes med bud 10, mot 9 % mot PIMC. Tallet som
+gjelder er 35,3 %, ikke 75,1 %.
+
+### `e1-modell/bud-menneske.json`
+
+Krympet mot selvspilltabellen med K = 8, siden 34 observasjoner er ekte men
+tynt: vant[9] = 0,304 i stedet for 0,097.
+
+Atferden endres målbart – 32 tibud mot v4s 27 på 300 giv, altså 19 % flere –
+uten å bli like løs som v3s 46.
+
+### DEN SOM IKKE KAN MÅLES PÅ VÅRE BENKER, OG HVORFOR DET ER GREIT
+
+gate2 og kampbenken spiller Adams mot Adams. Der ER selvspilltabellen riktig,
+så benkene ville rangert `bud-menneske` som DÅRLIGERE — og de ville hatt rett,
+om bordet var fire bots.
+
+Det er ikke en måling som mangler; det er to ulike omgivelser:
+
+    bud-vant.json      riktig naar bordet er fire Adams   -> BENKENE
+    bud-menneske.json  riktig naar bordet er 1 menneske   -> APPEN
+
+Planen har prinsippet fra før: «mot en fast motstanderpopulasjon er det
+maksimale et BESTE SVAR, ikke en likevekt». Dette er den billigste mulige
+anvendelsen av det — en tabell, ingen trening, målt på ekte runder.
+
+FORBEHOLD SOM STÅR: n = 34 for bud 9. Krympingen tar høyde for det, og hver
+framtidige familierunde forbedrer estimatet automatisk.
