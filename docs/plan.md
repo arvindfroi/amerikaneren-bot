@@ -3548,3 +3548,74 @@ den størrelsen målet faktisk er formulert i. Uten den kunne vi ikke vite om
 
 Stedfortrederen (v3) mot tre Adams-v4 MED søk i førersetet. Faller den fra
 20,21 % mot 5 %, er målet innen rekkevidde uten en eneste treningstime.
+
+## 45. FØRERRADEN VAR USYNLIG — og søket er fire ganger sterkere enn rapportert
+
+`examples/gate2.ts` skriver rollen som `foerer` (ASCII). `verktoy/gate2-les.py`
+lette etter `fører` (med ø). De matchet aldri, så **en tredjedel av
+rolledekomponeringen har vært stille utelatt fra hver eneste rapport** — i hele
+denne økta, og trolig mye lenger. Ikke feilet. Bare borte.
+
+Arvind spurte hvorfor sansene ikke gjelder for spillefører. Det gjorde de.
+
+### Søket, sett i setet der det faktisk fyrer
+
+| måling | i FØRERSETET | trimmet | tegntest |
+|---|---|---|---|
+| bånd 316M | **+1,546 ± 0,563** | **+1,702** | z = +2,96 |
+| bånd 947M (disjunkt) | **+0,954 ± 0,545** | **+1,054** | z = +3,27 |
+| forsvarssøk, bånd 316M | +0,220 (i forsvarsraden) | +0,233 | z = +1,69 |
+
+De +0,24 til +0,39 jeg rapporterte hele natta var samme tall FORTYNNET over
+fire seter. Boten er spillefører i én av fire runder.
+
+OG DET TRIMMEDE SNITTET ER HØYERE ENN SNITTET i begge bånd. Effekten er BRED og
+konsistent, ikke haledrevet — min tidligere tolkning var feil.
+
+### Sansene per rolle
+
+| rolle | kjerne | med sanser | bidrag |
+|---|---|---|---|
+| fører | −0,394 | −0,300 | **+0,094** |
+| makker | +0,103 | +0,112 | +0,009 |
+| forsvar | −0,575 | −0,467 | **+0,108** |
+
+Både fører og forsvar henter nesten like mye. Makkeren knapt noe — og det gir
+mening: begge de andre må resonnere om skjulte kort, mens makkeren kjenner seg
+selv fra første stund.
+
+## 46. STATUS MOT 1/20-MÅLET, ærlig
+
+    grunnlinje (fire like)                       25,0 %
+    familien mot Adams-linja (19 kamper)         15,8 %
+    stedfortreder mot Adams-v4                   20,21 %
+    stedfortreder mot Adams-v4 + førersøk        17,33 %
+    MÅL                                           5,0 %
+
+**Vi når ikke 5 % i denne omgangen.** Og vekslingskursen viste seg å flate
+kraftig ut:
+
+    +0,127 poeng  ->  −4,79 pp
+    +0,3 poeng    ->  −2,88 pp      2,4x større forbedring, 40 % mindre effekt
+
+### Hva som ER oppnådd, målt og replikert
+
+  soek i foerersetet   +0,95 til +1,55 i setet, to disjunkte baand, z ~ 3
+  sansene              +0,079 samlet paa POENG (holdout rangerte motsatt)
+  dropout 0,1          −0,097 -> −0,065 mot d7alle, tegntest positiv
+  v4 (vant-rettelsen)  +5,83 pp vinnerandel, 24 000 kamper
+
+### Hva som blokkerer resten
+
+  KORPUSET. 306k rader mot d7alles millioner. Alle nye nett ligger bak.
+  KOSTNADEN. Soek i tre seter er ikke maalbart paa kampbenken i praksis -
+    en kamp tar over tre minutter, og benken skriver foerst etter fem.
+  KURVEN. De siste prosentpoengene koster langt mer enn de foerste, fordi
+    selv en perfekt bot taper paa kortfordelingen alene.
+
+### Neste bot
+
+    Adams-v5 = v4 + soek i foerersetet
+
+Det er den eneste replikerte gevinsten som ikke krever mer trening, og med
+destillasjon planlagt trenger søket aldri å rulles ut — det kan være læreren.
