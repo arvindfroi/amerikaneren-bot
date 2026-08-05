@@ -3801,3 +3801,49 @@ gate2-fil før kjøringen er ferdig, uansett hvor fristende tallet ser ut.**
 
 Replikert i fire bånd, +0,542 poeng/runde samlet, og den flytter en
 menneske-ekvivalent motstander fra 20,21 % til 15,83 % på kampbenken.
+
+## 50. FAMILIEN UNDERBYR — det målte, utnyttbare mønsteret
+
+Fra `runde`-hendelsene i Val Town, kontrakter som ble klart:
+
+| bud | mennesket klarte | boten klarte |
+|---|---|---|
+| 8 | **97,2 %** (70/72) | **76,6 %** (95/124) |
+| 9 | **81,4 %** (193/237) | **67,6 %** (328/485) |
+| 10 | 67,3 % (72/107) | 63,8 % (157/246) |
+| 11 | 62,5 % (10/16) | 71,4 % (5/7) |
+
+Familien klarer kontraktene sine langt oftere enn boten på alle nivåer opp til
+10. Det betyr IKKE at de spiller bedre — det betyr at de **underbyr**: de
+melder 8 med en hånd verdt 10, og klarer den lett. Boten byr nær sin sanne
+verdi og feller derfor oftere.
+
+### Det binder sammen med §47
+
+Underbyding forklarer nøyaktig hvorfor `vant[9]` er 35,3 % i virkeligheten mot
+selvspillmodellens 9,7 %: **når motparten underbyr, legger auksjonen seg
+lavere**, og bud 9 vinner den langt oftere enn likevekten tilsier.
+
+De to funnene er samme fenomen fra hver sin side. `bud-menneske.json` er
+dermed ikke en isolert korreksjon, men den målte konsekvensen av en
+motstanderatferd vi kan se direkte.
+
+### To utnyttelser, hvorav én er uimplementert
+
+  SOM BYDER    vi kan by mer aggressivt enn likevekten sier, fordi familien
+               ikke kjemper imot. Det er `bud-menneske.json`.
+
+  SOM FORSVARER  naar et menneske vinner budrunden paa 9, klarer de den 81 %
+               av gangene. Da er det som regel bortkastet aa spille for aa
+               FELLE - poengene ligger i aa begrense skaden. Dette er en
+               SPILLESTRATEGI, ikke en budjustering, og den finnes ikke noe
+               sted i koden.
+
+Den andre er den mest direkte anvendelsen av planens eget prinsipp om beste
+svar mot en fast populasjon, og den er ikke prøvd.
+
+### Loggingen er dessuten på plass
+
+`runde`-hendelsen inneholder nå hele historikken, vraket, trumfen,
+etterlysningen og makkeren. Hver framtidige familierunde er rene treningsdata
+uten et eneste gjenskapingssteg — den varige løsningen menneskeklonen ventet på.
