@@ -3204,3 +3204,93 @@ falle på seg selv.
 
 Punkt 5 er nytt siden i dag og er grunnen til at tallet vi ender med, blir til
 å stole på.
+
+## 37. LITTERATURSVEIP: hva feltet faktisk sier om søk i trekkspill (5. august)
+
+Arvind: «er det vits med søk i det hele?» og «litt mer research om ML i kortspill».
+
+### Det avgjørende måltallet vi manglet
+
+`examples/sd-stoy.ts`: samme stilling vurdert to ganger med UAVHENGIGE
+verdenstrekk. Er etiketten signal, skal de to være like.
+
+| verdener | uenig om beste kort | spredning best–nest | støy | signal/støy |
+|---|---|---|---|---|
+| 4 | 90,0 % | 0,252 | 1,117 | 0,23 |
+| **12** | **92,5 %** | 0,176 | 0,642 | **0,27** |
+| 48 | 87,5 % | 0,108 | 0,326 | 0,33 |
+
+**Ved dagens 12 verdener er etiketten mest støy.** Støyen er ~3,7x forskjellen
+den skal måle, og faller som 1/√n — nøyaktig 2x fra 12 til 48, som ventet. For
+signal/støy = 1 trengs ~165 verdener: 14x dagens kostnad.
+
+Og spredningen best–nest KRYMPER med flere verdener (0,252 → 0,108): vinnerens
+forbannelse i etikettene. Den ekte forskjellen mellom kortene er MINDRE enn vi
+har trodd, og det forklarer hvorfor så mange målinger i dette prosjektet har
+vært marginale.
+
+### Hva litteraturen sier
+
+  PIMC ER FORTSATT STATE-OF-THE-ART for trekkspill (Long, Sturtevant, Buro &
+  Furtak, AAAI 2010). Tre egenskaper avgjoer: leaf correlation, bias,
+  disambiguation. For Skat og Hearts maales leaf correlation 0,8-1,0 - noeyaktig
+  regimet der PIMC gjoer det bra. Kritikken er teoretisk korrekt og biter lite her.
+
+  ISMCTS ER IKKE EN OPPGRADERING. Furtak & Buro (2013): spilleren LEKKER privat
+  informasjon til rollout-motstanderne, som far tilpasse seg pa tvers av
+  rollouts. Trekkverdiene blir skjeve.
+
+  GO-MCTS (arXiv 2404.13150, 2024) planlegger i OBSERVASJONSROMMET med en
+  generativ transformer og unngaar bade strategifusjon og ikke-lokalitet. Ny
+  SOTA i Hearts (+1,74 poeng mot xinxin). MEN i SKAT fortsatt 9,84 poeng UNDER
+  Kermit, som er PIMC-basert. Skat er strukturelt naermest Amerikaneren.
+
+  LAERT INFERENS (Solinas, Rebstock & Buro, arXiv 1903.09604): en laert modell
+  for hvor kortene ligger gir REPRESENTATIVE verdener, og da trengs LANGT
+  faerre av dem for samme kvalitet.
+
+  LAERT EVALUERING (lorserker/BEN, PyData Berlin 2018): eksakt loesning er sa
+  dyr at bridgeprogrammer ikke kommer over ~100 samples. Bytt den mot et raskt
+  nett, og man har rad til mange flere. Konvolusjoner over kortlayouten var
+  «very useful»; overtilpasning var hovedproblemet (dropout best).
+
+  PARANOID SLAAR MAX^N i Hearts (Sturtevant). MEN Hearts har ingen makker.
+  Amerikaneren har det, sa `min` over fortsettelser gjoer makkeren fiendtlig.
+  Analogien baerer ikke hit - derfor er CFR-blandingen riktigere for oss.
+
+### Konklusjonen: ikke skriv om. Fullfør det vi har.
+
+De to litteraturlinjene angriper NØYAKTIG vårt støyproblem, fra hver sin ende:
+
+    trosnett (inferens)   bedre verdener  -> FAERRE trengs
+    verdinett (evaluering) billigere verden -> FLERE har vi raad til
+
+Og regnestykket er entydig, ved identisk budsjett:
+
+    i dag:          12 verdener x ~30 nettpass = 360 pass  ->  signal/stoey 0,27
+    med verdinett: 360 verdener x   1 nettpass = 360 pass  ->  signal/stoey 1,48
+
+**5,5x bedre signal til samme kostnad.** Det er en arkitekturendring, ikke en
+optimalisering.
+
+### Og §29 var feilklassifisert
+
+Trosnettet ble avskrevet som «kan ikke betale seg foer et v9-nett er trent,
+fordi Adams ikke trekker verdener i spill». Det er riktig for SPILL, men
+irrelevant for ETIKETTENE: orakelet trekker verdener for hver eneste merkede
+stilling. Bedre verdener der senker etikettstøyen direkte, uten noen retrening.
+
+Det er den billigste av de to brikkene, og den er allerede trent.
+
+### Rekkefølgen, med en port
+
+  1. TROSNETTET inn i orakelets verdenstrekker      (har det, ikke koblet)
+  2. VERDINETT: (verden, utfall) -> ett fremoverpass (mangler, maa trenes)
+  3. PORT: kjoer `sd-stoy.ts` paa nytt. Gaar signal/stoey fra 0,27 mot ~1,5?
+     Gjoer den ikke det, STOPP - ikke generer en million rader paa etiketter
+     som ikke baerer.
+  4. Fortsettelser + CFR-loeseren, som naa har raad til aa kjoere
+  5. Det store korpuset
+  6. Konvolusjoner over 4x13-rutenettet som egen akse paa treneren
+
+Punkt 3 er porten. Den finnes fordi vi nå har et tall som kan si nei.
