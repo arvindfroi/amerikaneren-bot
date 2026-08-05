@@ -498,6 +498,6 @@ alleKamper: for (let k = 0; k < kamper; k++) {
 }
 
 console.log(
-  `Ferdig: ${merket} stillinger à ${E1_SPILL_DIM_V8} trekk (v1 ${E1_SPILL_DIM} + minne + telling + auksjon + plan + tro + verdi + doede), ` +
+  `Ferdig: ${merket} stillinger à ${bredde} trekk (v1 ${E1_SPILL_DIM} + blokker opp til ${bredde}), ` +
     `SD med ${verdener} verdener, budspredning ${budspredning} → ${ut}`,
 );

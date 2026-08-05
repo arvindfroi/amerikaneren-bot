@@ -3115,3 +3115,92 @@ seg før et v9/v10-nett er TRENT. Det er en treningskjøring, ikke en kodeendrin
 og det er den eneste gjenstående linja med stort utslag.
 
 v4 er altså alt som kan hentes uten å trene. Det som gjenstår krever GPU-tid.
+
+## 36. V10-KJØRINGEN — vurderingen, planen og vaktene (5. august)
+
+Arvind: «droppet vi selvlæring, ved å gjøre en virkelig vurdering?»
+
+Berettiget spørsmål: jeg startet generering FØR vurderingen var gjort. Her er
+den, med tall fra prosjektet og ikke fra magefølelsen.
+
+### VI HAR IKKE DROPPET SELVLÆRING — DET ER SELVLÆRING VI DRIVER MED
+
+«Skrallen» ER selvspill. Orakelet spiller med dagens bot som modell, merker
+stillinger, nettet lærer, syklusen gjentas. Det er AlphaZero-mønsteret: policy
+→ søk forbedrer den → destiller → gjenta. Forskjellen fra NEAT er at
+forbedringsoperatoren er SØK, ikke ren utfallsbasert RL.
+
+    foerergapet mot orakelet   ftf1 +1,656  ->  Adams-v2 +0,688     krympet 60 %
+    ren utfallsbasert RL       NEAT, proevd, ga svake nett
+    planens egen konklusjon    «ett-plys framoverblikk ER en fungerende
+                               forbedringsoperator ... da er selvspill farbart»
+
+Valget står altså ikke mellom korpus og selvlæring. Korpuset ER skrallens
+neste omdreining.
+
+### SPØRSMÅLET OM ROLLOUT-MOTPARTEN VAR ALLEREDE BESVART
+
+Jeg var i ferd med å be Arvind velge om riktig motstandermodell var verdt 4,9x
+i genereringstid. Det var unødvendig — §13.1 hadde svaret:
+
+> Førersetet gikk fra **−0,357 til +0,896** bare av å bytte hvem orakelet
+> forestiller seg spiller resten.
+
+**+1,25 poeng.** Alt jeg hentet 5. august til sammen er +0,127. Å spare fire
+timer der ville vært å kaste de neste ti. Både `--spiller` og `--motpart` er
+derfor Adams-v4.
+
+### MEN BEGRUNNELSEN ER IKKE «ENDA EN OMDREINING»
+
+Skrallen konvergerer: neste omdreining er anslått **+0,06**. Det bærer ikke en
+flertimers kjøring alene.
+
+Det som gjør DENNE kjøringen annerledes er **sansene** — 441 trekk nettet
+aldri har sett, og som fram til i dag var 95 % konstant null selv når de var
+med. Dette er en KAPASITETSENDRING, ikke en iterasjon, og den må stå eller
+falle på seg selv.
+
+### Kjøringen
+
+    --bredde 714        v10: alle blokker, inkludert sanser og hvem-la
+    --tro tro.bin       ellers er 84 av 88 sansetrekk null
+    --spiller  Adams-v4 stillingene kommer fra policyen som faktisk spiller
+    --motpart  Adams-v4 etikettene regnes mot riktig motstandermodell (+1,25)
+    --verdener 12       12 av 12 trukket i hver rad, verifisert
+    --rollevekt 1       planens regel; 3 ga 52,8 % foererrader
+
+### FØRFLYVNINGSSJEKKENE — kjørt FØR den lange kjøringen
+
+| sjekk | resultat |
+|---|---|
+| sansene i EKTE korpusrader | **0,0 % døde** (var 95 %) |
+| etikettspenn beste–verste | 2,23 i snitt; 13,4 % flate stillinger |
+| dekning over stikk 0–10 | jevn, 38–57 per stikk |
+| verdener trukket vs bestilt | 12 av 12 i hver eneste rad |
+
+### VAKTENE — hver av dem fra en feil som FAKTISK har skjedd
+
+    --bredde validert mot LOVLIGE_BREDDER, FOER foerste rad
+        (bredden var hardkodet; skrev 340 mens trekk.ts var 356 - timevis tapt)
+    --tro paakrevd fra v9 og opp, FOER foerste rad
+        (ellers 84 doede kolonner i hele korpuset, oppdaget foerst etter GPU-tid)
+    E1Agent kaster hvis v9+ uten trosnett
+        (samme feil, andre enden av roeret)
+    test/e1-bredder.test.ts        fem steder enige, ogsaa over Python-grensa
+    test/e1-sanser-koblet.test.ts  sansene fylles beviselig
+    test/agentspek-en-parser.test.ts  ingen parserdrift
+    sluttmeldingen rapporterer FAKTISK bredde
+        (den sa 470 mens dataene var 714)
+
+### Etter genereringen
+
+  1. `head -1 skard-0.jsonl` og tell — planens egen regel, og den som fanget
+     340-feilen i sin tid
+  2. blokkvarians paa HELE korpuset, ikke bare en stikkproeve
+  3. tren v10 mot d7alle som referanse, samme holdout
+  4. gate2 mot Adams-v4
+  5. KAMPBENKEN mot Adams-v4 — det er den som teller, siden rundebenken
+     undervurderer med faktor 2,2
+
+Punkt 5 er nytt siden i dag og er grunnen til at tallet vi ender med, blir til
+å stole på.
