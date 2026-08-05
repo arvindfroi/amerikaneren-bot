@@ -121,8 +121,17 @@ const KORTVEKTER = "adams-kort.b64";
 // regel nesten likegyldig, av og til avgjørende for runden.
 const VRAKRANGERER = "adams-vrak.b64";
 const VRAKFLAGG = "telrd";
-/** Trosnettet – vekter verdenene i søket. Se `medSøk`. */
-const TROFIL = "tro.b64";
+/**
+ * TROSNETTET ER AV, og det er en MÅLT beslutning.
+ *
+ * Trosvektingen ga +0,34 poeng per runde i førersetet i ett frøbånd – og
+ * −0,12 i det disjunkte. Fortegnet snur, altså er den IKKE etablert. Den
+ * koster 4,6 MB nedlasting og innfører en ny feilmodus for en gevinst vi ikke
+ * kan vise.
+ *
+ * Sett til "tro.b64" (og last opp fila) hvis den senere replikeres.
+ */
+const TROFIL: string | null = null;
 
 /** Vakten og budagenten deler dette grensesnittet; appen trenger ikke mer. */
 type Bot = { velgHandling(s: GameState): Handling; nyKamp(): void };
@@ -236,7 +245,7 @@ function besteBot(): Promise<Bot> {
     // SPILT, ikke bare hva de bød. Målt 6. august: +0,34 poeng per runde i
     // førersetet oppå samme verdenstall — og like mye som å DOBLE utvalget.
     // Feiler den, søker boten uvektet som før; ingen enkeltdel tar ned resten.
-    hentB64(TROFIL),
+    TROFIL === null ? Promise.resolve(null) : hentB64(TROFIL),
   ])
     .then(([b64, budRå, vrakB64, troB64]) => {
       // Ett delt eksemplar for alle tre botsetene – slik benken kjører den.
@@ -757,8 +766,19 @@ function fortsett(): void {
       SØKVERDENER > 0 && state.fase === "SPILL" && aktør === state.budvinner && råVekter !== null;
     if (børSøke) {
       tegn();
+      const t0 = performance.now();
       void søkTrekk(state, aktør).then((h) => {
         travelt = false;
+        // LOGG OM SØKET FAKTISK KJØRTE. Uten dette vet vi ikke fra basen om
+        // v5 spilte med søk eller falt stille tilbake til nettet – samme
+        // problem som førerraden som var usynlig i hver måling.
+        logg("soek", {
+          rundeNr: state.rundeNr,
+          stikk: state.stikkSpilt,
+          brukt: h !== null,
+          ms: Math.round(performance.now() - t0),
+          verdener: SØKVERDENER,
+        });
         gjørMedPause(h ?? nettAgenter![aktør - 1]!.velgHandling(state), 250);
       });
       return;

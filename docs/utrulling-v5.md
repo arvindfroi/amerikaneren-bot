@@ -26,27 +26,30 @@ På kampbenken flyttet førersøket alene en menneske-ekvivalent motstander fra
 
 **FORSVARSSØK ER IKKE MED**, og det er målt: −0,027 med z = −0,55.
 
-## Rekkefølgen, og den er ikke valgfri
+## Trosnettet er DROPPET, og det er en målt beslutning
 
-1. **Last opp `web/dist/tro.b64` til DATA_URL.** 4,6 MB.
-   Gjør dette FØRST. Feiler hentingen, logger boten en advarsel og søker
-   uvektet — den mister +0,34 uten at noe ser galt ut.
+Trosvektingen ga +0,34 poeng per runde i førersetet i ett frøbånd og **−0,12 i
+det disjunkte**. Fortegnet snur, altså er den ikke etablert. Den ville kostet
+4,6 MB nedlasting og en ny feilmodus for en gevinst vi ikke kan vise.
 
-2. **Bekreft at den serveres** før noe annet. Samme grunn.
+`TROFIL = null` i `web/app.ts`. Fila trenger ikke lastes opp.
 
-3. **Bygg bunten på nytt:**
+## Rekkefølgen
+
+1. **Bygg buntene på nytt:**
    ```
    npx esbuild web/app.ts --bundle --format=esm --charset=utf8 --minify \
      --outfile=web/dist/app.js
    ```
 
-4. **Last opp `web/dist/app.js`.**
+2. **Last opp `web/dist/app.js` OG `web/dist/worker.js`.** Begge, og
+   workeren er ny — uten den faller boten tilbake til spill uten søk.
 
-5. **Bekreft at appen melder «Adams-v5»** i logg-ID-en. Versjonsstrengen er
+3. **Bekreft at appen melder «Adams-v5»** i logg-ID-en. Versjonsstrengen er
    allerede bumpet i kilden. Uten den blandes familiens runder mot v3 og v5 i
    samme rad i basen, og da kan INGEN av dem måles.
 
-6. **Bekreft md5 av serverte vekter mot lokale**, som ved v3.
+4. **Bekreft md5 av serverte vekter mot lokale**, som ved v3.
 
 ## BLOKKERT: søket kan ikke rulles ut ennå
 
@@ -92,6 +95,19 @@ nettlesermotor på familiens maskiner.
 
 Måltallet å sikte mot: **under 1 sekund per kort**, målt på den tregeste
 maskinen familien faktisk bruker – ikke på utviklingsmaskinen.
+
+## Det som IKKE er gjort, og som bør gjøres
+
+**Tempoet er ikke målt på familiens maskiner.** 24 verdener koster ~1,3 s per
+kort i Node på en rask maskin. På en telefon kan det bli 4–8 s, og tolv kort i
+førersetet blir da et helt minutt per runde — uten frys, men fortsatt
+uspillbart. `SØKVERDENER` bør settes etter en måling på den TREGESTE maskinen
+familien faktisk bruker, ikke på utviklingsmaskinen.
+
+**Ingen «tenker…»-indikator.** Flere sekunders pause uten tilbakemelding ser ut
+som at spillet henger, selv når det ikke gjør det.
+
+**`bud-menneske.json` er fortsatt ubesluttet** (§47, §50).
 
 ## Priser og forbehold
 
