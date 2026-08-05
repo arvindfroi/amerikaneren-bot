@@ -106,7 +106,11 @@ def main():
         if avgjort > 0:
             merke = "   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten" if avgjort < 500 else ""
             si(f"   avgjorte giver: {avgjort} av {n} ({100 * avgjort / n:.1f} %){merke}")
-        for rolle in ("fører", "makker", "forsvar"):
+        # «foerer» OG «fører»: gate2.ts skriver ASCII-formen, mens leseren
+        # lette etter ø-formen. De matchet aldri, og FOERERRADEN VAR USYNLIG i
+        # hver eneste rapport - ikke feilet, bare utelatt. Samme feilklasse som
+        # resten av revisjonen 5. august: en stille uenighet mellom to sider.
+        for rolle in ("foerer", "fører", "makker", "forsvar"):
             rs = stat(per_rolle[navn].get(rolle, []))
             if rs is not None:
                 rn, rm, rse, rtr, _, _, rz = rs
