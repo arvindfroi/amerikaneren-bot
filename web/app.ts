@@ -25,6 +25,7 @@ import { E1Agent } from "../src/e1/agent.ts";
 import { Konvensjonsvakt, lesVaktflagg } from "../src/moe2/konvensjonsvakt.ts";
 import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
 import { Rolleorakel } from "../src/moe2/rolleorakel.ts";
+import { Trosnett } from "../src/moe2/trosnett.ts";
 import { nettFraBytes } from "../src/nevro/nett.ts";
 // Fra budmodell.ts og IKKE budagent.ts: den siste importerer node:fs paa
 // toppniva, og esbuild med nettleserplattform stopper paa den.
@@ -120,6 +121,8 @@ const KORTVEKTER = "adams-kort.b64";
 // regel nesten likegyldig, av og til avgjørende for runden.
 const VRAKRANGERER = "adams-vrak.b64";
 const VRAKFLAGG = "telrd";
+/** Trosnettet – vekter verdenene i søket. Se `medSøk`. */
+const TROFIL = "tro.b64";
 
 /** Vakten og budagenten deler dette grensesnittet; appen trenger ikke mer. */
 type Bot = { velgHandling(s: GameState): Handling; nyKamp(): void };
@@ -165,9 +168,26 @@ function tilBytes(b64: string): Uint8Array {
  */
 const SØKVERDENER = 24;
 
-function medSøk(bot: Bot): Bot {
+function medSøk(bot: Bot, troB64: string | null): Bot {
   if (SØKVERDENER <= 0) return bot;
-  return new Rolleorakel(bot, bot as never, "foerer", { verdener: SØKVERDENER }) as unknown as Bot;
+  let trosnett: Trosnett | null = null;
+  if (troB64 !== null) {
+    try {
+      const n = nettFraBytes(tilBytes(troB64))[0];
+      if (n !== undefined) trosnett = new Trosnett(n);
+    } catch (feil) {
+      console.warn("Trosnettet ble avvist – søker uvektet:", feil);
+    }
+  } else {
+    console.warn("Trosnettet kunne ikke hentes – søker uvektet.");
+  }
+  return new Rolleorakel(bot, bot as never, "foerer", {
+    verdener: SØKVERDENER,
+    trosnett,
+    // 32 kandidater: importance sampling kan bare velge blant det som ble
+    // trukket, og ved 3 ga troen +0,68 pp verdenskvalitet mot +2,62 ved 32.
+    verdenKandidater: trosnett === null ? 3 : 32,
+  }) as unknown as Bot;
 }
 
 function medVrakrangerer(bot: Bot, b64: string | null): Bot {
@@ -211,8 +231,15 @@ function besteBot(): Promise<Bot> {
     fetch(DATA_URL + VRAKRANGERER)
       .then((r) => (r.ok ? r.text() : null))
       .catch(() => null),
+    // TROSNETTET. Vekter kandidatverdenene i søket etter hvordan de andre har
+    // SPILT, ikke bare hva de bød. Målt 6. august: +0,34 poeng per runde i
+    // førersetet oppå samme verdenstall — og like mye som å DOBLE utvalget.
+    // Feiler den, søker boten uvektet som før; ingen enkeltdel tar ned resten.
+    fetch(DATA_URL + TROFIL)
+      .then((r) => (r.ok ? r.text() : null))
+      .catch(() => null),
   ])
-    .then(([b64, budRå, vrakB64]) => {
+    .then(([b64, budRå, vrakB64, troB64]) => {
       // Ett delt eksemplar for alle tre botsetene – slik benken kjører den.
       const kort = new Konvensjonsvakt(
         E1Agent.fraBytes(tilBytes(b64), {}, KORTVEKTER),
@@ -228,7 +255,7 @@ function besteBot(): Promise<Bot> {
           console.warn("Budmodellen ble avvist:", feil);
         }
       }
-      return medSøk(medVrakrangerer(bot, vrakB64));
+      return medSøk(medVrakrangerer(bot, vrakB64), troB64);
     })
     .catch((feil: unknown) => {
       botLaster = null; // la neste forsøk prøve på nytt
