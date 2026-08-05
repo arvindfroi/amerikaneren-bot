@@ -3881,3 +3881,53 @@ traff.
 de andres 24**. Verdensreduksjonen jeg gjorde for å holde kostnaden lik
 straffet den hardere enn fortsettelsene hjalp. Det er ikke en ren test av
 Brown & Sandholm, og påstanden står ubesvart.
+
+## 52. HVA ADAMS SER OG KAN — og hullene, sortert
+
+Inventar 6. august, per beslutning:
+
+| beslutning | ser | kan gjøre |
+|---|---|---|
+| **BUD** | **128 trekk — KUN egen hånd** | EV-regning `p·2N(2P−1) + (1−p)·e` |
+| **VRAK** | 24 trekk, ingen budinfo | rangere kast, fem policyflagg |
+| **VELG** | samme 24 trekk | trumffarge + etterlyst valør |
+| **SPILL** | **273 av 714 trekk** | argmax over 52, fire vaktregler, søk i førersetet |
+
+### ARBEIDSLISTEN, i den rekkefølgen som gir mest per innsats
+
+**1. Budmodellen skal HØRE budrunden.** `BUD_DIM_V2` (140 trekk: de tre andres
+bud på relativt sete, passflagg, høyeste bud, hvor mange som kan overby) er
+bygget, versjonert og testet — men ALDRI TRENT. Den utrullede modellen er 128
+trekk og byr som om den satt alene. Et menneske som ikke hørte de andre by,
+ville alle kalt en dårlig spiller. Trening er ridge i lukket form: ingen
+hyperparametre, bit-identisk, og korpuset finnes.
+
+**2. `sik:` — søk bare når det betyr noe.** Operatoren finnes og overstyrer
+bare når den parrede marginen overstiger støyen. Aldri målt. Søket kjører i
+dag like grundig på et tvungent kort som på rundens avgjørende valg. Billigst
+mulig test av «å vite når man skal tenke».
+
+**3. Vrak og trumfvalg skal se budrunden.** Boten kaster fire kort og velger
+trumf uten å vite om den vant med 8 eller 11 — og de valgene AVHENGER av hvor
+mange stikk den må ta. Krever en ny trekkblokk (24 → ~30) og retrening av
+rangereren.
+
+**4. Kampstillingen inn i spillet.** Trekk 231/232 finnes, men hver eneste
+måling har hatt dem låst på 0–0–0–0, så nettet har aldri lært å spille dristig
+under og trygt i ledelse. Kampbenken finnes nå og kan måle det.
+
+**5. De 441 trekkene fram til nettet.** Hukommelse, stikksjanse,
+renonssannsynlighet. Korpuset finnes (306k rader), men nettene ligger bak
+`d7alle`. Trenger mer korpus eller bedre etiketter — ikke mer kode.
+
+**6. Utlede hva makkeren har.** Boten kjenner det etterlyste kortet og
+ingenting mer. Et menneske resonnerer «makker meldte ikke, altså har hen ikke
+esset». Ny modellering.
+
+**7. Framoverblikk i budrunden.** Den regner EV per bud isolert og spør aldri
+«byr jeg 9, hva gjør de andre da?». Dyrest, og minst avklart.
+
+### Evner den mangler, tverrgående
+
+  AA VITE NAAR DEN IKKE VET. Den svarer alltid med samme selvtillit og har
+  ingen «dette er naere, spill trygt». Punkt 2 er den billigste inngangen.
