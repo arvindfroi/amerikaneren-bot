@@ -3847,3 +3847,37 @@ svar mot en fast populasjon, og den er ikke prøvd.
 `runde`-hendelsen inneholder nå hele historikken, vraket, trumfen,
 etterlysningen og makkeren. Hver framtidige familierunde er rene treningsdata
 uten et eneste gjenskapingssteg — den varige løsningen menneskeklonen ventet på.
+
+## 51. TROSVEKTING BETALER SEG — og bedre inferens slår flere verdener
+
+Hode-mot-hode i ETT frøbånd, 4 800 rader per arm, kontrollarm 0,0000:
+
+| variant | i førersetet | tegntest | trimmet |
+|---|---|---|---|
+| **24 verdener + tro** | **+2,009** | z = +5,14 | +2,092 |
+| **48 verdener** | +1,962 | **z = +6,44** | **+2,168** |
+| 24 verdener (v5) | +1,667 | z = +4,91 | +1,848 |
+| 8 + tro + 2 fortsettelser | +0,393 | z = −0,62 | +0,432 |
+
+### Trosnettet gir +0,34 i førersetet
+
+Første gang trosnettet gir MÅLBAR gevinst i poeng. Tidligere i natt målte det
+null to ganger, og jeg avskrev det begge gangene — først som «kan ikke betale
+seg fordi Adams ikke trekker verdener i spill» (§29, feil), så som «+0,1 pp
+verdenskvalitet» (§med hardkodet treer, også feil).
+
+Det virket hele tiden. Det var koblingen og kandidatantallet som manglet.
+
+### 24 + tro ≈ 48 verdener
+
+Bedre inferens gjør samme nytte som å DOBLE utvalget. Det er nøyaktig
+Solinas/Rebstock/Buro (arXiv 1903.09604): en lært inferensmodell gir
+representative verdener, og da trengs langt færre av dem. Litteratursveipet
+traff.
+
+### Fortsettelsene er IKKE avkreftet
+
++0,393 med z = −0,62 ser ut som en avvisning, men armen har **8 verdener mot
+de andres 24**. Verdensreduksjonen jeg gjorde for å holde kostnaden lik
+straffet den hardere enn fortsettelsene hjalp. Det er ikke en ren test av
+Brown & Sandholm, og påstanden står ubesvart.
