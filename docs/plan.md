@@ -3750,3 +3750,54 @@ ville åpnet hele forsvarssøket for måling.
 
 Den eneste replikerte gevinsten som ikke krever mer trening, og den flytter en
 menneske-ekvivalent motstander fra 20,21 % til 15,83 %.
+
+## 49. SØK INNE I SØK — bugen som kostet natta, og det endelige tallet
+
+### Bugen
+
+`Rolleorakel`, `Sikkerorakel`, `Vrakvelger` og `Vrakvelger2` fikk alle sitt eget
+INDRE lag som rollout-motpart (`inn as unknown as ...`). Nestes to søk, er det
+indre laget selv et søk — så hver rollout i det ytre startet et nytt søk i det
+indre. Eksponentielt.
+
+TRE MÅLINGER AV SØK I FLERE SETER MÅTTE BRYTES, og jeg konkluderte hver gang
+med at det var en KOSTNADSGRENSE i spillet. Det var en bug i speken.
+
+    ork:foerer:24 alene                   329 ms per trekk
+    ork:foerer:12 + ork:forsvar:12 (før)  umålbart
+    ork:foerer:12 + ork:forsvar:12 (nå)   211 ms per trekk
+
+Den kombinerte ble BILLIGERE enn den enkle. `utenSøk()` strimler nå ethvert
+antall søkelag før motparten bygges, og `test/ingen-nestet-soek.test.ts` dekker
+vilkårlig nesting.
+
+### Det endelige tallet, 4 800 givere
+
+| arm | samlet | fører | forsvar |
+|---|---|---|---|
+| **fører alene** | **+0,542** (5,14 SE) | **+2,170** (z = +5,52) | — |
+| fører + forsvar | +0,529 (3,99 SE) | +2,170 | **−0,027** (z = −0,55) |
+
+**FORSVARSSØKET ER NULL.** Å legge det til gjør den kombinerte armen marginalt
+dårligere. Førersøket alene er den beste konfigurasjonen.
+
+**FØRERSØKET: +2,170 poeng per runde i sitt sete**, z = +5,52, over FIRE
+uavhengige frøbånd. Prosjektets sterkeste måling med god margin — `vant`-
+rettelsen som ga v4 hele +5,83 pp målte +0,127.
+
+### DELRESULTATER LØY FIRE GANGER I NATT
+
+  soek skalerer ikke med verdener   (leste 1 994 av 3 840 rader) -> feil
+  forsvarssoek +0,255                (leste 960 av 4 800)        -> feil
+  forsvarssoek +0,125                (leste 4 422 av 4 800)      -> feil
+  begge over: ferdig tall            −0,027, z = −0,55
+
+Første gang var forsvarlig. Fjerde gang var det ikke. **Regel: les aldri en
+gate2-fil før kjøringen er ferdig, uansett hvor fristende tallet ser ut.**
+
+### Adams-v5
+
+    v5 = v4 + ork:foerer:24
+
+Replikert i fire bånd, +0,542 poeng/runde samlet, og den flytter en
+menneske-ekvivalent motstander fra 20,21 % til 15,83 % på kampbenken.

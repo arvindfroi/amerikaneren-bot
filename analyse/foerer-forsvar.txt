@@ -1,0 +1,24 @@
+24 filer, 3 armer
+
+ork:foerer:24:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  4800  +0.5424 +/- 0.1056 (+5.14 SE)  trimmet +0.0101  tegn 371/235 (z=+5.52)
+   avgjorte giver: 606 av 4800 (12.6 %)
+     foerer   n=  1200  +2.1697 +/- 0.4190  trimmet +2.3824  z=+5.52
+     makker   n=  1200  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  2400  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+ork:foerer:24:ork:forsvar:24:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  4800  +0.5290 +/- 0.1325 (+3.99 SE)  trimmet +0.3347  tegn 948/831 (z=+2.77)
+   avgjorte giver: 1779 av 4800 (37.1 %)
+     foerer   n=  1200  +2.1697 +/- 0.4190  trimmet +2.3824  z=+5.52
+     makker   n=  1200  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  2400  -0.0269 +/- 0.1600  trimmet -0.0299  z=-0.55
+
+vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  4800  +0.0000 +/- 0.0000 (+0.00 SE)  trimmet +0.0000  tegn 0/0 (z=+0.00)
+     foerer   n=  1200  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     makker   n=  1200  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  2400  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.
