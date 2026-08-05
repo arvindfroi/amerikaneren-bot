@@ -1,0 +1,9 @@
+40 stillinger, Adams som rollout-motpart
+
+verdener   uenig om beste kort   spredning best-nest   stoey (SD mellom trekk)   signal/stoey
+    4          90.0 %             0.252               1.117            0.23
+   12          92.5 %             0.176               0.642            0.27
+   48          87.5 %             0.108               0.326            0.33
+
+Er «uenig om beste kort» hoey, rangerer etiketten stoey og nettet laerer stoey.
+signal/stoey under 1 betyr at forskjellen mellom kortene druknar i utvalgsstoeyen.
