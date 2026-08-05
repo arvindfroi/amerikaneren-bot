@@ -4,8 +4,22 @@
     {
       "name": "live",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["examples/live.ts", "--port", "8790"],
+      "runtimeArgs": [
+        "examples/live.ts",
+        "--port",
+        "8790"
+      ],
       "port": 8790
+    },
+    {
+      "name": "spill",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "examples/spill-lokal.ts",
+        "--port",
+        "8791"
+      ],
+      "port": 8791
     }
   ]
 }

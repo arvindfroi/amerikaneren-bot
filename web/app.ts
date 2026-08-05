@@ -127,6 +127,34 @@ const TROFIL = "tro.b64";
 /** Vakten og budagenten deler dette grensesnittet; appen trenger ikke mer. */
 type Bot = { velgHandling(s: GameState): Handling; nyKamp(): void };
 
+/**
+ * Henter en vektfil og VALIDERER at det faktisk er base64.
+ *
+ * Val Town serverer appens fallback-HTML med status **200** for filer som ikke
+ * finnes. `r.ok` er da sann, og `<!doctype html...` gikk rett inn i
+ * nettparseren. Funnet 6. august ved å faktisk kjøre appen i en nettleser –
+ * bunting og typesjekk ser ingenting av dette.
+ *
+ * Returnerer `null` ved feil, som kallerne allerede håndterer.
+ */
+async function hentB64(navn: string): Promise<string | null> {
+  try {
+    const r = await fetch(DATA_URL + navn);
+    if (!r.ok) return null;
+    const t = (await r.text()).trim();
+    // En HTML-side starter med «<». Ekte base64 gjør aldri det, og er dessuten
+    // aldri kortere enn noen kilobyte for disse filene.
+    if (t.length < 1024 || t.startsWith("<") || !/^[A-Za-z0-9+/=\s]+$/.test(t.slice(0, 256))) {
+      console.warn(`«${navn}» er ikke base64 – fikk ${t.length} tegn som starter med «${t.slice(0, 20)}»`);
+      return null;
+    }
+    return t;
+  } catch (feil) {
+    console.warn(`«${navn}» kunne ikke hentes:`, feil);
+    return null;
+  }
+}
+
 function tilBytes(b64: string): Uint8Array {
   const rå = atob(b64.trim());
   const bytes = new Uint8Array(rå.length);
@@ -145,64 +173,27 @@ function tilBytes(b64: string): Uint8Array {
  * det bli en bot som velger tilfeldig uten at noen merker det.
  */
 /**
- * SØK I FØRERSETET — Adams-v5.
+ * SØK I FØRERSETET — Adams-v5. **KJØRER I WEB WORKEREN**, ikke her.
  *
- * MÅLT 6. august over FIRE uavhengige frøbånd: **+2,170 poeng per runde i
- * førersetet** (z = +5,52), +0,542 samlet. Prosjektets sterkeste måling med
- * god margin – `vant`-rettelsen som ga v4 hele +5,83 pp vinnerandel målte
- * +0,127.
+ * MÅLT over fem uavhengige frøbånd: +1,7 til +2,2 poeng per runde i
+ * førersetet (z = +2,96 til +6,44). På kampbenken flyttet det en
+ * menneske-ekvivalent motstander fra 20,21 % til 15,83 % vinnerandel.
  *
- * På kampbenken flyttet den en menneske-ekvivalent motstander fra 20,21 % til
- * 15,83 % vinnerandel.
+ * HVORFOR IKKE HER. `velgHandling` kalles synkront fra spillsløyfen. Søket
+ * koster ~1,3 s per kort, og boten er fører i tre av fire runder fordi tre
+ * seter er bot – altså nærmere femti sekunder frosset UI per runde. Ikke
+ * tregt, men umulig å skille fra en krasj.
  *
- * FORSVARSSØK ER IKKE MED, og det er målt: −0,027 med z = −0,55, og å legge
- * det til gjorde boten marginalt DÅRLIGERE. Bare føreren søker.
+ * Hovedtråden beholder derfor den SØKFRIE boten. Den svarer på 0,5 ms og er
+ * reserven hvis workeren feiler eller ikke rekker fram.
  *
- * MOTPARTEN ER BOTEN UTEN SØK. Sender man søkeagenten inn som sin egen
- * rollout-motpart, starter hver rollout et nytt søk – eksponentielt. Den bugen
- * kostet tre brutte målinger 6. august; se `utenSøk()` i agentspek.ts.
- *
- * STÅR PÅ NULL, OG DET ER MED VILJE.
- *
- * `velgHandling` kalles SYNKRONT på hovedtråden (se kallet i spillsløyfen).
- * Workeren finnes, men brukes ikke lenger av noen motstander. Slås søket på nå,
- * fryser UI-et for hvert kort boten spiller som fører:
- *
- *     12 kort x ~4 s i nettleser  ≈  50 sekunder frosset UI PER RUNDE
- *     og boten er foerer i tre av fire runder (tre botseter)
- *
- * Siden ville ikke sett treg ut. Den ville sett ut som en KRASJ, om og om igjen.
- *
- * Jeg målte 1,3 s per trekk i Node og skrev at det var «akseptabelt i
- * nettleser» — uten å sjekke hvilken tråd det kjører på. Det var feil.
- *
- * FØR DEN KAN SETTES TIL 24: søket må flyttes inn i Web Workeren, slik PIMC en
- * gang brukte den. Gevinsten er ekte og målt (+2,009 i førersetet, z = +5,14,
- * replikert over fire frøbånd) — den er bare ikke utrullbar på hovedtråden.
+ * FORSVARSSØK ER IKKE MED, og det er målt: −0,027 med z = −0,55.
  */
-const SØKVERDENER = 0;
+const SØKVERDENER = 24;
 
-function medSøk(bot: Bot, troB64: string | null): Bot {
-  if (SØKVERDENER <= 0) return bot;
-  let trosnett: Trosnett | null = null;
-  if (troB64 !== null) {
-    try {
-      const n = nettFraBytes(tilBytes(troB64))[0];
-      if (n !== undefined) trosnett = new Trosnett(n);
-    } catch (feil) {
-      console.warn("Trosnettet ble avvist – søker uvektet:", feil);
-    }
-  } else {
-    console.warn("Trosnettet kunne ikke hentes – søker uvektet.");
-  }
-  return new Rolleorakel(bot, bot as never, "foerer", {
-    verdener: SØKVERDENER,
-    trosnett,
-    // 32 kandidater: importance sampling kan bare velge blant det som ble
-    // trukket, og ved 3 ga troen +0,68 pp verdenskvalitet mot +2,62 ved 32.
-    verdenKandidater: trosnett === null ? 3 : 32,
-  }) as unknown as Bot;
-}
+/** Rå vekter, holdt for å kunne sendes til workeren. Agenter kan ikke krysse
+ *  en meldingsgrense; workeren må bygge sin egen fra de samme bytene. */
+let råVekter: { kort: string; bud: unknown; vrak: string | null; tro: string | null } | null = null;
 
 function medVrakrangerer(bot: Bot, b64: string | null): Bot {
   if (b64 === null) {
@@ -224,15 +215,13 @@ function besteBot(): Promise<Bot> {
   botLaster ??= Promise.all([
     // Faller tilbake til sd-r2 om de finjusterte vektene ikke kan hentes.
     // Da spiller boten som i gaar i stedet for aa ikke spille i det hele tatt.
-    fetch(DATA_URL + KORTVEKTER)
-      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .catch(() => {
-        console.warn(`${KORTVEKTER} kunne ikke hentes – faller tilbake til sd-r2.`);
-        return fetch(DATA_URL + "sdr2.b64").then((r) => {
-          if (!r.ok) throw new Error(`sd-r2-vekter: HTTP ${r.status}`);
-          return r.text();
-        });
-      }),
+    hentB64(KORTVEKTER).then(async (t) => {
+      if (t !== null) return t;
+      console.warn(`${KORTVEKTER} kunne ikke hentes – faller tilbake til sd-r2.`);
+      const r = await hentB64("sdr2.b64");
+      if (r === null) throw new Error("verken finjusterte vekter eller sd-r2 kunne hentes");
+      return r;
+    }),
     // Budmodellen hentes ved siden av vektene. Feiler den, faller vi tilbake
     // til NevroHjernes budgivning i stedet for å la hele boten dø – kortspillet
     // er uendret og fortsatt det familien har møtt.
@@ -242,16 +231,12 @@ function besteBot(): Promise<Bot> {
     // Vrakrangereren. Samme vilkår som de to over: feiler den, vraker og
     // velger trumf boten som i går. Ingen enkeltdel får lov til å ta ned
     // resten – det er derfor familien alltid har noe å spille mot.
-    fetch(DATA_URL + VRAKRANGERER)
-      .then((r) => (r.ok ? r.text() : null))
-      .catch(() => null),
+    hentB64(VRAKRANGERER),
     // TROSNETTET. Vekter kandidatverdenene i søket etter hvordan de andre har
     // SPILT, ikke bare hva de bød. Målt 6. august: +0,34 poeng per runde i
     // førersetet oppå samme verdenstall — og like mye som å DOBLE utvalget.
     // Feiler den, søker boten uvektet som før; ingen enkeltdel tar ned resten.
-    fetch(DATA_URL + TROFIL)
-      .then((r) => (r.ok ? r.text() : null))
-      .catch(() => null),
+    hentB64(TROFIL),
   ])
     .then(([b64, budRå, vrakB64, troB64]) => {
       // Ett delt eksemplar for alle tre botsetene – slik benken kjører den.
@@ -269,7 +254,8 @@ function besteBot(): Promise<Bot> {
           console.warn("Budmodellen ble avvist:", feil);
         }
       }
-      return medSøk(medVrakrangerer(bot, vrakB64), troB64);
+      råVekter = { kort: b64, bud: budRå, vrak: vrakB64, tro: troB64 };
+      return medVrakrangerer(bot, vrakB64);
     })
     .catch((feil: unknown) => {
       botLaster = null; // la neste forsøk prøve på nytt
@@ -387,6 +373,50 @@ let workerLast: Promise<Worker> | null = null;
 const venterPåSvar = new Map<number, (h: Handling) => void>();
 let nesteWorkerId = 1;
 let tenkStart = 0;
+
+/**
+ * Gir workeren vektene så den kan bygge sin egen Adams med søk. Kalles én
+ * gang; workeren holder agenten mellom trekk.
+ */
+let adamsSendt = false;
+async function sikreAdamsIWorker(): Promise<Worker | null> {
+  if (råVekter === null || SØKVERDENER <= 0) return null;
+  try {
+    const w = await hentWorker();
+    if (!adamsSendt) {
+      w.postMessage({
+        type: "adams-init",
+        kort: råVekter.kort,
+        bud: råVekter.bud,
+        vrak: råVekter.vrak,
+        tro: råVekter.tro,
+        vaktflagg: VAKTFLAGG,
+        vrakflagg: VRAKFLAGG,
+        budterskel: BUDTERSKEL,
+        verdener: SØKVERDENER,
+      });
+      adamsSendt = true;
+    }
+    return w;
+  } catch (feil) {
+    console.warn("Kunne ikke gi workeren Adams – spiller uten søk:", feil);
+    return null;
+  }
+}
+
+/** Ber workeren om ETT kortvalg. `null` betyr «bruk hovedtrådens bot». */
+async function søkTrekk(st: GameState, sete: number): Promise<Handling | null> {
+  const w = await sikreAdamsIWorker();
+  if (w === null) return null;
+  const id = nesteWorkerId++;
+  return new Promise<Handling | null>((løs) => {
+    // Reserven er hovedtrådens søkfrie bot. Kommer ikke svaret, spiller vi
+    // som før i stedet for å la runden stoppe.
+    const tid = setTimeout(() => { venterPåSvar.delete(id); løs(null); }, 20_000);
+    venterPåSvar.set(id, (h) => { clearTimeout(tid); løs(h); });
+    w.postMessage({ type: "adams-trekk", id, state: st, sete });
+  });
+}
 
 function hentWorker(): Promise<Worker> {
   if (worker !== null) return Promise.resolve(worker);
@@ -720,6 +750,19 @@ function fortsett(): void {
         gjørMedPause(reserve(), 550);
       });
   } else if (nettAgenter !== null) {
+    // SØKET GÅR TIL WORKEREN, og bare når det er noe å hente: kortvalg der
+    // boten er spillefører. Alt annet svarer nettet på i mikrosekunder, og å
+    // sende det gjennom en meldingskø ville vært ren overhead.
+    const børSøke =
+      SØKVERDENER > 0 && state.fase === "SPILL" && aktør === state.budvinner && råVekter !== null;
+    if (børSøke) {
+      tegn();
+      void søkTrekk(state, aktør).then((h) => {
+        travelt = false;
+        gjørMedPause(h ?? nettAgenter![aktør - 1]!.velgHandling(state), 250);
+      });
+      return;
+    }
     setTimeout(() => {
       const h = nettAgenter![aktør - 1]!.velgHandling(state);
       travelt = false;
