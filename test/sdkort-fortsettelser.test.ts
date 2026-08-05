@@ -102,3 +102,63 @@ test("snitt-kombinasjonen ligger mellom den laveste og hoeyeste fortsettelsen", 
     assert.ok(sn[i]!.verdi >= lo - 1e-9 && sn[i]!.verdi <= hi + 1e-9);
   }
 });
+
+/**
+ * CFR-MODEN: matrisespillet løst ved beslutningspunktet.
+ *
+ * Dette er Brown & Sandholms poeng i den formen som faktisk gjelder her — ikke
+ * «kjør CFR på hele spillet» (firespiller, ingen likevektsgaranti, og beste
+ * svar er uansett riktigere mål mot en fast motstanderpopulasjon), men LØS
+ * delspillet ved dybdegrensen i stedet for å stole på én fast utspilling.
+ */
+test("CFR-verdien ligger mellom verste og beste fortsettelse", () => {
+  let sjekket = 0;
+  for (let d = 0; d < 6; d++) {
+    const s = spillstilling(6_600_000 + d * 7717);
+    if (s === null) continue;
+    const a = new Konvensjonsvakt(new NevroAgent(), lesVaktflagg("abmp"));
+    const b = new Konvensjonsvakt(new NevroAgent(), lesVaktflagg("abmpd"));
+    const mn = vurderKortSD(s, s.iTur!, [a, b], { verdener: 6, rng: lagRng(3), fortsKombi: "min" });
+    const cf = vurderKortSD(s, s.iTur!, [a, b], { verdener: 6, rng: lagRng(3), fortsKombi: "cfr" });
+    for (let i = 0; i < mn.length; i++) {
+      assert.ok(
+        cf[i]!.verdi >= mn[i]!.verdi - 1e-9,
+        `CFR under paranoid (${cf[i]!.verdi} < ${mn[i]!.verdi}) – motparten kan ikke slaa verste fall`,
+      );
+    }
+    sjekket++;
+  }
+  assert.ok(sjekket >= 4, `for få stillinger (${sjekket})`);
+});
+
+/**
+ * DETERMINISME. Etikettene i et korpus må være reproduserbare; en RNG inne i
+ * løseren ville gjort to like kjøringer ulike uten at noe feilet.
+ */
+test("CFR-loesningen er deterministisk", () => {
+  const s = spillstilling(7_700_000);
+  assert.ok(s !== null);
+  const a = new Konvensjonsvakt(new NevroAgent(), lesVaktflagg("abmp"));
+  const b = new Konvensjonsvakt(new NevroAgent(), lesVaktflagg("abmpS"));
+  const x = vurderKortSD(s, s.iTur!, [a, b], { verdener: 6, rng: lagRng(5), fortsKombi: "cfr" });
+  const y = vurderKortSD(s, s.iTur!, [a, b], { verdener: 6, rng: lagRng(5), fortsKombi: "cfr" });
+  for (let i = 0; i < x.length; i++) assert.equal(y[i]!.verdi, x[i]!.verdi);
+});
+
+/**
+ * Er CFR ALLTID lik det uvektede snittet, gjoer loeseren ingenting og hele
+ * konstruksjonen er en dyr null.
+ */
+test("CFR skiller seg fra uvektet snitt i minst noen stillinger", () => {
+  let ulike = 0;
+  for (let d = 0; d < 8; d++) {
+    const s = spillstilling(8_800_000 + d * 7717);
+    if (s === null) continue;
+    const a = new Konvensjonsvakt(new NevroAgent(), lesVaktflagg("abmp"));
+    const b = new Konvensjonsvakt(new NevroAgent(), lesVaktflagg("abmpd"));
+    const sn = vurderKortSD(s, s.iTur!, [a, b], { verdener: 6, rng: lagRng(2), fortsKombi: "snitt" });
+    const cf = vurderKortSD(s, s.iTur!, [a, b], { verdener: 6, rng: lagRng(2), fortsKombi: "cfr" });
+    for (let i = 0; i < sn.length; i++) if (Math.abs(cf[i]!.verdi - sn[i]!.verdi) > 1e-6) ulike++;
+  }
+  assert.ok(ulike > 0, "CFR ga alltid nøyaktig uvektet snitt – løseren gjør ingenting");
+});

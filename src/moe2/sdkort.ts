@@ -91,7 +91,7 @@ export interface SDOpts {
    * støyende estimater av samme størrelse – vi tar minimum over genuint ulike
    * strategier. Det er nøyaktig den størrelsen papiret vil ha.
    */
-  readonly fortsKombi?: "min" | "snitt";
+  readonly fortsKombi?: "min" | "snitt" | "cfr";
 }
 
 export interface SDKortOpts extends SDOpts {
@@ -231,24 +231,95 @@ export function vurderSD(
     : [motpart as Utspiller];
   const kombi = opts.fortsKombi ?? "min";
 
-  const ut: SDVurdering[] = [];
+  /**
+   * UTBYTTEMATRISEN A[i][j]: vår handling i mot motpartens fortsettelse j,
+   * midlet over verdenene.
+   *
+   * MIDLINGEN OVER VERDENER SKJER FØRST, og det er ikke en detalj. Tar man
+   * minimum INNE i hver verden, får motparten velge ULIK fortsettelse i hver
+   * verden — og det er strategifusjon på motpartens side, nøyaktig den feilen
+   * PIMC kritiseres for. Motparten kjenner like lite til kortfordelingen som
+   * vi gjør, så fortsettelsen må velges ÉN gang for hele informasjonsmengden.
+   */
+  const A: number[][] = [];
   for (let i = 0; i < handlinger.length; i++) {
-    let sum = 0;
+    const rad = new Array<number>(forts.length).fill(0);
     for (const hender of verdener) {
       const etter = utfør(medVerden(state, hender, spiller), handlinger[i]!).state;
-      // Fortsettelsen velges INNE i verdenen: motpartens valg av strategi er
-      // et valg gitt kortene, ikke et snitt over ulike kortfordelinger.
-      let v = mål(spillFerdig(etter, forts[0]!), spiller);
-      for (let j = 1; j < forts.length; j++) {
-        const vj = mål(spillFerdig(etter, forts[j]!), spiller);
-        if (kombi === "min") v = Math.min(v, vj);
-        else v += vj;
-      }
-      sum += kombi === "min" ? v : v / forts.length;
+      for (let j = 0; j < forts.length; j++) rad[j]! += mål(spillFerdig(etter, forts[j]!), spiller);
     }
-    ut.push({ indeks: i, verdi: sum / verdener.length, n: verdener.length });
+    for (let j = 0; j < forts.length; j++) rad[j]! /= verdener.length;
+    A.push(rad);
+  }
+
+  // Motpartens blanding over fortsettelser.
+  let τ: number[];
+  if (kombi === "cfr") τ = løsMatrisespill(A);
+  else if (kombi === "snitt") τ = new Array<number>(forts.length).fill(1 / forts.length);
+  else τ = [];
+
+  const ut: SDVurdering[] = [];
+  for (let i = 0; i < handlinger.length; i++) {
+    const rad = A[i]!;
+    let v: number;
+    if (kombi === "min") {
+      v = rad[0]!;
+      for (let j = 1; j < rad.length; j++) if (rad[j]! < v) v = rad[j]!;
+    } else {
+      v = 0;
+      for (let j = 0; j < rad.length; j++) v += τ[j]! * rad[j]!;
+    }
+    ut.push({ indeks: i, verdi: v, n: verdener.length });
   }
   return ut;
+}
+
+/**
+ * REGRET MATCHING på et lite nullsum-matrisespill — CFR der den faktisk gjelder.
+ *
+ * Brown & Sandholms poeng er ikke «kjør CFR på hele spillet». Det er: ved
+ * dybdegrensen, LØS et lite delspill i stedet for å stole på én fast
+ * utspilling. Her er delspillet nøyaktig `handlinger x fortsettelser`, og
+ * rolloutene som fyller det er alt beregnet — så løsningen koster
+ * mikrosekunder oppå millisekunder.
+ *
+ * Returnerer motpartens likevektsblanding. Vår verdi per handling blir da
+ * `Σ_j τ_j A[i][j]`: hva kortet er verdt når motparten spiller sitt beste
+ * svar i BLANDING, i stedet for den ene verste fortsettelsen (paranoid) eller
+ * et uvektet snitt (naivt).
+ *
+ * Motparten minimerer, vi maksimerer. Deterministisk: ingen RNG, så to like
+ * kall gir bit-identisk svar.
+ */
+function løsMatrisespill(A: readonly (readonly number[])[], runder = 400): number[] {
+  const m = A.length;
+  const k = A[0]?.length ?? 0;
+  if (m === 0 || k === 0) return [];
+  if (k === 1) return [1];
+  const angerV = new Array<number>(m).fill(0);
+  const angerM = new Array<number>(k).fill(0);
+  const sumM = new Array<number>(k).fill(0);
+  const fra = (anger: readonly number[]): number[] => {
+    let s = 0;
+    for (const a of anger) if (a > 0) s += a;
+    if (s <= 0) return new Array<number>(anger.length).fill(1 / anger.length);
+    return anger.map((a) => (a > 0 ? a / s : 0));
+  };
+  for (let t = 0; t < runder; t++) {
+    const σ = fra(angerV);
+    const τ = fra(angerM);
+    for (let j = 0; j < k; j++) sumM[j]! += τ[j]!;
+    // Vår nytte per handling gitt motpartens blanding, og omvendt.
+    const uV = A.map((rad) => rad.reduce((s, x, j) => s + x * τ[j]!, 0));
+    const vV = uV.reduce((s, x, i) => s + x * σ[i]!, 0);
+    for (let i = 0; i < m; i++) angerV[i]! += uV[i]! - vV;
+    const uM = new Array<number>(k).fill(0);
+    for (let j = 0; j < k; j++) for (let i = 0; i < m; i++) uM[j]! += A[i]![j]! * σ[i]!;
+    // Motparten MINIMERER, så angeren har motsatt fortegn.
+    for (let j = 0; j < k; j++) angerM[j]! += vV - uM[j]!;
+  }
+  const s = sumM.reduce((a, b) => a + b, 0);
+  return s > 0 ? sumM.map((x) => x / s) : new Array<number>(k).fill(1 / k);
 }
 
 /** Indeksen med høyest SD-verdi, eller −1 om ingen verden lot seg trekke. */
