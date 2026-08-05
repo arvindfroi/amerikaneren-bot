@@ -3931,3 +3931,63 @@ esset». Ny modellering.
 
   AA VITE NAAR DEN IKKE VET. Den svarer alltid med samme selvtillit og har
   ingen «dette er naere, spill trygt». Punkt 2 er den billigste inngangen.
+
+## 53. ARBEIDSLISTEN — hva som ble gjort 6. august, og hva som ikke ble det
+
+### 1. Budmodellen hører budrunden — LØST, uten retrening
+
+`BUD_DIM_V2` (140 trekk med auksjonen) kan IKKE trenes: budkorpuset genereres
+utelukkende i FØRSTE budposisjon, før noen har bydd, så auksjonsblokka ville
+vært null i hver eneste rad. Det var ikke synlig da listen ble sortert.
+
+Den billige veien virket. `examples/budkalibrering.ts` måler nå residualen mot
+auksjonstilstanden, 4 000 runder:
+
+| auksjon i budøyeblikket | n | residual | SE |
+|---|---|---|---|
+| ingen bud | 1 618 | +0,110 | 0,031 |
+| **høyest ≤ 8** | 190 | **+0,484** | 0,084 |
+| høyest 9 | 1 960 | +0,112 | 0,028 |
+| høyest ≥ 10 | 232 | +0,228 | 0,067 |
+
+Byr de andre lavt, sitter de svakt, og stikkene flyter til oss — 0,37 stikk,
+~4 SE. Korreksjonen er SENTRERT PÅ NULL, fordi nivået er et seleksjonsartefakt
+(residualen regnes for dem som VANT budrunden, og å legge til μ absolutt målte
+−0,090 i går). Bare forskjellene er informasjon.
+
+Slås på med femte felt: `budm:<fil>@-3.0/0.6/0/-3.0/1`. Av til den er målt.
+
+### 2. `sik:` — søk bare når marginen overstiger støyen
+
+Koster **198 ms per trekk** mot søkets 329, altså 40 % billigere. Måling mot
+`ork:foerer:24` med tre terskler kjører.
+
+### 3. Vrak og trumfvalg skal se budrunden — BLOKKERT
+
+Vrakkorpuset lagrer FRØET, så stillingen kan i prinsippet gjenskapes og bredere
+trekk regnes ut uten å regenerere de dyre etikettene. Men gjenskaping er
+nettopp det som strøk for menneskeklonen: 123 av 1 172 runder lot seg
+reprodusere, fordi ett divergerende kortvalg forskyver hele turrekkefølgen.
+
+Krever enten eksakt replay med den policyen som genererte korpuset, eller full
+regenerering. Ikke halvveis startet.
+
+### 4. Kampstillingen — DELVIS ALLEREDE PÅ PLASS
+
+Nettet BRUKER den. Vektsum per inngang i `d7alle`, mot snittet 45,88:
+
+    lagstikk            62,75   137 %
+    egne stikk          48,28   105 %
+    egen poengandel     27,24    59 %
+    andres poengandel   23,53    51 %
+
+Det er ikke en manglende evne, men en evne vi aldri har målt verdien av — fordi
+gate2 låser stillingen på 0–0–0–0. Testen er å MASKERE de to trekkene og måle
+på kampbenken: skader maskeringen, er stillingsbevisstheten ekte og riktig
+kalibrert.
+
+### 5–7. Ikke gjort, og ikke i natt
+
+De 441 trekkene trenger mer korpus og GPU-timer. Makkerutledning og
+framoverblikk i budrunden er ny modellering. Ingen av dem er et spørsmål om
+flid.
