@@ -24,6 +24,7 @@ import { genomFraJson } from "../src/neat/genom.ts";
 import { E1Agent } from "../src/e1/agent.ts";
 import { Konvensjonsvakt, lesVaktflagg } from "../src/moe2/konvensjonsvakt.ts";
 import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
+import { Rolleorakel } from "../src/moe2/rolleorakel.ts";
 import { nettFraBytes } from "../src/nevro/nett.ts";
 // Fra budmodell.ts og IKKE budagent.ts: den siste importerer node:fs paa
 // toppniva, og esbuild med nettleserplattform stopper paa den.
@@ -140,6 +141,35 @@ function tilBytes(b64: string): Uint8Array {
  * det hele tatt. Derfor fanger vi kastet og faller tilbake, i stedet for å la
  * det bli en bot som velger tilfeldig uten at noen merker det.
  */
+/**
+ * SØK I FØRERSETET — Adams-v5.
+ *
+ * MÅLT 6. august over FIRE uavhengige frøbånd: **+2,170 poeng per runde i
+ * førersetet** (z = +5,52), +0,542 samlet. Prosjektets sterkeste måling med
+ * god margin – `vant`-rettelsen som ga v4 hele +5,83 pp vinnerandel målte
+ * +0,127.
+ *
+ * På kampbenken flyttet den en menneske-ekvivalent motstander fra 20,21 % til
+ * 15,83 % vinnerandel.
+ *
+ * FORSVARSSØK ER IKKE MED, og det er målt: −0,027 med z = −0,55, og å legge
+ * det til gjorde boten marginalt DÅRLIGERE. Bare føreren søker.
+ *
+ * MOTPARTEN ER BOTEN UTEN SØK. Sender man søkeagenten inn som sin egen
+ * rollout-motpart, starter hver rollout et nytt søk – eksponentielt. Den bugen
+ * kostet tre brutte målinger 6. august; se `utenSøk()` i agentspek.ts.
+ *
+ * PRIS: ~1,3 sekund per kort NÅR BOTEN ER SPILLEFØRER, altså i én av fire
+ * runder, målt i Node på en rask maskin. I en nettleser må det ventes 2–5x.
+ * Sett `SØKVERDENER = 0` for å slå det av uten andre endringer.
+ */
+const SØKVERDENER = 24;
+
+function medSøk(bot: Bot): Bot {
+  if (SØKVERDENER <= 0) return bot;
+  return new Rolleorakel(bot, bot as never, "foerer", { verdener: SØKVERDENER }) as unknown as Bot;
+}
+
 function medVrakrangerer(bot: Bot, b64: string | null): Bot {
   if (b64 === null) {
     console.warn("Vrakrangereren kunne ikke hentes – vraker som før.");
@@ -198,7 +228,7 @@ function besteBot(): Promise<Bot> {
           console.warn("Budmodellen ble avvist:", feil);
         }
       }
-      return medVrakrangerer(bot, vrakB64);
+      return medSøk(medVrakrangerer(bot, vrakB64));
     })
     .catch((feil: unknown) => {
       botLaster = null; // la neste forsøk prøve på nytt
