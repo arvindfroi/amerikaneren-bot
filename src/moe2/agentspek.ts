@@ -90,6 +90,37 @@ export interface Spekagent {
  * utenpå konvensjonsvakten utenpå nettet, og hvert lag kan tas av for seg.
  * Det er den eneste måten å vise hva HVERT lag er verdt.
  */
+/**
+ * STRIPPER ALLE SØKELAG av en spek.
+ *
+ * Hver søkeoperator (`ork:`, `sik:`, `vv:`, `vv2:`) tar en ROLLOUT-MOTPART som
+ * modellerer hvordan de andre spiller. Fikk den `inn` – det indre laget – og
+ * `inn` selv var et søk, startet hver rollout et NYTT søk. Søk inne i søk,
+ * eksponentielt.
+ *
+ * Det blokkerte forsvarslinja i timevis: tre målinger måtte brytes, og jeg
+ * konkluderte hver gang med at det var en kostnadsgrense. Det var en bug.
+ *
+ * De andre spillerne søker ikke. Motparten skal derfor bygges fra speken UTEN
+ * søkelag – uansett hvor mange som er stablet.
+ */
+export function utenSøk(spek: string): string {
+  let s = spek;
+  for (;;) {
+    if (s.startsWith("ork:") || s.startsWith("sik:")) {
+      // ork:<rolle>:<verdener>:<indre>  og  sik:<rolle>:<sigma>:<verdener>:<indre>
+      const d = s.slice(4).split(":");
+      s = d.slice(s.startsWith("sik:") ? 3 : 2).join(":");
+    } else if (s.startsWith("vv2:")) {
+      s = s.slice(4).split(":").slice(3).join(":");
+    } else if (s.startsWith("vv:")) {
+      s = s.slice(3).split(":").slice(1).join(":");
+    } else {
+      return s;
+    }
+  }
+}
+
 export function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp(): void } {
   if (indre === "nevro") return new NevroAgent();
   if (indre.startsWith("vakt:")) {
@@ -212,11 +243,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
      * Motparten skal modellere hvordan de andre SPILLER, og de spiller uten
      * søk. Derfor strippes alle `ork:`-lag av før motparten bygges.
      */
-    let baseSpek = restSpek;
-    while (baseSpek.startsWith("ork:")) {
-      const b = baseSpek.slice(4).split(":");
-      baseSpek = b.slice(2).join(":");
-    }
+    const baseSpek = utenSøk(restSpek);
     const motpart = baseSpek === restSpek ? inn : lagIndre(baseSpek);
     const trosnett =
       troFil === null || troFil === ""
@@ -267,7 +294,8 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
       throw new Error(`Ugyldig sik-spek «${indre}» - forventet sik:<rolle>:<sigma>:<verdener>:<indre>`);
     }
     const inn = lagIndre(d.slice(3).join(":"));
-    return new Sikkerorakel(inn, inn as unknown as ConstructorParameters<typeof Sikkerorakel>[1], {
+    const sikRest = utenSøk(d.slice(3).join(":"));
+    return new Sikkerorakel(inn, (sikRest === d.slice(3).join(":") ? inn : lagIndre(sikRest)) as unknown as ConstructorParameters<typeof Sikkerorakel>[1], {
       sigma,
       verdener,
       roller: rolle === "alle" ? [] : [rolle],
@@ -288,7 +316,8 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
       throw new Error(`Ugyldig vv-spek «${indre}» - forventet vv:<verdener>:<indre>`);
     }
     const inn = lagIndre(d.slice(1).join(":"));
-    return new Vrakvelger(inn, inn as unknown as ConstructorParameters<typeof Vrakvelger>[1], { verdener });
+    const vvRest = utenSøk(d.slice(1).join(":"));
+    return new Vrakvelger(inn, (vvRest === d.slice(1).join(":") ? inn : lagIndre(vvRest)) as unknown as ConstructorParameters<typeof Vrakvelger>[1], { verdener });
   }
   /**
    * `etl:<nivaa>:<indre>` - ETTERLYSNINGEN, den siste uundersoekte beslutningen.
@@ -318,7 +347,8 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
       throw new Error(`Ugyldig vv2-spek «${indre}» - forventet vv2:<verdener>:<flagg>:<indre>`);
     }
     const inn = lagIndre(d.slice(3).join(":"));
-    return new Vrakvelger2(inn, inn as unknown as ConstructorParameters<typeof Vrakvelger2>[1], {
+    const vv2Rest = utenSøk(d.slice(3).join(":"));
+    return new Vrakvelger2(inn, (vv2Rest === d.slice(3).join(":") ? inn : lagIndre(vv2Rest)) as unknown as ConstructorParameters<typeof Vrakvelger2>[1], {
       verdener,
       policy: lesVrakflagg(d[1] ?? "telrd"),
     });
