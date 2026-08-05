@@ -305,7 +305,21 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
       policy: lesVrakflagg(d[1] ?? "telrd"),
     });
   }
-  if (indre.startsWith("e1:")) return new E1Agent(lesNett(indre.slice(3)));
+  /**
+   * `e1:<fil>[@<trofil>]` – kortnettet.
+   *
+   * TROFILEN ER PÅKREVD FRA v9-BREDDE OG OPP. Sanseblokken regnes ut FRA
+   * troen, og uten den er 84 av 88 sansetrekk konstant null – et v9-nett ville
+   * spilt på nuller uten at noe sa fra. `E1Agent` kaster derfor, og speken må
+   * kunne uttrykke filen.
+   */
+  if (indre.startsWith("e1:")) {
+    const rest = indre.slice(3);
+    const at = rest.lastIndexOf("@");
+    if (at < 0) return new E1Agent(lesNett(rest));
+    const trosnett = new Trosnett(nettFraBytes(new Uint8Array(readFileSync(rest.slice(at + 1))))[0]!);
+    return new E1Agent(lesNett(rest.slice(0, at)), undefined, { trosnett });
+  }
   /**
    * `e1s:<fil>` - E1 med SOEK i VRAK og VELG.
    *
