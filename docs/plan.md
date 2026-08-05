@@ -3359,3 +3359,42 @@ har søket fått:
   4. Korpuset kjøres som langskudd i bakgrunnen hvis maskinen har plass
 
 Punkt 3 er det som gjør at tallet er til å stole på.
+
+## 40. SPILLETIDS-SØK: koblet, og tidsbudsjettet er porten (5.–6. august)
+
+Adams spiller uten søk. `ork:`-benken målte +0,896 i førersetet med riktig
+rollout-policy, og det tallet er i den størrelsesordenen målet krever — uten
+en eneste treningstime.
+
+### Søket var koblet svakere enn det vi har
+
+`Rolleorakel` sendte ÉN motpart og ingen trosvekt til `besteKortSD`. Den målte
+altså en dårligere versjon enn det som er bygget. Nå tar den trosnett (32
+kandidater), fortsettelser og kombinasjonsmodus, og `ork:`-speken er utvidet:
+
+    ork:<rolle>:<verdener>[@<trofil>][+<vaktflagg,vaktflagg>]:<indre>
+
+Fortsettelsene bygges ved å bytte VAKTFLAGGET i den indre speken. Policysveipen
+viste at `abmpd` (−0,237) og `abmpS` (−0,064) er merkbart forskjellige fra
+`abmp` — altså plausible motstanderatferder, ikke bare svakere kopier.
+
+### TIDSBUDSJETTET ER PORTEN, og det ble målt før noe annet
+
+`examples/soketid.ts`, snitt over alle kortvalg (søket fyrer bare i førersetet,
+altså ~1/4 av dem, så ekte kostnad per søk er ~4x snittet):
+
+| oppsett | per kortvalg | per faktisk søk |
+|---|---|---|
+| uten søk | **0,5 ms** | — |
+| `ork:foerer:24` | 329 ms | ~1,3 s |
+| `+ tro + 3 fortsettelser` | **1 043 ms** | **~4,2 s** |
+
+1,3 s er akseptabelt i en nettleser. 4,2 er det IKKE — familien spiller på
+maskiner tregere enn denne, kanskje 2–5x, altså 10–20 sekunder per kort.
+
+**Konsekvens:** tre fortsettelser koster 3,2x, så budsjettet må tas fra
+verdenene. Den riktige sammenlikningen er **8 verdener x 3 fortsettelser** mot
+**24 x 1** — likt budsjett, og litteraturen sier at fortsettelsesmangfold
+fjerner skjevhet mens verdener bare demper varians.
+
+Uten denne målingen ville vi målt en konfigurasjon som aldri kunne rulles ut.
