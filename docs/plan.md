@@ -3673,3 +3673,34 @@ anvendelsen av det — en tabell, ingen trening, målt på ekte runder.
 
 FORBEHOLD SOM STÅR: n = 34 for bud 9. Krympingen tar høyde for det, og hver
 framtidige familierunde forbedrer estimatet automatisk.
+
+### RETTELSE: «boten byr aldri 9» var et måleartefakt
+
+Jeg målte budfordelingen med boten i SETE 0 alene og fikk `{10, 11, PASS}` —
+ingen niere — og konkluderte med at `vant[9]` styrer et bud boten ikke bruker.
+Det var feil. Auksjonen går i tur, og sete 0 møter et helt annet sett lovlige
+bud enn de tre andre.
+
+Målt over ALLE fire seter, 400 giv, med fast miljø (Adams-v4):
+
+| tabell | 7 | 8 | **9** | **10** | 11 | pass |
+|---|---|---|---|---|---|---|
+| `bud-vant` (v4) | 11 | 27 | **245** | **377** | 26 | 1200 |
+| `bud-menneske` | 37 | 0 | **301** | **322** | 26 | 1238 |
+| `bud-gbt` (v3) | 0 | 62 | **355** | **243** | 26 | 1299 |
+
+Boten byr 9 hyppig, og tabellen endrer fordelingen materielt: 245 → 301 nier
+med den målte tabellen, altså **23 % flere**, og tilsvarende færre tibud.
+
+MEKANISMEN. Terskelen for å by er nesten lik for alle bud (P > 0,41 til 0,43),
+så en hånd som kvalifiserer til 10 kvalifiserer også til 9. Valget mellom dem
+styres av `vant`-forholdet alene. Med `vant[9] = 0,097` blir bud 9 strukturelt
+uattraktivt, og boten hopper til 10 — en hardere kontrakt for to poeng mer.
+
+Arvind: «det er helt normalt å by 9, 10, av og til 11 og 8». Det stemmer med
+hva boten faktisk gjør; det var målingen min som var for smal.
+
+LÆRDOM: jeg vinglet tre ganger på dette funnet — først overdrevet, så
+nedgradert på et artefakt, så bekreftet. Nedgraderingen kom av å måle ETT SETE
+og generalisere. En budfordeling må måles over alle seter, fordi turrekkefølgen
+bestemmer hvilke bud som i det hele tatt er lovlige.
