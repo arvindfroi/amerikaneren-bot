@@ -3026,3 +3026,92 @@ INGEN AV DEM HJELPER. Tre observasjoner er likevel verdt å ta med:
   `k` og `n` gir nesten identiske tall (−0,0249 mot −0,0251, samme 1 418
   avgjorte givere) selv om de er ulike regler. De ender trolig på samme kort i
   praksis, og da er den ene overflødig.
+
+### Sveip B: dra-trumf-familien er monotont skadelig
+
+| bryter | poeng/runde | tegntest | fyrer i |
+|---|---|---|---|
+| `l` åpning-alltid-lavest | +0,006 | z = −0,45 | 5,1 % |
+| `h` åpning-høyest | −0,003 | z = −0,49 | 0,7 % |
+| `k` vrak: ikke konge | −0,036 | z = −1,08 | 1,3 % |
+| `D` ikke-dra-trumf, terskel 4 | −0,075 | z = −3,20 | 0,9 % |
+| `d` terskel 3 | **−0,237** | z = −7,67 | 3,1 % |
+| `e` terskel 3 + billigst | **−0,315** | z = −8,96 | 3,3 % |
+
+Dose-responsen er ren: jo mer boten holdes tilbake fra å dra trumf, jo verre
+går det. «Ikke dra trumf» er feil råd for denne boten, og terskelen styrer bare
+hvor feil.
+
+## 35. ADAMS-V4 — ferdig definert og verifisert
+
+    vr:e1-modell/vrakrang.bin:telrd
+      : budm:e1-modell/bud-vant.json@-3.0
+      : vakt:abmp
+      : e1:e1-modell/d7alle.bin
+
+Ett sted i koden: `ADAMS` i `src/moe2/agentspek.ts`.
+
+### Hver del, med sin målte verdi
+
+| del | verdi | målt mot |
+|---|---|---|
+| vrakrangereren `telrd` | +0,123 | v2-stakken |
+| budterskelen `@-3.0` | +0,392 | v2-stakken |
+| samspillet vrak x bud | superadditivt, samlet **+0,598 ± 0,067** | v2 |
+| **`bud-vant.json`** | **+0,127 ± 0,043** per runde | v3 |
+| — samme, på KAMPNIVÅ | **+5,83 pp vinnerandel** | v3, 24 000 kamper |
+| vakten `abmp` | `b` og `m` bærer; `a` og `p` inerte | v4 |
+| Amerikaner i budløkka | 0 meldinger, og det er RIKTIG | v4 |
+| sansekoblingen | ingen effekt på v4 (nettet er 273 bredt) | — |
+
+### Policykartet — komplett, ingenting utestet
+
+VRAK (`telrd`, 6 mulige bokstaver). Utelat-én:
+
+    r  renonse            −0,097 aa fjerne   BAERER
+    e  ikke ess           −0,091              BAERER
+    t  ikke trumf         −0,035              baerer litt
+    d  dobbel renonse     −0,013              marginal
+    l  laveste            STOEY (fortegn snur mellom froebaand)   DOED
+    k  ikke konge         −0,036 aa LEGGE TIL                     avslaatt, riktig
+
+VAKT (`abmp`, 16 mulige bokstaver). Utelat-én for de paa, legg-til-en for de av:
+
+    b  garanti-billigst   −0,121 aa fjerne (men tegntest +1,96)   UAVKLART
+    m  makker-trumf-tilb. −0,034, alt i makkersetet               BAERER
+    a  aapning            +0,014 aa fjerne, 0,9 % avgjorte        inert
+    p  makker-trumfer-f.  −0,002, 0,1 % avgjorte                  inert
+    t  garanti-ikke-trumf BIT-IDENTISK - fullstendig skygget av b
+    N  garanti-nytte      +0,005, 0,3 %
+    A  makker-ess-foerst  +0,003, men fyrer i 9,0 %
+    C  foerer-trumfkontr. −0,023
+    k  kast-billigst      −0,025
+    n  kast-nytte         −0,025 (nesten identisk med k - overfloedig?)
+    S  stopp-trumf-tom    −0,064
+    l  aapning-lavest     +0,006
+    h  aapning-hoeyest    −0,003
+    D  ikke-dra, terskel 4 −0,075
+    d  ikke-dra, terskel 3 −0,237
+    e  ikke-dra + billigst −0,315
+
+**Ingen av de 13 avslåtte bryterne hjelper.** De ble slått av av en grunn, og
+grunnen holder fortsatt mot en sterkere stakk. `a`, `p` og vrakens `l` er
+inerte og blir stående — å fjerne dem gir ingen målbar gevinst og innebærer en
+atferdsendring uten dekning.
+
+### Verifisert som helhet
+
+    300 tester groenne
+    tsc ren paa src
+    nettleserbunten bygger (598,9 kb)
+    gate2 kontrollarm noeyaktig 0,0000
+    kampbenken +5,83 pp mot v3, kontrollarm noeyaktig 0,2500
+
+### Det som IKKE er på plass, og det er ærlig sagt det største
+
+**Nettet er 273 bredt.** 441 trekk — sansene, hukommelsen, troen, planen — når
+ikke fram. Sansekoblingen fra §32 virker og er testet, men den kan ikke betale
+seg før et v9/v10-nett er TRENT. Det er en treningskjøring, ikke en kodeendring,
+og det er den eneste gjenstående linja med stort utslag.
+
+v4 er altså alt som kan hentes uten å trene. Det som gjenstår krever GPU-tid.
