@@ -112,6 +112,9 @@ export function utenSøk(spek: string): string {
       const d = s.slice(4).split(":");
       s = d.slice(s.startsWith("sik:") ? 3 : 2).join(":");
     } else if (s.startsWith("vv2:")) {
+      // slice(3) SPEILER `lagIndre`, som hopper over fire felt selv om
+      // kommentaren over den sier tre. Uenigheten er eldre enn denne fiksen;
+      // her gjelder bare at strippingen gjør nøyaktig det bygget gjør.
       s = s.slice(4).split(":").slice(3).join(":");
     } else if (s.startsWith("vv:")) {
       s = s.slice(3).split(":").slice(1).join(":");
