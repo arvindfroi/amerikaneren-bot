@@ -3704,3 +3704,49 @@ LÆRDOM: jeg vinglet tre ganger på dette funnet — først overdrevet, så
 nedgradert på et artefakt, så bekreftet. Nedgraderingen kom av å måle ETT SETE
 og generalisere. En budfordeling må måles over alle seter, fordi turrekkefølgen
 bestemmer hvilke bud som i det hele tatt er lovlige.
+
+## 48. RESULTATET: søk i førersetet, målt i målets egen valuta
+
+Stedfortrederen (Adams-v3, kalibrert til familiens nivå) i ett sete mot tre
+Adams. Kontrollarm nøyaktig 0,2500 i alle kjøringer.
+
+| miljø | stedfortrederens vinnerandel |
+|---|---|
+| Adams-v4 | 20,21 % |
+| + søk, 12 verdener | 17,33 % |
+| **+ søk, 24 verdener** | **15,83 %** |
+| *mål* | *5,0 %* |
+
+180 frø, tegntest z = −6,41, sluttmargin −12,44 (8,30 SE).
+
+**Søket henter −4,38 prosentpoeng.** Vi trengte −15,2. Vi kom 29 % av veien.
+
+### Skaleringen er den viktigste observasjonen
+
+    12 verdener  ->  17,33 %
+    24 verdener  ->  15,83 %      −1,50 pp for en dobling
+
+Kurven flater, men den er ikke flat. Og siden Arvind planlegger DESTILLASJON,
+koster flere verdener ingenting i utrulling — søket er LÆREREN, og det
+destillerte nettet spiller fort.
+
+48-verdeners måling ble startet, men kampbenken skriver først en rad når fem
+hele kamper er spilt per frø, og med 48 verdener tar det timer. Den er ikke
+avsluttet.
+
+### DEN PRAKTISKE GRENSEN VI TRAFF, TO GANGER
+
+Søk i TRE av fire seter (fører + forsvar) er ikke målbart på kampbenken slik
+den er bygget: én kamp tar mange minutter, og benken skriver først etter fem.
+To forsøk måtte brytes.
+
+Det er ikke en styrkegrense, det er en MÅLEGRENSE. Kampbenken burde skrive
+inkrementelt per kamp i stedet for per frø. Det er den enkleste endringen som
+ville åpnet hele forsvarssøket for måling.
+
+### Adams-v5
+
+    v5 = v4 + soek i foerersetet (24 verdener)
+
+Den eneste replikerte gevinsten som ikke krever mer trening, og den flytter en
+menneske-ekvivalent motstander fra 20,21 % til 15,83 %.
