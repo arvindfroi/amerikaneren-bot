@@ -191,11 +191,16 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     // Fjerde leddet: FORSVARSVERDIEN, som er en annen stoerrelse enn terskelen
     // selv om de har delt konstant til naa. Uten den faller den tilbake paa
     // terskelen, saa alle gamle spesifikasjoner spiller bit-identisk.
-    const fv = strek3 < 0 ? ev : Number(rest2.slice(strek3 + 1));
+    const rest3 = strek3 < 0 ? "" : rest2.slice(strek3 + 1);
+    const strek4 = rest3.indexOf("/");
+    const fv = strek3 < 0 ? ev : Number(strek4 < 0 ? rest3 : rest3.slice(0, strek4));
     if (!Number.isFinite(fv)) throw new Error(`Ugyldig forsvarsverdi i «${indre}»`);
+    // Femte felt: AUKSJONSKORREKSJON på μ. «1» slår den på. Målt 6. august:
+    // residualen spriker 0,37 stikk mellom auksjonstilstander modellen ikke ser.
+    const auk = strek4 >= 0 && rest3.slice(strek4 + 1) === "1";
     if (!Number.isFinite(ev)) throw new Error(`Ugyldig evForsvar i «${indre}»`);
     if (!Number.isFinite(sg) || sg <= 0) throw new Error(`Ugyldig sigmagulv i «${indre}»`);
-    return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(fil), ev, sg, ms, fv);
+    return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(fil), ev, sg, ms, fv, null, auk);
   }
   /**
    * `ork:<rolle>:<indre>` - SD-ORAKELET spiller den rollen, det indre alt annet.

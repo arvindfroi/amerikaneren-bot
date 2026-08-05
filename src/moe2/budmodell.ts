@@ -86,6 +86,24 @@ export interface Innagent {
   nyKamp(): void;
 }
 
+/**
+ * Avviket fra snittresidualen, gitt hva de andre har bydd. Summerer til null
+ * over populasjonen – se `auksjonskorreksjon`.
+ */
+function auksjonsavvik(state: GameState, sete: number): number {
+  let høyest = 0;
+  for (let p = 0; p < state.antallSpillere; p++) {
+    if (p === sete) continue;
+    const b = state.budrunde.sisteBud[p];
+    if (typeof b === "number" && b > høyest) høyest = b;
+  }
+  // Målte residualer minus det vektede snittet (+0,133).
+  if (høyest === 0) return -0.023;
+  if (høyest <= 8) return +0.351;
+  if (høyest === 9) return -0.021;
+  return +0.095;
+}
+
 export class Budagent implements Innagent {
   private readonly indre: Innagent;
   private readonly m: Budmodell;
@@ -131,6 +149,28 @@ export class Budagent implements Innagent {
   private readonly μSkift: number;
 
   /**
+   * AUKSJONSKORREKSJON på μ — modellen er 128 trekk og HØRER IKKE budrunden.
+   *
+   * MÅLT 6. august over 4 000 runder, residual (faktisk lagstikk − μ) etter
+   * hva de andre hadde bydd i budøyeblikket:
+   *
+   *     ingen bud     +0,110 ± 0,031
+   *     hoeyest <= 8  +0,484 ± 0,084     <- 0,37 over de andre, ~4 SE
+   *     hoeyest 9     +0,112 ± 0,028
+   *     hoeyest >= 10 +0,228 ± 0,067
+   *
+   * Byr de andre lavt, sitter de svakt, og stikkene flyter til oss. Modellen
+   * kan ikke vite det.
+   *
+   * SENTRERT PÅ NULL, og det er ikke en detalj. Å legge til μ ABSOLUTT målte
+   * −0,090 i går: nivået er et seleksjonsartefakt, fordi residualen regnes for
+   * dem som VANT budrunden. Bare FORSKJELLENE mellom auksjonstilstandene er
+   * informasjon. Derfor trekkes snittet fra, og korreksjonen summerer til null
+   * over populasjonen.
+   */
+  private readonly auksjonskorreksjon: boolean;
+
+  /**
    * PERSONAVHENGIG JUSTERING av forsvarsverdien, eller `null`.
    *
    * `evForsvar` er en KONSTANT der det burde stått en modell: hva forsvar er
@@ -162,12 +202,14 @@ export class Budagent implements Innagent {
     μSkift = 0,
     forsvarsverdi = evForsvar,
     forsvarsjustering: ((state: GameState) => number) | null = null,
+    auksjonskorreksjon = false,
   ) {
     this.indre = indre;
     this.m = m;
     this.evForsvar = evForsvar;
     this.forsvarsverdi = forsvarsverdi;
     this.forsvarsjustering = forsvarsjustering;
+    this.auksjonskorreksjon = auksjonskorreksjon;
     this.σGulv = σGulv;
     this.μSkift = μSkift;
   }
@@ -186,7 +228,8 @@ export class Budagent implements Innagent {
     const sete = state.iTur;
     // Modellens EGEN bredde, ikke den nyeste. Et v1-nett skal se v1-trekk.
     const x = budTrekk(state, sete, this.m.dim);
-    const μ = anslå(this.m.mμ, x, this.m.rate) + this.μSkift;
+    let μ = anslå(this.m.mμ, x, this.m.rate) + this.μSkift;
+    if (this.auksjonskorreksjon) μ += auksjonsavvik(state, sete);
     const σ = Math.max(this.σGulv, anslå(this.m.mσ, x, this.m.rate));
 
     // Personavhengig forskyvning, null når vi ikke kjenner motparten.
