@@ -1,0 +1,17 @@
+24 filer, 2 armer
+
+ork:foerer:48:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  3840  +0.4811 +/- 0.1100 (+4.37 SE)  trimmet +0.0070  tegn 265/156 (z=+5.31)
+   avgjorte giver: 421 av 3840 (11.0 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     foerer   n=   960  +1.9243 +/- 0.4368  trimmet +2.0884  z=+5.31
+     makker   n=   960  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  1920  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  3840  +0.0000 +/- 0.0000 (+0.00 SE)  trimmet +0.0000  tegn 0/0 (z=+0.00)
+     foerer   n=   960  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     makker   n=   960  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  1920  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.

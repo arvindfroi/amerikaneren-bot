@@ -48,6 +48,23 @@ let skardN = 1;
 let kandSpek = ADAMS;
 let miljøSpek = ADAMS;
 let ut = "analyse/kamp-0.jsonl";
+/**
+ * UPARRET MODUS — én kamp per frø i stedet for fem.
+ *
+ * Den parrede formen spiller 1 kontrollkamp + 4 kandidatkamper per frø. Med
+ * SØK i miljøet er kontrollkampen den dyreste av alle (alle fire seter søker),
+ * og den er ren overhead: grunnlinja er 0,2500 ved symmetri, ikke noe som må
+ * måles.
+ *
+ * Parringen demper varians, men den KOSTER 5x. Med søk i flere seter gjorde
+ * den målingen umulig — tre forsøk måtte brytes fordi benken ikke skrev en
+ * eneste rad på tjue minutter.
+ *
+ * Uparret: kandidaten settes i ETT sete som roterer med frøet, og
+ * vinnerandelen sammenliknes med 0,2500 direkte. Forventningsrett, bare
+ * støyere per kamp — og fem ganger flere kamper for samme tid.
+ */
+let uparret = false;
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   const v = process.argv[i + 1];
@@ -56,6 +73,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--kandidat") kandSpek = v ?? kandSpek;
   else if (a === "--miljo") miljøSpek = v ?? miljøSpek;
   else if (a === "--ut") ut = v ?? ut;
+  else if (a === "--uparret") uparret = true;
   else if (a === "--skard") {
     const d = (v ?? "0/1").split("/");
     skardI = tall(d[0], 0, "--skard i");
@@ -98,15 +116,18 @@ let avvik = 0;
 for (let k = 0; k < kamper; k++) {
   if (k % skardN !== skardI) continue;
   const frø = frøBase + k * 7717;
-  const kontroll = spillKamp(miljøAlle, frø);
-  if (kontroll === null) continue;
-  for (let sete = 0; sete < 4; sete++) {
+  // Uparret hopper over kontrollkampen helt: grunnlinja er 0,2500 ved
+  // symmetri. Setet roterer med frøet, så alle fire dekkes over mange frø.
+  const kontroll = uparret ? null : spillKamp(miljøAlle, frø);
+  if (!uparret && kontroll === null) continue;
+  const seter0 = uparret ? [k % 4] : [0, 1, 2, 3];
+  for (const sete of seter0) {
     const seter = miljøAlle.map((m, p) => (p === sete ? kandSpek : m));
     const kand = spillKamp(seter, frø);
     if (kand === null) continue;
     // PARRINGSVAKTEN. Første giv MÅ være identisk; ellers er ikke de to
     // kampene sammenliknbare i det hele tatt.
-    if (kand.avtrykk !== kontroll.avtrykk) {
+    if (kontroll !== null && kand.avtrykk !== kontroll.avtrykk) {
       avvik++;
       continue;
     }
@@ -116,13 +137,13 @@ for (let k = 0; k < kamper; k++) {
         frø,
         sete,
         kandVant: kand.vinner === sete ? 1 : 0,
-        miljøVant: kontroll.vinner === sete ? 1 : 0,
+        miljøVant: kontroll === null ? 0.25 : kontroll.vinner === sete ? 1 : 0,
         kandPoeng: kand.poeng[sete],
-        miljøPoeng: kontroll.poeng[sete],
+        miljøPoeng: kontroll === null ? 0 : kontroll.poeng[sete],
         kandMargin: kand.poeng[sete]! - Math.max(...kand.poeng.filter((_, p) => p !== sete)),
-        miljøMargin: kontroll.poeng[sete]! - Math.max(...kontroll.poeng.filter((_, p) => p !== sete)),
+        miljøMargin: kontroll === null ? 0 : kontroll.poeng[sete]! - Math.max(...kontroll.poeng.filter((_, p) => p !== sete)),
         kandRunder: kand.runder,
-        miljøRunder: kontroll.runder,
+        miljøRunder: kontroll === null ? kand.runder : kontroll.runder,
       }) + "\n",
     );
     skrevet++;
