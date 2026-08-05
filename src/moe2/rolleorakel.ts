@@ -40,6 +40,7 @@
 
 import { lagRng } from "../kort.ts";
 import { lovligeKort, type GameState, type Handling } from "../motor.ts";
+import { lagTrovekt } from "./troprior.ts";
 import { besteKortSD, type Utspiller } from "./sdkort.ts";
 
 export type Rolle = "foerer" | "makker" | "forsvar";
@@ -48,6 +49,22 @@ export interface RolleorakelOpts {
   /** Verdener SD sampler per beslutning. 12 er det målte nivået. */
   readonly verdener?: number;
   readonly frø?: number;
+  /**
+   * TROSNETTET. Uten det vektes kandidatverdenene bare etter budet, og
+   * ingenting av hvordan de andre har SPILT teller. Målt 5. august: +2,62 pp
+   * bedre verdenskvalitet ved 32 kandidater (men bare +0,68 ved 3, fordi
+   * importance sampling kun kan velge blant det som faktisk ble trukket).
+   */
+  readonly trosnett?: { fordeling(trekk: Float32Array): number[][] } | null;
+  /** Kandidatverdener troen får velge mellom. Uten troen uten mening. */
+  readonly verdenKandidater?: number;
+  /**
+   * FLERE FORTSETTELSER (Brown & Sandholm). Med én rollout-policy antar
+   * evalueringen at de andre spiller nøyaktig slik — skjevt og utnyttbart.
+   * Tom liste = bruk `motpart` alene, altså den gamle formen.
+   */
+  readonly fortsettelser?: readonly Utspiller[];
+  readonly fortsKombi?: "min" | "snitt" | "cfr";
 }
 
 /** Setets rolle i den gjeldende runden, eller null hvis den ikke er avgjort. */
@@ -64,6 +81,10 @@ export class Rolleorakel {
   private readonly rolle: Rolle;
   private readonly verdener: number;
   private readonly rng: () => number;
+  private readonly trosnett: { fordeling(trekk: Float32Array): number[][] } | null;
+  private readonly verdenKandidater: number;
+  private readonly fortsettelser: readonly Utspiller[];
+  private readonly fortsKombi: "min" | "snitt" | "cfr";
 
   constructor(
     indre: { velgHandling(s: GameState): Handling; nyKamp(): void },
@@ -75,6 +96,10 @@ export class Rolleorakel {
     this.motpart = motpart;
     this.rolle = rolle;
     this.verdener = opts.verdener ?? 12;
+    this.trosnett = opts.trosnett ?? null;
+    this.verdenKandidater = opts.verdenKandidater ?? (opts.trosnett ? 32 : 3);
+    this.fortsettelser = opts.fortsettelser ?? [];
+    this.fortsKombi = opts.fortsKombi ?? "cfr";
     // SEEDET. Uten det er to kjøringer av samme måling ikke sammenlignbare,
     // og en parret benk mister nettopp det parringen er til for.
     this.rng = lagRng(opts.frø ?? 20_260_803);
@@ -88,10 +113,19 @@ export class Rolleorakel {
     if (state.fase === "SPILL" && state.iTur !== null) {
       const sete = state.iTur;
       if (rolleFor(state, sete) === this.rolle && lovligeKort(state, sete).length >= 2) {
-        const kort = besteKortSD(state, sete, this.motpart, {
-          verdener: this.verdener,
-          rng: this.rng,
-        });
+        const kort = besteKortSD(
+          state,
+          sete,
+          this.fortsettelser.length > 0 ? this.fortsettelser : this.motpart,
+          {
+            verdener: this.verdener,
+            rng: this.rng,
+            trovekt:
+              this.trosnett === null ? undefined : (lagTrovekt(this.trosnett, state, sete) ?? undefined),
+            verdenKandidater: this.verdenKandidater,
+            fortsKombi: this.fortsKombi,
+          },
+        );
         // `besteKortSD` gir null om ingen verden lot seg trekke. Da skal det
         // indre valget stå – ikke et vilkårlig kort, som ville blandet
         // orakelets vurdering med en tilfeldighet og gjort målingen uleselig.

@@ -29,6 +29,7 @@ import { Sikkerorakel } from "./sikkerorakel.ts";
 import { Vrakvelger } from "./vrakvelg.ts";
 import { Etterlysvelger } from "./etterlys.ts";
 import { Vrakvelger2, lesVrakflagg } from "./vrakvelg2.ts";
+import { Trosnett } from "./trosnett.ts";
 
 /**
  * Nettene leses ÉN gang og deles. `E1Agent` holder ingen tilstand mellom
@@ -182,12 +183,43 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     if (rolle !== "foerer" && rolle !== "makker" && rolle !== "forsvar") {
       throw new Error(`Ukjent rolle «${rolle}» (foerer, makker, forsvar)`);
     }
-    const verdener = Number(d[1]);
+    // «<verdener>[@<trofil>][+<vaktflagg1,vaktflagg2>]» – troen vekter
+    // verdenene, vaktflaggene gir FORTSETTELSER (Brown & Sandholm). Begge er
+    // valgfrie, og uten dem er speken bit-identisk med den gamle formen.
+    const hode = d[1] ?? "";
+    const pluss = hode.indexOf("+");
+    const hodeUtenForts = pluss < 0 ? hode : hode.slice(0, pluss);
+    const fortsFlagg = pluss < 0 ? [] : hode.slice(pluss + 1).split(",").filter((x) => x.length > 0);
+    const snabel = hodeUtenForts.indexOf("@");
+    const verdener = Number(snabel < 0 ? hodeUtenForts : hodeUtenForts.slice(0, snabel));
+    const troFil = snabel < 0 ? null : hodeUtenForts.slice(snabel + 1);
     if (!Number.isFinite(verdener) || verdener < 1) {
-      throw new Error(`Ugyldig verdenstall i «${indre}» - forventet ork:<rolle>:<verdener>:<indre>`);
+      throw new Error(
+        `Ugyldig verdenstall i «${indre}» - forventet ork:<rolle>:<verdener>[@<trofil>][+<flagg,flagg>]:<indre>`,
+      );
     }
-    const inn = lagIndre(d.slice(2).join(":"));
-    return new Rolleorakel(inn, inn as unknown as ConstructorParameters<typeof Rolleorakel>[1], rolle, { verdener });
+    const restSpek = d.slice(2).join(":");
+    const inn = lagIndre(restSpek);
+    const trosnett =
+      troFil === null || troFil === ""
+        ? null
+        : new Trosnett(nettFraBytes(new Uint8Array(readFileSync(troFil)))[0]!);
+    // Fortsettelsene bygges ved å bytte VAKTFLAGGET i den indre speken – det
+    // er den billigste måten å få målt ulike spillestiler, og policysveipen
+    // 5. august viste at abmpd og abmpS er merkbart forskjellige fra abmp.
+    const fortsettelser = fortsFlagg.map((f) => {
+      const byttet = restSpek.replace(/vakt:[a-zA-Z]+/, `vakt:${f}`);
+      if (byttet === restSpek) throw new Error(`Fant ingen «vakt:» å bytte til «${f}» i «${restSpek}»`);
+      return lagIndre(byttet) as unknown as ConstructorParameters<typeof Rolleorakel>[1];
+    });
+    return new Rolleorakel(inn, inn as unknown as ConstructorParameters<typeof Rolleorakel>[1], rolle, {
+      verdener,
+      trosnett,
+      fortsettelser:
+        fortsettelser.length > 0
+          ? [inn as unknown as ConstructorParameters<typeof Rolleorakel>[1], ...fortsettelser]
+          : undefined,
+    });
   }
   /**
    * `sik:<sigma>:<verdener>:<indre>` - SIKKERORAKELET.

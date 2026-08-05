@@ -377,7 +377,7 @@ export function vurderKortSD(
 export function besteKortSD(
   state: GameState,
   spiller: number,
-  motpart: Utspiller,
+  motpart: Utspiller | readonly Utspiller[],
   opts: SDKortOpts,
 ): Kort | null {
   const vurdert = vurderKortSD(state, spiller, motpart, opts);
