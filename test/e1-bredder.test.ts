@@ -90,32 +90,48 @@ test("sd-tren.py kjenner nøyaktig de samme breddene", () => {
 });
 
 /**
- * Orakelet skriver ÉN bredde, og den må være en vi kan trene på. Skriver den
- * en ukjent bredde, hopper treneren over hele korpuset – etter aa ha lest det.
+ * ORAKELET VALIDERER BREDDEN SIN — sterkere enn den gamle testen.
+ *
+ * Før 5. august var bredden HARDKODET i `sd-orakel.ts`, og testen sjekket bare
+ * at konstanten sto i listen. Det var akkurat den konstruksjonen som en gang
+ * lot generatoren skrive 340 mens `trekk.ts` var på 356: timevis med data uten
+ * den nye blokken, uten et eneste varsel.
+ *
+ * Nå er bredden et argument som valideres mot `LOVLIGE_BREDDER` FØR første rad
+ * genereres. Testen håndhever at valideringen finnes — ikke at en konstant
+ * tilfeldigvis er riktig.
  */
-test("sd-orakel skriver en bredde som staar i listen", () => {
+test("sd-orakel validerer bredden mot LOVLIGE_BREDDER foer generering", () => {
   const kilde = readFileSync(join(ROT, "examples", "sd-orakel.ts"), "utf8");
-  const m = /e1SpillTrekk\(s,\s*sete,\s*(E1_SPILL_DIM(?:_V\d)?)\)/.exec(kilde);
-  assert.ok(m !== null, "fant ikke e1SpillTrekk-kallet i sd-orakel.ts");
-  const navn = m[1]!;
+  assert.match(
+    kilde,
+    /LOVLIGE_BREDDER as readonly number\[\]\)\.includes\(bredde\)/,
+    "sd-orakel validerer ikke bredden mot LOVLIGE_BREDDER",
+  );
+  // Standardbredden maa selv vaere lovlig – ellers feiler enhver kjoering uten
+  // «--bredde», som er den vanligste maaten aa kjoere den paa.
+  const m = /^let bredde = (E1_SPILL_DIM(?:_V\d+)?);/m.exec(kilde);
+  assert.ok(m !== null, "fant ikke standardbredden i sd-orakel.ts");
   const verdier: Record<string, number> = {
-    E1_SPILL_DIM,
-    E1_SPILL_DIM_V2,
-    E1_SPILL_DIM_V3,
-    E1_SPILL_DIM_V4,
-    E1_SPILL_DIM_V5,
-    E1_SPILL_DIM_V6,
-    E1_SPILL_DIM_V7,
-    E1_SPILL_DIM_V8,
-    E1_SPILL_DIM_V9,
-    E1_SPILL_DIM_V10,
+    E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V5,
+    E1_SPILL_DIM_V6, E1_SPILL_DIM_V7, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9, E1_SPILL_DIM_V10,
   };
-  const bredde = verdier[navn];
-  assert.ok(bredde !== undefined, `ukjent konstant ${navn} i sd-orakel.ts`);
+  const bredde = verdier[m[1]!];
+  assert.ok(bredde !== undefined, `ukjent konstant ${m[1]} som standardbredde`);
   assert.ok(
     LOVLIGE_BREDDER.includes(bredde as (typeof LOVLIGE_BREDDER)[number]),
-    `orakelet skriver ${bredde} (${navn}), som ikke staar i LOVLIGE_BREDDER`,
+    `standardbredden ${bredde} staar ikke i LOVLIGE_BREDDER`,
   );
+});
+
+/**
+ * SANSEBLOKKEN KAN IKKE GENERERES TOM. Fra v9 og opp er 84 av 88 sansetrekk
+ * null uten trosnettet, og et korpus med 84 doede kolonner ser helt normalt ut
+ * — helt til nettet er ferdigtrent og «sansene virker ikke».
+ */
+test("sd-orakel nekter v9+ uten trosnett", () => {
+  const kilde = readFileSync(join(ROT, "examples", "sd-orakel.ts"), "utf8");
+  assert.match(kilde, /bredde >= E1_SPILL_DIM_V9 && trosnett === null/);
 });
 
 test("hver bredde gir en vektor av NØYAKTIG den lengden", () => {
