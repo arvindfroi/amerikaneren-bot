@@ -107,3 +107,41 @@ test("nyKamp nullstiller profilen", () => {
   a.nyKamp();
   assert.equal(a.bok.runder(1), 0, "profilen overlevde nyKamp");
 });
+
+/**
+ * SPILLETILPASNING. Budtilpasning er den enkle halvparten; det meste ligger i
+ * å modellere hvordan folk SPILLER. Profilen leser trumfutspill som stilmål og
+ * gir søket et vaktflagg å rulle ut med.
+ */
+test("stilen er null til vi vet nok – to runder er verre enn ingen stil", () => {
+  const bok = new Profilbok();
+  assert.equal(bok.spillestil(), null, "tom profil ga en stil");
+  const ag = [0, 1, 2, 3].map(() => new NevroAgent());
+  let s: GameState = opprettSpill({ antallSpillere: 4 }, 5_500_000);
+  let vakt = 0;
+  while (s.fase !== "FERDIG" && s.rundeNr < 2 && vakt++ < 8000) {
+    bok.observer(s);
+    if (s.fase === "RUNDE_SLUTT") { s = utfør(s, { type: "NESTE" }).state; continue; }
+    const iT = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+    if (iT === null || iT === undefined) break;
+    s = utfør(s, ag[iT]!.velgHandling(s)).state;
+  }
+  assert.equal(bok.spillestil(), null, "to runder ga allerede en stil");
+});
+
+test("trumfutspill BLIR faktisk registrert – ellers er stilen tom uansett", () => {
+  const bok = new Profilbok();
+  const ag = [0, 1, 2, 3].map(() => new NevroAgent());
+  let s: GameState = opprettSpill({ antallSpillere: 4 }, 6_600_000);
+  let vakt = 0;
+  while (s.fase !== "FERDIG" && s.rundeNr < 10 && vakt++ < 20000) {
+    bok.observer(s);
+    if (s.fase === "RUNDE_SLUTT") { s = utfør(s, { type: "NESTE" }).state; continue; }
+    const iT = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+    if (iT === null || iT === undefined) break;
+    s = utfør(s, ag[iT]!.velgHandling(s)).state;
+  }
+  let n = 0;
+  for (let sete = 0; sete < 4; sete++) n += bok.profilFor(sete).trumfutspill.n;
+  assert.ok(n > 0, "ingen trumfutspill registrert på ti runder – feltet fylles ikke");
+});

@@ -99,6 +99,15 @@ export class Profilbok {
       const trumflengde = trumf === null ? undefined : hand.filter((k) => k.farge === trumf).length;
       const honnorer = hand.length === 0 ? undefined : hand.filter((k) => k.verdi >= 11).length;
       const erVinner = sete === bv;
+      // LEDET HUN TRUMF I FORSVAR? Stilmålet: en som leder trumf spiller
+      // aktivt, en som aldri gjør det spiller passivt. Uten dette feltet
+      // hadde profilen ingen anelse om hvordan folk SPILLER — bare hvordan de
+      // byr, som er den enkle halvparten.
+      let ledetTrumf: boolean | undefined;
+      if (!erVinner && trumf !== null) {
+        const ledet = state.historikk.filter((t) => t.kort[0]?.spiller === sete);
+        if (ledet.length > 0) ledetTrumf = ledet.some((t) => t.kort[0]!.kort.farge === trumf);
+      }
       const lagStikk = erVinner && state.makker !== null
         ? (state.stikkVunnet[sete] ?? 0) + (state.stikkVunnet[state.makker] ?? 0)
         : (state.stikkVunnet[sete] ?? 0);
@@ -111,9 +120,41 @@ export class Profilbok {
         ...(erVinner && kontrakt !== null ? { klarte: lagStikk >= kontrakt, lagStikk } : {}),
         ...(trumflengde === undefined ? {} : { trumflengde }),
         ...(honnorer === undefined ? {} : { honnorer }),
+        ...(ledetTrumf === undefined ? {} : { ledetTrumf }),
       };
       this.profiler.set(sete, oppdater(this.profilFor(sete), o));
     }
+  }
+
+  /**
+   * MOTSTANDERNES SPILLESTIL, som et vaktflagg søket kan rulle ut med.
+   *
+   * Søket forestiller seg i dag at de andre spiller som en generisk Adams.
+   * Vet vi at de aldri drar trumf, skal utspillingen modellere DET — ellers
+   * evaluerer vi linjer mot en motstander som ikke sitter der.
+   *
+   * `trumfutspill` er andelen utspill som var trumf i forsvar. Befolkningen
+   * ligger på 0,14. Ligger bordet MARKERT under, spiller de passivt, og
+   * `abmpd` (drar ikke trumf, målt −0,237 mot abmp i selvspill) er en bedre
+   * modell av dem enn baselinjen.
+   *
+   * `null` betyr «vet ikke nok» — da skal søket bruke sin vanlige motpart.
+   * Terskelen på 0,4 tiltro er med vilje høy: en stil avlest av to runder er
+   * verre enn ingen stil.
+   */
+  spillestil(): string | null {
+    let sum = 0;
+    let n = 0;
+    let t = 0;
+    for (const [, p] of this.profiler) {
+      sum += p.trumfutspill.sum;
+      n += p.trumfutspill.n;
+      t = Math.max(t, tiltro(p.trumfutspill));
+    }
+    if (n < 6 || t < 0.4) return null;
+    const rate = sum / n;
+    if (rate < BEFOLKNING.trumfutspill * 0.5) return "abmpd";
+    return null;
   }
 
   /**
