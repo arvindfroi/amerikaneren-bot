@@ -48,6 +48,22 @@ På kampbenken flyttet førersøket alene en menneske-ekvivalent motstander fra
 
 6. **Bekreft md5 av serverte vekter mot lokale**, som ved v3.
 
+## BLOKKERT: søket kan ikke rulles ut ennå
+
+`SØKVERDENER` står på **0**, og bunten er derfor trygg — den er v4 med bumpet
+versjonsnavn.
+
+`velgHandling` kalles SYNKRONT på hovedtråden. Workeren finnes, men ingen
+motstander bruker den lenger. Slås søket på nå:
+
+    12 kort x ~4 s i nettleser  =  ~50 sekunder frosset UI per runde
+    og boten er foerer i tre av fire runder (tre botseter)
+
+Siden ville ikke sett treg ut. Den ville sett ut som en krasj, hver runde.
+
+**Søket må inn i Web Workeren før det kan rulles ut.** Gevinsten er ekte og
+målt; den er bare ikke leverbar på hovedtråden.
+
 ## Priser og forbehold
 
 **~1,3 sekund per kort NÅR BOTEN ER SPILLEFØRER**, altså i én av fire runder,

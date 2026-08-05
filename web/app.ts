@@ -162,11 +162,25 @@ function tilBytes(b64: string): Uint8Array {
  * rollout-motpart, starter hver rollout et nytt søk – eksponentielt. Den bugen
  * kostet tre brutte målinger 6. august; se `utenSøk()` i agentspek.ts.
  *
- * PRIS: ~1,3 sekund per kort NÅR BOTEN ER SPILLEFØRER, altså i én av fire
- * runder, målt i Node på en rask maskin. I en nettleser må det ventes 2–5x.
- * Sett `SØKVERDENER = 0` for å slå det av uten andre endringer.
+ * STÅR PÅ NULL, OG DET ER MED VILJE.
+ *
+ * `velgHandling` kalles SYNKRONT på hovedtråden (se kallet i spillsløyfen).
+ * Workeren finnes, men brukes ikke lenger av noen motstander. Slås søket på nå,
+ * fryser UI-et for hvert kort boten spiller som fører:
+ *
+ *     12 kort x ~4 s i nettleser  ≈  50 sekunder frosset UI PER RUNDE
+ *     og boten er foerer i tre av fire runder (tre botseter)
+ *
+ * Siden ville ikke sett treg ut. Den ville sett ut som en KRASJ, om og om igjen.
+ *
+ * Jeg målte 1,3 s per trekk i Node og skrev at det var «akseptabelt i
+ * nettleser» — uten å sjekke hvilken tråd det kjører på. Det var feil.
+ *
+ * FØR DEN KAN SETTES TIL 24: søket må flyttes inn i Web Workeren, slik PIMC en
+ * gang brukte den. Gevinsten er ekte og målt (+2,009 i førersetet, z = +5,14,
+ * replikert over fire frøbånd) — den er bare ikke utrullbar på hovedtråden.
  */
-const SØKVERDENER = 24;
+const SØKVERDENER = 0;
 
 function medSøk(bot: Bot, troB64: string | null): Bot {
   if (SØKVERDENER <= 0) return bot;
