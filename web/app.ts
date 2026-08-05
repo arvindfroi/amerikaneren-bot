@@ -481,7 +481,7 @@ const BOT_ID: Record<Motstander, string> = {
   // ID-EN MAA BYTTES VED HVER UTPLASSERING. Uten det blandes familiens runder
   // mot v1 og v2 i samme rad i Val Town-basen, og da kan ingen av dem maales.
   // Det var slik v1 kunne skilles fra forgjengeren og vise +4,61 poeng/runde.
-  Vaar: "Adams-v3",
+  Vaar: "Adams-v5",
   MesterAI: "MesterAI",
 };
 /** MesterAI vises kun i bro-modus (spillet servert lokalt over HTTP). */
