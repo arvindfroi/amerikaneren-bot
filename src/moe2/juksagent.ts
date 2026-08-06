@@ -31,7 +31,7 @@
 import { FARGER, likeKort, type Farge, type Kort } from "../kort.ts";
 import type { GameState, Handling } from "../motor.ts";
 import { kortTilInt, intTilKort, rotVerdier } from "../solver/dds.ts";
-import type { Innagent } from "./agent.ts";
+import type { Innagent } from "./budmodell.ts";
 
 /** Leses av vakttesten. Enhver modul som jukser må merke seg selv slik. */
 export const KREVER_FASIT = true;

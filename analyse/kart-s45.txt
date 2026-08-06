@@ -1,0 +1,5 @@
+# TAKKART spill-4-5   n=1000   budsjett=2
+snitt poenggevinst per runde: 1.8170
+giver med gevinst: 177 (17.7 %)
+  annet    n=  750  0.7213  traff 145 (19.3 %)  naar den traff 3.7
+  foerer   n=  250  5.1040  traff 32 (12.8 %)  naar den traff 39.9

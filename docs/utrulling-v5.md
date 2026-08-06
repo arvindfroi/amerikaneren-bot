@@ -64,41 +64,30 @@ det disjunkte**. Fortegnet snur, altså er den ikke etablert. Den ville kostet
 
 4. **Bekreft md5 av serverte vekter mot lokale**, som ved v3.
 
-## BLOKKERT: søket kan ikke rulles ut ennå
+## FORELDET AVSNITT — RETTET 6. august
 
-`SØKVERDENER` står på **0**, og bunten er derfor trygg — den er v4 med bumpet
-versjonsnavn.
+Her sto det at soekevidden var satt til null, og at bunten derfor var trygg.
+Det var sant da avsnittet ble skrevet, og det er ikke sant naa.
 
-`velgHandling` kalles SYNKRONT på hovedtråden. Workeren finnes, men ingen
-motstander bruker den lenger. Slås søket på nå:
+`SØKVERDENER` står på **24**, og workeren finnes.
 
-    12 kort x ~4 s i nettleser  =  ~50 sekunder frosset UI per runde
-    og boten er foerer i tre av fire runder (tre botseter)
+Avsnittet var farlig nettopp fordi resten av dokumentet var riktig: den som
+leste toppen fikk vite at workeren var på plass, og den som leste bunnen fikk
+vite at søket var av. Begge kunne ikke stemme.
 
-Siden ville ikke sett treg ut. Den ville sett ut som en krasj, hver runde.
+`test/utrullet-lik-maalt.test.ts` håndhever nå at tallet i denne fila er det
+samme som i `web/app.ts`. Driver de fra hverandre igjen, feiler testen.
 
-**Søket må inn i Web Workeren før det kan rulles ut.** Gevinsten er ekte og
-målt; den er bare ikke leverbar på hovedtråden.
+De fire kravene under er OPPFYLT, og står igjen som beskrivelse av hva som ble
+gjort — ikke som gjenstående arbeid:
 
-### Hva det konkret krever
-
-`web/worker.ts` holder i dag `BotAgent` (PIMC) og kjenner ikke Adams-stakken.
-Fire ting må på plass:
-
-1. **Workeren må bygge Adams selv.** Den trenger `E1Agent`, `Konvensjonsvakt`,
-   `Budagent`, `Vrakrangerer`, `Rolleorakel` og `Trosnett` – alle er
-   bunlbare (verifisert 6. august etter at barrel-importen i `sdkort.ts` ble
-   fjernet).
-
-2. **Vektene må dit.** Enten sendes som `ArrayBuffer` via `postMessage` fra
-   hovedtråden, som allerede har hentet dem, eller hentes på nytt i workeren.
-   Det første unngår dobbel nedlasting av 7 MB.
-
-3. **En meldingstype for kortvalg**, i samme form som `beslutt` for PIMC.
-
-4. **Spillsløyfen må avvente workeren.** Linje ~710 kaller
-   `nettAgenter[...].velgHandling(state)` SYNKRONT. Det er det ene stedet som
-   må bli asynkront, og det er også der UI-frysen oppstår.
+1. **Workeren bygger Adams selv.** `web/worker.ts` bygger `E1Agent`,
+   `Konvensjonsvakt`, `Budagent`, `Vrakrangerer` og `Sikkerorakel`. Buntbart
+   siden barrel-importen i `sdkort.ts` ble fjernet.
+2. **Vektene sendes som `ArrayBuffer`** via `postMessage` fra hovedtråden, som
+   allerede har hentet dem. Ingen dobbel nedlasting.
+3. **`adams-init` / `adams-trekk`** er meldingstypene for kortvalg.
+4. **Spillsløyfen avventer workeren** for førerens kortvalg.
 
 ### Og den må testes I EN NETTLESER
 
@@ -126,7 +115,7 @@ som at spillet henger, selv når det ikke gjør det.
 
 **~1,3 sekund per kort NÅR BOTEN ER SPILLEFØRER**, altså i én av fire runder,
 målt i Node på en rask maskin. I en nettleser må det ventes 2–5x. Sett
-`SØKVERDENER = 0` i `web/app.ts` for å slå søket av uten andre endringer.
+sett soekevidden til null i `web/app.ts` for å slå søket av uten andre endringer.
 
 **Nedlastingen dobles:** 2,4 MB kortvekter + 4,6 MB trosnett. Det finnes
 allerede en `.gz.b64`-variant i `web/dist` som presedens hvis det blir for

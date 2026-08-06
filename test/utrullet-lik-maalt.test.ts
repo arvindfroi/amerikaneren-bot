@@ -1,0 +1,104 @@
+/**
+ * DET UTRULLEDE MÅ VÆRE DET MÅLTE.
+ *
+ * Dette er prosjektets mest gjentatte feil. Åtte ganger har en måling vært
+ * gyldig og likevel verdiløs, fordi den ble gjort på noe annet enn det som
+ * sto ute:
+ *
+ *   – generatoren skrev bredde 340 mens `trekk.ts` var på 356
+ *   – workeren bygde `Rolleorakel` mens målingen var på `Sikkerorakel`
+ *   – gate2 skrev «foerer», leseren leste «fører» → førerraden usynlig i ALLE
+ *     rapporter en hel kveld
+ *   – `LOVLIGE_DIM` i Python kjente ikke 470 etter v8
+ *
+ * Den niende ble funnet 6. august, i revisjon, FØR den rakk å koste noe:
+ * `web/app.ts` hentet `bud-gbt.json` mens `ADAMS` — speken hver eneste måling
+ * denne uka er gjort med — bruker `bud-vant.json`. Forskjellen er +0,127 poeng
+ * per runde. Hadde noen fulgt utrullingslista, ville v5 gått ut med v3s
+ * budmodell og gevinsten forsvunnet uten at noe feilet.
+ *
+ * Testen håndhever koblingen som mangler: filnavnene i `web/app.ts` MÅ være de
+ * samme som i `ADAMS`. Ingen typesjekk krysser den grensen, fordi den ene
+ * siden er en streng i en spek og den andre er en streng i en fetch.
+ */
+
+import { strict as assert } from "node:assert";
+import { readFileSync } from "node:fs";
+import { basename, join } from "node:path";
+import { test } from "node:test";
+
+import { ADAMS } from "../src/moe2/agentspek.ts";
+
+const ROT = join(import.meta.dirname, "..");
+const APP = readFileSync(join(ROT, "web", "app.ts"), "utf8");
+
+/** Verdien av en `const NAVN = "..."` i appen. */
+function konstant(navn: string): string {
+  const m = new RegExp(`^const ${navn} = "([^"]+)";`, "m").exec(APP);
+  assert.ok(m !== null, `fant ikke «const ${navn}» i web/app.ts`);
+  return m[1]!;
+}
+
+/** Filnavnene ADAMS-speken viser til, uten katalog. */
+function filerIAdams(): string[] {
+  return [...ADAMS.matchAll(/[\w./-]+\.(?:bin|json)/g)].map((m) => basename(m[0]));
+}
+
+test("ADAMS peker på filer i det hele tatt – ellers tester vi ingenting", () => {
+  const f = filerIAdams();
+  assert.ok(f.length >= 3, `forventet minst tre modellfiler i ADAMS, fant ${f.length}: ${f}`);
+});
+
+/**
+ * BUDMODELLEN. Den konkrete niende feilen. `BUDMODELL` er et JSON-navn og kan
+ * sammenliknes direkte med speken.
+ */
+test("appens BUDMODELL er den samme fila som ADAMS maaler med", () => {
+  const iApp = konstant("BUDMODELL");
+  assert.ok(
+    filerIAdams().includes(iApp),
+    `web/app.ts henter «${iApp}», men ADAMS bruker ${filerIAdams().filter((f) => f.endsWith(".json"))}`,
+  );
+});
+
+/**
+ * RESERVEN MÅ VÆRE EN ANNEN FIL. Peker begge på det samme, er kjeden pynt:
+ * feiler den ene, feiler den andre likedan, og boten havner på NevroHjerne
+ * uten at noen har ment det.
+ */
+test("budmodellens reserve er en ANNEN fil enn hovedmodellen", () => {
+  assert.notEqual(konstant("BUDMODELL"), konstant("BUDMODELL_RESERVE"));
+});
+
+/**
+ * VEKTFILENE. `KORTVEKTER` er et `.b64`-navn og kan ikke sammenliknes med
+ * `.bin`-navnet i speken direkte — koblingen mellom dem er et opplastingssteg
+ * utenfor koden. Det testen KAN håndheve, er at utrullingslista navngir hver
+ * fil ADAMS bruker, slik at ingen av dem kan bli glemt.
+ */
+test("utrullingslista navngir HVER modellfil ADAMS bruker", () => {
+  const liste = readFileSync(join(ROT, "docs", "utrulling-v5.md"), "utf8");
+  for (const f of filerIAdams()) {
+    assert.ok(liste.includes(f), `docs/utrulling-v5.md nevner ikke «${f}» – da kan den bli glemt`);
+  }
+});
+
+/**
+ * SØKET. Lista har sagt «SØKVERDENER står på 0, og bunten er derfor trygg»
+ * siden før workeren fantes. Kilden står nå på 24. Sier de to ulike ting, tror
+ * den som ruller ut at søket er av mens det er på.
+ */
+test("utrullingslista lyver ikke om SOEKVERDENER", () => {
+  const m = /^const SØKVERDENER = (\d+);/m.exec(APP);
+  assert.ok(m !== null, "fant ikke SØKVERDENER i web/app.ts");
+  const iKilde = Number(m[1]);
+  const liste = readFileSync(join(ROT, "docs", "utrulling-v5.md"), "utf8");
+  const påstand = /SØKVERDENER`? står på \*\*(\d+)\*\*/.exec(liste);
+  if (påstand !== null) {
+    assert.equal(
+      Number(påstand[1]),
+      iKilde,
+      `lista sier SØKVERDENER er ${påstand[1]}, kilden sier ${iKilde}`,
+    );
+  }
+});

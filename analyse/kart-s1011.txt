@@ -1,0 +1,5 @@
+# TAKKART spill-10-11   n=1000   budsjett=2
+snitt poenggevinst per runde: 0.0640
+giver med gevinst: 6 (0.6 %)
+  annet    n=  750  0.0320  traff 5 (0.7 %)  naar den traff 4.8
+  foerer   n=  250  0.1600  traff 1 (0.4 %)  naar den traff 40.0

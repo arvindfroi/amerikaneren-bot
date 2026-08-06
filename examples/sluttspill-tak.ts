@@ -36,7 +36,7 @@ import { appendFileSync } from "node:fs";
 import { opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
 import { lovligeKort } from "../src/motor.ts";
 import { lagIndre, ADAMS, tall } from "../src/moe2/agentspek.ts";
-import type { Innagent } from "../src/moe2/agent.ts";
+
 
 const arg = (n: string, s: string) => {
   const i = process.argv.indexOf(n);

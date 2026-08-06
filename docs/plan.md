@@ -4352,3 +4352,48 @@ Er DD gift ved dette bordet, må ingen live modul bruke det. Sjekket:
 
 Stakken er DD-fri i spill. Det er en sannsynlig forklaring på at søket måler
 +1,78: det ruller ut med den policyen som faktisk sitter ved bordet.
+
+## 60. TAKKARTET — budrunden er 42 % av alt som er å hente
+
+`examples/tak-kart.ts` måler samme tak som §59, men for HVERT vindu i runden:
+vårt sete forgreiner seg over alle lovlige handlinger inne i vinduet, de tre
+andre spiller sin ekte policy, bladet er rundens poeng. 250 giver × 4 seter.
+
+```
+vindu              n     ALLE    FOERER    ANDRE    traff  naar den traff
+budrunden       1000   +8,059   +13,156   +6,360    37,9%     +21,3
+trumfvalget     1000   +1,316    +5,264   +0,000     3,3%     +39,9
+stikk 0-1        936   +3,066    +7,368   +1,632    20,2%     +15,2
+stikk 2-3        718   +3,337    +9,408   +1,321    28,4%     +11,7
+stikk 4-5       1000   +1,817    +5,104   +0,721    17,7%     +10,3
+stikk 6-7       1000   +1,151    +3,184   +0,473     9,6%     +12,0
+stikk 8-9       1000   +0,477    +1,584   +0,108     3,2%     +14,9
+stikk 10-11     1000   +0,064    +0,160   +0,032     0,6%     +10,7
+```
+
+**Budrunden er 41,8 % av hele potten.** Sluttspillet er 0,3 %.
+
+Det bekrefter §59 fra motsatt kant og gjør den tidligere `fanget`-lesningen
+skarpere: `fanget` er et FORHOLDSTALL mot et gulv og sier hvor nær vi er, ikke
+hvor mange poeng som ligger der. Kartet er i poeng.
+
+### Forbehold som må stå
+
+* **Budvinduet har budsjett 4** (alle våre budturer) mot 2 i spillvinduene. Det
+  er ikke perfekt sammenliknbart, og budtallet er derfor et OVERANSLAG mot de
+  andre. Rangeringen tåler det: nummer to er +3,34.
+* **Budvinduet tillater at budvinneren blir en annen.** Det er med vilje — å
+  la være å by er halve beslutningen — men det gjør vinduet bredere enn de
+  andre.
+* **Klarsyn er verdt mest nettopp i budrunden.** Å vite fasiten lar en passe
+  på akkurat de hendene som ville feilet. Hvor mye av +8,06 som overlever uten
+  klarsyn er ukjent, og det er nettopp det neste spørsmålet.
+
+### Trumfvalget er en egen sak
+
++1,32 samlet, men **hele beløpet ligger i førersetet** (+5,26, «andre» er
+nøyaktig 0,000 — bare budvinneren velger trumf). Det treffer i 3,3 % av
+givene, og da med **+39,9**: kontraktvipp, samme signatur som sluttspillet.
+
+Et valg som tas ÉN gang per runde og som i 3 av 100 tilfeller er verdt 40
+poeng. Det er den billigste enkeltbeslutningen på hele kartet.

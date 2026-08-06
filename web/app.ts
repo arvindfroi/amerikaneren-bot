@@ -80,7 +80,31 @@ const MESTER_SETER = [1, 2, 3]; // botsetene styres av MesterAI i bro-modus
 //                      nettet glemmer det gamle datagrunnlaget. Grensen er målt,
 //                      ikke gjettet.
 const VAKTFLAGG = "abmp";
-const BUDMODELL = "bud-gbt.json";
+/**
+ * BUDMODELLEN — RETTET 6. august, funnet i revisjon FØR den rakk å koste noe.
+ *
+ * Fram til nå sto det `bud-gbt.json` her, mens `ADAMS`-speken i
+ * `src/moe2/agentspek.ts` — den ALLE målinger denne uka er gjort med — bruker
+ * `bud-vant.json`. De er ulike modeller, og forskjellen er målt: `bud-vant` gir
+ * **+0,127 ± 0,043 poeng per runde** over `bud-gbt` (plan.md §-tabellen over
+ * budmodeller).
+ *
+ * Ingen deploy hadde skjedd, så feilen hadde ikke rukket å virke. Men
+ * `docs/utrulling-v5.md` DEFINERER v5 med `bud-vant.json@-3.0` og sier
+ * ingenting om å laste den opp. Hadde noen fulgt lista, ville v5 gått ut med
+ * v3-budmodellen — og de +0,127 forsvunnet uten at noe feilet.
+ *
+ * Det er den samme feilklassen som har tatt oss åtte ganger før: DET MÅLTE OG
+ * DET UTRULLEDE VAR IKKE SAMME TING. `test/utrullet-lik-maalt.test.ts` holder
+ * de to filnavnene i lås fra nå.
+ *
+ * FALLBACK-KJEDEN er ikke pynt. Val Town svarer 200 med HTML på manglende
+ * filer, så en modell som ikke er lastet opp blir `null` — og uten kjeden
+ * faller boten helt tilbake til NevroHjernes budgivning, som er svakere enn
+ * BEGGE. Rekkefølgen er derfor: målt modell → forrige utrullede → NevroHjerne.
+ */
+const BUDMODELL = "bud-vant.json";
+const BUDMODELL_RESERVE = "bud-gbt.json";
 /**
  * BUDTERSKELEN. Beslutningsregelen ser ut som en avveining mot verdien av å
  * forsvare, men leddet `(1−p)·evForsvar` kansellerer mot terskelen:
@@ -162,6 +186,37 @@ async function hentB64(navn: string): Promise<string | null> {
   }
 }
 
+/**
+ * Budmodellen, med SAMME vaktpost som `hentB64` — og av samme grunn.
+ *
+ * Den gamle koden var `r.ok ? r.json() : null`. Val Town svarer 200 med HTML
+ * på manglende filer, så `r.ok` er sann og `r.json()` kaster på «<». Det ga
+ * riktig utfall ved rein flaks, men gjennom en unntakssti som ikke skiller
+ * «fila mangler» fra «fila er ødelagt» — og som derfor ikke kunne få en
+ * reserve. Nå returnerer den `null` EKSPLISITT, og kalleren kan prøve neste.
+ *
+ * `tolkBudmodell` kalles her, ikke senere, slik at en modell med feil `dim`
+ * regnes som mislykket henting og utløser reserven — i stedet for å bli
+ * avvist lenger nede og sende boten til NevroHjerne.
+ */
+async function hentBudmodell(navn: string): Promise<unknown | null> {
+  try {
+    const r = await fetch(DATA_URL + navn);
+    if (!r.ok) return null;
+    const t = (await r.text()).trim();
+    if (t.startsWith("<")) {
+      console.warn(`«${navn}» er ikke JSON – fikk HTML (${t.length} tegn)`);
+      return null;
+    }
+    const rå: unknown = JSON.parse(t);
+    tolkBudmodell(rå); // kaster ved feil bredde – da skal reserven brukes
+    return rå;
+  } catch (feil) {
+    console.warn(`«${navn}» kunne ikke hentes eller tolkes:`, feil);
+    return null;
+  }
+}
+
 function tilBytes(b64: string): Uint8Array {
   const rå = atob(b64.trim());
   const bytes = new Uint8Array(rå.length);
@@ -236,12 +291,14 @@ function besteBot(): Promise<Bot> {
       if (r === null) throw new Error("verken finjusterte vekter eller sd-r2 kunne hentes");
       return r;
     }),
-    // Budmodellen hentes ved siden av vektene. Feiler den, faller vi tilbake
-    // til NevroHjernes budgivning i stedet for å la hele boten dø – kortspillet
-    // er uendret og fortsatt det familien har møtt.
-    fetch(DATA_URL + BUDMODELL)
-      .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null),
+    // Budmodellen hentes ved siden av vektene, med reserve. Feiler BEGGE,
+    // faller vi tilbake til NevroHjernes budgivning i stedet for å la hele
+    // boten dø – kortspillet er uendret og fortsatt det familien har møtt.
+    hentBudmodell(BUDMODELL).then(async (m) => {
+      if (m !== null) return m;
+      console.warn(`${BUDMODELL} kunne ikke hentes – faller tilbake til ${BUDMODELL_RESERVE}.`);
+      return hentBudmodell(BUDMODELL_RESERVE);
+    }),
     // Vrakrangereren. Samme vilkår som de to over: feiler den, vraker og
     // velger trumf boten som i går. Ingen enkeltdel får lov til å ta ned
     // resten – det er derfor familien alltid har noe å spille mot.
