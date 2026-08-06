@@ -153,3 +153,63 @@ test("hver bredde gir en vektor av NØYAKTIG den lengden", () => {
   }
   assert.ok(sjekket > 50, `for få sjekker (${sjekket})`);
 });
+
+/**
+ * PREFIKSET MÅ VÆRE BIT-EKSAKT — og nå henger et helt korpus i den tråden.
+ *
+ * `verktoy/sd-tren.py --klipp <bredde>` trener på en smal bredde ved å KLIPPE
+ * bredere rader ned. Det er lovlig bare fordi kodingene er strengt
+ * prefiks-utvidende: de første `smal` indeksene i en bred vektor skal være
+ * BIT-IDENTISKE med den smale vektoren.
+ *
+ * Egenskapen var antatt, ikke håndhevet. Den ble verifisert 6. august over
+ * 1 043 424 sammenlikninger, og den låser opp 2,41 millioner dyrt merkede
+ * rader som `len(t) != TREKK_DIM` fram til da forkastet i stillhet.
+ *
+ * BRYTER NOEN DEN, blir klippingen stille feil: treningen ville lest kolonner
+ * som betyr noe annet enn nettet tror, uten at noe feiler. Det er den dyreste
+ * feilklassen vi har, og dette er den eneste vakten mot den.
+ *
+ * En ny blokk MÅ derfor legges til PÅ SLUTTEN og aldri endre en eksisterende
+ * indeks.
+ */
+test("hver bredde er et BIT-EKSAKT prefiks av alle bredere", () => {
+  const agenter = [0, 1, 2, 3].map(() => new NevroAgent());
+  let s: GameState = opprettSpill({ antallSpillere: 4 }, 8_100_000);
+  let g = 0;
+  let sammenliknet = 0;
+  while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && g++ < 400) {
+    if (s.fase === "SPILL" && s.iTur !== null) {
+      const vekt = new Map<number, Float32Array>();
+      for (const d of LOVLIGE_BREDDER) vekt.set(d, e1SpillTrekk(s, s.iTur, d));
+      for (let i = 1; i < LOVLIGE_BREDDER.length; i++) {
+        const smal = LOVLIGE_BREDDER[i - 1]!;
+        const bred = LOVLIGE_BREDDER[i]!;
+        const a = vekt.get(smal)!;
+        const b = vekt.get(bred)!;
+        for (let k = 0; k < smal; k++) {
+          assert.equal(b[k], a[k], `bredde ${bred} avviker fra ${smal} i indeks ${k}`);
+          sammenliknet++;
+        }
+      }
+    }
+    const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+    if (iTur === null || iTur === undefined) break;
+    s = utfør(s, agenter[iTur]!.velgHandling(s)).state;
+  }
+  assert.ok(sammenliknet > 100_000, `for få sammenlikninger (${sammenliknet})`);
+});
+
+/**
+ * OG PYTHON-SIDEN MÅ FAKTISK KLIPPE, ikke forkaste. Sperren mot blandede
+ * bredder er riktig for PADDING (en smal rad opp til bred er en løgn: de
+ * manglende blokkene ville stått som nuller uten at nettet fikk vite det),
+ * men den skal ikke ramme klipping.
+ */
+test("sd-tren.py klipper bredere rader i stedet for aa forkaste dem", () => {
+  const kilde = readFileSync(join(ROT, "verktoy", "sd-tren.py"), "utf8");
+  assert.match(kilde, /--klipp/, "sd-tren.py har ikke --klipp");
+  assert.match(kilde, /len\(t\) < TREKK_DIM/, "radloekka forkaster fortsatt paa ulik bredde");
+  assert.match(kilde, /t\[:TREKK_DIM\]/, "sd-tren.py klipper ikke raden");
+  assert.match(kilde, /Aa PADDE opp er en loegn/, "sperren mot padding er borte");
+});

@@ -4629,3 +4629,103 @@ skille fra den niende feilen.
 Måleverktøyet trengte modellens (μ, σ). En kopi i verktøyet ville vært nøyaktig
 den driften revisjonen samme dag ryddet bort, så regnestykket eksporteres i
 stedet. Verktøyet bruker nå appens egen utregning.
+
+## 66. RÅTNE ARTEFAKTER — revisjon 6. august, og den ene låsen som ble åpnet
+
+Arvind: «kan du sjekke om det er gamle artifakter som er råttne eller hindrer
+mer vekst av Adams nå?»
+
+### Funn 1: en fil som het `nul` blokkerte ALL bruk av `git add -A`
+
+92 kB korpusrader i rota, skrevet 5. august 04:14 av en kommando som mente
+`/dev/null` men kjørte i et Unix-skall på Windows, der `nul` er et RESERVERT
+enhetsnavn. Git klarte ikke å mmap-e den:
+
+```
+fatal: mmap failed: Invalid argument
+```
+
+Det gjaldt hele treet: `git add -A` var ubrukelig, mens `git add <katalog>`
+virket for hver enkelt katalog. Derfor så det ut som et størrelsesproblem, og
+jeg lette først i 29 GB korpus. Fila er flyttet ut (ikke slettet).
+
+### Funn 2: `.gitignore` var en håndholdt liste, og den var glemt elleve ganger
+
+`sd-data3`, `sd-v4`, `sd-v5`, `sd-v7`, `sd-v8`, `sd-v8b`, `sd-v9`, `sd-nevro`,
+`sd-vakt`, `tro-data` og `vrak-data` lå alle **usporet OG uignorert** — til
+sammen ~15 GB. En uoppmerksom `git add .` ville forsøkt å legge dem i
+historikken.
+
+Byttet til mønstre (`sd-*/`, `*-data/`, `tro-data/`, `vrak-data/`), verifisert
+mot `git ls-files` først: ingen sporet fil treffes, og `analyse/`s 544 sporede
+filer står urørt.
+
+### Funn 3: disken
+
+29 GB, hvorav **7 GB `tro-data`** — korpuset til trosnettet, som ble droppet
+fordi fortegnet snur mellom frøbånd (+0,34 / −0,12). Regenererbart, og ingen
+levende sti leser det.
+
+### Funn 4: KORPUSET VAR LÅST INNE — og det er den som betyr noe
+
+Planen har visst siden 4. august at **det utrullede nettet leser 273 av 714
+trekk** (§ «Hullene, etter alvorlighet», punkt 1). Det som ikke var kjent, er
+HVORFOR de brede nettene ikke tar igjen. Nå er tallene talt:
+
+| bredde | rader | status |
+|---|---|---|
+| **273** | **5,08 M** | `d7alle` — mesteren |
+| 340–470 | 2,10 M | ingen mester |
+| **714** | **0,31 M** | måler **−0,28** bak `d7alle` |
+
+De brede nettene taper ikke på design. De taper fordi de har 6 % av dataene.
+
+**Og de andre radene var ikke ubrukelige — de ble kastet.**
+`verktoy/sd-tren.py` linje 251:
+
+```python
+if not t or not v or len(t) != TREKK_DIM:   # -> ugyldig, hopp over
+```
+
+Ulik bredde = forkastet, i stillhet. Sperren mot blandede bredder er RIKTIG
+for padding — å fylle en smal rad opp med nuller er en løgn, for nettet får
+ikke vite at blokkene MANGLER. Men den rammet også **klipping**, som er noe
+helt annet.
+
+**Kodingene er strengt prefiks-utvidende, og det er nå verifisert** over
+**1 043 424 sammenlikninger** på tvers av alle ti breddene: de første `smal`
+indeksene i en bred vektor er bit-identiske med den smale vektoren. En klippet
+rad er ikke en tilnærming — den er den samme raden. Etiketten, som er den dyre
+delen (30× trekkene), er uendret.
+
+`--klipp <bredde>` er lagt inn, og den sier tydelig fra:
+
+```
+KLIPPER til 470. Bredder funnet: {470: 22, 714: 18}
+Leste 311866 stillinger, ... KLIPPET 307010 bredere rader ned til 470
+```
+
+Uten flagget er oppførselen bit-identisk med før.
+
+**Hva det låser opp:**
+
+| mål | før | etter | endring |
+|---|---|---|---|
+| 273-nettet (`d7alle`s arkitektur) | 5,08 M | **7,49 M** | **+47 %** |
+| 470-nettet | 0,61 M | **0,92 M** | **+51 %** |
+
+2,41 millioner dyrt merkede rader som lå ubrukt. Ingen generering, ingen
+GPU-timer, ingen nye etiketter.
+
+**FORBEHOLD:** radene kommer fra ulike kjøringer med ulik `sdVerdener`, altså
+ulikt etikettstøynivå (signal/støy 0,27 ved 12 verdener). Feltet står i hver
+rad og kan filtreres på. At mer data hjelper er en HYPOTESE her, ikke et målt
+resultat — den må gjennom gate 2 som alt annet.
+
+### Vaktposten
+
+`test/e1-bredder.test.ts` håndhever nå at hver bredde er et bit-eksakt prefiks
+av alle bredere, og at Python-siden faktisk klipper i stedet for å forkaste.
+Brytes prefikset, blir klippingen STILLE feil: treningen ville lest kolonner
+som betyr noe annet enn nettet tror, uten at noe feiler. En ny blokk må legges
+til på SLUTTEN og aldri endre en eksisterende indeks.

@@ -140,7 +140,7 @@ def hurtigbuffer_navn(filer: list[tuple[int, str]]) -> str:
     return os.path.join(BUFFERMAPPE, f"korpus-{h.hexdigest()[:16]}.npz")
 
 
-def les(mapper: list[str]):
+def les(mapper: list[str], klipp: int = 0):
     """Alle `*.jsonl` i `mapper` → (X, V, M, FRO, KILDE, SIG).
 
     KILDE er indeksen inn i `mapper`, så en kjøring kan velge sin egen
@@ -200,14 +200,45 @@ def les(mapper: list[str]):
                     break
     if not bredder:
         raise SystemExit("Fant ingen lesbare rader med «t» i datamappene")
-    if len(bredder) > 1:
-        raise SystemExit(
-            f"BLANDEDE TREKKBREDDER i datasettet: {bredder}. "
-            "273 (v1) og 340 (v2) kan ikke trenes sammen - de 273 foerste "
-            "indeksene betyr riktignok det samme, men resten ville vaert "
-            "nuller uten at nettet fikk vite at de MANGLER. Del settene."
-        )
-    TREKK_DIM = next(iter(bredder))
+    # BLANDEDE BREDDER: forbudt som foer, MED ETT UNNTAK.
+    #
+    # Aa PADDE en smal rad opp til en bred bredde er en loegn: de manglende
+    # blokkene ville staatt som nuller uten at nettet fikk vite at de MANGLER.
+    # Det er grunnen til at denne sperren finnes, og den er riktig.
+    #
+    # Aa KLIPPE en bred rad ned til en smal er noe helt annet. Kodingene er
+    # strengt prefiks-utvidende, og det er VERIFISERT 6. august over 1 043 424
+    # sammenlikninger paa tvers av alle ti breddene: `e1SpillTrekk(s, i, bred)`
+    # er bit-identisk med `e1SpillTrekk(s, i, smal)` paa de foerste `smal`
+    # indeksene. En klippet rad er derfor ikke en tilnaerming - den er den
+    # samme raden.
+    #
+    # Det laaser opp 2,41 millioner dyrt merkede rader (sd-nevro, sd-v4, v5,
+    # v7, v8, v8b, v9, v10) som fram til naa ble FORKASTET I STILLHET av
+    # `len(t) != TREKK_DIM` naar man trente paa 273 - der mesteren `d7alle`
+    # bor. Etiketten er den dyre delen (30x trekkene), og den er uendret.
+    if klipp:
+        if klipp not in LOVLIGE_DIM:
+            raise SystemExit(f"--klipp {klipp} er ikke en lovlig bredde: {LOVLIGE_DIM}")
+        for b in bredder:
+            if b < klipp:
+                raise SystemExit(
+                    f"--klipp {klipp}, men datasettet har rader paa {b}. "
+                    "Aa PADDE opp er en loegn - bruk en lavere --klipp, eller "
+                    "del settene."
+                )
+        TREKK_DIM = klipp
+        print(f"KLIPPER til {TREKK_DIM}. Bredder funnet: {bredder}", flush=True)
+    else:
+        if len(bredder) > 1:
+            raise SystemExit(
+                f"BLANDEDE TREKKBREDDER i datasettet: {bredder}. "
+                "273 (v1) og 340 (v2) kan ikke trenes sammen - de 273 foerste "
+                "indeksene betyr riktignok det samme, men resten ville vaert "
+                "nuller uten at nettet fikk vite at de MANGLER. Del settene, "
+                "eller bruk --klipp <bredde> for aa KLIPPE ned til en felles."
+            )
+        TREKK_DIM = next(iter(bredder))
     if TREKK_DIM not in LOVLIGE_DIM:
         raise SystemExit(f"Ukjent trekkbredde {TREKK_DIM}, forventet en av {LOVLIGE_DIM}")
     # .get, ikke [], og med 364 med: oppslaget ville ellers kastet KeyError
@@ -227,6 +258,7 @@ def les(mapper: list[str]):
     SIG = numpy.zeros(tak, dtype=numpy.uint64)
 
     sett: set[int] = set()
+    klippet = 0
     n = 0
     dublett = 0
     ugyldig = 0
@@ -248,9 +280,14 @@ def les(mapper: list[str]):
                     continue
                 t = r.get("t")
                 v = r.get("v")
-                if not t or not v or len(t) != TREKK_DIM:
+                if not t or not v or len(t) < TREKK_DIM:
                     ugyldig += 1
                     continue
+                if len(t) != TREKK_DIM:
+                    # Bare naar --klipp er satt kan dette skje; breddesjekken
+                    # over har allerede avvist alt annet.
+                    t = t[:TREKK_DIM]
+                    klippet += 1
                 if len(v) < 2:
                     ugyldig += 1
                     continue
@@ -276,8 +313,9 @@ def les(mapper: list[str]):
         print(f"  {fil}: {n - foer} stillinger (totalt {n})", flush=True)
 
     print(
-        f"Leste {n} stillinger, hoppet over {dublett} dubletter og {ugyldig} ugyldige "
-        f"({time.time() - t0:.0f}s)",
+        f"Leste {n} stillinger, hoppet over {dublett} dubletter og {ugyldig} ugyldige"
+        + (f", KLIPPET {klippet} bredere rader ned til {TREKK_DIM}" if klippet else "")
+        + f" ({time.time() - t0:.0f}s)",
         flush=True,
     )
     ut = (X[:n], V[:n], M[:n], FRO[:n], KILDE[:n], SIG[:n])
@@ -559,6 +597,15 @@ def main() -> None:
         default=[],
         help="«navn:mappe[,mappe]:skjult[,skjult]» – én treningskjøring. Kan gjentas.",
     )
+    p.add_argument(
+        "--klipp",
+        type=int,
+        default=0,
+        help=(
+            "Tren paa bredde N ved aa KLIPPE bredere rader ned til N. Uten "
+            "flagget avvises blandede bredder, som foer."
+        ),
+    )
     p.add_argument("--utmappe", default="e1-modell")
     p.add_argument("--logg", default="analyse/sd-r2-tren.jsonl")
     p.add_argument("--epoker", type=int, default=40)
@@ -665,7 +712,7 @@ def main() -> None:
                     f"--data {mapper}. Legg den til i --data."
                 )
 
-    X, V, M, FRO, KILDE, SIG = les(mapper)
+    X, V, M, FRO, KILDE, SIG = les(mapper, args.klipp)
     n = X.shape[0]
     if n < 1000:
         raise SystemExit(f"For lite data ({n} stillinger)")

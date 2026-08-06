@@ -71,10 +71,24 @@ analyse/handvurdering-runder-*.jsonl
 sd-buffer/
 
 # Korpus- og datamapper (store, regenererbare)
-bud-data/
-bud-data-gammel/
+#
+# MOENSTER, IKKE LISTE - og det er en RETTELSE 6. august.
+#
+# Dette var en haandholdt liste, og den maatte utvides for hver nye
+# korpusmappe. Det ble glemt ELLEVE ganger: sd-data3, sd-v4, sd-v5, sd-v7,
+# sd-v8, sd-v8b, sd-v9, sd-nevro, sd-vakt, tro-data og vrak-data laa alle
+# usporet OG uignorert.
+#
+# Konsekvensen var ikke kosmetisk. `git add -A` forsoekte aa lese ~15 GB og
+# feilet med «fatal: mmap failed: Invalid argument» - altsaa kunne ingen
+# committe med -A i det hele tatt, og en uoppmerksom `git add .` ville
+# forsoekt aa legge 15 GB korpus i historikken.
+#
+# Verifisert foer bytte: `git ls-files` matcher INGEN sporet fil mot noen av
+# moenstrene under. analyse/ (544 sporede filer) treffes ikke.
+sd-*/
+*-data/
+*-data-gammel/
 bud-adams2/
-sd-v10/
-sd-lite/
-sd-roek/
-sd-roek-h/
+tro-data/
+vrak-data/
