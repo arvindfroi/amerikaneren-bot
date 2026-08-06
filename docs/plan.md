@@ -5421,3 +5421,93 @@ nye `sd-rv1` (rolleVekt 1).
 **Og det er en generell lærdom om hvor mye data hjelper:** en fordobling av
 rader fra samme kilde ga eksakt null. Datamengde alene er ikke en akse vi kan
 skalere på lenger — det som mangler er ANDRE data, ikke flere.
+
+## 78. T2.1 MÅLT — budrunden hjelper stikkanslaget med 0,3 %, og tabellen er en felle
+
+Korpuset fra §68 er stort nok (38 481 rader) til å svare på om `BUD_DIM_V2`
+er verdt noe. Svaret er nyansert, og det tok tre målinger å komme fram til.
+
+### 1. Etiketten ER betinget på auksjonen — betingingen virket
+
+Snitt-μ etter hva som var bydd før setet:
+
+| høyeste bud før meg | n | snitt μ |
+|---|---|---|
+| ingen bud | 588 | 10,050 |
+| 8 | 68 | 10,405 |
+| 9 | 8 899 | 9,378 |
+| 10 | 21 857 | 9,094 |
+| 11 | 953 | 9,297 |
+
+Spennet er **1,311 stikk**. Forkastningstrekkingen gjorde jobben sin.
+
+### 2. Men effekten forsvinner når hånden er kjent
+
+A/B på NØYAKTIG samme korpus og etiketter, eneste forskjell om modellen får se
+indeks 128–139 (`--kunv1`):
+
+| | hold-RMSE μ | splitter på v2-blokken |
+|---|---|---|
+| **med auksjonen (140)** | **0,4094** | 2 av 1520 (0,1 %) |
+| uten auksjonen (128) | 0,4107 | 0 av 1522 |
+
+**0,3 % bedre stikkanslag.** Treet velger v2-kolonnene som splitt to ganger av
+femten hundre. De 1,311 stikkene var i hovedsak forklart av hånden selv: den
+som sitter i en auksjon der noen har bydd 10, har som regel en svakere hånd —
+og hånden er alt i modellen.
+
+Uten `--kunv1` ville dette vært umulig å vite. Korpuset, etikettene og
+stillingene endret seg alle samtidig; kontrollen er det eneste som isolerer
+blokken.
+
+### 3. Der auksjonen FAKTISK betyr noe er `vant[N]` — men den er en felle
+
+P(vinner budrunden), målt betinget på auksjonen, mot modellens faste tabell:
+
+| høyeste før meg | n | målt | fast tabell |
+|---|---|---|---|
+| **ingen bud → bud 9** | 47 264 | **28,0 %** | **9,7 %** |
+| 8 → bud 9 | 3 605 | 32,1 % | 9,7 % |
+| 9 → bud 10 | 156 904 | 93,2 % | 94,0 % |
+| 10 → bud 11 | 385 456 | 100,0 % | 100,0 % |
+
+Nesten 3× feil på bud 9, og nøyaktig der valget mellom 9 og 10 tas. Det stemmer
+også med familiedataene i §47 (35,3 %).
+
+`e1-modell/bud-auk.json` — samme skoger, målt tabell — mot `bud-vant` på gate 2:
+
+| bånd | samlet | tegntest |
+|---|---|---|
+| 7 400 000 | −0,021 | z = −2,57 |
+| 12 700 000 | +0,073 | z = −0,51 |
+| **slått sammen** | **+0,026 ± 0,036** | **z = −2,17** (120/156) |
+
+**SNITTET OG TEGNTESTEN PEKER MOTSATT VEI.** Modellen vinner sjeldnere, men
+større — det er varians, ikke styrke. Førerraden er verst: +0,145 i snitt med
+tegn z = −3,16. **Ikke etablert.**
+
+### Hvorfor tabellen er en felle — samme fella som μ-skiftet
+
+De to tallene måler ikke det samme:
+
+* **9,7 %** er P(vinner | boten VALGTE å by 9) — over stillingene der modellen
+  selv fant 9 best.
+* **28,0 %** er P(vinner | jeg byr 9 her), over ALLE førstebudgiver-stillinger.
+
+Det andre er ikke en korreksjon av det første; det er en annen størrelse. Å
+bytte dem er nøyaktig samme feil som å legge +0,130 på μ (§64): et tall målt på
+et utvalg som IKKE er valgt av modellen, satt inn der modellen har valgt.
+
+**Det ugyldiggjør ikke `bud-menneske` for appen** (§65). Den hviler på et annet
+argument: at vant[9] er et faktum om OMGIVELSENE, målt på ekte familierunder,
+og at appens omgivelser ikke er fire Adams.
+
+### Verdict på T2.1
+
+**Forsøkt og målt. Blokken gir 0,3 % på stikkanslaget og under støyen i poeng.**
+
+Omkamp krever ikke mer korpus av samme slag. Den krever P(vinner | bud N,
+auksjonstilstand) for FLERE N enn referansebudet — altså at generatoren sveiper
+budet i stedet for å ta laveste lovlige. Det er en endring i `budkorpus-auksjon.ts`,
+ikke i modellen, og det er den eneste veien til å bruke auksjonen i beslutningen
+i stedet for bare i anslaget.
