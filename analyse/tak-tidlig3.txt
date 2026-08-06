@@ -1,0 +1,5 @@
+# EKTE TAK, beste svar mot faktiske motstandere, vindu=tidlig, terskel=3, n=1000
+snitt poenggevinst per runde: 3.9560
+bedre: 315   daarligere: 0   likt: 685
+  annet    n=  750  2.0160
+  foerer   n=  250  9.7760

@@ -1,0 +1,6 @@
+# BUDFEILKLASSER  n=1000  samlet tak 8.059 poeng per runde
+klasse                  giver   andel       sum  per runde
+passet, burde budt        148   14.8%      3648      3.648
+feil tall                 156   15.6%      2483      2.483
+budte, burde passet       188   18.8%      1928      1.928
+ingen endring             508   50.8%         0      0.000

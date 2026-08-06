@@ -4397,3 +4397,85 @@ givene, og da med **+39,9**: kontraktvipp, samme signatur som sluttspillet.
 
 Et valg som tas ÉN gang per runde og som i 3 av 100 tilfeller er verdt 40
 poeng. Det er den billigste enkeltbeslutningen på hele kartet.
+
+## 61. BUDRUNDENS +8,06 DELT I FEILKLASSER — og det som ble rettet
+
+«By bedre» er ikke et tiltak. `examples/bud-feilklasser.ts` deler potten fra
+§60 i klasser som krever ulike ting av oss (250 giver × 4 seter, samlet tak
++8,059 — samme tall som takkartet, som det skal være):
+
+| klasse | giver | andel | poeng per runde |
+|---|---|---|---|
+| **passet, burde budt** | 148 | 14,8 % | **+3,648** |
+| feil tall | 156 | 15,6 % | +2,483 |
+| budte, burde passet | 188 | 18,8 % | +1,928 |
+| ingen endring | 508 | 50,8 % | 0 |
+
+Halvparten av givene er allerede optimale. Av resten er boten **oftere for
+forsiktig enn for dristig, målt i poeng**: den passer på 148 giver som var
+verdt +24,6 hver, og byr på 188 som var verdt +10,3 å la gå.
+
+De to første klassene flyttes av ÉN konstant (`evForsvar`). Den tredje krever
+en bedre μ-modell.
+
+### Klarsynsforbeholdet er størst nettopp her
+
+Taket ser hvordan hver linje endte, så det kan passe på akkurat de hendene som
+ville feilet og by på akkurat dem som ville gått. Begge klassene er derfor
+oppblåste. **Fordelingen** er informativ; nivået er det ikke.
+
+Derfor er neste steg en måling UTEN klarsyn: `evForsvar` sveipet på gate 2 mot
+dagens −3,0, i to disjunkte frøbånd. Er boten virkelig for forsiktig, skal en
+lavere terskel måle positivt der.
+
+## 62. REVISJON 6. august — to levende avvik, funnet før de rakk å koste noe
+
+### Avvik 1: appen hentet en annen budmodell enn den målte
+
+`web/app.ts` hentet `bud-gbt.json`. `ADAMS` i `src/moe2/agentspek.ts` — speken
+HVER eneste måling denne uka er gjort med — bruker `bud-vant.json`. Ulike
+filer, og forskjellen er målt til **+0,127 ± 0,043 poeng per runde**.
+
+`docs/utrulling-v5.md` DEFINERER v5 med `bud-vant.json@-3.0` i overskriften,
+men nevner den ikke i opplastingsstegene. Hadde noen fulgt lista, ville v5
+gått ut med v3s budmodell, og de +0,127 forsvunnet uten at noe feilet.
+
+**Niende gang i samme feilklasse.** De åtte forrige kostet hver sin runde med
+feilsøking eller en ugyldig måling; denne ble tatt i revisjon.
+
+Rettet, med FALLBACK-KJEDE: `bud-vant.json` → `bud-gbt.json` → NevroHjerne.
+Kjeden er ikke pynt — Val Town svarer **200 med HTML** på manglende filer, så
+en modell som ikke er lastet opp gir `null`, og uten kjeden faller boten helt
+til NevroHjernes budgivning, som er svakere enn begge.
+
+Den gamle koden var `r.ok ? r.json() : null`. Den ga riktig utfall ved flaks
+(`r.json()` kaster på «<»), men gjennom en unntakssti som ikke skiller «fila
+mangler» fra «fila er ødelagt» — og som derfor ikke kunne få en reserve. Nå
+gjør `hentBudmodell` samme validering som `hentB64`, og kaller `tolkBudmodell`
+før den godtar noe.
+
+### Avvik 2: utrullingslista motsa seg selv
+
+Toppen sa at workeren var på plass og bygde `Sikkerorakel`. Bunnen sa at søket
+var BLOKKERT fordi `SØKVERDENER` sto på 0 og bunten derfor var trygg. Kilden
+står på **24**.
+
+Avsnittet var farlig nettopp fordi resten av dokumentet var riktig. Den som
+leste bunnen ville trodd at bunten var v4 med bumpet versjonsnavn.
+
+### Det som ble verifisert og VAR riktig
+
+* `adams-kort.b64` er **bit-identisk** med `d7alle.bin` (sha256).
+* Budparametrene stemmer mellom spek og app: ev −3,0, σgulv 0,6, μskift 0,
+  forsvarsverdi −3,0, auksjonskorreksjon av.
+* Ingen live modul bruker dobbeltdummy i spill (§59-tabellen).
+
+### Vaktposten
+
+`test/utrullet-lik-maalt.test.ts` håndhever nå at
+* appens `BUDMODELL` er en fil `ADAMS` faktisk bruker,
+* reserven er en ANNEN fil (ellers er kjeden pynt),
+* utrullingslista navngir hver modellfil `ADAMS` bruker,
+* og at lista ikke oppgir en annen søkevidde enn kilden.
+
+Den fanget avvik 2 med det samme den ble kjørt.
