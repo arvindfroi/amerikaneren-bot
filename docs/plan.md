@@ -4556,3 +4556,76 @@ er informasjon, og hva som skal til for å endre den.
 dem var voktet — og `abmp` er målt ledd for ledd (`m`: +0,0404 ± 0,0075,
 positiv i 10 av 10 bånd). Faller en bokstav bort i appen, forsvinner nøyaktig
 de tallene uten at noe feiler.
+
+## 65. AUKSJONSKORREKSJONEN BLE STÅENDE AV — og budtabellen ble rettet i appen
+
+### Auksjonskorreksjonen replikerte ikke godt nok
+
+`@-3.0/0.6/0/-3.0/1` mot dagens `@-3.0`, 500 giver per bånd:
+
+| bånd | samlet | tegntest | avgjorte |
+|---|---|---|---|
+| 900 000 | +0,0387 ± 0,0544 | z = +0,71 | 1,6 % |
+| 5 100 000 | +0,0162 ± 0,0561 | z = +0,54 | 1,6 % |
+
+Samme fortegn i begge, men ingen av dem i nærheten av signifikans, og bare
+1,6 % av givene avgjøres — korreksjonen endrer nesten aldri et bud. **Blir
+stående av.** Regelen er å aldri adoptere på støy, og z = 0,7 er støy.
+
+### Budtabellen: appen skal IKKE bruke benkens
+
+Revisjonen i §62 fant at appen hentet `bud-gbt.json` mens ADAMS bruker
+`bud-vant.json`, og jeg rettet appen til `bud-vant`. **Det var i riktig
+retning, men ikke helt fram**, og planen sa det allerede:
+
+    bud-vant.json      riktig naar bordet er fire Adams   -> BENKENE
+    bud-menneske.json  riktig naar bordet er 1 menneske   -> APPEN
+
+`vant[N]` er et faktum om omgivelsene. Målt på familiens ekte runder er
+vant[9] = **35,3 %** (34 observasjoner). Tabellene sier:
+
+| tabell | vant[9] | avvik fra observert |
+|---|---|---|
+| `bud-menneske` | 0,304 | **4,9 pp** |
+| `bud-vant` | 0,097 | 25,6 pp |
+| `bud-gbt` | 0,662 | 30,9 pp |
+
+`examples/budtabell-kostnad.ts` verdsetter hver tabells VALG med den målte
+auksjonen, over 3 258 budstillinger:
+
+| tabell | sann EV | krympet | fordeling |
+|---|---|---|---|
+| **`bud-menneske`** | **2,519** | **2,340** | pass 571, 9:1607, 10:769 |
+| `bud-vant` | 2,392 | 2,260 | pass 566, 9:1374, 10:1005 |
+| `bud-gbt` | 2,347 | 2,147 | pass 595, 9:1800, 10:456 |
+
+Rekkefølgen er den samme under både rå og krympet sannhet.
+
+**FEIL I FØRSTE UTGAVE AV DENNE MÅLINGEN**, fanget av fordelingen: jeg loopet
+over alle bud fra `MINSTE_TALLBUD` uten å begrense til LOVLIGE bud, og «bød»
+derfor 9 etter at noen hadde sagt 10. Resultatet var null pass i 3 258
+stillinger, mens boten i virkeligheten passer i omtrent en sjettedel. Rettet
+før tallene ble lest.
+
+**SIRKULARITETSFORBEHOLDET:** `bud-menneske` er krympet mot nettopp den
+tabellen den scores med, så EV-tallet er ikke en uavhengig bekreftelse.
+Argumentet som IKKE er sirkulært er kalibreringen: hvilket tall som ligger
+nærmest den observerte frekvensen. Der er avstanden 4,9 mot 25,6 pp.
+
+`web/app.ts` bruker nå `bud-menneske.json`, med reserve `bud-vant.json` og
+deretter NevroHjerne. `ADAMS` er UENDRET — benkene skal fortsatt bruke
+selvspilltabellen.
+
+### Vaktposten min var selv feil, og ble rettet
+
+Testen fra §62 krevde at appens `BUDMODELL` var en fil `ADAMS` bruker. Den
+ville altså ha **håndhevet feil oppsett, med grønn status** — verre enn ingen
+test. Nå krever den i stedet at fila finnes, og at et avvik fra `ADAMS` er
+BEGRUNNET i kilden der noen leser det. En udokumentert forskjell er ikke til å
+skille fra den niende feilen.
+
+### `muSigma` og `pMinst` eksportert fra `budmodell.ts`
+
+Måleverktøyet trengte modellens (μ, σ). En kopi i verktøyet ville vært nøyaktig
+den driften revisjonen samme dag ryddet bort, så regnestykket eksporteres i
+stedet. Verktøyet bruker nå appens egen utregning.

@@ -72,6 +72,26 @@ const forutsi = (n: Node, x: Float32Array): number =>
 const anslå = (s: Skog, x: Float32Array, rate: number): number =>
   s.basis + rate * s.trær.reduce((a, t) => a + forutsi(t, x), 0);
 
+/**
+ * (μ, σ) for lagstikket, slik BUDAGENTEN SELV regner det.
+ *
+ * Eksportert 6. august fordi `examples/budtabell-kostnad.ts` trengte den. En
+ * KOPI i måleverktøyet ville vært nøyaktig den driften revisjonen samme dag
+ * ryddet bort: to uavhengige utgaver av samme regnestykke, der den ene kan
+ * endres uten at den andre merker det.
+ *
+ * `σGulv` og `μSkift` er kallerens ansvar – de er kalibrerte anslag, ikke en
+ * del av modellen.
+ */
+export function muSigma(m: Budmodell, x: Float32Array): { μ: number; σ: number } {
+  return { μ: anslå(m.mμ, x, m.rate), σ: anslå(m.mσ, x, m.rate) };
+}
+
+/** P(lagstikk >= n) for (μ, σ). Samme uttrykk som beslutningsregelen bruker. */
+export function pMinst(μ: number, σ: number, n: number): number {
+  return 1 - Φ((n - 0.5 - μ) / σ);
+}
+
 /** Normalfordelingens halesannsynlighet, Abramowitz–Stegun 7.1.26. */
 function Φ(z: number): number {
   const t = 1 / (1 + 0.2316419 * Math.abs(z));

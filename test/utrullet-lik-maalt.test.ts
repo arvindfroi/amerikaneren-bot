@@ -23,7 +23,7 @@
  */
 
 import { strict as assert } from "node:assert";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { test } from "node:test";
 
@@ -50,15 +50,38 @@ test("ADAMS peker på filer i det hele tatt – ellers tester vi ingenting", () 
 });
 
 /**
- * BUDMODELLEN. Den konkrete niende feilen. `BUDMODELL` er et JSON-navn og kan
- * sammenliknes direkte med speken.
+ * BUDMODELLEN — OG HVORFOR DENNE TESTEN IKKE KREVER LIKHET.
+ *
+ * Første utgave krevde at `BUDMODELL` var en fil `ADAMS` bruker. Det var feil,
+ * og feilen var min: `vant[N]` er et faktum om OMGIVELSENE, og appens
+ * omgivelser er ett menneske og to bots — ikke fire Adams. Planen har alltid
+ * sagt at de to skal være ulike:
+ *
+ *     bud-vant.json      riktig naar bordet er fire Adams   -> BENKENE
+ *     bud-menneske.json  riktig naar bordet er 1 menneske   -> APPEN
+ *
+ * En test som krevde likhet ville altså HÅNDHEVET feil oppsett, og gjort det
+ * med grønn status. Det er verre enn ingen test.
+ *
+ * Det som skal håndheves er derfor: fila finnes, og forskjellen er BEGRUNNET
+ * der noen leser den. En udokumentert forskjell er ikke til å skille fra den
+ * niende feilen.
  */
-test("appens BUDMODELL er den samme fila som ADAMS maaler med", () => {
+test("appens BUDMODELL finnes som fil i repoet", () => {
+  const f = join(ROT, "e1-modell", konstant("BUDMODELL"));
+  assert.ok(existsSync(f), `web/app.ts henter «${konstant("BUDMODELL")}», som ikke finnes i e1-modell/`);
+});
+
+test("avviker appen fra ADAMS, MAA forskjellen vaere begrunnet i kilden", () => {
   const iApp = konstant("BUDMODELL");
-  assert.ok(
-    filerIAdams().includes(iApp),
-    `web/app.ts henter «${iApp}», men ADAMS bruker ${filerIAdams().filter((f) => f.endsWith(".json"))}`,
-  );
+  if (filerIAdams().includes(iApp)) return; // like – ingenting å begrunne
+  const blokk = APP.slice(Math.max(0, APP.indexOf(`const BUDMODELL = "${iApp}"`) - 3000));
+  for (const ord of ["vant[N]", "SELVSPILL", "FORBEHOLD"]) {
+    assert.ok(
+      blokk.includes(ord),
+      `«${iApp}» er ikke fila ADAMS måler med, og begrunnelsen over den nevner ikke «${ord}»`,
+    );
+  }
 });
 
 /**

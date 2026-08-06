@@ -103,8 +103,48 @@ const VAKTFLAGG = "abmp";
  * faller boten helt tilbake til NevroHjernes budgivning, som er svakere enn
  * BEGGE. Rekkefølgen er derfor: målt modell → forrige utrullede → NevroHjerne.
  */
-const BUDMODELL = "bud-vant.json";
-const BUDMODELL_RESERVE = "bud-gbt.json";
+/**
+ * APPEN SKAL IKKE BRUKE BENKENS TABELL, OG DET ER MED VILJE.
+ *
+ * `vant[N]` er ikke en tuningparameter. Den er et FAKTUM om omgivelsene: hvor
+ * ofte bud N vinner budrunden. `bud-vant` regnet den ut med fikspunkt over
+ * SELVSPILL — likevekten der fire Adams byr mot hverandre. Det bordet spiller
+ * appen aldri; den sitter med ett menneske og to bots.
+ *
+ * Målt på familiens EKTE runder mot Adams-linja:
+ *
+ *     bud 8    13 ganger,   0 vant  ->   0 %
+ *     bud 9    34 ganger,  12 vant  ->  35,3 %
+ *     bud 10   57 ganger,  57 vant  -> 100 %
+ *
+ * mot tabellenes vant[9]: `bud-menneske` 0,304, `bud-vant` 0,097, `bud-gbt`
+ * 0,662. Avviket fra det observerte er 4,9 / 25,6 / 30,9 prosentpoeng.
+ *
+ * MEKANISMEN. Terskelen for å by er nesten lik for alle bud (P mellom 0,41 og
+ * 0,43), så en hånd som kvalifiserer til 10 kvalifiserer også til 9. Valget
+ * mellom dem styres av `vant`-forholdet ALENE. Med vant[9] = 0,097 blir bud 9
+ * strukturelt uattraktivt og boten hopper til 10 — en hardere kontrakt for to
+ * poeng mer.
+ *
+ * `examples/budtabell-kostnad.ts` verdsetter hver tabells VALG med den målte
+ * auksjonen: 2,519 / 2,392 / 2,347 rått, 2,340 / 2,260 / 2,147 krympet.
+ * Rekkefølgen er den samme under begge.
+ *
+ * FORBEHOLD SOM MÅ STÅ:
+ *   – n = 34 for bud 9. Ekte, men tynt. `bud-menneske` er derfor KRYMPET mot
+ *     selvspilltabellen med K = 8 (0,304 i stedet for rå 0,353).
+ *   – Den EV-målingen er delvis SIRKULÆR: `bud-menneske` er krympet mot
+ *     nettopp den tabellen den scores med. Argumentet som IKKE er sirkulært,
+ *     er kalibreringen — hvilket tall som ligger nærmest det observerte.
+ *   – BENKENE skal fortsatt bruke `bud-vant`. Der ER selvspill riktig, og
+ *     `ADAMS` er uendret. De to skal være ulike, og `test/utrullet-lik-maalt`
+ *     håndhever at forskjellen er BEGRUNNET, ikke at den ikke finnes.
+ *
+ * Reserven er benkens tabell, ikke v3s: er `bud-menneske.json` ikke lastet
+ * opp, er `bud-vant` det nest best kalibrerte av de tre.
+ */
+const BUDMODELL = "bud-menneske.json";
+const BUDMODELL_RESERVE = "bud-vant.json";
 /**
  * BUDTERSKELEN. Beslutningsregelen ser ut som en avveining mot verdien av å
  * forsvare, men leddet `(1−p)·evForsvar` kansellerer mot terskelen:
