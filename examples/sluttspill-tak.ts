@@ -140,7 +140,18 @@ function medTak(frø: number, vårt: number, bruk: boolean) {
     // Sein: de TERSKEL siste beslutningene. Tidlig: de TERSKEL foerste.
     // Budsjettet er hvor mange av VAARE beslutninger som gjenstaar i vinduet,
     // og det er nettopp det `beste` skal forgreine seg over.
-    const budsjett = TIDLIG ? igjen - (kortPer - TERSKEL) : Math.min(igjen, TERSKEL);
+    // SEIN: vinduet aapner FOERST naar `igjen <= TERSKEL`. `Math.min(igjen,
+    // TERSKEL)` var feil - den ga budsjett 3 alt ved 12 kort paa haanden, saa
+    // soeket fyrte ved HVER beslutning i runden med 3 trekks framoverblikk.
+    // Kjoeringen `analyse/tak-t3.txt` (+4,548) maalte derfor noe helt annet
+    // enn navnet sa, og er merket om i §74. Feilen kom inn da verktoeyet ble
+    // generalisert til vinduer; `--terskel 5`-kjoeringen i §59 gikk paa den
+    // opprinnelige koden og staar.
+    const budsjett = TIDLIG
+      ? igjen - (kortPer - TERSKEL)
+      : igjen <= TERSKEL
+        ? igjen
+        : 0;
     if (bruk && iTur === vårt && s.fase === "SPILL" && budsjett > 0) {
       h = beste(s, vårt, budsjett).kort ?? ag[iTur]!.velgHandling(s);
     } else {

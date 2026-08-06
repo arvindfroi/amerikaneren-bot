@@ -5275,3 +5275,44 @@ stillinger der føreren må lede høyt for å trekke ut en spesifikk trumf, og d
 krever en teori om hvor de utestående trumfene sitter. Altså **T3.1 (utlede
 makkerens hånd)**, som allerede står i treet. Dette er første målte begrunnelse
 for at T3.1 er verdt å bygge.
+
+## 74. EN MÅLING SOM MÅLTE NOE ANNET ENN NAVNET SA — funnet på inkonsistens
+
+Kjøringen `--terskel 3` (sein) rapporterte **+4,548** per runde, fører +10,736.
+Det kunne ikke stemme: stikk 10 alene måler +0,064 og stikk 11 måler 0,0000
+(§70). De siste tre stikkene kan ikke være ni ganger større enn summen av
+delene sine.
+
+**Årsaken var min, og den kom inn da verktøyet ble generalisert til vinduer:**
+
+```ts
+const budsjett = TIDLIG ? igjen - (kortPer - TERSKEL) : Math.min(igjen, TERSKEL);
+```
+
+`Math.min(igjen, TERSKEL)` er 3 alt ved 12 kort på hånden. Vinduet åpnet altså
+aldri — søket fyrte ved HVER beslutning i runden, med tre trekks klarsynt
+framoverblikk. Tallet er ekte nok, men det måler noe helt annet enn navnet.
+
+Rettet til `igjen <= TERSKEL ? igjen : 0`.
+
+### Hva som IKKE er rammet, og hvorfor jeg vet det
+
+* **§59 (+0,947 ved 5 stikk) står.** Den kjøringen startet FØR endringen, og
+  Node leser fila én gang ved oppstart. Den gikk på `igjen <= TERSKEL`.
+* **`--vindu tidlig` står.** Der er budsjettet `igjen − (kortPer − TERSKEL)`,
+  som gir 3, 2, 1, 0 gjennom de tre første beslutningene. Riktig.
+* **Hele takkartet (§60, §70) står.** `tak-kart.ts` har sin egen `iVindu` som
+  sjekker `s.stikkSpilt` mot vinduet, ikke håndstørrelsen.
+
+Fila er omdøpt til `analyse/tak-3plyhele-runden.txt` i stedet for å slettes.
+Tallet er nemlig interessant i seg selv: **tre trekks klarsynt framoverblikk
+gjennom hele runden er verdt +4,548, fører +10,736** — men det er et tak på
+klarsyn, ikke på en spillbar strategi, og §73 viser hvor lite av et slikt tak
+som lar seg hente.
+
+### Hvordan den ble funnet
+
+Ikke av en test. Av at to målinger av samme størrelse ikke kunne være sanne
+samtidig. Det er verdt å merke seg: takkartet per enkeltstikk finnes bare fordi
+Arvind spurte om stikk 11 — og det er nettopp den oppdelingen som gjorde
+inkonsistensen synlig. En enkelt måling hadde ingen å motsi.
