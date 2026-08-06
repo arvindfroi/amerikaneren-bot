@@ -140,11 +140,22 @@ export class Budagent implements Innagent {
    * Forskyvning paa mu, det anslaatte lagstikket.
    *
    * MAALT 5. august paa 3 000 runder: modellen sier 9,804, laget tar 9,934 -
-   * en systematisk UNDERvurdering paa 0,130 stikk. Det gjoer boten litt for
-   * feig i hvert eneste bud.
+   * et avvik paa 0,130 stikk. sigma er derimot perfekt kalibrert (1,227 mot
+   * faktisk 1,228), saa avviket er en ren forskyvning og ikke en skalering.
    *
-   * sigma er derimot perfekt kalibrert (1,227 mot faktisk 1,228), saa dette er
-   * en ren forskyvning og ikke en skalering.
+   * MEN NIVAAET ER ET SELEKSJONSARTEFAKT, OG SKAL IKKE BRUKES. Residualen
+   * regnes bare for dem som VANT budrunden, og man vinner budrunden nettopp
+   * naar modellen anslaar hoeyt. Aa maale en skjevhet paa et utvalg som er
+   * valgt PAA den stoerrelsen man maaler, er ikke aa maale en skjevhet.
+   *
+   * Her sto det tidligere at avviket «gjoer boten litt for feig i hvert eneste
+   * bud» - en invitasjon til aa sette `μSkift` til +0,130. Det ble proevd, og
+   * sveipet maalte **-0,090 og -0,393**. Se `auksjonskorreksjon` under, som
+   * bygger paa samme maaling og derfor SENTRERER paa null: bare FORSKJELLENE
+   * mellom auksjonstilstandene er informasjon, aldri nivaaet.
+   *
+   * `μSkift` staar derfor paa 0 i ADAMS, og skal bli staaende der til noen kan
+   * vise en skjevhet maalt paa et utvalg som IKKE er valgt paa den.
    */
   private readonly μSkift: number;
 

@@ -71,6 +71,41 @@ test("budmodellens reserve er en ANNEN fil enn hovedmodellen", () => {
 });
 
 /**
+ * FLAGGENE. `vakt:abmp` og `vr:...:telrd` er strenger som endrer HVILKE
+ * konvensjoner boten spiller — like avgjørende som vektfilene, og i dag helt
+ * uvoktet. Driver appen fra speken her, spiller den andre konvensjoner enn
+ * benken måler, og ingenting feiler.
+ *
+ * `abmp` ble målt ledd for ledd: `m` gir +0,0404 ± 0,0075 (positiv i 10 av 10
+ * disjunkte frøbånd), `p` gir +0,0039 ± 0,0010 (9 av 10). Faller en bokstav
+ * bort i appen, forsvinner nøyaktig de tallene.
+ */
+test("appens VAKTFLAGG er det samme som ADAMS maaler med", () => {
+  const m = /:vakt:([a-z]+):/.exec(ADAMS);
+  assert.ok(m !== null, "fant ikke vakt-flagget i ADAMS");
+  assert.equal(konstant("VAKTFLAGG"), m[1], "web/app.ts og ADAMS er uenige om konvensjonsflagget");
+});
+
+test("appens VRAKFLAGG er det samme som ADAMS maaler med", () => {
+  const m = /^vr:[\w./-]+:([a-z]+):/.exec(ADAMS);
+  assert.ok(m !== null, "fant ikke vrak-flagget i ADAMS");
+  assert.equal(konstant("VRAKFLAGG"), m[1], "web/app.ts og ADAMS er uenige om vrakflagget");
+});
+
+/**
+ * BUDTERSKELEN. Et TALL, ikke en streng, men samme feilklasse: `@-3.0` i
+ * speken og `const BUDTERSKEL` i appen er to uavhengige kopier av samme
+ * kalibrerte konstant.
+ */
+test("appens BUDTERSKEL er den samme som ADAMS maaler med", () => {
+  const m = /\.json@(-?[\d.]+)[:/]/.exec(ADAMS);
+  assert.ok(m !== null, "fant ikke budterskelen i ADAMS");
+  const iApp = /^const BUDTERSKEL = (-?[\d.]+);/m.exec(APP);
+  assert.ok(iApp !== null, "fant ikke BUDTERSKEL i web/app.ts");
+  assert.equal(Number(iApp[1]), Number(m[1]), "web/app.ts og ADAMS er uenige om budterskelen");
+});
+
+/**
  * VEKTFILENE. `KORTVEKTER` er et `.b64`-navn og kan ikke sammenliknes med
  * `.bin`-navnet i speken direkte — koblingen mellom dem er et opplastingssteg
  * utenfor koden. Det testen KAN håndheve, er at utrullingslista navngir hver

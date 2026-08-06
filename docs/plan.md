@@ -4479,3 +4479,80 @@ leste bunnen ville trodd at bunten var v4 med bumpet versjonsnavn.
 * og at lista ikke oppgir en annen søkevidde enn kilden.
 
 Den fanget avvik 2 med det samme den ble kjørt.
+
+## 63. TERSKELEN VAR IKKE HULLET — klarsynslesningen holdt ikke
+
+§61 delte budrundens +8,06 og fant at boten «passer på 148 giver verdt +24,6
+hver, og byr på 188 verdt +10,3 å la gå». Det leses lett som at `evForsvar`
+står for høyt. Forbeholdet sto i samme avsnitt, og det viste seg å være det
+som gjaldt.
+
+Sveip på gate 2, 400 giver, miljøet er dagens −3,0 (`analyse/terskel-b1.txt`):
+
+| terskel | samlet | tegntest | avgjorte |
+|---|---|---|---|
+| @−6,0 | −0,079 ± 0,135 | z = −0,42 | 8,7 % |
+| @−4,5 | −0,017 ± 0,102 | z = 0,00 | 4,5 % |
+| @−1,5 | −0,008 ± 0,089 | z = −0,25 | 3,9 % |
+| @0,0 | −0,100 ± 0,128 | z = −0,63 | 7,7 % |
+
+**Ingen retning slår −3,0.** Ikke oppover, ikke nedover, ikke i tegntesten.
+Terskelen ligger i et flatt optimum.
+
+### Hvorfor klarsynslesningen ikke holdt
+
+Taket velger å passe på nøyaktig de hendene som ville feilet og by på nøyaktig
+dem som ville gått. Det er ikke en kalibreringsfeil det måler — det er verdien
+av å vite fasiten. En konstant kan ikke skille de to gruppene, fordi de ser
+like ut FØR kortene spilles.
+
+Klassefordelingen i §61 er derfor et mål på hvor mye INFORMASJON som mangler,
+ikke på hvor terskelen står. De +8,06 krever et bedre anslag på hvor mange
+stikk hånden tar — ikke en annen grense å sammenlikne anslaget med.
+
+**Dette er tredje gang i prosjektet at et tak leses som et tiltak.** De to
+første var `eks:` (§56) og `juks:` (§58). Mønsteret er det samme: en øvre
+grense sier hva som FINNES, aldri hvordan man tar det.
+
+## 64. FLERE AVVIK I SAMME KLASSE — funnet i den utvidede revisjonen
+
+Etter §62 lette jeg videre etter samme feil: påstander som er trukket tilbake,
+men som fortsatt står som etablerte der noen kan handle på dem.
+
+### Avvik 3: trosnettet påstått etablert i `web/app.ts`
+
+Linje ~149 (ved `TROFIL`) sa RIKTIG at trosvektingen ga +0,34 i ett frøbånd og
+−0,12 i det disjunkte, altså ikke etablert. Linje ~307 (ved hentingen) sa
+«Målt 6. august: +0,34 poeng per runde i førersetet … like mye som å DOBLE
+utvalget» — uten et ord om tilbaketrekkingen.
+
+To kommentarer om samme sak i samme fil, én riktig og én foreldet. Rettet.
+
+### Avvik 4: `μSkift` beskrevet som en skjevhet, ti linjer over forklaringen på at den ikke er det
+
+`μSkift`-dokumentasjonen sa at modellen «undervurderer lagstikket med 0,130
+stikk … det gjør boten litt for feig i hvert eneste bud» — en direkte
+invitasjon til å sette den til +0,130.
+
+Ti linjer under, i `auksjonskorreksjon`, står forklaringen på hvorfor det er
+galt: residualen regnes bare for dem som VANT budrunden, og man vinner
+budrunden nettopp når modellen anslår høyt. **Nivået er et seleksjonsartefakt.**
+Det ble prøvd, og sveipet målte −0,090 og −0,393.
+
+Rettet: `μSkift`-dokumentasjonen sier nå hva avviket er, hvorfor nivået ikke
+er informasjon, og hva som skal til for å endre den.
+
+### Verifisert og RIKTIG
+
+* **Rollestrengen.** Workeren sender `["foerer"]` i ASCII. `Rolle` er en typet
+  union `"foerer" | "makker" | "forsvar"`, så TypeScript håndhever koblingen —
+  dette er IKKE `gate2.ts`-feilen om igjen. Sjekket, ikke antatt.
+* **Ingen døde moduler** i `src/moe2/` eller `src/e1/`.
+
+### Vaktposten utvidet
+
+`test/utrullet-lik-maalt.test.ts` dekker nå også `VAKTFLAGG` (`abmp`),
+`VRAKFLAGG` (`telrd`) og `BUDTERSKEL` (−3,0). Alle tre var i sync, men ingen av
+dem var voktet — og `abmp` er målt ledd for ledd (`m`: +0,0404 ± 0,0075,
+positiv i 10 av 10 bånd). Faller en bokstav bort i appen, forsvinner nøyaktig
+de tallene uten at noe feiler.

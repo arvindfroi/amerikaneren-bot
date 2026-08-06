@@ -304,8 +304,16 @@ function besteBot(): Promise<Bot> {
     // resten – det er derfor familien alltid har noe å spille mot.
     hentB64(VRAKRANGERER),
     // TROSNETTET. Vekter kandidatverdenene i søket etter hvordan de andre har
-    // SPILT, ikke bare hva de bød. Målt 6. august: +0,34 poeng per runde i
-    // førersetet oppå samme verdenstall — og like mye som å DOBLE utvalget.
+    // SPILT, ikke bare hva de bød.
+    //
+    // AV, OG DET ER EN MÅLT BESLUTNING — se `TROFIL` over: +0,34 i ett frøbånd
+    // og −0,12 i det disjunkte. Fortegnet snur, altså er den IKKE etablert.
+    //
+    // Her sto tidligere «+0,34 … like mye som å DOBLE utvalget» som et
+    // etablert funn, uten at tilbaketrekkingen var nevnt. To kommentarer om
+    // samme sak, én riktig og én foreldet — nøyaktig samme feilklasse som
+    // utrullingslista (§62), bare inne i én fil.
+    //
     // Feiler den, søker boten uvektet som før; ingen enkeltdel tar ned resten.
     TROFIL === null ? Promise.resolve(null) : hentB64(TROFIL),
   ])
