@@ -35,7 +35,7 @@
 
 import { lovligeKort, utfør, type GameState, type Handling } from "../motor.ts";
 import type { Kort } from "../kort.ts";
-import { medVerden, trekkVerdener, type Utspiller } from "./sdkort.ts";
+import { medVerden, standardMål, trekkVerdener, type Utspiller } from "./sdkort.ts";
 import { lagSpillvekt } from "./spillvekt.ts";
 
 export interface ParOpts {
@@ -107,11 +107,6 @@ export interface ParResultat {
   /** margin / marginSE. 0 når SE er 0 eller udefinert. */
   readonly sigma: number;
 }
-
-const standardMål = (s: GameState, spiller: number): number => {
-  const egne = s.totalPoeng[spiller] ?? 0;
-  return egne - (s.totalPoeng.reduce((a, b) => a + b, 0) - egne) / 3;
-};
 
 function spillFerdig(start: GameState, motpart: Utspiller): GameState {
   let s = start;

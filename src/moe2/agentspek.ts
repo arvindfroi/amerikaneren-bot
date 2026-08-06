@@ -33,6 +33,7 @@ import { Trosnett } from "./trosnett.ts";
 import { Profilagent, type Budjusterbar } from "./profilagent.ts";
 import { EksaktSluttspill, delEksaktSpek } from "./eksaktagent.ts";
 import { Juksagent } from "./juksagent.ts";
+import { Alphamuagent } from "./amuagent.ts";
 
 /**
  * Nettene leses ÉN gang og deles. `E1Agent` holder ingen tilstand mellom
@@ -284,6 +285,57 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
    * beste kort overstiger sigma ganger sin egen SE. sigma=0 er dagens raa
    * orakel; hoey sigma er ren champion. De to ytterpunktene er valideringen.
    */
+  /**
+   * `amu:<rolle>:<verdener>[k<kand>][s][m<M>][e<eps>]:<indre>` — ALPHA-MU.
+   *
+   * Binder A1 (spillvekt, «s»), A2 (motstandermodell), A7 (uleselighet, «e»)
+   * og A8 (Pareto-dybde, «m») i ett lag. Se `amuagent.ts` for hvorfor de
+   * hoerer sammen: alpha-mu er en beslutningsregel OVER et utvalg, og A1 lager
+   * utvalget.
+   *
+   * Eksempel: `amu:foerer:24k32sm2e0.3:<indre>`
+   */
+  if (indre.startsWith("amu:")) {
+    const d = indre.slice(4).split(":");
+    const rolle = d[0] as Rolle | "alle";
+    if (rolle !== "foerer" && rolle !== "makker" && rolle !== "forsvar" && rolle !== "alle") {
+      throw new Error(`Ukjent rolle «${rolle}» (foerer, makker, forsvar, alle)`);
+    }
+    let f = d[1] ?? "";
+    const les = (tegn: string, standard: number): number => {
+      const i = f.indexOf(tegn);
+      if (i < 0) return standard;
+      const rest = f.slice(i + 1);
+      const m = /^[\d.]+/.exec(rest);
+      if (m === null) throw new Error(`Ugyldig «${tegn}» i amu-spek «${indre}»`);
+      f = f.slice(0, i) + rest.slice(m[0].length);
+      return Number(m[0]);
+    };
+    const eps = les("e", 0);
+    const M = les("m", 1);
+    let spillvekt = false;
+    if (f.includes("s")) {
+      spillvekt = true;
+      f = f.replace("s", "");
+    }
+    const kand = les("k", 3);
+    const verdener = Number(f);
+    if (!Number.isFinite(verdener) || verdener < 1) {
+      throw new Error(`Ugyldig amu-spek «${indre}» - forventet amu:<rolle>:<verdener>...:<indre>`);
+    }
+    const restSpek = d.slice(2).join(":");
+    const inn = lagIndre(restSpek);
+    const utenS = utenSøk(restSpek);
+    const motpart = utenS === restSpek ? inn : lagIndre(utenS);
+    return new Alphamuagent(inn, motpart, {
+      verdener,
+      verdenKandidater: kand,
+      spillvekt,
+      M,
+      epsilon: eps,
+      roller: rolle === "alle" ? [] : [rolle],
+    });
+  }
   if (indre.startsWith("sik:")) {
     // sik:<rolle>:<sigma>:<verdener>:<indre>
     //

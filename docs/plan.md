@@ -5600,3 +5600,71 @@ uleselighet (A7). Tre står fortsatt igjen og er IKKE med her:
 
 De er ikke glemt; de er utenfor denne lista fordi ingen av dem har en kjent
 implementasjon i dette prosjektet ennå.
+
+## 80. A1, A2, A7, A8 BYGGET — alpha-mu er komplett som agent
+
+Arvind: «før du tester så bygger du bare alt du klarer … bygg det på en måte
+som kan trene seg selv. det kan være at det gir dårligere resultater i starten
+men da har vi et grunnlag som vi kan jobbe med.»
+
+Bygget uten å måle. Alt er av som standard, så ingen eksisterende måling
+endrer seg.
+
+### A1 — verdensutvalget leser spillet (`src/moe2/spillvekt.ts`)
+
+Slutningen: **fulgte du farge og lot stikket gå, har du ikke noe høyere i den
+fargen.** En verden som krever at spilleren lot et gratis stikk gå, vektes ned.
+
+Log-vekt, ikke forbud — ducking finnes og må forbli mulig å modellere.
+Erstatter trosnettet, som skulle løst dette og ikke replikerte.
+
+Seks tester: at den straffer det den sier, og at den IKKE straffer avkast,
+trumfstikk, vinneren eller observatøren selv. En vekt som alltid ga 0 ville
+ikke feilet.
+
+### A8 — ekte alpha-mu (`src/moe2/alphamu.ts`)
+
+Pareto-fronter av utfallsvektorer over M egne beslutninger. Vektor a dominerer
+b hvis a er minst like god i ALLE verdener og strengt bedre i én.
+
+**Konsistenskravet er kjernen:** et kort må være lovlig i alle verdener for å
+kunne velges, og fortsettelsen velges ÉN gang for hele informasjonsmengden.
+Uten det er det PIMC med ekstra steg.
+
+`maksFront` er en KOSTNADSGRENSE og gjør søket inexakt. Det står i koden, ikke
+i en fotnote.
+
+### A7 — uleselighet (`src/moe2/uleselig.ts`)
+
+Frøstyrt randomisering blant kort innenfor ε av det beste, der frøet utledes av
+STILLINGEN (givfrø, stikk, sete, bordet).
+
+**Determinismen er ikke valgfri:** hver måling hviler på at kontrollarmen er
+nøyaktig 0,0000. Ekte `Math.random()` ville drept parringen og dermed alle
+tallene vi har. Mot et menneske som aldri ser samme giv to ganger, er en
+deterministisk-men-uforutsigbar avbildning umulig å skille fra tilfeldighet.
+
+### A2 + sammenbindingen (`src/moe2/amuagent.ts`)
+
+`amu:<rolle>:<verdener>[k<kand>][s][m<M>][e<eps>]:<indre>` binder de fire
+sammen, og de HØRER sammen fordi de er avhengige: alpha-mu er en
+beslutningsregel over et utvalg (A1 lager utvalget), rolloutene definerer hva
+utfall betyr (A2), og uleseligheten må komme SIST så den bare velger blant kort
+søket allerede har godkjent.
+
+A2 er `motpartFor(sete)`: hvert sete kan få sin egen policy i rolloutene, pakket
+som en ruter så søket slipper å vite at det finnes flere modeller.
+
+### Funnet underveis: TO kopier av utfallsmålet
+
+`standardMål` var privat i BÅDE `sdkort.ts` og `sdpar.ts` — identiske, og
+`amuagent.ts` var i ferd med å lage en tredje. Samme feilform som GBT-kopien
+(§76). Nå eksportert fra ett sted.
+
+**347 tester grønne.**
+
+### Hva som gjenstår før løkka
+
+A3 (søk i alle seter) er allerede mulig — `amu:alle:` og `sik:alle:` finnes.
+A4 (bud↔spill), A6 (signalering) og selve selvtreningsløkka står igjen.
+A5 (de 441 trekkene) kommer etter løkka, som avtalt.

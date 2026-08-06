@@ -127,7 +127,19 @@ export interface SDKortOpts extends SDOpts {
   readonly kandidater?: readonly Kort[];
 }
 
-const standardMål = (s: GameState, spiller: number): number => {
+/**
+ * UTFALLSMÅLET: egne poeng minus snittet av de tre andre.
+ *
+ * Arvind: «det er ikke bare poengene dine som teller, men også at du straffer
+ * motstanderne.» Samme størrelse som benken måler med, så treningsmålet og
+ * målestokken er ett.
+ *
+ * EKSPORTERT 6. august fordi `sdpar.ts` hadde en IDENTISK privat kopi, og
+ * `amuagent.ts` var i ferd med å lage en tredje. Tre utgaver av utfallsmålet
+ * er samme feilform som GBT-kopien (§76): endres den ene, måler de andre noe
+ * annet uten at noe feiler.
+ */
+export const standardMål = (s: GameState, spiller: number): number => {
   const egne = s.totalPoeng[spiller] ?? 0;
   return egne - (s.totalPoeng.reduce((a, b) => a + b, 0) - egne) / 3;
 };
