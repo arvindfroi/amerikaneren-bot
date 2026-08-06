@@ -4857,3 +4857,98 @@ Det er ekte (det ER `vant[9]`), og de stillingene er allerede dekket av
 `bud-kvant`. De 75 % som har bud i seg er nøyaktig dem v2-blokken trenger.
 
 **Status:** 12 skard, 24 000 hender, 16 trekninger. ~3,3 rader/s.
+
+## 69. FORKLARINGSKRAFT — hvor mye av Adams' valg kan vi gjøre rede for?
+
+Arvind: «kan vi ikke overvåke valgene til bottene og se hva som slår ut …
+skrur av hver variabel en etter en slik at det kan kontrolleres for hverandre.
+hvor mye forklaringskraft har modellen våres nå?»
+
+Metoden er riktig. To ting måtte gjøres annerledes enn «skru av».
+
+### Hvorfor nullstilling ikke er ablasjon her
+
+Trekkene er indikatorer: `v[52..103] = 1` betyr «dette kortet er spilt».
+Nullstiller man blokken, sier man ikke «jeg vet ikke» — man sier **«INGEN kort
+er spilt»**, som er en gyldig og svært informativ stilling. Nettet ville fått
+en LØGN, ikke et fravær.
+
+Derfor **permutasjon**: blokken byttes med samme blokk fra en tilfeldig annen
+stilling. Marginalfordelingen er uendret, koblingen til nettopp denne
+stillingen er brutt.
+
+### Og tvungne valg må ut av nevneren
+
+`velgKort` kortslutter når bare ett kort er lovlig. **23,5 %** av alle
+beslutninger er slike. Der er nettet ikke involvert, og å telle dem ville
+presset hver blokks tall mot null.
+
+### Resultatet (`examples/ablasjon.ts`, 120 giver, 4 414 frie valg)
+
+| blokk | trekk | endret | **levende** | **per anledning** |
+|---|---|---|---|---|
+| kort på bordet nå | 52 | 41,7 % | 70,1 % | **59,5 %** |
+| etterlyst kort | 52 | 2,4 % | **5,2 %** | **46,2 %** |
+| spilte kort (alle) | 52 | 44,2 % | 97,3 % | 45,4 % |
+| egen hånd | 52 | 45,0 % | 100 % | 45,0 % |
+| e1-tilleggene | 35 | 37,4 % | — | — |
+| trumffarge | 5 | 30,6 % | 100 % | 30,6 % |
+| hvem leder stikket | 4 | 27,3 % | 100 % | 27,3 % |
+| hvem er makker | 4 | 19,6 % | 94,8 % | 20,7 % |
+| hvem er fører | 4 | 18,1 % | 100 % | 18,1 % |
+| **kontrakten** | 3 | **8,7 %** | **100 %** | **8,7 %** |
+| **stikk per sete** | 5 | **5,5 %** | 92,8 % | **5,9 %** |
+| **hvor langt i runden** | 1 | **2,0 %** | 100 % | **2,0 %** |
+| *ALT permutert (kontroll)* | 273 | *68,5 %* | — | — |
+
+**KONTROLLEN ER NØDVENDIG.** Permuterer man hele vektoren, endres bare 68,5 %
+av valgene — de resterende 31,5 % er bestemt av LOVLIGHET alene. Ingen blokk
+kan overstige det taket, så 45 % er 66 % av det oppnåelige.
+
+**«Etterlyst kort» så ut som det store hullet, og var det ikke.** Rå 2,4 % ser
+ut som at nettet ignorerer den ene tingen som peker på den hemmelige makkeren.
+Men blokken nullstilles når kortet er spilt, og er **levende i bare 5,2 %** av
+frie valg. Per anledning endrer den **46 %** — den er blant de sterkeste vi
+har. Jeg holdt på å skrive det motsatte inn i planen.
+
+### De ekte hullene, som er levende hele tiden
+
+* **Kontrakten: 8,7 %.** Boten spiller nesten likt enten den må ta 8 eller 11
+  stikk. §6 åpne spørsmål sa nettopp dette: «en spillefører på 8 og en på 11
+  skal spille kvalitativt ulikt.» Nå er det målt.
+* **Stikk per sete 5,9 % og hvor langt i runden 2,0 %.** Nettet har nesten
+  ingen følelse av hvor runden står.
+
+### Forklaringskraften, tallfestet (`examples/forklaringskraft.ts`, 150 giver)
+
+Hvor ofte treffer én lesbar setning nøyaktig det kortet nettet valgte?
+
+| regel | andel av frie valg |
+|---|---|
+| **vinn billigst, ellers kast lavest** | **45,1 %** |
+| vinn billigst, men aldri over makker | 43,3 % |
+| NevroHjerne (annet nett) | 42,8 % |
+| legg lavest lovlige | 38,9 % |
+| lengste farge, lavest i den | 37,2 % |
+| legg høyest lovlige | 22,2 % |
+
+Alle reglene er enige i bare **0,1 %** av stillingene, så tallene måler ekte
+uenighet og ikke trivialitet.
+
+**SVARET:**
+
+```
+23,5 %  tvungne valg          - ingen forklaring trengs
+34,5 %  frie, men fanget av én setning  (76,5 % x 45,1 %)
+------
+58,0 %  kan gjøres rede for
+42,0 %  kan vi IKKE si hvorfor
+```
+
+**Vi kan forklare 58 % av Adams' kortvalg. 42 % gjør den noe vi ikke kan
+formulere.** Det er tallet punkt 6 handler om, og det er nå en målestokk og
+ikke en følelse.
+
+At NevroHjerne — et helt annet nett, trent på andre data — bare treffer 42,8 %
+sier at de to policyene er genuint ulike. Enigheten er ikke bare «begge gjør
+det åpenbare».
