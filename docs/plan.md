@@ -4015,3 +4015,39 @@ gevinster), så tegntesten er den sterkeste i hele tabellen — men snittet fall
 til +0,13. Den er nesten alltid enig med nettet, og henter derfor lite.
 
 **Ny beste konfigurasjon: `v5 = v4 + sik:foerer:0.5:24`.**
+
+## 54. HVORDAN v5 BLIR BEDRE — den neste hypotesen, og hvorfor den er begrunnet
+
+`v5 = v4 + sik:foerer:0.5:24`, replikert i to bånd (+1,78 / +1,68 i førersetet).
+
+### Hypotesen: porten kan virke i forsvaret der alltid-søk ikke gjorde
+
+Alltid-søk i forsvarssetet målte **−0,027 (z = −0,55)** — null. Men porten
+overstyrer bare der den parrede marginen overstiger sin egen SE, og betaler
+derfor ikke for de gangene søket tar feil. Den kan altså hente den positive
+delen av en fordeling som i snitt er null.
+
+Virker den, legger den til ET HELT SETE: forsvar er halvparten av alle runder.
+
+### §17 gir en presis grunn til å tro på det
+
+> Verdien av samplet søk vokser når verdensrommet krymper. De tidligste
+> beslutningene er de vanskeligste å søke i.
+
+Vrak+trumf-søket (`vv:`) strøk fordi ingenting er spilt ennå og 24 utvalg er
+nesten ingenting. Førersøket virker fordi det står MIDT i runden, der hvert
+spilt kort har skåret bort muligheter.
+
+**Forsvarsbeslutninger tas samme sted i runden som førerens.** Verdensrommet er
+like krympet. Prediksjonen er derfor at porten oppfører seg som i førersetet —
+og at alltid-søkets null kom av kostnaden ved å overstyre på tynt grunnlag, ikke
+av at det ikke finnes signal.
+
+Måles nå, sammen med 48 verdener og replikasjon av auksjonskorreksjonen.
+
+### Og §17 peker videre
+
+Den sier at middelet mot store verdensrom er en bedre PRIOR — altså
+motstandermodellen. Den er nå koblet inn (§profilagent), men bare på
+budgivningen. Å bruke profilen til å krympe verdensrommet i VRAK er den linja
+§17 selv utpeker, og den er urørt.
