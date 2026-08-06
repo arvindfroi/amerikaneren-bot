@@ -34,6 +34,7 @@ import { Profilagent, type Budjusterbar } from "./profilagent.ts";
 import { EksaktSluttspill, delEksaktSpek } from "./eksaktagent.ts";
 import { Juksagent } from "./juksagent.ts";
 import { Alphamuagent } from "./amuagent.ts";
+import { Økt } from "./okt.ts";
 
 /**
  * Nettene leses ÉN gang og deles. `E1Agent` holder ingen tilstand mellom
@@ -128,12 +129,24 @@ export function utenSøk(spek: string): string {
   }
 }
 
-export function lagIndre(indre: string): { velgHandling(s: GameState): Handling; nyKamp(): void } {
+/**
+ * Kontekst som følger med NEDOVER i speken. I dag bare økten, som må deles av
+ * BÅDE profilagenten (som lærer) og alpha-mu (som bruker det den lærte) — er de
+ * to ikke samme objekt, lærer den ene noe den andre aldri ser.
+ */
+export interface Spekkontekst {
+  økt?: Økt;
+}
+
+export function lagIndre(
+  indre: string,
+  ctx: Spekkontekst = {},
+): { velgHandling(s: GameState): Handling; nyKamp(): void } {
   if (indre === "nevro") return new NevroAgent();
   if (indre.startsWith("vakt:")) {
     const v = delVaktspek(indre);
     if (v === null) throw new Error(`Ugyldig vaktspek «${indre}»`);
-    return new Konvensjonsvakt(lagIndre(v.indre), v.valg);
+    return new Konvensjonsvakt(lagIndre(v.indre, ctx), v.valg);
   }
   /**
    * `budm:<modellfil>[@<evForsvar>]:<indre>`
@@ -242,7 +255,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
       );
     }
     const restSpek = d.slice(2).join(":");
-    const inn = lagIndre(restSpek);
+    const inn = lagIndre(restSpek, ctx);
     /**
      * ROLLOUT-MOTPARTEN MÅ VÆRE EN AGENT UTEN SØK.
      *
@@ -256,7 +269,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
      * søk. Derfor strippes alle `ork:`-lag av før motparten bygges.
      */
     const baseSpek = utenSøk(restSpek);
-    const motpart = baseSpek === restSpek ? inn : lagIndre(baseSpek);
+    const motpart = baseSpek === restSpek ? inn : lagIndre(baseSpek, ctx);
     const trosnett =
       troFil === null || troFil === ""
         ? null
@@ -267,7 +280,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     const fortsettelser = fortsFlagg.map((f) => {
       const byttet = restSpek.replace(/vakt:[a-zA-Z]+/, `vakt:${f}`);
       if (byttet === restSpek) throw new Error(`Fant ingen «vakt:» å bytte til «${f}» i «${restSpek}»`);
-      return lagIndre(byttet) as unknown as ConstructorParameters<typeof Rolleorakel>[1];
+      return lagIndre(byttet, ctx) as unknown as ConstructorParameters<typeof Rolleorakel>[1];
     });
     return new Rolleorakel(inn, motpart as unknown as ConstructorParameters<typeof Rolleorakel>[1], rolle, {
       verdener,
@@ -295,6 +308,24 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
    *
    * Eksempel: `amu:foerer:24k32sm2e0.3:<indre>`
    */
+  /**
+   * `okt:<indre>` — ØKT-SCOPET MOTSTANDERMODELL.
+   *
+   * Oppretter én `Økt` og sender den nedover. Profilagenten lærer inn i den,
+   * og alpha-mu leser den ut igjen som `motpartFor`. Uten dette laget er
+   * oppførselen bit-identisk med før.
+   */
+  if (indre.startsWith("okt:")) {
+    const økt = new Økt();
+    const inn = lagIndre(indre.slice(4), { ...ctx, økt });
+    return {
+      velgHandling: (s) => inn.velgHandling(s),
+      nyKamp: () => {
+        økt.nyKamp();
+        inn.nyKamp();
+      },
+    };
+  }
   if (indre.startsWith("amu:")) {
     const d = indre.slice(4).split(":");
     const rolle = d[0] as Rolle | "alle";
@@ -326,9 +357,9 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
       throw new Error(`Ugyldig amu-spek «${indre}» - forventet amu:<rolle>:<verdener>...:<indre>`);
     }
     const restSpek = d.slice(2).join(":");
-    const inn = lagIndre(restSpek);
+    const inn = lagIndre(restSpek, ctx);
     const utenS = utenSøk(restSpek);
-    const motpart = utenS === restSpek ? inn : lagIndre(utenS);
+    const motpart = utenS === restSpek ? inn : lagIndre(utenS, ctx);
     return new Alphamuagent(inn, motpart, {
       verdener,
       verdenKandidater: kand,
@@ -336,6 +367,10 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
       M,
       epsilon: eps,
       lambda,
+      // A2: oekten gir én policy PER MOTSTANDER. Uten oekt er den udefinert,
+      // og soeket antar som foer at alle spiller som oss.
+      motpartFor:
+        ctx.økt === undefined ? undefined : (sete: number) => ctx.økt!.motpartFor(motpart, sete),
       roller: rolle === "alle" ? [] : [rolle],
     });
   }
@@ -387,7 +422,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     }
     const inn = lagIndre(d.slice(3).join(":"));
     const sikRest = utenSøk(d.slice(3).join(":"));
-    return new Sikkerorakel(inn, (sikRest === d.slice(3).join(":") ? inn : lagIndre(sikRest)) as unknown as ConstructorParameters<typeof Sikkerorakel>[1], {
+    return new Sikkerorakel(inn, (sikRest === d.slice(3).join(":") ? inn : lagIndre(sikRest, ctx)) as unknown as ConstructorParameters<typeof Sikkerorakel>[1], {
       sigma,
       verdener,
       verdenKandidater,
@@ -412,7 +447,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     }
     const inn = lagIndre(d.slice(1).join(":"));
     const vvRest = utenSøk(d.slice(1).join(":"));
-    return new Vrakvelger(inn, (vvRest === d.slice(1).join(":") ? inn : lagIndre(vvRest)) as unknown as ConstructorParameters<typeof Vrakvelger>[1], { verdener });
+    return new Vrakvelger(inn, (vvRest === d.slice(1).join(":") ? inn : lagIndre(vvRest, ctx)) as unknown as ConstructorParameters<typeof Vrakvelger>[1], { verdener });
   }
   /**
    * `etl:<nivaa>:<indre>` - ETTERLYSNINGEN, den siste uundersoekte beslutningen.
@@ -443,7 +478,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     }
     const inn = lagIndre(d.slice(3).join(":"));
     const vv2Rest = utenSøk(d.slice(3).join(":"));
-    return new Vrakvelger2(inn, (vv2Rest === d.slice(3).join(":") ? inn : lagIndre(vv2Rest)) as unknown as ConstructorParameters<typeof Vrakvelger2>[1], {
+    return new Vrakvelger2(inn, (vv2Rest === d.slice(3).join(":") ? inn : lagIndre(vv2Rest, ctx)) as unknown as ConstructorParameters<typeof Vrakvelger2>[1], {
       verdener,
       policy: lesVrakflagg(d[1] ?? "telrd"),
     });
@@ -489,7 +524,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
   if (indre.startsWith("eks:")) {
     const d = delEksaktSpek(indre);
     if (d === null) throw new Error(`Ugyldig eks-spek «${indre}»`);
-    return new EksaktSluttspill(lagIndre(d.indre), d.valg);
+    return new EksaktSluttspill(lagIndre(d.indre, ctx), d.valg);
   }
   /**
    * `juks:<terskel>:<indre>` — TAKET, IKKE EN KANDIDAT.
@@ -516,7 +551,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     const bud = (inn as unknown as Partial<Budjusterbar>).settForsvarsjustering
       ? (inn as unknown as Budjusterbar)
       : null;
-    return new Profilagent(inn, bud);
+    return new Profilagent(inn, bud, ctx.økt?.bok ?? null);
   }
   if (indre.startsWith("e1:")) {
     const rest = indre.slice(3);

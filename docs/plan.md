@@ -5801,3 +5801,59 @@ Alternativene, om det skal åpnes:
    der navnene alt ligger — ikke i det offentlige repoet.
 
 Alternativ 1 er billigst og bryter ingenting. Men det er din beslutning.
+
+## 83. ØKTEN — motstandermodellen lærer på tvers av kamper, lagrer aldri
+
+Arvind: «den ska bare lære per økt for nå. men det skal være sykt godt
+gjennomført.»
+
+### Skillet som gjør det lovlig
+
+```
+én økt   = så lenge prosessen lever. Familien spiller flere kamper samme
+           kveld, og boten husker DEN kvelden.
+historie = noe som overlever at appen lukkes. Det er databasen.
+```
+
+`src/moe2/okt.ts` har **ingen import fra filsystemet, ingen `localStorage`,
+ingen nettverkskall** — og det er ikke en konvensjon, det er håndhevet av
+`test/okt.test.ts`, som leser kilden og feiler på ethvert spor av lagring.
+En kommentar kan ryke; en test kan ikke.
+
+**Testen fanget meg med det samme** — på min egen dokumentasjon, som *nevner*
+`node:fs` for å forklare at den ikke brukes. Retten var å strippe kommentarer
+FØR søket: testen skal håndheve hva koden gjør, ikke hva prosaen nevner,
+ellers straffer den den som dokumenterer godt.
+
+### Og den måtte faktisk BRUKES
+
+En profil som bare overlever er verdiløs. `Profilagent` påvirket bare
+`forsvarsverdi` i budgivningen, og den koblingen målte **−1,25 pp** (§75).
+Arvind sa det 6. august: «det er ikke bare budet den skal tilpasse seg, men
+også i spillet».
+
+Økten kobler den derfor til **A2**: `motpartFor(sete)` gir søket én policy per
+motstander i stedet for å anta at alle spiller som oss. Det er der en
+motstandermodell hører hjemme — i prediksjonen, ikke i én konstant.
+
+`aggressivitet(sete)` returnerer **`null`** til vi har sett nok runder, ikke 0.
+Å gjette 0 og å VITE at det er 0 er to ulike ting, og kalleren skal kunne
+skille dem. Under terskelen er `motpartFor` en ren nulloperasjon — vrir den
+søket fra første runde, er den en gjetning forkledd som kunnskap.
+
+### Delt objekt, ikke to kopier
+
+`lagIndre` har fått en valgfri `Spekkontekst` som følger nedover i speken.
+Økten må deles av BÅDE profilagenten (som lærer) og alpha-mu (som bruker det
+den lærte) — er de ikke samme objekt, lærer den ene noe den andre aldri ser.
+
+`okt:<indre>` oppretter én økt og sender den ned. **Uten laget er oppførselen
+bit-identisk med før**, og alle eksisterende målinger er uendret.
+
+### Vrien er deterministisk
+
+Rolloutene inngår i målinger der kontrollarmen må treffe eksakt 0,0000. En
+`Math.random()` der ville drept parringen uten at noe feilet, så «mynten» er
+utledet av stillingen. Testet.
+
+**364 tester grønne.**

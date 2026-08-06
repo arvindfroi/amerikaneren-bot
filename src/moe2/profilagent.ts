@@ -197,20 +197,37 @@ export class Profilagent {
   private readonly indre: { velgHandling(s: GameState): Handling; nyKamp(): void };
   readonly bok: Profilbok;
 
+  /**
+   * `oektBok` er ØKTENS bok. Gis den, overlever profilen mellom kamper -
+   * men den lagres aldri (se `okt.ts`). Uten den nullstilles den som foer,
+   * saa alle eksisterende maalinger er uendret.
+   */
+  private readonly oektBok: Profilbok | null;
+
   constructor(
     indre: { velgHandling(s: GameState): Handling; nyKamp(): void },
     budagent: Budjusterbar | null,
+    oektBok: Profilbok | null = null,
   ) {
     this.indre = indre;
-    this.bok = new Profilbok();
+    this.oektBok = oektBok;
+    this.bok = oektBok ?? new Profilbok();
     if (budagent !== null) budagent.settForsvarsjustering((s) => this.bok.justering(s));
   }
 
   nyKamp(): void {
-    // NY KAMP, NY PROFIL. Modellen skal bygges av det som skjer ved DETTE
-    // bordet — å bære den mellom kamper ville vært den databasen Arvind
-    // uttrykkelig ikke ville ha.
-    (this as { bok: Profilbok }).bok = new Profilbok();
+    /**
+     * NY KAMP, NY PROFIL — MED MINDRE VI ER I EN ØKT.
+     *
+     * Uten økt nullstilles den som før: modellen bygges av det som skjer ved
+     * DETTE bordet, og bæres ikke videre.
+     *
+     * MED økt står boka. Skillet er mellom ØKT (så lenge prosessen lever —
+     * familien spiller flere kamper samme kveld) og HISTORIE (noe som
+     * overlever at appen lukkes). Det siste er databasen Arvind ikke ville ha,
+     * og `okt.ts` rører ikke disk i det hele tatt.
+     */
+    if (this.oektBok === null) (this as { bok: Profilbok }).bok = new Profilbok();
     this.indre.nyKamp();
   }
 
