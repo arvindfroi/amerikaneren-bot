@@ -24,8 +24,6 @@ import { genomFraJson } from "../src/neat/genom.ts";
 import { E1Agent } from "../src/e1/agent.ts";
 import { Konvensjonsvakt, lesVaktflagg } from "../src/moe2/konvensjonsvakt.ts";
 import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
-import { Rolleorakel } from "../src/moe2/rolleorakel.ts";
-import { Trosnett } from "../src/moe2/trosnett.ts";
 import { nettFraBytes } from "../src/nevro/nett.ts";
 // Fra budmodell.ts og IKKE budagent.ts: den siste importerer node:fs paa
 // toppniva, og esbuild med nettleserplattform stopper paa den.
@@ -199,6 +197,13 @@ function tilBytes(b64: string): Uint8Array {
  * FORSVARSSØK ER IKKE MED, og det er målt: −0,027 med z = −0,55.
  */
 const SØKVERDENER = 24;
+/**
+ * KONFIDENSPORTEN: hvor mange standardfeil marginen må overstige før søket
+ * overstyrer nettet. Målt 6. august i to disjunkte bånd — 0,5 gir +1,78 og
+ * +1,68 i førersetet mot alltid-søkets +1,25, og koster 198 ms mot 329.
+ * 0,25 og 0,5 er ikke skillbare, så porten er robust mot terskelen.
+ */
+const SØKSIGMA = 0.5;
 
 /** Rå vekter, holdt for å kunne sendes til workeren. Agenter kan ikke krysse
  *  en meldingsgrense; workeren må bygge sin egen fra de samme bytene. */
@@ -403,6 +408,7 @@ async function sikreAdamsIWorker(): Promise<Worker | null> {
         vrakflagg: VRAKFLAGG,
         budterskel: BUDTERSKEL,
         verdener: SØKVERDENER,
+        sigma: SØKSIGMA,
       });
       adamsSendt = true;
     }

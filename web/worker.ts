@@ -12,8 +12,7 @@ import { E1Agent } from "../src/e1/agent.ts";
 import { Konvensjonsvakt, lesVaktflagg } from "../src/moe2/konvensjonsvakt.ts";
 import { Budagent, tolkBudmodell } from "../src/moe2/budmodell.ts";
 import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
-import { Rolleorakel } from "../src/moe2/rolleorakel.ts";
-import { Trosnett } from "../src/moe2/trosnett.ts";
+import { Sikkerorakel } from "../src/moe2/sikkerorakel.ts";
 import { nettFraBytes } from "../src/nevro/nett.ts";
 
 /**
@@ -83,6 +82,7 @@ type Melding =
       vrakflagg: string;
       budterskel: number;
       verdener: number;
+      sigma: number;
     }
   | { type: "adams-trekk"; id: number; state: GameState; sete: number }
   | { type: "pondre"; state: GameState; ms: number }
@@ -116,19 +116,21 @@ self.onmessage = (e: MessageEvent<Melding>) => {
         const n = nettFraBytes(tilBytes(m.vrak))[0];
         if (n !== undefined) bot = new Vrakrangerer(bot, n, m.vrakflagg) as unknown as Velger;
       }
-      let trosnett: Trosnett | null = null;
-      if (m.tro !== null) {
-        const n = nettFraBytes(tilBytes(m.tro))[0];
-        if (n !== undefined) trosnett = new Trosnett(n);
-      }
       // MOTPARTEN ER BOTEN UTEN SØK. Gis søkeagenten seg selv, starter hver
       // rollout et nytt søk – eksponentielt. Se utenSøk() i agentspek.ts.
+      // KONFIDENSPORT, ikke alltid-søk. Målt 6. august i to disjunkte bånd:
+      //
+      //   sik sigma=0,5   +1,78 / +1,68 i førersetet   198 ms per trekk
+      //   ork (alltid)    +1,25                        329 ms
+      //
+      // Å overstyre nettet BARE der den parrede marginen overstiger sin egen
+      // SE er både sterkere og 40 % billigere enn å tenke hardt på alt.
       adams =
         m.verdener > 0
-          ? (new Rolleorakel(bot, bot as never, "foerer", {
+          ? (new Sikkerorakel(bot, bot as never, {
               verdener: m.verdener,
-              trosnett,
-              verdenKandidater: trosnett === null ? 3 : 32,
+              sigma: m.sigma,
+              roller: ["foerer"],
             }) as unknown as Velger)
           : bot;
     } catch (feil) {

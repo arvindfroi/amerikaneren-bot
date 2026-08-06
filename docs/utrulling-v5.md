@@ -26,6 +26,19 @@ På kampbenken flyttet førersøket alene en menneske-ekvivalent motstander fra
 
 **FORSVARSSØK ER IKKE MED**, og det er målt: −0,027 med z = −0,55.
 
+## RETTET 6. august: v5 sendte den SVAKERE søkevarianten
+
+Workeren bygde `Rolleorakel` — alltid-søk — mens målingen viste at
+konfidensporten er både sterkere og billigere:
+
+| variant | i førersetet | pris |
+|---|---|---|
+| **`sik` σ=0,5** | **+1,78 / +1,68** (to bånd) | **198 ms** |
+| `ork` (alltid) | +1,25 | 329 ms |
+
+Jeg målte den bedre og sendte den dårligere. Nå bygger workeren `Sikkerorakel`
+med σ = 0,5, begrenset til førersetet.
+
 ## Trosnettet er DROPPET, og det er en målt beslutning
 
 Trosvektingen ga +0,34 poeng per runde i førersetet i ett frøbånd og **−0,12 i
