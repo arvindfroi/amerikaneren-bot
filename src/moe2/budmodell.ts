@@ -200,6 +200,16 @@ export class Budagent implements Innagent {
    * over populasjonen.
    */
   private readonly auksjonskorreksjon: boolean;
+  /**
+   * A4: SØKT ANSLAG PÅ LAGSTIKK. Gitt, blandes modellens μ med et anslag fra
+   * å faktisk spille hånden ut (`budsok.ts`). `null` = av, og da er
+   * beslutningen bit-identisk med før.
+   *
+   * Budgivning skjer 1–4 ganger per runde mot kortvalgets 12, så en budbeslutning
+   * har råd til det samme som ett kortsøk. Kostnaden var aldri grunnen til at
+   * dette ikke fantes.
+   */
+  private readonly søktAnslag: ((state: GameState, sete: number) => { μ: number; σ: number } | null) | null;
 
   /**
    * PERSONAVHENGIG JUSTERING av forsvarsverdien, eller `null`.
@@ -234,6 +244,7 @@ export class Budagent implements Innagent {
     forsvarsverdi = evForsvar,
     forsvarsjustering: ((state: GameState) => number) | null = null,
     auksjonskorreksjon = false,
+    søktAnslag = null as ((state: GameState, sete: number) => { μ: number; σ: number } | null) | null,
   ) {
     this.indre = indre;
     this.m = m;
@@ -243,6 +254,7 @@ export class Budagent implements Innagent {
     this.auksjonskorreksjon = auksjonskorreksjon;
     this.σGulv = σGulv;
     this.μSkift = μSkift;
+    this.søktAnslag = søktAnslag;
   }
 
   nyKamp(): void {
@@ -268,10 +280,33 @@ export class Budagent implements Innagent {
     const terskel = this.evForsvar + just;
     const fv = this.forsvarsverdi + just;
 
+    /**
+     * A4: spør SPILLET hva hånden er verdt, ikke bare regresjonen.
+     *
+     * ÉN GANG PER BESLUTNING, ikke per bud — og det er ikke en optimalisering,
+     * det er riktig modell. Antall stikk laget tar avhenger av KORTENE, ikke
+     * av hva vi meldte; derfor anslår budmodellen én (μ, σ) og regner P(N) for
+     * alle N fra samme fordeling.
+     *
+     * Første utgave kalte søket per N, og testen «anslaget skiller mellom
+     * ulike bud» feilet. Premisset var mitt eget som var feil: at det IKKE
+     * skiller er nettopp det som gjør det til et gyldig anslag på
+     * stikkfordelingen.
+     */
+    let μB = μ;
+    let σB = σ;
+    if (this.søktAnslag !== null) {
+      const s2 = this.søktAnslag(state, sete);
+      if (s2 !== null) {
+        μB = s2.μ;
+        σB = Math.max(this.σGulv, s2.σ);
+      }
+    }
+
     let beste: Bud = PASS;
     let bv = terskel;
     for (const N of tall) {
-      const P = 1 - Φ((N - 0.5 - μ) / σ);
+      const P = 1 - Φ((N - 0.5 - μB) / σB);
       const p = this.m.vant[String(N)] ?? (N >= 11 ? 1 : 0);
       const ev = p * (2 * N * (2 * P - 1)) + (1 - p) * fv;
       if (ev > bv) {

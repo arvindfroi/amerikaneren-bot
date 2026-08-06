@@ -5923,3 +5923,60 @@ verdenen gir kort i den ledede fargen. Testen konstruerer nå nettopp det.
 | nettsiden | appen bunter (676,6 kB); alle sju nye moduler bunter for nettleser |
 | ende-til-ende | full stakk `okt:amu:...:profil:...` spilte 6 runder, 327 trekk |
 | **selvtrening** | **kan ikke sjekkes — løkka finnes ikke ennå** |
+
+## 85. A4 — én retning var alt på plass, den andre manglet
+
+Arvind: «ok hva med a4 og spill?»
+
+### Retning 1: SPILLET HØRER BUDET — og §79 tok feil om den
+
+Målt over 4 719 beslutninger for budlaget:
+
+| kontraktens tilstand | n | spilte laveste |
+|---|---|---|
+| **sikret** (overstikk er verdiløse) | 42 | **71,4 %** |
+| **umulig** (alt er tapt) | 422 | 56,9 % |
+| **fortsatt åpen** (hvert stikk teller) | 4 255 | **36,4 %** |
+
+En ren, monoton gradient i riktig retning: boten sparer kort når stikkene ikke
+lenger er verdt noe, og slåss når de er det.
+
+**§79 A4 sa «boten spiller nesten likt på 8 og 11», med ablasjonens 8,7 % som
+belegg. Det var feil, og feilen lå i metoden.** Ablasjonen delte de relevante
+trekkene over to blokker: budet ligger på indeks 225, lagstikkene på 230.
+Kontraktbevisstheten er SAMSPILLET mellom dem, og blokkvis permutasjon kan per
+konstruksjon ikke se samspill.
+
+Det er en grense ved ablasjonsmetoden som gjelder hele §69-tabellen, og den
+står nå notert der.
+
+### Retning 2: BUDET SPØR SPILLET — manglet (`src/moe2/budsok.ts`)
+
+`Budagent` anslo μ med en GBT på 128 håndtrekk og spurte aldri kortspillet.
+Det er merkelig: vi har en spiller som kan spille hånden ut, og en regresjon
+som gjetter hvor mange stikk den tar.
+
+`søktMu` trekker K verdener, byr, spiller ferdig og leser av lagstikket. Ingen
+modell, ingen kalibrering mot et kortnett som ikke finnes lenger.
+
+**Billig:** budgivning skjer 1–4 ganger per runde mot kortvalgets 12, så en
+budbeslutning har råd til det samme som ett kortsøk (198 ms). Kostnaden var
+aldri grunnen til at dette ikke fantes.
+
+`blanding = 0` gir modellens tall bit-identisk. Full erstatning ville arvet
+skjevheten fra at rolloutene spiller som OSS — samme feil som `juks:` (§58).
+
+### To ganger tok testene meg, og begge lærte meg noe om designet
+
+**«Anslaget skiller mellom ulike bud» feilet — og skulle feile.** Antall stikk
+laget tar avhenger av KORTENE, ikke av hva vi meldte. Derfor anslår
+budmodellen én (μ, σ) og regner P(N) for alle N fra samme fordeling. Jeg kalte
+søket per N; det var både feil modell og fire ganger for dyrt. Nå kalles det én
+gang per beslutning.
+
+**«For få anslag» ved bud 9.** `søktMu` gir `null` når vi ikke får kontrakten i
+minst to verdener — og med bud 9 vinner første budgiver under en tredel av
+gangene (målt 28 %, §78). Det er ikke en feil i anslaget: spørsmålet «hvor
+mange stikk tar laget mitt» finnes bare når vi FÅR kontrakten.
+
+**373 tester grønne.** Appen bunter. Alle nye moduler bunter for nettleser.
