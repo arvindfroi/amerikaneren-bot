@@ -5385,3 +5385,39 @@ et blad aldri får færre enn `minBlad` rader — pluss determinisme og at
 bredden fast på 128, ville v2-blokken (indeks 128–139) aldri blitt vurdert som
 splitt, og målingen ville sagt «budrunden gir ingenting» på et oppsett som ikke
 kunne gitt noe annet.
+
+## 77. KORPUSLÅSEN GA NULL PÅ DET SMALE NETTET — godt powered, og det omdirigerer
+
+§66 låste opp 2,41 M dyrt merkede rader som `sd-tren.py` forkastet i stillhet.
+`d7klipp.bin` er finjustert fra `d7alle` på **7 425 778 stillinger**, hvorav
+**2 364 452 klippet ned** fra bredere korpus. Mot `d7alle` på gate 2:
+
+| bånd | samlet | tegntest | avgjorte |
+|---|---|---|---|
+| 5 800 000 | +0,002 ± 0,117 | z = −1,27 | 28,9 % |
+| 10 500 000 | −0,007 ± 0,125 | z = +0,57 | 30,6 % |
+| **slått sammen** | **−0,003 ± 0,086** | **z = −0,47** | **29,7 %** |
+
+**Null, og denne gangen med ekte styrke.** 29,7 % av givene avgjøres — mot 1,6–
+2,4 % i auksjonskorreksjonen og terskelsveipet. Dette er ikke «for lite n»;
+det er et målt null.
+
+### Hva det betyr
+
+`d7alle` var allerede mettet på 5,08 M rader. De 2,36 M nye kommer fra SAMME
+generator og SAMME orakel — de er mer av det samme, ikke ny informasjon. Nettet
+hadde alt hentet ut det som er der.
+
+Det motsier ikke §46 («korpuset blokkerer»). Den påstanden gjaldt de BREDE
+nettene, som har 0,31–0,61 M rader mot 5,08 M. Der er data fortsatt bindende.
+
+### Konsekvensen
+
+Låsen er ikke verdiløs — den er anvendt på feil sted. Ved 470 tar den korpuset
+fra 0,61 M til 0,92 M (+51 %), og det er der `−0,28`-gapet mot `d7alle` sitter.
+En 470-kjøring er startet på de fire 470-kompatible korpusene, inkludert det
+nye `sd-rv1` (rolleVekt 1).
+
+**Og det er en generell lærdom om hvor mye data hjelper:** en fordobling av
+rader fra samme kilde ga eksakt null. Datamengde alene er ikke en akse vi kan
+skalere på lenger — det som mangler er ANDRE data, ikke flere.
