@@ -308,6 +308,13 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     // `a` er ALPHA-MU-kriteriet over verdener: min, kvantil, flest.
     let vFelt = d[2] ?? "";
     let verdenKombi: "snitt" | "min" | "kvantil" | "flest" = "snitt";
+    // «s» paa slutten slaar paa A1-spillvekten: kandidatverdenene vektes ogsaa
+    // etter hvordan de andre har SPILT, ikke bare etter hva de bod.
+    let spillvekt = false;
+    if (vFelt.endsWith("s")) {
+      spillvekt = true;
+      vFelt = vFelt.slice(0, -1);
+    }
     const aPos = vFelt.indexOf("a");
     if (aPos >= 0) {
       const k = vFelt.slice(aPos + 1);
@@ -330,6 +337,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
       verdener,
       verdenKandidater,
       verdenKombi,
+      spillvekt,
       roller: rolle === "alle" ? [] : [rolle],
     });
   }

@@ -36,6 +36,7 @@
 import { lovligeKort, utfør, type GameState, type Handling } from "../motor.ts";
 import type { Kort } from "../kort.ts";
 import { medVerden, trekkVerdener, type Utspiller } from "./sdkort.ts";
+import { lagSpillvekt } from "./spillvekt.ts";
 
 export interface ParOpts {
   /**
@@ -70,6 +71,11 @@ export interface ParOpts {
    * skal måle hvor tydelig valget er, ikke hvilket kriterium som brukes.
    */
   readonly verdenKombi?: "snitt" | "min" | "kvantil" | "flest";
+  /**
+   * A1: vekt kandidatverdenene etter SPILLET, ikke bare budrunden. Se
+   * `src/moe2/spillvekt.ts`. Av som standard - ingen stille regresjon.
+   */
+  readonly spillvekt?: boolean;
   readonly verdener: number;
   readonly rng: () => number;
   readonly mål?: (sluttState: GameState, spiller: number) => number;
@@ -134,7 +140,15 @@ export function vurderPar(
   const lovlige = lovligeKort(state, spiller);
   if (lovlige.length < 2) return null;
 
-  const verdener = trekkVerdener(state, spiller, opts.verdener, opts.rng, undefined, undefined, opts.verdenKandidater);
+  const verdener = trekkVerdener(
+    state,
+    spiller,
+    opts.verdener,
+    opts.rng,
+    undefined,
+    opts.spillvekt === true ? lagSpillvekt(state, spiller) : undefined,
+    opts.verdenKandidater,
+  );
   if (verdener.length === 0) return null;
   const mål = opts.mål ?? standardMål;
 

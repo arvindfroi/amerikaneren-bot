@@ -46,6 +46,8 @@ export interface SikkerOpts {
    * prosjektet (§56, §58), og dette er den ene formen som angriper den.
    */
   readonly verdenKombi?: "snitt" | "min" | "kvantil" | "flest";
+  /** A1: vekt verdenene etter spillet, ikke bare budrunden. */
+  readonly spillvekt?: boolean;
 }
 
 /** Tellere, så en kjøring kan vise HVOR ofte operatoren faktisk grep inn. */
@@ -65,6 +67,7 @@ export class Sikkerorakel {
   private readonly rng: () => number;
   private readonly verdenKandidater: number;
   private readonly verdenKombi: "snitt" | "min" | "kvantil" | "flest";
+  private readonly spillvekt: boolean;
   readonly tellere: SikkerTellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, enig: 0 };
 
   constructor(
@@ -80,6 +83,7 @@ export class Sikkerorakel {
     this.rng = lagRng(opts.frø ?? 20_260_804);
     this.verdenKandidater = opts.verdenKandidater ?? 3;
     this.verdenKombi = opts.verdenKombi ?? "snitt";
+    this.spillvekt = opts.spillvekt === true;
   }
 
   nyKamp(): void {
@@ -98,6 +102,7 @@ export class Sikkerorakel {
     const par = vurderPar(state, sete, this.motpart, {
       verdenKandidater: this.verdenKandidater,
         verdenKombi: this.verdenKombi,
+      spillvekt: this.spillvekt,
       verdener: this.verdener,
       rng: this.rng,
     });
