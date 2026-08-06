@@ -1,0 +1,5 @@
+# TAKKART s11   n=1000   budsjett=1
+snitt poenggevinst per runde: 0.0000
+giver med gevinst: 0 (0.0 %)
+  annet    n=  750  0.0000  traff 0 (0.0 %)  naar den traff 0.0
+  foerer   n=  250  0.0000  traff 0 (0.0 %)  naar den traff 0.0

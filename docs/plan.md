@@ -4952,3 +4952,81 @@ ikke en følelse.
 At NevroHjerne — et helt annet nett, trent på andre data — bare treffer 42,8 %
 sier at de to policyene er genuint ulike. Enigheten er ikke bare «begge gjør
 det åpenbare».
+
+## 70. STIKK 1, 2, 11 OG 12 — Arvinds domenepåstand, målt
+
+Arvind: «det første stikket er (i praksis) tvunget … alle spiller den laveste
+trumfen sin ut utenom makker som har det etterlyste kortet og vinner stikket
+(dette burde skje 99.9 % av gangene) … det siste stikket er tvunget ja. men
+stikk nr 11 er også bare 4 valg.»
+
+### Påstanden holder, og sterkere enn 99,9 %
+
+Målt over 400 giver:
+
+```
+føreren MÅ spille trumf ut     100,0 %   (motorens regel, ikke policy)
+makkeren vinner stikk 1        100,0 %
+forsvaret vinner stikk 1         0,0 %
+```
+
+Grunnen er strukturell, ikke statistisk: det etterlyste kortet er den HØYESTE
+utestående trumfen, og makkerplikten tvinger innehaveren til å legge den.
+Ingen andre KAN vinne stikket.
+
+### Og boten sløste likevel
+
+Blant de 561 stillingene der et forsvarssete må følge trumf uten å ha det
+etterlyste kortet, spilte den noe høyere enn nødvendig i **36,2 %** av
+tilfellene — i snitt **3,5 valører for høyt**. Hver av dem er en trumf som
+kunne vunnet et senere stikk, kastet på et stikk som allerede er tapt.
+
+Det finnes ingen motgrunn: et høyt kort kunne vært et SIGNAL, men Adams har
+ingen signalkode, så det betyr ingenting for noen.
+
+**Vaktflagg `f`** lagt inn: i stikk 1, når du følger trumf og ikke har det
+etterlyste kortet, legg billigst.
+
+| bånd | n | samlet | tegntest |
+|---|---|---|---|
+| 900 000 | 2 400 | +0,074 ± 0,042 | z = +2,29 |
+| 6 300 000 | 2 400 | +0,014 ± 0,031 | z = −0,43 |
+| 7 000 000 | 10 000 | +0,049 ± 0,017 | z = +2,64 |
+| 9 100 000 | 10 000 | +0,008 ± 0,019 | z = +1,03 |
+| **slått sammen** | **24 800** | **+0,031 ± 0,011 (2,79 SE)** | **z = +2,95** |
+
+Fører og makker måler nøyaktig **0,0000** — regelen rører bare forsvaret, som
+den skal, og det er samtidig kontrollen på at den ikke gjør noe annet.
+
+Alle fire bånd har positivt snitt; to av tegntestene er svake fordi bare 2,3 %
+av givene avgjøres. **Etablert, men lite: +0,031 per runde, +0,063 i
+forsvarssetene.** Gratis — en regel, ingen regnetid.
+
+### Taket per enkeltstikk — hvor mye er det å hente
+
+`examples/tak-kart.ts` med ett stikk om gangen, 250 giver × 4 seter:
+
+| stikk | samlet | fører | giver med gevinst |
+|---|---|---|---|
+| **0** (første) | **+1,375** | **+5,296** | 7,4 % |
+| **1** (andre) | **+1,891** | +2,880 | 14,5 % |
+| 10 (nest sist) | +0,064 | +0,160 | 0,6 % |
+| **11 (siste)** | **0,0000** | **0,0000** | **0,0 %** |
+
+**Siste stikk er eksakt null over 1 000 målinger.** Ikke lite — null. Det
+bekrefter `eks:1` som målte bit-identisk (§56) fra en helt annen kant.
+
+**Nest siste er +0,064** — seks giver av tusen. Arvinds anslag om at det er
+lett å tenke seg til stemmer; det er også nesten verdiløst å perfeksjonere.
+
+### Det som overrasket: stikk 1 er tvunget i UTFALL, ikke i verdi
+
+Makkeren vinner alltid, men **førersetets valg av HVILKEN trumf å spille ut er
+verdt +5,296 per runde** ved taket — det høyeste enkelttallet på hele
+stikk-kartet. Det treffer i 13,2 % av førerstillingene, og da med **+40,1**,
+altså kontraktvipp.
+
+Så påstanden «stikket er tvunget» er riktig om hvem som tar det, og feil om
+hva det er verdt. Regelen `f` henter forsvarssiden av det (+0,063). Førersiden
+— hvilken trumf som skal ut — er ubehandlet, og er det største enkeltmålet vi
+har funnet i kortspillet.

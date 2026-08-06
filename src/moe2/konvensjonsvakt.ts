@@ -286,6 +286,35 @@ export interface Vaktvalg {
    */
   readonly makkerTrumfTilbake?: boolean;
   /**
+   * `f` — I STIKK 1 KAN DU IKKE VINNE MED MINDRE DU HAR DET ETTERLYSTE.
+   *
+   * ARVIND: «alle spiller den laveste trumfen sin ut utenom makker som har det
+   * etterlyste kortet og vinner stikket (dette burde skje 99.9% av gangene).»
+   *
+   * MÅLT PÅ 400 GIVER, og det er sterkere enn 99,9 %:
+   *
+   *     føreren MÅ spille trumf ut     100,0 %   (motorens regel)
+   *     makkeren vinner stikk 1        100,0 %
+   *     forsvaret vinner stikk 1         0,0 %
+   *
+   * Grunnen er strukturell, ikke statistisk: det etterlyste kortet er den
+   * HØYESTE utestående trumfen, og makkerplikten tvinger innehaveren til å
+   * legge den. Ingen andre KAN vinne stikket.
+   *
+   * OG BOTEN SLØSER LIKEVEL. Blant de 561 stillingene der den må følge trumf
+   * uten å ha det etterlyste kortet, spilte den noe høyere enn nødvendig i
+   * **36,2 %** av tilfellene — i snitt **3,5 valører for høyt**. Hver av dem er
+   * en trumf som kunne vunnet et senere stikk.
+   *
+   * Det finnes ingen motgrunn her: å legge høyt kunne vært et SIGNAL, men
+   * Adams har ingen signalkode (§ «menneskelige evner som mangler», punkt 1),
+   * så et høyt kort betyr ingenting for noen.
+   *
+   * GJELDER IKKE renonse i trumf. Da er kastet et ekte strategisk valg om
+   * hvilken farge man tømmer, og det er en annen beslutning.
+   */
+  readonly stikk1Billigst?: boolean;
+  /**
    * Vakt 7: som MAKKER, trumf før budvinneren når det vinner stikket.
    *
    * ARVINDS HYPOTESE, ordrett: «det er bedre at makker trumfer et kort enn
@@ -434,10 +463,11 @@ export function lesVaktflagg(flagg: string): Vaktvalg {
     else if (tegn === "e") valg = { ...valg, ikkeDraTrumf: true, draTerskel: 3, draBilligst: true };
     else if (tegn === "m") valg = { ...valg, makkerTrumfTilbake: true };
     else if (tegn === "p") valg = { ...valg, makkerTrumferFørst: true };
+    else if (tegn === "f") valg = { ...valg, stikk1Billigst: true };
     else {
       throw new Error(
         `Ukjent vaktflagg «${tegn}» (a = åpning/billigst, h = åpning/høyest, ` +
-          `l = åpning/alltid lavest, t = ikke trumf, b = billigst)`,
+          `l = åpning/alltid lavest, t = ikke trumf, b = billigst, f = stikk 1 billigst)`,
       );
     }
   }
@@ -681,6 +711,25 @@ export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg
   if (
     valg.makkerTrumfTilbake === true && s.bord.length === 0 && s.stikkSpilt === 1 &&
     s.makker === sete && s.historikk[0]?.vinner === sete
+  ) {
+    const trumfKort = lovlige.filter((k) => k.farge === trumf);
+    if (trumfKort.length > 0) return billigste(trumfKort, trumf);
+  }
+
+  /**
+   * Vakt 7: STIKK 1, følger trumf, har ikke det etterlyste kortet.
+   *
+   * Stikket er da tapt uansett hva vi legger — det etterlyste er den høyeste
+   * utestående trumfen og MÅ legges av den som har det. Legg billigst.
+   *
+   * Betingelsene er nøyaktig de målingen ble gjort på: stikk 1, bordet ikke
+   * tomt (vi følger, vi leder ikke), setet er ikke føreren, kortet vi ville
+   * lagt er trumf, og vi har IKKE det etterlyste kortet selv.
+   */
+  if (
+    valg.stikk1Billigst === true && s.stikkSpilt === 0 && s.bord.length > 0 &&
+    sete !== s.budvinner && s.etterlyst !== null && valgt.farge === trumf &&
+    !(s.hender[sete] ?? []).some((k) => likeKort(k, s.etterlyst!))
   ) {
     const trumfKort = lovlige.filter((k) => k.farge === trumf);
     if (trumfKort.length > 0) return billigste(trumfKort, trumf);
