@@ -31,6 +31,7 @@ import { Etterlysvelger } from "./etterlys.ts";
 import { Vrakvelger2, lesVrakflagg } from "./vrakvelg2.ts";
 import { Trosnett } from "./trosnett.ts";
 import { Profilagent, type Budjusterbar } from "./profilagent.ts";
+import { EksaktSluttspill, delEksaktSpek } from "./eksaktagent.ts";
 
 /**
  * Nettene leses ÉN gang og deles. `E1Agent` holder ingen tilstand mellom
@@ -381,6 +382,30 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
    * den bare kunnskap uten å bruke den — det er lovlig, og nyttig for å måle
    * hva profilen VILLE sagt uten å la den påvirke spillet.
    */
+  /**
+   * `eks:<terskel>:<indre>` — EKSAKT SLUTTSPILL.
+   *
+   * Enumererer ALLE verdener som er forenlige med det setet faktisk har sett,
+   * fra `terskel` gjenstående stikk og ut, og velger kortet etter snittet over
+   * dem. Overstyrer bare der hele rommet lot seg enumerere innenfor taket;
+   * ellers spiller det indre laget.
+   *
+   * IKKE DD OM IGJEN. Dobbelt dummy måler −0,609 mot poeng fordi den løser ÉN
+   * verden med alle hender åpne og velger linjer som bare virker mot et
+   * forsvar som ser like mye som deg. Her er informasjonsbildet VÅRT.
+   *
+   * MÅLT HULL SOM BEGRUNNER DEN: `fanget` er 0,830 i stikk 10 mot 0,23–0,29 i
+   * stikk 0–4. Sluttspillet er nesten løst av nettet allerede — «nesten» er
+   * nettopp det en eksakt løser fjerner.
+   *
+   * Modulen har vært bygget hele tiden og aldri vært i speken, så den har
+   * aldri kunnet måles.
+   */
+  if (indre.startsWith("eks:")) {
+    const d = delEksaktSpek(indre);
+    if (d === null) throw new Error(`Ugyldig eks-spek «${indre}»`);
+    return new EksaktSluttspill(lagIndre(d.indre), d.valg);
+  }
   if (indre.startsWith("profil:")) {
     const inn = lagIndre(indre.slice(7));
     const bud = (inn as unknown as Partial<Budjusterbar>).settForsvarsjustering

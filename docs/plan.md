@@ -4051,3 +4051,66 @@ Den sier at middelet mot store verdensrom er en bedre PRIOR — altså
 motstandermodellen. Den er nå koblet inn (§profilagent), men bare på
 budgivningen. Å bruke profilen til å krympe verdensrommet i VRAK er den linja
 §17 selv utpeker, og den er urørt.
+
+## 55. HULLENE I SPILLET — målt, og arbeidslisten som følger
+
+Arvind: «har Adams hull i spillet sitt fremdeles?»
+
+### Det største hullet er UTSPILLET, og det er målt
+
+`fanget = (gulv − vår) / gulv`, andelen av det tilgjengelige rommet boten
+henter. 1,0 er perfekt.
+
+| posisjon i stikket | n | fanget |
+|---|---|---|
+| **1. hånd (utspill)** | 7 190 | **0,208** |
+| 2. hånd | 15 983 | 0,313 |
+| 3. hånd | 16 187 | 0,398 |
+| 4. hånd | 16 388 | 0,434 |
+
+Boten er dobbelt så god som fjerdemann som når hun spiller ut. Fjerdemann ser
+tre kort og har nesten ikke noe valg; utspilleren ser ingenting og bestemmer
+hele stikkets retning.
+
+### Og det gjentar seg i tid
+
+| stikk | fanget |
+|---|---|
+| 0–4 | 0,23–0,29 |
+| 10 | **0,830** |
+
+**Sluttspillet er nesten løst. Åpningen er det ikke.**
+
+### ARBEIDSLISTEN, etter Arvinds prioritering
+
+**A. SLUTTSPILLET LØST EKSAKT — ASAP.** `src/moe2/eksaktagent.ts` har vært
+bygget hele tiden og var ALDRI i agentspeken, så den kunne aldri måles. Nå er
+den det (`eks:<terskel>:<indre>`), og prisen er nesten null:
+
+    uten             0,5 ms per trekk
+    eks:3            1,0 ms
+    eks:4            1,3 ms
+    eks:5          118,7 ms
+
+Den enumererer ALLE verdener forenlige med det setet har sett — ikke DD, som
+måler −0,609 mot poeng fordi den løser én verden med alle hender åpne.
+
+**B. NETTET SKAL SE 714 AV 714 TREKK.** Det ser 273. Korpuset finnes (306k
+rader, sansene verifisert levende), men nettene ligger −0,28 bak `d7alle` som
+er destillert fra millioner av stillinger. Krever mer korpus eller bedre
+etiketter — GPU-timer, ikke kode.
+
+**C. Vrak og trumfvalg skal se budrunden.** Boten kaster fire kort uten å vite
+om den må ta 8 eller 11 stikk. Blokkert på gjenskaping av korpuset.
+
+**D. Utlede makkerens hånd.** Boten kjenner det etterlyste kortet og ingenting
+mer. Dette er direkte rettet mot utspillshullet: en utspiller uten teori om
+makkeren har lite å gå på.
+
+**E. Framoverblikk i budrunden.**
+
+### De tre første henger sammen
+
+Alle handler om å resonnere med LITE informasjon tidlig i runden — som er
+nøyaktig der de 0,208 ligger. Nettet uten hukommelse (B) er den samme
+utspilleren som ikke vet hvem som la hva.
