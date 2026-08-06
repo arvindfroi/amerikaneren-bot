@@ -4806,3 +4806,54 @@ varianter (§38, §56, §58). Menneskeklonen venter på familierunder, ikke arbe
 Parret på giv, disjunkte frøbånd, tegntest ved siden av snittet, kontrollarmen
 nøyaktig 0,0000. **Aldri adoptere på støy.** Et forsøk som måler null er et
 FERDIG punkt — «alt forsøkt» betyr forsøkt, ikke adoptert.
+
+## 68. T0.1 I GANG — budkorpus ved ekte auksjonsstillinger, og to feil på veien
+
+`examples/budkorpus-auksjon.ts` genererer nå korpuset T2.1 er blokkert på.
+
+**Konstruksjonen.** For hver giv spilles den EKTE auksjonen med ADAMS i alle
+seter, og hver budstilling noteres med `frø`, `sete` og budprefikset. Etiketten
+er stikkfordelingen når setet tar kontrakten — hentet ved **forkastnings-
+trekking**: motstandernes hender trekkes om, vårt sete replayer sine EGNE
+observerte bud, de andre spiller policy, og trekningen godtas bare hvis den
+gir nøyaktig det observerte prefikset.
+
+Det er forkastningen som gjør etiketten BETINGET PÅ AUKSJONEN. Uten den ville
+stikkfordelingen vært den samme uansett hva som ble bydd, gradienten på indeks
+128–139 null i forventning, og vi ville målt «v2 gir ingenting» på en måling
+som ikke kunne gitt noe annet.
+
+### To feil, begge funnet fordi tallet var NULL og ikke bare lavt
+
+**1. Betingingen var feil vei.** Første utgave lot vårt sete by referansebudet
+med én gang, også der prefikset hadde oss til å passe. Prefikset spriket i
+første tur, og generatoren skrev **0 rader fra 37 stillinger**. Rettet ved at
+setet replayer sine egne observerte bud først.
+
+**2. Referansebudet var ulovlig.** Andre utgave bød alltid 9 — som `budkvant.ts`
+gjør. Det virker der, fordi den bare står i TOMME auksjoner. Her står vi også
+etter et bud på 10, og da er 9 ulovlig: setet passet, og `vant` ble 0 i 13 av
+14 stillinger. **0 rader fra 45 stillinger.** Rettet til laveste lovlige bud
+med gulv på 9.
+
+`DIAG=1` skriver hver stilling med akseptering, `vant` og antall stikk. Den
+fant begge; uten den så begge ut som det samme symptomet.
+
+### Målt oppførsel
+
+```
+sete 1 prefiks«»                  godkjent 6/6    vant 1
+sete 2 prefiks«1:10»              godkjent 6/9    vant 6
+sete 3 prefiks«1:10,2:PASS»       godkjent 6/13   vant 6
+sete 0 prefiks«1:10,2:PASS,3:PASS» godkjent 6/21  vant 6
+```
+
+Aksepteringsraten er 6/6 til 6/64 — fullt brukbar. `godkjent` og `forsøk`
+lagres per rad, så en rad med sjelden auksjon kan vektes ned; uten dem ville
+3 av 960 sett ut som 24 av 24.
+
+**Førstebudgiveren gir få rader**, fordi et bud på 9 der ofte overbys med 10.
+Det er ekte (det ER `vant[9]`), og de stillingene er allerede dekket av
+`bud-kvant`. De 75 % som har bud i seg er nøyaktig dem v2-blokken trenger.
+
+**Status:** 12 skard, 24 000 hender, 16 trekninger. ~3,3 rader/s.
