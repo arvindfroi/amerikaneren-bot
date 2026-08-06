@@ -5100,3 +5100,110 @@ trumffarge».
 med ruter som trumf og A/K/J/10/7/6 på hånden viste panelet nøyaktig
 `♦D ♦9 ♦8 ♦5 ♦4 ♦3 ♦2` — sju knapper mot 52 før. Bekreft, Angre og Bytt
 trumffarge gjør alle det de skal, og konsollen er ren.
+
+## 72. STATUS MOT DE TO MÅLENE — 6. august, ærlig
+
+### MÅL 1: mennesket skal vinne 1 av 20
+
+```
+grunnlinje (fire like)                    25,0 %
+familien mot Adams-linja (19 kamper)      15,8 %
+stedfortreder mot v4                      20,21 %
+stedfortreder mot v4 + førersøk           15,83 %   <- der vi står
+MÅL                                        5,0 %
+```
+
+**Vi er ikke nær, og avstanden er større enn tallet ser ut.** Den mest
+opplysende rammen er den menneske-ekvivalente stigen:
+
+| motstander | vinnerandel mot Adams |
+|---|---|
+| nevro | 3,65 % |
+| sd-r2 | 6,77 % |
+| ftf1 | 7,29 % |
+| **familien** | **15,8 %** |
+| Adams-v3 | 20,21 % |
+
+Familien spiller omtrent på Adams-v3-nivå. For å presse dem til 5 % må Adams
+slå dem med den marginen den i dag slår **sd-r2** med. Det er ikke en
+finjustering — det er et generasjonssprang.
+
+**Og vekslingskursen flater ut:**
+
+    +0,127 poeng  ->  −4,79 pp
+    +0,3 poeng    ->  −2,88 pp      2,4x mer arbeid, 40 % mindre effekt
+
+De 4,4 prosentpoengene fra v3 til v5 kostet søket i førersetet — den største
+enkeltgevinsten prosjektet har hatt. Det gjenstår 10,8.
+
+**Hva som KUNNE nå dit, målt.** Takkartet (§60) sier at budrunden er 41,8 % av
+alt som er å hente (+8,06 av taket). Det er det eneste vinduet som er stort
+nok. Men:
+
+* terskelen er allerede optimal (§63 — fire retninger målt, alle ≤ 0)
+* auksjonskorreksjonen replikerte ikke (§65 — z = 0,71 og 0,54)
+* mye av +8,06 er KLARSYN og ikke nåbart
+
+Det ene ubehandlede leddet som er stort nok er at **budmodellen hører
+budrunden** (T2.1). Korpuset genereres nå.
+
+**Ærlig anslag: 5 % nås ikke i denne omgangen.** Det som er realistisk på kort
+sikt er 12–14 % hvis T2.1 leverer, og under 10 % krever noe vi ikke har
+identifisert ennå.
+
+---
+
+### MÅL 2: alle sansene og evnene i planen
+
+**LEVERT OG MÅLT**
+
+| | resultat |
+|---|---|
+| søk i førersetet (`sik` σ=0,5) | **+1,78 / +1,68**, to bånd, 198 ms |
+| vaktflagg `f` (stikk 1 billigst) | **+0,031 ± 0,011**, fire bånd, z = +2,95 |
+| budtabell for menneskebord | kalibrering 4,9 pp mot 25,6 pp |
+| korpuslåsen (`--klipp`) | 5,08 → **7,49 M rader** tilgjengelig |
+| forklaringskraft målt | 58 % av valgene kan gjøres rede for |
+| stokken verifisert | fire tester, alle p > 0,2 |
+
+**FORSØKT OG MOTBEVIST — med grunn, ikke bare et tall**
+
+| forsøk | målt | hvorfor, og hva som skal til for en omkamp |
+|---|---|---|
+| eksakt sluttspill (`eks:`) | −0,053 → −0,753 | Løser eksakt PIMC, ikke eksakt spill. Hver verden løses DD, som måler −0,609 mot poeng. **Omkamp krever** en løser som ikke er DD-forankret — altså T3.3, som selv er stengt under. |
+| klarsyn (`juks:`) | fører **−4,11 / −3,34** | DD forutsetter klarsynt makker OG perfekt forsvar. Tar FÆRRE stikk (9,70 mot 10,01). **Ingen omkamp** — hele DD-klassen er stengt. |
+| CFR i sluttspillet | taket er **+0,064 / 0,0000** | Ikke stengt av kostnad, men av at potten er tom. Stikk 11 er eksakt null over 1 000 målinger. **Omkamp bare hvis** noen viser at taket er målt feil. |
+| budterskelen | alle fire retninger ≤ 0 | −3,0 ligger i et flatt optimum. Klassefordelingen i §61 var hindsight. **Omkamp krever** en bedre μ-modell, ikke en annen grense. |
+| auksjonskorreksjon på μ | +0,039 / +0,016 | Samme fortegn i to bånd, men z = 0,7 og 0,5, og bare 1,6 % avgjorte. **Omkamp krever** ~10× n — 5 000 giver per bånd. Billig, men lavt forventet utbytte. |
+| trosvekting i søket | +0,34 / −0,12 | Fortegnet snur mellom bånd. **Omkamp krever** et bedre trosnett — og trosnettet trenger v10-korpus, som er T2.4. |
+| μ-skift (+0,130) | −0,090 / −0,393 | Seleksjonsartefakt: residualen måles bare på dem som VANT budrunden. **Omkamp krever** et utvalg som ikke er valgt på størrelsen som måles. |
+
+**BLOKKERT — med navngitt avhengighet**
+
+| | blokkert på | status |
+|---|---|---|
+| **T2.1 budmodellen hører budrunden** | T0.1-korpuset | **genererer nå.** Krasjet først på ulovlig replay-bud, rettet, 10 skard rene |
+| T2.2 omkamp blokker + forsvarsvekt | T0.2 (`rolleVekt=1`) | ikke startet. Dagens korpus er 52,8 % førerrader mot naturlige 25 % |
+| T2.3 vrak/velg ser budrunden | T0.3 | ikke startet. Krever ny trekkblokk 24 → ~30 OG regenerert korpus |
+| T2.4 714-nettet | T1.6 + mer korpus | `--klipp` er låst opp, treningen ikke kjørt |
+
+**IKKE FORSØKT ENNÅ**
+
+| | hvorfor det står igjen |
+|---|---|
+| T1.3 `fortsKombi cfr` | bygget i `sdkort.ts`, aldri målt. Billig |
+| T1.4 posisjon i stikket | billig, trolig lite verdt |
+| T1.5 `Profilagent` | bygget, parkert. Påvirker i dag bare budgivningen og nullstilles mellom kamper |
+| T1.6 273-nettet på 7,49 M | låsen er åpnet, GPU-kjøringen gjenstår |
+| T3.1 makkerens hånd | ny modellering. Retter mot utspillshullet (0,208) |
+| T3.2 alpha-mu | §5: «høyest prioritet av de uprøvde» |
+| T3.4 framoverblikk i budrunden | dyrest |
+| T3.5 aktiv informasjonsinnhenting | vi velger aldri et kort FOR å lære noe |
+| T3.6/T3.7 kampstilling og race-mål | trekk 231/232 har alltid vært låst på 0–0–0–0 |
+| T3.8 variansvalg | billig, usikkert |
+
+**FUNNET UNDERVEIS, IKKE I PLANEN FØR**
+
+Stikk 1 er tvunget i UTFALL (makkeren vinner 100 %) men **ikke i verdi**:
+førerens valg av hvilken trumf som spilles ut måler **+5,296** ved taket —
+det høyeste enkelttallet på hele stikk-kartet, og helt ubehandlet.
