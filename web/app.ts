@@ -12,6 +12,7 @@
 import { velgHandling } from "../src/bot/bot.ts";
 import { fraKortId, kortId, type Farge, type Kort } from "../src/kort.ts";
 import {
+  lovligeEtterlys,
   lovligeHandlinger,
   opprettSpill,
   utfør,
@@ -678,6 +679,24 @@ let venterPåMenneske = false;
 let sistTur = 0; // tidsstempel for reaksjonstid-logging
 let vrakValg: Kort[] = [];
 let velgTrumfValg: Farge | null = null;
+/**
+ * Etterlysningen som er PEKT PÅ, men ikke bekreftet ennå.
+ *
+ * ARVIND: «valg av trumf farge og etterlyse kort er ikke vits å skille fordi
+ * kortet du etterlyser er trumf. dermed må du gjøre det slik at man bekrefter
+ * valget fordi det er lett å trykke feil.»
+ *
+ * Begge deler var ekte feil i grensesnittet:
+ *
+ *   Panelet viste ALLE FIRE FARGER med 13 valører hver — 52 knapper der bare
+ *   13 er lovlige. `lovligeEtterlys(state, trumf)` returnerer utelukkende kort
+ *   i trumffargen, så 39 av knappene kunne ikke føre fram. De var ikke engang
+ *   deaktiverte; bare egne kort var det.
+ *
+ *   Og valget var UMIDDELBART. Ett feiltrykk låste både trumf og makker for
+ *   hele runden, uten vei tilbake.
+ */
+let velgEtterlysValg: Kort | null = null;
 let travelt = false;
 
 const rot = document.getElementById("app")!;
@@ -939,6 +958,7 @@ function menneskeVelg(trumf: Farge, etterlyst: Kort | null): void {
   logg("valg-trumf", { rundeNr: state.rundeNr, trumf, etterlyst, ms: Math.round(performance.now() - sistTur) });
   venterPåMenneske = false;
   velgTrumfValg = null;
+  velgEtterlysValg = null;
   gjør({ type: "VELG", spiller: MENNESKE, trumf, etterlyst });
 }
 
@@ -1069,6 +1089,7 @@ function vrakPanel(): string {
 function velgPanel(): string {
   const lov = lovligeHandlinger(state);
   if (!venterPåMenneske || lov.fase !== "VELG") return "";
+
   if (velgTrumfValg === null) {
     return `<div class="panel" role="dialog" aria-label="Velg trumf">
       <h2>Velg trumffarge</h2>
@@ -1077,20 +1098,45 @@ function velgPanel(): string {
         .join("")}</div>
     </div>`;
   }
-  if (!lov.måEtterlyse) {
-    return ""; // solo: velges direkte uten etterlysning i klikk-handleren
+  if (!lov.måEtterlyse) return ""; // solo: ingen etterlysning
+
+  const trumf = velgTrumfValg;
+  const symbol = FARGE_TEGN[trumf];
+  const css = FARGE_CSS[trumf];
+
+  // BEKREFTELSESSTEGET. Ingenting sendes til motoren før dette er trykket.
+  if (velgEtterlysValg !== null) {
+    const e = velgEtterlysValg;
+    return `<div class="panel" role="dialog" aria-label="Bekreft valget">
+      <h2>Bekreft</h2>
+      <p class="bekreftlinje">Trumf <b style="color:${css}">${symbol} ${FARGE_NAVN[trumf]}</b>
+         — du etterlyser <b style="color:${css}">${symbol}${VERDI_TEKST(e.verdi)}</b>.</p>
+      <p class="bekreftsmatt">Den som har kortet blir din hemmelige makker.</p>
+      <div class="knapper">
+        <button class="stor bekreft" id="velg-ok">Bekreft</button>
+        <button class="stor" id="velg-angre">Angre</button>
+      </div>
+    </div>`;
   }
-  const egne = new Set((state.hender[MENNESKE] ?? []).map((k) => `${k.farge}${k.verdi}`));
+
+  /**
+   * BARE TRUMFFARGEN, og bare de LOVLIGE valørene.
+   *
+   * Listen kommer fra `lovligeEtterlys` — motorens egen regel — og ikke fra en
+   * kopi her. Den utelater både egne kort og de vrakede, som er to ulike
+   * grunner til at et kort ikke kan etterlyses, og bare den ene var håndtert
+   * før (egne kort ble deaktivert, vrakede ikke).
+   */
+  const lovlige = lovligeEtterlys(state, trumf);
   return `<div class="panel" role="dialog" aria-label="Etterlys et kort">
-    <h2>Trumf: ${FARGE_TEGN[velgTrumfValg]} — etterlys et kort (eieren blir din hemmelige makker)</h2>
-    ${(["S", "H", "R", "K"] as Farge[])
-      .map(
-        (f) => `<div class="etterlysrad"><span style="color:${FARGE_CSS[f]}">${FARGE_TEGN[f]}</span>
-        ${[14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]
-          .map((v) => `<button class="mini" data-ef="${f}" data-ev="${v}" ${egne.has(`${f}${v}`) ? "disabled" : ""}>${VERDI_TEKST(v)}</button>`)
-          .join("")}</div>`,
-      )
-      .join("")}
+    <h2>Trumf <span style="color:${css}">${symbol} ${FARGE_NAVN[trumf]}</span> — hvilket kort etterlyser du?</h2>
+    <p class="bekreftsmatt">Eieren blir din hemmelige makker. Kortet må være trumf.</p>
+    <div class="etterlysrad">${lovlige
+      .slice()
+      .sort((a, b) => b.verdi - a.verdi)
+      .map((k) => `<button class="mini" style="color:${css}" data-ev="${k.verdi}">${symbol}${VERDI_TEKST(k.verdi)}</button>`)
+      .join("")}</div>
+    <div class="knapper"><button class="stor" id="velg-tilbake">Bytt trumffarge</button></div>
   </div>`;
 }
 
@@ -1142,8 +1188,12 @@ function koble(): void {
       }
     };
   }
-  for (const b of rot.querySelectorAll<HTMLButtonElement>("[data-ef]")) {
-    b.onclick = () => menneskeVelg(velgTrumfValg!, { farge: b.dataset["ef"] as Farge, verdi: Number(b.dataset["ev"]) as Kort["verdi"] });
+  for (const b of rot.querySelectorAll<HTMLButtonElement>("[data-ev]")) {
+    // Peker bare PÅ kortet. Bekreftelsen sender det.
+    b.onclick = () => {
+      velgEtterlysValg = { farge: velgTrumfValg!, verdi: Number(b.dataset["ev"]) as Kort["verdi"] };
+      tegn();
+    };
   }
   for (const b of rot.querySelectorAll<HTMLButtonElement>(".kort:not([disabled])")) {
     b.onclick = () => {
@@ -1160,6 +1210,19 @@ function koble(): void {
   }
   const vrakOk = document.getElementById("vrak-ok");
   if (vrakOk) vrakOk.onclick = () => menneskeVrak();
+  /**
+   * BEKREFTELSEN. Trumf og etterlysning sendes samlet, og foerst her — et
+   * feiltrykk paa kortlista er naa gratis.
+   */
+  const velgOk = document.getElementById("velg-ok");
+  if (velgOk) {
+    velgOk.focus();
+    velgOk.onclick = () => menneskeVelg(velgTrumfValg!, velgEtterlysValg);
+  }
+  const velgAngre = document.getElementById("velg-angre");
+  if (velgAngre) velgAngre.onclick = () => { velgEtterlysValg = null; tegn(); };
+  const velgTilbake = document.getElementById("velg-tilbake");
+  if (velgTilbake) velgTilbake.onclick = () => { velgTrumfValg = null; velgEtterlysValg = null; tegn(); };
   const neste = document.getElementById("neste");
   if (neste) {
     neste.focus();

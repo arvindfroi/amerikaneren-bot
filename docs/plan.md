@@ -5030,3 +5030,73 @@ Så påstanden «stikket er tvunget» er riktig om hvem som tar det, og feil om
 hva det er verdt. Regelen `f` henter forsvarssiden av det (+0,063). Førersiden
 — hvilken trumf som skal ut — er ubehandlet, og er det største enkeltmålet vi
 har funnet i kortspillet.
+
+## 71. STOKKEN ER EKTE TILFELDIG — og trumf/etterlys-panelet var feil
+
+### Mistanken om stokkingen, målt
+
+Arvind: «kan du sjekka at kortene blir stokket på en realistisk måte …
+det har vært mistanke om at det ikke er slik.»
+
+**Algoritmen først.** `stokk()` er en korrekt Fisher–Yates
+(`j = floor(rng() * (i+1))`, bytter nedover), og `lagRng` er mulberry32.
+
+**Rundefrøene.** Hver runde bruker `frø + (rundeNr+1)·2654435761`, mens
+mulberry32 avanserer tilstanden med `0x6d2b79f5`. Deler to runder tallstrøm,
+ville påfølgende giver vært korrelerte — og det ville vært synlig ved bordet.
+Regnet ut: den minste `m` med `m·C ≡ K (mod 2³²)` er **1 104 068 429**. En giv
+bruker 51 trekninger. Strømmene møtes aldri i praksis.
+
+**Så empirien**, `examples/stokketest.ts` over 15 000 giver, delt ut slik APPEN
+gjør det (ett frø per kamp, runder avledet):
+
+| test | hva den fanger | p |
+|---|---|---|
+| kort → sete | skjevhet i stokkingen | 0,565 |
+| kort → plass i stokken | Fisher–Yates med feil grense | 0,493 |
+| fargelengde mot hypergeometrisk | «for jevne» hender | **0,812** |
+| overlapp mot forrige runde | delte rundefrø | 0,231 |
+
+Fargelengdene mot fasiten:
+
+```
+0 kort  1,89 % / 1,89 %      4 kort  21,24 % / 21,31 %
+1 kort 10,54 % / 10,56 %     5 kort   9,61 % /  9,59 %
+2 kort 24,01 % / 24,03 %     6 kort   2,71 % /  2,71 %
+3 kort 29,46 % / 29,37 %     7 kort   0,47 % /  0,48 %
+```
+
+Overlapp mot forrige runde: **2,775 kort mot fasit 2,769**.
+
+**Stokken er ekte tilfeldig.** Den ene teoretiske begrensningen: frøet er 32
+bit, så bare 2³² ≈ 4,3 milliarder ulike giver er nåbare av 52! ≈ 8·10⁶⁷. Det er
+ikke målbart i spill, men det står her så ingen tror det er uendelig.
+
+At en stokk FØLES gal er vanligst når fargelengdene overrasker: 29,5 % av alle
+hender har nøyaktig tre kort i en gitt farge, og skjeve hender er langt
+hyppigere enn folk venter. Målingen sier at nettopp den fordelingen er riktig.
+
+### Trumf- og etterlys-panelet hadde to ekte feil
+
+Arvind: «valg av trumf farge og etterlyse kort er ikke vits å skille fordi
+kortet du etterlyser er trumf. dermed må du gjøre det slik at man bekrefter
+valget fordi det er lett å trykke feil.»
+
+Premisset stemmer: `lovligeEtterlys(state, trumf)` returnerer **utelukkende**
+kort i trumffargen.
+
+**Feil 1: panelet viste alle fire farger.** 52 knapper der bare 13 kunne føre
+fram. De 39 ulovlige var ikke engang deaktiverte — bare egne kort var det, og
+VRAKEDE kort var ikke utelatt i det hele tatt, enda de er like ulovlige.
+
+**Feil 2: valget var umiddelbart.** Ett feiltrykk låste både trumf og makker
+for hele runden, uten vei tilbake.
+
+Nå: velg farge → se **bare den fargens lovlige valører** (fra motorens egen
+`lovligeEtterlys`, ikke en kopi) → **bekreft**. Med «Angre» og «Bytt
+trumffarge».
+
+**Verifisert i en ekte nettleser** på `spill-lokal`, ikke bare typesjekket:
+med ruter som trumf og A/K/J/10/7/6 på hånden viste panelet nøyaktig
+`♦D ♦9 ♦8 ♦5 ♦4 ♦3 ♦2` — sju knapper mot 52 før. Bekreft, Angre og Bytt
+trumffarge gjør alle det de skal, og konsollen er ren.
