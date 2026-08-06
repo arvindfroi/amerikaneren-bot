@@ -39,6 +39,13 @@ export interface SikkerOpts {
   readonly frø?: number;
   /** Kandidatverdener importance-samplingen velger mellom. Standard 3 var for lavt. */
   readonly verdenKandidater?: number;
+  /**
+   * ALPHA-MU-KRITERIET. `snitt` er PIMC og standard. De tre andre krever at
+   * kortet er godt paa TVERS av verdenene i stedet for i snitt - se
+   * `vurderSD` i sdkort.ts. Strategifusjon er maalt to ganger i dette
+   * prosjektet (§56, §58), og dette er den ene formen som angriper den.
+   */
+  readonly verdenKombi?: "snitt" | "min" | "kvantil" | "flest";
 }
 
 /** Tellere, så en kjøring kan vise HVOR ofte operatoren faktisk grep inn. */
@@ -57,6 +64,7 @@ export class Sikkerorakel {
   private readonly roller: readonly Rolle[];
   private readonly rng: () => number;
   private readonly verdenKandidater: number;
+  private readonly verdenKombi: "snitt" | "min" | "kvantil" | "flest";
   readonly tellere: SikkerTellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, enig: 0 };
 
   constructor(
@@ -71,6 +79,7 @@ export class Sikkerorakel {
     this.roller = opts.roller ?? [];
     this.rng = lagRng(opts.frø ?? 20_260_804);
     this.verdenKandidater = opts.verdenKandidater ?? 3;
+    this.verdenKombi = opts.verdenKombi ?? "snitt";
   }
 
   nyKamp(): void {
@@ -88,6 +97,7 @@ export class Sikkerorakel {
 
     const par = vurderPar(state, sete, this.motpart, {
       verdenKandidater: this.verdenKandidater,
+        verdenKombi: this.verdenKombi,
       verdener: this.verdener,
       rng: this.rng,
     });

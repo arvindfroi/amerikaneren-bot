@@ -5511,3 +5511,92 @@ auksjonstilstand) for FLERE N enn referansebudet — altså at generatoren sveip
 budet i stedet for å ta laveste lovlige. Det er en endring i `budkorpus-auksjon.ts`,
 ikke i modellen, og det er den eneste veien til å bruke auksjonen i beslutningen
 i stedet for bare i anslaget.
+
+## 79. MANDATET FØR ALPHA-MU — de åtte hullene, med rekkefølge
+
+Arvind: «du må legge til alt dette. prioritering nr. 1! ingenting skal mangle
+før alphamu starter.»
+
+De åtte punktene fra gjennomgangen av hva som ville mangle i Adams selv etter
+alpha-mu, gjort om til en obligatorisk liste. Rekkefølgen er ikke etter
+kostnad, men etter **avhengighet**: hvert punkt gjør de neste billigere eller
+målbare i det hele tatt.
+
+### A1 — VERDENSUTVALGET SKAL LESE SPILLET (fundamentet)
+
+Verdenene er **lovlige** gitt spillet: `renonser` håndheves som forbud i
+trekningen, og spilte kort er ute av bunken. Men **vektingen** bruker bare
+budrunden (`budvekt`, sampler.ts:207). En verden der en spiller som la smått
+sitter med alle essene, er like sannsynlig som en der hen ikke gjør det.
+
+Dette er fundamentet fordi **alpha-mu er en bedre beslutningsregel over et
+utvalg** — den kan ikke bli bedre enn verdenene den får. Å bygge M≥2 oppå et
+skjevt utvalg er å regne mer nøyaktig på feil tall.
+
+Trosnettet skulle løst dette og replikerte ikke (+0,34 / −0,12). Erstatningen
+er en EKSPLISITT spillelikelihood: hvor sannsynlig er de observerte kortene
+under verden w, gitt at de andre spiller policyen vår?
+
+**Dette er samme sak som T3.1 (utlede makkerens hånd).** De slås sammen.
+
+### A2 — MOTSTANDERMODELLEN INN I SØKET
+
+Rolloutene spiller *oss selv* i alle tre andre seter. Mot familien er det feil
+modell, og `Profilagent` (målt −1,25 pp, §75) rører bare budgivningen.
+Avhenger av A1: en motstandermodell er en likelihood, og A1 bygger rammen.
+
+### A3 — SØK I DE 75 % ANDRE SETENE
+
+Bare føreren søker. Forsvarssøket målte null — men det ble målt med dagens
+verdensutvalg. A1 endrer forutsetningen, så dette er en omkamp og ikke en
+gjentakelse.
+
+### A4 — BUD OG SPILL SKAL SNAKKE SAMMEN
+
+Budmodellen spør aldri søket, og søket vet knapt hva vi bød: kontrakten måler
+**8,7 %** i ablasjonen, alltid levende. Boten spiller nesten likt på 8 og 11.
+
+### A5 — DE 441 TREKKENE
+
+Hukommelse, hvem-la-hva, telling, sanser. Nettet leser 273 av 714. Blokkert på
+etikettkvalitet, ikke på kode — og det er nettopp destillasjonen alpha-mu skal
+levere. **Derfor er dette punktet det ene som lukkes ETTER at alpha-mu virker,
+ikke før.** Det står her for ikke å bli glemt.
+
+### A6 — SIGNALERING
+
+Ingen kode med makker. alpha-mu optimerer mot en motstandermodell; den finner
+ikke opp konvensjoner. Krever at partneren modelleres som mottaker, ikke bare
+som en policy — altså A1 og A2 først.
+
+### A7 — ULESELIGHET
+
+Adams er en ren funksjon: samme stilling gir samme kort, verifisert over fem
+kall. Mot et menneske som spiller mange runder er det utnyttbart, og målet ER
+definert mot en gjentakende motstander.
+
+**Faren er målemetodisk:** hver eneste måling hviler på at kontrollarmen er
+nøyaktig 0,0000. Randomisering må derfor være FRØSTYRT, slik at parringen
+overlever.
+
+### A8 — FUSJON UTOVER ROTEN (M≥2)
+
+Det jeg har bygget er alpha-mu med **M=1**: kriteriet virker i roten, og
+deretter spilles hver verden ut hver for seg — fusjonen er tilbake ved de
+elleve neste beslutningene. M≥2 er selve alpha-mu, og den kommer SIST fordi
+hvert nivå multipliserer kostnaden og bare er verdt det når A1 har gjort
+verdenene riktige.
+
+### Blir Adams komplett da?
+
+**Nei — men komplett mot alt vi vet om.** Av de seks menneskelige evnene i
+§«hva Adams ikke får til» dekker denne lista to: signalering (A6) og
+uleselighet (A7). Tre står fortsatt igjen og er IKKE med her:
+
+* **prøve-effektivitet** — Adams trenger millioner av rader der et menneske
+  oppdaterer på én rar giv
+* **å forklare hvorfor** — 42 % av valgene kan vi ikke formulere (§69)
+* **å lære ett menneske over tid** — profilen nullstilles mellom kamper
+
+De er ikke glemt; de er utenfor denne lista fordi ingen av dem har en kjent
+implementasjon i dette prosjektet ennå.

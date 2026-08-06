@@ -96,6 +96,13 @@ export interface SDOpts {
    */
   readonly fortsKombi?: "min" | "snitt" | "cfr";
   /**
+   * Hvordan utfallene slås sammen over VERDENER. `snitt` er PIMC og er
+   * standard (bit-identisk med før). De tre andre er alpha-mu-kriteriene, som
+   * krever at handlingen er god paa tvers av verdener i stedet for i snitt -
+   * se `vurderSD`.
+   */
+  readonly verdenKombi?: "snitt" | "min" | "kvantil" | "flest";
+  /**
    * TROSVEKT på verdenstrekkeren — se `src/moe2/troprior.ts`.
    *
    * Uten den vektes kandidatverdenene bare etter BUDET, og ingenting av
@@ -255,6 +262,7 @@ export function vurderSD(
     ? (motpart as readonly Utspiller[])
     : [motpart as Utspiller];
   const kombi = opts.fortsKombi ?? "min";
+  const vk = opts.verdenKombi ?? "snitt";
 
   /**
    * UTBYTTEMATRISEN A[i][j]: vår handling i mot motpartens fortsettelse j,
@@ -267,14 +275,28 @@ export function vurderSD(
    * vi gjør, så fortsettelsen må velges ÉN gang for hele informasjonsmengden.
    */
   const A: number[][] = [];
+  /**
+   * PER-VERDEN-UTFALLENE, beholdt for `verdenKombi`.
+   *
+   * `V[i][w][j]` = handling i, verden w, fortsettelse j. Standardveien midler
+   * dem bort med en gang (PIMC); alpha-mu-kriteriene trenger dem i behold.
+   */
+  const V: number[][][] = [];
   for (let i = 0; i < handlinger.length; i++) {
     const rad = new Array<number>(forts.length).fill(0);
+    const perVerden: number[][] = [];
     for (const hender of verdener) {
       const etter = utfør(medVerden(state, hender, spiller), handlinger[i]!).state;
-      for (let j = 0; j < forts.length; j++) rad[j]! += mål(spillFerdig(etter, forts[j]!), spiller);
+      const w = new Array<number>(forts.length).fill(0);
+      for (let j = 0; j < forts.length; j++) {
+        w[j] = mål(spillFerdig(etter, forts[j]!), spiller);
+        rad[j]! += w[j]!;
+      }
+      perVerden.push(w);
     }
     for (let j = 0; j < forts.length; j++) rad[j]! /= verdener.length;
     A.push(rad);
+    V.push(perVerden);
   }
 
   // Motpartens blanding over fortsettelser.
@@ -283,18 +305,64 @@ export function vurderSD(
   else if (kombi === "snitt") τ = new Array<number>(forts.length).fill(1 / forts.length);
   else τ = [];
 
-  const ut: SDVurdering[] = [];
-  for (let i = 0; i < handlinger.length; i++) {
-    const rad = A[i]!;
-    let v: number;
+  /** Sammenslåing over FORTSETTELSER, gitt én verdens rad. */
+  const overForts = (rad: readonly number[]): number => {
     if (kombi === "min") {
-      v = rad[0]!;
+      let v = rad[0]!;
       for (let j = 1; j < rad.length; j++) if (rad[j]! < v) v = rad[j]!;
-    } else {
-      v = 0;
-      for (let j = 0; j < rad.length; j++) v += τ[j]! * rad[j]!;
+      return v;
     }
-    ut.push({ indeks: i, verdi: v, n: verdener.length });
+    let v = 0;
+    for (let j = 0; j < rad.length; j++) v += τ[j]! * rad[j]!;
+    return v;
+  };
+
+  const ut: SDVurdering[] = [];
+  if (vk === "snitt") {
+    // Uendret vei: midlet over verdener FØR valget. Bit-identisk med før.
+    for (let i = 0; i < handlinger.length; i++) {
+      ut.push({ indeks: i, verdi: overForts(A[i]!), n: verdener.length });
+    }
+    return ut;
+  }
+
+  /**
+   * ALPHA-MU-KRITERIENE. Utfallet per verden beholdes, og handlingen må være
+   * god på TVERS av dem i stedet for i snitt.
+   *
+   * Det er hele poenget: PIMC-middelet lar en handling se bra ut fordi den er
+   * strålende i noen verdener og katastrofal i andre — og velger den som om vi
+   * fikk vite hvilken verden vi er i. Det er strategifusjon, og det er målt to
+   * ganger i dette prosjektet (`eks:` §56, `juks:` §58).
+   *
+   *   min     maksimin over verdener. Mest robust, trolig for pessimistisk.
+   *   kvantil nedre kvartil. Maksimin uten å la én katastrofeverden bestemme.
+   *   flest   i hvor mange verdener er handlingen best? Det er alpha-muens
+   *           Pareto-tanke i skalar form: én strategi som vinner ofte, ikke
+   *           én som vinner stort et sted.
+   */
+  const perHandling: number[][] = handlinger.map((_, i) => V[i]!.map(overForts));
+
+  if (vk === "flest") {
+    const poeng = new Array<number>(handlinger.length).fill(0);
+    for (let w = 0; w < verdener.length; w++) {
+      let best = -Infinity;
+      for (let i = 0; i < handlinger.length; i++) if (perHandling[i]![w]! > best) best = perHandling[i]![w]!;
+      // Uavgjort deles, ellers ville rekkefølgen i kandidatlisten avgjort.
+      const vinnere = handlinger.map((_, i) => perHandling[i]![w]! >= best - 1e-9);
+      const antall = vinnere.filter(Boolean).length;
+      for (let i = 0; i < handlinger.length; i++) if (vinnere[i]) poeng[i]! += 1 / antall;
+    }
+    for (let i = 0; i < handlinger.length; i++) {
+      ut.push({ indeks: i, verdi: poeng[i]! / verdener.length, n: verdener.length });
+    }
+    return ut;
+  }
+
+  for (let i = 0; i < handlinger.length; i++) {
+    const v = [...perHandling[i]!].sort((a, b) => a - b);
+    const verdi = vk === "min" ? v[0]! : v[Math.floor(0.25 * (v.length - 1))]!;
+    ut.push({ indeks: i, verdi, n: verdener.length });
   }
   return ut;
 }

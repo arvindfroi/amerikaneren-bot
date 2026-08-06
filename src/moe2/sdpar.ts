@@ -50,6 +50,26 @@ export interface ParOpts {
    * utspillingene er ~30x dyrere.
    */
   readonly verdenKandidater?: number;
+  /**
+   * ALPHA-MU-KRITERIET: hvordan utfallene over VERDENER slås sammen til én
+   * rangering.
+   *
+   *   snitt    PIMC. Standard, og bit-identisk med før.
+   *   min      maksimin over verdener.
+   *   kvantil  nedre kvartil — maksimin uten at én katastrofeverden bestemmer.
+   *   flest    i hvor mange verdener er kortet best? alpha-muens Pareto-tanke
+   *            i skalar form.
+   *
+   * HVORFOR DEN FINNES. PIMC-middelet lar et kort se bra ut fordi det er
+   * strålende i noen verdener og katastrofalt i andre, og velger det som om vi
+   * fikk vite hvilken verden vi er i. Det er strategifusjon, og den er MÅLT to
+   * ganger her: `eks:` (§56) og `juks:` (§58) døde begge av den. Dette er den
+   * ene formen i litteraturen som angriper den direkte.
+   *
+   * `sigma` og `beste` regnes fortsatt fra SNITTET uansett kriterium — porten
+   * skal måle hvor tydelig valget er, ikke hvilket kriterium som brukes.
+   */
+  readonly verdenKombi?: "snitt" | "min" | "kvantil" | "flest";
   readonly verdener: number;
   readonly rng: () => number;
   readonly mål?: (sluttState: GameState, spiller: number) => number;
@@ -129,7 +149,32 @@ export function vurderPar(
     return { kort, snitt, perVerden };
   });
 
-  const sortert = kandidater.slice().sort((a, b) => b.snitt - a.snitt);
+  /**
+   * RANGERINGEN. Med `snitt` er dette nøyaktig som før. De andre kriteriene
+   * bruker `perVerden`, som allerede ble regnet ut — de koster ingen ekstra
+   * utspillinger.
+   */
+  const vk = opts.verdenKombi ?? "snitt";
+  const rang = new Map<ParKandidat, number>();
+  if (vk === "flest") {
+    for (const k of kandidater) rang.set(k, 0);
+    for (let w = 0; w < verdener.length; w++) {
+      let best = -Infinity;
+      for (const k of kandidater) if (k.perVerden[w]! > best) best = k.perVerden[w]!;
+      const vinnere = kandidater.filter((k) => k.perVerden[w]! >= best - 1e-9);
+      for (const k of vinnere) rang.set(k, rang.get(k)! + 1 / vinnere.length);
+    }
+  } else {
+    for (const k of kandidater) {
+      if (vk === "snitt") {
+        rang.set(k, k.snitt);
+        continue;
+      }
+      const v = [...k.perVerden].sort((a, b) => a - b);
+      rang.set(k, vk === "min" ? v[0]! : v[Math.floor(0.25 * (v.length - 1))]!);
+    }
+  }
+  const sortert = kandidater.slice().sort((a, b) => rang.get(b)! - rang.get(a)!);
   const beste = sortert[0]!;
   const nestBeste = sortert[1] ?? null;
 

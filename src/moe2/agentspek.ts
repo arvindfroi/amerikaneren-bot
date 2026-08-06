@@ -304,7 +304,19 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     // importance-samplingen får VELGE MELLOM, og en kandidat koster én
     // trekning mot utspillingens ~30 nettpass. Standard 3 var for lavt: målt
     // +0,68 pp verdenskvalitet ved 3 mot +2,62 ved 32.
-    const vFelt = d[2] ?? "";
+    // «<verdener>[k<kandidater>][a<kriterium>]» - f.eks. «24k32amin».
+    // `a` er ALPHA-MU-kriteriet over verdener: min, kvantil, flest.
+    let vFelt = d[2] ?? "";
+    let verdenKombi: "snitt" | "min" | "kvantil" | "flest" = "snitt";
+    const aPos = vFelt.indexOf("a");
+    if (aPos >= 0) {
+      const k = vFelt.slice(aPos + 1);
+      if (k !== "min" && k !== "kvantil" && k !== "flest") {
+        throw new Error(`Ukjent alpha-mu-kriterium «${k}» (min, kvantil, flest)`);
+      }
+      verdenKombi = k;
+      vFelt = vFelt.slice(0, aPos);
+    }
     const kPos = vFelt.indexOf("k");
     const verdener = Number(kPos < 0 ? vFelt : vFelt.slice(0, kPos));
     const verdenKandidater = kPos < 0 ? 3 : Number(vFelt.slice(kPos + 1));
@@ -317,6 +329,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
       sigma,
       verdener,
       verdenKandidater,
+      verdenKombi,
       roller: rolle === "alle" ? [] : [rolle],
     });
   }
