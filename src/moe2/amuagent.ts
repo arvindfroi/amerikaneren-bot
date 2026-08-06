@@ -21,7 +21,7 @@
 import { lovligeKort, type GameState, type Handling } from "../motor.ts";
 import { standardMål, trekkVerdener, type Utspiller } from "./sdkort.ts";
 import { alphaMu } from "./alphamu.ts";
-import { lagSpillvekt } from "./spillvekt.ts";
+import { lagHvemLaVekt } from "./hvemla-slutning.ts";
 import { rolleFor, type Rolle } from "./rolleorakel.ts";
 import { stillingsfrø, velgUleselig } from "./uleselig.ts";
 import { lagRng } from "../kort.ts";
@@ -84,7 +84,7 @@ export class Alphamuagent {
       this.o.verdener,
       this.rng,
       undefined,
-      this.o.spillvekt === true ? lagSpillvekt(state, sete) : undefined,
+      this.o.spillvekt === true ? lagHvemLaVekt(state, sete) : undefined,
       this.o.verdenKandidater ?? 3,
     );
     if (verdener.length === 0) return this.indre.velgHandling(state);

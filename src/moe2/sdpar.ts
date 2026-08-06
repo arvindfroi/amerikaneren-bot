@@ -36,7 +36,7 @@
 import { lovligeKort, utfør, type GameState, type Handling } from "../motor.ts";
 import type { Kort } from "../kort.ts";
 import { medVerden, standardMål, trekkVerdener, type Utspiller } from "./sdkort.ts";
-import { lagSpillvekt } from "./spillvekt.ts";
+import { lagHvemLaVekt } from "./hvemla-slutning.ts";
 
 export interface ParOpts {
   /**
@@ -141,7 +141,7 @@ export function vurderPar(
     opts.verdener,
     opts.rng,
     undefined,
-    opts.spillvekt === true ? lagSpillvekt(state, spiller) : undefined,
+    opts.spillvekt === true ? lagHvemLaVekt(state, spiller) : undefined,
     opts.verdenKandidater,
   );
   if (verdener.length === 0) return null;

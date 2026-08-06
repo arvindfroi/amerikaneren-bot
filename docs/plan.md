@@ -5668,3 +5668,69 @@ som en ruter så søket slipper å vite at det finnes flere modeller.
 A3 (søk i alle seter) er allerede mulig — `amu:alle:` og `sik:alle:` finnes.
 A4 (bud↔spill), A6 (signalering) og selve selvtreningsløkka står igjen.
 A5 (de 441 trekkene) kommer etter løkka, som avtalt.
+
+## 81. «HVEM LA HVA» SOM SLUTNING — ikke som trekkblokk
+
+Arvind: «hvem la hva er et must. det må funke og det må påvirke hvordan han
+forutser spillet og predikerer hva kort andre har på hånden.»
+
+Blokken FINNES som trekk — `src/e1/hvemla.ts`, 156 trekk, med lekkasjevakt og
+fire tester. Men den ligger bare i v10-kodingen (714), og det utrullede nettet
+leser 273. `k470` målte −0,238 (z = −5,44): de brede nettene taper på
+datamengde.
+
+**Å vente på det brede nettet er å vente på destillasjonen, som venter på
+alpha-mu, som venter på gode verdener.** Den sirkelen er hele grunnen til at A5
+står sist i §79.
+
+### Men slutningen trenger ikke nettet
+
+«Hvem la hva» er per definisjon en påstand om **hvem som har hva** — altså en
+likelihood over verdener, ikke en inngang til en policy. Lagt der virker den i
+dag, i søket som allerede står ute.
+
+`src/moe2/hvemla-slutning.ts` implementerer fire slutninger, rangert etter
+styrke og robusthet:
+
+| # | slutning | type |
+|---|---|---|
+| 1 | **renons** — fulgte du ikke farge, har du ingen | hard, alt håndhevet i `sampler.ts` |
+| 2 | fulgte farge og vant ikke → har neppe noe høyere | myk, −1,0 |
+| 3 | **kastet av når en trumf ville vunnet → har neppe trumf** | myk, −1,5 |
+| 4 | fulgte en farge ofte → flere igjen er mer forenlig | myk, +0,15 |
+
+**Slutning 3 er den sterkeste av de myke**, og den er ny. Den er sterk fordi
+den er DYR å bryte: å la et stikk gå man kunne trumfet gratis koster nesten
+alltid. Den er myk fordi trumfsparing er en ekte linje sent i runden.
+
+Alt er LOG-VEKTER, ingen forbud. En spiller som dukker for å skjule et ess, må
+forbli mulig å modellere — ellers utelukker vi nettopp de linjene et menneske
+faktisk spiller.
+
+### Konsolidert, ikke lagt ved siden av
+
+`spillvekt.ts` fra A1 var en delmengde (bare slutning 2). Den er RETIRERT inn i
+denne modulen. To utgaver av samme slutning er samme feilform som GBT-kopien
+(§76) og `standardMål`-kopien (§80).
+
+### Vakten mot en død vekt
+
+Ti tester. Den siste er den viktigste: over EKTE stillinger må vekten faktisk
+**skille** mellom kandidatverdener. Ga den identisk verdi til alle, ville hele
+A1 vært en dyr nulloperasjon — og ingenting ville feilet, akkurat som
+sanseblokken lå død i 95 % av kodingen (§32).
+
+### Korreksjon: kampstillingen er IKKE låst på 0–0–0–0
+
+§52 punkt 4 og §67 sier at trekk 231/232 «har alltid vært låst på 0–0–0–0».
+Det er utdatert: v10-korpuset har **426 ulike kampstillinger**, og det
+utrullede nettet reagerer på dem:
+
+```
+langt BAK  (20 mot 95):   endrer valg i 6,3 %
+langt FORAN (95 mot 20):  endrer valg i 5,9 %
+```
+
+Så Adams VET at den ligger under. Men 6 % er svakt, og vi har aldri målt om
+endringene er RIKTIGE. Å reagere er ikke det samme som å reagere godt — det er
+fortsatt et åpent punkt, bare et annet enn planen trodde.
