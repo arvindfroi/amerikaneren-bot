@@ -315,6 +315,30 @@ export interface Vaktvalg {
    */
   readonly stikk1Billigst?: boolean;
   /**
+   * `F` — FØREREN SPILLER UT SIN LAVESTE TRUMF I STIKK 1.
+   *
+   * Samme innsikt som `f`, men på den andre siden av bordet, og den er MYE
+   * større. Takkartet per enkeltstikk ga stikk 0 i førersetet **+5,296** per
+   * runde — det høyeste enkelttallet i hele kortspillet.
+   *
+   * Det var merkelig, siden stikket er tvunget i utfall: makkeren vinner
+   * 100 % av 400 giver. `examples/utspill-stikk1.ts` forklarer det:
+   *
+   *     boten spiller laveste trumf    41,0 %
+   *     TAKET velger laveste trumf     88,0 %
+   *     boten traff takets valg        37,0 %
+   *     poeng: bot 4,830  tak 10,450   gap 5,620
+   *
+   * Taket velger altså den laveste nesten alltid — og boten gjør det i under
+   * halvparten av stillingene. Kortet er tapt uansett; å kaste en høy trumf på
+   * det er å gi bort et stikk senere i runden.
+   *
+   * De 12 % der taket velger høyere er trolig hindsight: taket ser hvordan
+   * linja endte, og kan plukke opp tilfeldige utfall. Regelen tar den delen
+   * som er systematisk.
+   */
+  readonly stikk1FørerBilligst?: boolean;
+  /**
    * Vakt 7: som MAKKER, trumf før budvinneren når det vinner stikket.
    *
    * ARVINDS HYPOTESE, ordrett: «det er bedre at makker trumfer et kort enn
@@ -464,10 +488,12 @@ export function lesVaktflagg(flagg: string): Vaktvalg {
     else if (tegn === "m") valg = { ...valg, makkerTrumfTilbake: true };
     else if (tegn === "p") valg = { ...valg, makkerTrumferFørst: true };
     else if (tegn === "f") valg = { ...valg, stikk1Billigst: true };
+    else if (tegn === "F") valg = { ...valg, stikk1FørerBilligst: true };
     else {
       throw new Error(
         `Ukjent vaktflagg «${tegn}» (a = åpning/billigst, h = åpning/høyest, ` +
-          `l = åpning/alltid lavest, t = ikke trumf, b = billigst, f = stikk 1 billigst)`,
+          `l = åpning/alltid lavest, t = ikke trumf, b = billigst, ` +
+          `f = stikk 1 billigst (forsvar), F = stikk 1 billigst (foerer))`,
       );
     }
   }
@@ -711,6 +737,18 @@ export function vaktKort(s: GameState, sete: number, valgt: Kort, valg: Vaktvalg
   if (
     valg.makkerTrumfTilbake === true && s.bord.length === 0 && s.stikkSpilt === 1 &&
     s.makker === sete && s.historikk[0]?.vinner === sete
+  ) {
+    const trumfKort = lovlige.filter((k) => k.farge === trumf);
+    if (trumfKort.length > 0) return billigste(trumfKort, trumf);
+  }
+
+  /**
+   * Vakt 8: FØREREN spiller ut i stikk 1. Motoren tvinger allerede trumf;
+   * dette velger den LAVESTE av dem.
+   */
+  if (
+    valg.stikk1FørerBilligst === true && s.stikkSpilt === 0 && s.bord.length === 0 &&
+    sete === s.budvinner && valgt.farge === trumf
   ) {
     const trumfKort = lovlige.filter((k) => k.farge === trumf);
     if (trumfKort.length > 0) return billigste(trumfKort, trumf);

@@ -5207,3 +5207,71 @@ identifisert ennå.
 Stikk 1 er tvunget i UTFALL (makkeren vinner 100 %) men **ikke i verdi**:
 førerens valg av hvilken trumf som spilles ut måler **+5,296** ved taket —
 det høyeste enkelttallet på hele stikk-kartet, og helt ubehandlet.
+
+## 73. FØRERENS UTSPILL I STIKK 1 — regelen måler null, og NÅ vet vi hvorfor
+
+§70 fant det høyeste enkelttallet i kortspillet: førersetets valg i stikk 0
+måler **+5,296** ved taket. `examples/utspill-stikk1.ts` sammenlikner tre ting
+i samme stilling — boten, «billigste trumf», og taket:
+
+```
+boten spiller LAVESTE trumf    41,0 %
+TAKET velger laveste trumf     88,0 %
+boten traff takets valg        37,0 %
+poeng: bot 4,830  tak 10,450   gap 5,620
+```
+
+Det ser ut som en ferdig regel: taket vil ha laveste nesten alltid, boten gjør
+det i under halvparten. Vaktflagg `F` lagt inn og målt i to disjunkte bånd:
+
+| bånd | `F` | fører |
+|---|---|---|
+| 4 200 000 | −0,022 (z = −0,80) | −0,128 |
+| 7 500 000 | +0,072 (z = +0,11) | +0,355 |
+
+**Fortegnet snur. Ikke etablert.**
+
+### Hvorfor — og dette er den viktigste lærdommen i økta
+
+Dekomponeringen av de samme 200 stillingene:
+
+| | andel | gap tak − bot | bidrag til totalen |
+|---|---|---|---|
+| taket velger laveste | 88 % | +1,591 | **+1,400** |
+| taket velger noe ANNET | 12 % | **+35,167** | **+4,220** |
+
+**Tre firedeler av verdien ligger i de 12 prosentene der «laveste» er FEIL.**
+
+Regelen treffer takets valg i 88 % av stillingene og henter likevel bare en
+fjerdedel av verdien — fordi de 88 prosentene er nesten gratis (+1,59 fordelt
+tynt), mens de 12 er kontraktvipp (+35,17). Og i nettopp de stillingene tvinger
+regelen fram feil kort.
+
+Og der boten ALT spiller laveste (41 % av stillingene) står det fortsatt +4,439
+igjen — taket vil ha noe annet der også.
+
+### Regelen som generaliserer
+
+**Å treffe takets VALG er ikke å hente takets VERDI.**
+
+Et tak er en argmax over utfall man ikke kan se på forhånd. Andelen ganger en
+enkel regel treffer den argmaxen sier ingenting om hvor mye av verdien den
+fanger, fordi verdien er ujevnt fordelt: den samler seg i de sjeldne
+stillingene der det åpenbare valget er galt.
+
+Dette er FJERDE gang et tak ble lest som et tiltak i dette prosjektet — etter
+`eks:` (§56), `juks:` (§58) og budterskelen (§63). De tre første feilet fordi
+taket målte feil spill. Denne feilet fordi taket målte riktig spill, men
+verdien satt et annet sted enn treffprosenten antydet.
+
+**Konsekvens for hele takkartet (§60):** tallene der er øvre grenser på hva som
+FINNES, og de sier ingenting om hvor mye som er nåbart med en regel. Det gjelder
+også budrundens +8,06.
+
+### Hva som skal til for en omkamp
+
+Ikke en bedre regel — en MODELL som kjenner igjen de 12 %. Det er samme
+stillinger der føreren må lede høyt for å trekke ut en spesifikk trumf, og det
+krever en teori om hvor de utestående trumfene sitter. Altså **T3.1 (utlede
+makkerens hånd)**, som allerede står i treet. Dette er første målte begrunnelse
+for at T3.1 er verdt å bygge.
