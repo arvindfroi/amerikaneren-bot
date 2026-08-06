@@ -37,6 +37,8 @@ export interface SikkerOpts {
   /** Roller operatoren får gripe inn i. Tom = alle. */
   readonly roller?: readonly Rolle[];
   readonly frø?: number;
+  /** Kandidatverdener importance-samplingen velger mellom. Standard 3 var for lavt. */
+  readonly verdenKandidater?: number;
 }
 
 /** Tellere, så en kjøring kan vise HVOR ofte operatoren faktisk grep inn. */
@@ -54,6 +56,7 @@ export class Sikkerorakel {
   private readonly sigma: number;
   private readonly roller: readonly Rolle[];
   private readonly rng: () => number;
+  private readonly verdenKandidater: number;
   readonly tellere: SikkerTellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, enig: 0 };
 
   constructor(
@@ -67,6 +70,7 @@ export class Sikkerorakel {
     this.sigma = opts.sigma ?? 1.5;
     this.roller = opts.roller ?? [];
     this.rng = lagRng(opts.frø ?? 20_260_804);
+    this.verdenKandidater = opts.verdenKandidater ?? 3;
   }
 
   nyKamp(): void {
@@ -83,6 +87,7 @@ export class Sikkerorakel {
     this.tellere.beslutninger++;
 
     const par = vurderPar(state, sete, this.motpart, {
+      verdenKandidater: this.verdenKandidater,
       verdener: this.verdener,
       rng: this.rng,
     });

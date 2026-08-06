@@ -38,6 +38,18 @@ import type { Kort } from "../kort.ts";
 import { medVerden, trekkVerdener, type Utspiller } from "./sdkort.ts";
 
 export interface ParOpts {
+  /**
+   * Kandidatverdener importance-samplingen får VELGE MELLOM.
+   *
+   * Sto på 3 – og med tre å velge blant har vektingen nesten ingenting å
+   * velge blant. Målt for trosnettet 6. august: +0,68 pp verdenskvalitet ved
+   * 3 kandidater mot +2,62 ved 32. Budvektingen har hatt samme begrensning
+   * hele tiden, og `vurderPar` sendte tallet ikke engang videre.
+   *
+   * BILLIG: en kandidat koster én TREKNING, ikke én utspilling, og
+   * utspillingene er ~30x dyrere.
+   */
+  readonly verdenKandidater?: number;
   readonly verdener: number;
   readonly rng: () => number;
   readonly mål?: (sluttState: GameState, spiller: number) => number;
@@ -102,7 +114,7 @@ export function vurderPar(
   const lovlige = lovligeKort(state, spiller);
   if (lovlige.length < 2) return null;
 
-  const verdener = trekkVerdener(state, spiller, opts.verdener, opts.rng);
+  const verdener = trekkVerdener(state, spiller, opts.verdener, opts.rng, undefined, undefined, opts.verdenKandidater);
   if (verdener.length === 0) return null;
   const mål = opts.mål ?? standardMål;
 

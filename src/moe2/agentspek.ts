@@ -299,7 +299,14 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
       throw new Error(`Ukjent rolle «${rolle}» (foerer, makker, forsvar, alle)`);
     }
     const sigma = Number(d[1]);
-    const verdener = Number(d[2]);
+    // «<verdener>[k<kandidater>]» – f.eks. «24k32». Kandidatene er verdener
+    // importance-samplingen får VELGE MELLOM, og en kandidat koster én
+    // trekning mot utspillingens ~30 nettpass. Standard 3 var for lavt: målt
+    // +0,68 pp verdenskvalitet ved 3 mot +2,62 ved 32.
+    const vFelt = d[2] ?? "";
+    const kPos = vFelt.indexOf("k");
+    const verdener = Number(kPos < 0 ? vFelt : vFelt.slice(0, kPos));
+    const verdenKandidater = kPos < 0 ? 3 : Number(vFelt.slice(kPos + 1));
     if (!Number.isFinite(sigma) || !Number.isFinite(verdener) || verdener < 1) {
       throw new Error(`Ugyldig sik-spek «${indre}» - forventet sik:<rolle>:<sigma>:<verdener>:<indre>`);
     }
@@ -308,6 +315,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     return new Sikkerorakel(inn, (sikRest === d.slice(3).join(":") ? inn : lagIndre(sikRest)) as unknown as ConstructorParameters<typeof Sikkerorakel>[1], {
       sigma,
       verdener,
+      verdenKandidater,
       roller: rolle === "alle" ? [] : [rolle],
     });
   }
