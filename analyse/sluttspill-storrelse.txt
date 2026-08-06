@@ -1,0 +1,7 @@
+# sluttspillets stoerrelse, ekte stillinger, 12 givere per k
+k	verdener	noder	blader	historikker	stillinger
+1	6.00e+0	5.00e+0	1.00e+0	1.00e+0	12
+2	9.00e+1	7.53e+1	1.25e+1	1.25e+1	12
+3	1.68e+3	4.21e+3	6.89e+2	6.89e+2	12
+4	3.47e+4	4.16e+5	6.88e+4	6.88e+4	12
+5	7.57e+5	6.44e+7	1.05e+7	1.05e+7	12

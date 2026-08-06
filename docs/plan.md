@@ -4157,3 +4157,136 @@ ikke modulens. `eks:1` og `eks:2` måles nå — der påstanden faktisk gjelder.
 «Eksakt» sier ingenting om HVA som regnes ut eksakt. Her: eksakt PIMC, ikke
 eksakt spill. Det er samme klasse feil som at DD er «fasit» — begge er presise
 svar på feil spørsmål.
+
+## 57. HVOR STORT ER SLUTTSPILLET — og hvorfor «dybde og bredde» ikke holder
+
+ARVIND: «hvorfor klarer den ikke å løse de siste 5 stikkene helt optimalt? den
+burde jo det. den må bare ha dybde og bredde … får vi de 5 siste stikkene på
+plass så er vi i en god posisjon.»
+
+Innvendingen traff en ekte feil hos meg. Da jeg avviste retrograd analyse
+skrev jeg om størrelsen på DOBBELTDUMMY-tabellen. Men det Arvind beskriver er
+noe annet og riktigere: å løse de siste stikkene som ETT imperfekt
+informasjonsspill — én strategi som er en funksjon av det vi ser, ikke av
+verdenen. Det er et likevektsproblem, ikke et søkeproblem, og det er nettopp
+det som fjerner strategifusjonen.
+
+Så spørsmålet er reelt. `examples/sluttspill-storrelse.ts` måler det på EKTE
+stillinger fra motoren, 12 per k, slik at følg-farge-bindingene er ekte
+(`analyse/sluttspill-storrelse.txt`):
+
+| k | verdener | noder per verden | blader | verdener × noder |
+|---|---|---|---|---|
+| 1 | 6,0e0 | 5,0e0 | 1,0e0 | 3,0e1 |
+| 2 | 9,0e1 | 7,5e1 | 1,3e1 | 6,8e3 |
+| 3 | 1,7e3 | 4,2e3 | 6,9e2 | **7,1e6** |
+| 4 | 3,5e4 | 4,2e5 | 6,9e4 | **1,4e10** |
+| 5 | 7,6e5 | 6,4e7 | 1,1e7 | **4,9e13** |
+
+Siste kolonne er arbeidet per CFR-iterasjon. Og det er der svaret ligger:
+
+**Kostnaden vokser rundt 2 000–3 500× per ekstra stikk.** Fra 3 til 5 stikk er
+det ikke «mer dybde» — det er **sju millioner ganger** mer arbeid. En løser som
+bruker 1 sekund på tre stikk bruker to måneder på fem.
+
+Grensen går derfor omtrent her:
+
+* **k = 3** — full løsning over ALLE 1 680 verdener er 7,1e6 nodebesøk per
+  iterasjon. Fullt mulig utenfor nettleseren, på grensen inne i den.
+* **k = 4** — 1,4e10. Bare med utvalg av verdener, og bare utenfor appen.
+* **k = 5** — 4,9e13 per iterasjon. Ikke gjennomførbart per stilling, uansett
+  representasjon.
+
+Suit-isomorfi og relativ rang hjelper ikke her: de gir en fast faktor 6 når
+trumfen er valgt, mot en vekstfaktor på 3 000 per stikk.
+
+### Men størrelsen er ikke det som avgjør
+
+Det som avgjør er hvor mye som ligger i sluttspillet i det hele tatt. Derfor
+`src/moe2/juksagent.ts` og speken `juks:<k>:<indre>`: den ser ALLE fire hendene
+fra k gjenstående stikk og spiller det dobbelt-dummy-beste kortet.
+
+Ingen strategi som bare ser sin egen hånd kan slå den. Måler `juks:5` +X poeng
+per runde, er X **hele potten** i de fem siste stikkene — en ekte løser av det
+imperfekte delspillet ville fått mindre, aldri mer. Et lavt tak stenger
+retningen uansett hvor godt vi løser den.
+
+`test/ingen-juks-i-appen.test.ts` håndhever at den aldri når nettappen, og at
+den faktisk leser de skjulte hendene — en vaktpost mot en agent som ikke gjør
+noe er verre enn ingen vaktpost.
+
+## 58. KLARSYN GJØR DET VERRE — den mest overraskende målingen i prosjektet
+
+Taket ble målt med `juks:<k>` (§57): alle fire hender åpne fra k gjenstående
+stikk, dobbelt-dummy-beste kort. Forventningen var et positivt tall som ville
+si hvor mye som ligger i sluttspillet.
+
+Den måler **negativt**, og den replikerer.
+
+| arm | bånd 1 (frø 900 000) | bånd 2 (frø 4 400 000) |
+|---|---|---|
+| `juks:2` samlet | −0,019 (nøytral) | — |
+| `juks:3` samlet | −0,258, tegn z = −3,17 | −0,197, tegn z = −3,07 |
+| `juks:3` fører | **−1,350** (z = −3,79) | **−0,932** (z = −3,79) |
+| `juks:5` samlet | −1,086, tegn z = −7,21 | −0,854, tegn z = −5,62 |
+| `juks:5` fører | **−4,112** (z = −7,30) | **−3,338** (z = −5,87) |
+
+En spiller som SER ALLE FIRE HENDENE spiller dårligere enn nettet vårt. Og
+ikke marginalt: fire poeng per runde i førersetet, i to disjunkte frøbånd.
+
+### Feilhypotesene, sjekket før tolkning
+
+**Er makkeren ukjent, slik at løseren slåss mot sin egen makker?** Nei — målt
+500 av 500 stillinger med `state.makker` satt, aldri null, aldri lik
+budvinner. `declLag` har to spillere.
+
+**Tar den flere stikk, men får færre poeng?** Nei, det motsatte
+(`analyse/juks-stikk.txt`, 400 giver parret på giv, fører):
+
+```
+lagStikk        rein 10,0125   juks 9,7000   diff −0,3125
+kontrakt klart  rein 0,6850    juks 0,5450
+giver med FLERE stikk: 26   FAERRE: 118   likt: 256
+```
+
+Den tar **færre** stikk. Med fasit i hånd. Det utelukker målfunksjonen som
+forklaring for førersetet, der budlagets poeng uansett er binære på
+`lagStikk >= bud`.
+
+### Hva det faktisk er
+
+Dobbeltdummy løser stillingen som om **alle fire** ser alle hendene. To ting
+følger, og begge rammer føreren hardest:
+
+1. **Den forutsetter en klarsynt makker.** Linja som er optimal krever at
+   makkeren gjør sin del av en plan makkeren ikke kan se. Vår makker ser sin
+   egen hånd og spiller nettet. Føreren er det setet hvis linjer er mest
+   avhengige av makkersamarbeid — og det er setet som taper mest.
+2. **Den forutsetter et perfekt forsvar.** DD-føreren gardere seg mot et
+   klarsynt motspill som aldri kommer, og gir fra seg stikk den ville vunnet
+   mot ekte forsvarere.
+
+Forfallet med dybden er signaturen: 0,000 ved 1 stikk (ingen framtidige
+beslutninger å ta feil om), −0,02 ved 2, −0,26 ved 3, −1,09 ved 5. Nøyaktig
+samme form som `eks:1`–`eks:4` i §56, med en annen mekanisme men samme rot:
+**begge antar at framtidige beslutninger tas med kunnskap ingen kommer til å
+ha.**
+
+### Hva det betyr for retningen
+
+Nettet vårt spiller sluttspillet **bedre enn perfekt informasjon** ved dette
+bordet, fordi det spiller mot de motstanderne som faktisk sitter der og ikke
+mot en tenkt perfekt en. Hele klassen av DD-forankrede sluttspillsløsninger —
+tabellbase, `eks:`, PIMC med full enumerasjon — er dermed stengt, ikke av
+størrelse men av målfunksjon.
+
+### Forbehold som må stå
+
+`juks:` minimerer BUDLAGETS stikk når setet er i forsvar. Det er ikke
+forsvarets målfunksjon: forsvarere får **+1 per EGET stikk**, så å nekte
+føreren et stikk som en medforsvarer tar er verdiløst for setet selv. Tallene
+for forsvarsraden (−0,07 / +0,01) er derfor ikke et gyldig tak for forsvaret.
+Førerraden er gyldig, og det er den som bærer resultatet.
+
+Det ekte taket — beste svar mot de FAKTISKE motstanderne, med klarsyn — måles
+av `examples/sluttspill-tak.ts` og rapporteres i §59.

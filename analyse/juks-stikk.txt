@@ -1,0 +1,4 @@
+# juks:5 i FOERERSETET, parret paa giv, n=400
+lagStikk  rein 10.0125   juks 9.7000   diff -0.3125
+kontrakt klart  rein 0.6850   juks 0.5450
+giver med FLERE stikk: 26   FAERRE: 118   likt: 256

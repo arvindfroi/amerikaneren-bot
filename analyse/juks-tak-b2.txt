@@ -1,0 +1,20 @@
+1 filer, 2 armer
+
+juks:3:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  1200  -0.1972 +/- 0.1332 (-1.48 SE)  trimmet +0.0000  tegn 30/59 (z=-3.07)
+   avgjorte giver: 89 av 1200 (7.4 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     foerer   n=   300  -0.9322 +/- 0.4730  trimmet -0.0210  z=-3.79
+     makker   n=   300  +0.0200 +/- 0.0513  trimmet +0.0000  z=+0.00
+     forsvar  n=   600  +0.0617 +/- 0.1179  trimmet +0.0000  z=-0.78
+
+juks:5:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  1200  -0.8542 +/- 0.2146 (-3.98 SE)  trimmet -0.0562  tegn 72/157 (z=-5.62)
+   avgjorte giver: 229 av 1200 (19.1 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     foerer   n=   300  -3.3378 +/- 0.7290  trimmet -2.7975  z=-5.87
+     makker   n=   300  -0.1045 +/- 0.0661  trimmet -0.0111  z=-2.00
+     forsvar  n=   600  +0.0128 +/- 0.2090  trimmet -0.0284  z=-1.46
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.
+
+Skrevet til analyse/gate2-les.txt

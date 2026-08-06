@@ -32,6 +32,7 @@ import { Vrakvelger2, lesVrakflagg } from "./vrakvelg2.ts";
 import { Trosnett } from "./trosnett.ts";
 import { Profilagent, type Budjusterbar } from "./profilagent.ts";
 import { EksaktSluttspill, delEksaktSpek } from "./eksaktagent.ts";
+import { Juksagent } from "./juksagent.ts";
 
 /**
  * Nettene leses ÉN gang og deles. `E1Agent` holder ingen tilstand mellom
@@ -413,6 +414,26 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     const d = delEksaktSpek(indre);
     if (d === null) throw new Error(`Ugyldig eks-spek «${indre}»`);
     return new EksaktSluttspill(lagIndre(d.indre), d.valg);
+  }
+  /**
+   * `juks:<terskel>:<indre>` — TAKET, IKKE EN KANDIDAT.
+   *
+   * Ser alle fire hendene fra `terskel` gjenstående stikk og spiller det
+   * dobbelt-dummy-beste kortet. Den er ULOVLIG som spiller og finnes bare for
+   * å svare på ett spørsmål: hvor mye ligger det igjen i sluttspillet i det
+   * hele tatt?
+   *
+   * Ingen strategi som bare ser sin egen hånd kan slå den. Måler `juks:5`
+   * +0,4 poeng per runde, er 0,4 hele potten i de fem siste stikkene — og en
+   * ekte løser av det imperfekte delspillet ville fått mindre.
+   *
+   * `test/ingen-juks-i-appen.test.ts` håndhever at den aldri når nettappen.
+   */
+  if (indre.startsWith("juks:")) {
+    const d = indre.slice(5);
+    const kolon = d.indexOf(":");
+    if (kolon < 0) throw new Error(`Ugyldig juks-spek «${indre}»`);
+    return new Juksagent(lagIndre(d.slice(kolon + 1)), tall(d.slice(0, kolon), 4, "juks-terskel"));
   }
   if (indre.startsWith("profil:")) {
     const inn = lagIndre(indre.slice(7));
