@@ -5857,3 +5857,69 @@ Rolloutene inngår i målinger der kontrollarmen må treffe eksakt 0,0000. En
 utledet av stillingen. Testet.
 
 **364 tester grønne.**
+
+## 84. PREDIKSJON SOM LIKELIHOOD — reglene erstattet av Bayes
+
+Arvind: «når det gjelder prediksjonen så burde det ikke være normale regler men
+enten læring over tid eller matematiske formler som vi vet kommer til å gi best
+resultater.»
+
+Innvendingen traff. §81s fire slutninger har HÅNDSATTE konstanter (−1,0, −1,5,
++0,15) — samme klasse som `evForsvar` på 2,5 (kalibrert mot et kortnett som
+ikke fantes lenger) og `μSkift` (et seleksjonsartefakt). **En konstant ingen har
+målt er en gjetning med desimaler.**
+
+### Formelen
+
+```
+P(verden | observasjoner) ∝ P(observasjoner | verden) · P(verden)
+
+P(observasjoner | verden) = ∏ P(p la kort c | p sin hånd i w, stillingen da)
+```
+
+`P(verden)` var allerede riktig — trekningen er uniform over det som er
+forenlig med renonser og spilte kort, altså den kombinatoriske prioren. Det som
+manglet var likelihooden.
+
+**Atferdsmodellen er policyen vi allerede har.** Kortnettet gir logits over 52
+kort; en softmax over de LOVLIGE er en gyldig fordeling. Ingen ny modell å
+trene.
+
+Og den **subsumerer alle fire reglene**: «fulgte farge og vant ikke» får lav
+sannsynlighet automatisk hvis policyen ville tatt stikket. Regelen trenger ikke
+skrives — den faller ut.
+
+Igjen står **én** parameter, `tau`, mot fire. Den har en tolkning (hvor skarpt
+vi tror de følger policyen) og skal sveipes, ikke settes.
+
+### To feil i rekonstruksjonen, begge sagt høyt av motoren
+
+Første utgave spilte om HELE runden fra stikk 0 med `medVerden`. Motoren svarte
+«Ulovlig kort: K7», og det var to feil i én:
+
+* **`medVerden` beholder observatørens NÅVÆRENDE hånd** — med vilje, vi vet jo
+  hva vi har. Men replayen trenger hånden slik den var FØR vi spilte.
+* **Fra stikk 0 gjelder MAKKERPLIKTEN.** I en kandidatverden kan det etterlyste
+  kortet ligge et annet sted, og da er den observerte historikken ulovlig i den
+  verdenen — uten at det sier noe om hvor sannsynlig verdenen er.
+
+Løsningen var å rekonstruere fra starten av VINDUET. Ingen makkerplikt, ingen
+observatørkonflikt, en tredel av kostnaden.
+
+### Og testen min var også feil
+
+«Uforenlig verden gir −Infinity» ga tomme hender og ventet −Infinity. Men med
+vindus-rekonstruksjon legges de spilte kortene TILBAKE, så tomme hender ble en
+gyldig verden. Testen målte noe annet enn den trodde.
+
+Den ekte uforenligheten er et RENONSBRUDD: et sete som kastet av, men som
+verdenen gir kort i den ledede fargen. Testen konstruerer nå nettopp det.
+
+### Verifisert på alle tre flatene
+
+| | |
+|---|---|
+| tester | **368 grønne** |
+| nettsiden | appen bunter (676,6 kB); alle sju nye moduler bunter for nettleser |
+| ende-til-ende | full stakk `okt:amu:...:profil:...` spilte 6 runder, 327 trekk |
+| **selvtrening** | **kan ikke sjekkes — løkka finnes ikke ennå** |
