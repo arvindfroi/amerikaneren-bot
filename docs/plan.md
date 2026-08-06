@@ -4114,3 +4114,46 @@ makkeren har lite å gå på.
 Alle handler om å resonnere med LITE informasjon tidlig i runden — som er
 nøyaktig der de 0,208 ligger. Nettet uten hukommelse (B) er den samme
 utspilleren som ikke vet hvem som la hva.
+
+## 56. «EKSAKT» SLUTTSPILL VAR IKKE EKSAKT — jeg brukte det utenfor gyldighetsområdet
+
+Første måling av `eks:` var sterkt negativ:
+
+| arm | samlet | fører | trimmet (fører) |
+|---|---|---|---|
+| `eks:3` | **−0,343** (z = −11,8) | **−1,315** | −0,059 |
+| `eks:4` + konfidensport | **−0,753** (z = −13,1) | **−2,835** | −3,120 |
+
+Min første forklaring var at prioren er uniform. Arvind avviste den med en
+bedre innvending: **et EKSAKT svar skal ikke tape 1,3 poeng — da er det ikke
+eksakt.** Han hadde rett, og svaret sto i modulens egen dokumentasjon:
+
+> Den er bevist optimal **bare i stillinger der ingen framtidig egen beslutning
+> gjenstår** – i praksis siste stikk, og de stillingene der alle gjenstående
+> kortvalg er tvungne.
+
+> Full enumerasjon fjerner samplingsstøyen, **ikke strategifusjonen**. Hver
+> verden løses som om alle parter – også vi selv, senere i samme runde – fikk
+> vite hvilken verden det var.
+
+### Den er eksakt i ÉN forstand, ikke den jeg antok
+
+Den regner den eksakte **PIMC-verdien** — snittet over hele posterioren i
+stedet for et utvalg. Det er strengt bedre enn å sample. Men PIMC-verdien er
+ikke den optimale verdien.
+
+Og innenfor hver verden løses stillingen DOBBELTDUMMY — nettopp fasiten som
+måler **−0,609 korrigert korrelasjon mot poeng**. Ved tre–fire gjenstående
+stikk midler `eks:` altså DD-verdier, med feil fortegn innebygd.
+
+Ved SISTE STIKK finnes ingen valg å spille feil, så DD er trivielt riktig der.
+Det er nøyaktig derfor gyldighetsområdet er akkurat det.
+
+**Jeg leste ikke dokumentasjonen godt nok før jeg målte**, og feilen var min,
+ikke modulens. `eks:1` og `eks:2` måles nå — der påstanden faktisk gjelder.
+
+### Lærdommen generaliserer
+
+«Eksakt» sier ingenting om HVA som regnes ut eksakt. Her: eksakt PIMC, ikke
+eksakt spill. Det er samme klasse feil som at DD er «fasit» — begge er presise
+svar på feil spørsmål.

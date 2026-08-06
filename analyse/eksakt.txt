@@ -1,0 +1,38 @@
+24 filer, 5 armer
+
+vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  9600  +0.0000 +/- 0.0000 (+0.00 SE)  trimmet +0.0000  tegn 0/0 (z=+0.00)
+     foerer   n=  2400  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     makker   n=  2400  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  4800  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+eks:3:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  9600  -0.3431 +/- 0.0454 (-7.55 SE)  trimmet +0.0000  tegn 157/448 (z=-11.83)
+   avgjorte giver: 605 av 9600 (6.3 %)
+     foerer   n=  2400  -1.3147 +/- 0.1712  trimmet -0.0588  z=-12.23
+     makker   n=  2400  -0.0281 +/- 0.0152  trimmet +0.0000  z=-3.25
+     forsvar  n=  4800  -0.0148 +/- 0.0272  trimmet +0.0000  z=-2.20
+
+eks:4:sik:foerer:0.5:24:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  9600  -0.7531 +/- 0.0820 (-9.18 SE)  trimmet -0.0314  tegn 606/1157 (z=-13.12)
+   avgjorte giver: 1763 av 9600 (18.4 %)
+     foerer   n=  2400  -2.8347 +/- 0.3116  trimmet -3.1199  z=-11.89
+     makker   n=  2400  -0.0503 +/- 0.0208  trimmet +0.0000  z=-4.17
+     forsvar  n=  4800  -0.0636 +/- 0.0439  trimmet +0.0000  z=-4.13
+
+eks:4:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  9600  -0.9625 +/- 0.0664 (-14.49 SE)  trimmet -0.0233  tegn 280/981 (z=-19.74)
+   avgjorte giver: 1261 av 9600 (13.1 %)
+     foerer   n=  2400  -3.6725 +/- 0.2418  trimmet -2.6924  z=-20.69
+     makker   n=  2400  -0.0503 +/- 0.0208  trimmet +0.0000  z=-4.17
+     forsvar  n=  4800  -0.0636 +/- 0.0439  trimmet +0.0000  z=-4.13
+
+eks:5:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  9600  -1.3972 +/- 0.0798 (-17.52 SE)  trimmet -0.1672  tegn 454/1476 (z=-23.26)
+   avgjorte giver: 1930 av 9600 (20.1 %)
+     foerer   n=  2400  -5.4373 +/- 0.2823  trimmet -4.7810  z=-25.50
+     makker   n=  2400  -0.1165 +/- 0.0292  trimmet -0.0103  z=-6.62
+     forsvar  n=  4800  -0.0175 +/- 0.0551  trimmet -0.0108  z=-3.01
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.
