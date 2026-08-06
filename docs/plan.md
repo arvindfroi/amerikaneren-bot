@@ -4729,3 +4729,80 @@ av alle bredere, og at Python-siden faktisk klipper i stedet for å forkaste.
 Brytes prefikset, blir klippingen STILLE feil: treningen ville lest kolonner
 som betyr noe annet enn nettet tror, uten at noe feiler. En ny blokk må legges
 til på SLUTTEN og aldri endre en eksisterende indeks.
+
+## 67. FERDIGHETSTREET — ALT i planen, med ekte avhengigheter
+
+Arvind: «jeg vil at neste Adams-modellen skal ha alt forsøkt av det som står i
+plan.md … mange av funksjonene er dependent på andre funksjoner skal funke så
+du må gjøre det. bare når alt er ferdig så kan du trene så mye du vil.»
+
+Gjennomgang av alle 85 seksjonene, 4 731 linjer. Hvert åpent punkt er hentet
+fra S5 (idébeholdningen), §5 (prøvd/ikke prøvd), §52, §55 og køene i §13/§27.
+**Står en idé ikke her, står den ikke i planen heller.**
+
+Avhengighetene er VERIFISERT i koden, ikke antatt. Tre av dem viste seg å være
+strengere enn planen sa, og det står under hver.
+
+### T0 — KORPUS-GENERERING (de lange polene, startes FØRST)
+
+Disse blokkerer alt i T2 og T3, og de tar timer. De skal kjøre mens alt annet
+måles.
+
+| # | hva | blokkerer | verifisert avhengighet |
+|---|---|---|---|
+| **T0.1** | **budkorpus ved EKTE auksjonsstillinger** | T2.1 | `budkvant.ts:335` låser `sete = giver+1` på en FERSK giv. Alle rader har tom auksjon, så `BUD_DIM_V2`-blokken (128–139) ville vært **null i hver eneste rad**. Punkt 1 i §52 kan IKKE trenes på dagens korpus. |
+| **T0.2** | SD-korpus med `rolleVekt = 1` | T2.2 | dagens er 52,8 % førerrader mot naturlige 25 % (S5) |
+| **T0.3** | vrak/velg-korpus MED budrunden | T2.3 | §55 C står som «blokkert på gjenskaping av korpuset» |
+
+### T1 — MÅLINGER SOM KAN KJØRES NÅ (ingen avhengigheter)
+
+Alt er bygget og koblet; ingen av dem er målt.
+
+| # | hva | hvorfor nå | kilde |
+|---|---|---|---|
+| **T1.1** | `sik:` kandidattall 3 → 32 | koblet, aldri målt. Billigst av alt som gjenstår: flere trekninger, ikke flere utspillinger | §52 pkt 2 |
+| **T1.2** | `sik:forsvar` konfidensport | avbrutt for sluttspillsprioriteringen | §53 |
+| **T1.3** | `fortsKombi` min/snitt/**cfr** | flerfortsettelses-orakelet (Brown & Sandholm), bygget i `sdkort.ts`, aldri målt | S3b, S5 pkt 4 |
+| **T1.4** | posisjon i stikket som trekk | «billig, trolig lite verdt» — men umålt | S5 pkt 10 |
+| **T1.5** | `Profilagent` / motstandermodellen | bygget og parkert. Data finnes | S3c, §21, S5 pkt 11 |
+| **T1.6** | 273-nettet på 7,49 M rader | låst opp av `--klipp` (§66). Ren datamengde | §66 |
+
+### T2 — AVHENGIG AV T0
+
+| # | hva | venter på | kilde |
+|---|---|---|---|
+| **T2.1** | **budmodellen skal HØRE budrunden** (`BUD_DIM_V2`) | T0.1 | §52 pkt 1 — «bygget, versjonert, testet, ALDRI TRENT» |
+| **T2.2** | omkamp: trekkblokker + forsvarsvekt | T0.2 | S5 — «linja er død» er TRUKKET TILBAKE |
+| **T2.3** | vrak/velg ser budrunden (24 → ~30 trekk) | T0.3 | §52 pkt 3, §55 C |
+| **T2.4** | 714-nettet med mer korpus | T1.6 + T0.2 | §55 B |
+
+### T3 — NY MODELLERING (dyrest, minst avklart)
+
+| # | hva | kilde |
+|---|---|---|
+| **T3.1** | utlede makkerens hånd | §52 pkt 6, §55 D — retter mot utspillshullet (0,208) |
+| **T3.2** | alpha-mu | §5: «høyest prioritet av de uprøvde» |
+| **T3.3** | CFR i sluttspillet | §5: «eneste form som gir randomiserte strategier» |
+| **T3.4** | framoverblikk i budrunden | §52 pkt 7, S5 |
+| **T3.5** | aktiv informasjonsinnhenting | §5: «vi velger aldri et kort FOR å lære noe» |
+| **T3.6** | kampstillingen inn i spillet (trekk 231/232) | §52 pkt 4 — alltid låst på 0–0–0–0 |
+| **T3.7** | race-bevisst MÅL, ikke trekk | S5 pkt 3 — «den eneste veien» |
+| **T3.8** | variansvalg blant like gode bud | S5 pkt 3/9 |
+| **T3.9** | troen inn i SD-orakelets verdenstrekker | S5 pkt 6 — +4,86 pp verdenskvalitet, aldri konvertert |
+
+### T4 — TIL SLUTT
+
+Når T0–T3 er forsøkt: full retrening, og deretter Adams-v6 gjennom gate 2 og
+kampbenken.
+
+### Det som IKKE står her, og hvorfor
+
+§2 lister det som er avklart og ikke skal prøves igjen: **søk slår ikke nettet**
+(fire former), **amerikaner/solo skal aldri meldes** (0 av 410), og DD i alle
+varianter (§38, §56, §58). Menneskeklonen venter på familierunder, ikke arbeid.
+
+### Regelen som gjelder hvert eneste punkt
+
+Parret på giv, disjunkte frøbånd, tegntest ved siden av snittet, kontrollarmen
+nøyaktig 0,0000. **Aldri adoptere på støy.** Et forsøk som måler null er et
+FERDIG punkt — «alt forsøkt» betyr forsøkt, ikke adoptert.
