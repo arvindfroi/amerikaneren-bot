@@ -5316,3 +5316,37 @@ Ikke av en test. Av at to målinger av samme størrelse ikke kunne være sanne
 samtidig. Det er verdt å merke seg: takkartet per enkeltstikk finnes bare fordi
 Arvind spurte om stikk 11 — og det er nettopp den oppdelingen som gjorde
 inkonsistensen synlig. En enkelt måling hadde ingen å motsi.
+
+## 75. T1.5 MOTSTANDERMODELLEN — målt, og den treffer feil sted
+
+`profil:` på kampbenken, 800 kamper, miljøet Adams-v5 i de tre andre setene:
+
+```
+vunnet 190/800 = 23,75 %   (grunnlinje 25,00 % ved symmetri)
+avvik  -1,25 pp +/- 1,53   z = -0,82
+```
+
+**Ikke etablert.** Svakt negativt, men innenfor støyen.
+
+### Hvorfor, og hva en omkamp krever
+
+`Profilagent` fester seg på BUDAGENTEN og påvirker én ting: `forsvarsverdi` —
+hva det er verdt å la den andre få kontrakten. Den rører ikke et eneste kort.
+
+Arvind sa dette allerede 6. august: «det er ikke bare budet den skal tilpasse
+seg, men også i spillet skal den tilpasse seg. lære hvordan andre spiller og
+slik.» Målingen er nå det tallet som viser at innvendingen var riktig — den
+delen som ER bygget, gir ingenting.
+
+**Omkamp krever** at profilen når KORTSPILLET. Det er ny modellering, ikke en
+justering av `MAKS_UTSLAG`: nettet tar 273 trekk og ingen av dem beskriver
+motstanderen. En profil måtte enten inn som nye trekk (ny blokk → korpus →
+T2-klasse) eller som en vekt på verdenstrekningen i søket (samme sted som
+trosnettet, som selv ikke replikerte).
+
+### Målemerknad som gjelder framover
+
+`kamp-les.py` krever fire rader per frø og virker bare i PARRET modus.
+`--uparret` bruker med vilje ett sete per frø (`[k % 4]`), så leseren feiler
+med divisjon på null. I uparret modus er kontrollen 0,2500 ved symmetri, og
+tallet leses direkte som en binomialtest mot den grunnlinja — som over.
