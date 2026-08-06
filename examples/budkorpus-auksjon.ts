@@ -124,7 +124,7 @@ function budrunde(
   sete: number,
   mineBud: readonly BudKode[],
   refBud: number | null,
-): { s: GameState; logg: { spiller: number; bud: BudKode }[] } {
+): { s: GameState; logg: { spiller: number; bud: BudKode }[]; gyldig: boolean } {
   const ag = nyeAgenter();
   let s = giv;
   let egne = 0;
@@ -137,8 +137,22 @@ function budrunde(
     if (s.iTur === sete) {
       const lov = lovligeHandlinger(s);
       if (egne < mineBud.length) {
-        // Replay av vaart eget observerte bud.
-        h = { type: "BUD", spiller: sete, bud: mineBud[egne] as never };
+        /**
+         * REPLAY AV VAART EGET OBSERVERTE BUD — men det kan vaere ULOVLIG her.
+         *
+         * I den omtrukne verdenen kan motstanderne ha bydd annerledes, saa
+         * budet vi faktisk la kan vaere for lavt naa. Foerste utgave sendte
+         * det likevel, og motoren kastet «Ulovlig bud: 10» - som drepte alle
+         * tolv skard etter faa hundre rader.
+         *
+         * En slik trekning ville uansett blitt forkastet av prefikssjekken,
+         * siden motstandernes bud da ikke stemmer. Vi avbryter den her i
+         * stedet, og markerer den ugyldig.
+         */
+        const mitt = mineBud[egne]!;
+        const lovlig = lov.fase === "BUDRUNDE" && lov.bud.some((b) => b === mitt);
+        if (!lovlig) return { s, logg, gyldig: false };
+        h = { type: "BUD", spiller: sete, bud: mitt as never };
         egne++;
       } else if (refBud === null) {
         h = { type: "BUD", spiller: sete, bud: "PASS" };
@@ -175,7 +189,7 @@ function budrunde(
     if (h.type === "BUD") logg.push({ spiller: h.spiller, bud: h.bud as BudKode });
     s = utfør(s, h).state;
   }
-  return { s, logg };
+  return { s, logg, gyldig: true };
 }
 
 /** Spiller runden ferdig med policyen i alle seter. */
@@ -241,6 +255,7 @@ for (let h = 0; h < HENDER; h++) {
       // budet `vant[N]`-tabellen er mest feilkalibrert paa (35,3 % maalt mot
       // 9,7 % i selvspill).
       const a = budrunde(giv, p.sete, p.mine, 1);
+      if (!a.gyldig) continue;
       // AKSEPTERING: de foerste budene i den omtrukne auksjonen maa vaere
       // NOEYAKTIG de observerte. Vaart eget sete replayer sine, saa det som
       // faktisk testes er om MOTSTANDERNES hender er forenlige med det de bod.
@@ -256,7 +271,7 @@ for (let h = 0; h < HENDER; h++) {
       }
       // PASSARMEN: hva er runden verdt hvis vi lar den gaa?
       const b = budrunde(giv, p.sete, p.mine, null);
-      if (b.s.budvinner !== null) {
+      if (b.gyldig && b.s.budvinner !== null) {
         const f = spillUt(b.s);
         const po = f.totalPoeng;
         const egne = po[p.sete] ?? 0;
