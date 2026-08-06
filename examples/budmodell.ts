@@ -39,6 +39,7 @@ import { dirname, join } from "node:path";
 
 import { opprettSpill } from "../src/index.ts";
 import { budTrekk, BUD_DIM } from "../src/moe2/budtrekk.ts";
+import { anslåSkog, trenSkog, type Skog } from "../src/moe2/gbt.ts";
 
 let dataMappe = "bud-kvant";
 let utFil = "e1-modell/bud-gbt.json";
@@ -113,78 +114,17 @@ const tren = saker.filter((s) => !s.hold);
 const hold = saker.filter((s) => s.hold);
 
 // --- Gradient boosted regression trees --------------------------------------
-interface Node { blad: boolean; verdi?: number; kol?: number; terskel?: number; v?: Node; h?: Node }
+//
+// Koden laa inline her. Den er trukket ut til `src/moe2/gbt.ts` slik at
+// `budmodell-v2.ts` bruker NOEYAKTIG samme regnestykke og ikke en kopi -
+// prosjektets mest gjentatte feil er at det maalte og det utrullede ikke er
+// samme ting, og to utgaver av samme modell er den formen.
+//
+// Uttrekket er verifisert bit-identisk: samme korpus gir samme md5.
 
-/**
- * Bygger ett regresjonstre på residualene. Splittkriteriet er reduksjon i
- * kvadratsum – det er terskelen, og det er nettopp den formen en additiv
- * modell mangler.
- */
-function byggTre(idx: number[], X: Float32Array[], g: number[], d: number, minBlad: number): Node {
-  const verdi = sn(idx.map((i) => g[i]!));
-  if (d === 0 || idx.length < 2 * minBlad) return { blad: true, verdi };
-  let besteKol = -1;
-  let besteTerskel = 0;
-  let besteGevinst = 1e-9;
-  const sum0 = idx.reduce((a, i) => a + g[i]!, 0);
-  const n0 = idx.length;
-  for (let k = 0; k < BUD_DIM; k++) {
-    // Kandidatterskler: kvartilene. Nok til å finne et knekkpunkt, billig nok
-    // til å kunne gjøre for alle 128 kolonner i hvert eneste tre.
-    const vals = idx.map((i) => X[i]![k]!);
-    const sortert = [...vals].sort((a, b) => a - b);
-    for (const q of [0.25, 0.5, 0.75]) {
-      const t = sortert[Math.floor(q * (sortert.length - 1))]!;
-      let sv = 0;
-      let nv = 0;
-      for (let j = 0; j < idx.length; j++) {
-        if (vals[j]! <= t) {
-          sv += g[idx[j]!]!;
-          nv++;
-        }
-      }
-      if (nv < minBlad || n0 - nv < minBlad) continue;
-      // Gevinst = SS_venstre + SS_hoeyre - SS_total, paa middelverdiform.
-      const gev = (sv * sv) / nv + ((sum0 - sv) * (sum0 - sv)) / (n0 - nv) - (sum0 * sum0) / n0;
-      if (gev > besteGevinst) {
-        besteGevinst = gev;
-        besteKol = k;
-        besteTerskel = t;
-      }
-    }
-  }
-  if (besteKol < 0) return { blad: true, verdi };
-  const v: number[] = [];
-  const h: number[] = [];
-  for (const i of idx) (X[i]![besteKol]! <= besteTerskel ? v : h).push(i);
-  if (v.length < minBlad || h.length < minBlad) return { blad: true, verdi };
-  return {
-    blad: false,
-    kol: besteKol,
-    terskel: besteTerskel,
-    v: byggTre(v, X, g, d - 1, minBlad),
-    h: byggTre(h, X, g, d - 1, minBlad),
-  };
-}
-const forutsi = (n: Node, x: Float32Array): number =>
-  n.blad ? n.verdi! : forutsi(x[n.kol!]! <= n.terskel! ? n.v! : n.h!, x);
-
-function tren1(X: Float32Array[], y: number[]): { basis: number; trær: Node[] } {
-  const basis = sn(y);
-  const trær: Node[] = [];
-  const pred = new Array<number>(y.length).fill(basis);
-  const idx = y.map((_, i) => i);
-  const minBlad = Math.max(20, Math.floor(y.length / 60));
-  for (let r = 0; r < runder; r++) {
-    const g = y.map((v, i) => v - pred[i]!);
-    const tre = byggTre(idx, X, g, dybde, minBlad);
-    for (let i = 0; i < y.length; i++) pred[i]! += rate * forutsi(tre, X[i]!);
-    trær.push(tre);
-  }
-  return { basis, trær };
-}
-const anslå = (m: { basis: number; trær: Node[] }, x: Float32Array): number =>
-  m.basis + rate * m.trær.reduce((a, t) => a + forutsi(t, x), 0);
+const tren1 = (X: Float32Array[], y: number[]): Skog =>
+  trenSkog(X, y, { runder, dybde, rate, bredde: BUD_DIM });
+const anslå = (m: Skog, x: Float32Array): number => anslåSkog(m, x, rate);
 
 const Xt = tren.map((s) => s.x);
 const mμ = tren1(Xt, tren.map((s) => s.μ));

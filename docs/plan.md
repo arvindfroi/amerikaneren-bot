@@ -5350,3 +5350,38 @@ trosnettet, som selv ikke replikerte).
 `--uparret` bruker med vilje ett sete per frø (`[k % 4]`), så leseren feiler
 med divisjon på null. I uparret modus er kontrollen 0,2500 ved symmetri, og
 tallet leses direkte som en binomialtest mot den grunnlinja — som over.
+
+## 76. GBT-EN TRUKKET UT — og md5-sjekken fanget at jeg skrev om i stedet for å kopiere
+
+T2.1 trenger en trener som bygger `budTrekk(s, sete, 140)` i stedet for 128.
+Valget sto mellom å kopiere ~80 linjer GBT-kode inn i en ny fil eller å trekke
+dem ut. Kopi var ikke et alternativ: to utgaver av samme regnestykke er
+nøyaktig den feilformen som har tatt oss ni ganger.
+
+**Uttrekket ble verifisert med md5 på samme korpus, og FØRSTE FORSØK FEILET.**
+
+```
+foer:  f1efd0e573fc34b3...   388 kB
+etter: 05423e44968fa33f...   312 kB
+```
+
+Årsaken var at jeg skrev om splittvakten i stedet for å kopiere den:
+
+```
+original:  if (nv < minBlad || n0 - nv < minBlad) continue;
+min:       if (nv === 0 || nv === n0) continue;
+```
+
+Trærne fikk dermed splitte på bittesmå blader. Ingenting feilet — modellen ble
+bare en annen. Etter ordrett kopi er den bit-identisk.
+
+**Sjekken var billig og avgjørende.** Uten den ville v1- og v2-modellene vært
+trent med ulik trealgoritme, og enhver sammenlikning mellom dem vært verdiløs
+uten at noe pekte på hvorfor.
+
+`test/gbt-uttrekk.test.ts` låser invarianten som gjorde uttrekket lovlig — at
+et blad aldri får færre enn `minBlad` rader — pluss determinisme og at
+`bredde`-argumentet faktisk begrenser kolonnene. Den siste er ikke pynt: sto
+bredden fast på 128, ville v2-blokken (indeks 128–139) aldri blitt vurdert som
+splitt, og målingen ville sagt «budrunden gir ingenting» på et oppsett som ikke
+kunne gitt noe annet.
