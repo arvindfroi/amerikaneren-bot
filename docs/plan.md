@@ -5734,3 +5734,70 @@ langt FORAN (95 mot 20):  endrer valg i 5,9 %
 Så Adams VET at den ligger under. Men 6 % er svakt, og vi har aldri målt om
 endringene er RIKTIGE. Å reagere er ikke det samme som å reagere godt — det er
 fortsatt et åpent punkt, bare et annet enn planen trodde.
+
+## 82. DE INDIVIDUELLE EVNENE — tettet, med ett unntak som krever din beslutning
+
+Arvind: «signalisering er ikke like viktig som at vi først får på plass de
+individuelle evnene … du nevnte nettopp evnebegrensninger, så tett de først.»
+
+Gjennomgang av de tre som sto igjen etter §81.
+
+### TELLING — allerede dekket, og det ble verifisert før noe ble bygget
+
+`src/moe2/synlig.ts` har `ukjenteKort` (de eksakt usette kortene),
+`garantertSynlig` (er kortet sikker vinner), `slårLedende`,
+`avslørteRenonser`. `konvensjonsvakt.ts` har `trumfUte` — eksakt antall trumf
+ute. `nytte.ts` har `beholdsverdi` og `minstBrukFor`.
+
+**Boten teller allerede perfekt.** Det som manglet var ikke evnen, men at den
+lå låst inne i konvensjonsvaktens smale regler og ikke i verdensmodellen.
+Etter §81 leser slutningene den samme informasjonen.
+
+Ingen ny kode. Det er verdt å notere: å bygge en «telleblokk» her ville vært en
+fjerde kopi av noe som fantes.
+
+### KAMPSTILLING — bygget som eksplisitt evne (`src/moe2/race.ts`)
+
+Målt at nettet reagerer (6,3 % / 5,9 %), men ingen visste om reaksjonen var
+riktig, og det fantes ingen regel.
+
+**Og knotten kom gratis.** S5 etterlyste en god variansknott siden 4. august og
+fant ingen — budterskelen ble brukt som en og kostet 0,31 poeng for 13 %
+varians. alpha-mu gir en UTFALLSVEKTOR per kandidat, så snitt og spredning
+faller rett ut uten en eneste ekstra utspilling. A8 leverte knotten som
+biprodukt.
+
+    score = snitt + λ · press · spredning
+
+`press` er positivt bak, negativt foran, og **null tidlig i kampen** — med 0–0
+på tavla er «bak» meningsløst, og en knott som slår inn der legger varians i
+hver runde uten grunn. Presset vokser mot slutten: 20 bak ved 30–50 er noe
+annet enn ved 75–95.
+
+`λ = 0` gir nøyaktig snittet, altså bit-identisk med å ikke bruke regelen.
+Seks tester, inkludert at bak foretrekker varians og ledelse unngår den.
+
+Nås via `r<lambda>` i amu-speken: `amu:foerer:24k32sm2r0.5:...`
+
+### Å LESE ETT MENNESKE OVER TID — MOTSTRID, ikke bygget
+
+`Profilagent.nyKamp()` nullstiller profilen, og begrunnelsen står i koden:
+
+> «NY KAMP, NY PROFIL. Modellen skal bygges av det som skjer ved DETTE bordet —
+> å bære den mellom kamper ville vært den databasen Arvind uttrykkelig ikke
+> ville ha.»
+
+Evnen krever nettopp det som tidligere ble avvist. **Jeg har ikke bygget det**,
+og det skal ikke bygges på min tolkning av to instrukser som peker hver sin vei.
+
+Alternativene, om det skal åpnes:
+
+1. **Innen én kveld, ikke på tvers av tid.** Profilen overlever mellom kamper i
+   samme økt, men lagres aldri. Ingen database, og evnen får virke der familien
+   faktisk spiller flere kamper etter hverandre.
+2. **Aggregert, ikke per person.** Én modell av «hvordan familien spiller»,
+   uten å skille hvem. Det er allerede det `bud-menneske.json` er.
+3. **Full persistens.** Krever et bevisst ja, og hører hjemme i Val Town-basen
+   der navnene alt ligger — ikke i det offentlige repoet.
+
+Alternativ 1 er billigst og bryter ingenting. Men det er din beslutning.

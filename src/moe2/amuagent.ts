@@ -25,6 +25,7 @@ import { lagHvemLaVekt } from "./hvemla-slutning.ts";
 import { rolleFor, type Rolle } from "./rolleorakel.ts";
 import { stillingsfrø, velgUleselig } from "./uleselig.ts";
 import { lagRng } from "../kort.ts";
+import { racepress, racescore } from "./race.ts";
 
 export interface AmuOpts {
   readonly verdener: number;
@@ -43,6 +44,15 @@ export interface AmuOpts {
    * de andre spiller nøyaktig som oss, som er feil mot familien.
    */
   readonly motpartFor?: (sete: number) => Utspiller;
+  /**
+   * KAMPSTILLING: hvor hardt varians vektes av racepresset. 0 = av, og da er
+   * scoren NØYAKTIG snittet — bit-identisk med før.
+   *
+   * Knotten er gratis: alpha-mu gir en utfallsvektor per kandidat, så snitt og
+   * spredning faller rett ut. S5 etterlyste nettopp en slik knott og fant
+   * ingen god; denne kom som biprodukt av A8.
+   */
+  readonly lambda?: number;
 }
 
 export class Alphamuagent {
@@ -50,7 +60,7 @@ export class Alphamuagent {
   private readonly motpart: Utspiller;
   private readonly o: AmuOpts;
   private readonly rng: () => number;
-  readonly tellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, uleselig: 0 };
+  readonly tellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, uleselig: 0, racejustert: 0 };
 
   constructor(
     indre: { velgHandling(s: GameState): Handling; nyKamp(): void },
@@ -113,17 +123,25 @@ export class Alphamuagent {
     });
     if (grener.length === 0) return this.indre.velgHandling(state);
 
-    const snitt = (v: readonly number[]): number => v.reduce((a, b) => a + b, 0) / Math.max(1, v.length);
+    /**
+     * SCOREN. Med `lambda` = 0 er dette nøyaktig snittet over verdenene, og
+     * hele racejusteringen er en nulloperasjon — bit-identisk med før.
+     */
+    const lambda = this.o.lambda ?? 0;
+    const press = lambda === 0 ? 0 : racepress(state, sete);
+    const score = (g: { vektor: number[] }): number => racescore(g.vektor, press, lambda);
+    if (press !== 0) this.tellere.racejustert++;
+
     const eps = this.o.epsilon ?? 0;
     let valgt = grener[0]!;
     if (eps > 0) {
       // A7 SIST: uleseligheten velger bare blant kort soeket alt har godkjent
       // som omtrent likeverdige. Aa randomisere foer soeket ville kastet poeng.
       const før = valgt;
-      valgt = velgUleselig(grener, (g) => snitt(g.vektor), eps, stillingsfrø(state, sete));
+      valgt = velgUleselig(grener, score, eps, stillingsfrø(state, sete));
       if (valgt !== før) this.tellere.uleselig++;
     } else {
-      for (const g of grener) if (snitt(g.vektor) > snitt(valgt.vektor)) valgt = g;
+      for (const g of grener) if (score(g) > score(valgt)) valgt = g;
     }
 
     const eget = this.indre.velgHandling(state);

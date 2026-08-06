@@ -313,6 +313,8 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
     };
     const eps = les("e", 0);
     const M = les("m", 1);
+    // «r<lambda>»: kampstillingsstyrt varians. 0 = av.
+    const lambda = les("r", 0);
     let spillvekt = false;
     if (f.includes("s")) {
       spillvekt = true;
@@ -333,6 +335,7 @@ export function lagIndre(indre: string): { velgHandling(s: GameState): Handling;
       spillvekt,
       M,
       epsilon: eps,
+      lambda,
       roller: rolle === "alle" ? [] : [rolle],
     });
   }
