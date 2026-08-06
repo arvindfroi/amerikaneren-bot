@@ -1,0 +1,38 @@
+24 filer, 5 armer
+
+sik:foerer:0.5:24:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  5760  +0.4443 +/- 0.0872 (+5.10 SE)  trimmet +0.0045  tegn 358/238 (z=+4.92)
+   avgjorte giver: 596 av 5760 (10.3 %)
+     foerer   n=  1440  +1.7771 +/- 0.3465  trimmet +1.9488  z=+4.92
+     makker   n=  1440  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  2880  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+sik:foerer:1.0:24:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  5760  +0.3615 +/- 0.0703 (+5.14 SE)  trimmet +0.0000  tegn 256/146 (z=+5.49)
+   avgjorte giver: 402 av 5760 (7.0 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     foerer   n=  1440  +1.4458 +/- 0.2792  trimmet +0.7909  z=+5.49
+     makker   n=  1440  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  2880  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+ork:foerer:24:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  5760  +0.3131 +/- 0.0895 (+3.50 SE)  trimmet +0.0053  tegn 371/268 (z=+4.07)
+   avgjorte giver: 639 av 5760 (11.1 %)
+     foerer   n=  1440  +1.2526 +/- 0.3571  trimmet +1.3817  z=+4.07
+     makker   n=  1440  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  2880  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+sik:foerer:2.0:24:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  5760  +0.1255 +/- 0.0318 (+3.95 SE)  trimmet +0.0000  tegn 82/17 (z=+6.53)
+   avgjorte giver: 99 av 5760 (1.7 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     foerer   n=  1440  +0.5021 +/- 0.1266  trimmet +0.0026  z=+6.53
+     makker   n=  1440  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  2880  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  5760  +0.0000 +/- 0.0000 (+0.00 SE)  trimmet +0.0000  tegn 0/0 (z=+0.00)
+     foerer   n=  1440  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     makker   n=  1440  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  2880  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.

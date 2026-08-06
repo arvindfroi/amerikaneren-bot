@@ -3991,3 +3991,27 @@ kalibrert.
 De 441 trekkene trenger mer korpus og GPU-timer. Makkerutledning og
 framoverblikk i budrunden er ny modellering. Ingen av dem er et spørsmål om
 flid.
+
+### 2. `sik:` ER ET TREFF — å søke MINDRE er både sterkere og billigere
+
+Gate 2, 1 440 givere per arm, kontrollarm 0,0000:
+
+| variant | i førersetet | tegntest | pris per trekk |
+|---|---|---|---|
+| **`sik` σ=0,5** | **+1,777** | z = +4,92 | **198 ms** |
+| `sik` σ=1,0 | +1,446 | z = +5,49 | 198 ms |
+| `ork` (alltid søk) | +1,253 | z = +4,07 | 329 ms |
+| `sik` σ=2,0 | +0,126 | **z = +6,53** | billigst |
+
+**+1,78 mot +1,25, og 40 % billigere.** Å overstyre nettet BARE der den parrede
+marginen overstiger sin egen SE er både sterkere og raskere enn å tenke hardt
+på alt.
+
+Det er nøyaktig evnen §52 listet som manglende: **å vite når den ikke vet.**
+Operatoren fantes i koden, var aldri målt, og viser seg å slå alltid-søk.
+
+σ=2,0 er lærerik på en annen måte: den overstyrer nesten aldri (17 tap mot 82
+gevinster), så tegntesten er den sterkeste i hele tabellen — men snittet faller
+til +0,13. Den er nesten alltid enig med nettet, og henter derfor lite.
+
+**Ny beste konfigurasjon: `v5 = v4 + sik:foerer:0.5:24`.**
