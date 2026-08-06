@@ -46,6 +46,16 @@ const FRØ = tall(arg("--froe", "900000"), 900000, "froe");
 const GIVER = tall(arg("--giver", "150"), 150, "giver");
 const TERSKEL = tall(arg("--terskel", "5"), 5, "terskel");
 const UT = arg("--ut", "analyse/sluttspill-tak.jsonl");
+/**
+ * `--vindu tidlig` flytter taket til ÅPNINGEN i stedet for sluttspillet:
+ * beste svar over de `terskel` FØRSTE beslutningene våre, deretter vanlig
+ * policy ut runden.
+ *
+ * Det er kontrasten som avgjør hvor verdien ligger. `fanget` er 0,830 i stikk
+ * 10 mot 0,23–0,29 i stikk 0–4, men `fanget` er et forholdstall mot et gulv —
+ * det sier ikke hvor mange POENG som ligger i hver ende. Dette gjør.
+ */
+const TIDLIG = arg("--vindu", "sein") === "tidlig";
 
 const nyeAndre = () => [0, 1, 2, 3].map(() => lagIndre(ADAMS));
 
@@ -71,7 +81,17 @@ function beste(state: GameState, vårt: number, dybde: number): { poeng: number;
   }
 
   const lovlige = lovligeKort(s, vårt);
-  if (lovlige.length === 0 || dybde <= 0) return { poeng: poengFor(s, vårt), kort: null };
+  if (lovlige.length === 0) return { poeng: poengFor(s, vårt), kort: null };
+
+  /**
+   * BUDSJETTET ER OPPBRUKT — men runden er ikke over. Da må VÅRT sete spille
+   * videre med sin egen policy til slutt, ikke stoppe med 0 poeng.
+   *
+   * Stoppet den her, ville alle linjer fått samme bladverdi og «taket» blitt
+   * ren støy. Det er nøyaktig den feilen som gjør at et tak ser lavt ut fordi
+   * målingen er ødelagt, ikke fordi potten er liten.
+   */
+  if (dybde <= 0) return { poeng: poengFor(spillUt(s), vårt), kort: null };
 
   let bestP = -Infinity;
   let bestK: Handling | null = null;
@@ -85,6 +105,19 @@ function beste(state: GameState, vårt: number, dybde: number): { poeng: number;
     }
   }
   return { poeng: bestP, kort: bestK };
+}
+
+/** Spiller runden ut med ALLE seter på sin egen policy. */
+function spillUt(start: GameState): GameState {
+  const ag = nyeAndre();
+  let s = start;
+  let vakt = 0;
+  while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && vakt++ < 400) {
+    const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+    if (iTur === null || iTur === undefined) break;
+    s = utfør(s, ag[iTur]!.velgHandling(s)).state;
+  }
+  return s;
 }
 
 function poengFor(s: GameState, sete: number): number {
@@ -102,8 +135,14 @@ function medTak(frø: number, vårt: number, bruk: boolean) {
     const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
     if (iTur === null || iTur === undefined) break;
     let h: Handling;
-    if (bruk && iTur === vårt && s.fase === "SPILL" && (s.hender[vårt]?.length ?? 0) <= TERSKEL) {
-      h = beste(s, vårt, TERSKEL).kort ?? ag[iTur]!.velgHandling(s);
+    const igjen = s.hender[vårt]?.length ?? 0;
+    const kortPer = s.giving.kortPerSpiller;
+    // Sein: de TERSKEL siste beslutningene. Tidlig: de TERSKEL foerste.
+    // Budsjettet er hvor mange av VAARE beslutninger som gjenstaar i vinduet,
+    // og det er nettopp det `beste` skal forgreine seg over.
+    const budsjett = TIDLIG ? igjen - (kortPer - TERSKEL) : Math.min(igjen, TERSKEL);
+    if (bruk && iTur === vårt && s.fase === "SPILL" && budsjett > 0) {
+      h = beste(s, vårt, budsjett).kort ?? ag[iTur]!.velgHandling(s);
     } else {
       h = ag[iTur]!.velgHandling(s);
     }
@@ -137,7 +176,7 @@ for (let g = 0; g < GIVER; g++) {
   }
 }
 
-console.log(`# EKTE TAK, beste svar mot faktiske motstandere, terskel=${TERSKEL}, n=${n}`);
+console.log(`# EKTE TAK, beste svar mot faktiske motstandere, vindu=${TIDLIG ? "tidlig" : "sein"}, terskel=${TERSKEL}, n=${n}`);
 console.log(`snitt poenggevinst per runde: ${(sum / n).toFixed(4)}`);
 console.log(`bedre: ${bedre}   daarligere: ${dårligere}   likt: ${n - bedre - dårligere}`);
 for (const [k, v] of Object.entries(perRolle)) {

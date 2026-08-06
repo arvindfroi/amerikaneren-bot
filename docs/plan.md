@@ -4290,3 +4290,65 @@ Førerraden er gyldig, og det er den som bærer resultatet.
 
 Det ekte taket — beste svar mot de FAKTISKE motstanderne, med klarsyn — måles
 av `examples/sluttspill-tak.ts` og rapporteres i §59.
+
+## 59. DET EKTE TAKET I SLUTTSPILLET — +0,95 poeng, og det ligger i 1,6 % av givene
+
+`juks:` var et tak på FEIL spill (§58). `examples/sluttspill-tak.ts` måler det
+riktige: vårt sete forgreiner seg over alle lovlige kort de siste k stikkene,
+de tre andre spiller sin EKTE policy, og bladet er rundens poeng. Det er per
+definisjon det beste noen sluttspillstrategi kan oppnå mot dette bordet — med
+klarsyn attpåtil. Ingen CFR-løsning og ingen tabellbase kan slå det.
+
+`analyse/tak-t5.txt`, 250 giver × 4 seter, terskel 5:
+
+```
+snitt poenggevinst per runde: +0,9470
+bedre: 72   daarligere: 0   likt: 928
+  foerer   n= 250  +2,5440
+  annet    n= 750  +0,4147
+```
+
+**Så jeg tok feil i §56–58 da jeg skrev at sluttspillet var «allerede løst».**
+Det er 0,95 poeng per runde der. Til sammenlikning målte vekslingskursen
++0,127 poeng → −4,79 prosentpoeng menneskelig seiersrate.
+
+### Men strukturen er alt
+
+```
+giver med gevinst:            72 av 1000  (7,2 %)
+snitt DER det var noe:        +13,15
+  0–1 poeng:   36 giver, sum    36
+  1–5 poeng:    7 giver, sum    15
+ 10–20 poeng:  13 giver, sum   260
+ 20–100 poeng: 16 giver, sum   636
+
+foerer  traff 16 av 250 (6,4 %)  naar den traff: +39,8
+annet   traff 56 av 750 (7,5 %)  naar den traff:  +5,6
+```
+
+**To tredeler av hele potten ligger i 16 giver av 1000.** Og +39,8 er ikke et
+tilfeldig tall: budlagets poeng er ±2n, så å snu en kontrakt fra tapt til
+klart er verdt 4n ≈ 36–40 ved bud 9–10. Det er nøyaktig kontraktvipp.
+
+Nettet spiller altså de siste fem stikkene optimalt i **92,8 %** av givene. Der
+det bommer, bommer det på en beslutning som avgjør hele kontrakten.
+
+Det endrer hva som er verdt å bygge: ikke en generelt bedre sluttspiller, men
+noe som kjenner igjen de sjeldne stillingene der ett kort avgjør kontrakten —
+og de er per konstruksjon de stillingene der man må gjette riktig om hvor et
+nøkkelkort sitter. Hvor mye av de 0,95 som overlever UTEN klarsyn er derfor
+det åpne spørsmålet, ikke om potten finnes.
+
+### Revisjon som følger av §58
+
+Er DD gift ved dette bordet, må ingen live modul bruke det. Sjekket:
+
+| modul | DD | i live Adams |
+|---|---|---|
+| `src/moe2/sdkort.ts` (kortsøket) | nei, kun `intTilKort` | **ja** |
+| `examples/sd-orakel.ts` (etikettene) | nei, `vurderKortSD` med policy-utspilling | **ja** |
+| `src/e1/orakel.ts` | ja (`evaluerEtterTrekk`) | nei — bare NEAT-verktøy |
+| `src/moe2/sdvrak.ts` | ja (`evaluerHybrid`) | nei — bare benk og test |
+
+Stakken er DD-fri i spill. Det er en sannsynlig forklaring på at søket måler
++1,78: det ruller ut med den policyen som faktisk sitter ved bordet.
