@@ -145,7 +145,7 @@ export const STANDARDNETT = "e1-modell/d7alle.bin";
  */
 export const ADAMS_V6 =
   "okt:vr:e1-modell/vrakrang.bin:telrd:" +
-  "amu:foerer:12k16sm1e0.25r0.4:" +
+  "amu:foerer:12k16sm1e0.25r1.5:" +
   "profil:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin";
 
 /**
@@ -198,7 +198,7 @@ export const ADAMS_V6 =
  */
 export const ADAMS_V7 =
   "okt:vr:e1-modell/vrakrang.bin:telrd:" +
-  "amu:alle:12k16bgm1e0.25r0.4:" +
+  "amu:alle:12k16bgm1e0.25r1.5:" +
   "profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:" +
   "vakt:abmpf:e1:e1-modell/d7alle.bin";
 
@@ -226,7 +226,7 @@ export const ADAMS_V7 =
  */
 export const ADAMS_V6_FULL =
   "okt:vr:e1-modell/vrakrang.bin:telrd:" +
-  "amu:foerer:24k32sm2e0.25r0.4:" +
+  "amu:foerer:24k32sm2e0.25r1.5:" +
   "profil:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin";
 
 /**

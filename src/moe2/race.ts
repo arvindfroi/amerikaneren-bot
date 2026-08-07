@@ -86,8 +86,73 @@ export function snittOgSpredning(v: readonly number[]): { snitt: number; spredni
  * regelen. Det er standardverdien, så ingen måling endrer seg før noen ber om
  * det.
  */
+/**
+ * Kvantilen i en utfallsvektor, med lineær interpolasjon.
+ *
+ * Alpha-mu gir oss HELE fordelingen per kandidat — én verdi per verden — så vi
+ * trenger ikke nøye oss med snitt og spredning. Det er nettopp det som gjør
+ * kvantilformen mulig her og ikke i en PIMC som bare returnerer et snitt.
+ */
+function kvantil(v: readonly number[], q: number): number {
+  if (v.length === 0) return 0;
+  if (v.length === 1) return v[0]!;
+  const s = [...v].sort((a, b) => a - b);
+  const i = Math.min(s.length - 1, Math.max(0, q * (s.length - 1)));
+  const lo = Math.floor(i);
+  const hi = Math.ceil(i);
+  return lo === hi ? s[lo]! : s[lo]! + (s[hi]! - s[lo]!) * (i - lo);
+}
+
+/**
+ * Racejustert score for en kandidat.
+ *
+ * `lambda` = 0 gir NØYAKTIG snittet, altså bit-identisk med å ikke bruke
+ * regelen. Det er standardverdien, så ingen måling endrer seg før noen ber om
+ * det.
+ *
+ * ================= FORMEN VAR ASYMMETRISK, OG HALVE KNOTTEN VAR DØD =====
+ *
+ * Den sto `snitt + lambda * press * spredning`. K5-prøven målte hva det
+ * betyr i praksis, med kampstillingen holdt fast:
+ *
+ *     ligger BAK   (press > 0)   **0 av 20** valg endret seg
+ *     ligger FORAN (press < 0)     4 av 20 valg endret seg
+ *
+ * Årsaken er strukturell, ikke statistisk: grenen med høyest snitt har som
+ * regel også størst spredning. Et POSITIVT ledd løfter da den som allerede
+ * ledet, og argmaks flytter seg ikke. Bare det negative leddet kunne velte et
+ * valg.
+ *
+ * Kravet er «å ligge under skal gi mer risiko, å lede mindre». Den første
+ * halvdelen var altså aldri demonstrert.
+ *
+ * ================= KVANTILEN FIKSER DET, OG ER RIKTIGERE ================
+ *
+ * Ligger vi bak, vil vi ha den grenen som kan gi MYE — altså en øvre kvantil.
+ * Leder vi, vil vi ha den som ikke kan gi lite — en nedre. Begge kan velte et
+ * valg, fordi en gren med høyt snitt og elendig hale taper på den nedre, og en
+ * med lavt snitt og god hale vinner på den øvre.
+ *
+ * Blandingen mot snittet gjør nullpunktet eksakt: ved `lambda = 0` er vekten 0
+ * og scoren er snittet, bit for bit. Uten det kunne ingen sveip starte fra noe
+ * kjent.
+ */
 export function racescore(vektor: readonly number[], press: number, lambda: number): number {
-  const { snitt, spredning } = snittOgSpredning(vektor);
+  const { snitt } = snittOgSpredning(vektor);
   if (lambda === 0 || press === 0) return snitt;
-  return snitt + lambda * press * spredning;
+  /**
+   * RETNINGEN STYRES AV `lambda * press`, IKKE AV `press` ALENE.
+   *
+   * Første utgave regnet `vekt = |lambda*press|` og valgte så kvantil på
+   * fortegnet til `press`. Da forsvant lambdas fortegn helt: `lambda = -1,5`
+   * oppførte seg NØYAKTIG som `+1,5`, og parameteren hadde ingen retning.
+   *
+   * K5-prøvens falsifiseringsarm fanget det med en gang — den kjører samme
+   * kriterium med knotten vendt feil vei og krever at den ryker. Uten den
+   * armen ville jeg hatt en grønn retningstest på en knott uten retning.
+   */
+  const x = lambda * press;
+  const vekt = Math.min(1, Math.abs(x));
+  const q = x > 0 ? 0.5 + 0.5 * vekt : 0.5 - 0.5 * vekt;
+  return (1 - vekt) * snitt + vekt * kvantil(vektor, q);
 }

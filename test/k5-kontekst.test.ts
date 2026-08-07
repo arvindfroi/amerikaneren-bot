@@ -68,7 +68,22 @@ import { målK5, type K5Resultat } from "../examples/k5-kontekst.ts";
  */
 const GIVER = 3;
 const FRØ = 5_100_000;
-const LAMBDA = 0.4;
+/**
+ * LAMBDA MAATTE OPP DA FORMEN BLE RETTET.
+ *
+ * Den gamle scoren var `snitt + lambda*press*spredning` - et ADDITIVT ledd som
+ * med spredning ~5,5 ga 0,4*0,36*5,5 ≈ 0,79. Den nye er en kvantilblanding som
+ * vekter |lambda*press|, saa 0,4 gir bare 0,144. Samme tall betyr altsaa helt
+ * ulik styrke i de to formene.
+ *
+ * Formskiftet var noedvendig fordi det POSITIVE leddet aldri kunne velte et
+ * valg: grenen med hoeyest snitt har som regel ogsaa stoerst spredning. Maalt:
+ * 0 av 20 endringer naar Adams laa BAK, 4 av 20 naar han ledet.
+ *
+ * 1,5 gir vekt 0,54 ved press 0,36, og `test/race.test.ts` laaser saken formen
+ * maa klare: BAK velter til en risikabel gren med LAVERE snitt.
+ */
+const LAMBDA = 1.5;
 const RAPPORT = "analyse/k5-kontekst-test.txt";
 
 const linjer: string[] = [`# K5-proeven kjoert ${new Date().toISOString()} (giv ${GIVER}, froe ${FRØ})`];
@@ -105,9 +120,9 @@ const husk = (nøkkel: string, lag: () => K5Resultat): K5Resultat => {
   return buf.get(nøkkel)!;
 };
 
-/** BAK 70–90 mot FORAN 90–70, λ=0.4. Det AdamsMax.md ber om, ordrett. */
+/** BAK 70–90 mot FORAN 90–70, λ=1,5. Det AdamsMax.md ber om, ordrett. */
 const kontekst = (): K5Resultat =>
-  husk("BAK 70-90 mot FORAN 90-70 (l=0.4)", () =>
+  husk("BAK 70-90 mot FORAN 90-70 (l=1.5)", () =>
     målK5({ giver: GIVER, frøBase: FRØ, lambda: LAMBDA, egne: 70, motstander: 90 }),
   );
 
@@ -151,7 +166,7 @@ test("K5: diagnosen - i hver maaling prosjektet har gjort er racepresset EKSAKT 
   }
   const v = [1, 4, 9, 16];
   assert.equal(
-    racescore(v, racepress(s, 0), 0.4),
+    racescore(v, racepress(s, 0), LAMBDA),
     racescore(v, 0, 0),
     "med press = 0 maa racescore vaere NOEYAKTIG snittet - ellers lekker knotten inn i gate 2",
   );
@@ -257,7 +272,7 @@ test("K5: retningen - aa LEDE skal gi mindre risiko, ikke bare et annet kort", (
     r.ulike > 0,
     `racepresset endret INGEN av ${r.stillinger} valg naar Adams leder 90-70, selv om ` +
       `presset er ${r.pressForan.toFixed(3)} og racejusteringen fyrte ${r.racejustert} ganger. ` +
-      `Da er «r0.4» en parameter uten virkning.`,
+      `Da er «r1.5» en parameter uten virkning.`,
   );
   assert.ok(
     bestårRetning(r),
@@ -284,7 +299,7 @@ test("K5: proeven kan FEILE - en knott som er vendt feil vei blir tatt", () => {
    * ledet og flytter ingenting. Bare det NEGATIVE leddet kan velte et valg.
    * Snudd knott = bare loeft = ingen virkning = ingen tilpasning.
    */
-  const vendt = lambdaarm("foran", -0.4);
+  const vendt = lambdaarm("foran", -LAMBDA);
   assert.ok(vendt.stillinger >= 5, `bare ${vendt.stillinger} stillinger`);
   assert.equal(
     bestårRetning(vendt),
