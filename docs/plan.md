@@ -6742,3 +6742,80 @@ Med porten rettet er den ærlige spådommen todelt:
 * **5 %-målet nås ikke av destillasjon alene.** Takkartet peker på budrunden
   (41,8 % av alt som er å hente), og der har tre forsøk målt null. Det er der
   neste ekte gevinst må komme fra — ikke fra flere rader.
+
+## 98. GRENSEN: søket står påslått der gapet er null, og avslått der tapet er
+
+Arvind: «hvorfor klarer den ikke å bli bedre nå? den har jo så mye mer
+redskaper? … jeg leter etter at du finner noe som hindrer fremgangen eller at
+vi har satt en implisitt (eller eksplisitt) grense.»
+
+Grensen er eksplisitt, og den står i `ADAMS_V6`:
+
+    amu:foerer:12k16sm1e0.25r0.4
+
+**Søket kjører bare i førersetet.** `Alphamuagent.velgHandling` returnerer
+`indre.velgHandling(state)` uten å søke i det hele tatt for alle andre roller.
+
+Og fasegapet mot MesterAI (`analyse/mesterai-fasegap.txt`, 879 runder) sier
+hvor poengene faktisk går tapt:
+
+| rolle | andel av setene | vår p/rd | MesterAI | diff |
+|---|---|---|---|---|
+| spillefører | 27 % | +8,45 | +8,45 | **+0,00** |
+| makker | 22 % | +4,10 | +4,32 | **−0,22** |
+| forsvarer | 50 % | +1,07 | +1,19 | **−0,12** |
+
+Det dyreste verktøyet i stakken står påslått i det ENESTE setet der gapet er
+nøyaktig null, og avslått i de to rollene der hele tapet ligger — altså for
+**73 % av setene**.
+
+Det forklarer også hvorfor destillasjonen ikke flytter noe: etikettene lages av
+et søk som ikke kjører i tre firedeler av stillingene. Nettet kan ikke lære en
+lærer som ikke underviser der.
+
+### Hvorfor det ble slik, og hvorfor grunnen ikke gjelder lenger
+
+Det finnes en målt grunn, §49:
+
+    fører alene        +0,542 (5,14 SE)   fører   +2,170 (z = +5,52)
+    fører + forsvar    +0,529 (3,99 SE)   forsvar −0,027 (z = −0,55)
+    «FORSVARSSØKET ER NULL.»
+
+Men den ble målt med `ork:` — PIMC-stil, som midler over verdener FØR valget og
+dermed later som vi får vite hvilken verden vi er i. Det er **strategifusjon**,
+og den er ikke en detalj i dette prosjektet: den drepte `eks:` og `juks:`.
+
+Fusjonen slår hardest nettopp i forsvar. Som fører legger man én plan for et
+spill man i stor grad styrer; som forsvarer avhenger riktig kort av hva makker
+vet og gjør, og «midle over verdener» er da maksimalt galt.
+
+**Alpha-mu ble bygget for å fjerne strategifusjon.** Nullmålingen på
+forsvarssøk er altså tatt med den operatoren som HAR feilen, og aldri gjentatt
+med den som retter den. En gammel null fra et ødelagt instrument låser
+konfigurasjonen for 73 % av setene.
+
+Det er samme mønster som §97, en dag på rad: en beslutning styrt av en måling
+som ikke kunne svare på spørsmålet den ble brukt til.
+
+### Målingen som er startet
+
+`verktoy/rollesok.sh`: kandidat `amu:alle`, miljø `amu:foerer`, alt annet likt.
+4 000 giv over 20 skard gir SE ≈ **±0,052**, nok til å se +0,10 med to SE
+margin. Gate 2 bryter ned per rolle, så svaret kommer der spørsmålet er.
+
+M=1 er et screeningvalg: M=2 koster 5,3x og ville tatt ~30 timer. alpha-mu med
+M=1 er allerede fusjonsfri ved selve beslutningen, som er den vi måler.
+
+Generatorene er stoppet for å gi målingen hele maskinen (24 kjerner, 20 skard).
+Korpusene består: gen1 4 209, arm A 52 271, arm B 24 156, arm C 23 213 rader.
+Ti bakgrunnsløkker kjørte, ikke to — flere foreldreløse fra `pkill`-feilen i
+§95. Alle stoppet.
+
+### Spådom, satt før tallet
+
+Forsvar er 50 % av setene og har det minste gapet per runde (−0,12), makker
+22 % og −0,22. Klarer alpha-mu halvparten av makkergapet, er det ~+0,02 per
+runde samlet — under det denne målingen kan se. Det mest sannsynlige utfallet
+er derfor **null på totalen, men et lesbart per-rolle-tall** som sier om
+retningen finnes. Er forsvarstallet positivt denne gangen der `ork:` ga −0,027,
+er det fusjonen som var problemet, og da er M=2 verdt de 30 timene.
