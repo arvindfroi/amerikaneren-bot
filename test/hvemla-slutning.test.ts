@@ -136,7 +136,22 @@ test("kastet av naar stikket alt var trumfet HOEYERE -> ingen slutning", () => {
  * SLUTNING 4 — LENGDE. Svak med vilje: et fordelingsargument, ikke en
  * observasjon om et bestemt kort. Derfor POSITIV vekt, ikke straff.
  */
-test("lengde: fulgte du en farge flere ganger, er flere igjen mer forenlig", () => {
+/**
+ * DENNE TESTEN HEVDET DET MOTSATTE, OG DEN TOK FEIL.
+ *
+ * Den het «fulgte du en farge flere ganger, er flere igjen mer forenlig» og
+ * haandhevet `VEKT_LENGDE = +0,15`. `examples/slutning-kalibrer.ts` maalte
+ * hellingen over 1 870 (sete, farge)-par: **-0,671**. Motsatt vei, og
+ * aapenbart i ettertid - kortene du spilte er borte.
+ *
+ * Testen var altsaa en KODIFISERT ANTAKELSE, ikke en maaling, og den holdt en
+ * feil paa plass: A1 maalte daarligere trosnoeyaktighet enn INGEN slutning
+ * (0,9624 mot 0,9509). Etter kalibreringen: 0,9559.
+ *
+ * Den er ikke slettet, den er snudd - og forventningen kommer naa fra den
+ * maalte regresjonslinja i stedet for fra en antakelse.
+ */
+test("lengde: fulgte du en farge flere ganger, er FAERRE igjen mer forenlig", () => {
   const to = [
     { kort: k("S", 13), spiller: 0 },
     { kort: k("S", 9), spiller: 1 },
@@ -149,9 +164,16 @@ test("lengde: fulgte du en farge flere ganger, er flere igjen mer forenlig", () 
     ],
     bord: [],
   } as unknown as GameState;
-  const lang = spillForenlighet(s, [[], [k("S", 2), k("S", 3)], [], []], 0);
-  const kort = spillForenlighet(s, [[], [k("R", 2), k("R", 3)], [], []], 0);
-  assert.ok(lang > kort, `lengde skal vektes opp (${lang} mot ${kort})`);
+  // Sete 1 fulgte spar TO ganger. Maalt forventning: 1,089 - 0,671*(2 - 1,449)
+  // = 0,72 kort igjen i spar. En verden som gir dem TO er derfor mindre
+  // forenlig enn en som gir dem null.
+  const mange = spillForenlighet(s, [[], [k("S", 2), k("S", 3)], [], []], 0);
+  const faa = spillForenlighet(s, [[], [k("R", 2), k("R", 3)], [], []], 0);
+  assert.ok(
+    faa > mange,
+    `etter aa ha fulgt spar to ganger skal FAERRE spar igjen vaere mer forenlig ` +
+      `(faa ${faa} skal slaa mange ${mange}) - maalt helling -0,671`,
+  );
 });
 
 /**

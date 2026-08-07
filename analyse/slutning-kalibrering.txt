@@ -1,0 +1,29 @@
+# A1-KONSTANTENE, MÅLT  (200 giv, spek vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json…)
+
+regel                            n   lot være    andel      log   i koden
+---------------------------------------------------------------------------
+kunne vinne, vant ikke        2138        360    16.8%    1.782     1.000
+kunne trumfe, gjorde ikke      435        131    30.1%    1.200     1.500
+
+lengdehelling (igjen per fulgt): -0.6711   i koden: +0.1500   (n = 1870)
+  snitt fulgt 1.449, snitt igjen 1.089, residual-sd 1.070
+
+FORTEGNET I KODEN ER FEIL. Regelen gir +0,15 per «min(fulgt, igjen)»,
+altsaa «jo mer du fulgte, jo mer har du igjen». Dataene sier det
+motsatte, og det er aapenbart i ettertid: kortene du spilte er borte.
+
+FORESLAATTE KONSTANTER:
+  STRAFF_IKKE_VANT    = 1.782
+  STRAFF_IKKE_TRUMFET = 1.200
+  LENGDE_SNITT        = 1.089
+  FULGT_SNITT         = 1.449
+  LENGDE_HELLING      = -0.671
+  LENGDE_SD           = 1.070
+
+SLIK LESES DE. Vektene er LOG-SANNSYNLIGHETER, ikke smaksvalg. En spiller
+som IKKE kunne vinne lar være med sannsynlighet 1, og log 1 = 0 - derfor
+ER -log P(lot være | kunne) hele likelihood-forholdet.
+
+Avviker en målt verdi fra koden, peker slutningen systematisk feil vei,
+og en skarp gal tro er verre enn ingen tro. Det var nøyaktig det
+trosnøyaktigheten viste: A1 målte 0,9624 mot 0,9509 for ingen slutning.

@@ -53,9 +53,55 @@ import type { GameState } from "../motor.ts";
 import { intTilKort } from "../solver/dds.ts";
 
 /** Straffene. Kalibrerte antakelser, ikke målinger — skal sveipes. */
-export const STRAFF_IKKE_VANT = 1.0;
-export const STRAFF_IKKE_TRUMFET = 1.5;
-export const VEKT_LENGDE = 0.15;
+/**
+ * ============ KONSTANTENE ER MAALT, IKKE SATT ==========================
+ *
+ * Arvind: «prediksjonen burde ikke vaere normale regler men enten laering over
+ * tid eller matematiske formler» - og «hvis de er daarlige saa maa du fikse det
+ * ikke fjerne de».
+ *
+ * A1 maalte VERRE enn ingen slutning i det hele tatt paa trosnoeyaktighet
+ * (log-tap 0,9624 mot 0,9509 for «av»). Grunnen var ikke at ideen er feil, men
+ * at tallene var gjettet - og en log-vekt er ingen smakssak. Hver av dem er en
+ * presis empirisk paastand, og `examples/slutning-kalibrer.ts` maaler den.
+ *
+ * Maalt over 200 giv (Adams mot Adams):
+ *
+ *     regel                        n     lot vaere    -log      var
+ *     kunne vinne, vant ikke    2 138       16,8 %   1,782     1,000
+ *     kunne trumfe, gjorde ikke   435       30,1 %   1,200     1,500
+ *
+ * Vekten ER -log P(lot vaere | kunne), fordi en spiller som IKKE kunne vinne
+ * lar vaere med sannsynlighet 1 og log 1 = 0. Det er hele likelihood-forholdet,
+ * ikke en heuristikk.
+ *
+ * Skiftes spillestilen, skal disse maales paa nytt - de beskriver hvordan
+ * MOTSTANDERNE spiller, ikke en regel i spillet.
+ */
+export const STRAFF_IKKE_VANT = 1.782;
+export const STRAFF_IKKE_TRUMFET = 1.2;
+
+/**
+ * ============ LENGDEREGELEN HADDE FEIL FORTEGN ==========================
+ *
+ * Den gamle regelen var `logW += 0.15 * min(fulgt, igjen)`: «jo flere ganger
+ * du fulgte fargen, jo flere kort har du igjen i den».
+ *
+ * **Maalt helling: -0,671.** Motsatt vei, og aapenbart i ettertid - kortene du
+ * spilte er borte. Regelen dro altsaa troen systematisk feil vei, og en skarp
+ * gal tro er verre enn ingen tro.
+ *
+ * Formen er ogsaa endret. `min(fulgt, igjen)` beloenner monotont flere kort,
+ * mens sammenhengen er en FORVENTNING med spredning. Naa brukes den gaussiske
+ * likelihooden rundt den maalte regresjonslinja, som er den matematisk riktige
+ * formen for «hvor forenlig er dette antallet med det vi har sett».
+ *
+ * Maalt over 1 870 (sete, farge)-par ved stikk 6.
+ */
+export const LENGDE_SNITT = 1.089;
+export const FULGT_SNITT = 1.449;
+export const LENGDE_HELLING = -0.671;
+export const LENGDE_SD = 1.07;
 
 /** Hva hvert sete har gjort, utledet av historikken alene. */
 export interface Spillerspor {
@@ -174,8 +220,9 @@ export function hvemLaForenlighet(
    * SLUTNING 4: LENGDE. Har et sete fulgt en farge mange ganger, hadde det
    * lengde der, og en verden som gir det flere igjen er mer forenlig.
    *
-   * Svak med vilje (`VEKT_LENGDE` er en tidel av de andre): den er et
-   * fordelingsargument, ikke en observasjon om et bestemt kort.
+   * Formen er en GAUSSISK LIKELIHOOD rundt den maalte regresjonslinja, ikke
+   * en monoton beloenning: sammenhengen er en forventning med spredning, og
+   * `LENGDE_SD` er den maalte residualspredningen (1,070).
    */
   const spor = hvemLaSpor(state, hender.length);
   for (let p = 0; p < hender.length; p++) {
@@ -184,7 +231,12 @@ export function hvemLaForenlighet(
       const fulgt = spor[p]!.fulgt[f];
       if (fulgt < 2) continue;
       const igjen = (hender[p] ?? []).filter((k) => k.farge === f).length;
-      logW += VEKT_LENGDE * Math.min(fulgt, igjen);
+      // Gaussisk likelihood rundt den MAALTE regresjonslinja. Konstantleddet
+      // (-log(sigma*sqrt(2pi))) er likt for alle verdener og utelates: bare
+      // FORSKJELLER mellom kandidater betyr noe for trekningen.
+      const forventet = LENGDE_SNITT + LENGDE_HELLING * (fulgt - FULGT_SNITT);
+      const avvik = igjen - forventet;
+      logW -= (avvik * avvik) / (2 * LENGDE_SD * LENGDE_SD);
     }
   }
 
