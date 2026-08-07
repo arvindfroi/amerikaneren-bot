@@ -51,8 +51,7 @@ i alle fire seter.
 
 > «aldri jukse»
 
-**Prøven — og den finnes ikke ennå.** Dette er det eneste kravet som kan
-avgjøres HELT, uten statistikk:
+**Prøven.** Dette er det eneste kravet som kan avgjøres HELT, uten statistikk:
 
 > Konstruér to spilltilstander som er **identiske i alt Adams lovlig kan se**
 > (egen hånd, bordet, historikken, budrunden) men **ulike i de skjulte
@@ -74,11 +73,10 @@ den halvdelen ville den grønne testen betydd «måler ingenting» like gjerne s
 sampler. Beviset sier «Adams bruker ikke informasjon utover det samplerens
 forenlighetsbegrep tillater». Er samplerens begrep feil, arver prøven feilen.
 
-Risikoen er reell og konkret: `medVerden`, `spillerVisning` og
+Risikoen var reell og konkret: `medVerden`, `spillerVisning` og
 verdenstrekningen håndterer skjulte kort hver eneste beslutning. En lekkasje
-der ville ikke krasjet — den ville bare gjort Adams uforklarlig god.
-
-**Dette bygges først.** Uten det er hvert eneste tall i fila her uten verdi.
+der ville ikke krasjet — den ville bare gjort Adams uforklarlig god, og hvert
+tall i fila her verdiløst. Nå er den utelukket.
 
 ---
 
