@@ -98,6 +98,19 @@ function spillKamp(
   let vakt = 0;
   while (s.fase !== "FERDIG" && vakt++ < 200_000) {
     if (s.fase === "RUNDE_SLUTT") {
+      /**
+       * LA AGENTENE BOKFOERE RUNDEN FOER KORTENE DELES UT PAA NYTT.
+       *
+       * `Profilbok.observer` bokfoerer bare paa `RUNDE_SLUTT`, og den ble bare
+       * kalt fra `velgHandling`. Denne loekka haandterer fasen selv, saa ingen
+       * agent ble noensinne spurt her - maalt **0 bokfoerte runder** mot 25 med
+       * tikket paa.
+       *
+       * Konsekvensen var at K6 («laere andre spilleres vaner ila spillet») var
+       * strukturelt umaalbar paa den eneste benken som spiller kamper lange nok
+       * til at noen kunne laert noe.
+       */
+      for (const a of agenter) (a as { observer?(x: GameState): void }).observer?.(s);
       s = utfør(s, { type: "NESTE" }).state;
       continue;
     }

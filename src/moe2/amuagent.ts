@@ -120,6 +120,15 @@ export class Alphamuagent {
     this.indre.nyKamp();
   }
 
+  /**
+   * Videresender bokfoeringskroken. Uten den naar `observer` aldri
+   * `Profilagent`, som ligger LENGER NED i stakken enn dette laget - og da er
+   * profilen tom paa kampbenken (maalt 0 bokfoerte runder mot 25 med tikk).
+   */
+  observer(state: GameState): void {
+    (this.indre as { observer?(s: GameState): void }).observer?.(state);
+  }
+
   velgHandling(state: GameState): Handling {
     if (state.fase !== "SPILL" || state.iTur === null) return this.indre.velgHandling(state);
     const sete = state.iTur;

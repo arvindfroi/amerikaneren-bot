@@ -1,0 +1,133 @@
+K6 — LÆRE MOTSTANDERNES VANER OG UTNYTTE DEM
+
+Adams:      okt:amu:alle:6k8bgm1e0.25r0.4:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0:vakt:abmpf:e1:e1-modell/d7alle.bin
+Basis:      vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+Stilisert:  trumftrekker (leder alltid trumf, legger alltid dyrest)
+Kamper:     2 per arm per motstander, til 300 poeng, maks 40 runder
+Frøbånd:    810000000 + k·7717
+MIN_RUNDER: 4 (økten tror ikke på noe før terskelen)
+Kjøretid:   1892 s
+
+g(k,r) = kant mot stilisert − kant mot nøytral, parret på identisk giv.
+Kant    = Adams' rundepoeng − snittet av de tre andres.
+
+=== ARM «okt-matet» ===
+  parrede runder             n = 72
+  K6.1 gevinst totalt        7.264 ± 1.533
+  runde 0–11  (før terskel)  6.792 ± 2.417  (n = 24)
+  runde 12+   (etter)        7.500 ± 1.974  (n = 48)
+  K6.2 vekst (sen − tidlig)  0.708 ± 3.120  z = 0.23
+  K6.2 stigning per runde    -0.0688 ± 0.1432  z = -0.48
+  profilboka så maks         17 bokførte runder om setet
+  aggressivitet lest         42 av 72 runder, snitt 0.52
+  A2-vrien ville fyrt        42 av 72 runder
+
+=== ARM «uten-okt» ===
+  parrede runder             n = 77
+  K6.1 gevinst totalt        4.736 ± 1.517
+  runde 0–11  (før terskel)  7.542 ± 2.507  (n = 24)
+  runde 12+   (etter)        3.465 ± 1.878  (n = 53)
+  K6.2 vekst (sen − tidlig)  -4.076 ± 3.132  z = -1.30
+  K6.2 stigning per runde    -0.2021 ± 0.1348  z = -1.50
+  profilboka så maks         0 bokførte runder om setet
+  aggressivitet lest         ALDRI (null i hver runde)
+  A2-vrien ville fyrt        0 av 77 runder
+
+Gevinst per rundenummer (arm; g; n):
+  okt-matet      r= 0    -9.667  n=2
+  okt-matet      r= 1    15.333  n=2
+  okt-matet      r= 2     0.667  n=2
+  okt-matet      r= 3    10.667  n=2
+  okt-matet      r= 4     1.167  n=2
+  okt-matet      r= 5    12.167  n=2
+  okt-matet      r= 6    18.167  n=2
+  okt-matet      r= 7     0.333  n=2
+  okt-matet      r= 8     7.167  n=2
+  okt-matet      r= 9     2.500  n=2
+  okt-matet      r=10    10.667  n=2
+  okt-matet      r=11    12.333  n=2
+  okt-matet      r=12     0.167  n=2
+  okt-matet      r=13    18.333  n=2
+  okt-matet      r=14    29.333  n=2
+  okt-matet      r=15    11.500  n=2
+  okt-matet      r=16     3.833  n=2
+  okt-matet      r=17    -7.500  n=2
+  okt-matet      r=18    17.167  n=2
+  okt-matet      r=19    -0.333  n=2
+  okt-matet      r=20    28.167  n=2
+  okt-matet      r=21    -6.333  n=2
+  okt-matet      r=22     0.667  n=2
+  okt-matet      r=23    10.500  n=2
+  okt-matet      r=24     3.667  n=2
+  okt-matet      r=25    17.500  n=2
+  okt-matet      r=26    11.333  n=2
+  okt-matet      r=27    20.833  n=2
+  okt-matet      r=28     0.167  n=2
+  okt-matet      r=29    10.500  n=2
+  okt-matet      r=30     0.333  n=2
+  okt-matet      r=31     0.833  n=2
+  okt-matet      r=32     2.000  n=1
+  okt-matet      r=33     0.333  n=1
+  okt-matet      r=34     1.333  n=1
+  okt-matet      r=35     7.667  n=1
+  okt-matet      r=36     8.000  n=1
+  okt-matet      r=37     0.667  n=1
+  okt-matet      r=38    -1.667  n=1
+  okt-matet      r=39     0.333  n=1
+  uten-okt       r= 0    -9.667  n=2
+  uten-okt       r= 1    15.333  n=2
+  uten-okt       r= 2     0.667  n=2
+  uten-okt       r= 3    10.667  n=2
+  uten-okt       r= 4     1.167  n=2
+  uten-okt       r= 5    12.167  n=2
+  uten-okt       r= 6    18.167  n=2
+  uten-okt       r= 7     0.333  n=2
+  uten-okt       r= 8     7.000  n=2
+  uten-okt       r= 9    11.667  n=2
+  uten-okt       r=10    10.667  n=2
+  uten-okt       r=11    12.333  n=2
+  uten-okt       r=12     0.333  n=2
+  uten-okt       r=13    18.167  n=2
+  uten-okt       r=14     1.667  n=2
+  uten-okt       r=15    11.500  n=2
+  uten-okt       r=16     3.833  n=2
+  uten-okt       r=17     1.667  n=2
+  uten-okt       r=18    17.167  n=2
+  uten-okt       r=19    10.667  n=2
+  uten-okt       r=20    11.167  n=2
+  uten-okt       r=21   -10.333  n=2
+  uten-okt       r=22   -12.000  n=2
+  uten-okt       r=23     1.667  n=2
+  uten-okt       r=24     3.667  n=2
+  uten-okt       r=25    17.333  n=2
+  uten-okt       r=26     0.333  n=2
+  uten-okt       r=27     0.333  n=2
+  uten-okt       r=28     0.000  n=2
+  uten-okt       r=29     0.167  n=2
+  uten-okt       r=30     0.500  n=2
+  uten-okt       r=31     1.500  n=2
+  uten-okt       r=32     0.667  n=2
+  uten-okt       r=33    -0.167  n=2
+  uten-okt       r=34    -9.500  n=2
+  uten-okt       r=35    19.000  n=2
+  uten-okt       r=36    14.833  n=2
+  uten-okt       r=37     7.667  n=1
+  uten-okt       r=38     1.333  n=1
+  uten-okt       r=39   -33.667  n=1
+
+=== DOBBELTDIFFERANSE: okt-matet minus uten-okt, parret paa giv ===
+  dd(r) = g_okt-matet(r) - g_uten-okt(r). Positiv = oekten er verdt noe
+  mot den stiliserte UTOVER det enhver bot faar mot en svakere motpart.
+  alle runder      n = 72   2.653 +/- 1.235   z = 2.15
+  runde 0-11       n = 24   -0.750 +/- 0.765   z = -0.98
+  runde 12+        n = 48   4.354 +/- 1.769   z = 2.46
+
+  ADVARSEL OM KRAFTEN: bare TO froe. Rundene i samme kamp deler
+  poengstilling og agenttilstand, saa de er ikke uavhengige, og SE-ene
+  over er derfor for smaa. Tallene er retningsgivende, ikke avgjorte.
+
+
+  TEGNTEST paa dobbeltdifferansen (robust mot enkeltrunder):
+  runde 0-11   median    0.00   tegntest 1+/1-  z = 0.00   uendret 22
+  runde 12+    median    0.00   tegntest 23+/11-  z = 2.06   uendret 14
+

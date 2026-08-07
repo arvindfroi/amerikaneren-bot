@@ -248,6 +248,18 @@ export function tall(v: string | undefined, standard: number, navn: string): num
 export interface Spekagent {
   velgHandling(s: GameState): Handling;
   nyKamp(): void;
+  /**
+   * BOKFOER EN RUNDE UTEN AA SPOERRE OM ET TREKK. Valgfri: bare lag som laerer
+   * av rundeutfall trenger den, og bare drivere som haandterer `RUNDE_SLUTT`
+   * selv maa kalle den.
+   *
+   * Den finnes fordi `Profilbok.observer` bare bokfoerer paa `RUNDE_SLUTT`, og
+   * den ble bare kalt fra `velgHandling`. `examples/kamp.ts` utfoerer `NESTE`
+   * selv og spoer aldri en agent i den fasen - maalt 0 bokfoerte runder mot 25
+   * med tikk. Profilen, og dermed hele K6, var strukturelt tom i den ENESTE
+   * benken som spiller kamper lange nok til aa laere noe.
+   */
+  observer?(s: GameState): void;
 }
 
 /**
@@ -306,10 +318,7 @@ export interface Spekkontekst {
   økt?: Økt;
 }
 
-export function lagIndre(
-  indre: string,
-  ctx: Spekkontekst = {},
-): { velgHandling(s: GameState): Handling; nyKamp(): void } {
+export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
   if (indre === "nevro") return new NevroAgent();
   if (indre.startsWith("vakt:")) {
     const v = delVaktspek(indre);
@@ -552,6 +561,9 @@ export function lagIndre(
         økt.nyKamp();
         inn.nyKamp();
       },
+      // Bokfoeringskroken maa gjennom hit ogsaa - driveren holder DETTE
+      // objektet, og `Profilagent` ligger flere lag lenger ned.
+      observer: (s: GameState) => (inn as { observer?(x: GameState): void }).observer?.(s),
     };
   }
   if (indre.startsWith("amu:")) {

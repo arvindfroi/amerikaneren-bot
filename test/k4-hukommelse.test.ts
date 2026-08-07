@@ -302,36 +302,32 @@ test("K4 PROEVE A: hukommelsen ENDRER kortvalget gjennom A2 - naar den er koblet
   );
 
   /**
-   * OG SÅ BRYTES FORUTSETNINGEN. Samme prøve, samme frø, samme stillinger —
-   * bare uten forkamper, så økten ikke rekker over `MIN_RUNDER`.
+   * OG SÅ BRYTES FORUTSETNINGEN — men ikke slik den ble brutt før.
    *
-   * Dette er den andre halvdelen, og den er viktigere enn den første: den viser
-   * at prøven sier «ingen hukommelse» når det ikke ER noen, gjennom nøyaktig
-   * samme kodevei. En prøve som svarte 58 % uansett ville bestått alt over.
+   * Første utgave kjørte samme prøve med `forkamper: 0` og krevde at ingen
+   * sete nådde `MIN_RUNDER`. Det virket den gang fordi `Profilbok.runder`
+   * telte BUD, ikke runder: åtte spilte runder ga bare 2–3 bud, altså under
+   * terskelen på fire.
+   *
+   * Den telleren var en feil, og den er rettet — `runder()` teller nå `bydde`,
+   * som øker hver observerte runde. Da lærer økten INNENFOR selve målekampen,
+   * som er hele poenget med et øktminne, og `forkamper: 0` isolerer ingenting
+   * lenger.
+   *
+   * Den ekte nullarmen er den prøven allerede har: `tom = new Økt()`, en økt
+   * som aldri har sett en runde. `motpartFor` gir da basis uendret PER
+   * KONSTRUKSJON, og ruteren er en identitetsfunksjon. `endretNull` måles på
+   * nøyaktig samme stillinger og samme trukne verdener som `endret`.
    */
-  const uten = prøveA2({
-    giv: 2,
-    frøBase: FRØ,
-    målRunde: MÅLRUNDE,
-    forkamper: 0,
-    verdener: 8,
-    kandidater: 8,
-    maksPerGiv: 2,
-  });
-  assert.ok(uten.n >= 2, `den brutte armen fikk bare ${uten.n} kortstillinger`);
-  assert.ok(
-    uten.aggressivitet.every((x) => x === null),
-    `uten forkamper naadde et sete likevel MIN_RUNDER (${uten.aggressivitet.join(", ")}). ` +
-      `Da er ikke dette lenger en arm uten hukommelse, og sammenlikningen er ugyldig.`,
-  );
   assert.equal(
-    uten.endret,
+    a2.endretNull,
     0,
-    `uten hukommelse endret ${uten.endret} av ${uten.n} kortvalg seg likevel. Da maaler ` +
-      `A2-proeven noe annet enn hukommelse, og de ${a2.endret} over beviser ingenting.`,
+    `en oekt som ALDRI har sett en runde endret likevel ${a2.endretNull} av ${a2.n} ` +
+      `kortvalg. «motpartFor» skal gi basis uendret naar «aggressivitet» er null, ` +
+      `saa da maaler A2-proeven noe annet enn hukommelse - og de ${a2.endret} over ` +
+      `beviser ingenting.`,
   );
 });
-
 /**
  * ============ 7. PRØVE B — FRAMOVERBLIKKET ==============================
  *

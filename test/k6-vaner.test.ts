@@ -10,14 +10,17 @@
  *   2. Ser Adams vanen når han spiller? (Nei — profilboka fylles aldri.)
  *   3. Er `okt:` dermed bit-identisk med å ha laget AV? (Ja — og det gjør enhver
  *      måling av «okt: mot uten okt:» til en måling av ingenting.)
- *  3b. Ville økten nådd søket om boka HADDE vært full? (Nei — `vr:` kutter
- *      kontekstkjeden, og `vr:` står mellom `okt:` og `amu:` i V6 og V7.)
- *   4. VILLE han sett vanen om begge koblingene var hele? (Ja, men først etter
- *      tolv runder, ikke etter fire.)
+ *  3b. Ville økten nådd søket om boka HADDE vært full? (Den gjorde det ikke da
+ *      prøven ble skrevet: `vr:` droppet `ctx`, og `vr:` står mellom `okt:` og
+ *      `amu:` i både V6 og V7. Feilen er siden rettet i `agentspek.ts`, og
+ *      testen står igjen som VAKT mot at den kommer tilbake.)
+ *   4. VILLE han sett vanen om resten av koblingen var hel? (Ja, men først
+ *      etter tolv runder, ikke etter fire.)
  *
- * Punkt 2, 3 og 3b er prøvens «kan den feile»-halvdel, og de feiler. Hvert av
- * de tre bruddene er alene nok til å gjøre K6 eksakt null, og de er uavhengige:
- * å fikse ett av dem endrer ingenting.
+ * Punkt 2, 3 og 3b er prøvens «kan den feile»-halvdel. To av dem feiler ennå:
+ * boka fylles aldri (2), og terskelen teller bud i stedet for runder (4). Hvert
+ * av bruddene er alene nok til å gjøre K6 eksakt null, og de er uavhengige — å
+ * rette ett av dem endrer ingenting så lenge de andre står.
  */
 
 import { strict as assert } from "node:assert";

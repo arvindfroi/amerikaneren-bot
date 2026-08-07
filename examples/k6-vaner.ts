@@ -70,12 +70,14 @@
  * K6 til null. Alle tre er målt på ATFERD i `test/k6-vaner.test.ts`:
  *
  *   1. `Profilbok.observer` fyrer bare ved RUNDE_SLUTT, og ingen spillsløyfe
- *      spør en agent om noe i den fasen. Boka fylles aldri.
- *   2. `lagIndre` slipper ikke `Spekkontekst` gjennom `vr:`, som står mellom
- *      `okt:` og `amu:` i både V6 og V7. Økten når aldri fram. Se `K6_ADAMS`.
+ *      spør en agent om noe i den fasen. Boka fylles aldri. STÅR UFIKSET.
+ *   2. `lagIndre` slapp ikke `Spekkontekst` gjennom `vr:`, som står mellom
+ *      `okt:` og `amu:` i både V6 og V7. Økten nådde aldri fram. RETTET i
+ *      `agentspek.ts` mens prøven ble skrevet; testen står igjen som vakt.
  *   3. `MIN_RUNDER = 4` teller BUD, ikke runder: `Profilbok.runder` returnerer
  *      `profil.bud.n`, og et sete som passer teller ikke. Terskelen inntreffer
  *      i praksis rundt runde tolv — altså omtrent når en kamp til 100 er slutt.
+ *      STÅR UFIKSET.
  */
 
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
@@ -120,21 +122,22 @@ export const ARMER: readonly Arm[] = [
 /**
  * SPEKEN K6 I DET HELE TATT KAN MÅLES MED — og hvorfor det ikke er `ADAMS_V7`.
  *
- * V7 og V6 er begge skrevet `okt:vr:...:amu:...:profil:...`. Men `lagIndre`
- * sender `Spekkontekst` videre gjennom `vakt:`, `budm:`, `amu:`, `ork:` og
- * `eks:` — og IKKE gjennom `vr:`:
+ * V7 og V6 er begge skrevet `okt:vr:...:amu:...:profil:...`. Da prøven ble
+ * skrevet sendte `lagIndre` `Spekkontekst` videre gjennom `vakt:`, `budm:`,
+ * `amu:`, `ork:` og `eks:` — og IKKE gjennom `vr:`:
  *
  *     return new Vrakrangerer(lagIndre(rest.slice(b + 1)), nett, ...);
  *                             ^ ingen ctx
  *
- * Vrakrangereren står altså MELLOM økten og alt som skulle brukt den. Verken
+ * Vrakrangereren sto altså MELLOM økten og alt som skulle brukt den. Verken
  * `amu` (som skulle fått `motpartFor`) eller `profil` (som skulle fylt øktens
- * bok) ser den noensinne, og `okt:`-laget lager et objekt ingen leser. Målt i
- * `test/k6-vaner.test.ts` på atferd, ikke på kilden.
+ * bok) så den noensinne, og `okt:`-laget lagde et objekt ingen leste. Målt i
+ * `test/k6-vaner.test.ts` på atferd, ikke på kilden. FEILEN ER SIDEN RETTET.
  *
- * Her legges `okt:` derfor ØVERST OVER `amu:`, og vrakrangereren tas ut. Adams
- * blir litt svakere av det — men BEGGE armene mister den likt, og uten dette
- * grepet måler prøven en kanal som ikke er koblet.
+ * Speken her beholdes likevel, av to grunner: den er den tallene under FAKTISK
+ * ble målt med, og den holder `okt:` rett over `amu:` uansett hva som skjer med
+ * kontekstkjeden. Vrakrangereren er ute — Adams blir litt svakere av det, men
+ * BEGGE armene mister den likt, så differansen er upåvirket.
  */
 export const K6_ADAMS =
   "okt:amu:alle:6k8bgm1e0.25r0.4:profil:" +

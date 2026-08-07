@@ -70,9 +70,26 @@ export class Profilbok {
     return p;
   }
 
-  /** Antall runder vi har sett fra dette setet. */
+  /**
+   * HVOR MANGE RUNDER HAR VI SETT DETTE SETET?
+   *
+   * Sto `this.profilFor(sete).bud.n`, og det var en stille, alvorlig feil:
+   * `bud` legges bare til naar setet FAKTISK MELDTE (`o.bud === null` gir
+   * ingen oppdatering av `bud`). Terskelen `MIN_RUNDER = 4` telte altsaa fire
+   * BUD, ikke fire runder.
+   *
+   * Maalt av K6-proeven: med en typisk budandel paa ~0,33 inntreffer terskelen
+   * rundt **runde tolv** - altsaa omtrent naar en kamp til 100 poeng er
+   * ferdig. OEktminnet aktiverte seg i praksis aldri i en normal kamp, og K6
+   * («laere andre spilleres vaner ila spillet») var derfor eksakt null i den
+   * utrullede Adams uansett hvor godt resten virket.
+   *
+   * `bydde` teller HVER observert runde - den dokumenterer seg selv som
+   * «andel budrunder hun gikk inn i i det hele tatt», og `oppdater` legger til
+   * 0 eller 1 for hver runde. Det er telleren terskelen alltid mente.
+   */
   runder(sete: number): number {
-    return this.profilFor(sete).bud.n;
+    return this.profilFor(sete).bydde.n;
   }
 
   /**
@@ -229,6 +246,33 @@ export class Profilagent {
      */
     if (this.oektBok === null) (this as { bok: Profilbok }).bok = new Profilbok();
     this.indre.nyKamp();
+  }
+
+  /**
+   * BOKFØR EN RUNDE UTEN Å SPØRRE OM ET TREKK.
+   *
+   * `Profilbok.observer` bokfører bare på `RUNDE_SLUTT`, og den ble bare kalt
+   * fra `velgHandling`. Det virket i testene og IKKE på kampbenken:
+   * `examples/kamp.ts` håndterer `RUNDE_SLUTT` selv med `utfør(s, NESTE)` og
+   * spør aldri en agent om et trekk i den fasen.
+   *
+   * **Målt: 25/24/24/27 bokførte runder med tikk, 0/0/0/0 uten.** Profilen —
+   * og dermed hele K6, «lære andre spilleres vaner ila spillet» — var altså
+   * strukturelt tom i den ENESTE benken som spiller lange nok kamper til at
+   * den kunne lært noe.
+   *
+   * `test/profilagent.test.ts` hadde krykken (`a.velgHandling(s)` med
+   * kommentaren «la profilen bokføre runden»). At en test trenger en krykke
+   * for å få en komponent til å virke, er selve varselet.
+   *
+   * Denne kroken finnes for at en driver skal kunne bokføre EKSPLISITT, uten
+   * å måtte late som den vil ha et trekk i en fase der det ikke finnes noe å
+   * spille. Drivere som allerede går via `velgHandling` merker ingenting.
+   */
+  observer(state: GameState): void {
+    this.bok.observer(state);
+    // Videre nedover: flere profillag i samme stakk skal alle få se runden.
+    (this.indre as { observer?(s: GameState): void }).observer?.(state);
   }
 
   velgHandling(state: GameState): Handling {

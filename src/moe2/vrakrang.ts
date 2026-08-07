@@ -127,6 +127,15 @@ export class Vrakrangerer {
     this.valgt = null;
   }
 
+  /**
+   * Videresender bokfoeringskroken. Uten den naar `observer` aldri
+   * `Profilagent`, som ligger LENGER NED i stakken enn dette laget - og da er
+   * profilen tom paa kampbenken (maalt 0 bokfoerte runder mot 25 med tikk).
+   */
+  observer(state: GameState): void {
+    (this.indre as { observer?(s: GameState): void }).observer?.(state);
+  }
+
   velgHandling(state: GameState): Handling {
     if (state.fase === "VRAK" && state.budvinner !== null) {
       const h = this.velgPar(state, state.budvinner);
