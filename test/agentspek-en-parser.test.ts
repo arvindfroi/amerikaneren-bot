@@ -19,7 +19,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { ADAMS, lagIndre, tall } from "../src/moe2/agentspek.ts";
+import { ADAMS, lagIndre, tall, ADAMS_MAALT, ADAMS_V6, ADAMS_V6_FULL } from "../src/moe2/agentspek.ts";
 
 const ROT = join(import.meta.dirname, "..");
 
@@ -56,4 +56,34 @@ test("tall() feiler HØYLYTT på noe som ikke er et tall", () => {
   // som frø gir samme giv om og om igjen – en måling som ser ferdig ut.
   assert.throws(() => tall("vr:e1-modell/vrakrang.bin:telrd", 7, "frø"), /må være et tall/);
   assert.throws(() => tall("", 7, "frø"), /må være et tall/);
+});
+
+/**
+ * ALLE NAVNGITTE STAKKER MÅ FAKTISK LA SEG BYGGE.
+ *
+ * `ADAMS_V6_FULL` forekom nøyaktig én gang i repoet: sin egen deklarasjon. Den
+ * er en spek på ni ledd som ingen bygde og ingen testet — altså en påstand om
+ * en bot som kanskje ikke finnes.
+ *
+ * Speker er strenger. Ingen typesjekk krysser dem, så et ledd som endrer navn
+ * eller får et nytt argument bryter en ubenyttet spek i stillhet, og feilen
+ * dukker opp den dagen noen endelig kjører den.
+ */
+test("hver navngitt ADAMS-stakk lar seg bygge", () => {
+  for (const [navn, spek] of [
+    ["ADAMS", ADAMS],
+    ["ADAMS_MAALT", ADAMS_MAALT],
+    ["ADAMS_V6", ADAMS_V6],
+    ["ADAMS_V6_FULL", ADAMS_V6_FULL],
+  ] as const) {
+    let agent: unknown = null;
+    assert.doesNotThrow(() => {
+      agent = lagIndre(spek);
+    }, `${navn} lot seg ikke bygge: ${spek}`);
+    assert.ok(agent !== null, `${navn} ga ingen agent`);
+    assert.ok(
+      typeof (agent as { velgHandling?: unknown }).velgHandling === "function",
+      `${navn} ga noe uten velgHandling`,
+    );
+  }
 });

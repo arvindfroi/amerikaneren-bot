@@ -26,6 +26,7 @@ import { rolleFor, type Rolle } from "./rolleorakel.ts";
 import { stillingsfrø, velgUleselig } from "./uleselig.ts";
 import { lagRng } from "../kort.ts";
 import { racepress, racescore } from "./race.ts";
+import { forklarValg, type Forklaring } from "./forklar.ts";
 
 export interface AmuOpts {
   readonly verdener: number;
@@ -53,6 +54,22 @@ export interface AmuOpts {
    * ingen god; denne kom som biprodukt av A8.
    */
   readonly lambda?: number;
+  /**
+   * FORKLARING PÅ VALGET. Av som standard, og det er ikke pynt: `forklarValg`
+   * regner et snitt og en spredning per gren, altså arbeid vi ikke skal gjøre
+   * i en måling som spiller millioner av trekk.
+   *
+   * DEN VAR DØD FØR DETTE. `src/moe2/forklar.ts` ble bygd som «å forklare
+   * hvorfor» — en av de menneskelige evnene — og forekom nøyaktig ÉN gang i
+   * hele repoet: sin egen definisjon. Den var dokumentert, testfri og koblet
+   * til ingenting, altså nøyaktig samme mønster som den døde sanseblokken
+   * (§32): en komponent som ser levende ut fordi den finnes.
+   *
+   * Alpha-muen er dessuten det ENESTE stedet forklaringen kan være ærlig.
+   * Utfallsvektoren ER regnskapet beslutningen ble tatt på, så forklaringen
+   * kan ikke lyve om sin egen årsak slik en ettermodell kan.
+   */
+  readonly forklar?: boolean;
 }
 
 export class Alphamuagent {
@@ -61,6 +78,11 @@ export class Alphamuagent {
   private readonly o: AmuOpts;
   private readonly rng: () => number;
   readonly tellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, uleselig: 0, racejustert: 0 };
+  /**
+   * Forklaringen på SISTE alpha-mu-valg, eller `null` om `forklar` er av eller
+   * søket ikke kjørte for dette trekket (renons, ett lovlig kort, feil rolle).
+   */
+  sisteForklaring: Forklaring | null = null;
 
   constructor(
     indre: { velgHandling(s: GameState): Handling; nyKamp(): void },
@@ -142,6 +164,10 @@ export class Alphamuagent {
       if (valgt !== før) this.tellere.uleselig++;
     } else {
       for (const g of grener) if (score(g) > score(valgt)) valgt = g;
+    }
+
+    if (this.o.forklar === true) {
+      this.sisteForklaring = forklarValg(state, sete, grener, valgt.kort, lambda);
     }
 
     const eget = this.indre.velgHandling(state);

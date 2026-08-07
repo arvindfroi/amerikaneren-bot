@@ -6574,3 +6574,43 @@ Og skillet som betyr noe: på `sd-rv1` er **treffraten helt uendret** (52,4 % �
 det taper bare litt mer når det bommer. **Dekningen er intakt** — en ekte
 fordelingskollaps ville vist seg som fallende treff, ikke som stigende anger
 alene. Det er den distinksjonen som gjør kollapsvakten lesbar.
+
+### 96.1 Forklaringen var død, og ingenting sa fra
+
+Råtejakten fortsatte fra modellreferansene til DØD KODE, og fant det verste
+enkelttilfellet i prosjektet:
+
+**`src/moe2/forklar.ts` forekom nøyaktig én gang i hele repoet — sin egen
+definisjon.** 137 linjer, grundig dokumentert som «å forklare hvorfor», en av
+de menneskelige evnene Adams skulle ha. Uten én kaller. Uten én test.
+
+Det er samme mønster som den døde sanseblokken (§32) og den døde v2-budblokken:
+en komponent som ser levende ut fordi den finnes og er beskrevet. Ingen
+typesjekk fanger det, ingen måling feiler — den bidrar bare ikke med noe.
+
+Samme skanning fant `ADAMS_V6_FULL` (deklarert, aldri bygd), `trumfFraIndeks`
+og `beskrivKort`. De 113 andre «ubrukte eksportene» var `interface`/`type` brukt
+i egen fils signaturer — normalt, ikke råte.
+
+#### Koblet, ikke slettet
+
+Alpha-muen er det ENESTE stedet en forklaring kan være ærlig: utfallsvektoren
+ER regnskapet beslutningen ble tatt på, så forklaringen kan ikke lyve om sin
+egen årsak slik en ettermodell kan. `Alphamuagent` har derfor fått
+`forklar?: boolean` (av som standard — å regne snitt og spredning per gren er
+arbeid i en måling som spiller millioner av trekk) og `sisteForklaring`.
+
+#### Testen går gjennom AGENTEN, ikke funksjonen
+
+Det er hele poenget. En test som kalte `forklarValg` direkte ville vært grønn
+selv om ingen agent noensinne kalte den — altså nøyaktig tilstanden vi kom fra.
+Tre krav: at forklaringen fylles av et ekte trekk i et ekte parti, at den
+gjelder kortet som FAKTISK ble spilt (en forklaring på et annet valg er verre
+enn ingen, fordi den ser troverdig ut), og at den ikke sammenlikner et kort med
+seg selv. Verifisert ved å slå av koblingen: testen faller.
+
+Og `agentspek-en-parser.test.ts` krever nå at hver navngitt stakk lar seg BYGGE.
+Speker er strenger; ingen typesjekk krysser dem, så et ledd som endrer navn
+bryter en ubenyttet spek i stillhet.
+
+**390 tester grønne.**
