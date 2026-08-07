@@ -1,0 +1,30 @@
+
+=== GATE 2: kandidat i ett sete, vakt:abmpf:e1:e1-modell/b714gammel.bin i de tre andre ===
+1600 (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.
+
+arm                                        poeng/runde for setet
+--------------------------------------------------------------------
+KONTROLL                                   +0.000 ± 0.252
+vakt:abmpf:e1:e1-modell/any25000.bin       -0.152 ± 0.252
+vakt:abmpf:e1:e1-modell/b714gammel.bin     +0.000 ± 0.252
+--------------------------------------------------------------------
+
+PARRET mot KONTROLL (miljoet mot seg selv i samme sete):
+  vakt:abmpf:e1:e1-modell/any25000.bin     -0.1525 ± 0.1632 (-0.9 SE)  212/404  p=0.345
+  vakt:abmpf:e1:e1-modell/b714gammel.bin   +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+
+PER ROLLE (rollen er KONTROLLENS, saa parene er de samme):
+  vakt:abmpf:e1:e1-modell/any25000.bin
+    foerer    n=  400  -0.9975 ± 0.5493 (-1.8 SE)  77/141  p=0.312
+    makker    n=  400  -0.0242 ± 0.0678 (-0.4 SE)  25/52  p=0.890
+    forsvar   n=  800  +0.2058 ± 0.1716 (1.2 SE)  110/211  p=0.582
+  vakt:abmpf:e1:e1-modell/b714gammel.bin
+    foerer    n=  400  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+    makker    n=  400  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+    forsvar   n=  800  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+
+KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet
+i oppsettet, og ingen av de andre tallene kan leses.
+
+PORTEN: en ny vekt adopteres bare om den er positiv med margin OG
+positiv i klart over halvparten av parene. Aldri adoptere paa stoey.

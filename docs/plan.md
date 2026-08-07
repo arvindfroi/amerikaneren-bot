@@ -6395,3 +6395,47 @@ Hvert frø er en HEL KAMP til 100 poeng, ikke én giv — derfor de 200. Enheten
 vokser proporsjonalt med radene, så 200k gir ~1 000 frø. Holdouten deles på frø,
 som er den konservative måten: ingen stilling fra en kamp i treningen kan dukke
 opp i holdouten.
+
+## 94. FØRSTE MILEPÆL: arm A ved 25k — en ren null, og en ren benk
+
+Vakten kjørte hele syklusen selv: 25 727 rader → finjuster `b714gammel` på GPU
+→ gate 2 over 8 skard → fil. Fra terskel til resultat på **8 minutter**.
+
+### Benken først
+
+```
+KONTROLL                                   +0.000 ± 0.252
+vakt:abmpf:e1:e1-modell/b714gammel.bin     +0.0000 ± 0.0000   (identisk arm)
+```
+
+Kontrollarmen ligger på eksakt null og den identiske armen på eksakt null. Uten
+det er ingen av de andre tallene lesbare, så dette står først.
+
+### Resultatet
+
+| | verdi |
+|---|---|
+| snitt | −0,1525 ± 0,1632 (−0,9 SE) |
+| tegntest | 212/404 positive (52,5 %), p = 0,345 |
+| avgjorte par | 404 av 1600 (**25,3 %**) |
+
+**Snittet og tegntesten peker hver sin vei.** Snittet ned, tellingen svakt opp.
+Den stående regelen sier at når de er uenige, er det snittet som skal mistros —
+poengfordelingen har ±50 og ±100 i halene, og et snitt er sårbart for dem på en
+måte en telling ikke er. Men tegntesten er heller ikke signifikant (p = 0,345).
+
+**Dette er en null, ikke et negativt resultat.** Og det er verdt å si eksplisitt
+hva den nullen sier: 25k alpha-mu-etiketter flyttet ikke `b714gammel`
+målbart — men de SKADET den heller ikke, og `b714gammel` selv måler −1,15 mot
+`d7alle`. Etikettene er altså ikke giftige, de er bare for få.
+
+### Framgang mot §91
+
+| | rader | avgjorte | SE |
+|---|---|---|---|
+| §91 `cny1` | 7 516 | 10,0 % | ±0,348 |
+| §94 `any25000` | 25 727 | **25,3 %** | **±0,163** |
+
+Presisjonen er mer enn doblet. For å se en effekt på `ftf1`s størrelse (+0,136)
+med margin trengs ~±0,05, altså ~10× flere par på benken — eller en større ekte
+effekt. Vakten fortsetter til 50k, 100k og 200k uten at noen trenger å poke.
