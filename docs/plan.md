@@ -6881,3 +6881,60 @@ død komponent — prosjektets faste feil, og den kostet fem minutter å utelukk
 Takt målt i stabil tilstand: 2 151 rader/time, altså ~7 timer for 16 000 rader.
 De første minuttene var mye tregere fordi 20 prosesser lastet nett samtidig; en
 takt målt fra kaldstart ville gitt 38 timer og fått meg til å avlyse.
+
+## 99. DET SYSTEMATISKE HINDERET: Adams er ikke koblet til sine egne deler
+
+Arvind: «har Adams lært seg å bruke de nye delene sine?»
+
+Nei. Og ikke fordi læringen svikter — fordi delene ikke er koblet til ham.
+
+Importanalysen, ikke kodelesing:
+
+| modul | hvem importerer den | i Adams? |
+|---|---|---|
+| `signal.ts` (A6) | **bare `test/signal.test.ts`** | **nei** |
+| `budsok.ts` (A4) | **bare `test/budsok.test.ts`** | **nei** |
+| `troverdighet.ts` (A5) | `examples/sd-orakel.ts` — *generatoren* | **nei** |
+| `montetro.ts` | `agentspek.ts`, portet på bredde ≥ 558 | **nei** (Adams er 273) |
+| `forklar.ts` | `amuagent.ts`, av som standard | av |
+| `race`, `uleselig` | `amuagent.ts` | ja |
+| `okt`, `hvemla-slutning` | `agentspek.ts` / `amuagent.ts` | ja |
+| `alphamu` | `amuagent.ts` | ja, men **bare i førersetet** |
+
+### Fem av de nye evnene kan Adams ikke nå
+
+To av dem (`signal`, `budsok`) importeres av **ingenting utenom sin egen test.**
+Testene er grønne, så de ser levende ut. Det er nøyaktig samme mønster som
+`forklar.ts`, som viste seg å forekomme én gang i hele repoet.
+
+`troverdighet` er ikke død — den gjør jobben sin i verdenstrekningen når
+korpuset lages. Men det betyr at **etikettmakeren har den bayesianske
+motstandermodellen, og Adams har den ikke når han spiller.**
+
+`montetro` er portet på nettbredde ≥ 558. Adams kjører `d7alle`, som er 273. Da
+er hele 714-arbeidet — de 441 ekstra trekkene, sanseblokken, hele grunnen til
+at arm A finnes — utenfor den boten vi måler.
+
+### Og det forklarer hvorfor målingene står stille
+
+Hver gate 2 har målt «Adams». Men den Adams som ble målt har aldri hatt de nye
+delene i seg. Vi har målt en bot med omtrent halve stakken, og lurt på hvorfor
+den ikke blir bedre av at den andre halvparten finnes.
+
+Det er prosjektets faste feil i sin reneste form: **det målte og det bygde var
+ikke samme ting.** Elleve ganger før har den vært en detalj i et filnavn eller
+en streng. Denne gangen er det halve boten.
+
+### Rettferdig om `signal`
+
+Arvind ba selv om at signalering skulle vente: «signalisering er ikke like
+viktig som at vi først får på plass de individuelle evnene.» At A6 ikke er
+koblet er altså en prioritering, ikke en glipp. De fire andre er glipper.
+
+### Rekkefølgen som følger av dette
+
+1. **`amu:alle`** — måles nå (§98). 73 % av setene får søk for første gang.
+2. **`montetro` + 714-nettet inn i Adams** — hele sanseblokken er utenfor boten.
+3. **`troverdighet` inn i agenten**, ikke bare i generatoren.
+4. **`budsok` (A4)** — hører hjemme i budmodellen Arvind vil ha til slutt.
+5. `signal` (A6) — bevisst utsatt.
