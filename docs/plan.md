@@ -6819,3 +6819,65 @@ runde samlet — under det denne målingen kan se. Det mest sannsynlige utfallet
 er derfor **null på totalen, men et lesbart per-rolle-tall** som sier om
 retningen finnes. Er forsvarstallet positivt denne gangen der `ork:` ga −0,027,
 er det fusjonen som var problemet, og da er M=2 verdt de 30 timene.
+
+### 98.1 Korreksjon: vi ligger IKKE bak MesterAI
+
+Arvind: «hvordan i huleste ligger den bak MesterAI? vi har kunst den tidligere.»
+
+Berettiget reaksjon, og feilen var min presentasjon. Jeg viste rolletabellen
+uten overskriften over den. Fra samme fil:
+
+```
+Vår side:   6625 poeng over 879 runder = +7.54 per runde
+MesterAI:   6499 poeng over 879 runder = +7.39 per runde
+GAP:        +0.14 poeng per runde  (+126.00 totalt)
+```
+
+**Vi leder.** Rolletabellen viser fordelingen INNENFOR en seier: fører bidrar
++736, makker −514, forsvar −96, sum +126. De negative tallene er hvor vi vinner
+MINDRE, ikke hvor vi taper.
+
+Og kamptallene som ser ille ut (MesterAI 79/106, 85/114, 20/20) er mot `nevro`,
+`sd-r1` og `pimc` — gamle, svake kandidater, ikke Adams.
+
+### Og det gjør funnet i §98 STERKERE, ikke svakere
+
+Se hva fasegap-målingen faktisk kjørte:
+
+    Kandidat: budm:bud-gbt.json:vakt:abmp:e1:sd-r2.bin      INGEN søkelag
+    MesterAI: 40 verdener per kortvalg, ALLE FIRE SETER
+
+Uten søk i det hele tatt lå vi +8,45 mot +8,45 i fører, −0,22 i makker, −0,12 i
+forsvar. Så la §49 til førersøk: **+2,170 poeng per runde i det setet**, z =
++5,52 over fire bånd — prosjektets sterkeste måling.
+
+Der stoppet det. Makker og forsvar står fortsatt uten søk, mot en motstander som
+søker i alle fire seter.
+
+**Hele restgapet mot MesterAI ligger i de 72 % av setene der vi har slått av det
+verktøyet som ga +2,170 i det ene setet vi lot det stå på.**
+
+Det strukturelle er ikke at vi er dårligere. Det er at vi stoppet halvveis, på
+grunn av én måling tatt med en operatør som har strategifusjon.
+
+### Et hull som må sies høyt
+
+**Vi har aldri målt fasegapet med den søkende stakken.** Alt vi vet om
+rollefordelingen kommer fra en bot uten søk i noen rolle. Tallene −0,22 og −0,12
+er derfor et anslag fra en annen konfigurasjon enn den vi kjører.
+
+### Verifisert før sjutimersmålingen fikk gå
+
+At `amu:alle` faktisk søker i makker og forsvar ble målt, ikke lest ut av koden:
+
+```
+amu:foerer  søkte i  foerer=11  makker=0   forsvar=0
+amu:alle    søkte i  foerer=9   makker=8   forsvar=20
+```
+
+Nullene er absolutte. Uten den sjekken kunne sju timer gått med på å måle en
+død komponent — prosjektets faste feil, og den kostet fem minutter å utelukke.
+
+Takt målt i stabil tilstand: 2 151 rader/time, altså ~7 timer for 16 000 rader.
+De første minuttene var mye tregere fordi 20 prosesser lastet nett samtidig; en
+takt målt fra kaldstart ville gitt 38 timer og fått meg til å avlyse.
