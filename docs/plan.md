@@ -7086,3 +7086,57 @@ bestemme noe.
 3. Gate 2 er fortsatt riktig for alt som avgjøres innenfor én runde —
    kortvalg, konvensjoner, budterskel. Den er ikke ødelagt, den er **smalere
    enn boten**, og det har ingen sagt høyt før nå.
+
+## 102. K8-MÅLINGEN, OG EN OVERDRIVELSE JEG MÅ RETTE
+
+Arvind: «delene må jo fungere sammen — fordi det skal utgjøre 1 komplett modell.»
+
+`examples/tro-noyaktighet.ts` måler for første gang det A1, A5 og A6 faktisk
+GJØR: hvilken sannsynlighet gir troen det setet et skjult kort ligger på? Til
+nå har de bare vært målt på poeng, gjennom flere lag støy.
+
+### Før-baselinen, n = 1 280 stillinger
+
+| arm | log-tap |
+|---|---|
+| gulv (uniform over 3) | 1,0986 |
+| gulv+ (uniform over ikke-renons) | 1,0304 |
+| av | 1,0279 |
+| regel (A1) | 1,0278 |
+| **bayes (A5)** | **1,0253** |
+| bayes+g (A6) | 1,0345 |
+
+**A5 virker:** −0,0026 mot «av». Den bayesianske likelihooden er den eneste
+slutningen som gjør troen bedre.
+
+**A6 skader, og det replikerer:** +0,0092 mot A5 alene, på n = 1 280.
+
+### Og A1 var NØYTRAL, ikke skadelig — jeg overdrev
+
+Jeg rapporterte «A1 måler verre enn ingen slutning i det hele tatt (0,9624 mot
+0,9509)». Det tallet kom fra **n = 12 stillinger**. På n = 1 280 er A1 og «av»
+praktisk talt like: 1,0278 mot 1,0279.
+
+Kalibreringen står likevel — lengdefortegnet var objektivt galt (målt helling
+−0,671 mot +0,15 i koden, n = 1 870), og en test håndhevet den gale retningen.
+Men BEGRUNNELSEN jeg oppga var for sterk, og et n=12-avlesning skal ikke
+brukes til å felle en dom. Det er den samme feilen §49 advarer mot: «les aldri
+en gate2-fil før kjøringen er ferdig, uansett hvor fristende tallet ser ut.»
+
+### Etter-målingen, og hvorfor den måtte startes på nytt
+
+De 1 280 radene ble generert FØR A1-kalibreringen og A6-senderen. Prosessene
+hadde gammel kode lastet, så tallene er en ren før-baseline.
+
+Etter-målingen kjører med to endringer som må være der samtidig:
+
+1. **kalibrert A1** (1,782 / 1,200 / gaussisk lengde med målt helling)
+2. **drivere som SIGNALISERER** (`amu:alle:8k4gm1e0.25`)
+
+Punkt 2 er ikke en detalj: A6 er en konvensjon, og leseren finner bare et
+signal hvis noen sendte et. Før-baselinen målte A6 mot drivere uten sender —
+altså leste den vilkårlige kortvalg som meldinger. At den da skadet er ikke et
+argument mot konvensjonen, det er et argument for at halve den manglet.
+
+**Rollemålingen berøres ikke:** begge armene der bruker samme A1, i samme
+prosess, så sammenlikningen er internt konsistent uansett konstantverdier.
