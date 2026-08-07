@@ -169,9 +169,14 @@ export const ADAMS_V6 =
  *
  * ================= HVA SOM ER NYTT I V7, LEDD FOR LEDD ==================
  *
- *   amu:alle    søket i ALLE tre roller. Fasegapet mot MesterAI viser +0,00 i
- *               fører (der vi søker) og −0,22 / −0,12 i makker og forsvar (der
- *               vi ikke gjør det). MesterAI søker i alle fire seter.
+ *   amu:foerer  søket BARE i førersetet — og det er nå MÅLT, ikke arvet.
+ *               `amu:alle` ble prøvd over 16 000 par: **−0,2837 ± 0,0519,
+ *               z = −5,5**. Per rolle: makker −0,3342 (−6,4 SE), forsvar
+ *               −0,4003 (−4,0 SE). Kontrollarmen eksakt 0.
+ *
+ *               Hypotesen i §98 var at `ork:`-nullen (−0,027) skyldtes
+ *               STRATEGIFUSJON, og at alpha-mu ville fikse den. Motbevist:
+ *               alpha-mu gjør det VERRE, ikke bedre.
  *     b         A5: verdenene vektes av en LIKELIHOOD under nettets egen
  *               policy, ikke av fire håndsatte regler. Erstatter «s» — de er
  *               alternative modeller av samme observasjoner og kan ikke stables.
@@ -198,7 +203,7 @@ export const ADAMS_V6 =
  */
 export const ADAMS_V7 =
   "okt:vr:e1-modell/vrakrang.bin:telrd:" +
-  "amu:alle:12k16bgm1e0.25r1.5:" +
+  "amu:foerer:12k16bgm1e0.25r1.5:" +
   "profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:" +
   "vakt:abmpf:e1:e1-modell/d7alle.bin";
 

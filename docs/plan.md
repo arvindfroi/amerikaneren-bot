@@ -7140,3 +7140,55 @@ argument mot konvensjonen, det er et argument for at halve den manglet.
 
 **Rollemålingen berøres ikke:** begge armene der bruker samme A1, i samme
 prosess, så sammenlikningen er internt konsistent uansett konstantverdier.
+
+## 103. SØK I MAKKER OG FORSVAR ER SKADELIG — hypotesen min er motbevist
+
+§98 hevdet at forsvarssøkets null (`ork:`, −0,027, z = −0,55) skyldtes
+**strategifusjon**, og at alpha-mu — bygd nettopp for å fjerne den — ville
+åpne 73 % av setene.
+
+**Målt over 16 000 par, `amu:alle` mot `amu:foerer`:**
+
+```
+KONTROLL     +0.000 ± 0.089
+amu:alle     -0.2837 ± 0.0519   (-5,5 SE)   tegntest 3076/7164 = 42,9 %
+```
+
+| rolle | n | effekt | tegntest |
+|---|---|---|---|
+| fører | 4 000 | +0,0000 (likt i begge armer) | — |
+| **makker** | 4 000 | **−0,3342 ± 0,0524 (−6,4 SE)** | 852/2191 = 38,9 % |
+| **forsvar** | 8 000 | **−0,4003 ± 0,1004 (−4,0 SE)** | 2224/4973 = 44,7 % |
+
+Kontrollarmen eksakt +0,000. Benken er ren.
+
+**Dette er ikke en null. Det er en klar regresjon**, og alpha-mu gjør det
+VERRE enn `ork:` gjorde (−0,027 → −0,28). Fusjonen var altså ikke problemet.
+
+### Hvorfor, sagt som hypoteser og ikke som fakta
+
+To forklaringer er forenlige med tallene, og begge er testbare:
+
+1. **Rollout-motparten antar at alle spiller som oss.** Som fører legger man én
+   plan for et spill man i stor grad styrer. Som forsvarer avhenger riktig kort
+   av hva makker VET og gjør — og søket forestiller seg en makker som ser det
+   samme som oss. Den antakelsen er mildt gal i førersetet og grovt gal i
+   forsvar.
+
+2. **Søket overstyrer konvensjonsvakten.** `amuagent` returnerer sitt eget kort
+   med mindre `indre` er enig. `vakt:abmpf` er partnerskapets KODE, og i
+   forsvar er koordinering mer verdt enn rå EV per kort. Søket bryter koden for
+   å vinne det enkelte stikket.
+
+Forklaring 2 er den mest lovende, og den henger sammen med A6/A7-kollisjonen:
+begge handler om at et lokalt optimum ødelegger en avtale.
+
+### Konsekvens, gjort umiddelbart
+
+`ADAMS_V7` sto med `amu:alle` og sendte altså en regresjon på −0,28. Den er
+rullet tilbake til `amu:foerer`.
+
+**Og det er verdt å si hva som nettopp skjedde:** en hypotese jeg selv
+formulerte, dokumenterte grundig og bygde en sjutimersmåling for, ble motbevist
+av den målingen. Det er ikke et tap — det er den eneste grunnen til å måle. §98
+står som skrevet, med denne seksjonen som svar.
