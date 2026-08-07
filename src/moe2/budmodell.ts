@@ -15,6 +15,7 @@
 import { lovligeHandlinger, type GameState, type Handling } from "../motor.ts";
 import { AMERIKANER, PASS, type Bud } from "../regler.ts";
 import { budTrekk, BUD_DIM, BUD_DIM_V2 } from "./budtrekk.ts";
+import { blandMu } from "./budsok.ts";
 
 interface Node {
   blad: boolean;
@@ -210,6 +211,11 @@ export class Budagent implements Innagent {
    * dette ikke fantes.
    */
   private readonly søktAnslag: ((state: GameState, sete: number) => { μ: number; σ: number } | null) | null;
+  /**
+   * Hvor mye av SOEKETS anslag som brukes, i [0, 1]. 0 = av (bit-identisk
+   * med modellen alene), 1 = full erstatning. Skal sveipes, ikke settes.
+   */
+  private readonly budblanding: number;
 
   /**
    * PERSONAVHENGIG JUSTERING av forsvarsverdien, eller `null`.
@@ -245,6 +251,7 @@ export class Budagent implements Innagent {
     forsvarsjustering: ((state: GameState) => number) | null = null,
     auksjonskorreksjon = false,
     søktAnslag = null as ((state: GameState, sete: number) => { μ: number; σ: number } | null) | null,
+    budblanding = 1,
   ) {
     this.indre = indre;
     this.m = m;
@@ -255,6 +262,7 @@ export class Budagent implements Innagent {
     this.σGulv = σGulv;
     this.μSkift = μSkift;
     this.søktAnslag = søktAnslag;
+    this.budblanding = budblanding;
   }
 
   nyKamp(): void {
@@ -293,14 +301,24 @@ export class Budagent implements Innagent {
      * skiller er nettopp det som gjør det til et gyldig anslag på
      * stikkfordelingen.
      */
+    /**
+     * BLANDINGEN, ikke erstatningen.
+     *
+     * Første kobling erstattet modellens μ med søkets. Det er feil av samme
+     * grunn `budsok.ts` selv skriver: rolloutene spiller som OSS, så søket
+     * arver vår egen skjevhet, mens GBT-en er tilpasset faktiske utfall. En
+     * full erstatning bytter én skjevhet mot en annen uten å kunne måle det.
+     *
+     * `blandMu` med `budblanding` = 0 gir NØYAKTIG modellens tall, altså
+     * bit-identisk med at søket er av. Det er knotten som skal sveipes.
+     */
     let μB = μ;
     let σB = σ;
     if (this.søktAnslag !== null) {
       const s2 = this.søktAnslag(state, sete);
-      if (s2 !== null) {
-        μB = s2.μ;
-        σB = Math.max(this.σGulv, s2.σ);
-      }
+      const b = blandMu({ μ, σ }, s2, this.budblanding);
+      μB = b.μ;
+      σB = Math.max(this.σGulv, b.σ);
     }
 
     let beste: Bud = PASS;

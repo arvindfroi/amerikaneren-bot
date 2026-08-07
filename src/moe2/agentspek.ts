@@ -35,6 +35,10 @@ import { EksaktSluttspill, delEksaktSpek } from "./eksaktagent.ts";
 import { Juksagent } from "./juksagent.ts";
 import { Alphamuagent } from "./amuagent.ts";
 import { monteTro } from "./montetro.ts";
+import { forover } from "../nevro/nett.ts";
+import { e1SpillTrekk } from "../e1/trekk.ts";
+import { søktMu } from "./budsok.ts";
+import type { Utspiller } from "./sdkort.ts";
 import { lagHvemLaVekt } from "./hvemla-slutning.ts";
 import { lagRng } from "../kort.ts";
 import { Økt } from "./okt.ts";
@@ -143,6 +147,60 @@ export const ADAMS_V6 =
   "okt:vr:e1-modell/vrakrang.bin:telrd:" +
   "amu:foerer:12k16sm1e0.25r0.4:" +
   "profil:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin";
+
+/**
+ * ADAMS-V7 — DEN FØRSTE SPEKKEN SOM FAKTISK INNEHOLDER DELENE SINE.
+ *
+ * Arvind: «vi har jo jobbet for at Adams skal ha tilgang til alt dette også
+ * bruker vi det ikke. vær så snill å gjør det ordentlig nå.»
+ *
+ * Han hadde rett, og §99 målte omfanget. Av evnene som ble bygd:
+ *
+ *   `signal.ts` (A6)         importert av BARE sin egen test
+ *   `budsok.ts` (A4)         importert av BARE sin egen test — mens
+ *                            `Budagent` hadde en ubrukt `søktAnslag`-krok
+ *                            med A4-kommentaren i
+ *   `troverdighet.ts` (A5)   bare i `sd-orakel.ts`, altså i ETIKETTMAKEREN.
+ *                            Adams hadde den ikke når han spilte.
+ *   `forklar.ts`             forekom én gang i repoet: sin egen definisjon
+ *   alpha-mu                 levde, men BARE i førersetet — 27 % av setene
+ *
+ * Hver gate 2 har målt «Adams». Den Adams hadde aldri delene i seg.
+ *
+ * ================= HVA SOM ER NYTT I V7, LEDD FOR LEDD ==================
+ *
+ *   amu:alle    søket i ALLE tre roller. Fasegapet mot MesterAI viser +0,00 i
+ *               fører (der vi søker) og −0,22 / −0,12 i makker og forsvar (der
+ *               vi ikke gjør det). MesterAI søker i alle fire seter.
+ *     b         A5: verdenene vektes av en LIKELIHOOD under nettets egen
+ *               policy, ikke av fire håndsatte regler. Erstatter «s» — de er
+ *               alternative modeller av samme observasjoner og kan ikke stables.
+ *     g         A6: signalforenligheten legges til. Additiv, fordi den leser
+ *               noe annet: hvilket av de LIKEGYLDIGE kortene makker valgte.
+ *   /sok12k8b0.5  A4: budet spør SPILLET hva hånden er verdt, blandet 50/50
+ *               med GBT-en. Ikke full erstatning — rolloutene spiller som oss
+ *               og arver vår skjevhet, mens GBT-en er tilpasset faktiske utfall.
+ *
+ * ================= HVA SOM FORTSATT MANGLER, SAGT HØYT ==================
+ *
+ * **`montetro` og sanseblokken er IKKE med, og det er ikke en glipp.** De
+ * krever et nett på ≥ 558 trekk; Adams kjører `d7alle` på 273. Det eneste
+ * brede nettet vi har (`b714gammel`) måler −1,15 mot `d7alle`, så å bytte til
+ * det ville gjort Adams verre for å slå på en evne. Den låsen åpnes av et
+ * bedre 714-nett, ikke av en spekendring — og det er nettopp det arm A trener
+ * mot.
+ *
+ * ================= INGENTING HER ER MÅLT ================================
+ *
+ * V7 er en BENKESPEK. `b`, `g`, `alle` og `sok` er alle umålte, og noen av dem
+ * kan godt være negative — `ork:`-forsvarssøket målte −0,027. Poenget med v7 er
+ * at de nå KAN måles, hver for seg og sammen. Før dette var de ikke i boten.
+ */
+export const ADAMS_V7 =
+  "okt:vr:e1-modell/vrakrang.bin:telrd:" +
+  "amu:alle:12k16bgm1e0.25r0.4:" +
+  "profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:" +
+  "vakt:abmpf:e1:e1-modell/d7alle.bin";
 
 /**
  * V6 I FULL STYRKE — 24 verdener, 32 kandidater, M=2.
@@ -323,10 +381,70 @@ export function lagIndre(
     if (!Number.isFinite(fv)) throw new Error(`Ugyldig forsvarsverdi i «${indre}»`);
     // Femte felt: AUKSJONSKORREKSJON på μ. «1» slår den på. Målt 6. august:
     // residualen spriker 0,37 stikk mellom auksjonstilstander modellen ikke ser.
-    const auk = strek4 >= 0 && rest3.slice(strek4 + 1) === "1";
+    const haleFelt = strek4 < 0 ? "" : rest3.slice(strek4 + 1);
+    const strek5 = haleFelt.indexOf("/");
+    const auk = (strek5 < 0 ? haleFelt : haleFelt.slice(0, strek5)) === "1";
+    /**
+     * SJETTE FELT: A4-BUDSØKET, «sok<verdener>[k<kandidater>][b<blanding>]».
+     *
+     * `budsok.ts` ble bygd, testet og dokumentert — og `Budagent` har hatt en
+     * `søktAnslag`-krok med A4-kommentaren i hele tiden. Ingen satte den
+     * noensinne. Kontakten fantes, pluggen fantes, de hadde aldri møtt
+     * hverandre, og alle tester var grønne.
+     *
+     * BLANDINGEN ER STANDARD 0,5, ikke 1. Rolloutene spiller som OSS, så søket
+     * arver vår egen skjevhet, mens GBT-en er tilpasset faktiske utfall. Full
+     * erstatning bytter én skjevhet mot en annen uten å kunne måle det.
+     */
+    const sokFelt = strek5 < 0 ? "" : haleFelt.slice(strek5 + 1);
     if (!Number.isFinite(ev)) throw new Error(`Ugyldig evForsvar i «${indre}»`);
     if (!Number.isFinite(sg) || sg <= 0) throw new Error(`Ugyldig sigmagulv i «${indre}»`);
-    return new Budagent(lagIndre(rest.slice(skille + 1)), lesBudmodell(fil), ev, sg, ms, fv, null, auk);
+    const innagent = lagIndre(rest.slice(skille + 1), ctx);
+    let søktAnslag: ((s: GameState, sete: number) => { μ: number; σ: number } | null) | null = null;
+    let budblanding = 1;
+    if (sokFelt !== "") {
+      const m2 = /^sok(\d+)(?:k(\d+))?(?:b([\d.]+))?$/.exec(sokFelt);
+      if (m2 === null) {
+        throw new Error(
+          `Ugyldig budsøk-felt «${sokFelt}» i «${indre}» – forventet ` +
+            `sok<verdener>[k<kandidater>][b<blanding>], f.eks. «sok12k8b0.5».`,
+        );
+      }
+      const vN = Number(m2[1]);
+      const vK = m2[2] === undefined ? 8 : Number(m2[2]);
+      budblanding = m2[3] === undefined ? 0.5 : Number(m2[3]);
+      const rngB = lagRng(20260808);
+      /**
+       * BUDET SØKET SPILLER UT ER FAST 9, og det er ikke en forenkling.
+       *
+       * `Budagent` regner P(N) for alle N fra ÉN fordeling, fordi antall stikk
+       * laget tar avhenger av KORTENE og ikke av hva vi meldte. Søket skal
+       * derfor gi ett anslag på lagstikket, ikke ett per bud. 9 er den
+       * vanligste kontrakten og den som oftest lar seg by.
+       */
+      søktAnslag = (s: GameState, sete: number) =>
+        søktMu(s, sete, 9, innagent as unknown as Utspiller, {
+          verdener: vN,
+          rng: rngB,
+          verdenKandidater: vK,
+        });
+    }
+    // Rekkefølgen er: forsvarsjustering (7.), auksjonskorreksjon (8.),
+    // søktAnslag (9.), budblanding (10.). Første forsøk sendte søket som 7.
+    // argument; typesjekken stoppet det, men posisjonelle argumenter av samme
+    // form ville ikke alltid gjort det.
+    return new Budagent(
+      innagent,
+      lesBudmodell(fil),
+      ev,
+      sg,
+      ms,
+      fv,
+      null,
+      auk,
+      søktAnslag,
+      budblanding,
+    );
   }
   /**
    * `ork:<rolle>:<indre>` - SD-ORAKELET spiller den rollen, det indre alt annet.
@@ -456,10 +574,37 @@ export function lagIndre(
     const M = les("m", 1);
     // «r<lambda>»: kampstillingsstyrt varians. 0 = av.
     const lambda = les("r", 0);
+    /**
+     * SLUTNINGEN SOM VEKTER VERDENENE — «s» (A1, regler) eller «b» (A5, Bayes).
+     *
+     * De er ALTERNATIVER, ikke tillegg: begge leser de samme observasjonene,
+     * A1 som håndsatte regler og A5 som en likelihood under nettets policy. Å
+     * slå på begge ville telt samme bevis to ganger. Speken avviser det derfor
+     * i stedet for å velge for kalleren.
+     *
+     * «g» (A6, signaler) er additiv — den leser hvilket av de LIKEGYLDIGE
+     * kortene som ble valgt, altså noe A1/A5 ikke ser.
+     */
     let spillvekt = false;
+    let bayes = false;
+    let signal = false;
     if (f.includes("s")) {
       spillvekt = true;
       f = f.replace("s", "");
+    }
+    if (f.includes("b")) {
+      bayes = true;
+      f = f.replace("b", "");
+    }
+    if (f.includes("g")) {
+      signal = true;
+      f = f.replace("g", "");
+    }
+    if (spillvekt && bayes) {
+      throw new Error(
+        `amu-spek «${indre}» har baade «s» (A1 regler) og «b» (A5 Bayes). De er ` +
+          `alternative modeller av de samme observasjonene og kan ikke stables - velg én.`,
+      );
     }
     const kand = les("k", 3);
     const verdener = Number(f);
@@ -470,10 +615,41 @@ export function lagIndre(
     const inn = lagIndre(restSpek, ctx);
     const utenS = utenSøk(restSpek);
     const motpart = utenS === restSpek ? inn : lagIndre(utenS, ctx);
+    /**
+     * ATFERDSMODELLEN SOM A5 TRENGER, hentet fra nettet som FAKTISK spiller.
+     *
+     * `troverdighet` regner P(observasjon | verden) under en policy. Den
+     * policyen må være den samme boten vi modellerer, ellers måler vi
+     * forenlighet med en annen spiller enn den ved bordet.
+     *
+     * Nettfila plukkes derfor ut av den INDRE speken — samme fil, samme
+     * vekter, og `lesNett` deler instansen så den ikke lastes to ganger.
+     */
+    const nettFil = /e1:([\w./-]+\.bin)/.exec(restSpek)?.[1];
+    const atferd =
+      bayes && nettFil !== undefined
+        ? (() => {
+            const n = lesNett(nettFil);
+            return {
+              logits: (st: GameState, s2: number) =>
+                forover(n, e1SpillTrekk(st, s2, n.lag[0]!.inn)),
+            };
+          })()
+        : undefined;
+    if (bayes && atferd === undefined) {
+      throw new Error(
+        `amu-spek «${indre}» ber om «b» (A5 Bayes), men fant ingen «e1:<fil>.bin» i ` +
+          `den indre speken. Uten nettets policy kan ikke P(observasjon|verden) regnes, ` +
+          `og en stille tilbakefall til reglene er nettopp slik A5 ble borte.`,
+      );
+    }
     return new Alphamuagent(inn, motpart, {
       verdener,
       verdenKandidater: kand,
       spillvekt,
+      vektkilde: bayes ? "bayes" : spillvekt ? "regel" : "av",
+      signal,
+      atferd,
       M,
       epsilon: eps,
       lambda,

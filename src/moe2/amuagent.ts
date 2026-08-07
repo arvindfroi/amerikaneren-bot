@@ -21,7 +21,8 @@
 import { lovligeKort, type GameState, type Handling } from "../motor.ts";
 import { standardMål, trekkVerdener, type Utspiller } from "./sdkort.ts";
 import { alphaMu } from "./alphamu.ts";
-import { lagHvemLaVekt } from "./hvemla-slutning.ts";
+import { lagVerdensvekt, type Vektkilde } from "./verdensvekt.ts";
+import type { Atferdsmodell } from "./troverdighet.ts";
 import { rolleFor, type Rolle } from "./rolleorakel.ts";
 import { stillingsfrø, velgUleselig } from "./uleselig.ts";
 import { lagRng } from "../kort.ts";
@@ -70,6 +71,25 @@ export interface AmuOpts {
    * kan ikke lyve om sin egen årsak slik en ettermodell kan.
    */
   readonly forklar?: boolean;
+  /**
+   * A5/A1: hvilken slutning som vekter kandidatverdenene.
+   *
+   * `spillvekt: true` er det gamle navnet på `"regel"` og beholdes så
+   * eksisterende speker måler NØYAKTIG det samme som før. Settes begge, vinner
+   * `vektkilde`.
+   */
+  readonly vektkilde?: Vektkilde;
+  /** A6: legg signalforenligheten til vekten. Additiv, se `verdensvekt.ts`. */
+  readonly signal?: boolean;
+  /**
+   * Nettets policy, som A5 trenger for å regne P(observasjon | verden).
+   *
+   * UTEN DEN FALLER `bayes` TIL `regel`. Det er grunnen til at den er et
+   * eksplisitt felt og ikke noe agenten graver ut av `indre`: en stille
+   * degradering her ville vært usynlig, og det er nøyaktig slik A5 endte opp
+   * med å bare finnes i etikettmakeren.
+   */
+  readonly atferd?: Atferdsmodell;
 }
 
 export class Alphamuagent {
@@ -116,7 +136,11 @@ export class Alphamuagent {
       this.o.verdener,
       this.rng,
       undefined,
-      this.o.spillvekt === true ? lagHvemLaVekt(state, sete) : undefined,
+      lagVerdensvekt(state, sete, {
+        kilde: this.o.vektkilde ?? (this.o.spillvekt === true ? "regel" : "av"),
+        signal: this.o.signal,
+        atferd: this.o.atferd,
+      }),
       this.o.verdenKandidater ?? 3,
     );
     if (verdener.length === 0) return this.indre.velgHandling(state);

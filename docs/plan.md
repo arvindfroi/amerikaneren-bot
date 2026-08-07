@@ -6938,3 +6938,83 @@ koblet er altså en prioritering, ikke en glipp. De fire andre er glipper.
 3. **`troverdighet` inn i agenten**, ikke bare i generatoren.
 4. **`budsok` (A4)** — hører hjemme i budmodellen Arvind vil ha til slutt.
 5. `signal` (A6) — bevisst utsatt.
+
+## 100. ADAMS-V7 — den første spekken som faktisk inneholder delene sine
+
+Arvind: «vi har jo jobbet for at Adams skal ha tilgang til alt dette også bruker
+vi det ikke. vær så snill å gjør det ordentlig nå.»
+
+Gjort. Her er hva som ble koblet, og hva som fortsatt ikke er det.
+
+### Det som var galt
+
+| evne | tilstand før | nå |
+|---|---|---|
+| A8 alpha-mu | bare i førersetet (27 % av setene) | `amu:alle` |
+| A5 `troverdighet` | bare i `sd-orakel.ts` — etikettmakeren | `b` i amu-speken |
+| A6 `signal` | importert av bare sin egen test | `g` i amu-speken |
+| A4 `budsok` | importert av bare sin egen test | `/sok12k8b0.5` |
+| `forklar` | forekom én gang i repoet | koblet, av som standard |
+
+`Budagent` hadde hele tiden en `søktAnslag`-krok **med A4-kommentaren i**.
+Ingen satte den noensinne. Kontakten fantes, pluggen fantes, alle tester var
+grønne.
+
+### Ny modul: `verdensvekt.ts`
+
+Alle tre slutningene svarer på samme spørsmål — «hvor forenlig er denne
+verdenen med det vi har sett?» — og `trekkVerdener` tar nøyaktig én slik
+funksjon. Modulen er kroken som manglet, og den håndhever regelen `sd-orakel`
+allerede hadde skrevet ned:
+
+**A1 og A5 er ALTERNATIVER, ikke tillegg.** Begge leser de samme
+observasjonene, A1 som håndsatte regler og A5 som en likelihood under nettets
+policy. Å stable dem ville telt samme bevis to ganger. Speken kaster på `sb`
+i stedet for å velge for kalleren.
+
+**A6 er additiv**, fordi den leser noe annet: hvilket av de LIKEGYLDIGE kortene
+makker valgte (§70: 36,2 % av kortvalgene endrer ikke stikkets utfall). Det er
+ledig båndbredde, ikke en gjentakelse.
+
+### To rettelser i koblingen
+
+**A4 erstattet i stedet for å blande.** Kroken satte `μB = søkt.μ` rett ut,
+mens `blandMu` er designet for en blanding. Rolloutene spiller som oss og
+arver vår skjevhet, mens GBT-en er tilpasset faktiske utfall — full erstatning
+bytter én skjevhet mot en annen uten at det kan måles. `budblanding` er nå et
+felt, standard 0,5, og **0 er bit-identisk med søket av** (testet).
+
+**A5 falt stille tilbake til reglene** uten atferdsmodell. Det er bokstavelig
+talt slik A5 endte i etikettmakeren. Speken kaster nå hvis `b` ikke finner et
+`e1:<fil>.bin` å hente policyen fra.
+
+### Hva som fortsatt mangler, sagt høyt
+
+**`montetro` og sanseblokken er ikke med.** De krever et nett på ≥ 558 trekk;
+Adams kjører `d7alle` på 273. Det eneste brede nettet vi har (`b714gammel`)
+måler −1,15 mot `d7alle`, så å bytte ville gjort Adams verre for å slå på en
+evne. Låsen åpnes av et bedre 714-nett, ikke av en spekendring — og det er
+nettopp det arm A trener mot.
+
+### Testene måler at delene FYRER, ikke at de finnes
+
+Alle de døde modulene hadde grønne enhetstester hele tiden. Det er selve
+problemet: en test som kaller funksjonen direkte er grønn selv om ingen agent
+kaller den. Fire ganger har den formen skjult en død komponent her.
+
+`test/adams-v7-komplett.test.ts` går derfor gjennom hele stakken:
+
+* `amu:foerer` søker 0 ganger som makker og 0 som forsvar; `amu:alle` søker
+  begge steder — målt, ikke lest ut av koden
+* `b` med atferdsmodell gir `sisteKilde === "bayes"`; uten gir `"regel"`
+* `sb` avvises; `b` uten nett kaster
+* budsøket **endrer faktisk bud** (er de like i alle, er kroken tom)
+* `blanding 0` gir nøyaktig samme bud som uten søk
+
+**402 tester grønne.**
+
+### Ingenting i v7 er målt
+
+`b`, `g`, `alle` og `sok` er alle umålte, og noen kan godt være negative —
+`ork:`-forsvarssøket målte −0,027. Poenget med v7 er at de nå KAN måles, hver
+for seg og sammen. Før dette var de ikke i boten i det hele tatt.
