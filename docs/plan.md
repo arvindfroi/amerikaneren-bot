@@ -6670,3 +6670,75 @@ ved bom, uten å si fra — samme stille no-op-klasse som `pkill` som ikke finne
 `Edit` feiler når mønsteret mangler, og ble brukt i stedet.
 
 **393 tester grønne.**
+
+## 97. PORTEN VAR BLIND — og det ville gjort hele løkka til teater
+
+Arvind: «hvordan tipper du resultatene blir nå? tror du vi klarer å treffe
+målet?»
+
+Å spå etterpå er verdiløst, så her står spådommen med tallene den bygger på.
+
+### Spådommen for de nærmeste målingene: nok en null
+
+| | rader | punktestimat | avgjorte |
+|---|---|---|---|
+| §91 `cny1` | 7 516 | −0,277 ± 0,348 | 10,0 % |
+| §94 `any25000` | 25 727 | −0,152 ± 0,163 | 25,3 % |
+
+Begge negative i punktestimat, ingen signifikante. `ftf1` ga +0,136 fra **410
+000** rader; vi er en størrelsesorden unna. Og kollapsmålingen sier hvorfor det
+ikke er oppmuntrende: `cny1` forbedret angeren med **0,13** på egen fordeling
+uten at poengene rørte seg — samme dårlige vekslingskurs som §-notatet om
+`e1-r1`/`e1-r2` (12 % bedre anger → 0,27 poeng per kamp).
+
+### Spådommen for målet: nei, ikke langs denne veien
+
+Vi står på 15,83 %, målet er 5,0 %, og kursen flater ut:
+
+    +0,127 poeng  ->  −4,79 pp
+    +0,3 poeng    ->  −2,88 pp     2,4x mer arbeid, 40 % mindre effekt
+
+De 4,4 prosentpoengene fra v3 til v5 kostet søket i førersetet — prosjektets
+største enkeltgevinst. De gjenstående 10,8 er ikke en finjustering.
+
+### MEN: spådommen avdekket at porten var blind
+
+Løkka kompunderer bare hvis forfremmelser faktisk skjer. Klikker ikke skrallen,
+degenererer den til «mer data fra samme lærer» — aksen §77 målte til **eksakt
+null** med 2,36 millioner rader.
+
+Gate 2 hadde SE ±0,163 ved `--giver 400`. Med to SE margin ser den bare
+gevinster over **+0,33**:
+
+| ekte gevinst | nødvendig SE | `--giver` | kostnad |
+|---|---|---|---|
+| +0,30 | 0,150 | 472 | 7 min |
+| +0,15 | 0,075 | 1 889 | 28 min |
+| +0,10 | 0,050 | 4 251 | 64 min |
+| +0,05 | 0,025 | 17 004 | 255 min |
+
+**Vaktflagg `f` — prosjektets siste ekte funn — var +0,031. Ti ganger under
+terskelen.**
+
+Skrallen kunne altså aldri ha klikket, uansett hvor god læringen var. Løkka
+ville sett ut til å kjøre, logget pent, og aldri forfremmet noe. Det er den
+dyreste varianten av prosjektets faste feil: **det målte og det som skulle
+måles var ikke samme ting** — her fordi måleinstrumentet ikke hadde oppløsning
+til spørsmålet.
+
+Kostnadsregnskapet gjør valget åpenbart: generering tar timer per generasjon,
+porten tar minutter. `--giver 4000` koster ~1 time mot ~10, altså 10 % påslag
+for å se ned til +0,10. Å spare der var feil bytte.
+
+Og en STERK port er nettopp det som lar oss både forfremme OG holde regelen
+«aldri adopter på støy». Med en svak port må man velge én av dem.
+
+### Hva jeg tror nå
+
+Med porten rettet er den ærlige spådommen todelt:
+
+* **Gen 1 og arm A 50k blir null eller små positive tall.** Nå er de i det
+  minste LESBARE, og en null betyr noe den ikke betydde før.
+* **5 %-målet nås ikke av destillasjon alene.** Takkartet peker på budrunden
+  (41,8 % av alt som er å hente), og der har tre forsøk målt null. Det er der
+  neste ekte gevinst må komme fra — ikke fra flere rader.

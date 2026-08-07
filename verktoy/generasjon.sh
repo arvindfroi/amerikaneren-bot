@@ -57,6 +57,7 @@ SKARD="${4:-8}"
 TERSKEL="${5:-40000}"                    # nye rader per generasjon
 GENSTART="${6:-1}"
 FREMMED="${7:-sd-frys2,sd-rv1}"          # kollapsprober
+GIVERE="${9:-4000}"                      # giv per gate-2-maaling, se porten under
 
 SKJULT="512,384,256"
 WSLROT="/mnt/c/Users/arvin/Documents/Claude/Projects/amerikaneren-bot"
@@ -189,13 +190,38 @@ while :; do
       --merk 'gen$GEN' --ut 'analyse/kollaps-gen${GEN}.txt'" >> "$TRENLOGG" 2>&1 || true
   sed -n '4,12p' "analyse/kollaps-gen${GEN}.txt" 2>/dev/null | tee -a "$LOGG"
 
-  # PORTEN.
-  ekko "GEN $GEN: gate 2 mot sittende mester"
+  # ============ PORTEN, OG HVOR STOR DEN MÅ VÆRE ==========================
+  #
+  # `--giver 400` ga SE ±0,163. En port med den presisjonen ser BARE gevinster
+  # over **+0,33**. Vaktflagg `f` — prosjektets siste ekte funn — var +0,031.
+  # Ti ganger under terskelen.
+  #
+  # Skrallen kunne altså aldri ha klikket, uansett hvor god læringen var. Og
+  # siden løkka beholder mesteren ved null, ville den degenerert til «mer data
+  # fra samme lærer»: nøyaktig aksen §77 målte til EKSAKT NULL med 2,36
+  # millioner rader. Hele løkka ville sett ut til å kjøre og ikke gjort noe.
+  #
+  # KOSTNADSREGNSKAPET GJØR VALGET ÅPENBART. Å generere én generasjon tar
+  # timer; porten tar minutter:
+  #
+  #     ekte gevinst   nødvendig SE   --giver   kostnad
+  #        +0,30          0,150          472      7 min
+  #        +0,15          0,075        1 889     28 min
+  #        +0,10          0,050        4 251     64 min
+  #        +0,05          0,025       17 004    255 min
+  #
+  # 4 000 giv koster ~1 time mot generasjonens ~10, altså 10 % påslag for å
+  # gjøre porten i stand til å se +0,10 med to SE margin. Å spare der var feil
+  # bytte.
+  #
+  # Og en STERK port er nettopp det som lar oss både forfremme OG holde regelen
+  # «aldri adopter på støy». Med en svak port må man velge.
+  ekko "GEN $GEN: gate 2 mot sittende mester ($GIVERE giv - ser ned til ~+0,10)"
   rm -f "analyse/g2-${NAVN}s"*.jsonl
   for S in 0 1 2 3 4 5 6 7; do
     node examples/gate2.ts --kandidat "vakt:abmpf:e1:${KAND}" \
       --kandidat "vakt:abmpf:e1:${MESTER}" --miljo "vakt:abmpf:e1:${MESTER}" \
-      --froe $((3000000 + GEN * 500000)) --giver 400 --skard "${S}/8" \
+      --froe $((3000000 + GEN * 500000)) --giver "$GIVERE" --skard "${S}/8" \
       --ut "analyse/g2-${NAVN}s${S}.jsonl" >> "$TRENLOGG" 2>&1 &
   done
   wait

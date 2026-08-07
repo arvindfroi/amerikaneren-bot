@@ -84,14 +84,21 @@ for T in $TERSKLER; do
   # Gate 2: kandidaten i ETT sete, miljøet i tre, parret på (giver, sete).
   # KONTROLLARMEN er miljøet mot seg selv og MÅ måle eksakt 0,0000 - ellers er
   # det seteskjevhet i oppsettet og ingen av de andre tallene kan leses.
-  ekko "maaler $NAVN paa gate 2 (8 skard x 400 givere)..."
+  # 400 giv ga SE ±0,163, altsaa en port som bare ser gevinster over **+0,33**.
+  # Vaktflagg `f` - prosjektets siste ekte funn - var +0,031. Ti ganger under
+  # terskelen. En maaling som ikke kan se noe vi realistisk kan produsere, er
+  # ikke en maaling; den er en null-maskin.
+  #
+  # 4 000 giv koster ~1 time og ser ned til ~+0,10 med to SE margin. Naar
+  # genereringen tar timer, er det aapenbart riktig bytte.
+  ekko "maaler $NAVN paa gate 2 (8 skard x ${GIVERE:-4000} giv)..."
   rm -f "analyse/g2-${NAVN}s"*.jsonl
   for S in 0 1 2 3 4 5 6 7; do
     node examples/gate2.ts \
       --kandidat "vakt:abmpf:e1:${VEKT}" \
       --kandidat "vakt:abmpf:e1:${BASIS}" \
       --miljo "vakt:abmpf:e1:${BASIS}" \
-      --froe 3000000 --giver 400 --skard "${S}/8" \
+      --froe 3000000 --giver "${GIVERE:-4000}" --skard "${S}/8" \
       --ut "analyse/g2-${NAVN}s${S}.jsonl" >> "$TRENLOGG" 2>&1 &
   done
   wait
