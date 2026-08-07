@@ -5980,3 +5980,74 @@ gangene (målt 28 %, §78). Det er ikke en feil i anslaget: spørsmålet «hvor
 mange stikk tar laget mitt» finnes bare når vi FÅR kontrakten.
 
 **373 tester grønne.** Appen bunter. Alle nye moduler bunter for nettleser.
+
+## 86. SELVTRENINGEN ER BYGGET OG TESTET — alt påslått, klar for en natt
+
+Arvind: «jeg vil at den selvtrener med absolutt alt inkludert … test at alt
+funker før vi commiter til en natt med trening.»
+
+### Premisset ble validert FØR vi bandt opp en natt
+
+Hele selvtreningen hviler på at søket er en sterkere lærer enn etikettene
+nettet alt har uttømt (`d7klipp`: −0,003 med 29,7 % avgjorte, §77). Var
+alpha-mu bare pynt, hadde vi betalt ~400× for ingenting — og ingenting ville
+feilet, akkurat som den døde sanseblokken (§32).
+
+`examples/laerer-sammenlikning.ts`, 200 stillinger, SAMME trukne verdener:
+
+| | |
+|---|---|
+| enige om beste kort | **84,0 %** — altså uenige i 16 % |
+| identisk rangering | 69,0 % |
+| andel par rangert likt | 0,892 |
+| spredning beste–verste | SD **3,071** mot alpha-mu **3,594** |
+
+Alpha-mu er en annen lærer, og den **skiller kandidatene tydeligere** — som er
+nettopp det en etikett skal gjøre.
+
+### Og Arvind fanget en ekte glipp
+
+«Ser den de 400 trekkene som mangler nå i selvtreningen?»
+
+**Nei.** Første kjøring var `--bredde 273` — vi ville laget bedre etiketter til
+de SAMME trekkene og aldri rørt de 441 som mangler.
+
+Det som blokkerte den brede var sirkelen: A5 trenger en tro; troen var et nett
+som ikke replikerte (+0,34 / −0,12). **`src/moe2/montetro.ts` bryter den:** de
+vektede verdenene ER en posterior. Teller vi hvor ofte hvert kort havner hos
+hvert sete, får vi nøyaktig fordelingen `fyllSanser` ber om — uten modell, uten
+3,4 MB, og den arver hver forbedring i trekningen.
+
+Målt på en 714-kjøring: **alle ti blokkene levende**, sansene fylt i 100 % av
+radene med 30,7 ikke-null av 88.
+
+### Stillingskilden var også glemt
+
+Loggen sa «stillingskilde: NevroHjerne» — boten som vinner 3,65 % mot Adams.
+Vi ville fått verdens beste etiketter til stillinger Adams aldri besøker. Det
+var defekten jeg selv utpekte, og flagget (`--spiller`) fantes hele tiden.
+
+### Provenienssporet erstatter leave-one-out
+
+Arvind droppet leave-one-out-selen «så lenge vi kan gjøre en analyse etterpå».
+Den analysen krever at hver rad bærer hvordan den ble laget, ellers er et
+blandet korpus uanalyserbart. Hver rad har nå `o` (orakel), `sl` (slutning),
+`mt` (montetro), `sp` (spredningsport), `am` (alpha-mu-dybde), `kd`
+(kandidater), `rv` (rollevekt), `ki` (stillingskilde).
+
+`test/sd-orakel-format.test.ts` fanget utvidelsen med det samme — den vokter
+nøkkelsettet fordi det en gang drev uten at noen så det. Den er oppdatert
+BEVISST: påkrevde nøkler må alle være der, og ukjente nøkler feiler fortsatt.
+
+### Kostnaden, ærlig
+
+**0,22 rader/sekund** med alt påslått og Adams som stillingskilde — fire ganger
+tregere enn med NevroHjerne, fordi kilden nå faktisk er den boten vi forbedrer.
+
+    ~19 000 rader per døgn per prosess
+    ~190 000 med ti skard
+
+Til sammenlikning har `sd-v10` 306k rader. Én natt med ti skard gir altså rundt
+80k — et meningsfullt korpus, men ikke et som alene lukker A5.
+
+**373 tester grønne. Appen bunter. Alle nye moduler bunter for nettleser.**

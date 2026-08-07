@@ -39,6 +39,22 @@ const TREKK_NT = 318;
 /** Nøklene e1-orakel skriver, uten den fasitspesifikke (`dybde`/`sdVerdener`). */
 const FELLESNØKLER = ["t", "nt", "v", "n", "frø", "stikk"] as const;
 
+/**
+ * PROVENIENSFELTENE, lagt til 7. august.
+ *
+ * Arvind droppet leave-one-out-selen «saa lenge vi kan gjoere en analyse
+ * etterpaa» — og den analysen KREVER at hver rad baerer hvilke innstillinger
+ * som lagde den. Uten dem er et blandet korpus uanalyserbart: to rader ser
+ * like ut, men den ene kan ha alpha-mu-etikett med bayes-vektede verdener og
+ * den andre raa SD med budvekt.
+ *
+ * DE ER TRYGGE Å LEGGE TIL fordi leserne plukker navngitte felter (`r.get("t")`,
+ * `r.get("v")`); ekstra noekler ignoreres. Men de skal staa HER, ikke bare
+ * dukke opp: denne testen finnes nettopp fordi noekkelsettet en gang drev uten
+ * at noen saa det.
+ */
+const PROVENIENS = ["o", "sl", "mt", "sp", "am", "kd", "rv", "ki"] as const;
+
 test("konstantene er de forventede, så resten av testen betyr noe", () => {
   assert.equal(E1_SPILL_DIM, TREKK_T);
   assert.equal(E1_SPILL_DIM_V2, TREKK_T2);
@@ -60,11 +76,16 @@ test("sd-orakel skriver e1-formatet", () => {
 
   for (const linje of linjer) {
     const r = JSON.parse(linje) as Record<string, unknown>;
-    assert.deepEqual(
-      Object.keys(r).sort(),
-      [...FELLESNØKLER, "sdVerdener"].sort(),
-      "nøkkelsettet har endret seg; e1-tren.py og sammenligningen mot DD-data avhenger av det",
+    // DE PÅKREVDE må ALLE være der – det er den ekte invarianten.
+    for (const n of [...FELLESNØKLER, "sdVerdener"]) {
+      assert.ok(n in r, `noekkelen «${n}» mangler; e1-tren.py avhenger av den`);
+    }
+    // Og INGEN uventede: en ny noekkel skal foere til et bevisst valg her,
+    // ikke skli inn. Det er hele grunnen til at denne testen finnes.
+    const uventet = Object.keys(r).filter(
+      (k) => !([...FELLESNØKLER, "sdVerdener", ...PROVENIENS] as readonly string[]).includes(k),
     );
+    assert.deepEqual(uventet, [], `ukjente noekler i korpuset: ${uventet.join(", ")}`);
 
     const t = r["t"] as number[];
     const nt = r["nt"] as number[];

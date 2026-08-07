@@ -66,6 +66,19 @@ const TREKNINGER = tall(arg("--trekninger", "24"), 24, "trekninger");
 /** Tak på forkastninger per godkjent trekning. Uten det kan en sjelden
  *  auksjon spise hele budsjettet på én rad. */
 const FORSØKSTAK = tall(arg("--forsoekstak", "40"), 40, "forsoekstak");
+/**
+ * `--sveip` maaler P(vinner budrunden) og stikkfordelingen for FLERE bud i
+ * samme stilling, ikke bare det laveste lovlige.
+ *
+ * §78 fant at v2-blokken bare gir 0,3 % paa stikkanslaget, men at den ekte
+ * verdien ligger i `vant[N]` betinget paa auksjonen. Den kan ikke hentes fra
+ * et korpus som bare kjenner ETT bud per stilling: beslutningsregelen
+ * sammenlikner N mot N+1, og uten begge er sammenlikningen umulig.
+ *
+ * Kostnaden er lineaer i antall bud, og trekningene deles: samme omdeling
+ * brukes for alle N, saa forkastningen betales én gang.
+ */
+const SVEIP = process.argv.includes("--sveip");
 const skardTekst = arg("--skard", "0/1").split("/");
 const SKARD_I = tall(skardTekst[0], 0, "skard-i");
 const SKARD_N = tall(skardTekst[1], 1, "skard-n");
@@ -219,7 +232,7 @@ for (let h = 0; h < HENDER; h++) {
   const ag = nyeAgenter();
   let s: GameState = start;
   const logg: { spiller: number; bud: BudKode }[] = [];
-  const punkter: { sete: number; prefiks: string; hånd: Kort[]; mine: BudKode[] }[] = [];
+  const punkter: { sete: number; prefiks: string; hånd: Kort[]; mine: BudKode[]; lovligeBud: number[] }[] = [];
   let g = 0;
   while (s.fase === "BUDRUNDE" && g++ < 40) {
     if (s.iTur === null) break;
@@ -228,6 +241,14 @@ for (let h = 0; h < HENDER; h++) {
       prefiks: prefiksAv(logg),
       hånd: (s.hender[s.iTur] ?? []).slice(),
       mine: logg.filter((b) => b.spiller === s.iTur).map((b) => b.bud),
+      // Budene som er lovlige HER, laveste foerst, med gulv paa 9 som ellers.
+      lovligeBud: (() => {
+        const l = lovligeHandlinger(s);
+        if (l.fase !== "BUDRUNDE") return [];
+        const t = l.bud.filter((b): b is number => typeof b === "number").sort((a, b) => a - b);
+        const fra = t.findIndex((b) => b >= 9);
+        return fra < 0 ? t.slice(-1) : t.slice(fra);
+      })(),
     });
     const hh = ag[s.iTur]!.velgHandling(s);
     if (hh.type === "BUD") logg.push({ spiller: hh.spiller, bud: hh.bud as BudKode });
@@ -240,9 +261,8 @@ for (let h = 0; h < HENDER; h++) {
 
     // 2. FORKASTNINGSTREKKING: bare omdelinger som ville gitt SAMME budprefiks.
     //    Det er dette som gjør etiketten betinget paa auksjonen.
-    const stikk: number[] = [];
+    const perBud = new Map<number, { stikk: number[]; vant: number }>();
     const passDiff: number[] = [];
-    let vant = 0;
     let forsøk = 0;
     let godkjent = 0;
     const tak = TREKNINGER * FORSØKSTAK;
@@ -251,25 +271,37 @@ for (let h = 0; h < HENDER; h++) {
       forsøk++;
       const giv = omtrekk(start, p.sete, p.hånd, rng);
 
-      // Referansebudet er 9 - det budet familien faktisk strides om, og det
-      // budet `vant[N]`-tabellen er mest feilkalibrert paa (35,3 % maalt mot
-      // 9,7 % i selvspill).
-      const a = budrunde(giv, p.sete, p.mine, 1);
-      if (!a.gyldig) continue;
-      // AKSEPTERING: de foerste budene i den omtrukne auksjonen maa vaere
-      // NOEYAKTIG de observerte. Vaart eget sete replayer sine, saa det som
-      // faktisk testes er om MOTSTANDERNES hender er forenlige med det de bod.
+      // Hvilke bud skal proeves i denne stillingen? Uten --sveip bare det
+      // laveste lovlige >= 9, som foer; med, alle lovlige fra det og opp.
+      const prøve = SVEIP ? p.lovligeBud : p.lovligeBud.slice(0, 1);
+      if (prøve.length === 0) break;
+
+      // FORKASTNINGEN BETALES EN GANG. Prefikset avhenger bare av
+      // motstandernes hender og VAARE observerte bud - ikke av hvilket N vi
+      // proever etterpaa. Derfor testes den med det foerste budet, og alle N
+      // gjenbruker samme godkjente omdeling.
+      const første = budrunde(giv, p.sete, p.mine, prøve[0]!);
+      if (!første.gyldig) continue;
       const lengde = p.prefiks === "" ? 0 : p.prefiks.split(",").length;
-      if (prefiksAv(a.logg.slice(0, lengde)) !== p.prefiks) continue;
+      if (prefiksAv(første.logg.slice(0, lengde)) !== p.prefiks) continue;
 
       godkjent++;
-      if (a.s.budvinner === p.sete) {
-        vant++;
-        const f = spillUt(a.s);
-        const st = f.stikkVunnet;
-        stikk.push((st[p.sete] ?? 0) + (f.makker !== null && f.makker !== p.sete ? (st[f.makker] ?? 0) : 0));
+      for (const N of prøve) {
+        const a = N === prøve[0] ? første : budrunde(giv, p.sete, p.mine, N);
+        if (!a.gyldig) continue;
+        let e = perBud.get(N);
+        if (e === undefined) {
+          e = { stikk: [], vant: 0 };
+          perBud.set(N, e);
+        }
+        if (a.s.budvinner === p.sete) {
+          e.vant++;
+          const f = spillUt(a.s);
+          const st = f.stikkVunnet;
+          e.stikk.push((st[p.sete] ?? 0) + (f.makker !== null && f.makker !== p.sete ? (st[f.makker] ?? 0) : 0));
+        }
       }
-      // PASSARMEN: hva er runden verdt hvis vi lar den gaa?
+
       const b = budrunde(giv, p.sete, p.mine, null);
       if (b.gyldig && b.s.budvinner !== null) {
         const f = spillUt(b.s);
@@ -278,6 +310,10 @@ for (let h = 0; h < HENDER; h++) {
         passDiff.push(Math.round((egne - (po.reduce((x, y) => x + y, 0) - egne) / 3) * 1000) / 1000);
       }
     }
+
+    const hoved = p.lovligeBud[0];
+    const stikk = hoved === undefined ? [] : (perBud.get(hoved)?.stikk ?? []);
+    const vant = hoved === undefined ? 0 : (perBud.get(hoved)?.vant ?? 0);
 
     // Ingen godkjente trekninger = ingen data. AA SKRIVE RADEN LIKEVEL, med
     // tomme lister, ville gitt treneren en «etikett» som bare er stoey - samme
@@ -301,6 +337,9 @@ for (let h = 0; h < HENDER; h++) {
         prefiks: p.prefiks,
         stikk,
         passDiff,
+        // Per bud: hvor mange av de godkjente trekningene som vant, og
+        // stikkfordelingen naar vi vant. Tomt uten --sveip.
+        perBud: Object.fromEntries([...perBud].map(([N, e]) => [N, { vant: e.vant, stikk: e.stikk }])),
         // AKSEPTERINGSRATEN. En rad med sjelden auksjon har faerre effektive
         // trekninger enn tallet paa `stikk` antyder, og treneren maa kunne
         // vekte den ned. Uten dette feltet ser en rad med 3 av 960 forsoek ut

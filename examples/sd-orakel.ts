@@ -56,12 +56,18 @@ import { dirname } from "node:path";
 
 import { lagRng } from "../src/kort.ts";
 import { lovligeHandlinger, lovligeKort, opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
-import { e1SpillTrekkMedTro, E1_SPILL_DIM, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9 } from "../src/e1/trekk.ts";
+import { e1SpillTrekk, e1SpillTrekkMedTro, E1_SPILL_DIM, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9 } from "../src/e1/trekk.ts";
 import { LOVLIGE_BREDDER } from "../src/e1/agent.ts";
 import { Trosnett } from "../src/moe2/trosnett.ts";
 import { lagTrovekt } from "../src/moe2/troprior.ts";
-import { E1Agent } from "../src/e1/nett.ts";
-import { vurderKortSD } from "../src/moe2/sdkort.ts";
+import { E1Agent, lesE1Nett } from "../src/e1/nett.ts";
+import { standardMål, trekkVerdener, vurderKortSD } from "../src/moe2/sdkort.ts";
+import { alphaMu } from "../src/moe2/alphamu.ts";
+import { monteTro } from "../src/moe2/montetro.ts";
+import { lagHvemLaVekt } from "../src/moe2/hvemla-slutning.ts";
+import { lagTroverdighetsvekt } from "../src/moe2/troverdighet.ts";
+import { forover } from "../src/nevro/nett.ts";
+import { fyllSanser } from "../src/e1/sanser.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
 import { nettFraBytes } from "../src/nevro/nett.ts";
@@ -177,6 +183,53 @@ let troFil: string | null = null;
 let kandidater = 32;
 /** Hvordan flere fortsettelser slås sammen – se SDOpts.fortsKombi. */
 let fortsKombi: "min" | "snitt" | "cfr" = "cfr";
+/**
+ * SELVTRENINGEN. `--orakel amu` bruker ALPHA-MU som lærer i stedet for rå SD.
+ *
+ * Grunnen er §77: `d7klipp` la 2,36 M nye rader til `d7alle` og maalte EKSAKT
+ * NULL med 29,7 % avgjorte giver. Et godt powered null. Etikettene er
+ * uttoemt - nettet har passert sin egen laerer (`lagstikk - SD` = +0,26 som
+ * foerer, §2).
+ *
+ * Det eneste vi har maalt STERKERE enn nettet er soeket: +1,78 / +1,68 i to
+ * disjunkte baand. Aa destillere det er derfor den ene kjente kilden til et
+ * signal nettet ikke allerede har - og det er hele AlphaZero-loekka:
+ * nett gir prior -> soek slaar nett -> destiller -> bedre nett -> sterkere soek.
+ */
+let orakel: "sd" | "amu" = "sd";
+/**
+ * SPREDNINGSPORTEN. Merk bare stillinger der valget faktisk BETYR noe.
+ *
+ * Maalt paa sd-v10: de oeverste 20 % av stillingene baerer 79 % av all
+ * beslutningsverdi, medianen har spredning 0,333, og en firedel har EKSAKT
+ * 0,000 - der finnes ingen beslutning aa laere.
+ *
+ * Med alpha-mu som orakel koster hver etikett ~400x mer enn med SD. Porten er
+ * det som gjoer destillasjonen betalbar: 79 % av signalet for 20 % av prisen.
+ */
+let spredning = 0;
+let amuM = 1;
+/**
+ * `--montetro` fyller sanseblokken fra de VEKTEDE VERDENENE i stedet for fra
+ * `Trosnett`.
+ *
+ * Sirkelen den bryter: A5 (de 441 trekkene) trenger en tro; troen var et nett
+ * som IKKE replikerte (+0,34 / -0,12). Verdenstrekningen produserer allerede
+ * en posterior som er forenlig med renonser, budrunden og - etter A1/§84 -
+ * SPILLET. Aa telle hvor ofte hvert kort havner hos hvert sete ER den
+ * fordelingen `fyllSanser` ber om.
+ */
+let monteTroPaa = false;
+/**
+ * SLUTNINGEN som vekter kandidatverdenene.
+ *
+ *   av     bare budrunden, som foer
+ *   regel  §81s fire regler (renons, ikke-vant, ikke-trumfet, lengde)
+ *   bayes  §84s likelihood: P(observasjoner | verden) under policyen selv.
+ *          Ingen haandsatte konstanter - Arvind: «det burde ikke vaere normale
+ *          regler men matematiske formler».
+ */
+let slutning: "av" | "regel" | "bayes" = "av";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   if (a === "--ut") utFil = process.argv[++i] ?? utFil;
@@ -195,6 +248,11 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--tro") troFil = process.argv[++i] ?? null;
   else if (a === "--kandidater") kandidater = Number(process.argv[++i]);
   else if (a === "--fortskombi") fortsKombi = (process.argv[++i] ?? "cfr") as typeof fortsKombi;
+  else if (a === "--orakel") orakel = (process.argv[++i] ?? "sd") as typeof orakel;
+  else if (a === "--spredning") spredning = Number(process.argv[++i]);
+  else if (a === "--amum") amuM = Number(process.argv[++i]);
+  else if (a === "--montetro") monteTroPaa = true;
+  else if (a === "--slutning") slutning = (process.argv[++i] ?? "av") as typeof slutning;
   else if (a === "--fraStikk") fraStikk = Number(process.argv[++i]);
   else if (a === "--maks") maks = Number(process.argv[++i]);
   else if (a === "--motpart") motpartSpek = process.argv[++i] ?? "nevro";
@@ -213,13 +271,26 @@ if (!(LOVLIGE_BREDDER as readonly number[]).includes(bredde)) {
 }
 const trosnett =
   troFil === null ? null : new Trosnett(nettFraBytes(new Uint8Array(readFileSync(troFil)))[0]!);
-if (bredde >= E1_SPILL_DIM_V9 && trosnett === null) {
+if (bredde >= E1_SPILL_DIM_V9 && trosnett === null && !monteTroPaa) {
   throw new Error(
-    `Bredde ${bredde} har sanseblokken, men --tro mangler. Da ville 84 av 88 ` +
-      `sansetrekk vaert konstant null i HELE korpuset. Send --tro e1-modell/tro.bin.`,
+    `Bredde ${bredde} har sanseblokken, men verken --tro eller --montetro er satt. ` +
+      `Da ville 84 av 88 sansetrekk vaert konstant null i HELE korpuset. ` +
+      `Send --tro e1-modell/tro.bin, eller --montetro for aa fylle den fra de ` +
+      `vektede verdenene i stedet (se src/moe2/montetro.ts).`,
   );
 }
-console.error(`bredde ${bredde}, tro: ${troFil ?? "ingen"}`);
+console.error(`bredde ${bredde}, tro: ${troFil ?? "ingen"}, slutning: ${slutning}`);
+
+/**
+ * ATFERDSMODELLEN for `--slutning bayes`: kortnettet selv. `P(kort | haand,
+ * stilling)` er en softmax over dets logits paa de LOVLIGE kortene - vi
+ * trenger ingen ny modell for aa spoerre «hvor sannsynlig var det de gjorde».
+ */
+const atferdNett = lesE1Nett("e1-modell/d7alle.bin");
+const atferd = {
+  logits: (st: GameState, sete: number) =>
+    forover(atferdNett, e1SpillTrekk(st, sete, atferdNett.lag[0]!.inn)),
+};
 
 // EGEN UTMAPPE. `verktoy/e1-tren.py` leser alle `skard-*.jsonl` i en mappe og
 // blander dem uten å se på innholdet. Havner SD-linjer i e1-data/, er begge
@@ -441,15 +512,70 @@ alleKamper: for (let k = 0; k < kamper; k++) {
         // ingenting av hvordan folk har SPILT teller. Målt 5. august: +2,62 pp
         // bedre verdenskvalitet ved 32 kandidater — men bare +0,68 ved 3,
         // fordi importance sampling kun kan velge blant det som ble trukket.
+        /**
+         * VEKTEN PAA KANDIDATVERDENENE. Tre kilder, og de kan ikke stables:
+         * de er alternative modeller av det samme, ikke uavhengige signaler.
+         */
         const trovekt =
-          trosnett === null ? undefined : (lagTrovekt(trosnett, s, sete) ?? undefined);
-        const vurdert = vurderKortSD(s, sete, fortsettelser, {
+          slutning === "bayes"
+            ? lagTroverdighetsvekt(s, sete, atferd)
+            : slutning === "regel"
+              ? lagHvemLaVekt(s, sete)
+              : trosnett === null
+                ? undefined
+                : (lagTrovekt(trosnett, s, sete) ?? undefined);
+        let vurdert = vurderKortSD(s, sete, fortsettelser, {
           verdener,
           rng,
           trovekt,
           verdenKandidater: trovekt === undefined ? 3 : kandidater,
           fortsKombi: fortsKombi,
         });
+
+        /**
+         * SPREDNINGSPORTEN. Er beste og verste kort like gode, finnes det
+         * ingen beslutning aa laere - og med alpha-mu som orakel er hver
+         * etikett ~400x dyrere enn med SD. Porten maales paa det BILLIGE
+         * SD-anslaget foerst, saa vi bare betaler den dyre prisen der det er
+         * noe aa hente.
+         */
+        if (spredning > 0 && vurdert.length >= 2) {
+          let hoy = -Infinity;
+          let lav = Infinity;
+          for (const v of vurdert) {
+            if (v.verdi > hoy) hoy = v.verdi;
+            if (v.verdi < lav) lav = v.verdi;
+          }
+          // TOM LISTE = INGEN RAD. Skrivingen er allerede vakt av
+          // `vurdert.length > 0`, saa porten hoerer hjemme der - ikke i et
+          // `continue` som ville hoppet over utspillingen og laast loekka.
+          if (hoy - lav < spredning) vurdert = [];
+        }
+
+        /**
+         * ALPHA-MU SOM LAERER. Samme verdener, men utfallene midles ikke bort
+         * foer valget - kriteriet krever at kortet er godt paa TVERS av dem.
+         * Det er den ene formen som angriper strategifusjonen vi har maalt to
+         * ganger (§56, §58).
+         */
+        if (orakel === "amu" && vurdert.length >= 2) {
+          const verdenerH = trekkVerdener(s, sete, verdener, rng, undefined, trovekt, kandidater);
+          if (verdenerH.length > 0) {
+            const grener = alphaMu(s, sete, verdenerH, {
+              M: amuM,
+              mål: standardMål,
+              motpart: fortsettelser[0]!,
+            });
+            const snitt = (v: readonly number[]): number =>
+              v.reduce((a, b) => a + b, 0) / Math.max(1, v.length);
+            vurdert = grener.map((g, i) => ({
+              indeks: lovlige.findIndex((k) => k.farge === g.kort.farge && k.verdi === g.kort.verdi),
+              kort: g.kort,
+              verdi: snitt(g.vektor),
+              n: g.vektor.length,
+            })) as typeof vurdert;
+          }
+        }
         // Tom liste = ingen verden lot seg trekke. Da skal INGENTING skrives:
         // å behandle «ingen data» som «alle valg er like gode» var mekanismen
         // som gjorde `lærForsvar` verre enn ingenting.
@@ -475,8 +601,19 @@ alleKamper: for (let k = 0; k < kamper; k++) {
               // nye informasjonen, uten et eneste varsel. Fanget ved aa lese
               // foerste rad etter oppstart. GJOER DET IGJEN etter hver gang
               // kodingen utvides: `head -1 <mappe>/skard-0.jsonl` og tell.
-              t: Array.from(e1SpillTrekkMedTro(s, sete, bredde, trosnett), (x) =>
-                Math.round(x * 10_000) / 10_000,
+              t: Array.from(
+                (() => {
+                  if (!monteTroPaa || bredde < E1_SPILL_DIM_V9) {
+                    return e1SpillTrekkMedTro(s, sete, bredde, trosnett);
+                  }
+                  // MONTE-CARLO-TROEN: samme fordeling `fyllSanser` ber om, men
+                  // taalt fra de vektede verdenene i stedet for fra et nett.
+                  const v = e1SpillTrekk(s, sete, bredde);
+                  const tro = monteTro(s, sete, verdener, rng, trovekt, kandidater);
+                  if (tro !== null) fyllSanser(v, s, sete, tro);
+                  return v;
+                })(),
+                (x) => Math.round(x * 10_000) / 10_000,
               ),
               nt: lagInn(spillerVisning(s, sete), "SPILL", s.giving.antallStikk, s.regler.målPoeng).map(
                 (x) => Math.round(x * 10_000) / 10_000,
@@ -490,6 +627,27 @@ alleKamper: for (let k = 0; k < kamper; k++) {
               sdVerdener: verdener,
               frø,
               stikk: s.stikkSpilt,
+              /**
+               * PROVENIENSEN. Arvind droppet leave-one-out-selen «saa lenge vi
+               * kan gjoere en analyse etterpaa» - og det KREVER at hver rad
+               * baerer hvilke innstillinger som lagde den.
+               *
+               * Uten dette er et blandet korpus uanalyserbart: to rader ser
+               * like ut, men den ene kan ha alpha-mu-etikett med bayes-vektede
+               * verdener og den andre raa SD med budvekt. En daarlig maaling
+               * ville da vaert umulig aa tilskrive.
+               *
+               * Kort felt-navn fordi det staar paa HVER rad i et korpus paa
+               * hundretusener.
+               */
+              o: orakel,
+              sl: slutning,
+              mt: monteTroPaa ? 1 : 0,
+              sp: spredning,
+              am: orakel === "amu" ? amuM : 0,
+              kd: kandidater,
+              rv: rolleVekt,
+              ki: spillerFil ?? "nevro",
             }) + "\n",
           );
           merket++;
