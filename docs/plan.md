@@ -6296,3 +6296,43 @@ spørsmålet krever en størrelsesorden mer korpus, og korpuset genererer videre
 Det er ~4 200 og ~3 000 per time. For å nå `ftf1`-nivå (410k) på arm C trengs
 ~136 timer med dagens kjernefordeling. Det er den ærlige kostnaden ved
 alpha-mu som lærer, og den er grunnen til at spredningsporten finnes.
+
+## 92. GENERERINGSKOSTNADEN, MÅLT — og hvorfor `bayes` beholdes likevel
+
+136 timer for å nå `ftf1`-nivå er ikke en plan, det er en flaskehals. Så jeg
+målte hvor kostnaden faktisk ligger i stedet for å gjette (alt under
+CPU-metning, altså relative tall):
+
+| slutning | M | rader/s |
+|---|---|---|
+| bayes | 2 | 0,030 |
+| regel | 2 | 0,051 |
+| bayes | 1 | 0,035 |
+| **regel** | **1** | **0,070** |
+
+**`regel` er 1,8× raskere enn `bayes`. M=1 er 1,3× raskere enn M=2.**
+
+Og det siste tallet er det interessante: kostnadssveipet i §88 målte M=2 til
+**5,3×** M=1 i selve søket. I GENERERINGEN er forskjellen bare 1,3×. Altså er
+alpha-mu-kallet **ikke** den dominerende kostnaden — SD-forvurderingen og det å
+spille partiene er.
+
+Det betyr at hele 2,3× er alt som er å hente på disse knottene, og
+throughput-taket er strukturelt.
+
+### Hvorfor `bayes` beholdes
+
+§77 er det avgjørende: `d7klipp` la 2,36 M rader til `d7alle` og målte **eksakt
+null med 29,7 % avgjorte**. Mer data av samme slag gir ingenting. Da er det
+etikettkvaliteten som er aksen, og `bayes` vekter verdenene med en likelihood i
+stedet for fire håndsatte konstanter.
+
+Å bytte til `regel` for 1,8× mer av noe som kanskje er dårligere, er å optimere
+den ene aksen vi vet ikke virker.
+
+### Den ærlige konsekvensen
+
+Et korpus på `ftf1`-skala (410k) med alpha-mu-etiketter tar **dager, ikke
+timer**. Det er prisen for en sterkere lærer, og det er derfor
+spredningsporten finnes — den er ikke en optimalisering, den er det som gjør
+hele retningen mulig i det hele tatt.
