@@ -166,27 +166,42 @@ test("K4: hukommelsen fylles BARE naar driveren mater RUNDE_SLUTT til agenten", 
  * Det er nøyaktig feilklassen vedlegget beskriver: en modul som ser levende ut
  * fordi den finnes i speken.
  */
-test("K4: «okt:» naar frem naar den staar rett over «profil:», men ikke bak «vr:»", () => {
+/**
+ * DENNE TESTEN DOKUMENTERTE EN FEIL, OG BA UTTRYKKELIG OM AA BLI SNUDD.
+ *
+ * K4-proeven fant at `okt:` var FRAKOBLET i baade ADAMS_V6 og ADAMS_V7:
+ * `lagIndre` sender `Spekkontekst` nedover, men `vr:`-grenen bygde sitt indre
+ * lag med `lagIndre(rest)` UTEN `ctx`. Begge spekene begynner med `okt:vr:…`,
+ * saa oekten ble opprettet og kastet umiddelbart. Verken `profil:` (som
+ * laerer) eller `amu:` (som leser via `motpartFor`) fikk den noen gang.
+ *
+ * Maalt den gang: 0 bokfoerte runder bak `vr:`, 7 rett over `profil:`.
+ *
+ * Samme mangel fantes i `sik:`, `vv:`, `vv2:`, `etl:`, `juks:` og `profil:`s
+ * indre kall - sju kall til sammen. Alle retter naa `ctx` videre.
+ *
+ * Konsekvensen var stor: der oekten NAAR fram endrer 58 % av kortvalgene seg
+ * av det den har laert. I ADAMS_V7 slik den sto var tallet 0.
+ */
+test("K4: «okt:» naar frem gjennom HELE stakken, ogsaa bak «vr:»", () => {
   const direkte = øktNåesGjennom(A_MINNE);
   const bakVr = øktNåesGjennom(`vr:e1-modell/vrakrang.bin:telrd:${A_MINNE}`);
 
   assert.ok(
     direkte > 0,
     `oekten fikk ${direkte} bokfoerte runder selv rett over «profil:». Da maaler ` +
-      `denne testen ingenting, og konklusjonen under er ugyldig.`,
+      `denne testen ingenting.`,
   );
-  assert.equal(
-    bakVr,
-    0,
-    `oekten fikk ${bakVr} bokfoerte runder BAK «vr:». Blir denne roed, har noen ` +
-      `sendt «ctx» videre i vr-grenen i agentspek.ts - og da er «okt:» i ` +
-      `ADAMS_V6/V7 endelig koblet. Oppdater AdamsMax.md K4 og K6.`,
+  assert.ok(
+    bakVr > 0,
+    `oekten fikk ${bakVr} bokfoerte runder BAK «vr:». Da har noen sluttet aa ` +
+      `sende «ctx» videre i vr-grenen, og «okt:» er frakoblet i ADAMS_V6/V7 igjen - ` +
+      `hele oektminnet og A2 er da doed kode i den utrullede spekken.`,
   );
   // Spekene kandidatene faktisk maales med, sagt rett ut.
   assert.ok(ADAMS_V6.startsWith("okt:vr:"), "ADAMS_V6 begynner ikke lenger med okt:vr:");
   assert.ok(ADAMS_V7.startsWith("okt:vr:"), "ADAMS_V7 begynner ikke lenger med okt:vr:");
 });
-
 /**
  * ============ 5. PRØVE A, BUDKANALEN ====================================
  *

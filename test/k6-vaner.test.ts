@@ -211,7 +211,7 @@ function lagØktSomHarLært(): Økt {
   return holdt;
 }
 
-test("K6: «vr:» kutter kontekstkjeden, så okt: i ADAMS_V7 aldri når søket", () => {
+test("K6: konteksten naar gjennom «vr:» - okt: er koblet i hele stakken", () => {
   /**
    * TREDJE BRUDD, uavhengig av de to over.
    *
@@ -226,8 +226,12 @@ test("K6: «vr:» kutter kontekstkjeden, så okt: i ADAMS_V7 aldri når søket",
    * `amu` (som skulle fått `motpartFor`) eller `profil` (som skulle fylt
    * øktens bok) ser den noensinne. `okt:`-laget lager et objekt ingen leser.
    *
-   * Testen måler det på ATFERD, ikke på kilden: samme spek, samme stillinger,
-   * én gang med en økt som HAR lært og én gang uten.
+   * FEILEN ER RETTET. Alle sju kall som droppet `ctx` (`vr:`, `sik:`, `vv:`,
+   * `vv2:`, `etl:`, `juks:` og `profil:`s indre) sender den naa videre.
+   *
+   * Testen maaler paa ATFERD, ikke paa kilden: samme spek, samme stillinger,
+   * én gang med en oekt som HAR laert og én gang uten. Kravet er snudd - naa
+   * skal `vr:` IKKE gjoere noen forskjell for om oekten naar fram.
    */
   const stillinger = samleStillinger(14, 810_000_601);
   assert.ok(stillinger.length >= 10, `fikk bare ${stillinger.length} stillinger`);
@@ -243,10 +247,17 @@ test("K6: «vr:» kutter kontekstkjeden, så okt: i ADAMS_V7 aldri når søket",
   const b = valg(utenVr, null, stillinger);
   assert.notDeepEqual(a, b, "økten endret ingenting selv uten vr: — da finnes ikke A2-kanalen i det hele tatt");
 
-  // MEN MED `vr:` FORAN er de to bit-identiske: konteksten kom aldri fram.
+  // OG MED `vr:` FORAN skal den fortsatt naa fram. Er c og d bit-identiske,
+  // har noen sluttet aa sende `ctx` gjennom vr-grenen igjen, og hele
+  // oektminnet er doed kode i ADAMS_V6/V7.
   const c = valg(medVr, lært, stillinger);
   const d = valg(medVr, null, stillinger);
-  assert.deepEqual(c, d, "vr: slipper konteksten gjennom likevel — da er funnet feil");
+  assert.notDeepEqual(
+    c,
+    d,
+    "«vr:» kutter kontekstkjeden igjen - okt: naar ikke soeket i ADAMS_V7, og " +
+      "hele oektminnet er da doed kode i den spekken vi maaler med",
+  );
 });
 
 // ---------------------------------------------------------------------------

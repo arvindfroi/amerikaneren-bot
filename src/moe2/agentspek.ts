@@ -349,7 +349,7 @@ export function lagIndre(
     if (a < 0 || b < 0) throw new Error(`Ugyldig vr-spek «${indre}»`);
     const nett = nettFraBytes(new Uint8Array(readFileSync(rest.slice(0, a))))[0];
     if (nett === undefined) throw new Error(`Tomme vekter i «${rest.slice(0, a)}»`);
-    return new Vrakrangerer(lagIndre(rest.slice(b + 1)), nett, rest.slice(a + 1, b));
+    return new Vrakrangerer(lagIndre(rest.slice(b + 1), ctx), nett, rest.slice(a + 1, b));
   }
   if (indre.startsWith("budm:")) {
     const rest = indre.slice(5);
@@ -706,7 +706,7 @@ export function lagIndre(
     if (!Number.isFinite(sigma) || !Number.isFinite(verdener) || verdener < 1) {
       throw new Error(`Ugyldig sik-spek «${indre}» - forventet sik:<rolle>:<sigma>:<verdener>:<indre>`);
     }
-    const inn = lagIndre(d.slice(3).join(":"));
+    const inn = lagIndre(d.slice(3).join(":"), ctx);
     const sikRest = utenSøk(d.slice(3).join(":"));
     return new Sikkerorakel(inn, (sikRest === d.slice(3).join(":") ? inn : lagIndre(sikRest, ctx)) as unknown as ConstructorParameters<typeof Sikkerorakel>[1], {
       sigma,
@@ -731,7 +731,7 @@ export function lagIndre(
     if (!Number.isFinite(verdener) || verdener < 1) {
       throw new Error(`Ugyldig vv-spek «${indre}» - forventet vv:<verdener>:<indre>`);
     }
-    const inn = lagIndre(d.slice(1).join(":"));
+    const inn = lagIndre(d.slice(1).join(":"), ctx);
     const vvRest = utenSøk(d.slice(1).join(":"));
     return new Vrakvelger(inn, (vvRest === d.slice(1).join(":") ? inn : lagIndre(vvRest, ctx)) as unknown as ConstructorParameters<typeof Vrakvelger>[1], { verdener });
   }
@@ -747,7 +747,7 @@ export function lagIndre(
     if (!Number.isFinite(nivaa) || nivaa < 0) {
       throw new Error(`Ugyldig etl-spek «${indre}» - forventet etl:<nivaa>:<indre>`);
     }
-    return new Etterlysvelger(lagIndre(d.slice(1).join(":")), nivaa);
+    return new Etterlysvelger(lagIndre(d.slice(1).join(":"), ctx), nivaa);
   }
   /**
    * `vv2:<verdener>:<finale>:<indre>` - VRAK OG TRUMF, andre forsoek.
@@ -762,7 +762,7 @@ export function lagIndre(
     if (!Number.isFinite(verdener)) {
       throw new Error(`Ugyldig vv2-spek «${indre}» - forventet vv2:<verdener>:<flagg>:<indre>`);
     }
-    const inn = lagIndre(d.slice(3).join(":"));
+    const inn = lagIndre(d.slice(3).join(":"), ctx);
     const vv2Rest = utenSøk(d.slice(3).join(":"));
     return new Vrakvelger2(inn, (vv2Rest === d.slice(3).join(":") ? inn : lagIndre(vv2Rest, ctx)) as unknown as ConstructorParameters<typeof Vrakvelger2>[1], {
       verdener,
@@ -830,10 +830,10 @@ export function lagIndre(
     const d = indre.slice(5);
     const kolon = d.indexOf(":");
     if (kolon < 0) throw new Error(`Ugyldig juks-spek «${indre}»`);
-    return new Juksagent(lagIndre(d.slice(kolon + 1)), tall(d.slice(0, kolon), 4, "juks-terskel"));
+    return new Juksagent(lagIndre(d.slice(kolon + 1), ctx), tall(d.slice(0, kolon), 4, "juks-terskel"));
   }
   if (indre.startsWith("profil:")) {
-    const inn = lagIndre(indre.slice(7));
+    const inn = lagIndre(indre.slice(7), ctx);
     const bud = (inn as unknown as Partial<Budjusterbar>).settForsvarsjustering
       ? (inn as unknown as Budjusterbar)
       : null;
