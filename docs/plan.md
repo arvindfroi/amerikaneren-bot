@@ -7192,3 +7192,62 @@ rullet tilbake til `amu:foerer`.
 formulerte, dokumenterte grundig og bygde en sjutimersmåling for, ble motbevist
 av den målingen. Det er ikke et tap — det er den eneste grunnen til å måle. §98
 står som skrevet, med denne seksjonen som svar.
+
+## 104. K4 BUDKANALEN: en ekte grense, ikke en feil
+
+K4-prøven målte at hukommelsen ikke påvirker budgivningen: **0 av 87 bud
+endret seg**. Justeringen ber om maks 0,649 budpoeng (etter at `MIN_RUNDER` og
+den andre terskelen ble rettet — den var 0,508 før), og det trengs **1,0** for
+å snu ett eneste valg.
+
+### Hvorfor, målt
+
+`evForsvarMot` bruker ÉN kilde: `krymp(p.klarte, BEFOLKNING.klarte)`. Og
+`klarte` observeres bare når setet VANT budrunden:
+
+| runde | `bydde.n` | `klarte.n` | tiltro |
+|---|---|---|---|
+| 3 | 4 | **0** | 0,000 |
+| 7 | 8 | 1 | 0,077 |
+| 15 | 16 | **3** | **0,200** |
+
+Etter en HEL kamp er anslaget fortsatt 80 % krympet mot befolkningen.
+
+**Men her er krympingen ærlig**, til forskjell fra `bud.n` og `trumfutspill.n`.
+`klarte.n` ER riktig utvalgsstørrelse for «klarer hun kontraktene sine» — det
+kan ikke observeres uten at hun vinner en. Det er ikke en feil teller, det er
+et sparsomt fenomen.
+
+### Forsøket på mer bevis, og hvorfor det ble avvist
+
+Den riktige bevegelsen er ikke en større multiplikator, men MER BEVIS: `bydde`
+observeres hver runde (16 mot 3 etter 15), og hvis budlyst henger sammen med å
+ryke, kan det tette signalet informere prioren for det sparsomme.
+
+`examples/budprior-kalibrer.ts` målte det over 150 kamper, 484 seter:
+
+```
+HELLING beta:  −0,1265 ± 0,1285   (z = −0,98)
+```
+
+**Ikke skilt fra null.** Fortegnet peker riktig vei — de som byr ofte ryker
+oftere — men effekten finnes ikke i dataene. Å legge inn koeffisienten fordi
+den er plausibel er nøyaktig det §84 kritiserte, og §65s auksjonskorreksjon er
+advarselen: den så ekte ut og replikerte ikke (z = 0,71 og 0,54).
+
+### Konsekvensen for K4
+
+Hukommelsen virker der beviset er TETT og ikke der det er SPARSOMT:
+
+| kanal | evidens per runde | effekt |
+|---|---|---|
+| kortvalg (A2) | hver runde, hvert stikk | **58 % av valgene endres** |
+| budgivning | ~0,25 observasjoner per runde | 0 av 87 |
+
+Og det følger av rammen Arvind selv satte: «det skal bare lære per økt for nå.»
+En kamp til 100 poeng gir omtrent tre observasjoner av «klarte hun kontrakten».
+Det er for lite til å flytte et bud, uansett hvor god modellen er.
+
+**K4 er derfor delvis innfridd, og resten er ikke en feil å fikse.** Det er en
+grense i hvor mye som kan læres på én økt — og den grensen er målt, ikke
+antatt.

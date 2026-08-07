@@ -93,10 +93,26 @@ interface Arm {
   kilde: Vektkilde;
   signal: boolean;
 }
+/**
+ * ARMENE, OG HVORFOR «g» MAA MAALES ALENE.
+ *
+ * Arvind: «alle deler skal fungere i samspill og gjoere hverandre bedre.»
+ *
+ * Med bare `bayes` og `bayes+g` kan man se OM signalet hjelper oppaa Bayes,
+ * men ikke om de to FORSTERKER hverandre. Til det trengs A6 alene:
+ *
+ *     superadditivitet = (bayes+g - av) - [(bayes - av) + (g - av)]
+ *
+ * Er den positiv, gjoer delene hverandre bedre. Er den negativ, leser de det
+ * samme beviset to ganger - og det er ikke hypotetisk her: `sd-orakel` skrev
+ * ned fra foerst av at A1 og A5 IKKE kan stables av noeyaktig den grunnen.
+ * A6 ble antatt aa vaere uavhengig. Denne armen proever antakelsen.
+ */
 const ARMER: Arm[] = [
   { navn: "av", kilde: "av", signal: false },
   { navn: "regel", kilde: "regel", signal: false },
   { navn: "bayes", kilde: "bayes", signal: false },
+  { navn: "g", kilde: "av", signal: true },
   { navn: "bayes+g", kilde: "bayes", signal: true },
 ];
 

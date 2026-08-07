@@ -1,0 +1,15 @@
+# HENGER BUDLYST SAMMEN MED AA KLARE KONTRAKTEN?  (150 kamper)
+
+seter med nok data:      484
+snitt budandel:          0.4364
+snitt klarterate:        0.6544
+
+HELLING beta:            -0.1265 ± 0.1285   (z = -0.98)
+
+IKKE SKILT FRA NULL. Sammenhengen finnes ikke i disse dataene, og da
+skal ingen koeffisient legges inn. Aa sette en fordi den er plausibel
+er noeyaktig det §84 kritiserte - og §65s auksjonskorreksjon er
+advarselen: den saa ekte ut og replikerte ikke (z = 0,71 og 0,54).
+
+REPLIKERING KREVES UANSETT FORTEGN. Ett baand er ikke et funn her -
+auksjonskorreksjonen (§65) hadde z = 0,71 i ett og 0,54 i det neste.
