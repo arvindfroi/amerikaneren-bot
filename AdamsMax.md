@@ -1,263 +1,269 @@
 # AdamsMax
 
-Den komplette Adams-modellen — kravene, målene, og hva som faktisk står igjen.
+**Hva Adams skal kunne gjøre, og hvordan vi vet at han gjør det.**
 
-Dette er ikke en plan for hva som skal bygges. `docs/plan.md` er loggen over hva
-som er målt. **Denne fila er fasiten: hva Adams skal være når han er ferdig, og
-hvordan vi vet at han er det.**
+Arvind: «jeg stiller ikke krav til hvordan du gjør det men til hva som skal være
+resultatet.»
 
-Hvert krav under er hentet fra noe Arvind faktisk har bedt om. Der ordlyden er
-hans, står den i sitat. Der et tall er målt, står målingen ved siden av — et
-krav uten en måling er en mening.
+Derfor er denne fila organisert rundt **evner**, ikke rundt metode. Hvert krav er
+hans ord. Under hvert står én ting: **prøven** — den målingen som avgjør om
+kravet er innfridd. Et krav uten en prøve er en mening, og en prøve som ikke kan
+feile er ikke en prøve.
+
+Arbeidsmetodene mine ligger i vedlegget til slutt, der de hører hjemme.
 
 ---
 
-## 1. Målet, i tall
+## K1 — Spille bedre enn mennesker og aldri tape i lange løp
 
-Det finnes ett tall som avgjør om Adams er ferdig.
+> «spille bedre enn mennesker og aldri tape i lange løp»
 
-> **En menneske-ekvivalent motstander skal vinne under 5,0 % av kampene mot
-> Adams.**
+**Prøven.** Kampbenken (`examples/kamp.ts`), kamper til 100 poeng, en
+menneske-ekvivalent motstander i tre seter. Andelen kamper motstanderen vinner
+mot Adams skal være **under 5,0 %**, replikert i disjunkte frøbånd.
+Kontrollarmen (fire like agenter) må måle 0,2500.
 
-| motstander | vinnerandel mot Adams | |
-|---|---|---|
-| NevroHjerne | 3,65 % | |
-| sd-r2 | 6,77 % | |
-| ftf1 | 7,29 % | |
-| **familien (19 ekte kamper)** | **15,8 %** | ← det vi skal slå |
-| Adams-v3 (stedfortreder) | 20,21 % | |
-| **stedfortreder mot v5** | **15,83 %** | ← der vi står |
-| **MÅL** | **5,0 %** | ← 10,8 pp igjen |
+*Hvorfor kampbenken og ikke rundedifferanse:* «aldri tape i lange løp» er et
+utsagn om KAMPER. Rundepoeng er en proxy, og proxyen har en dårlig
+vekslingskurs — se under.
 
-Familien spiller omtrent på Adams-v3-nivå. For å presse dem til 5 % må Adams slå
-dem med den marginen han i dag slår **sd-r2** med. Det er ikke en finjustering.
-
-**Vekslingskursen er målt, og den flater ut:**
-
-```
-+0,127 poeng/runde  →  −4,79 pp
-+0,3   poeng/runde  →  −2,88 pp      2,4× mer arbeid, 40 % mindre effekt
-```
-
-De 4,4 prosentpoengene fra v3 til v5 kostet søket i førersetet — prosjektets
-største enkeltgevinst (+2,170 i det setet, z = +5,52 over fire bånd).
-
-### Delmål med kjent status
-
-| delmål | status |
+| motstander | vinnerandel mot Adams |
 |---|---|
-| Slå NevroHjerne | **nådd** |
-| Slå MesterAI | **nådd** — +0,14 poeng/runde over 879 runder |
-| Slå familien med margin | 15,83 % → 5,0 % gjenstår |
+| NevroHjerne | 3,65 % |
+| sd-r2 | 6,77 % |
+| ftf1 | 7,29 % |
+| **familien (19 ekte kamper)** | **15,8 %** |
+| **der vi står (v5)** | **15,83 %** |
+| **KRAVET** | **< 5,0 %** |
 
-**MesterAI-seieren er ekte, men smal.** +0,14 per runde er ikke mye, og den ble
-målt med en stakk **uten søkelag i det hele tatt**, mot en MesterAI som søker i
-alle fire seter.
+**Status: ikke innfridd. 10,8 prosentpoeng igjen.**
+
+Vekslingskursen er målt og flater ut: `+0,127 poeng/runde → −4,79 pp`, men
+`+0,3 → −2,88 pp`. Å komme dit er et generasjonssprang, ikke en finjustering.
+
+*Nådd underveis:* NevroHjerne slått. MesterAI slått (+0,14 poeng/runde over
+879 runder) — men smalt, og med en stakk uten søkelag mot en MesterAI som søker
+i alle fire seter.
 
 ---
 
-## 2. Hva Adams skal kunne
+## K2 — Aldri jukse
 
-> «lag en komplett modell som kan forbedres av seg selv med **alle egenskaper og
-> evner en menneske og en maskin kan ha**»
+> «aldri jukse»
 
-> «har den samme evner som mennesker har nå i et spill til 100 (eller mer) poeng?
-> hukommelse, strategi, optimalt valg, etc etc»
+**Prøven — og den finnes ikke ennå.** Dette er det eneste kravet som kan
+avgjøres HELT, uten statistikk:
 
-### 2.1 Hukommelse og slutning
+> Konstruér to spilltilstander som er **identiske i alt Adams lovlig kan se**
+> (egen hånd, bordet, historikken, budrunden) men **ulike i de skjulte
+> kortene**. Adams må velge nøyaktig samme kort i begge. Over tusenvis av
+> stillinger. **Ett eneste avvik er juks.**
 
-| evne | krav | status |
+Ingen statistikk, ingen frøbånd, ingen tolkning. Enten er valget invariant
+under skjult informasjon, eller så er det ikke.
+
+**Status: BEVIST.** `test/k2-aldri-jukse.test.ts`, 8 giv × 3 stillinger × 3
+forenlige verdener: **null avvik.**
+
+Og prøven er vist å kunne feile — det er den viktigste halvdelen. En jukser
+(`juks:6`, som ser de virkelige hendene) ble tatt med **6 avvik av 9**. Uten
+den halvdelen ville den grønne testen betydd «måler ingenting» like gjerne som
+«ærlig».
+
+*Grensen på beviset, sagt høyt:* de alternative verdenene lages av VÅR EGEN
+sampler. Beviset sier «Adams bruker ikke informasjon utover det samplerens
+forenlighetsbegrep tillater». Er samplerens begrep feil, arver prøven feilen.
+
+Risikoen er reell og konkret: `medVerden`, `spillerVisning` og
+verdenstrekningen håndterer skjulte kort hver eneste beslutning. En lekkasje
+der ville ikke krasjet — den ville bare gjort Adams uforklarlig god.
+
+**Dette bygges først.** Uten det er hvert eneste tall i fila her uten verdi.
+
+---
+
+## K3 — Spille optimalt med SOTA-komponenter i alle faser
+
+> «spille optimalt med SOTA komponenter i alle faser og deler av spillet»
+
+**Prøven.** For hver fase: (a) beslutningen tas av et **søk eller en løser**,
+ikke av en håndskrevet regel, og (b) gapet til fasens tak er målt.
+
+| fase | komponent | gap til taket |
 |---|---|---|
-| **Hvem la hva** | «hvem la hva er et must. det må funke og det må påvirke hvordan han forutser spillet og predikerer hva kort andre har på hånden» | koblet (A1/A5) |
-| Renonser | harde forbud i verdenstrekningen | koblet |
-| Bayesiansk motstandertro | «prediksjonen burde ikke være normale regler men enten læring over tid eller matematiske formler» | koblet i V7 (`b`) |
-| Kortelling | `telrd` | koblet |
-| Sanseblokk (441 ekstra trekk) | fordeling over hvor kortene sitter | **IKKE i Adams** — se §5 |
+| Budrunde | GBT (μ, σ) + budsøk A4 | **41,8 % av alt som er å hente** |
+| Vrak | lært vrakrangerer | målt |
+| Trumfvalg | vrakvelger | målt |
+| Utspill stikk 1 | konvensjonsvakt + søk | §73: regelen målte null |
+| Midtspill | alpha-mu, alle roller | måles nå |
+| Sluttspill | eksakt løser | 0,3 % av taket — **lukket** |
 
-### 2.2 Strategi og valg
-
-| evne | krav | status |
-|---|---|---|
-| Søk uten strategifusjon | alpha-mu, Pareto over utfallsvektorer | koblet |
-| Søk i **alle roller** | fasegapet ligger i makker (−0,22) og forsvar (−0,12) | koblet i V7, **måles nå** |
-| Motstandermodell i rollouts | A2 — ikke anta at alle spiller som oss | koblet, men se §6 |
-| Kampstillingsbevissthet | varians er verdt noe når man ligger bak | koblet, men se §6 |
-| Uleselighet | ikke være forutsigbar blant likeverdige kort | koblet |
-| Eksakt sluttspill | siste stikk er tvunget | målt: **0,3 % av taket** — lukket |
-| Signalering | «ikke like viktig … tett evnebegrensningene først» | koblet i V7 (`g`) |
-
-### 2.3 Budgivning
+**Status: delvis.** Budrunden er det store hullet — og det eneste vinduet stort
+nok til å nå K1. Tre forsøk der har målt null (terskelen er optimal;
+auksjonskorreksjonen replikerte ikke).
 
 > «fokuser på å gjøre spillet hans optimalt så BAM legger vi på en siste
 > budmodell som gir max poeng»
 
-**Budrunden er 41,8 % av alt som er å hente** (+8,06 av taket, §60). Det er det
-eneste vinduet som er stort nok til å nå 5 %.
-
-| evne | status |
-|---|---|
-| GBT-modell for (μ, σ) | koblet |
-| Kalibrert terskel | koblet, målt optimal (fire retninger, alle ≤ 0) |
-| Budsøk (A4) — spør spillet, ikke regresjonen | koblet i V7 (`sok`), umålt |
-| Auksjonskorreksjon | målt, **replikerte ikke** (z = 0,71 og 0,54) |
-
-### 2.4 Forklarbarhet
-
-> «si vi får et dårlig resultat så må vi kunne se hva som slår godt ut og hvor vi
-> har gjort feil»
-
-Alpha-muens utfallsvektor **er** regnskapet valget ble tatt på, så forklaringen
-kan ikke lyve om sin egen årsak. Koblet, av som standard (kostnad).
-
-### 2.5 Læring
-
-| krav | status |
-|---|---|
-| «det skal bare lære per økt for nå» | `okt:` — ingen `fs`, ingen `localStorage`, ingen `fetch`. Testhåndhevet. |
-| Selvtrening: nytt nett tilbake i generatoren | `verktoy/generasjon.sh` |
-| «pass deg for overfitting» | `verktoy/kollaps.py` — fremmede prober, kurve over generasjoner |
-| «pass på at den lærer av seg selv» | forfremmelse bare ved bestått port |
+Rekkefølgen er hans, og den er riktig: budmodellen skal legges på et spill som
+allerede er optimalt, ikke brukes til å dekke over at det ikke er det.
 
 ---
 
-## 3. Reglene som ikke får brytes
+## K4 — Hukommelse over hele spillet, og planlegge framover
 
-Disse er ikke stil. Hver av dem finnes fordi noe gikk galt uten den.
+> «ha hukommelse over hele spill, og evnen til å planlegge framover»
 
-1. **Aldri adopter på støy.** Parret på giv, replikert i **disjunkte frøbånd**,
-   tegntest ved siden av snittet. Kontrollarmen må måle **eksakt 0,0000** på
-   gate 2 (eller 0,2500 på kampbenken). Gjør den ikke det, er benken i stykker
-   og ingen andre tall kan leses.
+**Prøve A — hukommelsen.** Spill samme runde to ganger: én gang som runde 1 i en
+kamp, én gang som runde 8 etter sju spilte runder mot de samme motstanderne.
+Valgene må **avvike**. Gjør de ikke det, er hukommelsen dekorasjon.
 
-2. **Alle måleresultater skrives til varige filer.** Aldri stdout-rør på
-   flertimers arbeid.
+**Prøve B — framoverblikket.** Alpha-mu med `M ≥ 2` søker over egne FRAMTIDIGE
+valg. Gevinsten ved M=2 mot M=1 må være målt og positiv.
 
-3. **Les aldri en gate2-fil før kjøringen er ferdig.** Delresultater løy fire
-   ganger på én natt — forsvarssøket så ut som +0,255, så +0,125, og endte på
-   −0,027.
-
-4. **Det målte og det utrullede må være samme ting.** Prosjektets mest gjentatte
-   feil, funnet **tretten** ganger. Håndheves av
-   `test/utrullet-lik-maalt.test.ts`.
-
-5. **Repoet er offentlig.** Ingen fornavn fra familien i kode, logger eller
-   commit-meldinger. Navnene finnes bare i Val Town-databasen.
-
-6. **Ingen utrulling uten eksplisitt beskjed.**
-
-7. **Ingen kryssøkt-lagring av spillerprofiler.** Per økt, aldri til disk.
-
-8. **Alt logges i `docs/plan.md`** — også det som feilet, og hvorfor.
-
-9. **En knott skal ha et nullpunkt som er bit-identisk med «av».** Ellers kan
-   ingen sveip starte fra noe kjent.
-
-10. **En test skal måle at noe FYRER, ikke at det finnes.** Fire døde moduler
-    hadde grønne enhetstester hele tiden.
+**Status: ubevist, og benken har skylden.** Gate 2 lager friske agenter per giv
+og stopper etter én runde, så hukommelsen får aldri mer enn én runde å huske.
+Kravet krever kampbenken. M står på 1 i V7 fordi M=2 koster 5,3×.
 
 ---
 
-## 4. Det som er koblet nå: ADAMS_V7
+## K5 — Forstå konteksten i spillet og tilpasse seg
 
-```
-okt: vr:vrakrang.bin:telrd : amu:alle:12k16bgm1e0.25r0.4
-   : profil : budm:bud-vant.json@-3.0/…/sok12k8b0.5
-   : vakt:abmpf : e1:d7alle.bin
+> «forstå konteksten i spillet og tilpasse seg»
+
+**Prøven.** Samme kort, samme stikk, **ulik kampstilling** (20 poeng bak mot 20
+foran ved 70–90). Adams må velge ulikt. Å ligge under skal gi mer risiko, å lede
+mindre.
+
+**Status: koblet, aldri målt — og målingen var umulig.**
+
+```ts
+const framdrift = Math.min(1, Math.max(egne, beste) / mål);
+if (framdrift < 0.3) return 0;
 ```
 
-| ledd | evne |
+Hver gate2-giv starter på 0–0, så `framdrift = 0` og **racepresset returnerer
+eksakt null i hver eneste måling prosjektet har gjort.** Parameteren `r0.4` har
+aldri gjort noe i noe tall vi har sett på.
+
+---
+
+## K6 — Lære andre spilleres vaner underveis og utnytte dem
+
+> «lære seg andre spillere sine vaner ila spillet og tilpasse seg og utnytte de»
+
+**Prøven.** Sett Adams mot en **stilisert** motstander med en utnyttbar vane
+(alltid aggressiv i budrunden, eller alltid trekker trumf). Over en kamp skal:
+
+1. Adams tjene mer mot den stiliserte enn mot en nøytral motstander, og
+2. **gevinsten vokse med rundenummeret** — det er signaturen på læring, ikke på
+   at motstanderen bare er dårlig.
+
+Punkt 2 er det som skiller «utnytter» fra «møter en svakere motpart».
+
+**Status: koblet (`okt:`, `profil:`), aldri målt.** `MIN_RUNDER = 4` betyr at
+den ikke tror på noe før fjerde runde — og gate 2 gir én.
+
+*Begrensning du selv satte:* «det skal bare lære per økt for nå.» Ingen
+kryssøkt-lagring. Håndhevet i test: `okt.ts` har ingen `fs`, `localStorage`
+eller `fetch`.
+
+---
+
+## K7 — Matematisk optimale løsninger i sluttspillet
+
+> «finne matematiske optimale løsninger i sluttspillet (kombineres med å
+> planlegge frem i tid)»
+
+**Prøven.** I stillinger der en eksakt løsning finnes, må Adams velge den —
+**100 % samsvar**, ikke 95 %. Og løsningen må mates inn i søket over det, slik
+at planen fram dit vet hva sluttspillet er verdt.
+
+**Status: innfridd for selve sluttspillet, og det er målt.**
+
+| | |
 |---|---|
-| `okt:` | øktminne, motstandermodell |
-| `vr:` | vrak og trumfvalg |
-| `telrd` | kortelling |
-| `amu:alle` | søk i **alle tre roller** |
-| `b` | A5 — bayesiansk verdensvekt |
-| `g` | A6 — signalforenlighet |
-| `m1 e0.25 r0.4` | Pareto-dybde, uleselighet, kampstilling |
-| `profil:` | motstanderprofil |
-| `sok12k8b0.5` | A4 — budsøk, blandet 50/50 |
-| `vakt:abmpf` | konvensjoner, inkl. `f` (+0,031, z = +2,95) |
-| `e1:d7alle` | kortnettet |
+| siste stikk | eksakt **0,0000** over 1000 målinger — tvunget |
+| stikk 10–11 | +0,064 |
+| hele sluttspillet | **0,3 % av taket** |
 
-**Ingenting i V7 er målt ennå.** `alle`, `b`, `g` og `sok` kan alle vise seg
-negative — `ork:`-forsvarssøket målte −0,027. Poenget med V7 er at de nå *kan*
-måles. Før 7. august var de ikke i boten i det hele tatt.
+Sluttspillet er lukket som gevinstkilde. Den andre halvdelen av kravet —
+«kombineres med å planlegge frem i tid» — er det alpha-muens `M` gjør, og den
+står på 1.
 
 ---
 
-## 5. Det som fortsatt mangler
+## K8 — Predikere motstandernes kort på veldig høyt nivå, uten juks
 
-### 5.1 Sanseblokken er utenfor Adams
+> «kunne predikere motstandere sine kort på et veldig høyt nivå (uten å jukse)»
 
-`montetro` krever et nett på **≥ 558 trekk**. Adams kjører `d7alle` på **273**.
-Det eneste brede nettet vi har, `b714gammel`, måler **−1,15** mot `d7alle`.
+**Prøven — og den finnes heller ikke ennå.** For hvert skjult kort: hvilken
+sannsynlighet gir Adams det setet kortet **faktisk** ligger på? Måles mot to
+referanser, per stikk:
 
-Å bytte ville gjort Adams verre for å slå på en evne. **Låsen åpnes av et bedre
-714-nett, ikke av en spekendring.** `sd-natt-a` (52 271 rader, 714 bredt, med
-montetro) trener mot nettopp det.
+```
+GULVET   uniform fordeling over de forenlige setene
+ADAMS    det montetro/verdenstrekningen faktisk sier
+TAKET    klarsyn (1,0 på riktig sete)
+```
 
-### 5.2 Korpuset er en størrelsesorden for lite
+Rapporteres som log-loss eller Brier-skår. **«Veldig høyt nivå» må bli et tall
+mellom gulvet og taket**, ellers er kravet ikke etterprøvbart.
 
-`ftf1` ga +0,136 fra **410 000** rader. Største arm har 52 271.
+**Status: ikke målt.** `analyse/beliefrom.txt` måler **størrelsen** på
+beliefrommet (hvor mange verdener som er forenlige) — ikke om vi treffer. Det
+er to ulike spørsmål, og bare det andre er kravet ditt.
 
-| måling | rader | resultat |
+Komponentene finnes: renonser som harde forbud, A1 «hvem la hva», A5 bayesiansk
+likelihood, A6 signaler. Ingen av dem er målt på treffsikkerhet.
+
+---
+
+## Hva som mangler, oppsummert
+
+| krav | prøven finnes | innfridd |
 |---|---|---|
-| §91 `cny1` | 7 516 | −0,277 ± 0,348 (10,0 % avgjorte) |
-| §94 `any25000` | 25 727 | −0,152 ± 0,163 (25,3 % avgjorte) |
+| K1 bedre enn mennesker | ja (kampbenken) | **nei** — 15,83 % mot < 5,0 % |
+| K2 aldri jukse | **ja** | **ja** — 0 avvik, og prøven tar en jukser |
+| K3 SOTA i alle faser | delvis | delvis — budrunden er hullet |
+| K4 hukommelse + planlegging | nei (krever kampbenk) | ubevist |
+| K5 kontekst og tilpasning | nei (krever kampbenk) | ubevist |
+| K6 lære vaner og utnytte | **nei** | ubevist |
+| K7 optimalt sluttspill | ja | **ja** — 0,3 % av taket |
+| K8 predikere kort | **nei** | ubevist |
 
-Begge null. Det er et **styrkeproblem**, ikke et gyldighetsproblem.
+**Seks av åtte krav er ubeviste, og tre av dem har ingen prøve.** Det er den
+ærlige tilstanden. Komponentene er bygd og koblet; det som mangler er å vise at
+de gjør det de skal.
 
-### 5.3 Dyp prøveeffektivitet
+### Rekkefølgen
 
-Å lære av **én** hånd, slik et menneske gjør. Ingen kjent tilnærming. Åpent.
-
----
-
-## 6. Benken er smalere enn boten
-
-**Tre evner kan ikke måles av gate 2, uansett hvor mange giv vi kjører.**
-
-Gate 2 lager friske agenter per giv og stopper ved `RUNDE_SLUTT`:
-
-| evne | krav | i gate 2 |
-|---|---|---|
-| A2 / `okt:` | ≥ 4 observerte runder | får **1**, med nullstilling |
-| `profil:` | fyller boka over tid | samme |
-| `race` (`r0.4`) | `framdrift ≥ 0,3` | **eksakt 0**, alltid |
-
-Korpusgenereringen spiller *hele* kamper, så de tre er **aktive når etikettene
-lages** og **avslått når vi bedømmer**.
-
-**Krav:** forfremmelsesporten kan ikke være gate 2 alene. `examples/kamp.ts`
-spiller fem kamper til 100 poeng per frø med agenter som husker. Den må være
-andre port.
+1. ~~K2-prøven~~ — **ferdig.**
+2. **K8-prøven** — trosnøyaktighet mot gulv og tak.
+3. **Kampbenken som port** — låser opp K4, K5 og K6, som er umålbare uten den.
+4. **K6-prøven** — stilisert motstander, gevinst som vokser med rundenummer.
+5. **K3 budrunden** — 41,8 % av taket, det eneste vinduet stort nok for K1.
+6. **K1** — følger av de andre, ikke av seg selv.
 
 ---
 
-## 7. Veien videre, i rekkefølge
+## Vedlegg: hvordan jeg jobber
 
-1. **`amu:alle` mot `amu:foerer`** — kjører nå, 4 000 giv, SE ±0,052.
-   Avgjør om søket i makker og forsvar er verdt kostnaden.
-2. **Kampbenken som andre port** — så `okt:`, `profil:` og `r0.4` kan måles i
-   det hele tatt. `verktoy/kampport.sh` er bygd og røyktestet (8 rader, 0
-   givavvik); den venter på maskin.
-3. **V7 ledd for ledd** — `b`, `g`, `sok` hver for seg mot V6.
-4. **Et 714-nett som slår `d7alle`** — åpner sanseblokken.
-5. **Budmodellen til slutt** — 41,8 % av taket, og den skal legges på et spill
-   som allerede er optimalt.
+Dette er ikke krav fra Arvind. Det er reglene jeg holder meg til fordi hver av
+dem finnes etter at noe gikk galt uten den.
 
----
+1. Aldri adoptere på støy: parret på giv, replikert i disjunkte frøbånd,
+   tegntest ved siden av snittet. Kontrollarmen må måle eksakt 0,0000 (gate 2)
+   eller 0,2500 (kampbenken).
+2. Alle måleresultater til varige filer, aldri stdout-rør.
+3. Aldri lese en gate2-fil før kjøringen er ferdig — delresultater løy fire
+   ganger på én natt.
+4. Det målte og det utrullede må være samme ting. Funnet feil **tretten**
+   ganger; håndheves av `test/utrullet-lik-maalt.test.ts`.
+5. En knott må ha et nullpunkt som er bit-identisk med «av».
+6. En test skal måle at noe **fyrer**, ikke at det finnes — fire døde moduler
+   hadde grønne enhetstester hele tiden.
+7. Alt logges i `docs/plan.md`, også det som feilet.
 
-## 8. Når er Adams ferdig?
-
-Når **alle** disse holder samtidig:
-
-- [ ] Menneske-ekvivalent motstander under **5,0 %** mot Adams
-- [ ] Hver evne i §2 er koblet **og** målt — ingen med ukjent fortegn
-- [ ] Ingen modul importeres av bare sin egen test
-- [ ] Ingen evne er usynlig for portene den bedømmes av
-- [ ] `ADAMS` == `ADAMS_MAALT` (alt målt er rullet ut)
-- [ ] Kollapskurven er flat over minst tre generasjoner
-- [ ] Boten kan gjøre rede for valgene sine med tall den faktisk valgte på
-
-Kryss av bare med en måling ved siden av.
+Og de rammene som ER dine: offentlig repo uten fornavn, ingen utrulling uten
+beskjed, ingen kryssøkt-lagring.
