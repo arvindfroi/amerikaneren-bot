@@ -138,10 +138,11 @@ export function harStyrkeI(hånd: readonly Kort[], farge: Farge): boolean {
 }
 
 /**
- * Hva et sete «har lovet» med signalene sine, per farge.
+ * DEN GAMLE, ABSOLUTTE LESINGEN — beholdt bare for at én test kan vise hva som
+ * ble byttet ut. Ikke bruk den: den leser «verdi over knekt er styrke», mens
+ * avsenderen velger HOEYESTE AV DE LOVLIGE, og de to er ulike koder.
  *
- * Kun ferdigspilte stikk der signalrommet faktisk var åpent — ellers ville vi
- * lest en tvungen handling som et løfte.
+ * `signalløfterIVerden` erstatter den.
  */
 export function signalløfter(state: GameState, sete: number): Map<Farge, number> {
   const ut = new Map<Farge, number>();
@@ -161,6 +162,77 @@ export function signalløfter(state: GameState, sete: number): Map<Farge, number
 }
 
 /**
+ * SIGNALLØFTER LEST SLIK AVSENDEREN MENTE DEM — relativt, og per verden.
+ *
+ * ================= FEILEN DENNE ERSTATTER ===============================
+ *
+ * `signalløfter` leste kortet ABSOLUTT: «verdi over knekt er et styrkesignal».
+ * Avsenderen velger derimot HØYESTE AV DE LOVLIGE (`signalkort`). En spiller
+ * som melder styrke med en nier — fordi det var det høyeste hun hadde — ble
+ * altså lest som at hun meldte SVAKHET.
+ *
+ * Det er nøyaktig den misforståelsen modulens eget hode advarer mot: «en
+ * konvensjon der de to sidene har hver sin kode er per definisjon en
+ * misforståelse.» `erStyrkesignal` gjorde det riktig hele tiden og ble brukt av
+ * ingenting.
+ *
+ * Målt konsekvens: A6 gjorde troen verre selv ETTER at senderen ble koblet
+ * (log-tap 1,0429 mot 1,0367 for A5 alene).
+ *
+ * ================= OG DERFOR MÅ DEN VÆRE VERDENSAVHENGIG ================
+ *
+ * «Var kortet høyt blant de lovlige?» kan ikke besvares uten å vite hva
+ * spilleren HADDE. Den gamle formen slapp unna nettopp fordi den ikke spurte —
+ * og det gjorde den samtidig blind: løftene ble identiske i hver verden, så
+ * bare `stemmer`-sjekken varierte. Halve den diskriminerende kraften var borte.
+ *
+ * I en kandidatverden er hånden kjent: kortene hun har IGJEN, pluss kortene hun
+ * spilte fra og med det stikket. Da er både lovlig-mengden og signalet
+ * beregnelig, og ulike verdener gir ULIKE avlesninger — som er hele poenget med
+ * en likelihood.
+ */
+export function signalløfterIVerden(
+  state: GameState,
+  sete: number,
+  håndNå: readonly Kort[],
+): Map<Farge, number> {
+  const ut = new Map<Farge, number>();
+  // Kortene setet spilte, i rekkefølge. Hånden ved stikk t er «det hun har
+  // igjen» pluss «alt hun spilte fra og med t».
+  const spilt: Kort[] = [];
+  for (const stikk of state.historikk) {
+    const eget = stikk.kort.find((kp) => kp.spiller === sete);
+    if (eget !== undefined) spilt.push(eget.kort);
+  }
+
+  let i = 0;
+  for (const stikk of state.historikk) {
+    const eget = stikk.kort.find((kp) => kp.spiller === sete);
+    if (eget === undefined) continue;
+    const kort = eget.kort;
+    const iDette = i++;
+    if (stikk.kort.length < 2) continue;
+
+    // Vant hun stikket, var kortet en stikkbeslutning og ikke et signal.
+    const best = ledende(stikk.kort, state.trumf);
+    if (best !== null && best.farge === kort.farge && best.verdi === kort.verdi) continue;
+
+    // HÅNDEN DA: det hun har igjen + alt hun spilte fra og med dette stikket.
+    const hånd = [...håndNå, ...spilt.slice(iDette)];
+    const ledet = stikk.kort[0]?.kort.farge ?? null;
+    const lovlige =
+      ledet !== null && hånd.some((k) => k.farge === ledet)
+        ? hånd.filter((k) => k.farge === ledet)
+        : hånd;
+    if (lovlige.length < 2) continue; // tvunget - ikke et signal
+
+    const f = kort.farge;
+    ut.set(f, (ut.get(f) ?? 0) + (erStyrkesignal(kort, lovlige) ? 1 : -1));
+  }
+  return ut;
+}
+
+/**
  * MOTTAKERSIDEN: log-vekt for hvor godt verdenen stemmer med signalene.
  *
  * Lovte et sete styrke i en farge, er en verden der de sitter med lite igjen
@@ -174,7 +246,7 @@ export function signalForenlighet(
   let logW = 0;
   for (let p = 0; p < hender.length; p++) {
     if (p === observator) continue;
-    const løfter = signalløfter(state, p);
+    const løfter = signalløfterIVerden(state, p, hender[p] ?? []);
     if (løfter.size === 0) continue;
     for (const [f, retning] of løfter) {
       // SAMME definisjon som avsenderen bruker - se `harStyrkeI`. Her sto

@@ -19,6 +19,7 @@ import {
   signalkort,
   signalForenlighet,
   signalløfter,
+  signalløfterIVerden,
   STYRKE,
 } from "../src/moe2/signal.ts";
 import type { Kort } from "../src/kort.ts";
@@ -84,15 +85,34 @@ test("mottakeren leser det avsenderen sendte", () => {
     ],
   } as unknown as GameState;
 
-  const løfter = signalløfter(s, 1);
-  assert.ok((løfter.get("S" as never) ?? 0) > 0, "hoeyt kort ble ikke lest som styrke");
+  /**
+   * LESINGEN ER NAA RELATIV OG VERDENSAVHENGIG, og begge deler endrer denne
+   * testen.
+   *
+   * Foer leste mottakeren kortet ABSOLUTT («verdi over knekt er styrke»), mens
+   * avsenderen velger HOEYESTE AV DE LOVLIGE. En som meldte styrke med en nier
+   * ble derfor lest som svakhet - noeyaktig misforstaaelsen modulens hode
+   * advarer mot. Maalt konsekvens: A6 gjorde troen verre SELV etter at
+   * senderen ble koblet (1,0429 mot 1,0367 for A5 alene).
+   *
+   * Med relativ lesing maa haanden vaere kjent, og den er den bare i en
+   * KANDIDATVERDEN. Det er ikke en komplikasjon, det er poenget: naa gir ulike
+   * verdener ULIKE avlesninger, som er hele grunnen til at et signal kan
+   * vaere en likelihood. (Maalt: 8 verdener -> 6 ulike vekter.)
+   */
+  const løfter = signalløfterIVerden(s, 1, [k("S", 12), k("S", 11)]);
+  assert.ok((løfter.get("S" as never) ?? 0) > 0, "hoeyeste av de lovlige ble ikke lest som styrke");
 
-  // Verden der sete 1 fortsatt har styrke i spar skal vektes OPP mot en der
-  // de er tomme.
+  // Verden der sete 1 fortsatt har styrke i spar skal vektes OPP.
   const sterk = signalForenlighet(s, [[], [k("S", 12), k("S", 11)], [], []], 0);
+  assert.equal(sterk, STYRKE, "styrkesignalet ga ikke ett STYRKE-ledd");
+
+  // OG I «SVAK»-VERDENEN BLE DET ALDRI SENDT NOE SIGNAL. Der hadde setet bare
+  // ETT spar, saa kortet var tvunget - `lovlige.length < 2`. Den gamle formen
+  // leste det som et loefte likevel, fordi den ikke spurte hva som var mulig.
   const svak = signalForenlighet(s, [[], [k("R", 2)], [], []], 0);
+  assert.equal(svak, 0, "et TVUNGET kort ble lest som et signal");
   assert.ok(sterk > svak, `signalet ble ikke lest (${sterk} mot ${svak})`);
-  assert.equal(sterk - svak, 2 * STYRKE);
 });
 
 test("den som VANT stikket signaliserte ikke - det var en stikkbeslutning", () => {
@@ -103,5 +123,9 @@ test("den som VANT stikket signaliserte ikke - det var en stikkbeslutning", () =
       { kort: [{ kort: k("S", 14), spiller: 1 }, { kort: k("S", 2), spiller: 0 }], vinner: 1 },
     ],
   } as unknown as GameState;
-  assert.equal(signalløfter(s, 1).size, 0, "vinneren skal ikke tolkes som signalgiver");
+  assert.equal(
+    signalløfterIVerden(s, 1, [k("S", 2), k("S", 3)]).size,
+    0,
+    "vinneren skal ikke tolkes som signalgiver",
+  );
 });
