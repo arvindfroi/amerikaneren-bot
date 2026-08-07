@@ -6202,3 +6202,52 @@ Korpusgenereringen er kuttet fra 18 til 13 skard for å frigjøre 5 til
 v6-benken. Begrunnelsen: korpuset er ved ~9k rader mot `sd-v10`s 306k, så
 20 % mer korpus er verdt mindre enn det første tallet på om v6 i det hele tatt
 er en forbedring.
+
+## 90. NATTEN, LOGG — hva som kjører og hvorfor rekkefølgen er slik
+
+### Tre benker ble startet og to ble drept, med grunn
+
+**v6 mot v5** ble drept etter 34 rader. Den endrer SEKS ting samtidig (amu,
+okt, profil, spillvekt, uleselighet, race) — samme konfundering jeg nettopp
+hadde fikset i korpuset, gjentatt i benken. Et resultat derfra kunne ikke
+tilskrives.
+
+**A1 isolert på `sik:24k32`** ble drept etter 166 rader. Riktig design (ÉN
+variabel), men for dyr: 22 timer for et brukbart n. Målinger hører til om
+morgenen med full CPU, ikke om natten mens 18 skard genererer.
+
+### Og arm C er det mest avgjørende forsøket, ikke arm A
+
+Det tok meg en stund å se:
+
+| arm | tester | kostnad å MÅLE |
+|---|---|---|
+| A (714) | bredde + etiketter samtidig | dyr — krever `montetro` i hvert trekk |
+| **C (273)** | **etikettene ALENE** | **billig — samme som `d7alle`** |
+
+Arm C er et 273-nett med nye etiketter, altså samme arkitektur og bredde som
+`d7alle` med den ENE forskjellen at etikettene kommer fra alpha-mu i stedet for
+SD. Det er den reneste mulige testen av selvtreningens premiss, og den er
+gratis å evaluere.
+
+Kjernene fra de drepte benkene gikk derfor dit: 12 skard på C, 10 på A.
+
+### Treningsrørleggingen er verifisert
+
+Finjustering fra `b714gammel` på det nye korpuset starter og kjører:
+
+```
+714 → 512 → 384 → 256 → 52 (674 996 parametre)
+trening 14 279, holdout 331
+```
+
+Hold-anger blir 1,09 mot `b714gammel`s 0,946 — men de måles mot ULIKE
+etikettsett og er ikke sammenliknbare. Og holdout har løyet før (§S5). Bare
+gate 2 avgjør.
+
+### Planen for morgenen
+
+1. Tren et 273-nett på arm C, finjustert fra `d7alle`
+2. Mål det mot `d7alle` på gate 2 — **det er premisstesten**
+3. Tren 714 på arm A, finjustert fra `b714gammel`, mål mot `b714gammel`s −1,15
+4. Først da: mål v6 lagvis, én variabel om gangen
