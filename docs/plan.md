@@ -6439,3 +6439,76 @@ målbart — men de SKADET den heller ikke, og `b714gammel` selv måler −1,15 
 Presisjonen er mer enn doblet. For å se en effekt på `ftf1`s størrelse (+0,136)
 med margin trengs ~±0,05, altså ~10× flere par på benken — eller en større ekte
 effekt. Vakten fortsetter til 50k, 100k og 200k uten at noen trenger å poke.
+
+## 95. GENERASJONSLØKKA — svaret på «burde vi ikke gå over til NEAT?»
+
+Arvind: «burde vi ikke gå over til neat trening da? slik at den trenes på å bli
+bedre av å spille mot seg selv og ingen mester dømmer men at den blir sterkere
+over tid?»
+
+### NEAT er prøvd her, og det er målt
+
+`analyse/angervarians.txt`:
+
+> **4 av 4 trente NEAT-genomer har HØYERE anger enn et uniformt tilfeldig
+> lovlig kort** (1,0041). Bare `nevro` ligger klart under gulvet.
+
+Fire genomer trent på nøyaktig den måten — selvspill, utfall som fitness, ingen
+dømmende mester — spilte dårligere enn å trekke tilfeldig blant de lovlige. Det
+er ikke «litt svakere»; signalet bar ikke kortferdighet i det hele tatt.
+
+Samme fil sier hvorfor: **stillingseffekt 68,0 %, agenteffekt 0,1 %.** Hvem som
+spiller avgjør nesten ingenting mot hvilke kort som ble delt. Utfallet av én
+kamp er derfor nesten ren kortflaks, og med ±50 og ±100 i halene må man spille
+astronomisk mange kamper før én kortbeslutning kan tilskrives noe.
+
+### To premisser som ikke holder
+
+**«spille mot seg selv»** — det gjør den allerede. `--spiller` og `--motpart` er
+samme bot. Forskjellen fra NEAT er ikke om den spiller mot seg selv, men hva som
+FORBEDRER den: alpha-mu gir én etikett per beslutning, NEAT gir ett tall per
+kamp. Det er AlphaZero-strukturen, og det er grunnen til at AlphaZero slo alle
+evolusjonære metoder.
+
+**«ingen mester dømmer»** — mesteren er ikke et tak, den er en SKRALLE. Den
+byttes ut i samme øyeblikk noe slår den, så den *er* «sterkere over tid».
+Fjerner man den, mister man det eneste som hindrer koevolusjonens klassiske
+feil: relativ fitness i en lukket populasjon kan gå i ring i det uendelige uten
+at noe blir absolutt bedre.
+
+### Men én ingrediens i NEAT var riktig, og den manglet
+
+Løkka finjusterte alltid fra ett punkt med én oppskrift — den utforsket ikke.
+Det er NEATs faktiske styrke. Nå trenes en liten POPULASJON per generasjon som
+varierer læringsrate (1e-4 / 5e-5 / 2e-4), dropout (0,0 / 0,1) og initfrø.
+
+Utvelgelsen er todelt med vilje: den billige holdout-angeren rangerer varianter,
+den dyre gate 2 avgjør forfremmelse. Å velge maks-av-K på holdout blåser opp
+holdout-tallet, men gate 2 er en NY måling på nye giv og forblir forventningsrett
+for nettet som vant.
+
+### `pkill` finnes ikke — og det hadde allerede gjort skade
+
+Da stoppmekanismen skulle testes, viste det seg at **`pkill` og `pgrep` ikke
+finnes i denne Git Bash-en**. De returnerer 127 «command not found», og
+`2>/dev/null` skjulte det fullstendig.
+
+Konsekvensene var ikke hypotetiske:
+
+1. Løkka ville lagt til åtte generatorer per generasjon **uten å stoppe noen**,
+   til maskinen stod.
+2. De samme kallene ble brukt til å stoppe milepælsvaktene, og gjorde ingenting.
+   Resultatet var **to vakter per arm**, begge ventende på 50 000 rader, som
+   ville trent til SAMME vektfil samtidig. Tre foreldreløse vakter ble funnet og
+   stoppet.
+
+Rettelsen sporer PID-er, rydder i tillegg på kommandolinje via PowerShell, og
+**verifiserer at det ble tomt** i stedet for å anta det.
+
+### Ryddet i maskinbruken
+
+`sd-rv1` (6 prosesser, 478 217 rader) genererte gamle SD-etiketter — aksen §77
+målte til eksakt null med 2,36 millioner rader. Generering stoppet, dataene
+beholdt: de er nå den største kollapsproben, og den har INGEN spredningsport, så
+den dekker de kjedelige stillingene nattkorpuset filtrerer bort — nettopp den
+dekningen en selvspill-løkke kan miste.
