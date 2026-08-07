@@ -7251,3 +7251,76 @@ Det er for lite til å flytte et bud, uansett hvor god modellen er.
 **K4 er derfor delvis innfridd, og resten er ikke en feil å fikse.** Det er en
 grense i hvor mye som kan læres på én økt — og den grensen er målt, ikke
 antatt.
+
+## 105. K8: 92,7 % AV TROEN ER RENONSER — slutningene bidrar 1,3 %
+
+K8-prøven kjørt til ende: 800 stillinger, 200 giv, 17 868 skjulte kort, V=64,
+SE ved klyngebootstrap over giv (B=20 000).
+
+### Nivåene
+
+| arm | log-tap | SE | treff@1 |
+|---|---|---|---|
+| gulv (uniform over 3) | 1,0986 | — | — |
+| gulv+ (uniform over ikke-renons) | 1,0348 | ±0,0033 | — |
+| av | 1,0306 | ±0,0052 | 40,89 % |
+| regel (A1) | 1,0388 | ±0,0051 | 39,86 % |
+| bayes (A5) | 1,0307 | ±0,0053 | 40,83 % |
+| g (A6) | 1,0299 | ±0,0052 | 40,89 % |
+| **bayes+g** | **1,0297** | ±0,0052 | 40,72 % |
+
+### Og dekomponeringen, som er hovedfunnet
+
+| trinn | vinning | andel |
+|---|---|---|
+| **renonser** (gulv → gulv+) | **+0,0638** | **92,7 %** |
+| sampler + budrunde (gulv+ → av) | +0,0041 | 6,0 % |
+| **A1 + A5 + A6** (av → bayes+g) | **+0,0009** | **1,3 %** |
+
+**Nesten hele troens treffsikkerhet kommer fra én hard regel** — at den som
+ikke fulgte farge, ikke har den. Tre slutningsmoduler, bygd over flere dager,
+bidrar med 1,3 % av det.
+
+### A1 er målbart skadelig, også etter kalibreringen
+
+```
+regel − av:  −0,0082 ± 0,0018   (z = −4,61)
+```
+
+Replikert i begge disjunkte bånd (+0,0101 og +0,0062 i tapsform). §104s
+kalibrering rettet konstantene — målt fra data, ikke gjettet — og A1 er
+**fortsatt** verre enn ingen slutning. Da er det ikke konstantene som er feil,
+det er reglene.
+
+`ADAMS_V7` bruker `b` (A5), ikke `s` (A1), så den er allerede ute av speken.
+
+### K8 er ikke innfridd
+
+```
+beste arm slår gulv+ med   +0,0050 ± 0,0035   (z = +1,45)
+krav z >= 2                NEI
+samme fortegn i A og B     JA
+```
+
+### Superadditiviteten mellom A5 og A6
+
+```
+S_tap = −0,0003 ± 0,0008   (z = −0,33)
+```
+
+Innenfor støyen. **Verken forsterkning eller konkurranse er vist.** Det er det
+første direkte samspillstallet i prosjektet, og svaret er «ikke avgjort» —
+ikke «ja».
+
+### Forbeholdet agenten selv satte
+
+Utvalget dekker bare stikk 4 (n=688) og 5 (n=112). Troen skal bli skarpere
+utover i runden, så dette måler tidlig midtspill. En måling som ligger i ett
+stikk måler ett stikk.
+
+### Hva det betyr for AdamsMax
+
+Kravet «predikere motstandernes kort på et veldig høyt nivå» er ikke innfridd,
+og veien dit går ikke gjennom flere slutningsregler. Renonser er allerede
+utnyttet fullt ut; de resterende 7,3 % ligger i sampleren og i budrunden, ikke
+i A1/A5/A6.

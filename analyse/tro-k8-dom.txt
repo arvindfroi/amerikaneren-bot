@@ -1,0 +1,101 @@
+K8 — TRONØYAKTIGHET, log-tap per skjult kort
+======================================================================
+kilder      analyse/tro-g0.jsonl analyse/tro-g1.jsonl analyse/tro-g2.jsonl analyse/tro-g3.jsonl
+stillinger  800   giv (klynger) 200   skjulte kort 17868
+verdener    V=64   fra stikk 4
+SE          klyngebootstrap over giv, B=20000
+
+NIVÅ (lavere er bedre)
+  arm            log-tap      SE       treff@1
+  gulv          1,0986   ±0,0000   —
+  gulvPluss     1,0348   ±0,0033   —
+  av            1,0306   ±0,0052   40,89 %
+  regel         1,0388   ±0,0051   39,86 %
+  bayes         1,0307   ±0,0053   40,83 %
+  g             1,0299   ±0,0052   40,89 %
+  bayes+g       1,0297   ±0,0052   40,72 %
+  klarsyn       0,0000   (tak)
+
+MOT GULV+ (den ærlige grunnlinja: uniform over ikke-renons seter)
+  arm            forbedring    SE        z       giv der armen er best
+  av            +0,0041    0,0035   +1,1899  110/200 = 55,0 %
+  regel         −0,0040    0,0035   −1,1319  86/200 = 43,0 %
+  bayes         +0,0041    0,0035   +1,1678  107/200 = 53,5 %
+  g             +0,0048    0,0035   +1,3864  104/200 = 52,0 %
+  bayes+g       +0,0050    0,0035   +1,4462  104/200 = 52,0 %
+
+MOT «av» (ingen slutning utover renonser og budrunden)
+  arm            gevinst       SE        z       giv der armen er best
+  regel         −0,0082    0,0018   −4,6071  69/200 = 34,5 %
+  bayes         −0,0000    0,0007   −0,0688  97/200 = 48,5 %
+  g             +0,0007    0,0021   +0,3375  102/200 = 51,0 %
+  bayes+g       +0,0009    0,0021   +0,4341  104/200 = 52,0 %
+
+SAMSPILLET — gjør A5 og A6 hverandre bedre?
+----------------------------------------------------------------------
+  gevinst(bayes)     = av − bayes      −0,0000
+  gevinst(g)         = av − g          +0,0007
+  sum av delene                        +0,0007
+  gevinst(bayes+g)   = av − bayes+g    +0,0009
+
+  S_tap = (bayes+g − av) − [(bayes − av) + (g − av)]
+        = −0,0003 ± 0,0008   (z = −0,3305)
+  i gevinstform: superadditivitet = +0,0003 ± 0,0008
+  giv der kombinasjonen slår summen av delene: 104/200 = 52,0 %
+
+  LES FORTEGNET: S_tap NEGATIV = superadditiv (kombinasjonen bedre enn
+  summen av delene). S_tap POSITIV = delene konkurrerer om samme bevis.
+
+HVOR KOMMER TROENS KUNNSKAP FRA?
+  trinn                              vinning       SE       andel
+  renonser         (gulv → gulv+)   +0,0638    0,0033   92,7 %
+  sampler+budrunde (gulv+ → av)     +0,0041    0,0035   6,0 %
+  A1+A5+A6         (av → bayes+g)   +0,0009    0,0021   1,3 %
+  SUM (gulv → beste arm)            +0,0689
+
+FYRER SLUTNINGENE? (differanse mot «av», per stilling)
+  arm            ≠ av        q25       median      q75      |median|-flytt
+  regel         738/800     −0,0157   +0,0054   +0,0340   0,0256
+  bayes         793/800     −0,0112   −0,0004   +0,0112   0,0112
+  g             800/800     −0,0310   −0,0019   +0,0291   0,0303
+  bayes+g       800/800     −0,0295   −0,0014   +0,0290   0,0294
+
+REPLIKASJON I DISJUNKTE GIVBÅND (100 giv hver, ingen overlapp)
+  kontrast                    bånd A      bånd B      samlet
+  bayes+g − gulv+              −0,0018     −0,0083     −0,0050
+  regel − av (A1)              +0,0101     +0,0062     +0,0082
+  bayes − av (A5)              +0,0018     −0,0017     +0,0000
+  g − av (A6)                  +0,0013     −0,0027     −0,0007
+  bayes+g − av                 +0,0021     −0,0039     −0,0009
+  S_tap (samspill)             −0,0010     +0,0005     −0,0003
+
+EFFEKTIV SANNSYNLIGHET på riktig sete, exp(−log-tap)
+  gulv          0,3333
+  gulvPluss     0,3553
+  av            0,3568   (topp-1 traff 40,89 %)
+  regel         0,3539   (topp-1 traff 39,86 %)
+  bayes         0,3568   (topp-1 traff 40,83 %)
+  g             0,3570   (topp-1 traff 40,89 %)
+  bayes+g       0,3571   (topp-1 traff 40,72 %)
+
+PER STIKK (log-tap per kort)
+  stikk   n        gulvgulvPluss       av    regel    bayes        g  bayes+g
+      4  688      1,0986   1,0345   1,0279   1,0367   1,0280   1,0270   1,0269
+      5  112      1,0986   1,0365   1,0488   1,0528   1,0483   1,0496   1,0488
+
+DOMMEN
+======================================================================
+  beste arm                      bayes+g  (log-tap 1,0297)
+  slår gulv+ med                 +0,0050 ± 0,0035  (z = +1,4462)
+  krav: z ≥ 2                    NEI
+  krav: samme fortegn i A og B   JA  (A −0,0018, B −0,0083)
+  K8 INNFRIDD?                   NEI
+
+  superadditivitet A5×A6         S_tap −0,0003 ± 0,0008  (z = −0,3305)
+  |z| ≥ 2?                       NEI — innenfor støyen, verken forsterkning eller konkurranse er vist
+
+  DEKNING — les dette før tallene brukes:
+    stikk i utvalget: 4:688  5:112
+    Dommen gjelder bare de stikkene som står over. Troen skal bli skarpere
+    utover i runden, så en måling som ligger i ett stikk måler ett stikk.
+

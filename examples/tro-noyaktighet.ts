@@ -68,6 +68,26 @@ const VERDENER = tall(arg("--verdener", "24"), 24, "verdener");
 const KAND = tall(arg("--kandidater", "8"), 8, "kandidater");
 const FRAstikk = tall(arg("--frastikk", "2"), 2, "frastikk");
 /**
+ * SPREDNINGEN OVER STIKK — og hvorfor den mangler i g-kjøringen.
+ *
+ * Med `--pergiv 4` og ett stikk om gangen tas de fire første LOVLIGE
+ * stillingene i giv, og et stikk har nøyaktig fire seter. Resultatet er at
+ * hele målingen ligger i ETT stikk: 688 av 800 rader i `tro-g*.jsonl` er
+ * stikk 4, resten stikk 5.
+ *
+ * Det er den dyreste blindsonen i prøven, for troen skal jo bli SKARPERE
+ * utover i runden — flere kort er sett, flere renonser er avslørt, og A6 har
+ * rukket å sende noe. En K8-dom lest av stikk 4 alene sier ingenting om stikk
+ * 9.
+ *
+ * `--perstikk` begrenser derfor hvor mange seter som måles i samme stikk, slik
+ * at `--pergiv` tvinges til å fordele seg utover runden. Standarden er 4, som
+ * er bit-identisk med den gamle oppførselen (vedleggsregel 5: en knott må ha
+ * et nullpunkt som er identisk med «av»).
+ */
+const PERSTIKK = tall(arg("--perstikk", "4"), 4, "perstikk");
+const PERGIV = tall(arg("--pergiv", "4"), 4, "pergiv");
+/**
  * SPEKKEN SOM SPILLER RUNDEN.
  *
  * Den er et FLAGG fordi A6 ikke kan maales uten den. Signalering er en
@@ -149,12 +169,19 @@ for (let g = 0; g < GIVER; g++) {
   let s: GameState = opprettSpill({ antallSpillere: 4 }, frø);
   let vakt = 0;
   let iGiv = 0;
+  let iStikk = 0;
+  let sisteStikk = -1;
 
   while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && vakt++ < 200) {
-    if (s.fase === "SPILL" && s.iTur !== null && iGiv < 4 && s.stikkSpilt >= FRAstikk) {
+    if (s.fase === "SPILL" && s.stikkSpilt !== sisteStikk) {
+      sisteStikk = s.stikkSpilt;
+      iStikk = 0;
+    }
+    if (s.fase === "SPILL" && s.iTur !== null && iGiv < PERGIV && iStikk < PERSTIKK && s.stikkSpilt >= FRAstikk) {
       const sete = s.iTur;
       if (lovligeKort(s, sete).length >= 2) {
         iGiv++;
+        iStikk++;
         const rad: Record<string, number | string> = {
           frø,
           stikk: s.stikkSpilt,
@@ -200,6 +227,17 @@ for (let g = 0; g < GIVER; g++) {
           }
           let tap = 0;
           let treff = 0;
+          /**
+           * HVOR OFTE BINDER GULVET PAA SANNSYNLIGHETEN?
+           *
+           * Gulvet 1/(2V) finnes bare for aa hindre log(0). Men binder det
+           * OFTE, maaler vi Monte-Carlo-opploesningen igjen - noeyaktig feilen
+           * som gjorde V=12 ubrukelig - og alle armene presses mot samme tak
+           * uansett hvor gode de er. Da ville en null mellom armene vaere en
+           * artefakt, ikke et funn. Derfor bokfoeres andelen, saa dommen kan
+           * avvises hvis den er hoey.
+           */
+          let gulvBandt = 0;
           for (let p = 0; p < s.antallSpillere; p++) {
             if (p === sete) continue;
             const r = rel(sete, p, s.antallSpillere);
@@ -229,6 +267,7 @@ for (let g = 0; g < GIVER; g++) {
               // log(0) ville gjort snittet uendelig. Gulvet er
               // Monte-Carlo-opploesningen, ikke en tro.
               const pr = Math.max(1 / (2 * VERDENER), rå);
+              if (rå < 1 / (2 * VERDENER)) gulvBandt++;
               tap += -Math.log(pr);
               let best = 0;
               for (let i = 1; i < 3; i++) if ((rader[i] ?? 0) > (rader[best] ?? 0)) best = i;
@@ -237,6 +276,7 @@ for (let g = 0; g < GIVER; g++) {
           }
           rad[arm.navn] = Number((tap / kort).toFixed(5));
           rad[`${arm.navn}_treff`] = Number((treff / kort).toFixed(5));
+          rad[`${arm.navn}_gulvbandt`] = Number((gulvBandt / kort).toFixed(5));
         }
         appendFileSync(UT, JSON.stringify(rad) + "\n");
         n++;
