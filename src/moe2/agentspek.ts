@@ -34,6 +34,9 @@ import { Profilagent, type Budjusterbar } from "./profilagent.ts";
 import { EksaktSluttspill, delEksaktSpek } from "./eksaktagent.ts";
 import { Juksagent } from "./juksagent.ts";
 import { Alphamuagent } from "./amuagent.ts";
+import { monteTro } from "./montetro.ts";
+import { lagHvemLaVekt } from "./hvemla-slutning.ts";
+import { lagRng } from "../kort.ts";
 import { Økt } from "./okt.ts";
 
 /**
@@ -556,7 +559,25 @@ export function lagIndre(
   if (indre.startsWith("e1:")) {
     const rest = indre.slice(3);
     const at = rest.lastIndexOf("@");
-    if (at < 0) return new E1Agent(lesNett(rest));
+    if (at < 0) {
+      const n = lesNett(rest);
+      /**
+       * ET 714-NETT KAN IKKE SPILLE UTEN EN TRO. Sanseblokken maa fylles ved
+       * SPILLETID akkurat som under treningen - ellers ser nettet 88 nuller
+       * det aldri ble trent paa.
+       *
+       * Uten `@trofil` bruker vi `montetro`: fordelingen taalt fra de vektede
+       * verdenene. Ingen 3,4 MB aa laste, og den arver hver forbedring i
+       * trekningen. Kostnaden er én verdenstrekning per beslutning.
+       */
+      if (n.lag[0]!.inn >= 558) {
+        const rng = lagRng(20260807);
+        return new E1Agent(n, undefined, {
+          tro: (st, sete) => monteTro(st, sete, 12, rng, lagHvemLaVekt(st, sete), 8),
+        });
+      }
+      return new E1Agent(n);
+    }
     const trosnett = new Trosnett(nettFraBytes(new Uint8Array(readFileSync(rest.slice(at + 1))))[0]!);
     return new E1Agent(lesNett(rest.slice(0, at)), undefined, { trosnett });
   }

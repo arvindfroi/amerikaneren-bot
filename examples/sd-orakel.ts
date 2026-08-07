@@ -672,15 +672,28 @@ alleKamper: for (let k = 0; k < kamper; k++) {
         // Da faller runden tilbake til nevro i stedet for aa tvinges hoyere -
         // aa presse budet opp ville laget nettopp den skjevheten vi fjerner.
         tvungetBud = 0;
-        h = nevro.velgHandling(s);
+        h = spiller.velgHandling(s);
       } else {
         h = { type: "BUD", spiller: s.iTur!, bud: "PASS" };
       }
     } else {
-      // Vrak og trumfvalg tas alltid av nevro - ogsaa i DAgger-runden. Det er
-      // de fasene sd-nettet ikke eier. Budrunden gaar hit naar kontrakten
-      // ikke tvinges.
-      h = nevro.velgHandling(s);
+      /**
+       * VRAK OG TRUMFVALG — OG HER LAA EN STILLE BEGRENSNING.
+       *
+       * Det sto «tas alltid av nevro … de fasene sd-nettet ikke eier». Det var
+       * sant da sd-nettet var alt vi hadde. Men `--spiller` byttet BARE
+       * kortspillet, saa selv med Adams som stillingskilde ble hver eneste
+       * hand FORMET av NevroHjerne: hvilke fire kort som ble kastet og hvilken
+       * trumf som ble valgt.
+       *
+       * Det er ikke en detalj. Vraket bestemmer hele handens struktur, og
+       * NevroHjerne vinner 3,65 % mot Adams. Vi ville altsaa trent paa
+       * stillinger med Adams' KORTSPILL, men NevroHjernes HENDER.
+       *
+       * Naa foelger vrak/velg stillingskilden. Med `--spiller` uspesifisert er
+       * det fortsatt nevro, saa alle gamle korpus er bit-identiske.
+       */
+      h = spiller.velgHandling(s);
     }
     s = utfør(s, h).state;
   }

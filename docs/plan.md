@@ -6051,3 +6051,76 @@ Til sammenlikning har `sd-v10` 306k rader. Én natt med ti skard gir altså rund
 80k — et meningsfullt korpus, men ikke et som alene lukker A5.
 
 **373 tester grønne. Appen bunter. Alle nye moduler bunter for nettleser.**
+
+## 87. NATTEN — og tre feil funnet FØR de rakk å koste den
+
+Arvind ga hele maskinen: «du kan trene ganske lenge, men kontrollere litt
+underveis.»
+
+### Feil 1: forsøket hadde TO variabler
+
+Første oppsett var arm A (714, nye etiketter) mot arm B (M=1, 24 verdener).
+Det tester dybde mot bredde — et mindre spørsmål — mens den store forskjellen
+mot dagens nett er BÅDE bredden og etikettene samtidig. Et dårlig resultat
+hadde vært utilskrivbart.
+
+Arm B ble byttet mot **arm C: 273 trekk, NØYAKTIG samme etiketter**. Nå er den
+ene forskjellen bredden.
+
+### Feil 2: NevroHjerne formet fortsatt hver hånd
+
+Arvind: «jeg vil at vrak og trumf valg skal bli tatt av noe annet enn
+nevrohjerne fordi vi er langt forbi det nå.» Han hadde rett, og det var verre
+enn det så ut: `--spiller` byttet BARE kortspillet. Vrak og trumfvalg gikk
+alltid til nevro, også med Adams som stillingskilde.
+
+Vraket bestemmer hele håndens struktur. Vi trente altså på stillinger med
+Adams' KORTSPILL og NevroHjernes HENDER. **1 463 rader kassert**, og takten
+steg dessuten fra 0,22 til 1,2 rader/s.
+
+### Feil 3: 714-nettet kunne ikke SPILLE
+
+Fanget da `b714gammel` skulle måles:
+
+    Error: Nettet er 714 bredt og har sanseblokken, men det er ikke gitt noe
+    trosnett. Da ville 84 av 88 sansetrekk vært konstant null.
+
+Vakten gjorde jobben sin, og fangsten avdekket noe større: **hele 714-linja var
+ubrukelig i spill.** Korpuset lages med `montetro`, men `E1Agent` kunne bare ta
+et `Trosnett` — og det replikerte ikke.
+
+Natten ville altså produsert et korpus til et nett vi ikke kunne kjøre.
+
+`E1Agent` tar nå en generisk trokilde (`opts.tro`), og `e1:`-speken kobler
+automatisk inn `montetro` for nett ≥ 558. Kostnaden er én verdenstrekning per
+beslutning — nesten gratis for en agent som alt søker, ikke gratis for et rent
+nett.
+
+### Bygget mens generatorene gikk
+
+**A6 signalering** (`src/moe2/signal.ts`). Konvensjonen defineres ÉN gang og
+brukes av begge sider: med Bayes-likelihooden leser mottakeren automatisk det
+avsenderen sendte. Åtte tester, og den viktigste er at **signalrommet er stengt
+når et kort kan vinne** — et signal som overstyrer en stikkbeslutning betaler
+for båndbredde med poeng.
+
+**Å forklare hvorfor** (`src/moe2/forklar.ts`). Alpha-muens utfallsvektor ER et
+regnskap:
+
+    spar 6:        best i 7 av 12 kortfordelinger; 0,06 bedre enn spar konge
+    hjerter knekt: best i 11 av 12; 0,19 bedre enn hjerter 10
+
+Det er den eneste formen for forklaring som ikke kan lyve om sin egen årsak —
+samme tall som beslutningen ble tatt på.
+
+### Og én evne trengte ikke bygges
+
+**Prøve-effektivitet.** Den praktiske formen — å lære mest av stillingene som
+betyr noe — fantes allerede: `stillingsvekt` i `sd-tren.py` vekter tapet med
+spennet mellom beste og verste kort, og er aktiv. Tredje gang i dag at
+sjekk-før-bygg sparte en kopi (etter telling og `standardMål`).
+
+Den DYPE formen — å lære av én rar giv, slik et menneske gjør — har ingen kjent
+implementasjon her, og det står fortsatt som et åpent punkt.
+
+**381 tester grønne.**

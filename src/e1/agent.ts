@@ -22,7 +22,8 @@ import { lovligeKort, type GameState, type Handling } from "../motor.ts";
 import { velgHandling as pimcVelg } from "../bot/bot.ts";
 import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { kortIndeks, NevroAgent } from "../nevro/index.ts";
-import { e1SpillTrekkMedTro, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V5, E1_SPILL_DIM_V6, E1_SPILL_DIM_V7, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9, E1_SPILL_DIM_V10 } from "./trekk.ts";
+import { fyllSanser } from "./sanser.ts";
+import { e1SpillTrekk, e1SpillTrekkMedTro, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V5, E1_SPILL_DIM_V6, E1_SPILL_DIM_V7, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9, E1_SPILL_DIM_V10 } from "./trekk.ts";
 
 /**
  * Leser et E1-nett fra rå bytes og verifiserer at formen stemmer med
@@ -100,6 +101,24 @@ export interface E1Opts {
    * og for dem er den et rent overheng.
    */
   readonly trosnett?: { fordeling(trekk: Float32Array): number[][] } | null;
+  /**
+   * TRO FRA STILLINGEN, ikke fra et nett.
+   *
+   * Et 714-nett kan ikke SPILLE uten en tro — sanseblokken må fylles ved
+   * spilletid akkurat som under treningen, ellers ser nettet 88 nuller det
+   * aldri ble trent på. Vakten under fanget nettopp det da `b714gammel`
+   * skulle måles, og den fangsten avdekket at hele 714-linja var ubrukelig i
+   * spill: korpuset ble laget med `montetro`, men agenten kunne bare ta et
+   * `Trosnett`.
+   *
+   * Denne kroken tar en hvilken som helst kilde. `montetro` teller hvor ofte
+   * hvert kort havner hos hvert sete over de VEKTEDE verdenene — samme
+   * fordeling, uten et nett som ikke replikerte (+0,34 / −0,12).
+   *
+   * KOSTNADEN ER REELL: den krever en verdenstrekning per beslutning. For en
+   * agent som ALT søker er den nesten gratis; for et rent nett er den ikke det.
+   */
+  readonly tro?: ((state: GameState, sete: number) => number[][] | null) | null;
 }
 
 /** Filleseren `nett.ts` registrerer. Null i nettleseren. */
@@ -116,6 +135,7 @@ export class E1Agent {
   private readonly søkFaser: readonly SøkeFase[];
   private readonly søkVerdener: number;
   private readonly trosnett: { fordeling(trekk: Float32Array): number[][] } | null;
+  private readonly tro: ((state: GameState, sete: number) => number[][] | null) | null;
   private teller = 0;
 
   constructor(nett: NevroNett, nevro: NevroAgent = new NevroAgent(), opts: E1Opts = {}) {
@@ -125,12 +145,15 @@ export class E1Agent {
     this.søkFaser = opts.søkFaser ?? [];
     this.søkVerdener = opts.søkVerdener ?? 12;
     this.trosnett = opts.trosnett ?? null;
-    // FAIL-FAST. Et v9-nett uten trosnett spiller på 88 nuller, og INGENTING
-    // ville sagt fra – nøyaktig hvordan blokken kunne ligge død i utgangspunktet.
-    if (this.dim >= E1_SPILL_DIM_V9 && this.trosnett === null) {
+    this.tro = opts.tro ?? null;
+    // FAIL-FAST. Et v9-nett uten NOEN trokilde spiller på 88 nuller, og
+    // INGENTING ville sagt fra – nøyaktig hvordan blokken kunne ligge død i
+    // utgangspunktet. Nå godtas begge kilder: et trosnett, eller en funksjon
+    // som gir fordelingen fra stillingen (f.eks. `montetro`).
+    if (this.dim >= E1_SPILL_DIM_V9 && this.trosnett === null && this.tro === null) {
       throw new Error(
-        `Nettet er ${this.dim} bredt og har sanseblokken, men det er ikke gitt noe ` +
-          `trosnett. Da ville 84 av 88 sansetrekk vært konstant null. Send opts.trosnett.`,
+        `Nettet er ${this.dim} bredt og har sanseblokken, men verken opts.trosnett ` +
+          `eller opts.tro er gitt. Da ville 84 av 88 sansetrekk vært konstant null.`,
       );
     }
   }
@@ -165,11 +188,27 @@ export class E1Agent {
     return this.nevro.velgHandling(state);
   }
 
+  /**
+   * Trekkvektoren, med sanseblokken fylt fra den kilden som finnes.
+   *
+   * `trosnett` foerst (bakoverkompatibelt), saa `tro` fra stillingen. Er begge
+   * null er bredden under v9, og da finnes blokken ikke.
+   */
+  private trekkvektor(state: GameState, sete: number): Float32Array {
+    if (this.trosnett !== null || this.dim < E1_SPILL_DIM_V9) {
+      return e1SpillTrekkMedTro(state, sete, this.dim, this.trosnett);
+    }
+    const v = e1SpillTrekk(state, sete, this.dim);
+    const t = this.tro === null ? null : this.tro(state, sete);
+    if (t !== null) fyllSanser(v, state, sete, t);
+    return v;
+  }
+
   /** Argmax over LOVLIGE kort – reglene håndheves av motoren, ikke av nettet. */
   velgKort(state: GameState, sete: number): Kort {
     const lovlige = lovligeKort(state, sete);
     if (lovlige.length === 1) return lovlige[0]!;
-    const logits = forover(this.nett, e1SpillTrekkMedTro(state, sete, this.dim, this.trosnett));
+    const logits = forover(this.nett, this.trekkvektor(state, sete));
     let beste = lovlige[0]!;
     for (const k of lovlige) if (logits[kortIndeks(k)]! > logits[kortIndeks(beste)]!) beste = k;
     return beste;
@@ -177,7 +216,7 @@ export class E1Agent {
 
   /** Kortene rangert best først – prior til søket (HybridAgent-mønsteret). */
   rangerKort(state: GameState, sete: number, lovlige: readonly Kort[]): Kort[] {
-    const logits = forover(this.nett, e1SpillTrekkMedTro(state, sete, this.dim, this.trosnett));
+    const logits = forover(this.nett, this.trekkvektor(state, sete));
     return lovlige.slice().sort((a, b) => logits[kortIndeks(b)]! - logits[kortIndeks(a)]!);
   }
 }
