@@ -73,6 +73,17 @@ for (let i = 2; i < process.argv.length; i++) {
 interface Linje {
   giv: number;
   sete: number;
+  /**
+   * MILJOESPEKKEN raden ble maalt mot.
+   *
+   * Den staar i HVER rad, ikke i et filhode, fordi rapporten settes sammen av
+   * shard-filer og en rad skal kunne leses alene. Uten den skrev rapporten
+   * `miljoeSpek` fra argv - som i rapportmodus er STANDARDVERDIEN, siden
+   * `--miljo` ikke gis da. En rapport som navngir feil miljoe er samme
+   * feilklasse som har bitt oss ti ganger: det maalte og det skrevne var ikke
+   * samme ting.
+   */
+  m?: string;
   /** armnavn → poengdifferanse for setet. */
   d: Record<string, number>;
   /**
@@ -144,9 +155,23 @@ if (rapport !== null) {
     }
   }
   const armer = [...new Set(R.flatMap((r) => Object.keys(r.d)))];
+  /**
+   * MILJOEET LESES FRA RADENE, ikke fra argv - i rapportmodus gis ikke
+   * `--miljo`, saa argv ville gitt standardverdien og navngitt feil bot.
+   *
+   * Blander shardene flere miljoeer, er tallene ikke sammenliknbare i det hele
+   * tatt, og da skal rapporten SI det heller enn aa velge ett av dem.
+   */
+  const miljøer = [...new Set(R.map((r) => r.m).filter((x): x is string => x !== undefined))];
+  const miljøTekst =
+    miljøer.length === 1
+      ? miljøer[0]!
+      : miljøer.length === 0
+        ? "ukjent miljoe (rader fra foer miljoeet ble skrevet i radene)"
+        : `BLANDEDE MILJOEER (${miljøer.join(" | ")}) - tallene er IKKE sammenliknbare`;
   const L = [
     ``,
-    `=== GATE 2: kandidat i ett sete, ${miljøSpek} i de tre andre ===`,
+    `=== GATE 2: kandidat i ett sete, ${miljøTekst} i de tre andre ===`,
     `${R.length} (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.`,
     ``,
     `arm                                        poeng/runde for setet`,
@@ -266,7 +291,7 @@ for (let f = 0; f < giver; f++) {
       rr[a.navn] = r.rolle;
     }
     if (!ok) continue;
-    appendFileSync(ut, JSON.stringify({ giv: frø, sete, d, r: rr } satisfies Linje) + "\n");
+    appendFileSync(ut, JSON.stringify({ giv: frø, sete, m: miljøSpek, d, r: rr } satisfies Linje) + "\n");
     n++;
   }
   process.stdout.write(`\r  skard ${skardI}: ${n} rader   `);
