@@ -7018,3 +7018,71 @@ kaller den. Fire ganger har den formen skjult en død komponent her.
 `b`, `g`, `alle` og `sok` er alle umålte, og noen kan godt være negative —
 `ork:`-forsvarssøket målte −0,027. Poenget med v7 er at de nå KAN måles, hver
 for seg og sammen. Før dette var de ikke i boten i det hele tatt.
+
+## 101. TRE EVNER ER USYNLIGE FOR BENKEN VI BESTEMMER ALT PÅ
+
+Arvind: «er det noe annet som mangler?»
+
+Ja, og dette er strengere enn §99. De delene er nå koblet til Adams — men tre
+av dem kan **ikke måles** av gate 2, uansett hvor mange giv vi kjører.
+
+### Gate 2 spiller ÉN runde med amnesi
+
+```ts
+function spill(frø, sete, spek) {
+  const v = [0,1,2,3].map(p => lagVelger(...));   // FRISKE agenter per giv
+  for (const b of v) b.nyKamp();                   // nullstiller
+  while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" ...)  // én runde
+```
+
+Nye agenter per giv, og stopp ved `RUNDE_SLUTT`. Konsekvensene er ikke
+gradvise, de er absolutte:
+
+| evne | krav | i gate 2 |
+|---|---|---|
+| A2 / `okt:` | `MIN_RUNDER = 4` observerte runder | får **1**, med nullstilling |
+| `profil:` | fyller `okt`-boka over tid | samme |
+| `race` (`r0.4`) | `framdrift ≥ 0,3` av målpoeng | **eksakt 0** |
+
+Racepresset er det klareste:
+
+```ts
+const framdrift = Math.min(1, Math.max(egne, beste) / mål);
+if (framdrift < 0.3) return 0;
+```
+
+Hver giv starter på 0–0, så `framdrift = 0`. **`racepress` returnerer eksakt
+null i hver eneste gate2-måling som noensinne er kjørt.** Parameteren `r0.4` i
+både `ADAMS_V6` og `ADAMS_V7` er en matematisk garantert nulloperasjon der.
+
+### Og verre: kostnaden betales, gevinsten kan ikke vises
+
+Korpusgenereringen spiller HELE kamper (~200 rader per frø), så `okt`, `profil`
+og `race` er aktive når etikettene lages. Evalueringen spiller én runde, så de
+er avslått når vi bedømmer. Vi betaler for dem i genereringen og måler dem
+aldri.
+
+Det er samme feilklasse en gang til — **det målte og det kjørte var ikke samme
+ting** — men i sin mest bakvendte form: her er det MÅLEREDSKAPET som er
+smalere enn boten.
+
+### Verktøyet finnes allerede, og hodet sier hvorfor
+
+`examples/kamp.ts`:
+
+> «HVORFOR DEN MÅTTE FINNES. `examples/gate2.ts` stopper ved `RUNDE_SLUTT` …
+>  Per frø spilles FEM kamper til `målPoeng`.»
+
+Den lager agentene ÉN gang og kaller `nyKamp()` én gang, så hukommelsen lever
+gjennom hele kampen. Den ble bygd for nøyaktig dette og brukes ikke til å
+bestemme noe.
+
+### Hva som følger
+
+1. **Forfremmelsesporten i generasjonsløkka kan ikke være gate 2 alene.** Den
+   kan ikke se tre av evnene den skal dømme.
+2. **`r0.4`, `okt:` og `profil:` må måles på kampbenken**, ikke på gate 2. Alle
+   tidligere tall for dem er null per konstruksjon, ikke per måling.
+3. Gate 2 er fortsatt riktig for alt som avgjøres innenfor én runde —
+   kortvalg, konvensjoner, budterskel. Den er ikke ødelagt, den er **smalere
+   enn boten**, og det har ingen sagt høyt før nå.
