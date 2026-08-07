@@ -6168,3 +6168,37 @@ tallene over i doksen så ingen setter den ut ved et uhell.
 **Merk hva som er målt her: `f` (+0,031) og ingenting annet.** Resten av v6 er
 umålt. Det er hele poenget med å definere den — nå kan den måles, både samlet
 og lagvis.
+
+## 89. KONTROLLPUNKTET ER MÅLT — 714 med GAMLE etiketter taper klart
+
+`b714gammel`: 714 trekk, trent på `sd-v10` (306k rader, gamle SD-etiketter,
+trosnett-fylte sanser). Mot `d7alle` på gate 2:
+
+```
+n = 238   -1,1513 ± 0,6569   tegn 49/73 (z = -2,17)   51,3 % avgjorte
+  foerer  -1,6667  (z = -2,14)
+  makker  +0,1525
+  forsvar -1,5389
+```
+
+**Dette er tallet selvtreningen skal slå.** Uten det ville en måling av det nye
+korpuset ikke kunne skille «de nye etikettene virket» fra «714 virker i det
+hele tatt».
+
+Merk at målingen bare var MULIG etter at `E1Agent` fikk en generisk trokilde
+(§87 feil 3) — før det kunne ingen 714-modell spille en eneste hånd.
+
+### Planen for når korpuset er stort nok
+
+FINJUSTER `b714gammel` på det nye korpuset i stedet for å trene fra bunnen.
+Da er arkitektur, bredde og utgangspunkt identiske, og den ENE forskjellen er
+etikettene. Samme prinsipp som `d7alle` selv ble til på (finjustering fra
+sd-r2, +0,136), og samme grunn: fra bunnen på lite korpus taper alltid
+(−0,529 målt).
+
+### Kjernefordelingen nå
+
+Korpusgenereringen er kuttet fra 18 til 13 skard for å frigjøre 5 til
+v6-benken. Begrunnelsen: korpuset er ved ~9k rader mot `sd-v10`s 306k, så
+20 % mer korpus er verdt mindre enn det første tallet på om v6 i det hele tatt
+er en forbedring.
