@@ -239,7 +239,8 @@ andre port.
 1. **`amu:alle` mot `amu:foerer`** — kjører nå, 4 000 giv, SE ±0,052.
    Avgjør om søket i makker og forsvar er verdt kostnaden.
 2. **Kampbenken som andre port** — så `okt:`, `profil:` og `r0.4` kan måles i
-   det hele tatt.
+   det hele tatt. `verktoy/kampport.sh` er bygd og røyktestet (8 rader, 0
+   givavvik); den venter på maskin.
 3. **V7 ledd for ledd** — `b`, `g`, `sok` hver for seg mot V6.
 4. **Et 714-nett som slår `d7alle`** — åpner sanseblokken.
 5. **Budmodellen til slutt** — 41,8 % av taket, og den skal legges på et spill
