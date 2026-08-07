@@ -91,6 +91,15 @@ export interface AmuOpts {
    * med å bare finnes i etikettmakeren.
    */
   readonly atferd?: Atferdsmodell;
+  /**
+   * VAKTENS VETO: soeket overstyrer bare naar fordelen er stoerre enn dette.
+   *
+   * 0 = av, og da er oppfoerselen BIT-IDENTISK med foer. Se `velgHandling` for
+   * hvorfor den finnes: §103 maalte soek i makker/forsvar til -0,2837 ± 0,0519
+   * (z = -5,5), og den mest lovende forklaringen er at soeket bryter
+   * partnerskapets kode for aa vinne stikket foran seg.
+   */
+  readonly vetoMargin?: number;
 }
 
 export class Alphamuagent {
@@ -98,7 +107,7 @@ export class Alphamuagent {
   private readonly motpart: Utspiller;
   private readonly o: AmuOpts;
   private readonly rng: () => number;
-  readonly tellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, uleselig: 0, racejustert: 0, signalerte: 0 };
+  readonly tellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, uleselig: 0, racejustert: 0, signalerte: 0, vetoet: 0 };
   /**
    * Forklaringen på SISTE alpha-mu-valg, eller `null` om `forklar` er av eller
    * søket ikke kjørte for dette trekket (renons, ett lovlig kort, feil rolle).
@@ -259,6 +268,44 @@ export class Alphamuagent {
     if (eget.type === "SPILL" && eget.kort.farge === valgt.kort.farge && eget.kort.verdi === valgt.kort.verdi) {
       return eget;
     }
+
+    /**
+     * ============ VAKTENS VETO ==========================================
+     *
+     * §103 målte at søk i makker og forsvar er SKADELIG: −0,2837 ± 0,0519
+     * (z = −5,5) over 16 000 par, med makker −0,3342 og forsvar −0,4003.
+     * Hypotesen i §98 — at `ork:`-nullen skyldtes strategifusjon og at
+     * alpha-mu ville fikse den — ble motbevist.
+     *
+     * Den mest lovende forklaringen som står igjen: **søket overstyrer
+     * konvensjonsvakten.** `vakt:abmpf` er partnerskapets KODE, og i forsvar
+     * er koordinering mer verdt enn rå EV på det enkelte stikket. Søket bryter
+     * koden for å vinne stikket foran seg.
+     *
+     * Det er tredje gang samme mønster dukker opp: A6 mot A7 om de frie
+     * kortvalgene, senderen mot leseren om signalkoden, og nå søket mot
+     * vakten. **Et lokalt optimum som ødelegger en avtale.**
+     *
+     * Vetoet lar vakten beholde sitt kort når søkets fordel er MINDRE enn
+     * `vetoMargin`. Søket får fortsatt overstyre når det virkelig har noe å
+     * hente — det er ikke en avskrudd knott, det er en terskel.
+     *
+     * `vetoMargin = 0` er BIT-IDENTISK med å ikke ha vetoet. Uten det
+     * nullpunktet kunne ingen sveip startet fra noe kjent.
+     */
+    const vetoMargin = this.o.vetoMargin ?? 0;
+    if (vetoMargin > 0 && eget.type === "SPILL") {
+      const egenGren = grener.find(
+        (g) => g.kort.farge === eget.kort.farge && g.kort.verdi === eget.kort.verdi,
+      );
+      // Fant vi ikke vaktens kort blant grenene, var det ikke et lovlig
+      // alternativ soeket vurderte - da er det ingenting aa sammenlikne.
+      if (egenGren !== undefined && score(valgt) - score(egenGren) < vetoMargin) {
+        this.tellere.vetoet++;
+        return eget;
+      }
+    }
+
     this.tellere.overstyrt++;
     return { type: "SPILL", spiller: sete, kort: valgt.kort };
   }

@@ -70,7 +70,8 @@ import { opprettSpill, utfør, type GameState, type Handling } from "../src/inde
 import { lovligeKort } from "../src/motor.ts";
 import { lagIndre, ADAMS_MAALT, tall, type Spekagent } from "../src/moe2/agentspek.ts";
 import { Økt } from "../src/moe2/okt.ts";
-import type { Profilbok } from "../src/moe2/profilagent.ts";
+import { BEFOLKNING, krymp, tiltro } from "../src/moe2/profil.ts";
+import { MAKS_UTSLAG, type Profilbok } from "../src/moe2/profilagent.ts";
 import { alphaMu } from "../src/moe2/alphamu.ts";
 import { standardMål, trekkVerdener, type Utspiller } from "../src/moe2/sdkort.ts";
 import { lagRng } from "../src/kort.ts";
@@ -361,6 +362,212 @@ export function prøveA(opts: {
     }
   }
   ut.snittJustering = justN === 0 ? 0 : justSum / justN;
+  return ut;
+}
+
+// =============== HVORFOR BUDKANALEN ER FOR SVAK, LEDD FOR LEDD =============
+
+/**
+ * DEKOMPONERINGEN AV `Profilbok.justering`.
+ *
+ * Prøve A måler at budkanalen ikke snur noe valg, og positivkontrollen måler
+ * hvor mye som trengs. Ingen av dem sier HVORFOR forskyvningen er så liten.
+ * Denne fila gjør det, og den regner ikke om formelen — den plukker den fra
+ * hverandre i de leddene den faktisk består av:
+ *
+ *     avvik = (evForsvarMot(p, B) − befolkningens forsvarsverdi) · tiltro
+ *           = (2B/3) · (pop_klarte − krymp(klarte)) · tiltro
+ *
+ * og `krymp(a, pop, k) − pop = tiltro · (snitt(a) − pop)` per definisjon.
+ * Altså:
+ *
+ *     avvik = (2B/3) · tiltro² · (pop_klarte − snitt_klarte)
+ *
+ * TILTROEN STÅR TO GANGER. Én gang inne i `krymp`, som er hele grunnen til at
+ * `krymp` finnes, og én gang til utenpå. Det er ikke en forsiktig knott — det
+ * er den samme forsiktigheten talt to ganger, og den koster en faktor
+ * `tiltro` som ingen har bedt om.
+ *
+ * Denne funksjonen måler de tre leddene hver for seg, på ekte budstillinger fra
+ * en ekte kamp, slik at «for svak» kan tilskrives et av dem i stedet for
+ * gjettes.
+ */
+export interface JustLedd {
+  readonly rundeNr: number;
+  /** Hvem lå høyest da vi skulle by, eller `null` om ingen hadde bydd. */
+  readonly høyest: number | null;
+  readonly høyestBud: number;
+  /** Observasjoner av «klarte» for det setet — bare runder det VANT budet. */
+  readonly klarteN: number;
+  /** Observerte runder totalt for det setet. */
+  readonly runderN: number;
+  readonly tiltro: number;
+  /** Det `Profilbok.justering` faktisk ga. */
+  readonly just: number;
+  /** Samme tall med tiltroen talt ÉN gang, altså uten dobbeltkrympingen. */
+  readonly justEnkel: number;
+  /** Traff `MAKS_UTSLAG` i noen av de to? */
+  readonly klippet: boolean;
+  readonly klippetEnkel: boolean;
+}
+
+export interface BudkanalDiagnose {
+  /** Budbeslutninger fokussetet tok i hele kampen. */
+  n: number;
+  /** …der INGEN annen hadde bydd. `justering` gir 0 per konstruksjon. */
+  ingenAnnenBod: number;
+  /** …der noen hadde bydd, men vi aldri hadde sett ham vinne et bud. */
+  ingenTiltro: number;
+  /** …der justeringen faktisk var ulik null. */
+  fyrte: number;
+  klippet: number;
+  klippetEnkel: number;
+  maks: number;
+  snittAbs: number;
+  maksEnkel: number;
+  snittAbsEnkel: number;
+  /** Tiltroen i de stillingene der kanalen fikk fyre. */
+  tiltroer: number[];
+  ledd: JustLedd[];
+}
+
+/**
+ * Regner ut `justering` slik den er, og slik den ville vært med tiltroen talt
+ * én gang, av BOKAS EGEN tilstand i stillingen. Ingen omskriving av formelen —
+ * bare de samme tallene, hentet fra `profilFor`.
+ */
+function leddIStilling(bok: Profilbok, s: GameState): JustLedd | null {
+  if (s.fase !== "BUDRUNDE") return null;
+  let høyest: number | null = null;
+  let høyestBud = 0;
+  for (let p = 0; p < s.antallSpillere; p++) {
+    if (p === s.iTur) continue;
+    const b = s.budrunde.sisteBud[p];
+    if (typeof b === "number" && b > høyestBud) {
+      høyestBud = b;
+      høyest = p;
+    }
+  }
+  const just = bok.justering(s);
+  if (høyest === null) {
+    return {
+      rundeNr: s.rundeNr,
+      høyest: null,
+      høyestBud: 0,
+      klarteN: 0,
+      runderN: 0,
+      tiltro: 0,
+      just,
+      justEnkel: just,
+      klippet: false,
+      klippetEnkel: false,
+    };
+  }
+  const p = bok.profilFor(høyest);
+  const t = tiltro(p.klarte);
+  // (2B/3)·(pop − krymp) — nøyaktig «evForsvarMot minus befolkningens».
+  const rått = ((2 * høyestBud) / 3) * (BEFOLKNING.klarte - krymp(p.klarte, BEFOLKNING.klarte));
+  const enkel = Math.max(-MAKS_UTSLAG, Math.min(MAKS_UTSLAG, rått));
+  return {
+    rundeNr: s.rundeNr,
+    høyest,
+    høyestBud,
+    klarteN: p.klarte.n,
+    runderN: bok.runder(høyest),
+    tiltro: t,
+    just,
+    justEnkel: enkel,
+    klippet: Math.abs(rått * t) >= MAKS_UTSLAG - 1e-12,
+    klippetEnkel: Math.abs(rått) >= MAKS_UTSLAG - 1e-12,
+  };
+}
+
+/**
+ * Spiller forkamper + én målkamp og dekomponerer HVER budbeslutning
+ * fokussetet tar, med boka slik den faktisk sto i det øyeblikket.
+ *
+ * Det er en bredere prøve enn prøve A, med vilje: prøve A ser bare målrunden,
+ * og fikk tre stillinger med ulik-null justering av seks giv. Tre stillinger
+ * kan ikke bære en forklaring.
+ */
+export function budkanalDiagnose(opts: {
+  giv: number;
+  frøBase: number;
+  målRunde: number;
+  forkamper: number;
+  fokus?: number;
+}): BudkanalDiagnose {
+  const fokus = opts.fokus ?? 0;
+  const ut: BudkanalDiagnose = {
+    n: 0,
+    ingenAnnenBod: 0,
+    ingenTiltro: 0,
+    fyrte: 0,
+    klippet: 0,
+    klippetEnkel: 0,
+    maks: 0,
+    snittAbs: 0,
+    maksEnkel: 0,
+    snittAbsEnkel: 0,
+    tiltroer: [],
+    ledd: [],
+  };
+  let sum = 0;
+  let sumEnkel = 0;
+
+  for (let g = 0; g < opts.giv; g++) {
+    const frø = opts.frøBase + g * 7717;
+    const økt = new Økt();
+    const stakker = [0, 1, 2, 3].map(() => lagIndre(A_MINNE, { økt }) as Spekagent);
+    const bok = økt.bok;
+
+    const énKamp = (kampFrø: number, mål: boolean): void => {
+      for (const st of stakker) st.nyKamp();
+      let s: GameState = opprettSpill({ antallSpillere: 4 }, kampFrø);
+      let vakt = 0;
+      while (s.fase !== "FERDIG" && vakt++ < 200_000) {
+        if (s.fase === "RUNDE_SLUTT") {
+          if (mål && s.rundeNr >= opts.målRunde) break;
+          for (const st of stakker) {
+            try {
+              st.velgHandling(s);
+            } catch {
+              /* tomt med vilje */
+            }
+          }
+          s = utfør(s, { type: "NESTE" }).state;
+          continue;
+        }
+        const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+        if (iTur === null || iTur === undefined) break;
+        if (mål && iTur === fokus && s.fase === "BUDRUNDE") {
+          const l = leddIStilling(bok, s);
+          if (l !== null) {
+            ut.n++;
+            ut.ledd.push(l);
+            if (l.høyest === null) ut.ingenAnnenBod++;
+            else if (l.tiltro <= 0) ut.ingenTiltro++;
+            if (l.just !== 0) {
+              ut.fyrte++;
+              ut.tiltroer.push(l.tiltro);
+            }
+            if (l.klippet) ut.klippet++;
+            if (l.klippetEnkel) ut.klippetEnkel++;
+            sum += Math.abs(l.just);
+            sumEnkel += Math.abs(l.justEnkel);
+            if (Math.abs(l.just) > ut.maks) ut.maks = Math.abs(l.just);
+            if (Math.abs(l.justEnkel) > ut.maksEnkel) ut.maksEnkel = Math.abs(l.justEnkel);
+          }
+        }
+        s = utfør(s, stakker[iTur]!.velgHandling(s)).state;
+      }
+    };
+
+    for (let k = 0; k < opts.forkamper; k++) énKamp(frø + 1_000_003 * (k + 1), false);
+    énKamp(frø, true);
+  }
+  ut.snittAbs = ut.n === 0 ? 0 : sum / ut.n;
+  ut.snittAbsEnkel = ut.n === 0 ? 0 : sumEnkel / ut.n;
   return ut;
 }
 
@@ -670,8 +877,24 @@ export interface FramMål {
   n: number;
   /** Antall stillinger der M=2 valgte et ANNET kort enn M=1. */
   uenig: number;
-  /** Dommerens differanse (M=2 minus M=1) i hver uenighet. */
+  /** Dommerens differanse (M=2 minus M=1) i hver uenighet. GRUNN dommer, M=1. */
   diff: number[];
+  /**
+   * SAMME uenighet, dømt av en DYP dommer (M=2) på de samme friske verdenene.
+   *
+   * Den grunne dommeren er strukturelt konservativ i M=2s disfavør: den kan
+   * ikke se verdien av en plan som først betaler seg to av EGNE valg fram, og
+   * det er nøyaktig den verdien M=2 påstår at den finner. Å dømme M=2 med en
+   * dommer som per konstruksjon ikke kan se det den gjør, er å måle noe annet
+   * enn spørsmålet.
+   *
+   * Den dype dommeren er ikke sirkulær: verdenene er FRISKE og trukket med et
+   * uavhengig frø, så begge kortene er utenfor utvalget til begge søkene.
+   * Den deler riktignok algoritmisk skjevhet med M=2-søket, og derfor står
+   * BEGGE tallene. Samme fortegn i begge er et funn; ulikt fortegn er en
+   * beskjed om at fortegnet avhenger av dommeren, og da er ingenting vist.
+   */
+  diffDyp: number[];
   msM1: number;
   msM2: number;
 }
@@ -711,7 +934,7 @@ export function prøveB(opts: {
   fokus?: number;
 }): FramMål {
   const fokus = opts.fokus ?? 0;
-  const ut: FramMål = { n: 0, uenig: 0, diff: [], msM1: 0, msM2: 0 };
+  const ut: FramMål = { n: 0, uenig: 0, diff: [], diffDyp: [], msM1: 0, msM2: 0 };
   const motpart = lagIndre(ADAMS_MAALT) as unknown as Utspiller;
 
   for (let g = 0; g < opts.giv; g++) {
@@ -756,6 +979,13 @@ export function prøveB(opts: {
                 if (d1 !== undefined && d2 !== undefined) {
                   ut.diff.push(snitt(d2.vektor) - snitt(d1.vektor));
                 }
+                // DEN DYPE DOMMEREN, samme friske verdener, M=2.
+                const gdD = alphaMu(s, fokus, dv, { M: 2, mål: standardMål, motpart });
+                const e1 = gdD.find((x) => x.kort.farge === k1.farge && x.kort.verdi === k1.verdi);
+                const e2 = gdD.find((x) => x.kort.farge === k2.farge && x.kort.verdi === k2.verdi);
+                if (e1 !== undefined && e2 !== undefined) {
+                  ut.diffDyp.push(snitt(e2.vektor) - snitt(e1.vektor));
+                }
               }
             }
           }
@@ -785,6 +1015,12 @@ if (erHovedmodul) {
    * Å binde dem til samme tall gjør enten A for dyr eller B for svak.
    */
   let givB = 10;
+  /**
+   * EGET GIVTALL FOR RESPONSKURVEN. Den koster tre kamper per NIVÅ per giv, og
+   * har ti nivåer — å binde den til `--giv` gjør enten kurven grov eller
+   * budkanalmålingen ti ganger dyrere enn den trenger å være.
+   */
+  let givS = 20;
   let frøBase = 4_400_000;
   let målRunde = 7; // runde 8, nullindeksert
   let ut = "analyse/k4-hukommelse.txt";
@@ -794,6 +1030,7 @@ if (erHovedmodul) {
     const v = process.argv[i + 1];
     if (a === "--giv") giv = tall(v, giv, "--giv");
     else if (a === "--givb") givB = tall(v, givB, "--givb");
+    else if (a === "--givs") givS = tall(v, givS, "--givs");
     else if (a === "--froe") frøBase = tall(v, frøBase, "--froe");
     else if (a === "--maalrunde") målRunde = tall(v, målRunde, "--maalrunde");
     else if (a === "--ut") ut = v ?? ut;
@@ -955,23 +1192,147 @@ if (erHovedmodul) {
     si("");
   }
 
+  /**
+   * BUDKANALEN ALENE, MED NOK GIV TIL AT SPØRSMÅLET KAN BESVARES.
+   *
+   * `--bare a` kjører åtte armer og et sveip, og har derfor råd til seks giv.
+   * Seks giv gir 87 beslutninger, men bare tre av dem er budstillinger der
+   * justeringen i det hele tatt er ulik null — og et valg snur bare når
+   * forskyvningen lander nær en beslutningsgrense. «Null avvik av tre
+   * anledninger» er ikke et svar på om kanalen biter; det er et svar på at
+   * prøven ikke fikk spurt.
+   *
+   * Denne seksjonen kjører DEN ENE armen som betyr noe (okt + profil, tikk, to
+   * forkamper) med så mange giv som CLI-en får lov til å be om, og rapporterer
+   * hvor mange ANLEDNINGER kanalen fikk — ikke bare hvor mange den brukte.
+   */
+  if (bare.includes("k")) {
+    si(`## BUDKANALEN ALENE — samme arm, mange giv`);
+    si(`okt+profil, tikk, to forkamper. Den ENESTE armen der hukommelsen baade`);
+    si(`har rukket aa laere noe og har en vei inn i budet.`);
+    si("");
+    const k = prøveA({
+      spek: A_MINNE,
+      medØkt: true,
+      giv,
+      frøBase,
+      målRunde,
+      tikk: true,
+      forkamper: 2,
+    });
+    si(`giv som naadde maalrunden:    ${k.giv}`);
+    si(`beslutninger sammenliknet:    ${k.n}`);
+    si(`bokfoerte runder per sete:    ${k.bokførte.join("/")}`);
+    si(`budstillinger med just != 0:  ${k.justeringFyrte}   <- ANLEDNINGENE`);
+    si(`snitt |justering|:            ${k.snittJustering.toFixed(4)} budpoeng`);
+    si(`maks  |justering|:            ${k.maksJustering.toFixed(4)} budpoeng`);
+    si("");
+    si(`AVVIK (fersk mot mett):       ${k.avvik}  (bud ${k.avvikBud}, spill ${k.avvikSpill})`);
+    for (const e of k.eksempler) si(`  ${e}`);
+    si("");
+  }
+
+  /**
+   * RESPONSKURVEN — HVOR FØLSOM ER BUDBESLUTNINGEN I DET HELE TATT?
+   *
+   * Positivkontrollen i `--bare a` svarer «ja» på om prøven KAN se en snudd
+   * beslutning, og det er den jobben den har. Men de fire punktene sa noe mer
+   * som ingen fulgte opp: 1 budpoeng snudde 2 av 87, og 8 budpoeng snudde 5.
+   * Åtte ganger så hard dytt ga altså 2,5 ganger så mange snudde valg.
+   *
+   * Det er et utsagn om BUDMODELLEN, ikke om hukommelsen: om beslutningen
+   * ligger langt fra sin egen grense i nesten hver stilling, kan ingen
+   * realistisk hukommelse flytte mange valg gjennom denne kanalen — og da er
+   * «hukommelsen er for svak» feil diagnose på riktig symptom.
+   *
+   * Kurven avgjør det. Flater den ut, er kanalen strukturelt lavgiret.
+   */
+  if (bare.includes("s")) {
+    si(`## RESPONSKURVEN — hvor mye maa forsvarsverdien flyttes foer et valg snur?`);
+    si(`Samme hukommelsesstyrte forskyvning som positivkontrollen, sveipet over`);
+    si(`stoerre og stoerre nivaaer. Terskelen den forskyver er -3,0, saa 8`);
+    si(`budpoeng er nesten TRE GANGER hele konstanten.`);
+    si("");
+    const nivåer = [0, 0.25, 0.5, 0.75, 1, 1.5, 2, 4, 8, 16];
+    const sveip = prøveAForsterket({
+      giv: givS,
+      frøBase,
+      målRunde,
+      forkamper: 2,
+      nivåer,
+      modus: "flat",
+    });
+    si(`| forskyvning | n | avvik | andel |`);
+    si(`|---|---|---|---|`);
+    for (const p of sveip) {
+      si(
+        `| ${p.forsterk} budpoeng | ${p.n} | ${p.avvik} | ` +
+          `${((100 * p.avvik) / Math.max(1, p.n)).toFixed(2)} % |`,
+      );
+    }
+    si("");
+    si(`NULLRADEN (0 budpoeng) MAA vaere 0 avvik: da er de to armene samme`);
+    si(`funksjon. Er den ulik null, maaler hele sveipet noe annet enn styrke.`);
+    si("");
+  }
+
+  if (bare.includes("d")) {
+    si(`## DIAGNOSE — hvorfor budkanalen er for svak, ledd for ledd`);
+    si(`Hver budbeslutning fokussetet tar i maalkampen, med boka slik den sto da.`);
+    si("");
+    const d = budkanalDiagnose({ giv, frøBase, målRunde, forkamper: 2 });
+    si(`budbeslutninger:              ${d.n}`);
+    si(
+      `  ingen ANNEN hadde bydd:     ${d.ingenAnnenBod} ` +
+        `(${((100 * d.ingenAnnenBod) / Math.max(1, d.n)).toFixed(0)} %) - «justering» gir 0 per konstruksjon`,
+    );
+    si(`  noen bod, men tiltro = 0:   ${d.ingenTiltro}`);
+    si(
+      `  justeringen fyrte:          ${d.fyrte} ` +
+        `(${((100 * d.fyrte) / Math.max(1, d.n)).toFixed(0)} %)`,
+    );
+    si("");
+    si(`| form | snitt \\|just\\| | maks \\|just\\| | klippet av MAKS_UTSLAG=${MAKS_UTSLAG} |`);
+    si(`|---|---|---|---|`);
+    si(`| «Profilbok.justering» slik den er | ${d.snittAbs.toFixed(4)} | ${d.maks.toFixed(4)} | ${d.klippet} |`);
+    si(
+      `| tiltroen talt EN gang, regnet for haand | ${d.snittAbsEnkel.toFixed(4)} | ` +
+        `${d.maksEnkel.toFixed(4)} | ${d.klippetEnkel} |`,
+    );
+    si("");
+    si(`RADENE ER EN SELVKONTROLL, ikke to varianter: den nederste er regnet ut`);
+    si(`her i fila, av bokas egne tall, med tiltroen talt EN gang. Er de LIKE, er`);
+    si(`«justering» fri for dobbelttellingen. Er den oeverste mindre, staar`);
+    si(`tiltroen fortsatt to ganger og forholdet mellom dem ER den tapte faktoren.`);
+    si("");
+    if (d.tiltroer.length > 0) {
+      const t = snitt(d.tiltroer);
+      si(`tiltro der kanalen fyrte:     snitt ${t.toFixed(3)}, maks ${Math.max(...d.tiltroer).toFixed(3)}`);
+      si(
+        `forhold nederste/oeverste:    ` +
+          `${(d.snittAbsEnkel / Math.max(1e-12, d.snittAbs)).toFixed(3)}x paa snittet, ` +
+          `${(d.maksEnkel / Math.max(1e-12, d.maks)).toFixed(3)}x paa maks`,
+      );
+    }
+    const medKlarte = d.ledd.filter((l) => l.høyest !== null);
+    if (medKlarte.length > 0) {
+      si("");
+      si(`«klarte» observeres BARE naar setet vant budet, altsaa ~1 av 4 runder:`);
+      const kn = medKlarte.map((l) => l.klarteN);
+      const rn = medKlarte.map((l) => l.runderN);
+      si(`  observerte runder for det hoeyeste setet: snitt ${snitt(rn).toFixed(1)}`);
+      si(`  derav «klarte»-observasjoner:             snitt ${snitt(kn).toFixed(1)}`);
+    }
+    si("");
+  }
+
   if (bare.includes("b")) {
     si(`## PROEVE B — framoverblikket (M=2 mot M=1)`);
-    const b = prøveB({
-      giv: givB,
-      frøBase: frøBase + 1_000_000,
-      verdener: 12,
-      kandidater: 16,
-      dommerVerdener: 32,
-      maksPerGiv: 6,
-      fraStikk: 2,
-    });
     si(`12 verdener (k16), dommer paa 32 friske verdener med uavhengig froe.`);
-    si(`stillinger:            ${b.n}`);
-    si(`uenige (M2 != M1):     ${b.uenig}  (${((100 * b.uenig) / Math.max(1, b.n)).toFixed(1)} %)`);
-    si(`ms per beslutning M=1: ${(b.msM1 / Math.max(1, b.n)).toFixed(1)}`);
-    si(`ms per beslutning M=2: ${(b.msM2 / Math.max(1, b.n)).toFixed(1)}`);
-    si(`kostnadsforhold:       ${(b.msM2 / Math.max(1e-9, b.msM1)).toFixed(2)}x`);
+    si(`TO DISJUNKTE FROEBAAND, fordi vedlegget krever replikasjon foer et`);
+    si(`fortegn faar staa. Baandene deler ingen giv og ingen dommerfroe.`);
+    si("");
+
     /**
      * MINSTE ANTALL UENIGHETER FØR ET FORTEGN FÅR LOV Å STÅ.
      *
@@ -981,40 +1342,114 @@ if (erHovedmodul) {
      * en rapportlinje som sier noe annet er hvordan man ender med aa gjoere det.
      */
     const MIN_UENIG = 10;
-    if (b.diff.length > 0) {
-      const m = snitt(b.diff);
+
+    /** Snitt, SE og tegntest for én rekke parrede differanser. */
+    const oppsummer = (
+      d: readonly number[],
+    ): { m: number; se: number; pos: number; n: number } => {
+      const m = snitt(d);
       const sd = Math.sqrt(
-        b.diff.reduce((a, x) => a + (x - m) * (x - m), 0) / Math.max(1, b.diff.length - 1),
+        d.reduce((a, x) => a + (x - m) * (x - m), 0) / Math.max(1, d.length - 1),
       );
-      const se = sd / Math.sqrt(b.diff.length);
-      const pos = b.diff.filter((x) => x > 0).length;
-      si(`dommerens gevinst:     ${m >= 0 ? "+" : ""}${m.toFixed(3)} +/- ${se.toFixed(3)} (n=${b.diff.length})`);
-      si(`tegntest:              ${pos} av ${b.diff.length} i M=2s favoer`);
-      si(`raa differanser:       ${b.diff.map((x) => x.toFixed(2)).join(", ")}`);
+      return { m, se: sd / Math.sqrt(Math.max(1, d.length)), pos: d.filter((x) => x > 0).length, n: d.length };
+    };
+    const linje = (merkelapp: string, d: readonly number[]): string => {
+      if (d.length === 0) return `| ${merkelapp} | 0 | - | - |`;
+      const o = oppsummer(d);
+      return (
+        `| ${merkelapp} | ${o.n} | ${o.m >= 0 ? "+" : ""}${o.m.toFixed(3)} +/- ${o.se.toFixed(3)} | ` +
+        `${o.pos}/${o.n} |`
+      );
+    };
+
+    // BÅNDENE ER DISJUNKTE: giv g i baand i faar froe base + i·B + g·7717, og
+    // B er valgt saa de to intervallene ikke overlapper.
+    const bånd = [frøBase + 1_000_000, frøBase + 3_000_000];
+    const kjørt: FramMål[] = [];
+    for (const bf of bånd) {
+      kjørt.push(
+        prøveB({
+          giv: givB,
+          frøBase: bf,
+          verdener: 12,
+          kandidater: 16,
+          dommerVerdener: 32,
+          maksPerGiv: 6,
+          fraStikk: 2,
+        }),
+      );
+    }
+    const n = kjørt.reduce((a, b) => a + b.n, 0);
+    const uenig = kjørt.reduce((a, b) => a + b.uenig, 0);
+    const msM1 = kjørt.reduce((a, b) => a + b.msM1, 0);
+    const msM2 = kjørt.reduce((a, b) => a + b.msM2, 0);
+    si(`stillinger:            ${n}`);
+    si(`uenige (M2 != M1):     ${uenig}  (${((100 * uenig) / Math.max(1, n)).toFixed(1)} %)`);
+    si(`ms per beslutning M=1: ${(msM1 / Math.max(1, n)).toFixed(1)}`);
+    si(`ms per beslutning M=2: ${(msM2 / Math.max(1, n)).toFixed(1)}`);
+    si(`kostnadsforhold:       ${(msM2 / Math.max(1e-9, msM1)).toFixed(2)}x`);
+    si("");
+    si(`| dommer / baand | n | gevinst M=2 minus M=1 | tegntest |`);
+    si(`|---|---|---|---|`);
+    for (let i = 0; i < kjørt.length; i++) si(linje(`GRUNN (M=1), baand ${i + 1}`, kjørt[i]!.diff));
+    const grunnAlle = kjørt.flatMap((b) => b.diff);
+    si(linje(`GRUNN (M=1), samlet`, grunnAlle));
+    for (let i = 0; i < kjørt.length; i++) si(linje(`DYP (M=2), baand ${i + 1}`, kjørt[i]!.diffDyp));
+    const dypAlle = kjørt.flatMap((b) => b.diffDyp);
+    si(linje(`DYP (M=2), samlet`, dypAlle));
+    si("");
+
+    const dom = (merkelapp: string, d: readonly number[]): void => {
+      if (d.length === 0) {
+        si(`${merkelapp}: ingen uenigheter aa doemme`);
+        return;
+      }
+      const o = oppsummer(d);
       si(
-        `TOLKNING: ${
-          b.diff.length < MIN_UENIG
-            ? `n=${b.diff.length} uenigheter er under gulvet paa ${MIN_UENIG}. ` +
-              `INGENTING ER VIST om fortegnet, uansett hvordan tallet ser ut.`
-            : Math.abs(m) < 2 * se
-              ? "differansen er innenfor 2 SE - ingenting er vist. UNDERDIMENSJONERT."
-              : m > 0
-                ? "M=2 er bedre enn M=1 i denne kjoeringen. Maa replikeres i disjunkt froebaand."
-                : "M=2 er DAARLIGERE enn M=1 i denne kjoeringen."
+        `${merkelapp}: ${
+          o.n < MIN_UENIG
+            ? `n=${o.n} uenigheter er under gulvet paa ${MIN_UENIG}. INGENTING ER VIST.`
+            : Math.abs(o.m) < 2 * o.se
+              ? `snittet ${o.m >= 0 ? "+" : ""}${o.m.toFixed(3)} ligger innenfor 2 SE ` +
+                `(${(2 * o.se).toFixed(3)}). Fortegnet er IKKE vist - underdimensjonert.`
+              : o.m > 0
+                ? `M=2 er BEDRE enn M=1 (${o.m.toFixed(3)} > 2 SE = ${(2 * o.se).toFixed(3)}).`
+                : `M=2 er DAARLIGERE enn M=1 (${o.m.toFixed(3)}, |m| > 2 SE).`
         }`,
       );
-    } else {
-      si(`dommerens gevinst:     ingen uenigheter aa doemme`);
+    };
+    dom("GRUNN dommer", grunnAlle);
+    dom("DYP dommer", dypAlle);
+    if (grunnAlle.length >= MIN_UENIG && dypAlle.length >= MIN_UENIG) {
+      const g = oppsummer(grunnAlle);
+      const dd = oppsummer(dypAlle);
+      const enige = Math.sign(g.m) === Math.sign(dd.m);
+      si("");
+      si(
+        enige
+          ? `DE TO DOMMERNE ER ENIGE om fortegnet (${g.m >= 0 ? "+" : "-"}). Det er det sterkeste`
+            + ` denne fila kan si: fortegnet henger ikke paa dommerens dybde.`
+          : `DE TO DOMMERNE ER UENIGE om fortegnet (grunn ${g.m.toFixed(3)}, dyp ${dd.m.toFixed(3)}).`
+            + ` Da avhenger svaret av hvem som doemmer, og INGENTING er vist.`,
+      );
+      const perBeslutning = (dd.m * uenig) / Math.max(1, n);
+      si(
+        `Per BESLUTNING (dyp dommer x uenighetsandel): ` +
+          `${perBeslutning >= 0 ? "+" : ""}${perBeslutning.toFixed(4)} stikk.`,
+      );
     }
     si("");
     si(`GRENSENE PAA DENNE MAALINGEN, SAGT HOEYT:`);
-    si(`  1. Dommeren er selv et M=1-oppspill. Den kan ikke se verdien av en`);
-    si(`     plan som foerst betaler seg to av EGNE valg fram, saa den er`);
-    si(`     konservativ i M=2s disfavoer.`);
+    si(`  1. Den GRUNNE dommeren er selv et M=1-oppspill. Den kan ikke se`);
+    si(`     verdien av en plan som foerst betaler seg to av EGNE valg fram,`);
+    si(`     saa den er konservativ i M=2s disfavoer. Den DYPE dommeren retter`);
+    si(`     det, men deler algoritmisk skjevhet med soeket den doemmer.`);
+    si(`     Derfor staar begge, og bare enighet mellom dem er et funn.`);
     si(`  2. Bare uenighetene doemmes. Der de er enige er gevinsten null per`);
     si(`     definisjon, saa tallet over er gevinsten NAAR den fyrer - ikke per`);
-    si(`     beslutning. Per beslutning maa den ganges med uenighetsandelen.`);
-    si(`  3. Ett froebaand. Ingenting her er replikert.`);
+    si(`     beslutning. Per beslutning er den ganget med uenighetsandelen.`);
+    si(`  3. Dommeren maaler STIKK i ett oppspill, ikke poeng over en kamp.`);
+    si(`     Vekslingskursen mellom de to er ikke maalt her.`);
     si("");
   }
 

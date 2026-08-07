@@ -53,34 +53,43 @@
  *
  * ============================== ARMENE ====================================
  *
- *   uten-okt        `okt:`-laget av. Nullpunktet, bit-identisk med «av»:
- *                   `motpartFor` finnes ikke, og søket antar som før at alle
- *                   spiller som oss. FALSIFISERINGSARMEN — vokser gevinsten
- *                   her også, måler prøven ikke læring.
- *   okt-som-i-dag   `okt:` slik den står i speken i dag.
- *   okt-matet       `okt:` PLUSS at sløyfen mater `bok.observer(s)` ved
- *                   RUNDE_SLUTT.
- *
- * De to siste burde vært samme arm. At de ikke er det er selve funnet — se
- * kommentaren over `ARMER`.
+ *   okt             Adams slik han står i dag: `okt:`-laget på, og driveren
+ *                   tikker `observer(s)` ved RUNDE_SLUTT nøyaktig som
+ *                   `examples/kamp.ts` gjør. Ingen krykke — bokføringen går
+ *                   gjennom den samme kroken den utrullede benken bruker.
+ *   uten-okt        `okt:`-laget av. Nullpunktet: `motpartFor` finnes ikke, og
+ *                   søket antar som før at alle spiller som oss.
+ *                   FALSIFISERINGSARMEN — vokser gevinsten her også, måler
+ *                   prøven ikke læring, men at motparten bare er dårligere.
+ *   okt-utikk       `okt:` på, men driveren tikker ALDRI. Tilstanden før fiks
+ *                   2. Ligger igjen som kontroll; ikke med i standardkjøringen.
  *
  * ===================== TRE BRUDD MELLOM ØKTEN OG SPILLET ==================
  *
- * Prøven fant tre uavhengige brudd, og hvert av dem alene er nok til å gjøre
- * K6 til null. Alle tre er målt på ATFERD i `test/k6-vaner.test.ts`:
+ * Første kjøring av prøven fant tre uavhengige brudd, og hvert av dem alene er
+ * nok til å gjøre K6 eksakt null. ALLE TRE ER NÅ RETTET, og hvert av dem har
+ * en atferdstest i `test/k6-vaner.test.ts` som vakt mot at det kommer tilbake:
  *
- *   1. `Profilbok.observer` fyrer bare ved RUNDE_SLUTT, og ingen spillsløyfe
- *      spør en agent om noe i den fasen. Boka fylles aldri. STÅR UFIKSET.
- *   2. `lagIndre` slapp ikke `Spekkontekst` gjennom `vr:`, som står mellom
- *      `okt:` og `amu:` i både V6 og V7. Økten nådde aldri fram. RETTET i
- *      `agentspek.ts` mens prøven ble skrevet; testen står igjen som vakt.
- *   3. `MIN_RUNDER = 4` teller BUD, ikke runder: `Profilbok.runder` returnerer
- *      `profil.bud.n`, og et sete som passer teller ikke. Terskelen inntreffer
- *      i praksis rundt runde tolv — altså omtrent når en kamp til 100 er slutt.
- *      STÅR UFIKSET.
+ *   1. `lagIndre` slapp ikke `Spekkontekst` gjennom `vr:`, som står mellom
+ *      `okt:` og `amu:` i både V6 og V7. Økten ble laget og kastet. RETTET —
+ *      sju grener (`vr:`, `sik:`, `vv:`, `vv2:`, `etl:`, `juks:` og `profil:`s
+ *      indre) sender nå `ctx` videre.
+ *   2. `Profilbok.observer` fyrer bare ved RUNDE_SLUTT, og ingen spillsløyfe
+ *      spurte en agent om noe i den fasen — boka ble aldri fylt. RETTET —
+ *      `Spekagent` har nå en valgfri `observer(s)`, videresendt av `okt:`,
+ *      `vr:` og `amu:`, og `kamp.ts` kaller den før NESTE.
+ *   3. `MIN_RUNDER = 4` telte BUD, ikke runder: `Profilbok.runder` returnerte
+ *      `profil.bud.n`, som bare øker når setet faktisk meldte. Med budandel
+ *      ~0,33 inntraff terskelen rundt runde TOLV. RETTET — den returnerer nå
+ *      `bydde.n`, som teller hver observert runde.
+ *
+ * Fiks 3 flytter terskelen fra runde ~12 til runde ~4–6, og det er derfor
+ * denne kjøringen bruker KORTE kamper: en kamp på 40 runder brenner CPU på 28
+ * runder som alle ligger etter terskelen. Kraften per CPU-minutt er høyest når
+ * «før» og «etter» er omtrent like store.
  */
 
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -90,33 +99,36 @@ import { MIN_RUNDER, Økt } from "../src/moe2/okt.ts";
 import { dyreste } from "../src/moe2/synlig.ts";
 
 /**
- * MATING — hvorfor armen «okt-matet» måtte finnes, og hvorfor det er et funn.
+ * TIKKET — den kroken som gjorde «matet» til en vanlig arm.
  *
  * `Profilagent.velgHandling` kaller `bok.observer(state)`, og `observer`
- * returnerer straks med mindre `state.fase === "RUNDE_SLUTT"`. Men INGEN
- * spillsløyfe i repoet spør en agent om en handling i den fasen:
+ * returnerer straks med mindre `state.fase === "RUNDE_SLUTT"`. Ingen
+ * spillsløyfe spurte en agent om en handling i den fasen:
  *
  *   examples/kamp.ts   `if (s.fase === "RUNDE_SLUTT") { utfør(NESTE); continue; }`
  *   web/app.ts         `if (lov.fase === "RUNDE_SLUTT") return;`
  *
- * Profilboka fylles altså aldri under spill. `test/profilagent.test.ts` kaller
- * `bok.observer(s)` FOR HÅND i sine egne sløyfer, og er grønn — nøyaktig
- * feilklassen «en test skal måle at noe FYRER, ikke at det finnes».
+ * Profilboka ble altså aldri fylt under spill, og den forrige kjøringen av
+ * denne prøven måtte mate `økt.bok.observer(s)` FOR HÅND fra sløyfen — en
+ * krykke som svarte på «ville han utnyttet vanen?», ikke på «gjør han det?».
  *
- * Armen «okt-matet» mater boka fra sløyfen, slik testene gjør, for å svare på
- * det andre spørsmålet: VILLE Adams utnyttet vanen om koblingen var hel? Den er
- * merket i hver eneste rad, og skal aldri forveksles med dagens Adams.
+ * NÅ ER KROKEN EKTE: `Spekagent.observer?(s)` finnes i speken, `okt:`, `vr:` og
+ * `amu:` videresender den, og `examples/kamp.ts` kaller den før NESTE. Denne
+ * sløyfen kaller nøyaktig det samme — `adams.observer?.(s)` — så bokføringen
+ * går gjennom hele stakken og ikke utenom den. `tikk` er derfor ikke lenger en
+ * innrømmelse, men en beskrivelse av hva enhver driver skal gjøre.
  */
 export interface Arm {
   readonly navn: string;
   readonly medØkt: boolean;
-  readonly matet: boolean;
+  /** Kaller driveren `observer(s)` ved RUNDE_SLUTT, slik `kamp.ts` gjør? */
+  readonly tikk: boolean;
 }
 
 export const ARMER: readonly Arm[] = [
-  { navn: "okt-matet", medØkt: true, matet: true },
-  { navn: "uten-okt", medØkt: false, matet: false },
-  { navn: "okt-som-i-dag", medØkt: true, matet: false },
+  { navn: "okt", medØkt: true, tikk: true },
+  { navn: "uten-okt", medØkt: false, tikk: false },
+  { navn: "okt-utikk", medØkt: true, tikk: false },
 ];
 
 /**
@@ -148,6 +160,8 @@ export type Motstander = "stilisert" | "noytral";
 export interface Spekagent {
   velgHandling(s: GameState): Handling;
   nyKamp(): void;
+  /** Bokfør en runde uten å spørre om et trekk. Valgfri, som i speken. */
+  observer?(s: GameState): void;
 }
 
 /**
@@ -162,6 +176,9 @@ export function lagTrumftrekker(spek: string): Spekagent {
   const basis = lagIndre(spek);
   return {
     nyKamp: () => basis.nyKamp(),
+    // Kappen skal være gjennomsiktig for ALT annet enn kortvalget, også for
+    // bokføringskroken — ellers er den ikke «samme agent med én vane».
+    observer: (s: GameState) => (basis as { observer?(x: GameState): void }).observer?.(s),
     velgHandling(s: GameState): Handling {
       const h = basis.velgHandling(s);
       if (h.type !== "SPILL" || s.trumf === null) return h;
@@ -190,10 +207,35 @@ export interface Runderad {
   readonly kant: number;
   /** Runder profilboka har bokført om det første motstandersetet. */
   readonly bokRunder: number;
+  /**
+   * DEN ANDRE TERSKELEN, og den fiks 3 ikke rørte.
+   *
+   * `Økt.aggressivitet` krever BÅDE `bok.runder(sete) ≥ MIN_RUNDER` OG
+   * `trumfutspill.n ≥ MIN_RUNDER`. Den siste telleren øker bare når setet var i
+   * FORSVAR og selv kom på utspill — altså når det vant et stikk. Mot en Adams
+   * som tar stikkene skjer det langt sjeldnere enn én gang per runde, så det er
+   * DENNE telleren som avgjør når stilen kan leses, ikke `bydde.n`.
+   */
+  readonly trumfN: number;
   /** Stilen økten leste ut av det setet, eller null for «vet ikke nok». */
   readonly aggressivitet: number | null;
-  /** Ville A2-vrien endret rollout-policyen for det setet nå? */
+  /**
+   * Hvor mange av de TRE motstandersetene A2-vrien endret policyen for.
+   *
+   * Ikke bare `motsete`: `motpartFor` spørres per sete, og et av de andre setene
+   * kan passere terskelen først. Skal denne raden brukes som «var økten på i
+   * denne runden?», må den se hele bordet — ellers merkes runder som urørte
+   * mens vrien fyrte et annet sted.
+   */
+  readonly vriSeter: number;
+  /** Fyrte vrien i det hele tatt? `vriSeter > 0`. */
   readonly vriAktiv: boolean;
+}
+
+/** `trumfutspill.n` for et sete — telleren som faktisk styrer terskelen. */
+export function trumfTeller(økt: Økt, sete: number): number {
+  const p = økt.bok.profilFor(sete) as unknown as { trumfutspill?: { n: number } };
+  return p.trumfutspill?.n ?? 0;
 }
 
 export interface KampOpts {
@@ -253,6 +295,12 @@ export function spillKamp(
         const merke: { velgHandling(st: GameState): Handling } = {
           velgHandling: (st: GameState) => adams.velgHandling(st),
         };
+        let vriSeter = 0;
+        if (økt !== null) {
+          for (let i = 0; i < 4; i++) {
+            if (i !== adamsSete && økt.motpartFor(merke, i) !== merke) vriSeter++;
+          }
+        }
         ut.push({
           arm: arm.navn,
           motstander,
@@ -263,11 +311,22 @@ export function spillKamp(
           andreSnitt,
           kant: adamsPoeng - andreSnitt,
           bokRunder: økt === null ? 0 : økt.bok.runder(motsete),
+          trumfN: økt === null ? 0 : trumfTeller(økt, motsete),
           aggressivitet: økt === null ? null : økt.aggressivitet(motsete),
-          vriAktiv: økt !== null && økt.motpartFor(merke, motsete) !== merke,
+          vriSeter,
+          vriAktiv: vriSeter > 0,
         });
       }
-      if (arm.matet && økt !== null) økt.bok.observer(s);
+      /**
+       * TIKKET GÅR GJENNOM STAKKEN, IKKE UTENOM DEN.
+       *
+       * Forrige kjøring skrev `økt.bok.observer(s)` rett inn i boka. Det svarte
+       * på et hypotetisk spørsmål. Nå kalles `observer` på selve agenten —
+       * samme linje som `examples/kamp.ts` har — så et hvilket som helst brudd
+       * i videresendingen (`okt:` → `vr:` → `amu:` → `profil:`) slår ut i
+       * tallet i stedet for å bli maskert.
+       */
+      if (arm.tikk) for (const a of seter) a.observer?.(s);
       opts.kikk?.(økt, s);
       if (s.rundeNr + 1 >= opts.maksRunder) break;
       s = utfør(s, { type: "NESTE" }).state;
@@ -325,6 +384,34 @@ export interface Parret {
   readonly g: number;
 }
 
+/**
+ * DOBBELTDIFFERANSEN, PARRET PÅ GIV.
+ *
+ * `delUt(regler, giving, frø, rundeNr)` avhenger bare av frø og rundenummer, så
+ * runde r i arm «okt» har NØYAKTIG samme kort som runde r i «uten-okt». Da kan
+ * de to armene differanseres rad for rad i stedet for å sammenliknes som to
+ * uavhengige utvalg, og givstøyen — som er den store variansen her — trekkes
+ * bort på begge sider.
+ *
+ *     dd(k, r) = g_okt(k, r) − g_utenOkt(k, r)
+ *
+ * Det er DET tallet K6 står og faller på. Vokser `dd` med rundenummeret, er det
+ * øktminnet som gjør det; vokser bare `g`, er motparten bare dårligere.
+ */
+export function dobbelt(parret: readonly Parret[], arm: string, null_arm: string): Parret[] {
+  const nøkkel = (p: Parret): string => `${p.frø}|${p.rundeNr}`;
+  const grunn = new Map<string, number>();
+  for (const p of parret) if (p.arm === null_arm) grunn.set(nøkkel(p), p.g);
+  const ut: Parret[] = [];
+  for (const p of parret) {
+    if (p.arm !== arm) continue;
+    const b = grunn.get(nøkkel(p));
+    if (b === undefined) continue;
+    ut.push({ arm: `${arm}−${null_arm}`, frø: p.frø, rundeNr: p.rundeNr, g: p.g - b });
+  }
+  return ut;
+}
+
 /** Parrer stilisert mot nøytral på (arm, frø, rundenummer) – altså på giv. */
 export function par(alle: readonly Runderad[]): Parret[] {
   const nøkkel = (r: Runderad): string => `${r.arm}|${r.frø}|${r.rundeNr}`;
@@ -345,22 +432,42 @@ export function par(alle: readonly Runderad[]): Parret[] {
 // ---------------------------------------------------------------------------
 
 function kjør(): void {
-  let kamper = 2;
+  let kamper = 30;
   let frøBase = 810_000_000;
   let målPoeng = 300;
-  let maksRunder = 40;
+  let maksRunder = 10;
   let utBase = "analyse/k6-vaner";
   let adamsSpek = K6_ADAMS;
   let basisSpek = ADAMS_MAALT;
-  let valgteArmer = ["okt-matet", "uten-okt"];
+  let valgteArmer = ["okt", "uten-okt"];
+  /**
+   * SKILLET MELLOM «FØR» OG «ETTER» TERSKELEN.
+   *
+   * Satt av `MIN_RUNDER`, ikke av tallene: `Økt.aggressivitet` returnerer null
+   * til boka har sett så mange runder. Grensen er altså en egenskap ved KODEN,
+   * lest før noe utfall er sett — ikke et sted vi klipper fordi det kler
+   * resultatet. Rapporten skriver også ut hvilken runde stilen FAKTISK ble
+   * lest i, så avviket mellom de to er synlig.
+   */
+  let delerunde = MIN_RUNDER;
+  /**
+   * SAMLEMODUS. Kjøringen deles på flere prosesser med disjunkte frøbånd fordi
+   * én runde koster sekunder, ikke millisekunder. `--les a.jsonl,b.jsonl` hopper
+   * over spillingen og rapporterer på radene som alt er skrevet. Ingen egen
+   * analysefil, og dermed ingen risiko for at rapporten og målingen kommer i
+   * utakt: samme kode regner begge.
+   */
+  let lesFiler: string[] = [];
 
   for (let i = 2; i < process.argv.length; i++) {
     const a = process.argv[i]!;
     const v = process.argv[i + 1];
-    if (a === "--kamper") kamper = tall(v, kamper, "--kamper");
+    if (a === "--les") lesFiler = (v ?? "").split(",").filter((x) => x !== "");
+    else if (a === "--kamper") kamper = tall(v, kamper, "--kamper");
     else if (a === "--froe") frøBase = tall(v, frøBase, "--froe");
     else if (a === "--maal") målPoeng = tall(v, målPoeng, "--maal");
     else if (a === "--maksrunder") maksRunder = tall(v, maksRunder, "--maksrunder");
+    else if (a === "--delerunde") delerunde = tall(v, delerunde, "--delerunde");
     else if (a === "--ut") utBase = v ?? utBase;
     else if (a === "--adams") adamsSpek = v ?? adamsSpek;
     else if (a === "--basis") basisSpek = v ?? basisSpek;
@@ -373,29 +480,38 @@ function kjør(): void {
   const jsonl = `${utBase}.jsonl`;
   const rapport = `${utBase}.txt`;
   mkdirSync(dirname(jsonl), { recursive: true });
-  writeFileSync(jsonl, "");
 
   const alle: Runderad[] = [];
   const t0 = Date.now();
-  for (const arm of armer) {
-    for (let k = 0; k < kamper; k++) {
-      const frø = frøBase + k * 7717;
-      const sete = k % 4;
-      for (const m of ["stilisert", "noytral"] as const) {
-        const rader = spillKamp(arm, m, frø, sete, {
-          målPoeng,
-          maksRunder,
-          adams: adamsSpek,
-          basis: basisSpek,
-        });
-        for (const rad of rader) {
-          alle.push(rad);
-          appendFileSync(jsonl, JSON.stringify(rad) + "\n");
+  if (lesFiler.length > 0) {
+    for (const f of lesFiler) {
+      for (const linje of readFileSync(f, "utf8").split("\n")) {
+        if (linje.trim() !== "") alle.push(JSON.parse(linje) as Runderad);
+      }
+    }
+    process.stderr.write(`Leste ${alle.length} rader fra ${lesFiler.length} filer\n`);
+  } else {
+    writeFileSync(jsonl, "");
+    for (const arm of armer) {
+      for (let k = 0; k < kamper; k++) {
+        const frø = frøBase + k * 7717;
+        const sete = k % 4;
+        for (const m of ["stilisert", "noytral"] as const) {
+          const rader = spillKamp(arm, m, frø, sete, {
+            målPoeng,
+            maksRunder,
+            adams: adamsSpek,
+            basis: basisSpek,
+          });
+          for (const rad of rader) {
+            alle.push(rad);
+            appendFileSync(jsonl, JSON.stringify(rad) + "\n");
+          }
+          process.stderr.write(
+            `${arm.navn} frø ${frø} sete ${sete} ${m}: ${rader.length} runder, ` +
+              `${Math.round((Date.now() - t0) / 1000)} s totalt\n`,
+          );
         }
-        process.stderr.write(
-          `${arm.navn} frø ${frø} sete ${sete} ${m}: ${rader.length} runder, ` +
-            `${Math.round((Date.now() - t0) / 1000)} s totalt\n`,
-        );
       }
     }
   }
@@ -409,39 +525,100 @@ function kjør(): void {
   skriv(`Adams:      ${adamsSpek}`);
   skriv(`Basis:      ${basisSpek}`);
   skriv("Stilisert:  trumftrekker (leder alltid trumf, legger alltid dyrest)");
-  skriv(`Kamper:     ${kamper} per arm per motstander, til ${målPoeng} poeng, maks ${maksRunder} runder`);
-  skriv(`Frøbånd:    ${frøBase} + k·7717`);
+  if (lesFiler.length > 0) {
+    const frøene = new Set(alle.map((r) => r.frø));
+    skriv(`Kamper:     ${frøene.size} frø per arm per motstander, samlet fra ${lesFiler.length} disjunkte bånd`);
+    skriv(`Kilder:     ${lesFiler.join(", ")}`);
+  } else {
+    skriv(`Kamper:     ${kamper} per arm per motstander, til ${målPoeng} poeng, maks ${maksRunder} runder`);
+    skriv(`Frøbånd:    ${frøBase} + k·7717`);
+  }
   skriv(`MIN_RUNDER: ${MIN_RUNDER} (økten tror ikke på noe før terskelen)`);
   skriv(`Kjøretid:   ${Math.round((Date.now() - t0) / 1000)} s`);
   skriv("");
   skriv("g(k,r) = kant mot stilisert − kant mot nøytral, parret på identisk giv.");
   skriv("Kant    = Adams' rundepoeng − snittet av de tre andres.");
+  skriv(`Skille:  runde < ${delerunde} er FØR terskelen, runde ≥ ${delerunde} er ETTER.`);
   skriv("");
 
-  for (const arm of armer) {
-    const p = parret.filter((x) => x.arm === arm.navn);
+  /** Skriver de fem tallene K6 faktisk vurderes på, for én serie. */
+  const bolk = (navn: string, p: readonly Parret[]): void => {
     const alleG = p.map((x) => x.g);
-    const tidlig = p.filter((x) => x.rundeNr < 12).map((x) => x.g);
-    const sen = p.filter((x) => x.rundeNr >= 12).map((x) => x.g);
+    const tidlig = p.filter((x) => x.rundeNr < delerunde).map((x) => x.g);
+    const sen = p.filter((x) => x.rundeNr >= delerunde).map((x) => x.g);
     const st = stigning(p.map((x) => x.rundeNr), alleG);
     const vekst = snitt(sen) - snitt(tidlig);
     const veksSE = Math.sqrt(se(sen) ** 2 + se(tidlig) ** 2);
-
-    skriv(`=== ARM «${arm.navn}» ===`);
+    skriv(`=== ${navn} ===`);
     skriv(`  parrede runder             n = ${p.length}`);
-    skriv(`  K6.1 gevinst totalt        ${snitt(alleG).toFixed(3)} ± ${se(alleG).toFixed(3)}`);
-    skriv(`  runde 0–11  (før terskel)  ${snitt(tidlig).toFixed(3)} ± ${se(tidlig).toFixed(3)}  (n = ${tidlig.length})`);
-    skriv(`  runde 12+   (etter)        ${snitt(sen).toFixed(3)} ± ${se(sen).toFixed(3)}  (n = ${sen.length})`);
+    skriv(`  K6.1 gevinst totalt        ${snitt(alleG).toFixed(3)} ± ${se(alleG).toFixed(3)}  z = ${(snitt(alleG) / se(alleG)).toFixed(2)}`);
+    skriv(`  runde 0–${delerunde - 1}   (før terskel)   ${snitt(tidlig).toFixed(3)} ± ${se(tidlig).toFixed(3)}  (n = ${tidlig.length})`);
+    skriv(`  runde ${delerunde}+    (etter)        ${snitt(sen).toFixed(3)} ± ${se(sen).toFixed(3)}  (n = ${sen.length})`);
     skriv(`  K6.2 vekst (sen − tidlig)  ${vekst.toFixed(3)} ± ${veksSE.toFixed(3)}  z = ${(vekst / veksSE).toFixed(2)}`);
     skriv(`  K6.2 stigning per runde    ${st.b.toFixed(4)} ± ${st.se.toFixed(4)}  z = ${(st.b / st.se).toFixed(2)}`);
+  };
 
+  for (const arm of armer) {
+    bolk(`ARM «${arm.navn}»`, parret.filter((x) => x.arm === arm.navn));
     const mot = alle.filter((x) => x.arm === arm.navn && x.motstander === "stilisert");
     const aggr = mot.map((x) => x.aggressivitet).filter((x): x is number => x !== null);
+    const lest = mot.filter((x) => x.aggressivitet !== null).map((x) => x.rundeNr);
     skriv(`  profilboka så maks         ${Math.max(0, ...mot.map((x) => x.bokRunder))} bokførte runder om setet`);
     skriv(
       `  aggressivitet lest         ${aggr.length === 0 ? "ALDRI (null i hver runde)" : `${aggr.length} av ${mot.length} runder, snitt ${snitt(aggr).toFixed(2)}`}`,
     );
-    skriv(`  A2-vrien ville fyrt        ${mot.filter((x) => x.vriAktiv).length} av ${mot.length} runder`);
+    skriv(`  først lest i runde         ${lest.length === 0 ? "aldri" : String(Math.min(...lest))} (tidligste over alle kamper)`);
+    skriv(`  trumfutspill.n maks        ${Math.max(0, ...mot.map((x) => x.trumfN))} (terskelen krever ${MIN_RUNDER})`);
+    skriv(`  A2-vrien fyrte             ${mot.filter((x) => x.vriAktiv).length} av ${mot.length} runder`);
+    skriv("");
+  }
+
+  /**
+   * DOBBELTDIFFERANSEN — prøvens egentlige svar.
+   *
+   * Krever at «uten-okt» er med. Uten falsifiseringsarmen betyr et positivt
+   * tall i «okt» ingenting, og da skal det heller ikke skrives ut noe som ser
+   * ut som en konklusjon.
+   */
+  const harNull = armer.some((a) => a.navn === "uten-okt");
+  const hovedarm = armer.find((a) => a.navn !== "uten-okt");
+  if (harNull && hovedarm !== undefined) {
+    const dd = dobbelt(parret, hovedarm.navn, "uten-okt");
+    skriv("Parret rad for rad på giv: samme frø og rundenummer i begge armene.");
+    bolk(`DOBBELTDIFFERANSE «${hovedarm.navn}» − «uten-okt»`, dd);
+    skriv("");
+
+    /**
+     * DEN MEKANISTISKE DELINGEN — sterkere enn et rundenummer.
+     *
+     * Rundenummeret er bare en STEDFORTREDER for «hadde økten lest noe?».
+     * Terskelen faller i ulik runde i hver kamp, så et fast skille blander
+     * behandlede og ubehandlede runder på begge sider. Her deles det på det som
+     * faktisk skjedde: fyrte A2-vrien i den stiliserte kampen den runden?
+     *
+     * Delingen ser bare på ØKTENS EGEN TILSTAND, aldri på utfallet, og den er
+     * derfor ikke en klipping etter tallene. Kontrollen er skarp: i runder der
+     * vrien ALDRI fyrte skal dobbeltdifferansen være EKSAKT 0,000 — armene er da
+     * bit-identiske. Er den ikke det, lekker noe annet enn økten mellom armene,
+     * og hele dobbeltdifferansen måler noe vi ikke har navngitt.
+     */
+    const fyrte = new Set<string>();
+    for (const r of alle) {
+      if (r.arm === hovedarm.navn && r.motstander === "stilisert" && r.vriAktiv) {
+        fyrte.add(`${r.frø}|${r.rundeNr}`);
+      }
+    }
+    bolk(
+      "DOBBELTDIFFERANSE der A2-vrien FYRTE",
+      dd.filter((x) => fyrte.has(`${x.frø}|${x.rundeNr}`)),
+    );
+    bolk(
+      "DOBBELTDIFFERANSE der den ikke fyrte (skal være 0,000)",
+      dd.filter((x) => !fyrte.has(`${x.frø}|${x.rundeNr}`)),
+    );
+    skriv("");
+  } else {
+    skriv("INGEN DOBBELTDIFFERANSE: falsifiseringsarmen «uten-okt» var ikke med.");
     skriv("");
   }
 
@@ -452,7 +629,7 @@ function kjør(): void {
     for (let r = 0; r <= maks; r++) {
       const g = p.filter((x) => x.rundeNr === r).map((x) => x.g);
       if (g.length === 0) continue;
-      skriv(`  ${arm.navn.padEnd(14)} r=${String(r).padStart(2)}  ${snitt(g).toFixed(3).padStart(8)}  n=${g.length}`);
+      skriv(`  ${arm.navn.padEnd(14)} r=${String(r).padStart(2)}  ${snitt(g).toFixed(3).padStart(8)} ± ${se(g).toFixed(3)}  n=${g.length}`);
     }
   }
 

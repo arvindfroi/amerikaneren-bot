@@ -101,36 +101,50 @@ test("K6: den stiliserte motstanderen har vanen, den nøytrale har den ikke", ()
 // 2. Ser Adams vanen når han spiller? — HOVEDFUNNET
 // ---------------------------------------------------------------------------
 
-test("K6: profilboka fylles ALDRI i en ekte spillsløyfe", () => {
+test("K6: profilboka FYLLES naa i en ekte spilloeyfe", () => {
   /**
-   * `Profilbok.observer` returnerer straks med mindre fasen er RUNDE_SLUTT, og
-   * ingen spillsløyfe i repoet ber en agent om en handling i den fasen —
-   * verken `examples/kamp.ts` eller `web/app.ts`. Profilagenten kan derfor
-   * aldri bokføre noe, uansett hvor lenge en økt varer.
+   * DENNE TESTEN DOKUMENTERTE EN FEIL, OG DEN ER RETTET.
    *
-   * `test/profilagent.test.ts` kaller `bok.observer(s)` for hånd i sine egne
-   * sløyfer og er grønn. Det er nettopp forskjellen på «noe finnes» og «noe
-   * fyrer».
+   * `Profilbok.observer` returnerer straks med mindre fasen er RUNDE_SLUTT, og
+   * INGEN spilloeyfe i repoet ba en agent om en handling i den fasen - verken
+   * `examples/kamp.ts` eller `web/app.ts`. Profilagenten kunne derfor aldri
+   * bokfoere noe, uansett hvor lenge en oekt varte. Maalt: 0 runder.
+   *
+   * `test/profilagent.test.ts` kalte `bok.observer(s)` for haand i sine egne
+   * sloeyfer og var groenn. Det er noeyaktig forskjellen paa «noe finnes» og
+   * «noe fyrer» - og en test som trenger en krykke for aa faa en komponent til
+   * aa virke, er selve varselet.
+   *
+   * `Spekagent` har naa en valgfri `observer(state)`, videresendt av `okt:`,
+   * `vr:` og `amu:`, og `kamp.ts` kaller den foer NESTE.
    */
-  const rader = spillKamp(arm("okt-som-i-dag"), "stilisert", 810_000_201, 0, {
+  const rader = spillKamp(arm("okt"), "stilisert", 810_000_201, 0, {
     målPoeng: 9999,
     maksRunder: 14,
     adams: ADAMS_MINI_USOKT,
     basis: ADAMS_MAALT,
   });
   assert.ok(rader.length >= 12, `fikk bare ${rader.length} runder`);
-  for (const r of rader) {
-    assert.equal(r.bokRunder, 0, `runde ${r.rundeNr}: boka hadde ${r.bokRunder} runder — koblingen er hel`);
-    assert.equal(r.aggressivitet, null, `runde ${r.rundeNr}: økten leste en stil`);
-    assert.equal(r.vriAktiv, false, `runde ${r.rundeNr}: A2-vrien fyrte`);
-  }
+  const sisteBok = rader[rader.length - 1]?.bokRunder ?? 0;
+  assert.ok(
+    sisteBok > 0,
+    `boka hadde ${sisteBok} runder etter ${rader.length} spilte. Da naar ikke ` +
+      `bokfoeringskroken gjennom stakken, og K6 er umaalbar paa kampbenken.`,
+  );
+  // Og med telleren rettet fra `bud.n` til `bydde.n` skal terskelen naas
+  // INNENFOR en normal kamp, ikke rundt runde tolv.
+  assert.ok(
+    rader.some((r) => r.aggressivitet !== null),
+    `oekten leste ALDRI en stil paa ${rader.length} runder. MIN_RUNDER = 4 ` +
+      `skal naas rundt runde fire naar telleren teller RUNDER og ikke BUD.`,
+  );
 });
 
 // ---------------------------------------------------------------------------
 // 3. Er `okt:` dermed bit-identisk med «av»?
 // ---------------------------------------------------------------------------
 
-test("K6: «okt:» spiller bit-identisk med å ha laget av", () => {
+test("K6: «okt:» spiller IKKE lenger bit-identisk med aa ha laget av", () => {
   /**
    * Nullpunktet skal være bit-identisk med «av» NÅR ØKTEN IKKE VET NOE — det er
    * regelen. Her er den oppfylt av feil grunn: økten vet aldri noe, så
@@ -142,7 +156,7 @@ test("K6: «okt:» spiller bit-identisk med å ha laget av", () => {
    * påstanden skal bety noe — uten søkelag finnes ikke A2-kanalen i det hele
    * tatt, og likheten ville vært triviell.
    */
-  const med = spillKamp(arm("okt-som-i-dag"), "stilisert", 810_000_301, 0, {
+  const med = spillKamp(arm("okt"), "stilisert", 810_000_301, 0, {
     målPoeng: 9999,
     maksRunder: 5,
     adams: ADAMS_MINI,
@@ -201,7 +215,7 @@ function valg(spek: string, økt: Økt | null, st: readonly GameState[]): string
 /** En økt som har sett en trumftrekker lenge nok til å ha en mening om ham. */
 function lagØktSomHarLært(): Økt {
   let holdt: Økt | null = null;
-  spillKamp(arm("okt-matet"), "stilisert", 810_000_501, 0, {
+  spillKamp(arm("okt"), "stilisert", 810_000_501, 0, {
     målPoeng: 9999,
     maksRunder: 26,
     adams: ADAMS_MINI_USOKT,
@@ -267,14 +281,14 @@ test("K6: konteksten naar gjennom «vr:» - okt: er koblet i hele stakken", () =
 // 4. Ville han sett vanen om koblingen var hel?
 // ---------------------------------------------------------------------------
 
-test("K6: matet fra sløyfen leser økten trumftrekkeren riktig — men altfor sent", () => {
-  const stil = spillKamp(arm("okt-matet"), "stilisert", 810_000_401, 0, {
+test("K6: oekten leser trumftrekkeren, og naa i tide", () => {
+  const stil = spillKamp(arm("okt"), "stilisert", 810_000_401, 0, {
     målPoeng: 9999,
     maksRunder: 26,
     adams: ADAMS_MINI_USOKT,
     basis: ADAMS_MAALT,
   });
-  const nøytral = spillKamp(arm("okt-matet"), "noytral", 810_000_401, 0, {
+  const nøytral = spillKamp(arm("okt"), "noytral", 810_000_401, 0, {
     målPoeng: 9999,
     maksRunder: 26,
     adams: ADAMS_MINI_USOKT,
@@ -290,8 +304,28 @@ test("K6: matet fra sløyfen leser økten trumftrekkeren riktig — men altfor s
    * setet renons i trumf. Vanen er maksimal; observasjonene er det ikke.
    * Terskelen som betyr noe er `|a| ≥ 0,2` — der slår A2-vrien inn.
    */
+  /**
+   * TERSKELEN ER 0,2, IKKE 0,6 - og forskjellen er en FIKS, ikke en oppmykning.
+   *
+   * `Økt.aggressivitet` hadde en HARD andre terskel: `trumfutspill.n <
+   * MIN_RUNDER` ga null. Maalt vokser `bydde.n` hver runde (1,2,...,9) mens
+   * `trumfutspill.n` vokser til **1 og stopper** - saa den doeren kunne aldri
+   * aapnes, og hele K6 var umaalbar uansett hvor godt resten virket.
+   *
+   * Doeren er byttet mot KRYMPING (`tiltro(t) = n/(n+k)`), som er mekanismen
+   * prosjektet ellers bruker for «hvor mye skal vi tro paa dette». Utslaget
+   * vokser da gradvis med observasjonene i stedet for aa hoppe fra null til
+   * fullt - og det DEMPER tallet med vilje.
+   *
+   * 0,6 var kalibrert til den ukrympede verdien. Terskelen som faktisk betyr
+   * noe staar i kommentaren over: |a| >= 0,2 er der A2-vrien slaar inn, og
+   * `vriAktiv` under haandhever at den faktisk gjorde det.
+   */
   const sisteStil = lest[lest.length - 1]!.aggressivitet!;
-  assert.ok(sisteStil >= 0.6, `leste aggressivitet ${sisteStil.toFixed(2)}, forventet klart positiv`);
+  assert.ok(
+    sisteStil >= 0.2,
+    `leste aggressivitet ${sisteStil.toFixed(2)}, forventet over vriterskelen 0,2`,
+  );
   assert.equal(lest[lest.length - 1]!.vriAktiv, true, "A2-vrien fyrte ikke selv med stilen lest");
 
   /**
@@ -307,25 +341,46 @@ test("K6: matet fra sløyfen leser økten trumftrekkeren riktig — men altfor s
   const nLest = nøytral.filter((r) => r.aggressivitet !== null);
   if (nLest.length > 0) {
     const sisteNøytral = nLest[nLest.length - 1]!.aggressivitet!;
+    /**
+     * KRITERIET ER VRITERSKELEN, ikke en absolutt avstand.
+     *
+     * `> 0,35` var kalibrert til de UKRYMPEDE tallene. Krympingen
+     * (`tiltro(t) = n/(n+k)`) demper begge armene proporsjonalt, saa en
+     * absolutt avstand maaler hvor mange observasjoner vi har - ikke om
+     * modellen skiller stilene.
+     *
+     * Det som betyr noe operasjonelt er om de havner paa HVER SIN SIDE av
+     * 0,2: da vrir A2 rollout-policyen mot trumftrekkeren og lar den noeytrale
+     * vaere. Det er hele forskjellen mellom «utnytter en vane» og «gjetter».
+     */
     assert.ok(
-      sisteStil - sisteNøytral > 0.35,
-      `stilisert ${sisteStil.toFixed(2)} mot nøytral ${sisteNøytral.toFixed(2)} — modellen skiller dem ikke`,
+      sisteStil >= 0.2 && sisteNøytral < 0.2,
+      `stilisert ${sisteStil.toFixed(2)} mot nøytral ${sisteNøytral.toFixed(2)} — de skal ` +
+        `havne paa hver sin side av vriterskelen 0,2, ellers vrir A2 likt mot begge`,
     );
   }
 
   /**
-   * MIN_RUNDER TELLER I FEIL VALUTA, og det er et eget funn.
+   * MIN_RUNDER TELTE I FEIL VALUTA, OG DET ER RETTET.
    *
-   * `Økt.aggressivitet` krever `bok.runder(sete) ≥ MIN_RUNDER`, og
-   * `Profilbok.runder` returnerer `profil.bud.n` — antall runder setet FAKTISK
-   * MELDTE, ikke antall runder det satt ved bordet. Et sete som passer teller
-   * ikke. Terskelen «fire runder» blir derfor i praksis tolv til femten runder,
-   * altså omtrent en hel kamp til 100 poeng.
+   * `Profilbok.runder` returnerte `profil.bud.n` - antall runder setet FAKTISK
+   * MELDTE, ikke antall runder det satt ved bordet. Et sete som passet telte
+   * ikke, saa terskelen «fire runder» ble i praksis tolv til femten - omtrent
+   * en hel kamp til 100 poeng. OEktminnet aktiverte seg altsaa aldri.
+   *
+   * Den returnerer naa `bydde.n`, som oeker hver observerte runde. Maalt:
+   * bydde.n 1,2,3,...,9 mot bud.n 1,1,1,1,2,2,2,3,4.
+   *
+   * Denne testen ba uttrykkelig om aa bli snudd naar det skjedde: naa krever
+   * den at stilen leses I TIDE, altsaa innenfor de foerste rundene av en kamp
+   * og ikke naar den er over.
    */
   const førsteLeste = stil.findIndex((r) => r.aggressivitet !== null);
   assert.ok(
-    førsteLeste > MIN_RUNDER,
-    `stilen ble lest allerede i runde ${førsteLeste} — da teller MIN_RUNDER runder, ikke bud`,
+    førsteLeste >= 0 && førsteLeste <= MIN_RUNDER + 2,
+    `stilen ble foerst lest i runde ${førsteLeste}. Med telleren rettet skal den ` +
+      `leses rundt runde ${MIN_RUNDER} - er den sen igjen, teller MIN_RUNDER bud ` +
+      `i stedet for runder, og oektminnet aktiverer seg aldri i en normal kamp.`,
   );
 });
 

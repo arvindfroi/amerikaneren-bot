@@ -61,12 +61,22 @@ import { racepress, racescore } from "../src/moe2/race.ts";
 import { målK5, type K5Resultat } from "../examples/k5-kontekst.ts";
 
 /**
- * SMÅ TALL MED VILJE. Hver stilling koster to alpha-mu-søk med 12 verdener og
- * 16 kandidater, og prøven kjøres i `npm test`. Tre giv gir seks stillinger,
- * og hver stilling er en HEL sammenlikning — ikke et støymål som må midles.
- * Kontrollarmen er eksakt, ikke statistisk, så n trenger ikke være stort.
+ * SMÅ TALL MED VILJE — MEN IKKE MINDRE ENN SAKEN KREVER.
+ *
+ * Hver stilling koster to alpha-mu-søk med 12 verdener og 16 kandidater, og
+ * prøven kjøres i `npm test`. Hver stilling er en HEL sammenlikning, ikke et
+ * støymål som må midles, og kontrollarmen er eksakt — så n trenger ikke være
+ * stort.
+ *
+ * DEN STO PÅ 3 OG MÅTTE OPP TIL 5, og det er et måleresultat og ikke en
+ * forsiktighetsmargin. Med den rettede formen fyrer BAK-retningen for første
+ * gang, men den første stillingen der den velter et valg ligger i giv 5
+ * (frø 5 117 636). Med GIVER = 3 målte BAK-armen 0 av 6 — altså nøyaktig samme
+ * tall som den DØDE formen ga, og testen kunne ikke skille de to. Kostnaden er
+ * ~1 minutt i `npm test`; å ikke kunne skille en fikset knott fra en død er
+ * dyrere.
  */
-const GIVER = 3;
+const GIVER = 5;
 const FRØ = 5_100_000;
 /**
  * LAMBDA MAATTE OPP DA FORMEN BLE RETTET.
@@ -77,11 +87,23 @@ const FRØ = 5_100_000;
  * ulik styrke i de to formene.
  *
  * Formskiftet var noedvendig fordi det POSITIVE leddet aldri kunne velte et
- * valg: grenen med hoeyest snitt har som regel ogsaa stoerst spredning. Maalt:
- * 0 av 20 endringer naar Adams laa BAK, 4 av 20 naar han ledet.
+ * valg: grenen med hoeyest snitt har som regel ogsaa stoerst spredning. Maalt
+ * med den gamle formen: 0 av 20 endringer naar Adams laa BAK, 4 av 20 naar han
+ * ledet.
  *
  * 1,5 gir vekt 0,54 ved press 0,36, og `test/race.test.ts` laaser saken formen
  * maa klare: BAK velter til en risikabel gren med LAVERE snitt.
+ *
+ * ================= OG DET VIRKET, MAALT I SPILL =========================
+ *
+ * `analyse/k5-kontekst-rettet.txt`, 20 giv / 40 stillinger, samme froebaand som
+ * maalingen over:
+ *
+ *     BAK  (stilling fast 70-90)    8 av 40   spredning 6,163 -> 6,198  OPP
+ *     FORAN (stilling fast 90-70)   4 av 40   spredning 6,225 -> 6,202  NED
+ *     kontrollarmen                 0 av 40
+ *
+ * Begge retningene fyrer, og begge gaar RIKTIG vei. BAK-tallet var 0.
  */
 const LAMBDA = 1.5;
 const RAPPORT = "analyse/k5-kontekst-test.txt";

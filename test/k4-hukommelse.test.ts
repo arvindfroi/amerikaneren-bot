@@ -46,8 +46,12 @@ import {
   prøveB,
   øktNåesGjennom,
 } from "../examples/k4-hukommelse.ts";
+import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { ADAMS_V6, ADAMS_V7 } from "../src/moe2/agentspek.ts";
 import { MIN_RUNDER } from "../src/moe2/okt.ts";
+import { BEFOLKNING, krymp, tiltro } from "../src/moe2/profil.ts";
+import { MAKS_UTSLAG, Profilbok } from "../src/moe2/profilagent.ts";
+import { NevroAgent } from "../src/nevro/index.ts";
 
 const FRØ = 4_400_000;
 const MÅLRUNDE = 7; // runde 8, nullindeksert — AdamsMax' egen formulering
@@ -203,15 +207,102 @@ test("K4: «okt:» naar frem gjennom HELE stakken, ogsaa bak «vr:»", () => {
   assert.ok(ADAMS_V7.startsWith("okt:vr:"), "ADAMS_V7 begynner ikke lenger med okt:vr:");
 });
 /**
+ * ============ 4b. HVORFOR BUDKANALEN VAR FOR SVAK — ALGEBRAISK LÅST ======
+ *
+ * K4-prøven målte at budkanalen ba om maks 0,508 budpoeng der 1,0 trengs for å
+ * snu et valg. Årsaken viste seg å ikke være en for forsiktig konstant, men en
+ * dobbelttelling:
+ *
+ *     avvik = (evForsvarMot(p, B) − befolkningens forsvarsverdi) · tiltro
+ *
+ * `evForsvarMot` går gjennom `krymp`, og `krymp(a, pop, k) − pop` ER
+ * `tiltro · (snitt(a) − pop)` per definisjon — det er hele jobben krympingen
+ * gjør. Å gange resultatet med `tiltro` en gang til ga `tiltro²`, altså en
+ * faktor ~0,44 ingen hadde bedt om (målt i `analyse/k4-budkanal.txt`).
+ *
+ * DENNE TESTEN ER EKSAKT, IKKE STATISTISK. Den regner den ene riktige formen
+ * for hånd av bokas egne tall og krever bit-likhet. Den krever i tillegg at
+ * dobbelttellingen ville gitt et ANNET tall — ellers ville testen vært grønn
+ * også med feilen tilbake, og da låser den ingenting.
+ */
+test("K4: «justering» teller tiltroen EN gang - dobbelttellingen kan ikke komme tilbake", () => {
+  const bok = new Profilbok();
+  const ag = [0, 1, 2, 3].map(() => new NevroAgent());
+  let s: GameState = opprettSpill({ antallSpillere: 4 }, 8_800_000);
+  let vakt = 0;
+  let sjekket = 0;
+  let villeVaertMindre = 0;
+
+  while (s.fase !== "FERDIG" && s.rundeNr < 25 && vakt++ < 40_000) {
+    bok.observer(s);
+    if (s.fase === "RUNDE_SLUTT") {
+      s = utfør(s, { type: "NESTE" }).state;
+      continue;
+    }
+    if (s.fase === "BUDRUNDE" && s.iTur !== null) {
+      // Nøyaktig samme utvelgelse som «justering» gjør selv.
+      let høyest: number | null = null;
+      let høyestBud = 0;
+      for (let p = 0; p < s.antallSpillere; p++) {
+        if (p === s.iTur) continue;
+        const b = s.budrunde.sisteBud[p];
+        if (typeof b === "number" && b > høyestBud) {
+          høyestBud = b;
+          høyest = p;
+        }
+      }
+      if (høyest !== null && bok.profilFor(høyest).klarte.n > 0) {
+        const p = bok.profilFor(høyest);
+        const klem = (x: number): number => Math.max(-MAKS_UTSLAG, Math.min(MAKS_UTSLAG, x));
+        // (2B/3)·(pop − krymp) — «evForsvarMot minus befolkningens», tiltroen
+        // talt ÉN gang, og bare inne i krympingen der den hører hjemme.
+        const rått = ((2 * høyestBud) / 3) * (BEFOLKNING.klarte - krymp(p.klarte, BEFOLKNING.klarte));
+        const enkel = klem(rått);
+        const dobbelt = klem(rått * tiltro(p.klarte));
+        const fikk = bok.justering(s);
+        assert.ok(
+          Math.abs(fikk - enkel) < 1e-12,
+          `«justering» ga ${fikk}, men den ene riktige formen er ${enkel}. ` +
+            `(Dobbelttellingen ville gitt ${dobbelt}.) Krympingen skal veie ` +
+            `individet mot befolkningen EN gang, ikke to.`,
+        );
+        sjekket++;
+        if (Math.abs(enkel - dobbelt) > 1e-9) villeVaertMindre++;
+      }
+    }
+    const iT = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+    if (iT === null || iT === undefined) break;
+    s = utfør(s, ag[iT]!.velgHandling(s)).state;
+  }
+
+  assert.ok(sjekket >= 5, `bare ${sjekket} budstillinger med laert motpart - testen maalte nesten ingenting`);
+  assert.ok(
+    villeVaertMindre >= 5,
+    `dobbelttellingen ville gitt SAMME tall i ${sjekket - villeVaertMindre} av ${sjekket} ` +
+      `stillinger. Da ville denne testen vaert groenn ogsaa med feilen tilbake, og den ` +
+      `laaser ingenting.`,
+  );
+});
+
+/**
  * ============ 5. PRØVE A, BUDKANALEN ====================================
  *
  * AdamsMax: «Spill samme runde to ganger … Valgene MÅ avvike. Gjør de ikke det,
  * er hukommelsen dekorasjon.»
  *
  * Med hukommelsen riktig koblet, tikket på og to forkamper i økten bak seg
- * avviker ingen valg i budrunden. Grunnen er målt, ikke gjettet: profilens
- * eneste kanal inn i budet er `Profilbok.justering`, den ba om maks 0,51
- * budpoeng, og positivkontrollen viser at det trengs 1,0 for å snu ett valg.
+ * avviker ingen valg i budrunden. **Nullen står fortsatt etter at
+ * dobbelttellingen av tiltroen er rettet**, og det er verdt å si presist hva
+ * som endret seg og hva som ikke gjorde det:
+ *
+ *   FØR   maks |justering| 0,508 budpoeng, 0 avvik av 87 beslutninger
+ *   ETTER maks |justering| 0,976 budpoeng, 0 avvik av 87
+ *         og over 868 beslutninger (60 giv): maks 1,724, fortsatt 0 avvik
+ *
+ * Styrken er altså nesten doblet uten at ett valg snudde. Forklaringen ligger
+ * ikke i hukommelsen lenger, men i budmodellen: responskurven i
+ * `analyse/k4-responskurve.txt` viser hvor langt beslutningen ligger fra sin
+ * egen grense. Det er den målingen som skal leses sammen med denne nullen.
  *
  * Testen låser nullen. Blir den rød, har budkanalen begynt å bite — det skal
  * skrives ned, ikke stilles ned.

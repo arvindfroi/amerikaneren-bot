@@ -36,6 +36,7 @@
 import type { GameState, Handling } from "../motor.ts";
 import { lovligeKort } from "../motor.ts";
 import { Profilbok } from "./profilagent.ts";
+import { tiltro } from "./profil.ts";
 import { billigste, dyreste } from "./synlig.ts";
 import type { Utspiller } from "./sdkort.ts";
 
@@ -82,10 +83,36 @@ export class Økt {
       ledetTrumf?: { sum: number; n: number };
     };
     const t = p.trumfutspill ?? p.ledetTrumf;
-    if (t === undefined || t.n < MIN_RUNDER) return null;
-    // Rundt befolkningssnittet er 0. Over: aggressiv. Under: passiv.
-    const rate = t.sum / Math.max(1, t.n);
-    return Math.max(-1, Math.min(1, (rate - 0.5) * 2));
+    if (t === undefined || t.n === 0) return null;
+
+    /**
+     * ============ DEN ANDRE TERSKELEN VAR EN FLASKEHALS =================
+     *
+     * Her sto `if (t.n < MIN_RUNDER) return null` - en HARD terskel paa
+     * `trumfutspill`, som bare oeker naar setet FORSVARER og LEDER et stikk.
+     *
+     * Maalt: `bydde.n` vokser hver runde (1,2,3,...,9), mens `trumfutspill.n`
+     * vokser til **1 og stopper**. Terskelen kunne dermed aldri naas, og
+     * `aggressivitet` returnerte null i det uendelige - selv med boka full.
+     *
+     * Det er noeyaktig samme feilklasse som `runder()` som telte BUD i stedet
+     * for runder: en terskel som skal si «vi har sett nok» lagt paa en teller
+     * som teller noe langt sjeldnere. To slike i samme funksjon, og begge
+     * gjorde hele K6 umaalbar.
+     *
+     * KRYMPING I STEDET FOR EN HARD DOER. `tiltro(t) = n/(n+k)` er allerede
+     * mekanismen prosjektet bruker for «hvor mye skal vi tro paa dette» - se
+     * `profil.ts`. Med den vokser utslaget GRADVIS med observasjonene i stedet
+     * for aa hoppe fra null til fullt.
+     *
+     * Og forsiktigheten er bevart, ikke kastet: `motpartFor` krever fortsatt
+     * |a| >= 0,2 foer den vrir noe, saa en stil avlest av én runde gir et
+     * krympet tall som ikke naar terskelen uansett. Forskjellen er at den KAN
+     * naa den etter hvert.
+     */
+    const rate = t.sum / t.n;
+    const rå = Math.max(-1, Math.min(1, (rate - 0.5) * 2));
+    return rå * tiltro(t);
   }
 
   /**

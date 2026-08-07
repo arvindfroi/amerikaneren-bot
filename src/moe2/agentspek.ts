@@ -558,7 +558,20 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
    * oppførselen bit-identisk med før.
    */
   if (indre.startsWith("okt:")) {
-    const økt = new Økt();
+    /**
+     * EN OEKT SOM ALLEREDE ER LEVERT SKAL IKKE SKYGGES.
+     *
+     * Sto `new Økt()` ubetinget. En kaller som selv lager en oekt for aa kunne
+     * LESE den - en maaling som vil rapportere `aggressivitet` per runde, for
+     * eksempel - fikk den erstattet i det oeyeblikket speken begynte med
+     * `okt:`. Boka ble fylt, men i et objekt kalleren ikke kunne naa, saa
+     * maalingen rapporterte `null` for evig.
+     *
+     * Det er samme feilklasse som resten av dagen: komponenten VIRKET, men to
+     * deler pekte paa hvert sitt objekt. Naa er `okt:` idempotent naar en oekt
+     * finnes i konteksten.
+     */
+    const økt = ctx.økt ?? new Økt();
     const inn = lagIndre(indre.slice(4), { ...ctx, økt });
     return {
       velgHandling: (s) => inn.velgHandling(s),
@@ -591,6 +604,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     const M = les("m", 1);
     // «r<lambda>»: kampstillingsstyrt varians. 0 = av.
     const lambda = les("r", 0);
+    // «v<margin>»: vaktens veto. 0 = av, bit-identisk med foer. Se §103.
+    const vetoMargin = les("v", 0);
     /**
      * SLUTNINGEN SOM VEKTER VERDENENE — «s» (A1, regler) eller «b» (A5, Bayes).
      *
@@ -670,6 +685,7 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       M,
       epsilon: eps,
       lambda,
+      vetoMargin,
       // A2: oekten gir én policy PER MOTSTANDER. Uten oekt er den udefinert,
       // og soeket antar som foer at alle spiller som oss.
       motpartFor:

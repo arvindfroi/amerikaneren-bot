@@ -50,7 +50,7 @@ import {
 } from "./profil.ts";
 
 /** Hvor mye avviket får slå ut når vi kjenner personen fullt ut. */
-const MAKS_UTSLAG = 2.0;
+export const MAKS_UTSLAG = 2.0;
 
 export interface Budjusterbar {
   settForsvarsjustering(f: ((state: GameState) => number) | null): void;
@@ -178,8 +178,40 @@ export class Profilbok {
    * Forskyvningen av forsvarsverdien i DENNE budstillingen.
    *
    * Null når ingen har bydd (da er det ingen å forsvare seg mot) og null i
-   * første runde mot en ukjent. Ellers: avviket fra befolkningssnittet, vektet
-   * med tiltroen og begrenset til `MAKS_UTSLAG`.
+   * første runde mot en ukjent. Ellers: avviket fra befolkningssnittet,
+   * begrenset til `MAKS_UTSLAG`.
+   *
+   * ==================== TILTROEN STO TO GANGER =========================
+   *
+   * Her sto det `const avvik = (mot - snitt) * t` med `t = tiltro(p.klarte)`,
+   * og det var å telle den samme forsiktigheten to ganger. Regn det ut:
+   *
+   *     mot − snitt = (2B/3) · (pop − krymp(klarte))
+   *     krymp(a, pop, k) − pop = tiltro · (snitt(a) − pop)      per definisjon
+   *   ⇒ mot − snitt = (2B/3) · tiltro · (pop − snitt_klarte)
+   *   ⇒ (mot − snitt) · t = (2B/3) · tiltro² · (pop − snitt_klarte)
+   *
+   * `krymp` FINNES for å veie individet mot befolkningen etter hvor mye vi har
+   * sett — det er hele jobben dens. Å gange resultatet med `tiltro` én gang til
+   * gjorde ikke kanalen forsiktig, den gjorde den kvadratisk forsiktig.
+   *
+   * MÅLT, ikke resonnert (`analyse/k4-budkanal.txt`, 53 ekte budbeslutninger
+   * etter to forkamper): tiltroen der kanalen fyrte var i snitt 0,433, og
+   * dobbelttellingen kostet nøyaktig den faktoren — snitt |justering| 0,244 mot
+   * 0,530, maks 0,80 mot 1,39. K4-prøven målte samtidig at kanalen var «2,0×
+   * for svak». Det er samme tall fra to kanter.
+   *
+   * NULLPUNKTET STÅR: med null observasjoner returnerer `krymp` befolkningen
+   * uendret, så `mot − snitt` er eksakt 0 — samme uttrykk, samme rekkefølge,
+   * bit-identisk med at profilen er av. Vakten under gjør det uavhengig av
+   * flyttallsdetaljer.
+   *
+   * DET SOM IKKE ER RETTET, sagt høyt: `MAKS_UTSLAG = 2,0` klippet 0 av 53
+   * stillinger både før og etter, så den er ikke bindende og er ikke rørt.
+   * `evForsvarMot` deler på 3 («vi er én av tre forsvarere») selv om budlaget
+   * har en makker og forsvaret dermed er to — men det tallet er et
+   * KALIBRERINGSVALG som skal måles i styrke, ikke justeres her fordi det ville
+   * gitt K4 et penere tall.
    */
   justering(state: GameState): number {
     if (state.fase !== "BUDRUNDE") return 0;
@@ -196,12 +228,14 @@ export class Profilbok {
     }
     if (høyest === null) return 0;
     const p = this.profilFor(høyest);
-    const t = tiltro(p.klarte);
-    if (t <= 0) return 0;
+    // NULLPUNKTET: har vi aldri sett henne vinne et bud, vet vi ingenting om
+    // «klarte», og boten skal spille bit-identisk med at profilen er av.
+    if (p.klarte.n <= 0) return 0;
     // Avviket fra en gjennomsnittlig motstander, ikke absoluttverdien.
+    // `krymp` inne i `evForsvarMot` HAR allerede vektet det med tiltroen.
     const mot = evForsvarMot(p, høyestBud);
     const snitt = (1 - BEFOLKNING.klarte) * 2 * høyestBud / 3;
-    const avvik = (mot - snitt) * t;
+    const avvik = mot - snitt;
     return Math.max(-MAKS_UTSLAG, Math.min(MAKS_UTSLAG, avvik));
   }
 }
