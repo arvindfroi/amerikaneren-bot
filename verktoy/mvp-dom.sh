@@ -38,11 +38,33 @@
 # Ett samlet tall sier bare OM det ble bedre. Derfor kjøres også hvert ledd
 # alene mot samme miljø, på samme frø:
 #
-#     V7            alt påslått
-#     V6+alle       bare rollene, uten b/g/sok
-#     V6+b          bare A5
+#     V7            alt påslått (b + g + sok)
+#     V6+b          bare A5, den bayesianske verdensvekten
+#     V6+bg         A5 + A6, altså signalkonvensjonen oppå
 #     V6+sok        bare budsøket
 #     V6            grunnlinja
+#
+# ============ OG SLIK LESES SAMSPILLET ================================
+#
+# Arvind: «alle deler skal fungere i samspill og gjøre hverandre bedre.»
+#
+# Ett samlet tall kan ikke svare på det. Med leddene målt HVER FOR SEG på
+# samme frø blir spørsmålet et regnestykke:
+#
+#     forventet(V7)  =  V6 + (b − V6) + (bg − b) + (sok − V6)
+#
+# Er V7 STØRRE enn det, forsterker leddene hverandre — det er synergi, og det
+# er kravet. Er V7 MINDRE, konkurrerer de om det samme.
+#
+# Det siste har skjedd TRE ganger allerede, og hver gang var det samme form:
+# et lokalt optimum som ødelegger en avtale.
+#
+#     A6 mot A7        begge ville eie de frie kortvalgene (§70: 36,2 %)
+#     sender mot leser signalkoden var to ulike koder
+#     søket mot vakten søket overstyrte konvensjonene i 68 % av valgene
+#
+# Derfor er superadditivitet ikke en formalitet her. Det er den ene tingen
+# prosjektet gjentatte ganger IKKE har hatt.
 #
 # Er V7 bedre enn summen av leddene, samvirker de. Er den dårligere, kjemper
 # de om det samme — som A6 og A7 gjorde om de frie kortvalgene, der A7 slettet
@@ -65,11 +87,20 @@ BUD="budm:e1-modell/bud-vant.json@-3.0"
 BUDSOK="budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5"
 
 # Grunnlinja er V6-formen: soek bare i foerersetet, A1-vekt, ingen b/g/sok.
-V6="okt:${FOR}:amu:foerer:12k16sm1e0.25r0.4:profil:${BUD}:${NETT}"
-V7="okt:${FOR}:amu:alle:12k16bgm1e0.25r0.4:profil:${BUDSOK}:${NETT}"
-ALLE="okt:${FOR}:amu:alle:12k16sm1e0.25r0.4:profil:${BUD}:${NETT}"
-BAYES="okt:${FOR}:amu:foerer:12k16bm1e0.25r0.4:profil:${BUD}:${NETT}"
-SOK="okt:${FOR}:amu:foerer:12k16sm1e0.25r0.4:profil:${BUDSOK}:${NETT}"
+# ============ ARMENE, ETTER AT MÅLINGENE HAR RYDDET ====================
+#
+# `amu:alle` er UTE. §103 målte den til −0,2837 ± 0,0519 (z = −5,5) over
+# 16 000 par, med makker −0,3342 og forsvar −0,4003. Hypotesen om at
+# strategifusjon var problemet ble motbevist av nettopp den målingen jeg bygde
+# for å bekrefte den.
+#
+# `r1.5` erstatter `r0.4`: kvantilformen vekter |lambda·press| i stedet for et
+# additivt ledd, så 0,4 ga vekt 0,144 — målt inert.
+V6="okt:${FOR}:amu:foerer:12k16sm1e0.25r1.5:profil:${BUD}:${NETT}"
+V7="okt:${FOR}:amu:foerer:12k16bgm1e0.25r1.5:profil:${BUDSOK}:${NETT}"
+BAYES="okt:${FOR}:amu:foerer:12k16bm1e0.25r1.5:profil:${BUD}:${NETT}"
+SIGNAL="okt:${FOR}:amu:foerer:12k16bgm1e0.25r1.5:profil:${BUD}:${NETT}"
+SOK="okt:${FOR}:amu:foerer:12k16sm1e0.25r1.5:profil:${BUDSOK}:${NETT}"
 
 ekko "=== MVP-DOMMEN: er V7 et sprang? ==="
 ekko "gate 2: $GIVERE giv over $SKARD skard  (SE ca ±$(awk -v g=$GIVERE 'BEGIN{printf "%.3f", 0.163*sqrt(400/g)}'))"
@@ -82,7 +113,7 @@ rm -f "analyse/mvp-${MERKE}g"*.jsonl
 P=""
 for S in $(seq 0 $((SKARD - 1))); do
   nohup node examples/gate2.ts \
-    --kandidat "$V7" --kandidat "$ALLE" --kandidat "$BAYES" --kandidat "$SOK" --kandidat "$V6" \
+    --kandidat "$V7" --kandidat "$BAYES" --kandidat "$SIGNAL" --kandidat "$SOK" --kandidat "$V6" \
     --miljo "$V6" --froe 5100000 --giver "$GIVERE" --skard "${S}/${SKARD}" \
     --ut "analyse/mvp-${MERKE}g${S}.jsonl" > "analyse/mvp-${MERKE}-glog-${S}.txt" 2>&1 &
   P="$P $!"
