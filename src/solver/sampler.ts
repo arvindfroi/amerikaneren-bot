@@ -28,7 +28,13 @@ export interface Verden {
   readonly makkerVerden: number | null;
 }
 
-function alleKortInt(): number[] {
+/**
+ * Alle 52 kort som int. EKSPORTERT fordi `medVerden` maa regne talongen som
+ * residualet - og en kopi av kortuniverset ville vaert noeyaktig den
+ * duplikatklassen kommentaren over `intTilKort`-importen i sdkort.ts advarer
+ * mot.
+ */
+export function alleKortInt(): number[] {
   const ut: number[] = [];
   for (let c = 0; c < 52; c++) ut.push(c);
   return ut;

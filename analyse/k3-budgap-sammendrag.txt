@@ -1,0 +1,95 @@
+K3 BUDGAP — SAMMENDRAG AV BEGGE FRØBÅND
+Kjørt 2026-08-07 med examples/k3-budgap.ts, spek ADAMS (samme spek som
+tak-kart.ts og bud-feilklasser.ts, så tallene deler populasjon med §60/§61).
+2 × 100 giv, K = 12 verdener per giv. Frøbånd 900000 og 5100000, disjunkte.
+Råtall: k3-budgap-b1.txt / -b2.txt (+ .jsonl), konstantene i k3-budgap-konst-b*.txt.
+
+VINDUET
+  Åpningsbudet alene, gitt av setet til venstre for giveren. Bare den ene
+  beslutningen endres; alt annet — også setets egne senere budturer — er policy.
+  Vinduet er smalt med vilje: i åpningsbudet er auksjonen tom, så de 40 usette
+  kortene er eksakt uniformt fordelt og resamplingen er den EKSAKTE posterioren.
+  Ved senere budturer måtte verdenene betinges på at de andre ville bydd det de
+  faktisk bød — uten den betingelsen er det μ-skift-feilen (§64) i ny drakt.
+
+DE TRE NIVÅENE, n = 200 giv
+  policy                      2,080 poeng per runde for åpnersetet
+  KLARSYN (§60-metoden)      +9,450 ± 0,899   tegntest z = +9,85   endret 48,5 %
+  NÅBART (argmax, K = 12)    +1,250 ± 0,799   tegntest z = +0,27   endret 28,0 %
+
+  Båndvis, så ingen leser det samlede tallet som replikert:
+    klarsyn              +9,690 ± 1,248 (z = 7,14)  /  +9,210 ± 1,302 (z = 6,78)
+    nåbart argmax K      +1,430 ± 1,172 (z = 0,56)  /  +1,070 ± 1,092 (z = −0,19)
+    nåbart argmax K/2    +0,150 (z = +0,19)         /  −0,940 (z = −1,30)
+    nåbart konservativt  −0,400 (z = −1,26)         /  +1,050 (z = +0,71)
+
+  KLARSYNET REPLIKERER. DET NÅBARE GJØR DET IKKE. Samme fortegn i begge bånd
+  for argmax, men tegntesten er 0,56 og −0,19 — snittet bæres av noen få store
+  utslag, ikke av et flertall giv. Både halv-K og den konservative varianten
+  snur fortegn mellom båndene. Etter prosjektets egen adopsjonsregel er det
+  nåbare leddet IKKE etablert.
+
+  Klarsynsandel av taket i dette vinduet: minst 86,8 %. Og resten er ikke målt
+  til å være der — den er bare ikke utelukket.
+
+KLARSYNSTAKET DELT I BØTTER (n = 200)
+  bøtte                     giv    andel   poeng per runde
+  bød, burde passet          30    15,0 %       +3,625      ← STØRST
+  bød for lavt               44    22,0 %       +2,740
+  burde meldt amerikaner     11     5,5 %       +1,750
+  bød for høyt               12     6,0 %       +1,335
+  ingen endring             103    51,5 %        0,000
+  passet, burde budt          0     0,0 %        0,000
+
+  §61s største bøtte («passet, burde budt», +3,648) er TOM her. Grunnen står
+  under: åpneren passer aldri. Den bøtta hører til de SVARENDE setene, som
+  dette vinduet ikke dekker.
+
+POLICYENS ÅPNINGSBUD, 200 giv
+  10: 87    9: 92    8: 18    7: 3    PASS: 0
+  Adams passer ALDRI som åpner. Klarsynet ville passet i 30 av 200 (15,0 %).
+
+KONSTANTENE — «by alltid X i åpningen», parret mot policyen på samme giv
+  (fra k3-budgap-konst-b1/b2.txt, 100 giv per bånd)
+  bud            bånd 900000              bånd 5100000
+  9            +1,530 (z = 0,00)        +0,440 (z = −0,63)
+  PASS         +0,610 (z = −0,58)       −0,330 (z = −1,68)
+  8            +0,740 (z = +0,17)       −0,550 (z = −0,65)
+  5/6/7        +0,730 (z = +0,17)       −0,560 (z = −0,82)
+  10           −4,800 (z = −2,43)       −6,280 (z = −3,54)
+  11           −15,520                  −16,800
+  12           −23,780                  −22,890
+  AMERIKANER   −47,440                  −45,720
+  SOLO        −101,440                 −102,720
+
+  INGEN KONSTANT SLÅR POLICYEN. Det er samme svar som §63 fikk av
+  terskelsveipet, fra en annen kant, og det stenger den billigste veien:
+  åpningsbudet kan ikke rettes med et tall.
+  Merk også at bud 5–8 måler likt: å åpne for lavt er GRATIS, fordi auksjonen
+  kommer tilbake til oss og policyen retter det. Bare PASS og for høye bud er
+  irreversible. Vinduet er altså asymmetrisk, og hele klarsynstaket ligger i de
+  irreversible retningene.
+
+A4-SAMPLEREN ER IKKE KONSISTENT I BUDRUNDEN
+  90 verdener per bånd fra trekkVerdener + medVerden, i åpningsstillingen:
+    med duplikatkort (hånd + talong)   90 av 90   (100 %)
+    duplikatkort per verden            3,6 av 52
+    talongen uendret fra den virkelige 90 av 90   (100 %)
+
+  trekkVerden legger `giving.talong` usette kort i en DØD binge, mens medVerden
+  bare bytter `hender` og lar `state.talong` stå. Før budvinneren har tatt opp
+  talongen (motor.ts:448) er den resulterende tilstanden derfor både
+  inkonsistent (samme kort på en hånd og i talongen) og lekk (talongen er den
+  EKTE, som ingen ved bordet har sett).
+
+  Konsekvens: `søktMu` i budsok.ts — hele A4 — spiller ut verdener der
+  budvinneren får de fire virkelige byttekortene. Det er latent i dag
+  (`blanding = 0` er standard og bit-identisk med av), men et A4-sveip med
+  blanding > 0 ville både målt på ugyldige verdener OG gitt Adams informasjon
+  han ikke kan se. K2-prøven fanger det ikke: den prøver kortvalg fra stikk 7,
+  ikke budgivning.
+  Voktet av test/k3-budgap.test.ts, som feiler den dagen medVerden endres.
+
+KONTROLLER (begge bånd)
+  tvunget policybud ulik ren policy   0
+  ikke-deterministisk utspilling      0

@@ -55,8 +55,8 @@ import { lovligeKort, utfør, type GameState, type Handling } from "../motor.ts"
 // egen med `i >> 4` mens den kanoniske bruker `floor(c / 13)` - to helt ulike
 // kodinger, og feilen ville gitt gale kort i stillhet. Tre av dagens feil var
 // av samme klasse (nt/t-vektorene), saa duplisert konvertering er forbudt her.
-import { intTilKort } from "../solver/dds.ts";
-import { trekkVerdenBelief, type Budprior , type Verden } from "../solver/sampler.ts";
+import { intTilKort, kortTilInt } from "../solver/dds.ts";
+import { trekkVerdenBelief, alleKortInt, type Budprior , type Verden } from "../solver/sampler.ts";
 
 /** Motstandermodellen som spiller runden ferdig. NevroAgent oppfyller det. */
 export interface Utspiller {
@@ -181,7 +181,44 @@ export function medVerden(s: GameState, hender: readonly number[][], observator:
     const holder = nye.findIndex((h) => h.some((k) => likeKort(k, s.etterlyst!)));
     if (holder >= 0) makker = holder;
   }
-  return { ...s, hender: nye, makker };
+
+  /**
+   * ============ TALONGEN MÅ FØLGE VERDENEN ============================
+   *
+   * Her sto bare `{ ...s, hender: nye, makker }`, og det var en
+   * INFORMASJONSLEKKASJE med to ansikter.
+   *
+   * `trekkVerden` legger talongens kort i en DØD BINGE (`dødKapasitet =
+   * state.giving.talong`) og kaster dem — `Verden` har bare `hender`. Beholdt
+   * man så `state.talong` fra den virkelige tilstanden, ble resultatet:
+   *
+   *   1. UMULIGE VERDENER. Målt over 180 trekninger: **100 % hadde
+   *      duplikatkort**, i snitt 3,6 av 52. Et kort lå både på en hånd og i
+   *      talongen.
+   *   2. JUKS. `motor.ts` gir budvinneren `s.talong` ved vrak, så i HVER
+   *      rollout fikk hun de fire EKTE byttekortene. I 100 % av tilfellene.
+   *
+   * Det var latent så lenge A4-budsøket sto på `blanding = 0`, men `ADAMS_V7`
+   * bruker `sok12k8b0.5` — altså aktivt.
+   *
+   * OG K2-PRØVEN FANGET DET IKKE: den prøver kortvalg fra stikk 7, og da er
+   * talongen for lengst tatt opp. En invariansprøve dekker bare de fasene den
+   * faktisk besøker.
+   *
+   * Talongen er RESIDUALET: de kortene som verken ligger på en hånd, er
+   * spilt, eller er vraket. Det er en eksakt definisjon som ikke krever at
+   * trekningen leverer den døde bingen.
+   */
+  const brukt = new Set<number>();
+  for (const h of nye) for (const k of h) brukt.add(kortTilInt(k));
+  for (const stikk of s.historikk) for (const kp of stikk.kort) brukt.add(kortTilInt(kp.kort));
+  for (const kp of s.bord) brukt.add(kortTilInt(kp.kort));
+  for (const k of s.vrak) brukt.add(kortTilInt(k));
+  const talong = alleKortInt()
+    .filter((c: number) => !brukt.has(c))
+    .map(intTilKort);
+
+  return { ...s, hender: nye, makker, talong };
 }
 
 export interface KortVurdering {

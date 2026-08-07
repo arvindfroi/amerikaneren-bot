@@ -1,0 +1,36 @@
+# K5 - kontekst og tilpasning   2026-08-07T16:23:03.998Z
+# giv 10, froe 5100000, stilling BAK 70-90 mot FORAN 90-70 av 100
+# indre: vakt:abmpf:e1:e1-modell/d7alle.bin   driver: vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+
+# arm 1 = venstre side, arm 2 = hoeyre side i «ulike»-sammenlikningen
+
+arm                                           n    ulike  andel   press 1/2        spred 1/2        racejust
+A  BAK/FORAN, nett alene (uten soek)          20   0      0.000   0.360 / -0.360     -   /   -      0
+B  BAK/FORAN, amu l=0 (racepresset AV)        20   2      0.100   0.360 / -0.360   5.55 / 5.58      0
+C  BAK/FORAN, amu l=0.4 (begge kanaler)       20   4      0.200   0.360 / -0.360   5.55 / 5.55      40
+D  l=0 mot l=0.4, FAST stilling 70-90 (bak)   20   0      0.000   0.360 / 0.360    5.55 / 5.55      20
+E  l=0 mot l=0.4, FAST stilling 90-70 (foran) 20   4      0.200   -0.360 / -0.360  5.58 / 5.55      20
+K  KONTROLL: begge armer bit-identiske        20   0      0.000   0.360 / 0.360    5.55 / 5.55      40
+
+retning (arm C): bak tok STOERRE risiko i 4, mindre i 4, likt i 12 av 20
+
+# DOMMEN
+  TILPASNING: 4 av 20 valg endret seg med kampstillingen.
+  RACEPRESSET (r0.4) endret 0+4 valg ved fast stilling.
+
+# stillinger der valget endret seg - B  BAK/FORAN, amu l=0 (racepresset AV)
+  froe 5108818 stikk 2 sete 1: arm1 R13 (spred 0.26), arm2 K8 (spred 0.28)
+  froe 5122045 stikk 2 sete 2: arm1 S3 (spred 8.82), arm2 R2 (spred 9.44)
+
+# stillinger der valget endret seg - C  BAK/FORAN, amu l=0.4 (begge kanaler)
+  froe 5108818 stikk 2 sete 1: arm1 R13 (spred 0.26), arm2 H11 (spred 0.25)
+  froe 5122045 stikk 2 sete 2: arm1 S3 (spred 8.82), arm2 R8 (spred 8.85)
+  froe 5130863 stikk 2 sete 0: arm1 H8 (spred 2.17), arm2 H3 (spred 2.16)
+  froe 5135272 stikk 2 sete 3: arm1 R12 (spred 2.11), arm2 R5 (spred 2.11)
+
+# stillinger der valget endret seg - E  l=0 mot l=0.4, FAST stilling 90-70 (foran)
+  froe 5108818 stikk 2 sete 1: arm1 K8 (spred 0.28), arm2 H11 (spred 0.25)
+  froe 5122045 stikk 2 sete 2: arm1 R2 (spred 9.44), arm2 R8 (spred 8.85)
+  froe 5130863 stikk 2 sete 0: arm1 H8 (spred 2.17), arm2 H3 (spred 2.16)
+  froe 5135272 stikk 2 sete 3: arm1 R12 (spred 2.11), arm2 R5 (spred 2.11)
+
