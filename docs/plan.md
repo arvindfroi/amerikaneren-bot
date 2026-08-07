@@ -6512,3 +6512,65 @@ målte til eksakt null med 2,36 millioner rader. Generering stoppet, dataene
 beholdt: de er nå den største kollapsproben, og den har INGEN spredningsport, så
 den dekker de kjedelige stillingene nattkorpuset filtrerer bort — nettopp den
 dekningen en selvspill-løkke kan miste.
+
+## 96. RÅTEJAKT: 37 utdaterte modellreferanser, og et navn som manglet
+
+Arvind: «det virker som mye kode som gjenbrukes blir utdatert så kanskje prøv å
+sjekk i det.»
+
+Han hadde rett, og omfanget var større enn ventet.
+
+### 35 verktøy målte en to generasjoner gammel bot
+
+`e1-modell/sd-r2.bin` sto som KJØRENDE standardverdi i 35 analyseverktøy.
+`sd-r2` er avløst av `d7alle`. Kjørt uten flagg målte de altså en gammel bot og
+rapporterte tallet som dagens — **uten å feile**. Det er den vanskeligste
+varianten: utdata ser helt riktig ut.
+
+To til (`mesterai-atferd`, `mesterai-konvensjoner`) hadde `sd-r1` som
+standardkandidat mot MesterAI, og begge filenes flaggtabeller påsto fortsatt de
+gamle verdiene etter at koden var rettet — samme råte, i dokumentasjonen.
+
+Kommentarer ble bevisst ikke rørt: «sd-r2 målte 0,9431 her» er en sann setning
+om historikk. Det er den kjørende koden som ikke får peke bakover.
+
+### Og et navn som manglet: `ADAMS_MAALT`
+
+`ADAMS` dokumenterer seg selv som DEN UTRULLEDE stakken, og den er riktig:
+appen kjører `abmp`, `utrullet-lik-maalt.test.ts` håndhever at de er enige, og
+vi har ikke rullet ut.
+
+Men vaktflagg `f` er **målt og adoptert uten å være utrullet** (+0,031 ± 0,011
+over fire disjunkte bånd, z = +2,95). Uten et navn for «det målte» valgte
+verktøyene ad hoc: `laerer-sammenlikning` målte med `ADAMS` (uten `f`), mens
+nattgenereringen og hver eneste gate 2 kjørte `abmpf`.
+
+**To ulike bots ble kalt «vår» i samme prosjekt samtidig.** Det er feilklassen
+«det målte og det utrullede var ikke samme ting», bare speilvendt.
+
+`ADAMS_MAALT` er nå det navnet, og forskjellen er VOKTET: hvert avvik må stå
+oppført med sin egen måling. `F` (legg billigst når du ikke kan vinne) snudde
+fortegn mellom to bånd (−0,022 og +0,072) og er derfor ikke med — testen ville
+stoppet den om noen la den inn i stillhet. Begge vaktene ble verifisert ved å
+BRYTE dem, ikke bare ved at de var grønne.
+
+### Kollapsbasislinjen, med to uavhengige prober
+
+| nett | korpus | treff | anger |
+|---|---|---|---|
+| d7alle | `sd-frys2` (88k) | 51,6 % | 0,8652 |
+| cny1 | `sd-frys2` | 51,4 % | 0,8721 |
+| d7alle | `sd-rv1` (479k) | 52,4 % | 0,6372 |
+| cny1 | `sd-rv1` | 52,4 % | 0,6460 |
+| d7alle | `sd-natt-c` (eget) | 42,3 % | 1,1083 |
+| cny1 | `sd-natt-c` (eget) | 43,9 % | **0,9788** |
+
+To uavhengige fremmede korpus er enige om **+0,008 dårligere**, mot **−0,130
+bedre** på egen fordeling. At de stemmer overens er i seg selv informativt — det
+er ikke støy fra én probe.
+
+Og skillet som betyr noe: på `sd-rv1` er **treffraten helt uendret** (52,4 % →
+52,4 %) mens angeren steg marginalt. Nettet velger beste kort like ofte som før;
+det taper bare litt mer når det bommer. **Dekningen er intakt** — en ekte
+fordelingskollaps ville vist seg som fallende treff, ikke som stigende anger
+alene. Det er den distinksjonen som gjør kollapsvakten lesbar.

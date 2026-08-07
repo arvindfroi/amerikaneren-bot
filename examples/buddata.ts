@@ -72,7 +72,7 @@ let skardN = 1;
  * er trent på skal kunne dukke opp i en måling.
  */
 let frøBase = 120_000_000;
-let kandidatSpek = "vakt:ab:e1:e1-modell/sd-r2.bin";
+let kandidatSpek = "vakt:ab:e1:e1-modell/d7alle.bin";
 let ut: string | null = null;
 /** Handlingene. 0 = pass; ellers åpningsbudet. */
 const BUD = [7, 8, 9, 10, 11];

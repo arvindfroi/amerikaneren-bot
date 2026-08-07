@@ -53,7 +53,7 @@ let giver = 1200;
 let kontrakt = 9;
 let skardI = 0;
 let skardN = 1;
-let basisSpek = "vakt:abmp:e1:e1-modell/sd-r2.bin";
+let basisSpek = "vakt:abmp:e1:e1-modell/d7alle.bin";
 let ut = "analyse/sdslutt-0.jsonl";
 let rapport: string | null = null;
 /** (fraStikk, verdener)-parene som prøves. */

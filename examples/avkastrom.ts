@@ -32,7 +32,7 @@ import { kortId } from "../src/kort.ts";
 
 let giver = 400;
 let frøBase = 5_000_000;
-let spek = "vakt:abmp:e1:e1-modell/sd-r2.bin";
+let spek = "vakt:abmp:e1:e1-modell/d7alle.bin";
 let ut = "analyse/avkastrom.txt";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;

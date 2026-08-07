@@ -60,7 +60,7 @@ import { analyserGiv, tømCache } from "../src/neat/singledummy.ts";
 
 // --- Argumenter -------------------------------------------------------------
 /** Agenten som byr i datasettet – den samme som sitter i speilbenken. */
-const KONTROLL = "vakt:at:e1:e1-modell/sd-r2.bin";
+const KONTROLL = "vakt:at:e1:e1-modell/d7alle.bin";
 
 let dataMappe: string | null = null;
 let kalibrerNett: string | null = null;

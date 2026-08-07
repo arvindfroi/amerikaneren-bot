@@ -85,7 +85,7 @@ import { ols, r2Ute, sentrerPerGruppe } from "../src/moe2/regresjon.ts";
 let givere = 2000;
 let arbeidere = 6;
 let frøBase = 31_000_000;
-let spillerSpek = "vakt:at:e1:e1-modell/sd-r2.bin";
+let spillerSpek = "vakt:at:e1:e1-modell/d7alle.bin";
 let vektfil = "";
 let merke = "";
 let arbeider = -1;

@@ -41,7 +41,7 @@ import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 
 let antallHender = 150;
 let trekninger = 30;
-let kandidatSpek = "vakt:ab:e1:e1-modell/sd-r2.bin";
+let kandidatSpek = "vakt:ab:e1:e1-modell/d7alle.bin";
 let utFil = "analyse/budflaks.txt";
 const BUD = [7, 8, 9, 10, 11];
 for (let i = 2; i < process.argv.length; i++) {

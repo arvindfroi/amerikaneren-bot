@@ -37,7 +37,7 @@ import { E1Agent, lesE1Nett } from "../src/e1/nett.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 
 const DATA = "analyse/menneskedata";
-const SPEK = "vakt:ab:e1:e1-modell/sd-r2.bin";
+const SPEK = "vakt:ab:e1:e1-modell/d7alle.bin";
 const vakt = delVaktspek(SPEK)!;
 const nett = lesE1Nett(vakt.indre.slice(3));
 

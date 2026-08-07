@@ -65,6 +65,51 @@ export const ADAMS =
   "vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin";
 
 /**
+ * DET MÅLTE, som ikke er det samme som det utrullede.
+ *
+ * Arvind: «det virker som mye kode som gjenbrukes blir utdatert.»
+ *
+ * Han hadde rett, og dette var hullet. `ADAMS` dokumenterer seg selv som DEN
+ * UTRULLEDE stakken, og den er riktig: appen kjører `abmp`, testen over
+ * håndhever at de to er enige, og vi har ikke rullet ut siden.
+ *
+ * Men vaktflagg `f` er MÅLT og ADOPTERT uten å være utrullet:
+ *
+ *   | bånd      | n      | effekt         | tegntest |
+ *   |-----------|--------|----------------|----------|
+ *   | 900 000   | 2 400  | +0,074 ± 0,042 | z = +2,29 |
+ *   | 6 300 000 | 2 400  | +0,014 ± 0,031 | z = −0,43 |
+ *   | 7 000 000 | 10 000 | +0,049 ± 0,017 | z = +2,64 |
+ *   | 9 100 000 | 10 000 | +0,008 ± 0,019 | z = +1,03 |
+ *   | **samlet**|        | **+0,031 ± 0,011** | **z = +2,95** |
+ *
+ * Uten et navn for «det målte» valgte verktøyene ad hoc: `laerer-sammenlikning`
+ * målte med `ADAMS` (uten `f`), mens nattgenereringen og hver gate 2 kjørte
+ * `abmpf`. To ulike bots ble kalt «vår» i samme prosjekt samtidig — nøyaktig
+ * feilklassen «det målte og det utrullede var ikke samme ting», bare speilvendt.
+ *
+ * REGELEN: nye målinger og all korpusgenerering bruker `ADAMS_MAALT`.
+ * `ADAMS` er forbeholdt utrullingsparitet. Når v6 rulles ut, blir de like igjen.
+ *
+ * Og forskjellen mellom dem er VOKTET: `utrullet-lik-maalt.test.ts` krever at
+ * hvert avvik står i en liste med sin egen måling. `F` (legg billigst når du
+ * ikke kan vinne) ble prøvd og snudde fortegn mellom to bånd — den er derfor
+ * IKKE med, og testen ville stoppet den om noen la den inn i stillhet.
+ */
+export const ADAMS_MAALT =
+  "vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin";
+
+/**
+ * NETTET dagens målinger bruker, ett sted.
+ *
+ * Tretti analyseverktøy hadde standardverdien `e1-modell/sd-r2.bin` — to
+ * generasjoner utdatert. Kjørt uten flagg målte de altså en gammel bot og
+ * rapporterte tallet som dagens. Ingen av dem feilet; de svarte bare på et
+ * annet spørsmål enn det som ble stilt.
+ */
+export const STANDARDNETT = "e1-modell/d7alle.bin";
+
+/**
  * ADAMS-V6 — ALT PÅSLÅTT, i den rekkefølgen lagene må ligge.
  *
  * Arvind: «vi hiver alt den trenger til den … lag en komplett modell.»

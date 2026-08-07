@@ -53,7 +53,7 @@ import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 const DATA = "analyse/menneskedata";
 let skardI = 0;
 let skardN = 1;
-let kandidatSpek = "vakt:abmp:e1:e1-modell/sd-r2.bin";
+let kandidatSpek = "vakt:abmp:e1:e1-modell/d7alle.bin";
 let ut = "analyse/budkryss-0.jsonl";
 let rapport: string | null = null;
 for (let i = 2; i < process.argv.length; i++) {

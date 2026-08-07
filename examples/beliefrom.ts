@@ -38,7 +38,7 @@ import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 
 let giver = 300;
 let frøBase = 8_800_000;
-let spek = "vakt:abmp:e1:e1-modell/sd-r2.bin";
+let spek = "vakt:abmp:e1:e1-modell/d7alle.bin";
 let ut = "analyse/beliefrom.txt";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;

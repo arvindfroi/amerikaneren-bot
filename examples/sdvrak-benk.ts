@@ -32,7 +32,7 @@ import { SDVrak } from "../src/moe2/sdvrak.ts";
 let givere = 300;
 let skardI = 0;
 let skardN = 1;
-let kandidatSpek = "vakt:ab:e1:e1-modell/sd-r2.bin";
+let kandidatSpek = "vakt:ab:e1:e1-modell/d7alle.bin";
 let toppN = 20;
 let verdener = 12;
 let ut = "analyse/sdvrak-0.jsonl";

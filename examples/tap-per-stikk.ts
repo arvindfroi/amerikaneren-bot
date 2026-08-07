@@ -54,7 +54,7 @@ let kontrakt = 9;
 let fraStikk = 2;
 let skardI = 0;
 let skardN = 1;
-let kandidatSpek = "vakt:ab:e1:e1-modell/sd-r2.bin";
+let kandidatSpek = "vakt:ab:e1:e1-modell/d7alle.bin";
 /** Hvilket sete som måles: spillefoerer, makker eller forsvarer. */
 let rolle = "spillefoerer";
 let ut = "analyse/tap-per-stikk-0.jsonl";

@@ -38,7 +38,7 @@ for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--kamper") kamper = Number(process.argv[++i]);
 }
 
-const SPEK = "vakt:ab:e1:e1-modell/sd-r2.bin";
+const SPEK = "vakt:ab:e1:e1-modell/d7alle.bin";
 const vakt = delVaktspek(SPEK)!;
 const nett = lesE1Nett(vakt.indre.slice(3));
 const nevro = new NevroAgent();

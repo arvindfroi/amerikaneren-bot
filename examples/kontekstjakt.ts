@@ -63,7 +63,7 @@ let skardI = 0;
 let skardN = 1;
 /** Andel beslutninger som testes. Hver koster fire gjennomspillinger. */
 let sjanse = 0.12;
-let kandidatSpek = "vakt:abmp:e1:e1-modell/sd-r2.bin";
+let kandidatSpek = "vakt:abmp:e1:e1-modell/d7alle.bin";
 let ut = "analyse/kontekst-0.jsonl";
 let rapport: string | null = null;
 for (let i = 2; i < process.argv.length; i++) {

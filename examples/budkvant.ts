@@ -77,7 +77,7 @@ let hender = 2000;
 let skardI = 0;
 let skardN = 1;
 let frøBase = 180_000_000;
-let kandidatSpek = "vakt:abmp:e1:e1-modell/sd-r2.bin";
+let kandidatSpek = "vakt:abmp:e1:e1-modell/d7alle.bin";
 /** Kontrakten stikkfordelingen samples under. Se «kontraktblind» over. */
 let referanse = 9;
 /** Trekninger til stikkfordelingen, og til passarmen. */

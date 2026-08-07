@@ -96,7 +96,7 @@
  * | `--maksRunder` | 12 | runder per kamp før nytt frø (realistisk poengstilling) |
  * | `--ms` | 450 | tidsbudsjett per kortvalg for MesterAI |
  * | `--verdener` | – | låser MesterAIs min/maksVerdener; gjør målingen lastuavhengig |
- * | `--kandidater` | sd-r2-begge-512, sd-r1, nevro | kommaliste: `nevro`, `e1:<fil>`, `pimc`, `graadig` |
+ * | `--kandidater` | sd-r2-begge-512, d7alle, nevro | kommaliste: `nevro`, `e1:<fil>`, `pimc`, `graadig` |
  * | `--adapter` | arena/adapter/.build/release/adapter | adapterbinær, `wsl:`-prefiks støttes |
  * | `--ut` | analyse/mesterai-konvensjoner | skriver `<ut>.txt` og `<ut>.json` |
  *
@@ -162,7 +162,7 @@ const adapterSti = tekstFlagg("adapter", "arena/adapter/.build/release/adapter")
 const utBase = tekstFlagg("ut", "analyse/mesterai-konvensjoner");
 const kandidatSpec = tekstFlagg(
   "kandidater",
-  "e1:e1-modell/sd-r2-begge-512.bin,e1:e1-modell/sd-r1.bin,nevro",
+  "e1:e1-modell/sd-r2-begge-512.bin,e1:e1-modell/d7alle.bin,nevro",
 );
 const merke = tekstFlagg("merke", "");
 

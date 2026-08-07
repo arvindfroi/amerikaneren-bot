@@ -55,7 +55,7 @@ import { beregnPoeng, STANDARD_REGLER as standardRegler } from "../src/regler.ts
 let kilde = "mester";
 let skardI = 0;
 let skardN = 1;
-let agenter = "nevro,e1:e1-modell/sd-r2.bin,vakt:ab:e1:e1-modell/sd-r2.bin,vakt:abmp:e1:e1-modell/sd-r2.bin";
+let agenter = "nevro,e1:e1-modell/d7alle.bin,vakt:ab:e1:e1-modell/d7alle.bin,vakt:abmp:e1:e1-modell/d7alle.bin";
 let ut = "regr-bro/bro-0.jsonl";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
@@ -157,7 +157,7 @@ if (kilde === "mester") {
       }
     }
   }
-  const restLag = lagKandidat("e1:e1-modell/sd-r2.bin");
+  const restLag = lagKandidat("e1:e1-modell/d7alle.bin");
   for (let i = 0; i < rader.length; i++) {
     if (i % skardN !== skardI) continue;
     const r = rader[i]!;
@@ -247,7 +247,7 @@ if (kilde === "mester") {
   // Motstanden mennesket faktisk moette. Ukjent navn -> nevro, som er
   // nettsidens eldste motstander og det svakeste rimelige anslaget.
   const motLag = (mot: string): (() => Velger) =>
-    mot.includes("pimc") || mot.includes("sd") ? lagKandidat("e1:e1-modell/sd-r2.bin") : lagKandidat("nevro");
+    mot.includes("pimc") || mot.includes("sd") ? lagKandidat("e1:e1-modell/d7alle.bin") : lagKandidat("nevro");
 
   for (let i = 0; i < runder.length; i++) {
     if (i % skardN !== skardI) continue;

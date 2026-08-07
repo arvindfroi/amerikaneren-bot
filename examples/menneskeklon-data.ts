@@ -72,7 +72,7 @@ function lag(spek: string): Agent {
 const BOTER: Record<string, string> = {
   v2: "budm:e1-modell/bud-gbt.json:vakt:abmp:e1:e1-modell/d7alle.bin",
   v1: "budm:e1-modell/bud-gbt.json:vakt:abmp:e1:e1-modell/ftf1.bin",
-  gml: "vakt:abmp:e1:e1-modell/sd-r2.bin",
+  gml: "vakt:abmp:e1:e1-modell/d7alle.bin",
 };
 const agenter = new Map<string, Agent>();
 for (const [k, v] of Object.entries(BOTER)) agenter.set(k, lag(v));

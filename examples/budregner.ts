@@ -49,7 +49,7 @@ let hender = 600;
 let skardI = 0;
 let skardN = 1;
 let frøBase = 160_000_000;
-let kandidatSpek = "vakt:abm:e1:e1-modell/sd-r2.bin";
+let kandidatSpek = "vakt:abm:e1:e1-modell/d7alle.bin";
 let ut: string | null = null;
 let rapport: string | null = null;
 /** Trekninger i velgeblokken og i måleblokken. Like store, vanntett skott. */

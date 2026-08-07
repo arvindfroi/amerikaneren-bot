@@ -62,7 +62,7 @@ import { analyserGiv } from "../src/neat/singledummy.ts";
 import { grådigHandling } from "./graadig.ts";
 
 // --- Argumenter -------------------------------------------------------------
-const KONTROLL = "vakt:at:e1:e1-modell/sd-r2.bin";
+const KONTROLL = "vakt:at:e1:e1-modell/d7alle.bin";
 const STANDARD_KANDIDATER = [
   KONTROLL,
   // Orakelet – taket. Ser alle fire hender, kan ikke promoteres.

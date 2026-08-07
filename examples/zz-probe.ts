@@ -6,7 +6,7 @@ import { Konvensjonsvakt, lesVaktflagg } from "../src/moe2/konvensjonsvakt.ts";
 import { analyserGiv } from "../src/neat/singledummy.ts";
 
 const nevro = new NevroAgent();
-const e1 = E1Agent.fraFil("e1-modell/sd-r2.bin");
+const e1 = E1Agent.fraFil("e1-modell/d7alle.bin");
 const vakt = new Konvensjonsvakt(e1, lesVaktflagg("at"));
 
 function énRunde(agent: { velgHandling(s: GameState): ReturnType<NevroAgent["velgHandling"]> }): void {

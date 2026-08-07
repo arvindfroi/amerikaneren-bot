@@ -52,7 +52,7 @@ import { solverBesteKort } from "../src/neat/hybrid.ts";
 
 let kamper = 400;
 let kontrakt = 9;
-let kandidatSpek = "vakt:ab:e1:e1-modell/sd-r2.bin";
+let kandidatSpek = "vakt:ab:e1:e1-modell/d7alle.bin";
 let verdener = 12;
 let utFil = "analyse/perfeksjon.txt";
 for (let i = 2; i < process.argv.length; i++) {

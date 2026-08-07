@@ -27,7 +27,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { test } from "node:test";
 
-import { ADAMS } from "../src/moe2/agentspek.ts";
+import { ADAMS, ADAMS_MAALT } from "../src/moe2/agentspek.ts";
 
 const ROT = join(import.meta.dirname, "..");
 const APP = readFileSync(join(ROT, "web", "app.ts"), "utf8");
@@ -157,6 +157,71 @@ test("utrullingslista lyver ikke om SOEKVERDENER", () => {
       Number(påstand[1]),
       iKilde,
       `lista sier SØKVERDENER er ${påstand[1]}, kilden sier ${iKilde}`,
+    );
+  }
+});
+
+/**
+ * ============ DET MÅLTE MOT DET UTRULLEDE ============================
+ *
+ * `ADAMS` er den utrullede stakken; `ADAMS_MAALT` er den vi måler og genererer
+ * korpus med. At de er ULIKE er riktig — `f` er målt og adoptert, men ikke
+ * rullet ut, og utrulling krever eksplisitt beskjed.
+ *
+ * Det som IKKE er greit, er at forskjellen siger. Uten et navn for «det målte»
+ * valgte verktøyene ad hoc, og to ulike bots ble kalt «vår» samtidig. Denne
+ * testen krever at hvert avvik står oppført med sin egen måling.
+ *
+ * Å legge til et flagg uten å føre det opp her får testen til å feile. Det er
+ * hele poenget: `F` ble prøvd og snudde fortegn mellom to bånd (−0,022 og
+ * +0,072), og skal derfor ikke kunne gli inn i stillhet.
+ */
+const DOKUMENTERTE_VAKTAVVIK: Record<string, string> = {
+  // stikk 1, følger trumf uten det etterlyste kortet -> legg billigst.
+  // +0,031 ± 0,011 samlet over fire disjunkte frøbånd, z = +2,95.
+  f: "+0,031 ± 0,011, fire baand, z = +2,95",
+};
+
+const vaktflagg = (spek: string): string => {
+  const m = /:vakt:([a-z]+):/i.exec(spek);
+  assert.ok(m !== null, `fant ikke vakt-flagget i «${spek}»`);
+  return m[1]!;
+};
+
+test("ADAMS_MAALT skiller seg fra ADAMS BARE i vaktflagget", () => {
+  const u = ADAMS.replace(/:vakt:[a-z]+:/i, ":vakt:*:");
+  const m = ADAMS_MAALT.replace(/:vakt:[a-z]+:/i, ":vakt:*:");
+  assert.equal(
+    m,
+    u,
+    "ADAMS_MAALT og ADAMS er ulike i noe ANNET enn vaktflagget. Enten er det en " +
+      "reell forskjell som maa dokumenteres her, eller saa har den ene drevet.",
+  );
+});
+
+test("hvert ekstra vaktflagg i ADAMS_MAALT har en maaling bak seg", () => {
+  const utrullet = new Set(vaktflagg(ADAMS).split(""));
+  const ekstra = vaktflagg(ADAMS_MAALT)
+    .split("")
+    .filter((c) => !utrullet.has(c));
+  for (const c of ekstra) {
+    assert.ok(
+      c in DOKUMENTERTE_VAKTAVVIK,
+      `vaktflagg «${c}» er i ADAMS_MAALT men ikke i ADAMS, og har ingen maaling ` +
+        `oppfoert i DOKUMENTERTE_VAKTAVVIK. Legg inn tallet, eller ta flagget ut.`,
+    );
+  }
+});
+
+test("ingen dokumentert avvik er BLITT liggende etter utrulling", () => {
+  // Rulles v6 ut, blir `f` en del av ADAMS. Da skal den ut av lista, ellers
+  // vokser den til en samling paastander ingen lenger sjekker.
+  const utrullet = new Set(vaktflagg(ADAMS).split(""));
+  for (const c of Object.keys(DOKUMENTERTE_VAKTAVVIK)) {
+    assert.ok(
+      !utrullet.has(c),
+      `vaktflagg «${c}» staar som «maalt, ikke utrullet», men ADAMS har det naa. ` +
+        `Fjern det fra DOKUMENTERTE_VAKTAVVIK.`,
     );
   }
 });

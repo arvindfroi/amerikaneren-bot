@@ -34,7 +34,7 @@ import { FARGER } from "../src/kort.ts";
 
 let giver = 300;
 let frøBase = 9_900_000;
-let spek = "vakt:abmp:e1:e1-modell/sd-r2.bin";
+let spek = "vakt:abmp:e1:e1-modell/d7alle.bin";
 let ut = "analyse/renonsrom.txt";
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
