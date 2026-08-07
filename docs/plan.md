@@ -6124,3 +6124,47 @@ Den DYPE formen — å lære av én rar giv, slik et menneske gjør — har inge
 implementasjon her, og det står fortsatt som et åpent punkt.
 
 **381 tester grønne.**
+
+## 88. ADAMS-V6 DEFINERT — og kostnadssveipet tvang den ned
+
+En spek som ikke kan måles er ikke en kandidat, den er en hypotese.
+
+### Kostnaden per knott, målt
+
+CPU-en var mettet av 18 korpusskard, så tallene er relative — men de har en
+innebygd sanitetssjekk: `sik 24` er kjent å koste 198 ms, og målte 13 340 her.
+Kontensjonsfaktoren er altså **67×**, og de andre kan regnes om:
+
+| variant | målt (mettet) | ≈ reelt |
+|---|---|---|
+| basis, ingen søk | 1 ms | ~0 |
+| `sik` 24 (dagens v5) | 13 340 | **~200 ms** ✓ traff sitt kjente tall |
+| `amu` 12k16 M=1 | 6 619 | ~99 ms |
+| `amu` 12k16 M=1 **+ spillvekt** | 6 373 | **~95 ms** |
+| `amu` 12k16 **M=2** | 34 850 | ~520 ms |
+| `amu` 24k32 M=2 | fullførte ikke | ~2 000 ms |
+
+**A1 (spillvekten) koster INGENTING.** Den bruker verdener som allerede er
+trukket, så den beste slutningen vi har er gratis. Det er sjelden i dette
+prosjektet.
+
+**M=2 koster 5,3× M=1** — den dyreste knotten vi har, og den eneste som
+angriper fusjonen utover roten. Avveiningen er reell og må måles, ikke velges.
+
+### Derfor står `ADAMS_V6` på M=1
+
+```
+okt: vr:...:telrd : amu:foerer:12k16sm1e0.25r0.4 : profil: budm:...@-3.0 : vakt:abmpf : e1:d7alle
+```
+
+Lagrekkefølgen er ikke tilfeldig: `okt` øverst fordi den må se hele kampen OG
+deles av profilagenten (som lærer) og alpha-mu (som bruker det lærte). `vr`
+utenfor søket fordi vrak er en annen beslutning. `e1` nederst fordi nettet er
+prioren alt annet bygger på.
+
+`ADAMS_V6_FULL` (24k32, M=2) står ved siden av som den dyre varianten, med
+tallene over i doksen så ingen setter den ut ved et uhell.
+
+**Merk hva som er målt her: `f` (+0,031) og ingenting annet.** Resten av v6 er
+umålt. Det er hele poenget med å definere den — nå kan den måles, både samlet
+og lagvis.

@@ -65,6 +65,68 @@ export const ADAMS =
   "vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin";
 
 /**
+ * ADAMS-V6 — ALT PÅSLÅTT, i den rekkefølgen lagene må ligge.
+ *
+ * Arvind: «vi hiver alt den trenger til den … lag en komplett modell.»
+ *
+ * Rekkefølgen er ikke tilfeldig, og hvert lag ligger der det gjør av en grunn:
+ *
+ *   okt:      ØVERST, fordi den må se HELE kampen for å lære motstanderne, og
+ *             fordi både profilagenten (som lærer) og alpha-mu (som bruker
+ *             det lærte) må dele samme objekt.
+ *   vr:       vrak og trumfvalg. Utenfor søket — det er en annen beslutning
+ *             med sin egen modell.
+ *   amu:      søket. Under vrak fordi det bare gjelder kortspillet.
+ *     k32     32 kandidatverdener (målt +2,62 pp verdenskvalitet mot 3)
+ *     s       verdenene vektes av SPILLET, ikke bare budrunden (A1)
+ *     m2      Pareto over egne framtidige valg (A8)
+ *     e0.25   uleselighet blant kort innenfor ε (A7)
+ *     r0.4    kampstillingsstyrt varians
+ *   profil:   motstandermodellen, som fyller `okt`-boka
+ *   budm:     budgivningen
+ *   vakt:abmpf  konvensjonene, inkludert `f` (stikk 1 billigst, +0,031)
+ *   e1:       nettet, nederst — det er prioren alt annet bygger på
+ *
+ * FLAGGET `f` ER DEN ENESTE MÅLTE GEVINSTEN HER. Resten er umålt, og det er
+ * med vilje: hele poenget med v6 er å kunne måle dem sammen og hver for seg.
+ *
+ * KOSTNADEN ER IKKE MÅLT ENNÅ. `amu` med M=2 forgreiner seg over egne
+ * framtidige valg, så den er vesentlig dyrere enn `sik` — og `sik` kostet
+ * allerede 198 ms. Dette er en BENKESPEK, ikke en utrullingsspek.
+ */
+export const ADAMS_V6 =
+  "okt:vr:e1-modell/vrakrang.bin:telrd:" +
+  "amu:foerer:12k16sm1e0.25r0.4:" +
+  "profil:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin";
+
+/**
+ * V6 I FULL STYRKE — 24 verdener, 32 kandidater, M=2.
+ *
+ * IKKE MAALBAR I PRAKSIS, og det er et maalt tall og ikke en anelse.
+ * Kostnadssveipet 7. august, med CPU-en mettet av 18 korpusskard:
+ *
+ *     basis (ingen soek)              1 ms
+ *     sik 24 (dagens v5)         13 340 ms   <- kjent 198 ms => 67x kontensjon
+ *     amu 12k16 M=1               6 619 ms   => ~99 ms reelt
+ *     amu 12k16 M=1 + spillvekt   6 373 ms   => ~95 ms  A1 ER GRATIS
+ *     amu 12k16 M=2              34 850 ms   => ~520 ms
+ *     amu 24k32 M=2              fullfoerte ikke
+ *
+ * Sanitetssjekken er at `sik 24` traff sitt kjente tall etter omregning.
+ *
+ * TO FUNN: **spillvekten (A1) koster ingenting** - den bruker verdener som alt
+ * er trukket. Og **M=2 koster 5,3x M=1**, som er den dyreste knotten vi har.
+ *
+ * Derfor er `ADAMS_V6` satt til M=1: en spek som ikke kan maales er ikke en
+ * kandidat, den er en hypotese. Samme laerdom som da konfidensporten viste seg
+ * baade sterkere OG billigere enn alltid-soek (§ utrulling-v5).
+ */
+export const ADAMS_V6_FULL =
+  "okt:vr:e1-modell/vrakrang.bin:telrd:" +
+  "amu:foerer:24k32sm2e0.25r0.4:" +
+  "profil:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin";
+
+/**
  * Tallargument med FAIL-FAST. `Number("vr:...")` gir `NaN` uten et pip, og et
  * NaN-frø gir samme giv om og om igjen – en måling som ser ferdig ut og er
  * ren søppel. Det skjedde 5. august under selve migreringen.
