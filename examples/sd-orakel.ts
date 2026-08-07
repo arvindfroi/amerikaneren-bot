@@ -568,12 +568,43 @@ alleKamper: for (let k = 0; k < kamper; k++) {
             });
             const snitt = (v: readonly number[]): number =>
               v.reduce((a, b) => a + b, 0) / Math.max(1, v.length);
-            vurdert = grener.map((g, i) => ({
+            vurdert = grener.map((g) => ({
               indeks: lovlige.findIndex((k) => k.farge === g.kort.farge && k.verdi === g.kort.verdi),
               kort: g.kort,
               verdi: snitt(g.vektor),
               n: g.vektor.length,
             })) as typeof vurdert;
+
+            /**
+             * ETTERPORTEN — og den finnes fordi forporten maalte FEIL TING.
+             *
+             * Forporten filtrerer paa SD-anslaget, men raden SKRIVES med
+             * alpha-muens verdier. En stilling kan derfor slippe gjennom med
+             * SD-spredning 1,2 og bli skrevet med alpha-mu-spredning 0,0.
+             *
+             * Maalt paa 13 323 rader fra natten: 13,3 % laa under porten i de
+             * skrevne verdiene, 1,4 % hadde EKSAKT null. Det er samme
+             * feilklasse som har tatt oss ni ganger - det maalte og det
+             * skrevne var ikke samme ting.
+             *
+             * BEGGE PORTENE TRENGS. Forporten sparer 400x-kostnaden paa
+             * stillinger som ikke betyr noe; etterporten hindrer at vi SKRIVER
+             * en rad uten laeresignal.
+             *
+             * (Skaden var begrenset: `stillingsvekt` i sd-tren.py vekter tapet
+             * med spennet, saa en nullrad faar vekt 0,05 mot en typisk 2,45 -
+             * omtrent 50x nedvektet. Sloesingen laa i GENERERINGEN, ikke i
+             * treningen.)
+             */
+            if (spredning > 0 && vurdert.length >= 2) {
+              let hoy2 = -Infinity;
+              let lav2 = Infinity;
+              for (const v of vurdert) {
+                if (v.verdi > hoy2) hoy2 = v.verdi;
+                if (v.verdi < lav2) lav2 = v.verdi;
+              }
+              if (hoy2 - lav2 < spredning) vurdert = [];
+            }
           }
         }
         // Tom liste = ingen verden lot seg trekke. Da skal INGENTING skrives:
