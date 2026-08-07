@@ -116,6 +116,28 @@ export function erStyrkesignal(kort: Kort, lovlige: readonly Kort[]): boolean {
 }
 
 /**
+ * HAR HÅNDEN STYRKE I FARGEN? Én definisjon, brukt av BEGGE sider.
+ *
+ * Avsenderen spør «skal jeg legge høyt her?» og mottakeren spør «stemmer denne
+ * verdenen med at hen lovte styrke?». Det MÅ være samme spørsmål — to
+ * definisjoner ville gjort konvensjonen til en misforståelse, og det er den
+ * feilklassen som har bitt dette prosjektet flest ganger.
+ *
+ * Kriteriet er honnør eller lengde, ikke bare honnør: tre små i en farge er en
+ * ressurs makker kan bruke, selv uten en figur.
+ */
+export function harStyrkeI(hånd: readonly Kort[], farge: Farge): boolean {
+  let antall = 0;
+  let honnør = 0;
+  for (const k of hånd) {
+    if (k.farge !== farge) continue;
+    antall++;
+    if (k.verdi >= 12) honnør++;
+  }
+  return honnør > 0 || antall >= 3;
+}
+
+/**
  * Hva et sete «har lovet» med signalene sine, per farge.
  *
  * Kun ferdigspilte stikk der signalrommet faktisk var åpent — ellers ville vi
@@ -155,11 +177,11 @@ export function signalForenlighet(
     const løfter = signalløfter(state, p);
     if (løfter.size === 0) continue;
     for (const [f, retning] of løfter) {
-      const igjen = (hender[p] ?? []).filter((k) => k.farge === f).length;
-      const honnør = (hender[p] ?? []).filter((k) => k.farge === f && k.verdi >= 12).length;
-      // Lovet styrke (+) og har honnør igjen -> forenlig. Lovet svakhet (−)
-      // og har honnoer -> mindre forenlig.
-      const stemmer = retning > 0 ? honnør > 0 || igjen >= 3 : honnør === 0;
+      // SAMME definisjon som avsenderen bruker - se `harStyrkeI`. Her sto
+      // kriteriet skrevet ut for haand, og en kopi som kunne drifte fra
+      // senderen ville gjort konvensjonen til en misforstaaelse.
+      const styrke = harStyrkeI(hender[p] ?? [], f);
+      const stemmer = retning > 0 ? styrke : !styrke;
       logW += STYRKE * (stemmer ? 1 : -1) * Math.min(1, Math.abs(retning));
     }
   }

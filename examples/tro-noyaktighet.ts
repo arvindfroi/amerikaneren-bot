@@ -67,6 +67,16 @@ const GIVER = tall(arg("--giver", "60"), 60, "giver");
 const VERDENER = tall(arg("--verdener", "24"), 24, "verdener");
 const KAND = tall(arg("--kandidater", "8"), 8, "kandidater");
 const FRAstikk = tall(arg("--frastikk", "2"), 2, "frastikk");
+/**
+ * SPEKKEN SOM SPILLER RUNDEN.
+ *
+ * Den er et FLAGG fordi A6 ikke kan maales uten den. Signalering er en
+ * konvensjon: leseren finner bare et signal hvis noen SENDTE et. Med drivere
+ * uten sendersiden leser `signalForenlighet` vilkaarlige kortvalg som
+ * meldinger - stoey som bevis - og det var noeyaktig hvorfor A6 maalte
+ * DAARLIGERE enn ingenting i foerste kjoering.
+ */
+const DRIVER = arg("--drivere", ADAMS_MAALT);
 const UT = arg("--ut", "analyse/tro-noyaktighet-0.jsonl");
 const [SI, SN] = (arg("--skard", "0/1").split("/") as [string, string]).map(Number) as [number, number];
 
@@ -119,7 +129,7 @@ let n = 0;
 for (let g = 0; g < GIVER; g++) {
   if (g % SN !== SI) continue;
   const frø = 12_000_000 + g * 6151;
-  const ag = [0, 1, 2, 3].map(() => lagIndre(ADAMS_MAALT));
+  const ag = [0, 1, 2, 3].map(() => lagIndre(DRIVER));
   let s: GameState = opprettSpill({ antallSpillere: 4 }, frø);
   let vakt = 0;
   let iGiv = 0;

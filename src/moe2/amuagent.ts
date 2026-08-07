@@ -28,6 +28,7 @@ import { stillingsfrø, velgUleselig } from "./uleselig.ts";
 import { lagRng } from "../kort.ts";
 import { racepress, racescore } from "./race.ts";
 import { forklarValg, type Forklaring } from "./forklar.ts";
+import { erSignalrom, signalkort, harStyrkeI } from "./signal.ts";
 
 export interface AmuOpts {
   readonly verdener: number;
@@ -97,7 +98,7 @@ export class Alphamuagent {
   private readonly motpart: Utspiller;
   private readonly o: AmuOpts;
   private readonly rng: () => number;
-  readonly tellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, uleselig: 0, racejustert: 0 };
+  readonly tellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, uleselig: 0, racejustert: 0, signalerte: 0 };
   /**
    * Forklaringen på SISTE alpha-mu-valg, eller `null` om `forklar` er av eller
    * søket ikke kjørte for dette trekket (renons, ett lovlig kort, feil rolle).
@@ -180,13 +181,64 @@ export class Alphamuagent {
 
     const eps = this.o.epsilon ?? 0;
     let valgt = grener[0]!;
-    if (eps > 0) {
+
+    /**
+     * ============ A6 SENDERSIDEN, og hvorfor den MÅTTE komme ============
+     *
+     * Arvind: «hvis de er dårlige så må du fikse det ikke fjerne de.»
+     *
+     * A6 gjorde troen MÅLBART verre (log-tap 0,9418 → 0,9810). Årsaken var
+     * ikke konvensjonen, men at bare LESEREN var koblet: `signalForenlighet`
+     * ble brukt, mens `erSignalrom`, `signalkort` og `erStyrkesignal` ble brukt
+     * av ingenting.
+     *
+     * Adams leste altså signaler som ingen sendte. Med fire Adams ved bordet
+     * var hvert «signal» et vilkårlig kortvalg, og leseren behandlet støy som
+     * bevis. En konvensjon der bare den ene siden deltar er ikke en svak
+     * konvensjon — den er en feilkilde.
+     *
+     * ============ OG DEN KOLLIDERER MED A7 ==============================
+     *
+     * Uleseligheten (A7) og signaleringen (A6) bruker NØYAKTIG samme ressurs:
+     * de kortvalgene som ikke endrer stikkets utfall (§70: 36,2 %). A7 vil ha
+     * dem tilfeldige, A6 vil ha dem lesbare. Kjøres begge, ødelegger A7 koden
+     * A6 nettopp la inn.
+     *
+     * Derfor: **i et signalrom vinner signalet, ellers randomiserer A7.**
+     * Båndbredden deles etter hvem som kan bruke den, ikke etter rekkefølge i
+     * koden. Utenfor signalrom er valget uansett en stikkbeslutning, og der
+     * skal ingen av dem røre noe.
+     */
+    let signalerte = false;
+    if (this.o.signal === true) {
+      const lovlige = grener.map((g) => g.kort);
+      if (erSignalrom(state, lovlige)) {
+        // Bare blant kort søket har godkjent som omtrent likeverdige - å
+        // signalisere med et kort som taper stikk er å betale for båndbredde.
+        const beste = grener.reduce((a, b) => (score(b) > score(a) ? b : a));
+        const nær = grener.filter((g) => score(beste) - score(g) <= Math.max(eps, 1e-9));
+        if (nær.length >= 2) {
+          const { styrke, svakhet } = signalkort(nær.map((g) => g.kort));
+          // Konvensjonen: høyt = styrke i fargen. «Styrke» leses av samme
+          // funksjon mottakeren bruker, så de to kan ikke drifte fra hverandre.
+          const mål = harStyrkeI(state.hender[sete] ?? [], styrke.farge) ? styrke : svakhet;
+          const g2 = nær.find((g) => g.kort.farge === mål.farge && g.kort.verdi === mål.verdi);
+          if (g2 !== undefined) {
+            valgt = g2;
+            signalerte = true;
+            this.tellere.signalerte++;
+          }
+        }
+      }
+    }
+
+    if (!signalerte && eps > 0) {
       // A7 SIST: uleseligheten velger bare blant kort soeket alt har godkjent
       // som omtrent likeverdige. Aa randomisere foer soeket ville kastet poeng.
       const før = valgt;
       valgt = velgUleselig(grener, score, eps, stillingsfrø(state, sete));
       if (valgt !== før) this.tellere.uleselig++;
-    } else {
+    } else if (!signalerte) {
       for (const g of grener) if (score(g) > score(valgt)) valgt = g;
     }
 
