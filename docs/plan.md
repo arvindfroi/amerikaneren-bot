@@ -6251,3 +6251,48 @@ gate 2 avgjør.
 2. Mål det mot `d7alle` på gate 2 — **det er premisstesten**
 3. Tren 714 på arm A, finjustert fra `b714gammel`, mål mot `b714gammel`s −1,15
 4. Først da: mål v6 lagvis, én variabel om gangen
+
+## 91. FØRSTE FULLFØRTE LØKKESYKLUS — generér, tren, mål
+
+Selvtreningsløkka har kjørt en hel runde. Det er leveransen: ikke et tall, men
+at maskineriet henger sammen.
+
+```
+generér   alpha-mu som lærer, bayes-vektede verdener, Adams som stillingskilde
+tren      d7alle finjustert paa 7 516 nye rader, lr 1e-4, 6 epoker
+mål       gate 2 mot d7alle, to disjunkte frøbånd
+```
+
+**Resultat: −0,277 ± 0,348, tegntest z = −0,43, 10,0 % avgjorte.**
+
+Nulltall, og underpowert. De **10 % avgjorte** er det informative tallet: med
+7 516 rader mot `d7alle`s fem millioner endrer finjusteringen knapt policyen i
+det hele tatt. Vi måler ikke «de nye etikettene er dårlige» — vi måler «7,5k
+rader er for lite til å måle noe».
+
+Til sammenlikning: `ftf1`, som ga +0,136, ble finjustert på **410 000** rader.
+Vi er på under to prosent av det.
+
+### Hva syklusen faktisk beviser
+
+1. **Løkka kjører.** Generator → korpus → trener → nett → benk, uten manuelle
+   steg og uten at noe krasjet på 18 skard over flere timer.
+2. **Etikettene lar seg trene på.** Alpha-mu-verdier i `v`-feltet leses av
+   `sd-tren.py` uendret; ingen formatdrift.
+3. **Finjusteringen er skånsom.** 10 % avgjorte betyr at nettet ikke ble revet
+   i stykker av en ny lærer — noe som VAR risikoen ved lav n og en annen
+   etikettkilde.
+
+### Hva den ikke beviser
+
+Ingenting om hvorvidt alpha-mu-etiketter er bedre enn SD-etiketter. Det
+spørsmålet krever en størrelsesorden mer korpus, og korpuset genererer videre.
+
+### Målt takt
+
+    arm A (714):  ~700 rader per 10 min
+    arm C (273):  ~500 rader per 10 min
+
+Det er ~4 200 og ~3 000 per time. For å nå `ftf1`-nivå (410k) på arm C trengs
+~136 timer med dagens kjernefordeling. Det er den ærlige kostnaden ved
+alpha-mu som lærer, og den er grunnen til at spredningsporten finnes.
