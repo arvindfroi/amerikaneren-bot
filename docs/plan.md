@@ -6336,3 +6336,62 @@ Et korpus på `ftf1`-skala (410k) med alpha-mu-etiketter tar **dager, ikke
 timer**. Det er prisen for en sterkere lærer, og det er derfor
 spredningsporten finnes — den er ikke en optimalisering, den er det som gjør
 hele retningen mulig i det hele tatt.
+
+## 93. MILEPÆLSVAKTEN — og en ellevte forekomst av den samme feilklassen
+
+### Hvorfor vakten finnes
+
+Å polle korpusstørrelsen manuelt er tid som kunne gått til generering.
+`verktoy/milepael.sh` venter i stedet på TERSKLER (25k → 50k → 100k → 200k,
+hvert steg dobler datamengden) og gjør hele syklusen selv: finjuster fra basis
+→ mål på gate 2 over 8 skard → skriv til fil.
+
+**Terskler og ikke tid.** §91 målte −0,277 ± 0,348 med 10,0 % avgjorte på 7 516
+rader. Det var ikke et resultat, det var for lite data. Statistisk styrke følger
+rader, ikke klokketimer, så vakten skal være bundet til det som faktisk avgjør
+om målingen betyr noe. Og hvert steg må omtrent DOBLE datamengden — et steg som
+legger på 20 % kan ikke skille «mer data hjalp» fra støy.
+
+### Alt ble verifisert mot kilden, og det var nødvendig
+
+Første utkast brukte `--inn/--ut/--fra/--bredde` på `sd-tren.py`. **Ingen av dem
+finnes.** De virkelige er `--data/--kjor/--start/--startlr/--utmappe`, og
+`--kjor` krever en skjult-spek som utkastet ikke ga. Vakten ville feilet klokka
+tre om natten og etterlatt en tom loggfil.
+
+Arkitekturen ble lest ut av selve vektfila — **273/714 → 512, 384, 256 → 52**,
+449 204 parametre. `sd-tren.py` avviser avvik høylytt, men et gjettet tall som
+TILFELDIGVIS passer ville gitt et nett som ser ferdigtrent ut.
+
+**Treningen kjører i WSL på GPU**, og det er ikke et valg: Windows-`python` er
+3.8.10 og klarer ikke engang å PARSE `sd-tren.py` (`list[tuple[...]]` i en
+annotasjon evalueres ved def-tid). 3.11 og 3.14 finnes, men uten torch.
+WSL-venvet har torch 2.11+cu128 med CUDA — RTX 5080-en. Én kombinasjon virker.
+
+### Røyktesten fant en ellevte forekomst
+
+`examples/gate2.ts` skrev miljøet i rapporten fra `miljøSpek` i argv. Men i
+rapportmodus gis ikke `--miljo` — så den navnga **standardverdien** (`sd-r2`)
+mens målingen faktisk gikk mot `d7alle`.
+
+Det er den samme feilklassen som har bitt oss ti ganger før: **det målte og det
+skrevne var ikke samme ting.** Og det er den farligste varianten, for filen ser
+riktig ut. Om et halvt år leser noen `analyse/g2-cny50000.txt` og tror tallet
+gjelder mot sd-r2.
+
+Rettelsen: miljøet skrives i HVER rad (`m`), ikke i et filhode — rapporten
+settes sammen av shard-filer, og en rad skal kunne leses alene. Blander shardene
+flere miljøer, sier rapporten «IKKE sammenliknbare» i stedet for å velge ett.
+Gamle filer uten feltet sier ærlig «ukjent miljø». Begge veier verifisert.
+
+### Korpusdiversiteten, målt
+
+| arm | rader | frø | rader/frø |
+|---|---|---|---|
+| A (714) | 25 561 | 73 | 350 |
+| C (273) | 13 600 | 68 | 200 |
+
+Hvert frø er en HEL KAMP til 100 poeng, ikke én giv — derfor de 200. Enheten
+vokser proporsjonalt med radene, så 200k gir ~1 000 frø. Holdouten deles på frø,
+som er den konservative måten: ingen stilling fra en kamp i treningen kan dukke
+opp i holdouten.
