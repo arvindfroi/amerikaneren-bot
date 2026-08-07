@@ -6614,3 +6614,59 @@ Speker er strenger; ingen typesjekk krysser dem, så et ledd som endrer navn
 bryter en ubenyttet spek i stillhet.
 
 **390 tester grønne.**
+
+### 96.2 Rollenavnene: tre vokabularer, én ekte defekt
+
+Duplikatskanningen fant 16 navn definert i flere filer. To `Rolle`-typer med
+samme funksjonsnavn `rolleFor`, men ULIK staving:
+
+```
+src/moe2/rolleorakel.ts        "foerer" | "makker" | "forsvar"
+src/moe2/eksperter/felles.ts   "fører"  | "makker" | "forsvar"
+```
+
+Det er nøyaktig formen på feilen som allerede har kostet en hel kveld her:
+*gate2 skrev «foerer», leseren leste «fører» → førerraden usynlig i ALLE
+rapporter.*
+
+#### Første utkast av vakten tok feil, og det er verdt å skrive ned
+
+Den forbød alt annet enn «foerer/forsvar» og fant **13 «feil»**. De var ikke
+feil. MesterAI-analysene har et FULLSTENDIG, internt konsistent tredje
+vokabular (`"spillefører" | "makker" | "forsvarer"`), der hver fil selv
+erklærer typen og sammenlikner mot den hele veien. Å døpe dem om ville brutt
+lagrede `.jsonl`-filer uten å vinne noe.
+
+**Variasjon på tvers av delsystemer er ikke defekten.** Blanding er.
+
+#### Den ekte defekten, og bare den
+
+`examples/regresjonsdata.ts:155` skrev
+
+```
+rolle: erFører ? "foerer" : erMakker ? "makker" : "forsvarer"
+```
+
+— «foerer» fra familie A sammen med «forsvarer» fra familie C, i SAMME objekt,
+til en `.jsonl`. To halvdeler av to vokabularer, hver for seg riktige.
+`examples/regrbro.ts` hadde samme blanding tre steder.
+
+De tre andre treffene var internt vokabular som aldri krysser en filgrense: et
+`--rolle`-flagg på kommandolinjen, en `console.log("FORSVAR")`-overskrift, en
+lokal type til skjermutskrift. Vakten ble derfor strammet til å gjelde bare
+linjer som TILORDNER et `rolle`-felt — der strengen faktisk kan havne i en fil
+og leses av noe annet. En test som maser om støy blir slått av.
+
+#### To ting jeg gjorde feil underveis
+
+**Jeg endret `regrbro.ts` før jeg visste hvem som leste utdataene.** Det kunne
+ha innført nøyaktig feilen jeg jaktet på. Det viste seg trygt — `regresjon.ts`
+leser `rolle` men dokumenterer eksplisitt at «ROLLE ER IKKE EN KONTROLL» og
+sammenlikner den aldri — men rekkefølgen var gal.
+
+**En `str.replace` i Python traff ikke, og skrev fila uendret.** Testen så da
+ut til å ha blitt strammet uten at den var det. Python returnerer originalen
+ved bom, uten å si fra — samme stille no-op-klasse som `pkill` som ikke finnes.
+`Edit` feiler når mønsteret mangler, og ble brukt i stedet.
+
+**393 tester grønne.**

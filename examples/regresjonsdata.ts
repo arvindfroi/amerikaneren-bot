@@ -152,7 +152,7 @@ for (let f = 0; f < giver; f++) {
           sete,
           agent: kand.navn,
           referanse: kort(referanse),
-          rolle: erFører ? "foerer" : erMakker ? "makker" : "forsvarer",
+          rolle: erFører ? "foerer" : erMakker ? "makker" : "forsvar",
           posisjon: (sete - førsteBudgiver + 4) % 4,
           bud,
           klart: bud > 0 && lag >= bud ? 1 : 0,

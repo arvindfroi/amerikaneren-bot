@@ -117,7 +117,7 @@ function spill(
   const lagStikk = (st[s.budvinner] ?? 0) + (s.makker !== null ? (st[s.makker] ?? 0) : 0);
   return {
     delta: s.totalPoeng.slice(),
-    rolle: (p) => (p === s.budvinner ? "foerer" : p === s.makker ? "makker" : "forsvarer"),
+    rolle: (p) => (p === s.budvinner ? "foerer" : p === s.makker ? "makker" : "forsvar"),
     bud,
     klart: bud > 0 && lagStikk >= bud ? 1 : 0,
     stikk: st.slice(),
@@ -170,7 +170,7 @@ if (kilde === "mester") {
         giv,
         sete: s,
         agent: "MesterAI",
-        rolle: s === r.budvinner ? "foerer" : s === r.makker ? "makker" : "forsvarer",
+        rolle: s === r.budvinner ? "foerer" : s === r.makker ? "makker" : "forsvar",
         posisjon: -1,
         bud: r.bud,
         klart: r.klart ? 1 : 0,
@@ -274,7 +274,7 @@ if (kilde === "mester") {
       sete: MENNESKESETE,
       agent: "MENNESKE",
       rolle:
-        MENNESKESETE === r.budvinner ? "foerer" : MENNESKESETE === r.makker ? "makker" : "forsvarer",
+        MENNESKESETE === r.budvinner ? "foerer" : MENNESKESETE === r.makker ? "makker" : "forsvar",
       posisjon: -1,
       bud: r.bud,
       klart: lagStikk >= r.bud ? 1 : 0,
