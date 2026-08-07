@@ -73,6 +73,16 @@ den halvdelen ville den grønne testen betydd «måler ingenting» like gjerne s
 sampler. Beviset sier «Adams bruker ikke informasjon utover det samplerens
 forenlighetsbegrep tillater». Er samplerens begrep feil, arver prøven feilen.
 
+**Og den grensen bet med én gang.** K3-agenten fant at `medVerden` byttet
+hendene men lot `state.talong` stå — 100 % av verdenene hadde duplikatkort, og
+budvinneren fikk de EKTE byttekortene i hver rollout. Aktivt i `ADAMS_V7`, som
+kjører `sok…b0.5`.
+
+**K2-prøven kunne ikke se det:** den prøver kortvalg fra stikk 7, der talongen
+for lengst er tatt opp. Lærdommen er generell — *en invariansprøve dekker bare
+de fasene den faktisk besøker.* Rettet og voktet av
+`test/talonglekkasje.test.ts`, verifisert ved å gjeninnføre lekkasjen.
+
 Risikoen var reell og konkret: `medVerden`, `spillerVisning` og
 verdenstrekningen håndterer skjulte kort hver eneste beslutning. En lekkasje
 der ville ikke krasjet — den ville bare gjort Adams uforklarlig god, og hvert
@@ -133,7 +143,27 @@ Kravet krever kampbenken. M står på 1 i V7 fordi M=2 koster 5,3×.
 foran ved 70–90). Adams må velge ulikt. Å ligge under skal gi mer risiko, å lede
 mindre.
 
-**Status: koblet, aldri målt — og målingen var umulig.**
+**Status: MÅLT, og halve knotten var død.**
+
+`test/k5-kontekst.test.ts` målte det for første gang: 4 av 20 valg endrer seg
+med kampstillingen, kontrollarmen på eksakt 0. Men med stillingen holdt fast:
+
+| stilling | endrede valg |
+|---|---|
+| **bak** 70–90 | **0 av 20** |
+| foran 90–70 | 4 av 20 |
+
+Årsaken var strukturell. `snitt + λ·press·spredning` kan bare velte et valg med
+et NEGATIVT ledd — grenen med høyest snitt har som regel også størst spredning.
+Kravet «å ligge under skal gi mer risiko» var altså aldri demonstrert.
+
+**Fikset:** formen er nå en kvantilblanding over alpha-muens fulle
+utfallsvektor. Låst som enhetstest: den TRYGGE grenen har høyest snitt (2,0 mot
+1,6), og likevel velges den risikable når vi ligger bak. λ hevet 0,4 → 1,5,
+siden den nye formen vekter |λ·press| i stedet for et additivt ledd.
+
+**Gjenstår:** en ny atferdsmåling med den rettede formen. Retningen er bevist i
+enhetstest, ikke i spill.
 
 ```ts
 const framdrift = Math.min(1, Math.max(egne, beste) / mål);
@@ -159,8 +189,28 @@ aldri gjort noe i noe tall vi har sett på.
 
 Punkt 2 er det som skiller «utnytter» fra «møter en svakere motpart».
 
-**Status: koblet (`okt:`, `profil:`), aldri målt.** `MIN_RUNDER = 4` betyr at
-den ikke tror på noe før fjerde runde — og gate 2 gir én.
+**Status: MÅLT, ikke innfridd — og tre brudd funnet.**
+
+| | okt-matet | uten læring |
+|---|---|---|
+| gevinst mot stilisert vs nøytral | +7,26 ± 1,53 | **+4,74 ± 1,52** |
+| vekst med rundenummer | +0,71 ± 3,12 (z = 0,23) | −4,08 ± 3,13 |
+
+Punkt 1 er «innfridd» men beviser ingenting: gevinsten er nesten like stor uten
+læring. Det er «motparten er dårligere», ikke «vi utnytter ham». Punkt 2 er ikke
+innfridd.
+
+**Tre uavhengige brudd gjorde øktminnet eksakt null i den utrullede Adams:**
+
+1. `vr:` kuttet kontekstkjeden — økten ble laget og kastet. Sju `lagIndre`-kall
+   droppet `ctx`.
+2. Kampbenken fylte aldri profilboka — `Profilbok.observer` bokfører bare på
+   `RUNDE_SLUTT`, og `kamp.ts` spør aldri en agent der. Målt 25/24/24/27
+   bokførte runder med tikk, 0/0/0/0 uten.
+3. `MIN_RUNDER` telte **bud, ikke runder** — med budandel ~0,33 inntraff
+   terskelen rundt runde tolv, altså når kampen er over.
+
+Alle tre er rettet. **Målingen over ble gjort før fiksene og må kjøres om.**
 
 *Begrensning du selv satte:* «det skal bare lære per økt for nå.» Ingen
 kryssøkt-lagring. Håndhevet i test: `okt.ts` har ingen `fs`, `localStorage`
@@ -208,12 +258,26 @@ TAKET    klarsyn (1,0 på riktig sete)
 Rapporteres som log-loss eller Brier-skår. **«Veldig høyt nivå» må bli et tall
 mellom gulvet og taket**, ellers er kravet ikke etterprøvbart.
 
-**Status: ikke målt.** `analyse/beliefrom.txt` måler **størrelsen** på
-beliefrommet (hvor mange verdener som er forenlige) — ikke om vi treffer. Det
-er to ulike spørsmål, og bare det andre er kravet ditt.
+**Status: MÅLT for første gang.** `examples/tro-noyaktighet.ts`.
 
-Komponentene finnes: renonser som harde forbud, A1 «hvem la hva», A5 bayesiansk
-likelihood, A6 signaler. Ingen av dem er målt på treffsikkerhet.
+| arm | log-tap (n=1 280) |
+|---|---|
+| gulv (uniform over 3) | 1,0986 |
+| gulv+ (uniform over ikke-renons) | 1,0304 |
+| av | 1,0279 |
+| regel (A1) | 1,0278 |
+| **bayes (A5)** | **1,0253** |
+| bayes+g (A6) | 1,0345 |
+
+**A5 er den eneste slutningen som gjør troen bedre.** A1 er nøytral. A6 skadet
+— og to årsaker er funnet og rettet siden: senderen manglet helt, og deretter
+leste mottakeren kortet ABSOLUTT mens avsenderen valgte relativt. Ny måling
+kjører.
+
+To feil i selve målingen ble fanget underveis: Monte-Carlo-oppløsningen (V=12
+måler oppløsning, ikke tro) og manglende renormalisering (troens rader summerer
+ikke til 1 — resten er talongen). Uten den siste «viste» første kjøring at
+Adams var verre enn uniform.
 
 ---
 
@@ -221,14 +285,16 @@ likelihood, A6 signaler. Ingen av dem er målt på treffsikkerhet.
 
 | krav | prøven finnes | innfridd |
 |---|---|---|
-| K1 bedre enn mennesker | ja (kampbenken) | **nei** — 15,83 % mot < 5,0 % |
-| K2 aldri jukse | **ja** | **ja** — 0 avvik, og prøven tar en jukser |
-| K3 SOTA i alle faser | delvis | delvis — budrunden er hullet |
-| K4 hukommelse + planlegging | nei (krever kampbenk) | ubevist |
-| K5 kontekst og tilpasning | nei (krever kampbenk) | ubevist |
-| K6 lære vaner og utnytte | **nei** | ubevist |
+| K1 bedre enn mennesker | ja | **nei** — 15,83 % mot < 5,0 % |
+| K2 aldri jukse | ja | **ja** (kortspill) — men se talonghullet |
+| K3 SOTA i alle faser | ja | delvis — **≥ 87 % av budtaket er klarsyn** |
+| K4 hukommelse + planlegging | ja | **nei** — kortkanalen virker, budkanalen 2× for svak |
+| K5 kontekst og tilpasning | ja | halvveis — fikset, ny måling gjenstår |
+| K6 lære vaner og utnytte | ja | **nei** — tre brudd rettet, ommåling gjenstår |
 | K7 optimalt sluttspill | ja | **ja** — 0,3 % av taket |
-| K8 predikere kort | **nei** | ubevist |
+| K8 predikere kort | ja | delvis — A5 virker, A1 nøytral, A6 fikset |
+
+**Alle åtte har nå en prøve.** Det var fire uten da fila ble skrevet.
 
 **Seks av åtte krav er ubeviste, og tre av dem har ingen prøve.** Det er den
 ærlige tilstanden. Komponentene er bygd og koblet; det som mangler er å vise at
