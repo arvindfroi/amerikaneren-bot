@@ -159,11 +159,22 @@ const KATALOG: readonly Modul[] = [
   },
   {
     kode: "amue",
-    navn: "amu «e0.25» — A7, uleselighet (PARKERT: ikke i K1–K8, målt −0,0941)",
-    iFull: true,
+    navn: "amu «e» — A7, uleselighet",
+    /**
+     * PARKERT 8. august paa Arvinds beskjed: «signalisering og mind games er
+     * alt for advansert å fokusere på for øyeblikket». A7 tjener ingen av
+     * K1-K8 - den ble bygd som del av alpha-mu-pakken. Gate2-ablasjonen maalte
+     * den til -0,0941 i selskap med resten.
+     *
+     * AV I FULL STAKK. Med `iFull: true` ville «u-amue» blitt IDENTISK med
+     * kontrollarmen, og riggen stoppet seg selv paa nettopp det - gate 2
+     * noekler paa speken, saa den ene ville overskrevet den andre i stillhet.
+     * `--med amue` slaar den paa igjen den dagen noen vil maale den.
+     */
+    iFull: false,
     forelder: "amu",
     usynligPaa: [],
-    merknad: "",
+    merknad: "PARKERT: ikke i K1–K8, målt −0,0941. AV i full stakk; --med amue slår den på",
   },
   {
     kode: "amur",
