@@ -1,0 +1,12 @@
+100 froe, 400 rader, 21.4 runder per kamp
+
+  KANDIDATENS vinnerandel   0.1100
+  MILJOETS vinnerandel      0.2500   <- MAA vaere 0.2500
+
+  differanse i vinnerandel  -0.1400 +/- 0.0134  (-10.41 SE)
+  tegntest froe             2 opp / 58 ned  (z=-7.23)
+
+  differanse i sluttmargin  -33.015 +/- 2.250  (-14.67 SE)
+
+  Grunnlinja er 0,2500. En vinnerandel paa 0,2500 betyr INGEN forskjell;
+  0,3333 betyr at kandidaten vinner 1 av 3 mot tre like motstandere.

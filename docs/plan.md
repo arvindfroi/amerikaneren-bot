@@ -7921,3 +7921,63 @@ node examples/maxrigg.ts --toerr --merke m1 --par okt,profil --par amuv,vakt
 Kjører ingenting. Lister hver arm, hver spek, hver kommando, presisjonen og
 kostnaden, og skriver det til `analyse/max-m1-toerr.txt`. Ingenting er målt
 ennå — det som er gjort, er at det nå *kan* måles del for del og par for par.
+
+## §114 — gulvet er fortsatt ukjent, fordi vi ikke har en gyldig klarsynt sonde
+
+Jeg satte i gang å måle GULVET for K1: hvor få kamper kan en motstander holdes
+til, selv av en bot som ser kortene? Er gulvet over 5 %, er kravet umulig som
+formulert, og da er svaret ikke å jobbe hardere.
+
+Målingen ga et tall som ikke kan stemme:
+
+| `juks:6` mot tre like, 600 kamper | |
+|---|---|
+| kandidatens vinnerandel | **0,1100** |
+| miljøets (kontroll) | 0,2500 ✓ |
+| differanse | **−0,1400 ± 0,0134 (−10,4 SE)** |
+| tegntest | 2 opp / 58 ned (z = −7,2) |
+| sluttmargin | −33,0 ± 2,25 |
+
+**En bot som ser de virkelige hendene fra seks kort igjen spiller DRAMATISK
+verre.** Kontrollarmen står på eksakt 0,2500, så benken er frisk.
+
+### Årsaken sto i sonden selv
+
+`fasitKort` i `juksagent.ts`:
+
+> «`rotVerdier` gir stikk for BUDLAGET. Sitter setet i forsvaret, er det beste
+> kortet det som MINIMERER det tallet.»
+
+Men i Amerikaneren scorer **hver forsvarer sine egne stikk**. Å minimere
+budlagets stikk er ikke å maksimere sine egne — en forsvarer kan godt gi
+stikket til den ANDRE forsvareren og score null selv. Sonden optimerer altså
+feil mål i tre av fire seter.
+
+### Og dette er ikke nytt — det er §56 som ingen koblet videre
+
+§56 målte at `eks:` (den eksakte sluttspilløseren) var **−0,343 til −0,753**, og
+fant årsaken: «innenfor hver verden løses stillingen DOBBELTDUMMY — nettopp
+fasiten som måler **−0,609 korrigert korrelasjon mot poeng**».
+
+Korrelasjonen mellom dobbeltdummy-stikk og poeng er altså NEGATIV, og det har
+stått i fila siden. Det som ikke ble trukket er konsekvensen:
+
+**Alle klarsynssondene våre bruker DD som fasit. Da måler ingen av dem et tak.**
+
+Det rammer minst tre ting:
+1. **Gulvet for K1** kan ikke måles med `juks:` slik den er.
+2. **`eks:` er av som standard** på grunn av et negativt tall som nå har en
+   annen forklaring enn «utenfor gyldighetsområdet».
+3. **K7 står som «ja — 0,3 % av taket».** Er det «taket» regnet med DD, må
+   påstanden etterprøves.
+
+### Hva som må bygges før gulvet kan måles
+
+En klarsynt sonde som maksimerer **spillerens faktiske poeng**, ikke budlagets
+stikk. Løseren returnerer stikktall; poengfunksjonen er en annen ting
+(budvinner `2n`, makker `n`, forsvarere hver sine stikk). Det er en avgrenset
+oppgave, og den er nå en forutsetning for steg 0 i planen.
+
+*Merk skillet mot §109:* der ble et LAGBEVISST mål for søket motbevist
+(−0,4185). Dette er ikke det samme spørsmålet. Der handlet det om hvilket mål
+som gir best spill under usikkerhet; her om at en FASIT måler feil størrelse.
