@@ -669,6 +669,14 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     // (A5-flagget). Se `bredde` i amuagent.ts.
     const bredde = les("B", 0);
     /**
+     * «W<alfa>»: KANAL 2, budvinnerens vrak som bevis. 0 = av, bit-identisk.
+     *
+     * Maalt (§111): hun skaper 0,967 sidefargerenonser per runde mot 0,101 ved
+     * tilfeldig kasting. Sampleren antok det tilfeldige. Stor W saa den ikke
+     * kolliderer med tallparserne.
+     */
+    const vrakalfa = les("W", 0);
+    /**
      * SLUTNINGEN SOM VEKTER VERDENENE — «s» (A1, regler) eller «b» (A5, Bayes).
      *
      * De er ALTERNATIVER, ikke tillegg: begge leser de samme observasjonene,
@@ -794,6 +802,7 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       vetoMargin,
       sluttdybde,
       bredde,
+      vrakalfa,
       // A2: oekten gir én policy PER MOTSTANDER. Uten oekt er den udefinert,
       // og soeket antar som foer at alle spiller som oss.
       motpartFor:

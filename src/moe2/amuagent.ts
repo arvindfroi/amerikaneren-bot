@@ -186,6 +186,25 @@ export interface AmuOpts {
    * alltid full - der tas beslutningen, og der har vi raad.
    */
   readonly bredde?: number;
+  /**
+   * ============ KANAL 2: VRAKET SOM BEVIS ===========================
+   *
+   * ARVIND: «budvinner faar x antall ekstra verdi paa sin haand, og jeg vet at
+   * den proever aa skape renonser og maksimerer sin haand i vrak.»
+   *
+   * Maalt over 720 runder (§111), budvinnerens sidefargerenonser per runde:
+   *
+   *     faktisk vraking           0,967
+   *     om hun kastet billigst    0,169
+   *     tilfeldig kasting         0,101
+   *
+   * Hun toemmer en farge nesten hver runde - 9,6x oftere enn tilfeldig.
+   * Sampleren antok det tilfeldige, saa verdenene ga henne sidefargekort hun
+   * sannsynligvis ikke har, og undervurderte hvor ofte hun kan trumfe.
+   *
+   * `alfa` er vekten per renons. 0 = av, bit-identisk.
+   */
+  readonly vrakalfa?: number;
 }
 
 export class Alphamuagent {
@@ -247,6 +266,8 @@ export class Alphamuagent {
         atferd: this.o.atferd,
       }),
       this.o.verdenKandidater ?? 3,
+      // KANAL 2. Udefinert naar alfa er 0 - da er hele leddet bit-identisk.
+      (this.o.vrakalfa ?? 0) > 0 ? { alfa: this.o.vrakalfa!, beta: 0 } : undefined,
     );
     if (verdener.length === 0) return this.indre.velgHandling(state);
     this.tellere.vurdert++;

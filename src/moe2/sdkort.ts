@@ -56,6 +56,7 @@ import { lovligeKort, utfør, type GameState, type Handling } from "../motor.ts"
 // kodinger, og feilen ville gitt gale kort i stillhet. Tre av dagens feil var
 // av samme klasse (nt/t-vektorene), saa duplisert konvertering er forbudt her.
 import { intTilKort, kortTilInt } from "../solver/dds.ts";
+import type { Vrakvekt } from "../solver/sampler.ts";
 import { trekkVerdenBelief, alleKortInt, type Budprior , type Verden } from "../solver/sampler.ts";
 
 /** Motstandermodellen som spiller runden ferdig. NevroAgent oppfyller det. */
@@ -312,13 +313,17 @@ export function trekkVerdener(
   prior?: Budprior,
   trovekt?: (v: Verden) => number,
   kandidater = 3,
+  /** KANAL 2: budvinnerens vrak som bevis. Udefinert = av, bit-identisk. */
+  vrakvekt?: Vrakvekt,
 ): number[][][] {
   const ut: number[][][] = [];
   for (let v = 0; v < antall; v++) {
     // Med `prior` vektes kandidatverdenene etter en LÆRT budmodell i stedet
     // for den håndlagde formelen. Kalleren må sørge for at prioren beskriver
     // dem som faktisk sitter ved bordet - se `laertForenlighet` i sampler.ts.
-    const w = trekkVerdenBelief(state, spiller, rng, kandidater, prior, undefined, trovekt);
+    const w = trekkVerdenBelief(
+      state, spiller, rng, kandidater, prior, undefined, trovekt, vrakvekt,
+    );
     if (w !== null) ut.push(w.hender);
   }
   return ut;
