@@ -145,6 +145,63 @@ export const standardMål = (s: GameState, spiller: number): number => {
 };
 
 /**
+ * ============ LAGMÅLET — og hvorfor søket tapte i makker og forsvar ======
+ *
+ * ARVIND: «adams kan oppføre seg forskjellig i alle roller, men den skal ha
+ * like evner. så forsvar og makker skal også ha tilgang til alfa mu. jeg
+ * tipper forsvar og makker burde bli bedre med det sant?»
+ *
+ * Prinsippet er riktig, og §103 målte det motsatte: `amu:alle` ga −0,2837
+ * (z = −5,5), med **makker −0,3342** og **forsvar −0,4003**. Fører var
+ * upåvirket.
+ *
+ * Forklaringen ligger i `standardMål`, ikke i søket.
+ *
+ * ================= POENGENE DELES I LAG, MÅLET GJØR IKKE ================
+ *
+ * `regler.ts`: budvinner får `2n`, makkeren `n`, forsvarerne hver sine stikk.
+ * Men `standardMål` er «egne minus snittet av de TRE ANDRE» — den trekker fra
+ * MAKKERENS poeng.
+ *
+ * For en makker som hjelper kontrakten i havn:
+ *
+ *     hun får          +n
+ *     førerens +2n     teller mot henne som −2n/3
+ *     netto            +n/3
+ *
+ * Hun undervurderer å hjelpe med en faktor TRE. Og to forsvarere som sammen
+ * skal felle kontrakten, konkurrerer i stedet om stikkene seg imellom.
+ *
+ * Føreren merker det minst: makkerens `+n` teller mot hennes `+2n` som −n/3,
+ * så fortegnet står. Det er nøyaktig mønsteret i tallene — den ene rollen der
+ * målet omtrent stemmer, er den ene rollen der søket ikke tapte.
+ *
+ * ================= HVA DETTE MÅLET GJØR I STEDET ========================
+ *
+ * Sidens snitt mot den andre sidens snitt. Da er «hjelpe makker» og «hjelpe
+ * meg selv» samme fortegn, som de er i reglene.
+ *
+ * IKKE bit-identisk med `standardMål` — det er et annet mål, ikke en knott.
+ * Derfor er det opt-in (`L` i amu-speken) og må måles mot det gamle før noe
+ * byttes. En hypotese som forklarer tallene pent er fortsatt bare en hypotese.
+ */
+export const lagMål = (s: GameState, spiller: number): number => {
+  const bv = s.budvinner;
+  const mk = s.makker;
+  if (bv === null || bv === undefined) return standardMål(s, spiller);
+
+  const påBudlag = (p: number): boolean => p === bv || (mk !== null && p === mk);
+  const mine: number[] = [];
+  const deres: number[] = [];
+  for (let p = 0; p < s.antallSpillere; p++) {
+    (påBudlag(p) === påBudlag(spiller) ? mine : deres).push(s.totalPoeng[p] ?? 0);
+  }
+  // Tomt lag kan ikke skje med en budvinner, men snittet skal aldri dele paa 0.
+  const snitt = (v: number[]): number => (v.length === 0 ? 0 : v.reduce((a, b) => a + b, 0) / v.length);
+  return snitt(mine) - snitt(deres);
+};
+
+/**
  * Bytter ut de skjulte hendene med verdenens, og lar agentens egen hånd stå.
  *
  * Observatørens hånd ER kjent, så den skal ikke erstattes – gjør vi det,

@@ -19,7 +19,7 @@
  */
 
 import { lovligeKort, type GameState, type Handling } from "../motor.ts";
-import { standardMål, trekkVerdener, type Utspiller } from "./sdkort.ts";
+import { lagMål, standardMål, trekkVerdener, type Utspiller } from "./sdkort.ts";
 import { alphaMu } from "./alphamu.ts";
 import { lagVerdensvekt, type Vektkilde } from "./verdensvekt.ts";
 import type { Atferdsmodell } from "./troverdighet.ts";
@@ -100,6 +100,16 @@ export interface AmuOpts {
    * partnerskapets kode for aa vinne stikket foran seg.
    */
   readonly vetoMargin?: number;
+  /**
+   * LAGMAALET i stedet for `standardMål`. Se `sdkort.ts` for hvorfor:
+   * standardmaalet trekker fra MAKKERENS poeng, saa en makker undervurderer
+   * aa hjelpe med en faktor tre og to forsvarere konkurrerer med hverandre.
+   * Det er noeyaktig rollene der §103 maalte -0,33 og -0,40.
+   *
+   * Av som standard - dette er et ANNET maal, ikke en knott, og maa maales
+   * mot det gamle foer noe byttes.
+   */
+  readonly lagmål?: boolean;
 }
 
 export class Alphamuagent {
@@ -183,7 +193,7 @@ export class Alphamuagent {
 
     const grener = alphaMu(state, sete, verdener, {
       M: Math.max(1, this.o.M ?? 1),
-      mål: standardMål,
+      mål: this.o.lagmål === true ? lagMål : standardMål,
       motpart: ruter,
     });
     if (grener.length === 0) return this.indre.velgHandling(state);

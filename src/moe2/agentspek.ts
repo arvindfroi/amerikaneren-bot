@@ -633,6 +633,13 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       signal = true;
       f = f.replace("g", "");
     }
+    // «L»: lagmaalet i stedet for standardMål. Stor L saa den ikke kolliderer
+    // med noen tallparser.
+    let lagmål = false;
+    if (f.includes("L")) {
+      lagmål = true;
+      f = f.replace("L", "");
+    }
     if (spillvekt && bayes) {
       throw new Error(
         `amu-spek «${indre}» har baade «s» (A1 regler) og «b» (A5 Bayes). De er ` +
@@ -706,6 +713,7 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       spillvekt,
       vektkilde: bayes ? "bayes" : spillvekt ? "regel" : "av",
       signal,
+      lagmål,
       atferd,
       M,
       epsilon: eps,
