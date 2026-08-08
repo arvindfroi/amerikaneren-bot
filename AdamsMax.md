@@ -702,3 +702,86 @@ nøkler først, så kandidatrekkefølgen snudde og uavgjorte argmax-valg ble bru
 motsatt vei — 1 av 3 giv feil merket. Rekkefølgen hentes nå fra
 `lovligeHandlinger`. Kontrollen som fanget den: K = 12-valget skal være
 identisk med `k3-budgap.ts`, og er det nå på alle 194 felles giv.
+
+---
+
+## Sammenhengen mellom kravene — kartet jeg skulle hatt fra starten
+
+Arvind, 8. august: «det er en øvelse for at du skal forstå hvordan du kan møte
+prosjektet og ta høyde for sammenhengen.»
+
+### De åtte er ikke samme slags ting
+
+Det var den første feilen. Jeg behandlet dem som åtte sidestilte evner.
+
+| type | krav | hva det betyr |
+|---|---|---|
+| **Utfall** | K1 | Ikke en komponent. Summen, målt i kamper. Kan aldri bygges direkte |
+| **Skranke** | K2 | Hjelper deg ikke å vinne. Den definerer rommet de andre må virke i |
+| **Bredde** | K3 | Ikke én evne, men kravet om at *ingen fase er svak* |
+| **Evner** | K4–K8 | De faktiske mekanismene |
+
+Å jage K1 direkte er meningsløst, og å «måle K2 opp» er en kategorifeil.
+
+### Avhengighetskjeden
+
+```
+        K4 hukommelse ──► K6 vaner ──► K8 tro ──► K3 midtspill
+             │                            │
+             └──► K4 planlegging ─────────┴──► K7 sluttspill
+                        ▲
+        K5 kontekst ────┘  (og K5 makro ──► K3 budrunde)
+```
+
+**K8 uten K6 er en énmodell-antakelse.** A5 regner `P(observasjon | verden)`
+under VÅRT EGET nett. Uten korreksjon per motstander vektes verdenene med feil
+modell for alle andre enn oss selv. Derfor er `stilbias` ikke en K6-ting med en
+K8-bieffekt — den er **leddet mellom dem**.
+
+**K7 og K4s planlegging er samme mekanisme på ulik dybde.** Alpha-mu med
+`M ≥ 2` søker over egne framtidige valg; den eksakte løseren gjør det perfekt
+når treet er lite. Overgangspunktet er en parameter, ikke en arkitekturgrense.
+
+**K3 er begrenset ovenfra av K8, som er begrenset av K4.** «K3 er delvis
+innfridd» er derfor ikke en uavhengig observasjon — det er en konsekvens.
+
+### Spenningen: K2 mot K8
+
+Jo bedre du predikerer kort, jo mer LIGNER det på juks. Det eneste som skiller
+dem er **når** informasjonen kan påvirke et valg.
+
+Det bet konkret: `stilbias` trenger hendene for å regne residualet, så den kan
+bare lære VED RUNDESLUTT — ikke fordi det er ryddig, men fordi valgene i runde
+`r` da bare ser residualer fra runde `< r`. K2 setter altså grensen for hvordan
+K4 og K8 får lov å være implementert.
+
+### Mønsteret: fire kollisjoner, samme form
+
+Hver gang to komponenter har kollidert, var det **to deler som optimerer ulike
+mål over samme beslutning.**
+
+| kollisjon | krav | beslutningen de sloss om |
+|---|---|---|
+| A6 avsender mot A7 leser | K8 vs K3 | de frie kortvalgene (36,2 %) |
+| avsender mot leser | K8 internt | signalkoden var to koder |
+| søket mot vakten | K3 vs konvensjonene | 68 % av valgene |
+| **DD-fasit mot poeng** | **K7 vs K1** | **−0,609 korrelasjon** |
+
+Den siste er den styggeste: den satt i MÅLESTOKKEN. En løser som er «eksakt» på
+stikk er ikke eksakt på poeng — og da er alt den har målt, målt mot feil linjal.
+
+### Fire arbeidsregler som følger
+
+1. **Aldri mål en komponent mot en grunnlinje som mangler dens avhengigheter.**
+   `amu:alle` målte −0,2837 uten vetoen og +0,1742 med. Derfor ABLASJON NEDOVER
+   fra full stakk, ikke addisjon oppover fra grunnlinja.
+2. **Sjekk alltid hvilket mål hver del optimerer.** Fire av fire kollisjoner var
+   dette. Feilen er usynlig i kode som kompilerer.
+3. **Spør hvilken benk som kan se kravet.** K5s makro er strukturelt usynlig på
+   gate 2 (`press` er eksakt 0). En modul målt der den ikke kan sees, blir
+   feilaktig avskrevet — det skjedde med `r0.4`.
+4. **K1 bygges aldri direkte.** Den følger, eller den følger ikke. Det som kan
+   bygges er K2–K8 og koblingene mellom dem.
+
+Den siste er Arvinds egen setning fra 7. august: «K3–K8 er midlene, K1 er
+målet.» Setningen var forstått med én gang. **Hvorfor** den er sann, først nå.
