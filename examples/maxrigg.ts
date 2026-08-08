@@ -179,7 +179,10 @@ const KATALOG: readonly Modul[] = [
     iFull: true,
     forelder: "amu",
     usynligPaa: [],
-    merknad: "§103/§108: uten den målte amu:alle −0,2837, med den +0,4809",
+    merknad:
+      "§103: uten den målte amu:alle −0,2837. §106 målte +0,4809 med den — men " +
+      "§109 REPLIKERTE i disjunkt bånd og fikk +0,1742 ± 0,0970 (1,8 SE), altså " +
+      "UNDER porten. +0,4809 er et erstattet tall og skal ikke siteres.",
   },
   {
     kode: "profil",
