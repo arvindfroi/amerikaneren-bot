@@ -358,14 +358,21 @@ Den koblingen ER bygd (`Økt.atferdFor`, se `okt.ts`). Den er bare ikke utrullet
 
 | nivå | hva det er | hvem eier det i dag | status |
 |---|---|---|---|
-| **makro** | sammenlagt ledelse og løpet mot 100 | `race.ts` — kvantilblanding vektet av `\|λ·press\|` | virker i SØKET, **ikke i budet** |
+| **makro** | sammenlagt ledelse og løpet mot 100 | `race.ts` — kvantilblanding vektet av `\|λ·press\|` | i søket, og siden §112 også i budet (`budm:...kamp<λ>`) — **av i standard, umålt** |
 | **meso** | selve kontrakten som spilles | `budm:` — μ, `vant[N]`, terskelen | kalibrert mot feil bord (se budplanen) |
 | **mikro** | hvert enkelt stikk | alpha-mu + konvensjonsvakten | sterkest av de tre |
 
-**Hullet er makro → meso.** Kampstillingen styrer hvor mye risiko søket tar i et
-stikk, men den påvirker ikke om Adams BYR. En bot som ligger 30 poeng bak med
-tre runder igjen må by annerledes enn en som leder — og i dag byr den likt. Det
-er steg 4 i budplanen, og det er koblingen K5 → K3.
+**Hullet var makro → meso.** Kampstillingen styrte hvor mye risiko søket tar i
+et stikk, men påvirket ikke om Adams BYR. En bot som ligger 30 poeng bak med tre
+runder igjen må by annerledes enn en som leder — og den bød likt. Det er steg 4
+i budplanen, og det er koblingen K5 → K3.
+
+**Koblingen finnes nå** (`src/moe2/budrace.ts`, §112): budet verdsettes etter en
+øvre kvantil av lagstikkfordelingen når vi ligger bak og en nedre når vi leder,
+med `racepress` GJENBRUKT og ikke gjenoppfunnet. Retningen er låst i
+`test/makro-meso.test.ts` (87 opp / 0 ned på 183 beslutninger), og nullpunktet
+er bit-identisk. **Men den er av i standard og ikke målt** — og den kan bare
+måles på kampbenken, av grunnen rett under.
 
 **Og makro er nettopp derfor kampbenken er den eneste prøven på K1.** Gate 2
 spiller én runde med friske agenter: `press` er strukturelt EKSAKT 0 der, så
@@ -384,7 +391,8 @@ arbeidslista, og den er ærlig om hva som er kode og hva som er timer:
    ikke byggespørsmål.
 4. **Kanal 5** — A6 er rettet, ny måling gjenstår.
 5. **Kanal 1** — krever 714-nettet. GPU.
-6. **Makro → meso** — budplanens fire steg.
+6. **Makro → meso** — steg 4 er BYGD og koblet (§112), av i standard og umålt.
+   Steg 1–3 (rekalibrering av μ, `vant`, terskelen) står igjen.
 
 ---
 

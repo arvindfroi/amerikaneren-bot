@@ -16,6 +16,7 @@ import { lovligeHandlinger, type GameState, type Handling } from "../motor.ts";
 import { AMERIKANER, PASS, type Bud } from "../regler.ts";
 import { budTrekk, BUD_DIM, BUD_DIM_V2 } from "./budtrekk.ts";
 import { blandMu } from "./budsok.ts";
+import { budpress, kampjustertMu } from "./budrace.ts";
 
 interface Node {
   blad: boolean;
@@ -218,6 +219,18 @@ export class Budagent implements Innagent {
   private readonly budblanding: number;
 
   /**
+   * MAKRO → MESO: hvor hardt kampstillingen skal vippe verdsettingen av budet.
+   *
+   * 0 = av, og da er beslutningen BIT-IDENTISK med før — `kampjustertMu`
+   * returnerer μ uendret uten å røre et flyttall. Se `budrace.ts` for formen,
+   * for hvorfor presset gjenbrukes fra `race.ts`, og for den viktigste
+   * forbeholdet: **modulen er strukturelt usynlig på gate 2**, der hver giv
+   * starter på 0–0 og `racepress` derfor er eksakt 0. Bare kampbenken
+   * (`examples/kamp.ts`) kan måle den.
+   */
+  private readonly kampLambda: number;
+
+  /**
    * PERSONAVHENGIG JUSTERING av forsvarsverdien, eller `null`.
    *
    * `evForsvar` er en KONSTANT der det burde stått en modell: hva forsvar er
@@ -252,6 +265,7 @@ export class Budagent implements Innagent {
     auksjonskorreksjon = false,
     søktAnslag = null as ((state: GameState, sete: number) => { μ: number; σ: number } | null) | null,
     budblanding = 1,
+    kampLambda = 0,
   ) {
     this.indre = indre;
     this.m = m;
@@ -263,6 +277,7 @@ export class Budagent implements Innagent {
     this.μSkift = μSkift;
     this.søktAnslag = søktAnslag;
     this.budblanding = budblanding;
+    this.kampLambda = kampLambda;
   }
 
   nyKamp(): void {
@@ -321,10 +336,28 @@ export class Budagent implements Innagent {
       σB = Math.max(this.σGulv, b.σ);
     }
 
+    /**
+     * MAKRO → MESO (K5 → K3): kampstillingen inn i budet.
+     *
+     * `totalPoeng` hadde null treff i denne fila. Kampstillingen styrte hvor
+     * mye risiko SØKET tok i et stikk, men ikke OM Adams bød — en bot 30 poeng
+     * bak med tre runder igjen bød nøyaktig som en som ledet.
+     *
+     * Presset er `race.ts` sitt, ikke et nytt: to definisjoner av «hvor langt
+     * er vi kommet» ville drevet fra hverandre uten at noe ble rødt.
+     *
+     * `kampLambda = 0` gir μ tilbake UENDRET, så nullpunktet er bit-identisk.
+     * OG: **på gate 2 er `press` strukturelt eksakt 0** (hver giv starter på
+     * 0–0), så modulen er usynlig der uansett λ. Bare `examples/kamp.ts` kan
+     * måle den. Se `budrace.ts`.
+     */
+    const press = this.kampLambda === 0 ? 0 : budpress(state, sete);
+    const μK = kampjustertMu(μB, σB, press, this.kampLambda);
+
     let beste: Bud = PASS;
     let bv = terskel;
     for (const N of tall) {
-      const P = 1 - Φ((N - 0.5 - μB) / σB);
+      const P = 1 - Φ((N - 0.5 - μK) / σB);
       const p = this.m.vant[String(N)] ?? (N >= 11 ? 1 : 0);
       const ev = p * (2 * N * (2 * P - 1)) + (1 - p) * fv;
       if (ev > bv) {
@@ -348,7 +381,17 @@ export class Budagent implements Innagent {
     const kanAmerikaner = lov.bud.some((b) => b === AMERIKANER);
     if (kanAmerikaner) {
       const alle = state.giving.antallStikk;
-      const P = 1 - Φ((alle - 0.5 - μ) / σ);
+      /**
+       * Kampstillingen gjelder ogsaa her. Den ville ellers vaert av i nettopp
+       * det budet som avgjoer flest poeng - og «leder vi, by forsiktigere»
+       * ville ikke omfattet Amerikaner.
+       *
+       * MERK at dette leddet leser `μ`/`σ` og ikke `μB`/`σB`: budsoeket har
+       * aldri naadd Amerikaner-grenen. Det er en eldre uoverensstemmelse, og
+       * den roeres ikke her - aa rette den ville blandet to endringer i samme
+       * maaling.
+       */
+      const P = 1 - Φ((alle - 0.5 - kampjustertMu(μ, σ, press, this.kampLambda)) / σ);
       const p = this.m.vant["AMERIKANER"] ?? 1;
       // Satsen skalerer med maalet: mål/2 til budvinneren, mål/4 til makker.
       const sats = state.regler.målPoeng / 2;

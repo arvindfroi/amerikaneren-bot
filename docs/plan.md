@@ -7717,3 +7717,81 @@ har, og undervurderer hvor ofte hun kan trumfe.
 
 Dette er kanal 2 av seks i K8-utvidelsen. Kanal 3s harde halvdel er rettet
 (§107), kanal 4 virker, og kanal 1 er låst av nettbredde.
+
+## §112 — makro → meso er koblet: kampstillingen inn i BUDET (K5 → K3)
+
+`AdamsMax.md`, «K5 utvidet — de tre nivåene», navnga hullet presist: makro
+(løpet mot 100) virket i SØKET og bare der. `totalPoeng` hadde **null treff** i
+`budmodell.ts` og `budagent.ts`, så en bot 30 poeng bak med tre runder igjen
+bød nøyaktig som en som ledet.
+
+### Hva som er bygd
+
+`src/moe2/budrace.ts` — en modul med ett ansvar: verdsette budet etter riktig
+del av lagstikkfordelingen, gitt kampstillingen.
+
+```
+μ' = μ + clamp(λ · press, −1, +1) · σ
+```
+
+**Presset er `race.ts` sitt**, importert og ikke regnet på nytt. To definisjoner
+av «hvor langt er vi kommet» ville drevet fra hverandre uten at noe ble rødt —
+det er `signal.ts`-feilen, der avsender og leser hadde hver sin kode.
+
+Bryteren er et sjuende felt i `budm:`-hodet:
+
+```
+budm:<fil>@<ev>/<σgulv>/<μskift>/<fv>/<auk>/<sok>/kamp<λ>
+budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0//kamp1.5     ← uten budsøk
+```
+
+`kamp0` er standard, og `kamp-1.5` er falsifiseringsarmen.
+
+### Hvorfor formen måler vippet i σ og ikke i sannsynlighetsnivå
+
+`racescore` sier «kvantil 0,95» fordi den har en EMPIRISK utfallsvektor: q → 1
+gir bare det største observerte utfallet. Normalfordelingens kvantil
+DIVERGERER når q → 1, så den bokstavelige oversettelsen ville blåst opp i randen
+der `vekt = 1`. z-formen er samme familie av øvre/nedre kvantiler, monotont
+omparametrisert, og endelig overalt. Ved fullt vipp er `μ'` 84 %-kvantilen når
+vi ligger bak og 16 % når vi leder.
+
+### Nullpunktet og retningen, begge håndhevet
+
+`test/makro-meso.test.ts`, 9 tester, **471 grønne**:
+
+* `kampjustertMu` returnerer `μ` gjennom en tidlig retur — ikke `μ + 0`, så
+  ingen flyttallsaddisjon kan endre siste bit. Målt på hele budgivningen:
+  `kamp0` og «ingen kamp-felt» ga identiske bud i 137 av 137 beslutninger, i en
+  stilling der presset er **klart ulik null** (uten det leddet ville testen vært
+  grønn av samme grunn som gate 2 er blind).
+* Retningen er strukturell og ikke statistisk: høyere `μ'` løfter
+  `P(lagstikk ≥ N)` for HVERT bud, så `ev = p·2N(2P−1) + (1−p)·fv` vokser mot
+  terskelen. Målt på 183 beslutninger over 40 giv i bånd 5,1M med `kamp1.5`:
+  **87 opp, 0 ned** — Adams bød aldri høyere som leder enn som etterslept.
+
+### Fellen, som er testet og ikke bare skrevet
+
+**Modulen er strukturelt usynlig på gate 2.** Hver giv der starter på 0–0,
+`racepress` returnerer eksakt 0 (`framdrift < 0.3`), og budet er bit-identisk
+med at knotten er av — uansett λ. En sveip over `kamp` på gate 2 vil måle
+0,0000 i hver arm, og det er **ikke** et bevis på at modulen er inert. `r0.4`
+ble felt på nøyaktig den feilslutningen.
+
+Derfor står det en egen test, «GATE 2 KAN IKKE SE DENNE MODULEN», som spiller
+budrunden fra 0–0 med `kamp1.5` på og krever identiske bud. Den er den enkleste
+i fila å passere og den viktigste å lese.
+
+### Hva som gjenstår
+
+Modulen er **av i standard**, og ingenting er målt om den er verdt noe.
+
+1. Sveip `kamp` på **kampbenken** (`examples/kamp.ts` / `verktoy/kampport.sh`),
+   som er den eneste benken som spiller kamper til `målPoeng` og dermed
+   produserer stillinger med `framdrift ≥ 0,3`.
+2. Replikert i disjunkte frøbånd, med kontrollarmen på 0,2500.
+3. Og med forbeholdet budplanens steg 1–3 setter: μ og `vant[N]` er frosne
+   filer. En knott lagt oppå en feilkalibrert modell måler to ting samtidig.
+
+Rekkefølgen i budplanen er altså fortsatt riktig — det som er gjort her er at
+steg 4 nå ER byggbart og målbart, ikke at det er målt.

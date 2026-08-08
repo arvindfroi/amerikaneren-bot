@@ -134,6 +134,10 @@ export const STANDARDNETT = "e1-modell/d7alle.bin";
  *             kvantilformen vekter |lambda*press|, saa 0,4 ga vekt 0,144.
  *   profil:   motstandermodellen, som fyller `okt`-boka
  *   budm:     budgivningen
+ *     kamp1.5 MAKRO → MESO: kampstillingen inn i BUDET (K5 → K3), sjuende
+ *             felt etter «@». Bak = oevre kvantil av lagstikket, ledelse =
+ *             nedre. AV I STANDARD, og som `r1.5` er den strukturelt usynlig
+ *             paa gate 2 — bare kampbenken kan maale den. Se `budrace.ts`.
  *   vakt:abmpf  konvensjonene, inkludert `f` (stikk 1 billigst, +0,031)
  *   e1:       nettet, nederst — det er prioren alt annet bygger på
  *
@@ -411,7 +415,37 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      * arver vår egen skjevhet, mens GBT-en er tilpasset faktiske utfall. Full
      * erstatning bytter én skjevhet mot en annen uten å kunne måle det.
      */
-    const sokFelt = strek5 < 0 ? "" : haleFelt.slice(strek5 + 1);
+    const felt67 = strek5 < 0 ? "" : haleFelt.slice(strek5 + 1);
+    const strek6 = felt67.indexOf("/");
+    const sokFelt = strek6 < 0 ? felt67 : felt67.slice(0, strek6);
+    /**
+     * SJUENDE FELT: MAKRO → MESO, «kamp<lambda>» (K5 → K3).
+     *
+     * `budm:...@-3.0/0.6/0/-3.0/0//kamp1.5` — merk den TOMME sjette luken naar
+     * budsoeket ikke er med. Feltene er posisjonelle, som alle de andre.
+     *
+     * Kampstillingen vipper verdsettingen av budet mot en oevre kvantil av
+     * lagstikkfordelingen naar vi ligger bak, og mot en nedre naar vi leder.
+     * `0` (standard) er BIT-IDENTISK med aa ikke ha feltet.
+     *
+     * OG DEN KAN IKKE MAALES PAA GATE 2: hver giv der starter paa 0-0, saa
+     * `racepress` er strukturelt eksakt 0 og modulen er av uansett lambda.
+     * Kampbenken (`examples/kamp.ts`) er den eneste porten som ser den. Det
+     * har bitt foer - `r0.4` ble konkludert inert av noeyaktig denne grunnen.
+     */
+    const kampFelt = strek6 < 0 ? "" : felt67.slice(strek6 + 1);
+    let kampLambda = 0;
+    if (kampFelt !== "") {
+      const m3 = /^kamp(-?\d*\.?\d+)$/.exec(kampFelt);
+      if (m3 === null) {
+        throw new Error(
+          `Ugyldig kampstilling-felt «${kampFelt}» i «${indre}» – forventet ` +
+            `kamp<lambda>, f.eks. «kamp1.5» (eller «kamp-1.5» for falsifiseringsarmen).`,
+        );
+      }
+      kampLambda = Number(m3[1]);
+      if (!Number.isFinite(kampLambda)) throw new Error(`Ugyldig kamplambda i «${indre}»`);
+    }
     if (!Number.isFinite(ev)) throw new Error(`Ugyldig evForsvar i «${indre}»`);
     if (!Number.isFinite(sg) || sg <= 0) throw new Error(`Ugyldig sigmagulv i «${indre}»`);
     const innagent = lagIndre(rest.slice(skille + 1), ctx);
@@ -445,9 +479,9 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
         });
     }
     // Rekkefølgen er: forsvarsjustering (7.), auksjonskorreksjon (8.),
-    // søktAnslag (9.), budblanding (10.). Første forsøk sendte søket som 7.
-    // argument; typesjekken stoppet det, men posisjonelle argumenter av samme
-    // form ville ikke alltid gjort det.
+    // søktAnslag (9.), budblanding (10.), kampLambda (11.). Første forsøk
+    // sendte søket som 7. argument; typesjekken stoppet det, men posisjonelle
+    // argumenter av samme form ville ikke alltid gjort det.
     return new Budagent(
       innagent,
       lesBudmodell(fil),
@@ -459,6 +493,7 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       auk,
       søktAnslag,
       budblanding,
+      kampLambda,
     );
   }
   /**
