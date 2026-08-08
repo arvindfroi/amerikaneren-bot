@@ -22,6 +22,18 @@ import type { GameState } from "../motor.ts";
 export interface Verden {
   /** Komplette hender for alle spillere (kort-int), inkl. observatøren. */
   readonly hender: number[][];
+  /**
+   * KORTENE DENNE VERDENEN PAASTAAR BLE VRAKET, eller tom liste.
+   *
+   * Vraket er skjult for alle andre enn budvinneren, saa fire ukjente kort
+   * legges i en «doed binge». Men de kortene er VALGT, ikke tilfeldige - og
+   * uten aa eksponere dem kan ingen vekt vurdere om valget var troverdig.
+   *
+   * Maalt over 720 runder (§111): budvinneren skaper 0,967 renonser per runde,
+   * mot 0,169 om hun bare kastet billigst og 0,101 tilfeldig. Sampleren antok
+   * det siste.
+   */
+  readonly vrakVerden: number[];
   /** declLag[spiller] = på budlaget (budvinner + makker i denne verdenen). */
   readonly declLag: boolean[];
   /** Makkeren i denne verdenen, eller null (solo / ingen). */
@@ -209,7 +221,8 @@ export function trekkVerden(state: GameState, observator: number, rng: () => num
     if (budvinner !== null) declLag[budvinner] = true;
     if (makkerVerden !== null) declLag[makkerVerden] = true;
 
-    return { hender, declLag, makkerVerden };
+    const vrakVerden = bins.find((b) => b.spiller === -1)?.kort ?? [];
+    return { hender, declLag, makkerVerden, vrakVerden };
   };
 
   for (let i = 0; i < 30; i++) {
@@ -332,6 +345,83 @@ function lærtForenlighet(
   return logW;
 }
 
+
+/**
+ * ============ KANAL 2: VRAKET SOM BEVIS ================================
+ *
+ * ARVIND: «budvinner faar x antall ekstra verdi paa sin haand, og jeg vet at
+ * den proever aa skape renonser og maksimerer sin haand i vrak.»
+ *
+ * Vraket er SKJULT for de andre, saa fire ukjente kort legges i en doed binge.
+ * Men de kortene er VALGT. Maalt over 720 runder (§111), budvinnerens
+ * sidefargerenonser per runde:
+ *
+ *     faktisk vraking           0,967
+ *     om hun kastet billigst    0,169
+ *     tilfeldig kasting         0,101
+ *
+ * Hun toemmer altsaa en farge nesten hver runde - 9,6x oftere enn tilfeldig, og
+ * 5,7x oftere enn en ren prisstrategi. Inversjonsraten er 0,1132, saa prisen
+ * styrer OGSAA, men renonsen er hovedmotivet.
+ *
+ * Sampleren antok det tilfeldige. Foelgen er systematisk: verdenene gir henne
+ * sidefargekort hun sannsynligvis ikke har, og undervurderer hvor ofte hun kan
+ * trumfe.
+ *
+ * ================= VEKTEN ER TO LEDD, BEGGE MAALTE ====================
+ *
+ *     logW = alfa * (renonser i sidefarger)  -  beta * (inversjonsrate)
+ *
+ * En inversjon er et par (beholdt kort billigere enn et vraket kort). En
+ * perfekt grisk kasting har raten 0; tilfeldig kasting ligger rundt 0,5.
+ *
+ * KOEFFISIENTENE ER IKKE ADOPTERT. De staar som parametre med maalte
+ * standardverdier, og hva de skal vaere avgjoeres paa benken - ikke her.
+ * `amu:alle` var ogsaa aapenbart riktig og maalte -0,2837.
+ */
+export interface Vrakvekt {
+  /** Vekt per renons budvinneren har i en sidefarge. 0 = av. */
+  readonly alfa: number;
+  /** Straff for aa ha beholdt billigere kort enn de vrakede. 0 = av. */
+  readonly beta: number;
+}
+
+export function vrakLogVekt(state: GameState, verden: Verden, v: Vrakvekt): number {
+  const bv = state.budvinner;
+  if (bv === null || bv === undefined) return 0;
+  if (verden.vrakVerden.length === 0) return 0;
+  const trumf = state.trumf;
+  if (trumf === null) return 0;
+  const trumfIdx = FARGER.indexOf(trumf);
+
+  // Renonser regnes paa HELE haanden hennes: de kortene hun holder naa pluss
+  // de hun alt har spilt. Ellers ville en tom haand sent i runden telt som
+  // fire renonser.
+  const holdt = new Set<number>();
+  for (const c of verden.hender[bv] ?? []) holdt.add(Math.floor(c / 13));
+  for (const stikk of state.historikk) {
+    for (const kp of stikk.kort) if (kp.spiller === bv) holdt.add(FARGER.indexOf(kp.kort.farge));
+  }
+  for (const kp of state.bord) if (kp.spiller === bv) holdt.add(FARGER.indexOf(kp.kort.farge));
+
+  let renonser = 0;
+  for (let f = 0; f < 4; f++) if (f !== trumfIdx && !holdt.has(f)) renonser++;
+
+  // Inversjoner mot prisrangen. Trumf er alltid dyrere enn farge, ellers valoer.
+  const rang = (c: number): number => (Math.floor(c / 13) === trumfIdx ? 100 : 0) + (c % 13);
+  const beholdt = verden.hender[bv] ?? [];
+  let inv = 0;
+  let par = 0;
+  for (const b of beholdt) {
+    for (const k of verden.vrakVerden) {
+      par++;
+      if (rang(b) < rang(k)) inv++;
+    }
+  }
+  const rate = par === 0 ? 0 : inv / par;
+  return v.alfa * renonser - v.beta * rate;
+}
+
 /**
  * Som `trekkVerden`, men vekter mellom flere kandidatverdener etter hvor
  * godt de stemmer med budhistorikken (Belief-MC-idéen fra bridge-AI:
@@ -349,6 +439,8 @@ export function trekkVerdenBelief(
   prior?: Budprior,
   navn: (sete: number) => string = (s) => `sete${s}`,
   ekstraVekt?: (v: Verden) => number,
+  /** KANAL 2. Udefinert = av, og da er alt her bit-identisk med foer. */
+  vrakvekt?: Vrakvekt,
 ): Verden | null {
   // Uten budinformasjon om noen andre er BUD-vektingen et nullbidrag – men
   // `ekstraVekt` (troen) leser SPILLET og bidrar uansett hva budrunden sa.
@@ -369,7 +461,15 @@ export function trekkVerdenBelief(
         prior === undefined
           ? budForenlighet(state, v, observator)
           : lærtForenlighet(state, v, observator, prior, navn);
-      utvalg.push({ verden: v, logW: budW + (ekstraVekt === undefined ? 0 : ekstraVekt(v)) });
+      // TRE UAVHENGIGE KILDER, samme skala: budrunden sier hva de MELDTE,
+      // troen leser hva de SPILTE, og vrakvekten hva budvinneren KASTET.
+      utvalg.push({
+        verden: v,
+        logW:
+          budW +
+          (ekstraVekt === undefined ? 0 : ekstraVekt(v)) +
+          (vrakvekt === undefined ? 0 : vrakLogVekt(state, v, vrakvekt)),
+      });
     }
   }
   if (utvalg.length === 0) return null;

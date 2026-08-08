@@ -532,7 +532,7 @@ function velgTrumfOgKall(state: GameState, spiller: number, opts: BotOpts): Hand
           totalStikk: T,
         };
         const lag = evaluerHybrid(oppsett, terskel, opts.nodeTak ?? NODE_TAK);
-        sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker }, {
+        sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker, vrakVerden: [] }, {
           observator: spiller,
           budvinner: spiller,
           meldingstype: state.melding!.type,
@@ -675,7 +675,7 @@ function velgVrak(state: GameState, spiller: number, opts: BotOpts): Handling {
           terskel,
           opts.nodeTak ?? NODE_TAK,
         );
-        sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker }, {
+        sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker, vrakVerden: [] }, {
           observator: spiller,
           budvinner: spiller,
           meldingstype: state.melding!.type,

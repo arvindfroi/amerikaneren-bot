@@ -469,7 +469,7 @@ export function eksaktKortverdier(
     info,
     (hender, vekt) => {
       const declLag = lagDeclLag(state, info, hender);
-      const verden: Verden = { hender, declLag, makkerVerden: null };
+      const verden: Verden = { hender, declLag, makkerVerden: null, vrakVerden: [] };
       const oppsett = byggDDOppsett(state, verden);
       for (const rv of rotVerdier(oppsett)) {
         const v = måltall(rv.lagStikk, declLag, state, spiller, form);
