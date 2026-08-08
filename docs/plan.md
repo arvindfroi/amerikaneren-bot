@@ -7453,3 +7453,40 @@ Uten den tredje armen kunne et positivt `v0.5L` vært vetoen alene.
 og en hypotese som forklarer tallene pent er fortsatt bare en hypotese.
 Parserfellen er testet — `Number("12L")` = NaN ville gitt en kjøring som målte
 noe annet enn den sa, og det er §-feilen prosjektet har gjort tretten ganger.
+
+## §107 — «han ber om konge» var en REGEL, og den var ikke kodet inn
+
+Arvind, 8. august: «han ber om konge - da har han nok essen selv.»
+
+Eksempelet er en myk slutning. Under den ligger en hard regel, og den manglet.
+
+`lovligeEtterlys` forbyr uttrykkelig å etterlyse et kort man har selv
+(`if (harKort(egen, kort)) continue`). Budvinneren holder altså **aldri** det
+kalte kortet — sant mot enhver motstander, også et menneske som spiller
+uortodokst. Sampleren plasserte likevel kortet «hos en tillatt motspiller», og
+regnet budvinneren som tillatt.
+
+Målt på 240 stillinger i stikk 1, 7680 verdener, `ADAMS_MAALT`:
+
+| | før | etter |
+|---|---|---|
+| kortet hos budvinneren | **22,7 %** | 0,0 % |
+| ...som ga `makker = budvinner` | **1742 av 1742** | 0 |
+
+Den andre raden er den dyre. `medVerden` finner makkeren ved å lete opp hvem som
+holder det etterlyste kortet, så i hver umulige verden ble budvinneren sin egen
+makker — og `avsluttRunde` ga et budlag på ÉN person `2n` uten makkerens `n`.
+Rolloutene var ikke bare usannsynlige, **de ble scoret etter feil regler.**
+
+Og det bet i stikk 1, den eneste stillingen der kortet er uspilt: makkerplikten
+legger det ned med en gang. Åpningsutspillet ER etterlysningskonvensjonen, så en
+fjerdedel av verdenene var søppel akkurat der konvensjonen avgjøres.
+
+Samme antall stillinger og samme antall trukne verdener etter fiksen — trekkingen
+begynte altså ikke å feile i stedet. `test/etterlys-regel.test.ts`, og de 22,7 %
+er falsifiseringsarmen: testen er rød på koden fra før.
+
+**Dette er kanal 3 av seks i K8-utvidelsen, og bare den harde halvdelen.** Den
+myke — «kalles kongen, ligger essen hos budvinneren eller i vraket» — hviler på
+at hun kaller den høyeste hun ikke har, altså på policy. Den hører til som en
+likelihood i A5, ikke som et filter, og den skal måles før den slås på.

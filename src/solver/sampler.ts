@@ -120,11 +120,47 @@ export function trekkVerden(state: GameState, observator: number, rng: () => num
     const igjen = usett.slice();
     stokkInt(igjen, rng);
 
-    // Plasser det etterlyste kortet hos en tillatt motspiller (aldri i vraket).
+    /**
+     * Plasser det etterlyste kortet hos en tillatt motspiller (aldri i vraket).
+     *
+     * ============ OG ALDRI HOS BUDVINNEREN ==============================
+     *
+     * ARVIND: «han ber om konge - da har han nok essen selv.»
+     *
+     * `lovligeEtterlys` forbyr uttrykkelig aa etterlyse et kort man har selv:
+     * `if (harKort(egen, kort)) continue`. At budvinneren IKKE har det kalte
+     * kortet er altsaa ikke en slutning - det er en regel, sann mot enhver
+     * motstander, ogsaa et menneske som spiller helt uortodoks.
+     *
+     * Her sto budvinneren likevel i kandidatlista. MAALT paa 7680 verdener i
+     * 240 stillinger i stikk 1:
+     *
+     *     22,7 % av verdenene la kortet hos budvinneren  - regelstridig
+     *     1742 av 1742 av dem satte `makker = budvinner`
+     *
+     * Den andre linja er den dyre. `medVerden` finner makkeren ved aa lete opp
+     * hvem som holder det etterlyste kortet, saa i hver eneste umulige verden
+     * ble budvinneren sin egen makker - og `avsluttRunde` ga da et budlag paa
+     * ÉN person 2n uten makkerens n. Rolloutene ble ikke bare usannsynlige,
+     * de ble scoret etter feil regler.
+     *
+     * Og det bet noeyaktig i stikk 1, som er den ENESTE stillingen der kortet
+     * fortsatt er uspilt: makkerplikten legger det ned med én gang. Aapnings-
+     * utspillet er hele etterlysningskonvensjonen, saa en fjerdedel av
+     * verdenene var soeppel akkurat der konvensjonen avgjoeres.
+     *
+     * Finner vi ingen tillatt binge, returneres null og kalleren proever paa
+     * nytt med relakserte renonser. Det er riktig: er begge de oevrige setene
+     * renons i trumf, er det renonsslutningen som tar feil, ikke regelen.
+     */
     if (måPlassereEtterlyst && etterlystInt !== null) {
       const f = Math.floor(etterlystInt / 13);
       const kandidater = bins.filter(
-        (b) => b.spiller !== -1 && b.kapasitet > 0 && !(b.forbud && b.forbud.has(f)),
+        (b) =>
+          b.spiller !== -1 &&
+          b.spiller !== budvinner &&
+          b.kapasitet > 0 &&
+          !(b.forbud && b.forbud.has(f)),
       );
       if (kandidater.length === 0) return null;
       const b = kandidater[Math.floor(rng() * kandidater.length)]!;
