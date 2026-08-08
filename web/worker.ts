@@ -9,10 +9,8 @@
 import { BotAgent, velgHandling, type BotOpts } from "../src/bot/bot.ts";
 import type { GameState, Handling } from "../src/motor.ts";
 import { E1Agent } from "../src/e1/agent.ts";
-import { Konvensjonsvakt, lesVaktflagg } from "../src/moe2/konvensjonsvakt.ts";
 import { Budagent, tolkBudmodell } from "../src/moe2/budmodell.ts";
-import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
-import { Sikkerorakel } from "../src/moe2/sikkerorakel.ts";
+import { byggUtrullet, type Velger as UtrulletVelger } from "../src/moe2/utrullet.ts";
 import { nettFraBytes } from "../src/nevro/nett.ts";
 
 /**
@@ -102,37 +100,61 @@ self.onmessage = (e: MessageEvent<Melding>) => {
     // meldingsgrense. Vektene kommer som base64 fra hovedtråden, som alt har
     // hentet dem – ingen dobbel nedlasting av sju megabyte.
     try {
-      const kort: Velger = new Konvensjonsvakt(
-        E1Agent.fraBytes(tilBytes(m.kort)),
-        lesVaktflagg(m.vaktflagg),
-      );
-      let bot: Velger = kort;
+      /**
+       * ============ ÉN BYGGEFUNKSJON, DELT MED MAALINGENE ==============
+       *
+       * Her sto kjeden bygd FOR HAAND, lag for lag, mens hver eneste maaling
+       * gaar gjennom `lagIndre(<spek>)`. To kjeder uten felles kode og uten en
+       * test som holdt dem sammen - og det er selve aarsaken til prosjektets
+       * mest gjentatte feil: det maalte og det utrullede var ikke samme ting.
+       *
+       * `byggUtrullet` er den delte kjeden. `test/utrullet-lik-spek.test.ts`
+       * spiller den og speken gjennom de samme stillingene og krever IDENTISKE
+       * handlinger.
+       *
+       * REKKEFOELGEN VAR DET ENE AAPNE SPOERSMAALET: workeren la soeket
+       * YTTERST, speken har `vr:` ytterst. `test/utrullet-rekkefolge.test.ts`
+       * avgjorde det - identiske valg over 80+ beslutninger. Forskjellen er
+       * altsaa uten virkning her, og byggeren foelger speken.
+       *
+       * OPPFOERSELEN ER UENDRET. Samme vaktflagg, samme budmodell, samme
+       * konfidensport i foerersetet. Det som forsvinner er duplikatet.
+       */
+      const kortBytes = tilBytes(m.kort);
+      let bud: ConstructorParameters<typeof Budagent>[1] | null = null;
       if (m.bud !== null) {
         try {
-          bot = new Budagent(kort, tolkBudmodell(m.bud), m.budterskel);
-        } catch { /* budmodellen avvist – nevros budgivning, som før */ }
+          bud = tolkBudmodell(m.bud);
+        } catch {
+          /* budmodellen avvist - nevros budgivning, som foer */
+        }
       }
-      if (m.vrak !== null) {
-        const n = nettFraBytes(tilBytes(m.vrak))[0];
-        if (n !== undefined) bot = new Vrakrangerer(bot, n, m.vrakflagg) as unknown as Velger;
-      }
-      // MOTPARTEN ER BOTEN UTEN SØK. Gis søkeagenten seg selv, starter hver
-      // rollout et nytt søk – eksponentielt. Se utenSøk() i agentspek.ts.
-      // KONFIDENSPORT, ikke alltid-søk. Målt 6. august i to disjunkte bånd:
-      //
-      //   sik sigma=0,5   +1,78 / +1,68 i førersetet   198 ms per trekk
-      //   ork (alltid)    +1,25                        329 ms
-      //
-      // Å overstyre nettet BARE der den parrede marginen overstiger sin egen
-      // SE er både sterkere og 40 % billigere enn å tenke hardt på alt.
-      adams =
-        m.verdener > 0
-          ? (new Sikkerorakel(bot, bot as never, {
-              verdener: m.verdener,
-              sigma: m.sigma,
-              roller: ["foerer"],
-            }) as unknown as Velger)
-          : bot;
+      const vraknett = m.vrak === null ? null : (nettFraBytes(tilBytes(m.vrak))[0] ?? null);
+
+      /**
+       * `tro` SENDES, MEN LESES IKKE - og det er ikke en glipp lenger.
+       *
+       * `Trosnett` krever et nett paa >= 558 trekk; `d7alle` har 273. Kanal 1 i
+       * K8 (budene inn i troen) er derfor laast av NETTBREDDE, ikke av kode.
+       * Feltet staar i meldingen for aa slippe en ny nedlasting den dagen et
+       * bredere nett finnes. Se AdamsMax.md, «K8 utvidet».
+       */
+      adams = byggUtrullet({
+        kortnett: nettFraBytes(kortBytes)[0]!,
+        kort: E1Agent.fraBytes(kortBytes) as unknown as Velger,
+        vaktflagg: m.vaktflagg,
+        bud,
+        budterskel: m.budterskel,
+        vraknett,
+        vrakflagg: m.vrakflagg,
+        // KONFIDENSPORT, ikke alltid-soek. Maalt 6. august i to disjunkte baand:
+        //   sik sigma=0,5   +1,78 / +1,68 i foerersetet   198 ms per trekk
+        //   ork (alltid)    +1,25                         329 ms
+        søk: m.verdener > 0 ? { type: "sik", verdener: m.verdener, sigma: m.sigma } : null,
+        // K4/K6 er BYGD, men ikke maalt i spill enda. Naar ablasjonen har sagt
+        // sitt, er dette den ene bryteren som slaar dem paa i appen.
+        økt: false,
+      }).agent;
     } catch (feil) {
       adams = null;
       (self as unknown as Worker).postMessage({ id: 0, feil: `adams-init: ${String(feil)}` });
