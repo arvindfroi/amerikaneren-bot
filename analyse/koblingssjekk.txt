@@ -1,0 +1,20 @@
+BLOKK                             valg   ulike   status
+------------------------------------------------------------------
+okt:      hukommelsen (K4/K6)       219       0   *** IKKE KOBLET ***
+profil:   motstandermodellen        219       0   *** IKKE KOBLET ***
+vr:       vrak og trumf (K3)        219       2   KOBLET
+amu:      soeket                    219      15   KOBLET
+  b       A5 Bayes-vekt (K8)        219       4   KOBLET
+  g       A6 LESEREN (K8 nr.5)      219       9   KOBLET
+  r       kampstilling (K5)         219       0   *** IKKE KOBLET ***
+  v       vaktens veto              219      12   KOBLET
+budm:     budmodellen (K3)          219       7   KOBLET
+vakt:     konvensjonene             219      27   KOBLET
+------------------------------------------------------------------
+PAASLAG (skal endre naar de slaas PAA):
+  m2      framoverblikk (K4-B)      219      11   KOBLET
+  d4      sluttspilldybde (K7)      219       0   *** IKKE KOBLET ***
+  B4      soekebredde               219       0   *** IKKE KOBLET ***
+  W2      kanal 2, vraket (K8)      219       0   *** IKKE KOBLET ***
+  G       A6 avsender (PARKERT)     219       1   KOBLET
+  e0.25   A7 (PARKERT)              219       5   KOBLET

@@ -1,0 +1,14 @@
+HYPOTESE 1: okt/profil/r trenger FLERE RUNDER og POENG paa bordet
+  okt:  14 runder       765 valg     0 ulike  fortsatt 0
+  profil: 14 runder     765 valg     0 ulike  fortsatt 0
+  r:    14 runder       765 valg    24 ulike  KOBLET
+
+HYPOTESE 2: «B» krever M>=2 (bredde finnes ikke uten dybde)
+  M=2 med og uten B4:  219 valg  0 ulike  fortsatt 0
+
+HYPOTESE 3: «W» kan ikke fyre i FOERERSETET - budvinneren kjenner sitt eget vrak
+  amu:foerer med/uten W2:  329 valg  0 ulike
+  amu:alle   med/uten W2:  329 valg  22 ulike  <== KOBLET her
+
+HYPOTESE 4: «d4» trenger flere sluttspillstillinger
+  d5 over 12 runder:  657 valg  1 ulike  KOBLET
