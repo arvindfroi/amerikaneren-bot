@@ -7386,3 +7386,70 @@ En ablasjon som slår av ÉN del og måler mot resten, måler delens verdi GITT 
 de andre står stille. Det er riktig svar på et annet spørsmål enn «er dette
 verdt å ha». MVP-dommens superadditivitet er derfor ikke en formalitet — den
 er det eneste tallet som ser koblingene.
+
+## §106 — «forsvar og makker burde bli bedre med det sant?» To feil, ikke én
+
+Arvind: «adams kan oppføre seg forskjellig i alle roller, men den skal ha like
+evner. så forsvar og makker skal også ha tilgang til alfa mu. jeg tipper
+forsvar og makker burde bli bedre med det sant?»
+
+§103 hadde målt det motsatte — `amu:alle` = −0,2837 (z = −5,5) — og jeg hadde
+skrevet den inn i `mvp-dom.sh` som avvist. Prinsippet var likevel riktig, og to
+uavhengige feil sto i veien.
+
+### Den første: søket fikk overstyre vakten på tynne marginer
+
+Vetomålingen (3600 par, frø 4 400 000–4 400 899):
+
+| arm | samlet | fører | makker | forsvar |
+|---|---|---|---|---|
+| `amu:alle` | −0,3145 (−2,9 SE) | — | −0,3733 (−3,4 SE) | −0,4424 (−2,1 SE) |
+| `amu:alle` + `v0.5` | **+0,4809 ± 0,1332** (3,6 SE) | +1,9415 (5,5 SE) | −0,0655 (−0,7 SE) | +0,0239 (0,1 SE) |
+
+Tegntest 934/1719, p = 0,000. Kontrollarmen målte 0,0000.
+
+**Men rollene forteller en annen historie enn totalen.** Hele +0,48 er føreren
+(+1,94/4 ≈ 0,49). Makker og forsvar går fra klart negative til *nøyaktig null*
+— ingen av dem er skilt fra null. Vetoen fjernet SKADEN, ikke mangelen på
+gevinst. Å lese totalen alene ville gitt «alfa-mu i alle roller virker», og det
+er ikke det tallene sier.
+
+### Den andre: søkets mål trekker fra makkerens poeng
+
+`regler.ts` deler poengene i lag: budvinner `2n`, makker `n`, forsvarerne hver
+sine stikk. `standardMål` er «egne minus snittet av de TRE ANDRE» — den teller
+makkeren som motstander. Målt på en runde der laget tok 27–0:
+
+| sete | rolle | standardmål | lagmål |
+|---|---|---|---|
+| 0 | fører | 15,00 | 13,50 |
+| 2 | **makker** | **3,00** | **13,50** |
+| 1, 3 | forsvar | −9,00 | −13,50 |
+
+Makkeren verdsetter samme utfall til en femtedel. To forsvarere som sammen skal
+felle kontrakten, konkurrerer i stedet om stikkene. Føreren merker det minst —
+makkerens `+n` teller mot hennes `+2n` som `−n/3`, så fortegnet står. Det er
+nøyaktig mønsteret i tallene: den ene rollen der målet omtrent stemmer, er den
+ene rollen der søket ikke tapte.
+
+Dette er **fjerde forekomst** av prosjektets nyeste mønster — *et lokalt optimum
+som ødelegger en avtale*. De tre andre: A6 mot A7 om de frie kortvalgene,
+avsender mot leser om signalkoden, søket mot vakten om hvem som eier valget. Her
+er avtalen makkerskapet selv.
+
+### Hva som måles nå
+
+Frøbånd 8 800 000, 1600 giv, disjunkt fra vetokjøringen. Fire armer så veto og
+lagmål kan skilles:
+
+- `v0.5` — replikerer +0,4809? (adopsjonsporten; +1,94 er større enn noe annet
+  prosjektet har målt, og skal derfor mistenkes)
+- `v0.5L` — løfter lagmålet makker og forsvar over 0?
+- `L` — er lagmålet noe verdt uten vetoen?
+
+Uten den tredje armen kunne et positivt `v0.5L` vært vetoen alene.
+
+`L` er opt-in og `standardMål` er urørt: dette er et ANNET mål, ikke en knott,
+og en hypotese som forklarer tallene pent er fortsatt bare en hypotese.
+Parserfellen er testet — `Number("12L")` = NaN ville gitt en kjøring som målte
+noe annet enn den sa, og det er §-feilen prosjektet har gjort tretten ganger.
