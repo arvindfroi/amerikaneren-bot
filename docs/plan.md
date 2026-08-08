@@ -7490,3 +7490,77 @@ er falsifiseringsarmen: testen er rød på koden fra før.
 myke — «kalles kongen, ligger essen hos budvinneren eller i vraket» — hviler på
 at hun kaller den høyeste hun ikke har, altså på policy. Den hører til som en
 likelihood i A5, ikke som et filter, og den skal måles før den slås på.
+
+## §108 — K6-detektoren er målt, og den virker ikke. Fire funn, ingen fiks ennå
+
+Arvind spurte om status på K4 og K6. Svaret krevde måling, ikke en vurdering,
+og målingen felte detektoren.
+
+`Økt.aggressivitet(sete)` er det ene tallet som slår på både A2 (`motpartFor`,
+rollout-policyen) og K4→K8 (`atferdFor`, troens likelihood). Fyrer det feil,
+fyrer begge feil.
+
+### Funn 1 — kontrollen oppfører seg riktig
+
+Fire IDENTISKE Adams, 18 runder: alle fire på −0,02 til −0,11, terskelen
+`|a| ≥ 0,2` fyrer på 0 av 4. Ingen falske positive, og `trumfutspill.n` vokser
+til 9–12, ikke til 1 som på gate 2. Så langt godt.
+
+### Funn 2 — men den finner ikke en åpenbar vane
+
+Sete 1 byttet til den stiliserte trumftrekkeren:
+
+| sete | statistikk | `rå = (r−0,5)·2` | × tiltro | fyrer? |
+|---|---|---|---|---|
+| 0 normal | 0,415 | −0,17 | −0,139 | nei |
+| **1 TRUMFTREKKER** | 0,636 | +0,27 | **+0,199** | **nei** |
+| 2 normal | 0,250 | −0,50 | **−0,385** | **ja, «passiv»** |
+| 3 normal | 0,415 | −0,17 | −0,132 | nei |
+
+**Det eneste setet som fyrte var et helt normalt et, med feil merkelapp.**
+
+### Funn 3 — to årsaker, begge målt
+
+**`some` metter.** `ledetTrumf = ledet.some(...)` er «ledet trumf minst én gang
+denne runden». Den som gjør det 1 av 3 ganger scorer som den som gjør det 3 av 3.
+
+**Nullpunktet er feil.** Koden bruker 0,5. Målt over 40 kamper: **473 trumfutspill
+av 1874 = 0,2524 ± 0,0100.** Det er 25 SE unna. `BEFOLKNING.trumfutspill = 0,14`
+stemmer heller ikke med noen av definisjonene (den mettede gir 0,4344).
+
+Testen `k6-vaner.test.ts` hadde allerede **dokumentert** følgen i en kommentar —
+«mot vår egen bot fyrer A2-vrien selv når det ikke er noen vane å utnytte» —
+uten at noen fikset den.
+
+### Funn 4 — og terskelen er feil verktøy
+
+`|a| ≥ 0,2` er et magisk tall som ikke ser hvor mye vi har observert. Et avvik
+på 0,10 med n = 70 og det samme med n = 6 behandles likt. Resten av prosjektet
+krever at et utslag slår sin egen SE.
+
+### Hva jeg prøvde, og hvorfor det ikke holdt
+
+| forsøk | resultat |
+|---|---|
+| rate i stedet for `some` + nullpunkt 0,2524 | fortegnet ble riktig; vane 3/3 frø (runde 8, 11, 12), kontroll 1/3 |
+| nullpunkt = bordets eget snitt | kontrollen fortsatt −0,33 (≈2 SE, altså støy terskelen ikke tåler) |
+| signifikanskrav Z = 1,5 | den NØYTRALE fyrte fortsatt |
+| Z = 2 | den stiliserte fyrte ikke heller — målt **2,0 SE**, akkurat på grensen. **Og K4s Prøve A falt**, fordi hukommelsen da aldri endrer et kortvalg |
+| ny statistikk: «overtok stikket» (~9 obs/runde mot 1,3) | K4 grønn igjen, men trumftrekkeren leses **−0,03** — forvirret av korthøyde og av at han brenner trumfene tidlig |
+
+**Alt rullet tilbake. 459 tester grønne.** Å la en halvferdig detektor stå ville
+vært å bygge Adams Max på et tall jeg vet lyver.
+
+### Diagnosen, som står
+
+Én statistikk bærer for lite bevis: en forsvarer leder bare **~1,3 stikk per
+runde**. Det er nøyaktig samme form som K4s budkanal (bevis ~3×/kamp) — ikke en
+bug, men en **informasjonsgrense**. Veien videre er derfor MER BEVIS, ikke en
+større multiplikator:
+
+1. flere statistikker som stemmes sammen, ikke én
+2. en som er ubetinget av korthøyde — «overtok» var det ikke
+3. signifikans mot bordet, ikke en fast terskel (den delen er riktig og skal med)
+
+Og K4 og K6 deler skjebne: begge hviler på det samme tallet, så ingen av dem er
+innfridd før det tallet kan skille en vane fra støy.
