@@ -644,6 +644,9 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     const lambda = les("r", 0);
     // «v<margin>»: vaktens veto. 0 = av, bit-identisk med foer. Se §103.
     const vetoMargin = les("v", 0);
+    // «d<stikk>»: full alpha-mu-dybde naar saa faa stikk gjenstaar. 0 = av,
+    // og da er M konstant som foer. Se `sluttdybde` i amuagent.ts.
+    const sluttdybde = les("d", 0);
     /**
      * SLUTNINGEN SOM VEKTER VERDENENE — «s» (A1, regler) eller «b» (A5, Bayes).
      *
@@ -757,6 +760,7 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       epsilon: eps,
       lambda,
       vetoMargin,
+      sluttdybde,
       // A2: oekten gir én policy PER MOTSTANDER. Uten oekt er den udefinert,
       // og soeket antar som foer at alle spiller som oss.
       motpartFor:

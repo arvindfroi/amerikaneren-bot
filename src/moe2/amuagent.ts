@@ -110,6 +110,46 @@ export interface AmuOpts {
    * mot det gamle foer noe byttes.
    */
   readonly lagmål?: boolean;
+  /**
+   * ============ SLUTTSPILLDYBDE: K7 GJORT MED RIKTIG ALGORITME ========
+   *
+   * ARVIND: «er det en mulighet å gjøre k7 på en måte som gjør at vi løser de
+   * siste 4-5 stikkene?»
+   *
+   * Ja — og det krever ingen ny algoritme. `M` styrer hvor mange av VÅRE EGNE
+   * framtidige beslutninger som søkes med anti-fusjonsbetingelsen («kortet må
+   * være lovlig i ALLE verdener»). Med `M` ≥ gjenstående stikk er alpha-mu
+   * EKSAKT for verdensutvalget: den finner den beste ENKELTSTRATEGIEN på tvers
+   * av verdener i stedet for å midle beste trekk per verden.
+   *
+   * Cazenave & Ventos sier det slik: «α-μ addresses and if given enough time
+   * solves the strategy fusion and the non-locality problems encountered by
+   * PIMC.» «Enough time» er nettopp dette: nok M.
+   *
+   * ================= OG SLUTTSPILLET ER DER DET ER BILLIG =============
+   *
+   * Kostnaden er omtrent `forgrening^M × verdener × utspillingslengde`:
+   *
+   *     stikk 1          ~12 lovlige   M=12 håpløst   utspilling 12 stikk
+   *     4 stikk igjen    ≤ 4 lovlige   M=4  = 256     utspilling 4 stikk
+   *     3 stikk igjen    ≤ 3 lovlige   M=3  =  27     utspilling 3 stikk
+   *
+   * `M = 2` var dyrt fordi vi betalte det ved STIKK 1. Ved fire stikk igjen er
+   * både treet OG utspillingene små — full dybde i sluttspillet koster mindre
+   * enn M=2 gjør i åpningen.
+   *
+   * ================= HVORFOR DET ER RIKTIGERE ENN `eks:` ==============
+   *
+   * `eks:` løser hver verden eksakt og midler. Det er PIMC uten samplingstøy,
+   * og §-målingen ga −0,017 / −0,289 / −0,778 ved 2/3/4 stikk — VERRE med
+   * dybden. Enumerasjonen fjerner støyen, ikke skjevheten.
+   *
+   * Alpha-mu med full dybde fjerner SKJEVHETEN. (Tallene over ble målt med den
+   * ødelagte DD-løseren, §116, så de skal måles på nytt uansett.)
+   *
+   * 0 = av, og da er `M` konstant som før — bit-identisk.
+   */
+  readonly sluttdybde?: number;
 }
 
 export class Alphamuagent {
@@ -191,8 +231,22 @@ export class Alphamuagent {
             },
           };
 
+    /**
+     * ADAPTIV DYBDE. Gjenstår få stikk, søkes de ALLE — da er alpha-mu eksakt
+     * for verdensutvalget. Ellers står `M` som før.
+     *
+     * `stikkIgjen` regnes av EGEN hånd, ikke av `antallStikk - stikkSpilt`:
+     * det er antallet beslutninger VI har igjen, og det er det `M` teller.
+     */
+    const stikkIgjen = state.hender[sete]?.length ?? 0;
+    const terskel = this.o.sluttdybde ?? 0;
+    const M =
+      terskel > 0 && stikkIgjen > 0 && stikkIgjen <= terskel
+        ? Math.max(this.o.M ?? 1, stikkIgjen)
+        : Math.max(1, this.o.M ?? 1);
+
     const grener = alphaMu(state, sete, verdener, {
-      M: Math.max(1, this.o.M ?? 1),
+      M,
       mål: this.o.lagmål === true ? lagMål : standardMål,
       motpart: ruter,
     });
