@@ -80,8 +80,35 @@ export interface AmuOpts {
    * `vektkilde`.
    */
   readonly vektkilde?: Vektkilde;
-  /** A6: legg signalforenligheten til vekten. Additiv, se `verdensvekt.ts`. */
+  /**
+   * A6, LESEREN: legg signalforenligheten til verdensvekten.
+   *
+   * «Makker la dame paa mitt lave — da er det mindre sjanse for at han har
+   * konge og ess.» Det er Arvinds eget K8-eksempel nummer 5: aa LESE hvilket
+   * av de likegyldige kortene noen valgte, som bevis om haanden deres.
+   */
   readonly signal?: boolean;
+  /**
+   * ============ A6, AVSENDEREN — PARKERT PAA ARVINDS BESKJED =========
+   *
+   * ARVIND, 8. august: «jeg har jo sagt at signalisering og mind games er alt
+   * for advansert å fokusere på for øyeblikket.»
+   *
+   * Han har rett, og de to halvdelene er ulike ting:
+   *
+   *   LESEREN     tolker hva andre valgte. Staar i K8s eksempelliste.
+   *   AVSENDEREN  velger bevisst mellom likegyldige kort for aa KODE noe til
+   *               makker. Det krever en avtalt konvensjon begge sider kjenner
+   *               — altsaa signalisering, og det er ikke bedt om.
+   *
+   * Avsenderen ble bygd som del av alpha-mu-pakken (A1-A8), ikke fordi et krav
+   * ba om den. Ablasjonen 8. august maalte hele «g» til **-0,1153** i selskap
+   * med resten (ikke signifikant, men negativ).
+   *
+   * PARKERT, IKKE SLETTET. Koden staar med tallet i kommentaren, saa den som
+   * vil ta den opp igjen finner maalingen foer de bygger.
+   */
+  readonly signalsender?: boolean;
   /**
    * Nettets policy, som A5 trenger for å regne P(observasjon | verden).
    *
@@ -327,7 +354,9 @@ export class Alphamuagent {
      * skal ingen av dem røre noe.
      */
     let signalerte = false;
-    if (this.o.signal === true) {
+    // AVSENDEREN er parkert som standard - se `signalsender`. Leseren («signal»)
+    // staar, for den er K8s eksempel 5.
+    if (this.o.signalsender === true) {
       const lovlige = grener.map((g) => g.kort);
       if (erSignalrom(state, lovlige)) {
         // Bare blant kort søket har godkjent som omtrent likeverdige - å

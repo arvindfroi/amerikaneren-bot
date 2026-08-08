@@ -148,9 +148,26 @@ export const STANDARDNETT = "e1-modell/d7alle.bin";
  * framtidige valg, så den er vesentlig dyrere enn `sik` — og `sik` kostet
  * allerede 198 ms. Dette er en BENKESPEK, ikke en utrullingsspek.
  */
+/**
+ * ============ A7 ER PARKERT — ARVINDS BESKJED 8. AUGUST ================
+ *
+ * «jeg har jo sagt at signalisering og mind games er alt for advansert å
+ * fokusere på for øyeblikket.»
+ *
+ * A7 (`e<eps>`) randomiserer blant kort innenfor ε av det beste, så
+ * motstanderen ikke kan lese deg. Det er ren spillteoretisk uutnyttbarhet —
+ * «mind games» — og den tjener **ingen** av kravene K1–K8. Den ble bygd som
+ * del av alpha-mu-pakken (A1–A8), ikke fordi et krav ba om den.
+ *
+ * Ablasjonen 8. august målte den til **−0,0941** i selskap med resten (1,2 SE,
+ * ikke signifikant, men negativ).
+ *
+ * `e0` = av. Knotten står, og tallet står i kommentaren, så den som vil ta den
+ * opp igjen finner målingen før de bygger. INGENTING ER SLETTET.
+ */
 export const ADAMS_V6 =
   "okt:vr:e1-modell/vrakrang.bin:telrd:" +
-  "amu:foerer:12k16sm1e0.25r1.5:" +
+  "amu:foerer:12k16sm1e0r1.5:" +
   "profil:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin";
 
 /**
@@ -208,7 +225,7 @@ export const ADAMS_V6 =
  */
 export const ADAMS_V7 =
   "okt:vr:e1-modell/vrakrang.bin:telrd:" +
-  "amu:foerer:12k16bgm1e0.25r1.5:" +
+  "amu:foerer:12k16bgm1e0r1.5:" +
   "profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:" +
   "vakt:abmpf:e1:e1-modell/d7alle.bin";
 
@@ -236,7 +253,7 @@ export const ADAMS_V7 =
  */
 export const ADAMS_V6_FULL =
   "okt:vr:e1-modell/vrakrang.bin:telrd:" +
-  "amu:foerer:24k32sm2e0.25r1.5:" +
+  "amu:foerer:24k32sm2e0r1.5:" +
   "profil:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin";
 
 /**
@@ -677,6 +694,16 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       signal = true;
       f = f.replace("g", "");
     }
+    /**
+     * «G»: A6-AVSENDEREN. Parkert paa Arvinds beskjed 8. august - signalisering
+     * er ikke i K1-K8, og ablasjonen maalte hele «g» til -0,1153 i selskap.
+     * «g» (liten) er fortsatt LESEREN, som er K8s eksempel 5.
+     */
+    let signalsender = false;
+    if (f.includes("G")) {
+      signalsender = true;
+      f = f.replace("G", "");
+    }
     // «L»: lagmaalet i stedet for standardMål. Stor L saa den ikke kolliderer
     // med noen tallparser.
     let lagmål = false;
@@ -758,6 +785,7 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       spillvekt,
       vektkilde: bayes ? "bayes" : spillvekt ? "regel" : "av",
       signal,
+      signalsender,
       lagmål,
       atferd,
       M,

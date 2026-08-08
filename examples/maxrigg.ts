@@ -159,7 +159,7 @@ const KATALOG: readonly Modul[] = [
   },
   {
     kode: "amue",
-    navn: "amu «e0.25» — A7, uleselighet blant likeverdige kort",
+    navn: "amu «e0.25» — A7, uleselighet (PARKERT: ikke i K1–K8, målt −0,0941)",
     iFull: true,
     forelder: "amu",
     usynligPaa: [],
