@@ -38,6 +38,8 @@ import { lovligeKort } from "../motor.ts";
 import { Profilbok } from "./profilagent.ts";
 import { tiltro } from "./profil.ts";
 import { billigste, dyreste } from "./synlig.ts";
+import { kortIndeks } from "../nevro/trekk.ts";
+import type { Atferdsmodell } from "./troverdighet.ts";
 import type { Utspiller } from "./sdkort.ts";
 
 /**
@@ -147,6 +149,80 @@ export class Økt {
         if (mynt >= terskel) return h;
         const kort = vri > 0 ? dyreste(lov, s.trumf) : billigste(lov, s.trumf);
         return { type: "SPILL", spiller: sete, kort };
+      },
+    };
+  }
+
+  /**
+   * ============ K4 MØTER K8 =============================================
+   *
+   * ARVIND: «k4 og k8 henger også sammen og komplementerer hverandre. skjønner
+   * du hvorfor vi må alltid ta høyde for alle kravene.»
+   *
+   * Ja — og dette var hullet. A5 (K8) regner
+   *
+   *     P(observasjon | verden) = ∏ P(p la kort c | p sin hånd i w)
+   *
+   * og `P` kom ALLTID fra VÅRT EGET nett. Økten (K4) kan ha lært at dette
+   * setet spiller aggressivt, og likelihooden leste observasjonene som om hun
+   * spilte som oss likevel. Da vektes verdenene med feil modell, og det er en
+   * del av hvorfor §105 målte at alle tre slutningene til sammen bidrar
+   * **1,3 %** mens renonser alene bidrar 92,7 %.
+   *
+   * De to kravene er samme informasjonsproblem på to tidsskalaer: K4 lærer
+   * PÅ TVERS av runder, K8 slutter INNENFOR en runde. Uten denne koblingen
+   * snakket de ikke sammen.
+   *
+   * ================= ÉN DEFINISJON, IKKE TO =============================
+   *
+   * `motpartFor` og denne deler `vri` og valget av dyreste/billigste. To
+   * definisjoner ville drevet fra hverandre — søket ville rullet ut én
+   * motstander og troen vektet etter en annen. Det er nøyaktig feilen A6
+   * hadde: avsender og mottaker med hver sin kode.
+   *
+   * ================= OG FORMEN ER EN BLANDING, IKKE EN OVERSTYRING ======
+   *
+   * `motpartFor` bruker en deterministisk «mynt» fra stillingen: den spiller
+   * ytterkortet i omtrent `|vri|` av stillingene. Sett over stillinger ER det
+   * en blanding, og det er den blandingen likelihooden skal bruke:
+   *
+   *     P_vridd(c) = (1 − |vri|)·softmax(nettet)(c) + |vri|·1[c = ytterkortet]
+   *
+   * Mynten kan ikke brukes her: troen spør «hvor sannsynlig var dette kortet»,
+   * ikke «hvilket kort ville hun valgt i akkurat denne stillingen».
+   */
+  atferdFor(basis: Atferdsmodell, sete: number): Atferdsmodell {
+    const a = this.aggressivitet(sete);
+    if (a === null || Math.abs(a) < 0.2) return basis;
+    const vri = Math.max(-MAKS_VRI, Math.min(MAKS_VRI, a));
+    const p = Math.abs(vri);
+    return {
+      logits: (s: GameState, spiller: number): Float32Array | number[] => {
+        const g = basis.logits(s, spiller);
+        if (spiller !== sete || s.fase !== "SPILL" || s.trumf === null) return g;
+        const lov = lovligeKort(s, spiller);
+        if (lov.length < 2) return g;
+
+        // Softmax over de LOVLIGE, samme mengde `logTroverdighet` bruker.
+        let maks = -Infinity;
+        for (const k of lov) maks = Math.max(maks, g[kortIndeks(k)] ?? 0);
+        let sum = 0;
+        for (const k of lov) sum += Math.exp((g[kortIndeks(k)] ?? 0) - maks);
+
+        const mål = vri > 0 ? dyreste(lov, s.trumf) : billigste(lov, s.trumf);
+        const målIdx = kortIndeks(mål);
+
+        const ut = Array.from(g) as number[];
+        for (const k of lov) {
+          const i = kortIndeks(k);
+          const base = Math.exp((g[i] ?? 0) - maks) / sum;
+          const blandet = (1 - p) * base + (i === målIdx ? p : 0);
+          // GULV: en sannsynlighet paa eksakt 0 ville gitt -Infinity og gjort
+          // hele verdenen umulig paa grunn av ETT kort. Blandingen kan ikke gi
+          // 0 med p < 1, men gulvet staar som vern mot avrunding.
+          ut[i] = Math.log(Math.max(1e-12, blandet));
+        }
+        return ut;
       },
     };
   }

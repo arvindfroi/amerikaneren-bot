@@ -7324,3 +7324,65 @@ Kravet «predikere motstandernes kort på et veldig høyt nivå» er ikke innfri
 og veien dit går ikke gjennom flere slutningsregler. Renonser er allerede
 utnyttet fullt ut; de resterende 7,3 % ligger i sampleren og i budrunden, ikke
 i A1/A5/A6.
+
+## 106. KRAVENE ER KOBLET — og jeg har målt dem som om de ikke var det
+
+Arvind: «problemet er at bud og spillet henger sammen, men må være best på
+begge deler. det er spillet er også avhengig av k4, k5, k6, k7, k8. k4 og k8
+henger også sammen og komplementerer hverandre. skjønner du hvorfor vi må
+alltid ta høyde for alle kravene.»
+
+Ja — og det avslører en systematisk feil i hvordan jeg har målt. **Hver
+komponent er målt mot et fast miljø der de andre står stille.** Når de er
+koblet, måler det noe annet enn jeg tror.
+
+Tre koblinger, sjekket i koden og ikke antatt:
+
+### K4 → K8 fantes ikke. Nå gjør den det.
+
+A5 regner `P(observasjon | verden)` under en POLICY, og den policyen var
+**alltid vårt eget nett** — også når økten hadde lært at setet spiller helt
+annerledes. Verdenene ble altså vektet med feil modell.
+
+Det er en del av forklaringen på §105: alle tre slutningene bidrar 1,3 % mens
+renonser alene bidrar 92,7 %. De leser observasjonene med en antakelse om
+motstanderen som K4 allerede vet er feil.
+
+`Økt.atferdFor(basis, sete)` er koblingen. Den deler `vri` og ytterkortvalget
+med `motpartFor` — **én definisjon**, ellers ville søket rullet ut én
+motstander og troen vektet etter en annen. Det er nøyaktig feilen A6 hadde.
+
+Formen er en BLANDING og ikke en overstyring:
+
+    P_vridd(c) = (1 − |vri|)·softmax(nettet)(c) + |vri|·1[c = ytterkortet]
+
+`motpartFor` bruker en deterministisk mynt fra stillingen; sett over stillinger
+ER det denne blandingen. Mynten kan ikke brukes i troen, som spør «hvor
+sannsynlig var dette kortet», ikke «hva ville hun valgt her».
+
+Verifisert: sete med `aggressivitet = −0,222` får endrede logits, de tre under
+terskelen 0,2 går uendret gjennom.
+
+### K5 → K3 finnes ikke
+
+`totalPoeng` har **null treff** i både `budmodell.ts` og `budagent.ts`.
+Budmodellen ser aldri kampstillingen. En som ligger 20 bak ved 70–90 skal by
+annerledes — Adams gjør det ikke. Racepresset (§ K5) virker bare på kortvalg.
+
+### K3 ↔ K1: budet er kalibrert til en FAST spillestyrke
+
+`Budagent` regner `ev = p·2N(2P−1) + (1−p)·fv`, der `P` kommer fra (μ, σ) —
+GBT-ens anslag på hvor mange stikk LAGET tar. Blir spillet bedre, flytter μ
+seg, og den optimale terskelen med den. `bud-vant.json` er en fast fil.
+
+**Å forbedre spillet uten å rekalibrere budmodellen legger igjen poeng på
+bordet, og omvendt.** Det er den dypeste versjonen av Arvinds poeng, og den
+forklarer hvorfor §63 fant terskelen «optimal i fire retninger»: den ER
+optimal — for den spillestyrken den ble målt mot.
+
+### Hva det betyr for målingene
+
+En ablasjon som slår av ÉN del og måler mot resten, måler delens verdi GITT at
+de andre står stille. Det er riktig svar på et annet spørsmål enn «er dette
+verdt å ha». MVP-dommens superadditivitet er derfor ikke en formalitet — den
+er det eneste tallet som ser koblingene.

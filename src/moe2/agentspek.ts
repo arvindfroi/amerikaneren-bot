@@ -662,9 +662,33 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       bayes && nettFil !== undefined
         ? (() => {
             const n = lesNett(nettFil);
-            return {
+            const grunn = {
               logits: (st: GameState, s2: number) =>
                 forover(n, e1SpillTrekk(st, s2, n.lag[0]!.inn)),
+            };
+            /**
+             * ============ K4 MATER K8 =================================
+             *
+             * Arvind: «k4 og k8 henger ogsaa sammen og komplementerer
+             * hverandre.»
+             *
+             * A5 regner P(observasjon | verden) under en POLICY, og den
+             * policyen var alltid vaart eget nett — ogsaa naar oekten hadde
+             * laert at setet spiller helt annerledes. Da vektes verdenene med
+             * feil modell.
+             *
+             * `Økt.atferdFor` gir den vridde policyen, og den deler `vri` og
+             * ytterkortvalget med `motpartFor`. Uten den delingen ville soeket
+             * rullet ut én motstander og troen vektet etter en annen — samme
+             * feil som A6 hadde da avsender og mottaker hadde hver sin kode.
+             *
+             * Uten oekt er dette bit-identisk med foer: `atferdFor` returnerer
+             * `grunn` uendret naar stilen ikke er lest.
+             */
+            if (ctx.økt === undefined) return grunn;
+            const økt = ctx.økt;
+            return {
+              logits: (st: GameState, s2: number) => økt.atferdFor(grunn, s2).logits(st, s2),
             };
           })()
         : undefined;
