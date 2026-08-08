@@ -573,6 +573,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      * finnes i konteksten.
      */
     const økt = ctx.økt ?? new Økt();
+
+
     const inn = lagIndre(indre.slice(4), { ...ctx, økt });
     return {
       velgHandling: (s) => inn.velgHandling(s),
@@ -666,6 +668,7 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      * vekter, og `lesNett` deler instansen så den ikke lastes to ganger.
      */
     const nettFil = /e1:([\w./-]+\.bin)/.exec(restSpek)?.[1];
+
     const atferd =
       bayes && nettFil !== undefined
         ? (() => {
@@ -907,6 +910,32 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
   }
   if (indre.startsWith("e1:")) {
     const rest = indre.slice(3);
+    /**
+     * ============ OEKTEN FAAR NETTET HER, DER DET LASTES ===============
+     *
+     * `Profilbok` laerer stilbiasen som RESIDUALET mot nettets prediksjon
+     * (`stilbias.ts`), saa den maa ha policyen. Uten den er hele K4/K6-
+     * hukommelsen stum: `stil()` blir aldri «sikker» og `motpartFor` er en
+     * identitetsfunksjon i det uendelige.
+     *
+     * JEG PROEVDE TO ANDRE STEDER FOERST, og begge var for smale:
+     *
+     *   i «amu:»   `A_MINNE` er `profil:budm:...:vakt:...:e1:...` UTEN soek,
+     *              saa K4-proeven fikk aldri noe nett.
+     *   i «okt:»   `A_MINNE` har heller ikke det laget - oekten kommer inn
+     *              gjennom `ctx`.
+     *
+     * Her, der nettet faktisk lastes, gjelder det enhver spek som har et nett
+     * og en oekt - uansett hvilke lag som finnes over. To bom paa samme
+     * §99-feil: en evne bygd, testet og koblet ETT lag for langt unna.
+     */
+    if (ctx.økt !== undefined && !ctx.økt.bok.harAtferd()) {
+      const fil = rest.split("@")[0]!;
+      const n = lesNett(fil);
+      ctx.økt.bok.settAtferd({
+        logits: (st: GameState, s2: number) => forover(n, e1SpillTrekk(st, s2, n.lag[0]!.inn)),
+      });
+    }
     const at = rest.lastIndexOf("@");
     if (at < 0) {
       const n = lesNett(rest);

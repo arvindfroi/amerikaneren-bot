@@ -69,6 +69,7 @@ import { pathToFileURL } from "node:url";
 import { opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
 import { lovligeKort } from "../src/motor.ts";
 import { lagIndre, ADAMS_MAALT, tall, type Spekagent } from "../src/moe2/agentspek.ts";
+import { lagTrumftrekker } from "./k6-vaner.ts";
 import { Økt } from "../src/moe2/okt.ts";
 import { BEFOLKNING, krymp, tiltro } from "../src/moe2/profil.ts";
 import { MAKS_UTSLAG, type Profilbok } from "../src/moe2/profilagent.ts";
@@ -188,8 +189,34 @@ export function spillOgTaOpp(
   tikk: boolean,
   fokus = 0,
   forkamper = 0,
+  /**
+   * ============ ET BORD MED NOE AA HUSKE =============================
+   *
+   * Sto ingenting her, og alle fire setene var identiske Adams. Da finnes det
+   * INGEN stil aa laere, og en riktig hukommelse skal ikke endre et eneste
+   * valg. Den gamle detektoren «bestod» likevel - fordi den fyrte paa stoey
+   * (§108: fire identiske agenter spredte seg -0,45..+0,17).
+   *
+   * Med residualmaalet (`stilbias.ts`) er nullpunktet null, saa proeven maa gi
+   * hukommelsen noe ekte aa finne. Ellers maaler den at ingenting skjer naar
+   * ingenting har skjedd - og kaller det en feil.
+   */
+  vaneSete?: number,
 ): Opptak {
-  const stakker = [0, 1, 2, 3].map(() => lagStakk(spek, medØkt));
+  const stakker = [0, 1, 2, 3].map((p) => {
+    const st = lagStakk(spek, medØkt);
+    if (p !== vaneSete) return st;
+    // Bare KORTVALGET vris. Bud, vrak og trumf tas av samme agent som de
+    // andre, saa det eneste som skiller setet er vanen.
+    const vane = lagTrumftrekker(spek);
+    return {
+      ...st,
+      agent: {
+        nyKamp: () => st.agent.nyKamp(),
+        velgHandling: (x: GameState): Handling => vane.velgHandling(x),
+      } as Agent,
+    };
+  });
   const stillinger: GameState[] = [];
   const valg: string[] = [];
 
@@ -772,6 +799,8 @@ export function prøveA2(opts: {
   kandidater: number;
   maksPerGiv: number;
   fokus?: number;
+  /** Setet som har en utnyttbar vane. Uten den er det ingenting aa laere. */
+  vaneSete?: number;
 }): A2Mål {
   const fokus = opts.fokus ?? 0;
   const ut: A2Mål = {
@@ -789,7 +818,9 @@ export function prøveA2(opts: {
 
   for (let g = 0; g < opts.giv; g++) {
     const frø = opts.frøBase + g * 7717;
-    const o = spillOgTaOpp(A_MINNE, true, frø, opts.målRunde, true, fokus, opts.forkamper);
+    const o = spillOgTaOpp(
+      A_MINNE, true, frø, opts.målRunde, true, fokus, opts.forkamper, opts.vaneSete,
+    );
     if (o.økt === null || o.nådd < opts.målRunde) continue;
     const økt = o.økt;
     for (let s = 0; s < 4; s++) {

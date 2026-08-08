@@ -354,6 +354,19 @@ test("K4 PROEVE A: budkanalen endrer null valg i runde 8 - hukommelsen er for sv
  * runder mens aggressiviteten fortsatt er null. Derfor to forkamper her.
  */
 test("K4 PROEVE A: hukommelsen ENDRER kortvalget gjennom A2 - naar den er koblet", () => {
+  /**
+   * ============ PROEVEN TRENGER ET BORD MED NOE AA HUSKE ==============
+   *
+   * Sto uten `vaneSete`, altsaa fire IDENTISKE Adams. Da finnes ingen stil aa
+   * laere, og en riktig hukommelse skal ikke endre et eneste valg. Testen
+   * bestod likevel foer - fordi den gamle detektoren fyrte paa stoey (§108:
+   * fire identiske agenter spredte seg -0,45..+0,17, og et normalt sete fyrte
+   * som «passiv»).
+   *
+   * Med residualmaalet er nullpunktet null og maalt til det (`stilbias.test.ts`).
+   * Kravet er derfor stilt om til det Arvind faktisk ba om: hukommelsen skal
+   * endre valget NAAR DET ER NOE AA HUSKE.
+   */
   const a2 = prøveA2({
     giv: 2,
     frøBase: FRØ,
@@ -362,12 +375,14 @@ test("K4 PROEVE A: hukommelsen ENDRER kortvalget gjennom A2 - naar den er koblet
     verdener: 8,
     kandidater: 8,
     maksPerGiv: 2,
+    vaneSete: 1,
   });
   assert.ok(a2.n >= 2, `A2-proeven fikk bare ${a2.n} kortstillinger`);
+  // `aggressivitet` er det GAMLE raa-atferdsmaalet og styrer ikke lenger vrien.
+  // Det som betyr noe er om `motpartFor` faktisk vridde noe - neste paastand.
   assert.ok(
-    a2.aggressivitet.some((x) => x !== null),
-    `ingen sete naadde MIN_RUNDER=${MIN_RUNDER} etter to forkamper. Da er ` +
-      `«motpartFor» en identitetsfunksjon og A2 er koblet til ingenting.`,
+    a2.seteSjekker > 0,
+    "proeven sjekket ingen seter - da maaler den ingenting",
   );
   assert.ok(
     a2.vridde > 0,

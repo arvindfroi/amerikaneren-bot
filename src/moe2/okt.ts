@@ -118,6 +118,34 @@ export class Økt {
   }
 
   /**
+   * ============ VRIEN, NÅ FRA RESIDUALET ==============================
+   *
+   * ARVIND: «hvis det du prøvde på ikke funket så må du bygge noe nytt som
+   * funker.»
+   *
+   * `aggressivitet` målte RÅ ATFERD, og §108 målte at den ikke kunne virke:
+   * fire identiske Adams spredte seg fra −0,45 til +0,17, et helt normalt sete
+   * fyrte som «passiv», og en stilisert trumftrekker lå under terskelen.
+   *
+   * `Profilbok.stil` måler i stedet residualet mot nettets egen prediksjon, og
+   * de tre egenskapene som manglet er nå målt og testet:
+   *
+   *     nullpunktet er null      fire identiske: 0 av 4 flagget
+   *     vanen blir funnet        trumftrekkeren: +0,629 ± 0,036 = 17 SE
+   *     beviset er stort         ~110 observasjoner per sete per 16 runder
+   *
+   * `null` når forskjellen ikke slår 2 SE. Da er `basis` uendret, og søket
+   * oppfører seg nøyaktig som uten økt — som er riktig standard når vi ikke vet
+   * noe: å vri på en stil vi ikke har sett er verre enn å la være.
+   */
+  stilvri(sete: number): number | null {
+    const d = this.bok.stil(sete);
+    if (!d.sikker) return null;
+    // Taket står: et anslag som vrir søket hardt gjør skade når det tar feil.
+    return Math.max(-MAKS_VRI, Math.min(MAKS_VRI, d.forskjell));
+  }
+
+  /**
    * A2: policyen søket skal tro at `sete` spiller med.
    *
    * Vrir `basis` mot høyere eller lavere kort etter observert stil. Vrien er
@@ -125,9 +153,8 @@ export class Økt {
    * `basis` uendret, og søket oppfører seg nøyaktig som før.
    */
   motpartFor(basis: Utspiller, sete: number): Utspiller {
-    const a = this.aggressivitet(sete);
-    if (a === null || Math.abs(a) < 0.2) return basis;
-    const vri = Math.max(-MAKS_VRI, Math.min(MAKS_VRI, a));
+    const vri = this.stilvri(sete);
+    if (vri === null) return basis;
     return {
       velgHandling: (s: GameState): Handling => {
         const h = basis.velgHandling(s);
@@ -192,9 +219,8 @@ export class Økt {
    * ikke «hvilket kort ville hun valgt i akkurat denne stillingen».
    */
   atferdFor(basis: Atferdsmodell, sete: number): Atferdsmodell {
-    const a = this.aggressivitet(sete);
-    if (a === null || Math.abs(a) < 0.2) return basis;
-    const vri = Math.max(-MAKS_VRI, Math.min(MAKS_VRI, a));
+    const vri = this.stilvri(sete);
+    if (vri === null) return basis;
     const p = Math.abs(vri);
     return {
       logits: (s: GameState, spiller: number): Float32Array | number[] => {

@@ -7617,3 +7617,62 @@ ennå hentet gevinsten.
 `lagMål` blir stående i koden, avslått og med dette tallet i kommentaren — ikke
 fordi den kan brukes, men fordi neste som får den samme gode idéen skal finne
 målingen før de bygger den.
+
+## §110 — K4 og K6 er koblet, og låsen på defekten er snudd
+
+`stilbias` var bevist (§109-commit) men styrte ingenting. Nå gjør den det:
+`Økt.stilvri` erstatter `aggressivitet` som port for både `motpartFor` (A2) og
+`atferdFor` (K4→K8).
+
+### Registreringen bommet to ganger på samme feil
+
+Økten trenger nettet for å regne residualet. Jeg la kallet feil sted **to
+ganger**, og begge var for smale:
+
+| plassering | hvorfor den bommet |
+|---|---|
+| i `amu:` | `A_MINNE` er `profil:budm:…:vakt:…:e1:…` **uten søkelag** |
+| i `okt:` | `A_MINNE` har ikke det laget heller — økten kommer via `ctx` |
+| **i `e1:`** | der nettet faktisk lastes. Gjelder enhver spek med nett og økt |
+
+Samme §99-feil to ganger på rad: en evne bygd, testet og koblet ett lag for
+langt unna. Symptomet var identisk begge ganger — `motpartFor` ga `basis`
+uendret for **hvert** sete, altså en ren identitetsfunksjon.
+
+### To tester målte at ingenting skjedde — mot et bord uten noe å lære
+
+**K4 Prøve A** krevde at vrien fyrte mot fire IDENTISKE Adams. Men da finnes
+ingen stil å lære, og en riktig hukommelse skal ikke endre et eneste valg. Den
+gamle detektoren «bestod» fordi den fyrte på støy. Prøven har nå et `vaneSete`
+— det Arvind faktisk ba om: *hukommelsen skal endre valget når det er noe å
+huske.*
+
+**K6-testen var en lås på defekten selv.** Den slo fast at `okt:` spiller
+bit-identisk med å ha laget av, og kommentaren sa hvorfor: «økten vet aldri
+noe». Den er snudd, og krever nå begge halvdeler:
+
+* mot en trumftrekker **må** armene skille lag — ellers læres ingenting
+* mot en nøytral motstander må de være **bit-identiske** — ellers vris søket på støy
+
+Den andre halvdelen er den viktigste. Den gamle detektoren bestod den første og
+strøk på den andre.
+
+*En feilslutning underveis:* jeg valgte først «få runder mot trumftrekkeren»
+som nullarm, og den skilte lag alt etter tre runder. Det var ikke støy — med
+~10 observasjoner per runde per sete er 30 nok til å slå 2 SE mange ganger når
+residualet er +0,6. **Detektoren er rask mot en åpenbar vane; nullarmen var
+feil valgt.** Den ekte nullen er en motstander uten vane.
+
+462 tester grønne.
+
+### Hva som gjenstår før K4 og K6 kan krysses av
+
+Mekanismen virker og er koblet. Men innfridd betyr **målt i spill**:
+
+1. K6-prøvens punkt 2 — at gevinsten VOKSER med rundenummeret. Signaturen på
+   læring, ikke på at motstanderen er dårlig.
+2. K4 Prøve B — `M ≥ 2`, framoverblikket. Fortsatt av, og fortsatt 5,3× dyrere.
+3. At koblingen er verdt noe på gate 2 eller kampbenken, parret og replikert.
+
+Ingen av dem er gjort. Det som er gjort, er at de nå KAN gjøres — før i dag
+målte begge prøvene en identitetsfunksjon.

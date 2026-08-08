@@ -37,6 +37,14 @@
  * to runder er verre enn ingen profil».
  */
 
+import {
+  leggTil,
+  rundensResidualer,
+  stilForskjell,
+  TOMT_BIAS,
+  type Biasanslag,
+} from "./stilbias.ts";
+import type { Atferdsmodell } from "./troverdighet.ts";
 import type { GameState } from "../motor.ts";
 import type { Handling } from "../motor.ts";
 import {
@@ -60,6 +68,52 @@ export class Profilbok {
   private readonly profiler = new Map<number, Profil>();
   /** Runden vi sist bokførte, per sete – så én runde ikke telles to ganger. */
   private sistBokfort = -1;
+
+  /**
+   * ============ STILBIAS: RESIDUALET, IKKE RÅ ATFERD ==================
+   *
+   * `Profil` måler HVA setet gjorde. Dette måler hvor mye det avvek fra det
+   * nettet ventet i nøyaktig den stillingen — og det er forskjellen mellom en
+   * detektor som virker og en som ikke gjør det (§108 mot `stilbias.ts`).
+   *
+   * `atferd` settes utenfra, av spekbyggeren, fordi boka ikke skal kjenne til
+   * nettfiler. Uten den er alt her stumt og resten oppfører seg som før.
+   */
+  private readonly bias = new Map<number, Biasanslag>();
+  private atferd: Atferdsmodell | null = null;
+  /**
+   * Totalpoengene FØR runden. De endres bare ved rundeslutt, så enhver
+   * stilling vi ser mens runden pågår bærer dem. Uten dem koder nettet
+   * poengandelene med rundens resultat alt lagt til — altså med fasit.
+   */
+  private poengFør: readonly number[] | null = null;
+
+  settAtferd(a: Atferdsmodell): void {
+    // FOERSTEMANN VINNER. Speken kan naevne flere nett (soekets motpart, troens
+    // policy); residualet skal maales mot ÉN policy, ellers sammenlignes runder
+    // med ulike malestokker.
+    if (this.atferd === null) this.atferd = a;
+  }
+
+  harAtferd(): boolean {
+    return this.atferd !== null;
+  }
+
+  biasFor(sete: number): Biasanslag {
+    return this.bias.get(sete) ?? TOMT_BIAS;
+  }
+
+  /**
+   * Skiller `sete` seg fra de andre ved bordet, målt mot deres egen spredning?
+   *
+   * Referansen er medianspilleren, ikke snittet: med snittet drar én uteligger
+   * nullpunktet og gjør alle de andre «særegne» — målt, se `stilbias.ts`.
+   */
+  stil(sete: number): { forskjell: number; se: number; sikker: boolean } {
+    const andre: Biasanslag[] = [];
+    for (let p = 0; p < 4; p++) if (p !== sete) andre.push(this.biasFor(p));
+    return stilForskjell(this.biasFor(sete), andre);
+  }
 
   profilFor(sete: number): Profil {
     let p = this.profiler.get(sete);
@@ -97,8 +151,27 @@ export class Profilbok {
    * før fasen faktisk er RUNDE_SLUTT, og bare én gang per runde.
    */
   observer(state: GameState): void {
+    // Fanges MENS runden går: ved rundeslutt er poengene allerede delt ut.
+    if (state.fase === "SPILL") this.poengFør = state.totalPoeng;
     if (state.fase !== "RUNDE_SLUTT" || state.rundeNr === this.sistBokfort) return;
     this.sistBokfort = state.rundeNr;
+
+    /**
+     * RESIDUALENE FOR RUNDEN — her, og bare her.
+     *
+     * De krever hendene, som er skjult mens runden spilles og kjent når den er
+     * over. Valgene i runde `r` ser derfor bare residualer fra runde `< r`, og
+     * K2-prøven ser fortsatt invarians under skjult informasjon.
+     */
+    if (this.atferd !== null) {
+      const res = rundensResidualer(state, this.atferd, this.poengFør ?? undefined);
+      for (const [sete, liste] of res) {
+        let a = this.biasFor(sete);
+        for (const x of liste) a = leggTil(a, x);
+        this.bias.set(sete, a);
+      }
+    }
+    this.poengFør = null;
     const bv = state.budvinner;
     if (bv === null || bv === undefined) return;
     const kontrakt = typeof state.budrunde.sisteBud[bv] === "number"

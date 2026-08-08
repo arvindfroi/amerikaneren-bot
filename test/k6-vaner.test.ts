@@ -144,36 +144,77 @@ test("K6: profilboka FYLLES naa i en ekte spilloeyfe", () => {
 // 3. Er `okt:` dermed bit-identisk med «av»?
 // ---------------------------------------------------------------------------
 
-test("K6: «okt:» spiller IKKE lenger bit-identisk med aa ha laget av", () => {
+test("K6: «okt:» ENDRER spillet naar det finnes en vane - og bare da", () => {
   /**
-   * Nullpunktet skal være bit-identisk med «av» NÅR ØKTEN IKKE VET NOE — det er
-   * regelen. Her er den oppfylt av feil grunn: økten vet aldri noe, så
-   * `motpartFor` returnerer alltid `basis` uendret, og de to armene er samme
-   * bot i hver eneste stilling.
+   * ============ DENNE TESTEN ER SNUDD, OG DET ER POENGET ==============
    *
-   * Konsekvensen er skarp: enhver måling som sammenlikner en spek MED `okt:`
-   * mot en UTEN, måler ren støy fra frøet. Speken må ha `amu:` for at
-   * påstanden skal bety noe — uten søkelag finnes ikke A2-kanalen i det hele
-   * tatt, og likheten ville vært triviell.
+   * Foer sto den motsatt vei: den LAASTE at `okt:` spilte bit-identisk med aa
+   * ha laget av. Kommentaren sa hvorfor: «oekten vet aldri noe, saa
+   * motpartFor returnerer alltid basis uendret». Det var en laas paa en kjent
+   * defekt, ikke paa en oensket egenskap - og konsekvensen sto der ogsaa:
+   * enhver maaling som sammenlignet en spek MED `okt:` mot en UTEN, maalte ren
+   * stoey fra froeet.
+   *
+   * Med residualmaalet (`stilbias.ts`) vet oekten noe. Kravet er derfor det
+   * Arvind ba om, i to halvdeler som begge maa holde:
+   *
+   *   MOT EN VANE      armene skal skille lag - ellers laerer den ingenting
+   *   FOER BEVISET     de skal vaere identiske - ellers fyrer den paa stoey
+   *
+   * Den andre halvdelen er den viktigste. Den gamle detektoren hadde bestaatt
+   * den foerste og strauket paa den andre (§108: fire identiske agenter
+   * spredte seg -0,45..+0,17).
    */
-  const med = spillKamp(arm("okt"), "stilisert", 810_000_301, 0, {
-    målPoeng: 9999,
-    maksRunder: 5,
-    adams: ADAMS_MINI,
-    basis: ADAMS_MAALT,
-  });
-  const uten = spillKamp(arm("uten-okt"), "stilisert", 810_000_301, 0, {
-    målPoeng: 9999,
-    maksRunder: 5,
-    adams: ADAMS_MINI,
-    basis: ADAMS_MAALT,
-  });
-  assert.equal(med.length, uten.length);
-  assert.ok(med.length >= 4);
+  const kjør = (
+    arm_: string,
+    runder: number,
+    motstander: "stilisert" | "noytral" = "stilisert",
+  ): ReturnType<typeof spillKamp> =>
+    spillKamp(arm(arm_), motstander, 810_000_301, 0, {
+      målPoeng: 9999,
+      maksRunder: runder,
+      adams: ADAMS_MINI,
+      basis: ADAMS_MAALT,
+    });
+
+  // HALVDEL 1: med nok runder mot en trumftrekker maa hukommelsen gjoere noe.
+  const medL = kjør("okt", 20);
+  const utenL = kjør("uten-okt", 20);
+  assert.ok(medL.length >= 8, `for faa runder spilt (${medL.length})`);
+  const likeLange = Math.min(medL.length, utenL.length);
+  const ulike = Array.from({ length: likeLange }).filter(
+    (_, i) =>
+      medL[i]!.adamsPoeng !== utenL[i]!.adamsPoeng ||
+      medL[i]!.andreSnitt !== utenL[i]!.andreSnitt,
+  ).length;
+  assert.ok(
+    ulike > 0,
+    `armene var identiske i alle ${likeLange} runder mot en stilisert ` +
+      `trumftrekker. Da laerer «okt:» ingenting, og enhver maaling som ` +
+      `sammenligner med og uten den maaler bare froeet.`,
+  );
+
+  /**
+   * HALVDEL 2, NULLARMEN: mot en NOEYTRAL motstander - vaar egen bot, uten
+   * vane - skal armene vaere bit-identiske uansett hvor lenge det spilles.
+   *
+   * Jeg proevde foerst «faa runder mot trumftrekkeren» som nullarm, og den
+   * skilte lag alt etter tre runder. Det var ikke stoey: med ~10 observasjoner
+   * per runde per sete er 30 nok til aa slaa 2 SE mange ganger naar residualet
+   * er +0,6. Detektoren er rett og slett rask mot en aapenbar vane, og
+   * nullarmen var feil valgt.
+   *
+   * DETTE er den ekte nullen: ingen vane, altsaa ingenting aa laere, altsaa
+   * ingen forskjell. Det er der den gamle detektoren strauk.
+   */
+  const medN = kjør("okt", 20, "noytral");
+  const utenN = kjør("uten-okt", 20, "noytral");
+  assert.ok(medN.length >= 8, `for faa runder i nullarmen (${medN.length})`);
   assert.deepEqual(
-    med.map((r) => [r.rundeNr, r.adamsPoeng, r.andreSnitt]),
-    uten.map((r) => [r.rundeNr, r.adamsPoeng, r.andreSnitt]),
-    "armene skiller lag — da fyrer okt: faktisk, og hovedfunnet er feil",
+    medN.map((r) => [r.rundeNr, r.adamsPoeng, r.andreSnitt]),
+    utenN.map((r) => [r.rundeNr, r.adamsPoeng, r.andreSnitt]),
+    "armene skilte lag mot en motstander UTEN vane. Da vrir hukommelsen " +
+      "soeket paa stoey - noeyaktig feilen §108 maalte.",
   );
 });
 
