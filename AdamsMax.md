@@ -129,7 +129,7 @@ ikke av en håndskrevet regel, og (b) gapet til fasens tak er målt.
 | Trumfvalg | vrakvelger | målt |
 | Utspill stikk 1 | konvensjonsvakt + søk | §73: regelen målte null |
 | Midtspill | alpha-mu, alle roller | måles nå |
-| Sluttspill | eksakt løser | 0,3 % av taket — **lukket** |
+| Sluttspill | eksakt løser | 0,3 % av taket — **umålt igjen**, se K7 og §116 |
 
 **Status: delvis.** Budrunden er det store hullet — og det eneste vinduet stort
 nok til å nå K1. Tre forsøk der har målt null (terskelen er optimal;
@@ -279,7 +279,7 @@ at planen fram dit vet hva sluttspillet er verdt.
 | stikk 10–11 | +0,064 |
 | hele sluttspillet | **0,3 % av taket** |
 
-> ⚠️ **«Taket» ble regnet med en ødelagt dobbelt-dummy-løser.** §115 fant to
+> ⚠️ **«Taket» ble regnet med en ødelagt dobbelt-dummy-løser.** §116 fant to
 > feil i `src/solver/dds.ts` som gjorde at `løsDD` svarte feil i **86 av 400**
 > tilfeldige 3–4-kortsgivinger, og `rotVerdier` enda oftere. Begge er rettet og
 > avviket mot en råsøker er nå eksakt 0, men hvert eneste tak-tall i tabellen
@@ -464,14 +464,14 @@ arbeidslista, og den er ærlig om hva som er kode og hva som er timer:
 | K4 hukommelse + planlegging | ja | **nei** — hviler på samme tall som K6, se §108. `M=1`, så framoverblikket er av |
 | K5 kontekst og tilpasning | ja | **nei** — alfa-mu i alle roller MÅLT: makker og forsvar ≤ 0 i alle armer (§109) |
 | K6 lære vaner og utnytte | ja | **nei** — detektoren målt og felt: den finner ikke en stilisert vane (§108) |
-| K7 optimalt sluttspill | ja | **umålt** — taket var regnet med en ødelagt DD-løser, rettet i §115 |
+| K7 optimalt sluttspill | ja | **umålt** — taket var regnet med en ødelagt DD-løser, rettet i §116 |
 | K8 predikere kort | ja | delvis — 1 av 6 kanaler koblet; kanal 3s harde halvdel rettet (§107) |
 
 **Alle åtte har nå en prøve.** Det var fire uten da fila ble skrevet.
 
 **Sju av åtte krav er ubeviste.** K7 var det sjuende, og falt tilbake til umålt
 8. august da taket det ble målt mot viste seg å være regnet med en ødelagt
-løser (§115). Det er den ærlige tilstanden.
+løser (§116). Det er den ærlige tilstanden.
 
 ### Hvor det står 8. august, etter en natt med målinger
 

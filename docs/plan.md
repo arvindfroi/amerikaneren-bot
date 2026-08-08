@@ -4117,7 +4117,7 @@ utspilleren som ikke vet hvem som la hva.
 
 ## 56. «EKSAKT» SLUTTSPILL VAR IKKE EKSAKT — jeg brukte det utenfor gyldighetsområdet
 
-> ⚠️ **LES §115 FØR DENNE.** Tallene under ble målt med en dobbelt-dummy-løser
+> ⚠️ **LES §116 FØR DENNE.** Tallene under ble målt med en dobbelt-dummy-løser
 > som svarte feil i 86 av 400 tilfeldige småstillinger. `eks:` kaller
 > `rotVerdier` inne i hver verden, så hver verdi den produserte var korrupt.
 > Feilen er rettet, og forklaringen i dette avsnittet — strategifusjon, DD som
@@ -7931,7 +7931,7 @@ ennå — det som er gjort, er at det nå *kan* måles del for del og par for pa
 
 ## §114 — gulvet er fortsatt ukjent, fordi vi ikke har en gyldig klarsynt sonde
 
-> ⚠️ **LES §115 ETTER DENNE.** Diagnosen her er riktig som regnskap, men den
+> ⚠️ **LES §116 ETTER DENNE.** Diagnosen her er riktig som regnskap, men den
 > forklarer bare en liten del av utslaget: `juks:6` målte 0,1100 fordi
 > `dds.ts` var ØDELAGT, ikke først og fremst fordi målet var feil. Med rettet
 > løser måler den samme sonden 0,2925, og med poengmålet 0,3175.
@@ -8009,7 +8009,13 @@ gjennomgang:
 | `juks:` (klarsynt sonde) | **dobbeltdummy-stikk** | **feil størrelse** |
 
 **DD-PROBLEMET ER LOKALISERT, IKKE SYSTEMISK.** Det satt i de to eksakte
-løserne — ikke i nettene, ikke i korpuset, ikke i søket. Det var verdt å sjekke:
+løserne — ikke i nettene, ikke i korpuset, ikke i søket.
+
+> ⚠️ **§116 fant at det ikke var MÅLET som satt der, det var en FEIL.** Begge
+> radene merket «feil størrelse» over kaller `rotVerdier`, og `rotVerdier`
+> svarte feil. Konklusjonen «lokalisert, ikke systemisk» står — den er til og
+> med sterkere, for feilen satt i én fil — men diagnosen «feil størrelse» var
+> ikke hovedårsaken til noen av de negative tallene. Det var verdt å sjekke:
 hadde korpuset vært merket med DD-stikk, ville hele nettet båret −0,609-feilen
 og alt måtte vært trent på nytt.
 
@@ -8030,7 +8036,7 @@ motbevist i en nabo-form er nøyaktig feilen §98 og §109 begge var.
 
 ---
 
-## §115 — «−0,609» var ikke et målefeil i FASITEN, det var en FEIL i løseren
+## §116 — «−0,609» var ikke et målefeil i FASITEN, det var en FEIL i løseren
 
 §114 fant at `juks:6` — boten som SER alle fire hendene fra seks kort igjen —
 vant **0,1100** av kampene mot grunnlinjas 0,2500. Forklaringen der var at
