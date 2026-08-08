@@ -647,6 +647,10 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     // «d<stikk>»: full alpha-mu-dybde naar saa faa stikk gjenstaar. 0 = av,
     // og da er M konstant som foer. Se `sluttdybde` i amuagent.ts.
     const sluttdybde = les("d", 0);
+    // «B<bredde>»: hvor mange grener under roten som utdypes, valgt av nettets
+    // policy. 0 = alle, bit-identisk. Stor B saa den ikke kolliderer med «b»
+    // (A5-flagget). Se `bredde` i amuagent.ts.
+    const bredde = les("B", 0);
     /**
      * SLUTNINGEN SOM VEKTER VERDENENE — «s» (A1, regler) eller «b» (A5, Bayes).
      *
@@ -761,6 +765,7 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       lambda,
       vetoMargin,
       sluttdybde,
+      bredde,
       // A2: oekten gir én policy PER MOTSTANDER. Uten oekt er den udefinert,
       // og soeket antar som foer at alle spiller som oss.
       motpartFor:

@@ -150,6 +150,15 @@ export interface AmuOpts {
    * 0 = av, og da er `M` konstant som før — bit-identisk.
    */
   readonly sluttdybde?: number;
+  /**
+   * SOEKEBREDDE UNDER ROTEN, styrt av nettets policy. 0 = alle grener, som foer.
+   *
+   * Arvind: «alpha mu boer ogsaa bruke hukommelsen og prediksjonen slik at vi
+   * kan effektivisere soeket.» Prioren er nettets egen sannsynlighet over
+   * VAARE trekk; med `bredde` beholdes bare de N beste under roten. Roten er
+   * alltid full - der tas beslutningen, og der har vi raad.
+   */
+  readonly bredde?: number;
 }
 
 export class Alphamuagent {
@@ -247,6 +256,13 @@ export class Alphamuagent {
 
     const grener = alphaMu(state, sete, verdener, {
       M,
+      // PREDIKSJONEN INN I SOEKET. `atferd` er nettets policy - den samme som
+      // A5 bruker til aa vekte verdener. Her styrer den hvilke av VAARE trekk
+      // som utdypes, saa dybde kan kjoepes for bredde.
+      ...(this.o.atferd === undefined
+        ? {}
+        : { prior: (s2: GameState, p2: number) => this.o.atferd!.logits(s2, p2) }),
+      ...(this.o.bredde === undefined ? {} : { bredde: this.o.bredde }),
       mål: this.o.lagmål === true ? lagMål : standardMål,
       motpart: ruter,
     });

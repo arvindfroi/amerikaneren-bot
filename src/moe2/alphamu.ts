@@ -43,6 +43,7 @@
 import { lovligeKort, utfør, type GameState, type Handling } from "../motor.ts";
 import type { Kort } from "../kort.ts";
 import { medVerden, type Utspiller } from "./sdkort.ts";
+import { kortIndeks } from "../nevro/trekk.ts";
 
 export interface AlphaMuOpts {
   /** Antall EGNE beslutninger å søke over. M=1 er dagens oppførsel. */
@@ -53,6 +54,36 @@ export interface AlphaMuOpts {
   readonly motpart: Utspiller;
   /** Tak på Pareto-frontens størrelse. Beskjæring gjør søket inexakt. */
   readonly maksFront?: number;
+  /**
+   * ============ PREDIKSJONEN SOM STYRER SØKET =========================
+   *
+   * ARVIND: «alpha mu bør også bruke hukommelsen og prediksjonen slik at vi kan
+   * effektivisere søket.»
+   *
+   * Han har rett, og det manglet helt. Søket gikk gjennom `felles.values()` i
+   * innsettingsrekkefølge, og `paretoFront` ble kalt ETTER full ekspansjon —
+   * altså beskjærte den resultatet, ikke søket. Cazenaves optimaliseringer
+   * («cuts that stop the search at a node») fantes ikke hos oss. Det er derfor
+   * `M=2` kostet 4x: treet ble utvidet uttømmende.
+   *
+   * `prior` er nettets policy over EGNE trekk. Den brukes til to ting:
+   *
+   *   REKKEFØLGE   beste trekk først. Alene endrer det ingenting, men det er
+   *                forutsetningen for at enhver beskjæring skal virke.
+   *   BREDDE       lenger nede i treet holdes bare de `bredde` beste. Roten er
+   *                ALLTID full — der har vi råd, og der tas beslutningen.
+   *
+   * Formen er den samme som MCTS med policy-prior: eksakt der det teller,
+   * gradvis smalere der grenene uansett er spekulative.
+   *
+   * MERK AT BREDDE GJØR SØKET INEXAKT, og det skal stå. `maksFront` gjør det
+   * allerede. Forskjellen er at dette er en MÅLT avveining mellom dybde og
+   * bredde: full dybde over de fire beste trekkene kan være verdt mer enn
+   * halv dybde over alle tolv. Hvilken vei det går er et empirisk spørsmål.
+   */
+  readonly prior?: (s: GameState, spiller: number) => Float32Array | number[];
+  /** Grener å beholde under roten. 0 = alle, og da er alt bit-identisk. */
+  readonly bredde?: number;
 }
 
 /** En gren: kortet i roten, og utfallet i hver verden. */
@@ -152,8 +183,35 @@ export function alphaMu(
       return [{ vektor: klare.map((s) => opts.mål(tilSlutt(s, opts.motpart), spiller)) }];
     }
 
+    /**
+     * REKKEFØLGE OG BREDDE, fra nettets policy. Uten `prior` er rekkefølgen
+     * `felles.values()` som før og bredden ubegrenset — bit-identisk.
+     *
+     * Prioren leses i den FØRSTE av våre turer. Den er den samme stillingen i
+     * alle verdener sett fra vår side (det er derfor de er ÉN informasjons-
+     * mengde), så et snitt over verdener ville vært samme tall til mer arbeid.
+     */
+    let kandidater = [...felles.values()];
+    /**
+     * NULL-PUNKTET KREVER AT BREDDE ER SATT, ikke bare at prioren finnes.
+     *
+     * Sortering alene ser uskyldig ut, men `paretoFront` har et tak
+     * (`maksFront`), saa NAAR flere grener enn taket er like gode, avgjoer
+     * rekkefoelgen hvilke som overlever. Aa sortere uten aa be om det ville
+     * dermed flyttet valg i stillinger ingen har bedt om aa endre - og et
+     * null-punkt som «nesten» er bit-identisk er ikke et null-punkt.
+     */
+    const bredde = opts.bredde ?? 0;
+    if (bredde > 0 && opts.prior !== undefined && kandidater.length > 1) {
+      const g = opts.prior(våreTurer[0]!, spiller);
+      const p = new Map<string, number>();
+      for (const k of kandidater) p.set(`${k.farge}${k.verdi}`, g[kortIndeks(k)] ?? 0);
+      kandidater.sort((x, y) => (p.get(`${y.farge}${y.verdi}`) ?? 0) - (p.get(`${x.farge}${x.verdi}`) ?? 0));
+      if (kandidater.length > bredde) kandidater = kandidater.slice(0, bredde);
+    }
+
     const grener: { vektor: number[] }[] = [];
-    for (const kort of felles.values()) {
+    for (const kort of kandidater) {
       const etter = klare.map((s) =>
         s.fase === "SPILL" && s.iTur === spiller
           ? utfør(s, { type: "SPILL", spiller, kort } as Handling).state
