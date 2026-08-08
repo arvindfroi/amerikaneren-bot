@@ -131,7 +131,26 @@ valg. Gevinsten ved M=2 mot M=1 må være målt og positiv.
 
 **Status: ubevist, og benken har skylden.** Gate 2 lager friske agenter per giv
 og stopper etter én runde, så hukommelsen får aldri mer enn én runde å huske.
-Kravet krever kampbenken. M står på 1 i V7 fordi M=2 koster 5,3×.
+Kravet krever kampbenken.
+
+**Men KOSTNADSLÅSEN på prøve B er borte (8. august).** `M=2` sto ikke på fordi
+den kostet 5,3× — det tallet var målt med CPU-en mettet av 18 andre jobber.
+`examples/amu-kostnad.ts` måler nå M=1 og M=2 i samme kjøring på samme
+stillinger, og profilen sa hvor tiden gikk: **95 % var ett kall**, nettets
+framoverpassering i rolloutene. Verdenstrekningen var 0,1 %, motoren 0,4 %.
+Aktiveringene i `d7alle` er 78–89 % nuller, så `forover` hopper nå over ledd der
+inngangen er eksakt null — i stigende rekkefølge, altså **bit-identisk**, holdt
+av `test/nett-glissen.test.ts` og `test/amu-bitidentisk.test.ts`.
+
+| | før | etter |
+|---|---|---|
+| `amu 12k16` M=1, per beslutning | 428 ms | **138 ms** |
+| `amu 12k16` M=2, per beslutning | 1 375 ms | **439 ms** |
+| M=2-arm, 16 000 gate2-par, én kjerne | 15,3 t | **4,9 t** |
+
+Med `--skard` over åtte kjerner er M=2-armen under en time. **`M=2` er ikke
+lenger en hypotese — den er en kandidat som kan måles.** Selve gevinsten er
+fortsatt umålt; det er neste steg, ikke dette.
 
 ---
 

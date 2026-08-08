@@ -36,23 +36,98 @@ export interface NevroHjerne {
   readonly spill: NevroNett;
 }
 
+/**
+ * ============ HVORFOR DENNE ER GLISSEN OG IKKE TETT ======================
+ *
+ * Profilen av alpha-mu-søket 8. august: **95 % av tiden er dette kallet.**
+ * Verdenstrekningen var 0,1 %, motoren 0,4 %. Skal søket bli billigere, må det
+ * skje her — og målt på `d7alle` er aktiveringene svært glisne:
+ *
+ *     lag 0  273x512   77,8 % nuller inn
+ *     lag 1  512x384   83,3 %
+ *     lag 2  384x256   88,9 %
+ *     lag 3  256x52    83,4 %
+ *     ------------------------------------
+ *     448 000 MAC-er   ->  76 949  (17,2 %)
+ *
+ * Inngangen er nesten bare indikatortrekk, og ReLU nuller ut resten. Å gange
+ * med null og legge til er arbeid vi kan hoppe over.
+ *
+ * ============ OG HVORFOR DEN LIKEVEL ER BIT-IDENTISK ====================
+ *
+ * Leddet vi hopper over er `vekt * 0`, altså `±0`, og `sum + ±0 === sum` for
+ * enhver endelig `sum`. **Rekkefølgen bevares**: indeksene samles stigende, så
+ * de gjenværende leddene legges sammen i nøyaktig samme orden som før. Det er
+ * det avgjørende — en kolonnevis omskriving ville vært raskere, men da endres
+ * summeringsrekkefølgen, og flyttall er ikke assosiative.
+ *
+ * To hjørner, sagt høyt fordi de ikke er null-risiko, bare uobserverbare:
+ *
+ *   1. `-0 + 0` er `+0`. En delsum som er nøyaktig `-0` kan altså skifte
+ *      fortegn på nullen. Ingen leser skiller dem: ReLU-en tester `< 0` (usann
+ *      for begge) og argmaks tester `>` (usann for begge).
+ *   2. `±Infinity * 0` er `NaN`. Et nett med uendelige vekter ville altså gitt
+ *      NaN før og et tall nå — men et slikt nett gir uansett bare NaN-logits
+ *      og søppelvalg, så det er ikke en oppførsel noen kan ha ment å ha.
+ *
+ * `test/nett-glissen.test.ts` holder identiteten, og
+ * `test/amu-bitidentisk.test.ts` holder den gjennom hele søket.
+ */
+
+/**
+ * Skrivebuffere for MELLOMLAGENE, slik at et framoverkall ikke allokerer fire
+ * Float32Array-er. Det SISTE laget får alltid en fersk array — den forlater
+ * funksjonen, og en kaller som holder på logitsene over neste kall ville ellers
+ * fått dem overskrevet under seg.
+ *
+ * Trygt uten låsing fordi `forover` ikke kaller noe som kan kalle `forover`
+ * igjen, og fordi hver arbeidertråd har sin egen modulinstans.
+ */
+let bufA = new Float32Array(0);
+let bufB = new Float32Array(0);
+let ikkeNull = new Int32Array(0);
+
 /** ReLU på alle lag unntatt det siste (logits) – som i appen. */
 export function forover(nett: NevroNett, x: Float32Array): Float32Array {
+  const sisteLag = nett.lag.length - 1;
   let a = x;
   for (let i = 0; i < nett.lag.length; i++) {
     const l = nett.lag[i]!;
-    const y = new Float32Array(l.ut);
+    if (ikkeNull.length < l.inn) ikkeNull = new Int32Array(l.inn);
+    // De ikke-null inngangene, STIGENDE. Rekkefølgen er hele bit-identiteten.
+    let m = 0;
+    for (let c = 0; c < l.inn; c++) if (a[c] !== 0) ikkeNull[m++] = c;
+
+    let y: Float32Array;
+    if (i === sisteLag) {
+      y = new Float32Array(l.ut);
+    } else {
+      // Les fra den ene bufferen, skriv til den andre - aldri samme.
+      if (a === bufA) {
+        if (bufB.length < l.ut) bufB = new Float32Array(l.ut);
+        y = bufB;
+      } else {
+        if (bufA.length < l.ut) bufA = new Float32Array(l.ut);
+        y = bufA;
+      }
+    }
+
     for (let r = 0; r < l.ut; r++) {
       let sum = l.bias[r]!;
       const rad = r * l.inn;
-      for (let c = 0; c < l.inn; c++) sum += l.vekter[rad + c]! * a[c]!;
-      y[r] = sum;
-    }
-    if (i < nett.lag.length - 1) {
-      for (let j = 0; j < y.length; j++) if (y[j]! < 0) y[j] = 0;
+      for (let k = 0; k < m; k++) {
+        const c = ikkeNull[k]!;
+        sum += l.vekter[rad + c]! * a[c]!;
+      }
+      y[r] = i < sisteLag && sum < 0 ? 0 : sum;
     }
     a = y;
   }
+  /**
+   * MELLOMBUFFEREN SKAL ALDRI SLIPPE UT. Et nett med ett lag treffer `i ===
+   * sisteLag` med én gang og allokerer, så dette er bare en påminnelse om
+   * hvorfor `y` er fersk der: `a` her er alltid den ferske arrayen.
+   */
   return a;
 }
 
