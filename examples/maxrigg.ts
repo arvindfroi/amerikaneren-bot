@@ -257,7 +257,14 @@ function byggSpek(på: ReadonlySet<string>): string {
     if (på.has("amub")) f += "b";
     if (på.has("amug")) f += "g";
     f += `m${på.has("amum") ? 2 : 1}`;
-    f += `e${på.has("amue") ? "0.25" : "0"}`;
+    /**
+     * A7 ER PARKERT (Arvind, 8. august: signalisering og mind games er for
+     * avansert naa). Den er ikke i K1-K8, og gate2-ablasjonen maalte den til
+     * -0,0941. Full stakk kjoerer derfor `e0`, og `u-amue` blir en NULLARM som
+     * skal maale eksakt 0 - en gratis kontroll paa at riggen er aerlig.
+     */
+    f += "e0";
+    void på.has("amue");
     f += `r${på.has("amur") ? "1.5" : "0"}`;
     f += `v${på.has("amuv") ? "0.5" : "0"}`;
     lag.push(`amu:${amuRolle}:${f}:`);
