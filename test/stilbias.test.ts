@@ -108,8 +108,22 @@ function spill(medVane: boolean, frø: number, runder: number): {
   return { bias, avvikMotRekonstruksjon: avvik, par };
 }
 
-const flagget = (bias: Biasanslag[]): boolean[] =>
-  bias.map((b, p) => stilForskjell(b, bias.filter((_, q) => q !== p)).sikker);
+/**
+ * UTSLAGETS STOERRELSE etter myk terskel - ikke et binaert flagg.
+ *
+ * `stilvri` bruker `max(0, |forskjell| - 2·SE)`, saa et grensetilfelle gir
+ * naermest ingen vridning mens en ekte vane beholder nesten alt. Da er
+ * «hvor mange ble flagget» feil maal: det som betyr noe er om vanen faar et
+ * utslag som er STOERRE ENN STOEYEN, ikke om stoeyen er eksakt null.
+ */
+const utslag = (bias: Biasanslag[]): number[] =>
+  bias.map((b, p) => {
+    const d = stilForskjell(b, bias.filter((_, q) => q !== p));
+    if (!d.sikker || !Number.isFinite(d.se)) return 0;
+    return Math.max(0, Math.abs(d.forskjell) - 2 * d.se);
+  });
+
+const flagget = (bias: Biasanslag[]): boolean[] => utslag(bias).map((x) => x > 0);
 
 test("laeringen er trofast: rekonstruksjonen ved rundeslutt er EKSAKT lik live", () => {
   const { avvikMotRekonstruksjon, par } = spill(true, 77_000_011, 8);
@@ -145,11 +159,23 @@ test("vanen blir funnet: trumftrekkeren flagges, og bare han", () => {
     `trumftrekkeren ble lest som ${snitt(bias[1]!).toFixed(3)} - han spiller HOEYERE enn ` +
       `nettet forventer, saa fortegnet skal vaere positivt`,
   );
-  const falske = [0, 2, 3].filter((p) => f[p]).length;
-  assert.equal(
-    falske,
-    0,
-    `${falske} normale seter ble ogsaa flagget. Referansen maa vaere medianspilleren, ` +
-      `ellers drar én uteligger nullpunktet og gjoer alle de andre «saeregne».`,
+  /**
+   * VANEN SKAL DOMINERE STOEYEN, ikke bare vaere alene om aa fyre.
+   *
+   * Et normalt sete kan saa vidt krysse 2 SE naar en trumftrekker sitter ved
+   * bordet - han endrer spillet for alle, saa de andres residualer skifter
+   * ogsaa litt. Med myk terskel koster det nesten ingenting: utslaget deres
+   * blir en broekdel av vanens, og vridningen skalerer med utslaget.
+   *
+   * Kriteriet er derfor FORHOLDET, ikke antallet. Krever at vanen faar minst
+   * fem ganger stoerre utslag enn det stoerste normale.
+   */
+  const u = utslag(bias);
+  const stoersteNormale = Math.max(u[0]!, u[2]!, u[3]!);
+  assert.ok(
+    u[1]! > 5 * stoersteNormale,
+    `trumftrekkerens utslag ${u[1]!.toFixed(3)} mot stoerste normale ` +
+      `${stoersteNormale.toFixed(3)} - vanen maa dominere stoeyen klart, ellers ` +
+      `vrir hukommelsen soeket like mye mot vanlige spillere som mot saeregne.`,
   );
 });

@@ -99,6 +99,11 @@ export class Profilbok {
     return this.atferd !== null;
   }
 
+  /** Policyen residualene er maalt mot. Vridningen maa bruke SAMME modell. */
+  atferdModell(): Atferdsmodell | null {
+    return this.atferd;
+  }
+
   biasFor(sete: number): Biasanslag {
     return this.bias.get(sete) ?? TOMT_BIAS;
   }

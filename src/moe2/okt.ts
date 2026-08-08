@@ -34,10 +34,10 @@
  */
 
 import type { GameState, Handling } from "../motor.ts";
-import { lovligeKort } from "../motor.ts";
 import { Profilbok } from "./profilagent.ts";
 import { tiltro } from "./profil.ts";
-import { billigste, dyreste } from "./synlig.ts";
+import { finnTilt, rangOgPolicy } from "./stilbias.ts";
+
 import { kortIndeks } from "../nevro/trekk.ts";
 import type { Atferdsmodell } from "./troverdighet.ts";
 import type { Utspiller } from "./sdkort.ts";
@@ -140,9 +140,35 @@ export class Økt {
    */
   stilvri(sete: number): number | null {
     const d = this.bok.stil(sete);
-    if (!d.sikker) return null;
-    // Taket står: et anslag som vrir søket hardt gjør skade når det tar feil.
-    return Math.max(-MAKS_VRI, Math.min(MAKS_VRI, d.forskjell));
+    if (!d.sikker || !Number.isFinite(d.se)) return null;
+
+    /**
+     * ============ MYK TERSKEL, IKKE EN HARD DØR ========================
+     *
+     * Her sto `forskjell` kappet på `MAKS_VRI = 0,35`. To ting var galt, og
+     * K6-testens nullarm fant det andre med én gang.
+     *
+     * TAKET var en levning fra da anslaget var støy. Trumftrekkerens MÅLTE
+     * residual er +0,629; å bruke 0,35 kastet 45 % av signalet.
+     *
+     * MEN Å FJERNE TAKET ALENE ER FARLIG. En port på 2 SE slipper gjennom
+     * omtrent én av tjue ved ren tilfeldighet. Med det gamle myntkastet merket
+     * man knapt en falsk positiv; med en full fordelingsvridning skiller
+     * armene lag for godt ved første treff. Testen «armene skilte lag mot en
+     * motstander UTEN vane» er nettopp den.
+     *
+     * MYK TERSKEL løser begge: trekk 2 SE fra utslagets STØRRELSE og gulvet
+     * på null. Da gir et grensetilfelle på 2,1 SE nesten ingen vridning, mens
+     * trumftrekkeren på 0,629 ± 0,036 beholder 0,557 — nesten alt.
+     *
+     * Det er samme form som `tiltro` bruker ellers i prosjektet: la beviset
+     * bestemme størrelsen, i stedet for å slippe alt eller ingenting gjennom
+     * en dør.
+     */
+    const tegn = d.forskjell >= 0 ? 1 : -1;
+    const krympet = Math.max(0, Math.abs(d.forskjell) - 2 * d.se);
+    if (krympet === 0) return null;
+    return tegn * krympet;
   }
 
   /**
@@ -153,29 +179,84 @@ export class Økt {
    * `basis` uendret, og søket oppfører seg nøyaktig som før.
    */
   motpartFor(basis: Utspiller, sete: number): Utspiller {
-    const vri = this.stilvri(sete);
-    if (vri === null) return basis;
+    const skift = this.stilvri(sete);
+    if (skift === null) return basis;
+    const atferd = this.bok.atferdModell();
+    if (atferd === null) return basis;
+
     return {
       velgHandling: (s: GameState): Handling => {
         const h = basis.velgHandling(s);
         // Bare KORTVALG vris. Bud og vrak er andre beslutninger med egne
         // modeller, og å vri dem her ville blandet to ting.
         if (h.type !== "SPILL" || s.iTur !== sete || s.trumf === null) return h;
-        const lov = lovligeKort(s, sete);
-        if (lov.length < 2) return h;
+        const rp = rangOgPolicy(s, sete, atferd);
+        if (rp === null) return h;
+
         /**
-         * Vrien er en SANNSYNLIGHET, ikke en overstyring: `vri` = 0,35 betyr
-         * at vi tror dette setet spiller dyrest i omtrent en tredel av
-         * stillingene der basis ville spilt noe annet. Å overstyre alltid
-         * ville gjort motstandermodellen til en karikatur.
+         * ============ EN VRIDNING, IKKE ET MYNTKAST ====================
+         *
+         * Her sto: «spill det dyreste kortet i |vri| av stillingene, ellers gjør
+         * som basis», med `vri` kappet på 0,35. K6-målingen (7200 runder) ga
+         * **0,007 ± 0,494** der den fyrte — altså eksakt ingenting.
+         *
+         * To feil i den formen:
+         *
+         *   TAKET  trumftrekkerens MÅLTE residual er +0,629, taket var 0,35.
+         *          Vi kastet 45 % av signalet. Taket ga mening da anslaget var
+         *          støy; med et 2 SE-krav er det en levning.
+         *   FORMEN residualet er et skift LANGS PRISAKSEN, ikke et hopp til
+         *          ytterkanten. Myntkastet traff snittet omtrent og karikerte
+         *          fordelingen — alt mellom ytterpunktene sto uendret.
+         *
+         * Nå vris hele fordelingen: `p'(k) ∝ p(k)·exp(β·h(k))`, med β valgt slik
+         * at det forventede skiftet blir NØYAKTIG det målte. Modellen er
+         * kalibrert mot observasjonen i stedet for mot en konstant.
          */
-        const terskel = Math.abs(vri);
-        // Deterministisk «mynt» fra stillingen, ikke Math.random: rolloutene
-        // maa vaere reproduserbare, ellers doer parringen i maalingene.
-        const mynt = ((s.stikkSpilt * 31 + s.bord.length * 7 + sete) % 100) / 100;
-        if (mynt >= terskel) return h;
-        const kort = vri > 0 ? dyreste(lov, s.trumf) : billigste(lov, s.trumf);
-        return { type: "SPILL", spiller: sete, kort };
+        const beta = finnTilt(rp.p, rp.h, skift);
+        let maks = -Infinity;
+        for (let i = 0; i < rp.p.length; i++) maks = Math.max(maks, beta * rp.h[i]!);
+        const w: number[] = [];
+        let sum = 0;
+        for (let i = 0; i < rp.p.length; i++) {
+          const x = rp.p[i]! * Math.exp(beta * rp.h[i]! - maks);
+          w.push(x);
+          sum += x;
+        }
+        if (!(sum > 0) || !Number.isFinite(sum)) return h;
+
+        /**
+         * ============ VRIDNINGEN LEGGES OPPÅ BASIS, IKKE I STEDET =====
+         *
+         * Første utgave trakk ALLTID fra den vridde fordelingen. Det var feil
+         * på en måte som ikke har med stil å gjøre: med `β = 0` er `p'` lik
+         * nettets rå softmax, mens `basis` er den INDRE AGENTEN — med
+         * konvensjonsvakt, budmodell og det hele. Å bytte den ut mot en
+         * trekning fra rånettet gjør rollout-motstanderen til en helt annen og
+         * svakere spiller, uansett hva vi har lært om stilen hennes.
+         *
+         * K6-testens nullarm fanget det: armene skilte lag mot en motstander
+         * uten vane, fordi selve MODELLEN var byttet, ikke bare vridd.
+         *
+         * Nå er `basis` standarden, og vi avviker fra den med sannsynlighet
+         * `w = min(1, |skift|)` — altså i takt med hvor stort det MÅLTE
+         * avviket er. Trumftrekkeren på 0,557 gir avvik i 56 % av stillingene,
+         * mot det gamle takets 35 %. Og `skift = 0` gir `w = 0`: bit-identisk.
+         */
+        const w0 = Math.min(1, Math.abs(skift));
+        // Deterministisk «mynt» fra stillingen, ikke Math.random: rolloutene må
+        // være reproduserbare, ellers dør parringen i målingene.
+        const mynt = ((s.stikkSpilt * 31 + s.bord.length * 7 + sete * 13 + rp.lov.length) % 1000) / 1000;
+        if (mynt >= w0) return h;
+        // Skalér mynten opp igjen, så trekningen bruker hele [0,1) og ikke bare
+        // den nedre delen av den — ellers ville lave kort vært systematisk favorisert.
+        const mynt2 = w0 > 0 ? mynt / w0 : 0;
+        let akk = 0;
+        for (let i = 0; i < rp.lov.length; i++) {
+          akk += w[i]! / sum;
+          if (mynt2 < akk) return { type: "SPILL", spiller: sete, kort: rp.lov[i]! };
+        }
+        return { type: "SPILL", spiller: sete, kort: rp.lov[rp.lov.length - 1]! };
       },
     };
   }
@@ -219,37 +300,33 @@ export class Økt {
    * ikke «hvilket kort ville hun valgt i akkurat denne stillingen».
    */
   atferdFor(basis: Atferdsmodell, sete: number): Atferdsmodell {
-    const vri = this.stilvri(sete);
-    if (vri === null) return basis;
-    const p = Math.abs(vri);
+    const skift = this.stilvri(sete);
+    if (skift === null) return basis;
     return {
       logits: (s: GameState, spiller: number): Float32Array | number[] => {
         const g = basis.logits(s, spiller);
         if (spiller !== sete || s.fase !== "SPILL" || s.trumf === null) return g;
-        const lov = lovligeKort(s, spiller);
-        if (lov.length < 2) return g;
+        const rp = rangOgPolicy(s, spiller, basis);
+        if (rp === null) return g;
 
-        // Softmax over de LOVLIGE, samme mengde `logTroverdighet` bruker.
-        let maks = -Infinity;
-        for (const k of lov) maks = Math.max(maks, g[kortIndeks(k)] ?? 0);
-        let sum = 0;
-        for (const k of lov) sum += Math.exp((g[kortIndeks(k)] ?? 0) - maks);
-
-        const mål = vri > 0 ? dyreste(lov, s.trumf) : billigste(lov, s.trumf);
-        const målIdx = kortIndeks(mål);
-
+        /**
+         * SAMME VRIDNING SOM ROLLOUTEN, fra samme funksjon.
+         *
+         * Det er ikke pynt. Ruller søket ut én motstander mens troen vekter
+         * observasjonene etter en annen, måler de to lagene ulike spillere —
+         * nøyaktig feilen A6 hadde da avsender og leser hadde hver sin kode.
+         * `rangOgPolicy` og `finnTilt` er den ene definisjonen.
+         */
+        const beta = finnTilt(rp.p, rp.h, skift);
         const ut = Array.from(g) as number[];
-        for (const k of lov) {
-          const i = kortIndeks(k);
-          const base = Math.exp((g[i] ?? 0) - maks) / sum;
-          const blandet = (1 - p) * base + (i === målIdx ? p : 0);
-          // GULV: en sannsynlighet paa eksakt 0 ville gitt -Infinity og gjort
-          // hele verdenen umulig paa grunn av ETT kort. Blandingen kan ikke gi
-          // 0 med p < 1, men gulvet staar som vern mot avrunding.
-          ut[i] = Math.log(Math.max(1e-12, blandet));
+        for (let i = 0; i < rp.lov.length; i++) {
+          const idx = kortIndeks(rp.lov[i]!);
+          // GULV: log(0) ville gjort hele verdenen umulig på grunn av ett kort.
+          ut[idx] = Math.log(Math.max(1e-12, rp.p[i]!)) + beta * rp.h[i]!;
         }
         return ut;
       },
     };
   }
+
 }

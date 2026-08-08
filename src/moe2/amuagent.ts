@@ -236,7 +236,26 @@ export class Alphamuagent {
         : {
             velgHandling: (s: GameState) => {
               const p = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
-              return (p === null || p === undefined ? this.motpart : motpartFor(p)).velgHandling(s);
+              /**
+               * ============ ALDRI VÅRT EGET SETE =========================
+               *
+               * Her sto `motpartFor(p)` for ALLE seter, også vårt eget. Men vi
+               * KJENNER vår egen policy — den er `this.motpart`. Å slutte den
+               * fra observerte residualer og så vri den er ren støyinjeksjon:
+               * modellen kan bare bli dårligere enn originalen den forsøker å
+               * gjenskape.
+               *
+               * Det bet i K6-testens nullarm. Kandidaten er en annen spek enn
+               * miljøet, så detektoren flagget KORREKT at sete 0 spiller
+               * annerledes enn de tre andre — og vridde deretter oss selv.
+               * Armene skilte lag mot en motstander uten vane, og det så ut
+               * som en falsk positiv i detektoren. Det var det ikke: det var
+               * en sann deteksjon brukt på feil sete.
+               *
+               * En motstandermodell modellerer MOTSTANDERE. Navnet sa det.
+               */
+              if (p === null || p === undefined || p === sete) return this.motpart.velgHandling(s);
+              return motpartFor(p).velgHandling(s);
             },
           };
 

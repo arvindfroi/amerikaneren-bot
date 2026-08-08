@@ -292,38 +292,158 @@ export function rundensResidualer(
  * Porten er 2 SE på DIFFERANSEN, samme krav som gate 2 stiller til en vekt.
  * Uten den fyrte den gamle detektoren på vår egen bot.
  */
+/**
+ * ============ NULLPUNKTET ER EN MÅLT KONSTANT, IKKE BORDET =============
+ *
+ * Første utgave brukte MEDIANEN av de andre ved bordet. Det virket når ÉN
+ * spiller var særegen — men K6-testen har TRE trumftrekkere av fire seter, og
+ * da er medianen selv en trumftrekker. Alle så normale ut, og detektoren fant
+ * ingenting.
+ *
+ * Medianreferansen tåler én uteligger og er blind når flertallet avviker.
+ *
+ * Residualet er allerede relativt til NETTET, så det finnes et bedre
+ * nullpunkt: hva en vanlig spiller gjør mot den samme modellen. Målt over
+ * 8812 valg med fire like `ADAMS_MAALT`:
+ *
+ *     BEFOLKNINGENS RESIDUAL = −0,0976 ± 0,0036   (spredning 0,3418 per valg)
+ *
+ * Den er ikke null, og det er ventet: boten spiller gjennom konvensjonsvakt,
+ * budmodell og vrakrangerer, ikke som rå softmax fra nettet. Konstanten fanger
+ * nettopp det felles avviket.
+ *
+ * Da holder alle tre tilfellene:
+ *
+ *     fire like Adams        alle ≈ −0,098  ->  avvik ≈ 0    ingen flagget
+ *     én trumftrekker        +0,494         ->  avvik +0,59  flagget
+ *     TRE trumftrekkere      +0,494 hver    ->  avvik +0,59  alle flagget
+ */
+export const BEFOLKNING_RESIDUAL = -0.0976;
+
 export function stilForskjell(
   eget: Biasanslag,
   andre: readonly Biasanslag[],
 ): { forskjell: number; se: number; sikker: boolean } {
-  const gyldige = andre.filter((a) => a.n >= 2);
-  if (eget.n < 2 || gyldige.length === 0) return { forskjell: 0, se: Infinity, sikker: false };
-
-  /**
-   * ============ REFERANSEN ER MEDIANSPILLEREN, IKKE SNITTET ===========
-   *
-   * Å slå sammen de andre til ett anslag virker riktigere — flere
-   * observasjoner teller mer — men det MÅLTE feil. Med én trumftrekker ved
-   * bordet dro han snittet opp, og alle de tre normale setene ble stemplet som
-   * signifikant passive:
-   *
-   *     sete 0 normal   −0,182 ± 0,043   «sikker»
-   *     sete 1 VANE     +0,642 ± 0,022   «sikker»
-   *     sete 2 normal   −0,191 ± 0,043   «sikker»
-   *     sete 3 normal   −0,258 ± 0,040   «sikker»
-   *
-   * Fire av fire flagget, av én vane. Et nullpunkt som flytter seg når ÉN
-   * spiller er spesiell, gjør alle de andre spesielle også.
-   *
-   * Medianen av de tre andre kan ikke rykkes av én uteligger. Og vi bruker det
-   * medianSETETS eget anslag, ikke bare medianverdien, så standardfeilen
-   * fortsatt har spredningen bak seg.
-   */
-  const sortert = [...gyldige].sort((a, b) => snitt(a) - snitt(b));
-  const samlet = sortert[Math.floor((sortert.length - 1) / 2)]!;
-  const forskjell = snitt(eget) - snitt(samlet);
-  const seEget = standardfeil(eget);
-  const seAndre = standardfeil(samlet);
-  const se = Math.sqrt(seEget * seEget + seAndre * seAndre);
+  if (eget.n < 2) return { forskjell: 0, se: Infinity, sikker: false };
+  void andre;
+  const forskjell = snitt(eget) - BEFOLKNING_RESIDUAL;
+  const se = standardfeil(eget);
   return { forskjell, se, sikker: Number.isFinite(se) && Math.abs(forskjell) >= 2 * se };
+}
+
+/**
+ * ============ VRIDNINGEN: FRA MÅLT RESIDUAL TIL EN POLICY ==============
+ *
+ * ARVIND: «vil du fikse det da?»
+ *
+ * K6-målingen (7200 parrede runder) sa at hukommelsen VIRKER og er VERDILØS:
+ * A2-vrien fyrte i 668 av 1800 runder, og dobbeltdifferansen der den fyrte var
+ * **0,007 ± 0,494 (z = 0,02)**. Detektoren finner trumftrekkeren på 17 SE.
+ * Kanalen som skal tjene på det, gir null.
+ *
+ * ================= HVA SOM VAR GALT MED KANALEN ========================
+ *
+ * Den gamle vrien var et MYNTKAST: «spill det dyreste kortet i |vri| av
+ * stillingene, ellers gjør som basis». To ting er feil med den formen:
+ *
+ *   TAKET  `MAKS_VRI = 0,35`, mens trumftrekkerens målte residual er +0,629.
+ *          Vi kastet 45 % av signalet. Taket ga mening da anslaget var støy
+ *          (§108: fire identiske agenter spredte seg −0,45…+0,17). Med et
+ *          signifikanskrav på 2 SE er det en levning fra et annet regime.
+ *
+ *   FORMEN Residualet er ikke et myntkast. Det er et MÅLT SKIFT LANGS
+ *          PRISAKSEN — «hun spiller i snitt 0,63 høyere rang enn nettet
+ *          venter». Å oversette det til «hopp helt ut i ytterkanten en
+ *          tredel av tiden» treffer snittet omtrent, men karikerer
+ *          fordelingen: alt mellom ytterpunktene blir uendret.
+ *
+ * ================= DEN RIKTIGE FORMEN ==================================
+ *
+ * En eksponentiell vridning langs samme akse residualet ble målt på:
+ *
+ *     p'(k)  ∝  p(k) · exp(β · h(k))
+ *
+ * der `h` er prisrangen i [0, 1] og `β` velges slik at det FORVENTEDE skiftet
+ * blir nøyaktig det målte:
+ *
+ *     E_p'[h] − E_p[h]  =  residual
+ *
+ * Da er modellen kalibrert mot observasjonen i stedet for mot en konstant, den
+ * er glatt (alle kort vektes, ikke bare ytterpunktet), og null-punktet er
+ * eksakt: residual = 0 gir β = 0 gir p' = p.
+ *
+ * `β` finnes ved bisecting. `E_p'[h]` er monotont voksende i β — det er en
+ * eksponentiell familie — så bisecting konvergerer alltid og trenger ingen
+ * startgjetning.
+ */
+export function finnTilt(p: readonly number[], h: readonly number[], skift: number): number {
+  if (p.length < 2) return 0;
+  const forventet = (b: number): number => {
+    let maks = -Infinity;
+    for (let i = 0; i < p.length; i++) maks = Math.max(maks, b * h[i]!);
+    let sum = 0;
+    let tell = 0;
+    for (let i = 0; i < p.length; i++) {
+      const w = p[i]! * Math.exp(b * h[i]! - maks);
+      sum += w;
+      tell += w * h[i]!;
+    }
+    return sum > 0 ? tell / sum : 0;
+  };
+  const mål = forventet(0) + skift;
+  // Utenfor det oppnåelige: skiftet ber om mer enn ytterpunktet gir.
+  if (mål <= Math.min(...h)) return -60;
+  if (mål >= Math.max(...h)) return 60;
+
+  let lo = -60;
+  let hi = 60;
+  for (let i = 0; i < 40; i++) {
+    const m = (lo + hi) / 2;
+    if (forventet(m) < mål) lo = m;
+    else hi = m;
+  }
+  return (lo + hi) / 2;
+}
+
+/**
+ * Prisrangen i [0, 1] for hvert lovlige kort, og nettets sannsynlighet.
+ *
+ * ÉN definisjon, delt av `motpartFor` (rollouten) og `atferdFor` (troen).
+ * To kopier ville drevet fra hverandre — nøyaktig feilen A6 hadde da avsender
+ * og leser hadde hver sin kode.
+ */
+export function rangOgPolicy(
+  state: GameState,
+  sete: number,
+  atferd: Atferdsmodell,
+): { lov: Kort[]; h: number[]; p: number[] } | null {
+  const lov = lovligeKort(state, sete);
+  const trumf = state.trumf;
+  if (lov.length < 2 || trumf === null) return null;
+
+  const sortert = [...lov].sort(
+    (a, b) => pris(a, trumf) - pris(b, trumf) || kortIndeks(a) - kortIndeks(b),
+  );
+  const rang = new Map<number, number>();
+  for (let i = 0; i < sortert.length; i++) {
+    rang.set(kortIndeks(sortert[i]!), i / (sortert.length - 1));
+  }
+
+  const g = atferd.logits(state, sete);
+  let maks = -Infinity;
+  for (const k of lov) maks = Math.max(maks, g[kortIndeks(k)] ?? 0);
+  let sum = 0;
+  const rå: number[] = [];
+  for (const k of lov) {
+    const w = Math.exp((g[kortIndeks(k)] ?? 0) - maks);
+    rå.push(w);
+    sum += w;
+  }
+  if (!(sum > 0) || !Number.isFinite(sum)) return null;
+
+  return {
+    lov,
+    h: lov.map((k) => rang.get(kortIndeks(k)) ?? 0),
+    p: rå.map((w) => w / sum),
+  };
 }
