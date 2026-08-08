@@ -7564,3 +7564,56 @@ større multiplikator:
 
 Og K4 og K6 deler skjebne: begge hviler på det samme tallet, så ingen av dem er
 innfridd før det tallet kan skille en vane fra støy.
+
+## §109 — replikeringen halverte vetoen, og lagmålet er motbevist
+
+6400 par, frø 8 800 000, disjunkt fra vetokjøringens 4 400 000–4 400 899.
+Kontrollarmen målte eksakt 0,000.
+
+### Vetoen replikerte ikke i størrelse
+
+| | bånd 1 (3600 par) | bånd 2 (6400 par) |
+|---|---|---|
+| samlet | **+0,4809 ± 0,1332** (3,6 SE) | **+0,1742 ± 0,0970** (1,8 SE) |
+| fører | +1,9415 (5,5 SE) | +0,9310 (3,5 SE) |
+
+Retningen holder — føreren er positiv og signifikant i begge bånd, tegntesten
+1600/2991 (p = 0,000). **Men størrelsen halverte seg, og samlet faller under
+2 SE.** Etter prosjektets egen port er den dermed *ikke adoptert*.
+
+Dette er §65 om igjen, og jeg gikk i den samme fella: jeg meldte +0,48 som et
+funn før replikeringen. Ett bånd er ikke et funn.
+
+### Lagmålet er motbevist — og det var MIN hypotese
+
+`L` alene: **−0,4185 ± 0,0804 (−5,2 SE)**. Med veto: +0,0612 (0,6 SE), altså
+*dårligere* enn vetoen alene.
+
+Og verst der jeg spådde gevinst. Per rolle, `v0.5` mot `v0.5L`:
+
+| rolle | `v0.5` | `v0.5L` |
+|---|---|---|
+| fører | +0,9310 | +0,9752 |
+| **makker** | −0,1344 | **−0,2098** |
+| **forsvar** | −0,0500 | **−0,2603** |
+
+Jeg argumenterte at `standardMål` trekker fra makkerens poeng, at en makker
+derfor verdsetter en 27–0-runde til en femtedel, og at et lagbevisst mål ville
+løfte nettopp makker og forsvar. Regnestykket var riktig. **Slutningen var feil:
+å gjøre målet lagbevisst gjør de to rollene verre.**
+
+Dette er andre gang på to dager at en pen forklaring på et måletall blir
+motbevist av målingen bygd for å bekrefte den (§98 var den første). Mønsteret er
+verdt å notere: en hypotese som forklarer *eksisterende* tall pent er billig.
+Bare den som forutsier *nye* tall er verdt noe.
+
+### Og svaret til Arvind står fortsatt
+
+«forsvar og makker burde bli bedre med alfa-mu, sant?» — makker og forsvar er
+**≤ 0 i alle tre armene**. Prinsippet kan godt være riktig; ingen av
+konfigurasjonene vi har prøvd innfrir det. Vetoen fjernet skaden. Ingenting har
+ennå hentet gevinsten.
+
+`lagMål` blir stående i koden, avslått og med dette tallet i kommentaren — ikke
+fordi den kan brukes, men fordi neste som får den samme gode idéen skal finne
+målingen før de bygger den.
