@@ -7676,3 +7676,44 @@ Mekanismen virker og er koblet. Men innfridd betyr **målt i spill**:
 
 Ingen av dem er gjort. Det som er gjort, er at de nå KAN gjøres — før i dag
 målte begge prøvene en identitetsfunksjon.
+
+## §111 — kanal 2 målt: budvinneren vraker for renons, og sampleren vet det ikke
+
+Arvind: «budvinner får x antall ekstra verdi på sin hånd, og jeg vet at den
+prøver å skape renonser og maksimerer sin hånd i vrak.»
+
+Målt over 720 runder med `ADAMS_MAALT`, ved å rekonstruere budvinnerens 16 kort
+(12 beholdte + 4 vrakede) ved rundeslutt:
+
+| renonser i sidefarger, per runde | |
+|---|---|
+| **faktisk vraking** | **0,967** |
+| om hun bare kastet billigst | 0,169 |
+| tilfeldig kasting | 0,101 |
+
+**Hun skaper ~1 renons per runde — 5,7× mer enn en ren prisstrategi og 9,6×
+mer enn tilfeldig.** Inversjonsraten er 0,1132, altså styrer prisen også, men
+renonsen er det dominerende motivet.
+
+### Hvorfor dette er informasjon vi kaster
+
+Vraket er SKJULT for de andre — `trekkVerden` legger fire ukjente kort i en død
+binge (`dødKapasitet = state.giving.talong`) og fordeler resten uniformt. Men
+kortene i den bingen er **valgt**, ikke tilfeldige. Sampleren antar altså at
+budvinneren vraket tilfeldig, mens hun i praksis nesten alltid tømmer en farge.
+
+Følgen er systematisk: verdenene gir henne sidefargekort hun sannsynligvis ikke
+har, og undervurderer hvor ofte hun kan trumfe.
+
+### Hva som må bygges, og i hvilken rekkefølge
+
+1. `Verden` eksponerer ikke den døde bingen (`hender`, `declLag`,
+   `makkerVerden`). Uten den kan ingen vekt se hva verdenen påstår ble vraket.
+2. Vekten er to ledd, og begge er nå målt: en prisdel (inversjoner) og en
+   renonsdel. Renonsdelen er den store.
+3. **Og den skal måles på benken før adopsjon.** En bedre verdensmodell er ikke
+   automatisk et bedre spill — `amu:alle` var også åpenbart riktig, og målte
+   −0,28.
+
+Dette er kanal 2 av seks i K8-utvidelsen. Kanal 3s harde halvdel er rettet
+(§107), kanal 4 virker, og kanal 1 er låst av nettbredde.
