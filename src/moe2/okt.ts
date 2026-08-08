@@ -194,69 +194,55 @@ export class Økt {
         if (rp === null) return h;
 
         /**
-         * ============ EN VRIDNING, IKKE ET MYNTKAST ====================
+         * ============ SKYV BASIS' EGET VALG, DETERMINISTISK =============
          *
-         * Her sto: «spill det dyreste kortet i |vri| av stillingene, ellers gjør
-         * som basis», med `vri` kappet på 0,35. K6-målingen (7200 runder) ga
-         * **0,007 ± 0,494** der den fyrte — altså eksakt ingenting.
+         * Koblingssjekken 8. august maalte at hukommelsen endrer **2 av 548
+         * valg** — 0,4 % — selv mot tre trumftrekkere. Da KAN den ikke gi en
+         * maalbar poenggevinst, og det forklarer K6-maalingens 0,007 ± 0,494
+         * bedre enn «kanalen betaler seg ikke». Kanalen var nesten stum.
          *
-         * To feil i den formen:
+         * To grunner, begge i formen:
          *
-         *   TAKET  trumftrekkerens MÅLTE residual er +0,629, taket var 0,35.
-         *          Vi kastet 45 % av signalet. Taket ga mening da anslaget var
-         *          støy; med et 2 SE-krav er det en levning.
-         *   FORMEN residualet er et skift LANGS PRISAKSEN, ikke et hopp til
-         *          ytterkanten. Myntkastet traff snittet omtrent og karikerte
-         *          fordelingen — alt mellom ytterpunktene sto uendret.
+         *   FORTYNNING  vridningen ble brukt med sannsynlighet `min(1,|skift|)`.
+         *               Med skift 0,557 spilte motstanderen SOM FOER i 44 % av
+         *               rolloutene, saa halve signalet forsvant.
+         *   UTJEVNING   en trekning fra en vridd fordeling, midlet over 12
+         *               verdener, flytter alle kandidatene omtrent likt. Da
+         *               flipper soekets argmax nesten aldri.
          *
-         * Nå vris hele fordelingen: `p'(k) ∝ p(k)·exp(β·h(k))`, med β valgt slik
-         * at det forventede skiftet blir NØYAKTIG det målte. Modellen er
-         * kalibrert mot observasjonen i stedet for mot en konstant.
+         * NAA SKYVES BASIS' EGET VALG langs den samme rangaksen residualet ble
+         * maalt paa:
+         *
+         *     mål = h(basis sitt kort) + skift        (klemt til [0, 1])
+         *     velg det lovlige kortet med rang naermest `mål`
+         *
+         * Deterministisk, saa hele det maalte skiftet brukes. Og nullpunktet
+         * er EKSAKT: `skift = 0` gir `mål = h(basis)`, og naermeste rang er
+         * basis' eget kort — bit-identisk, uten en eneste flyttallsavrunding
+         * som kan vippe.
+         *
+         * Den vridde FORDELINGEN staar fortsatt i `atferdFor`, der troen skal
+         * vekte observasjoner. Der er en fordeling riktig; her er det ett valg
+         * som skal tas.
          */
-        const beta = finnTilt(rp.p, rp.h, skift);
-        let maks = -Infinity;
-        for (let i = 0; i < rp.p.length; i++) maks = Math.max(maks, beta * rp.h[i]!);
-        const w: number[] = [];
-        let sum = 0;
-        for (let i = 0; i < rp.p.length; i++) {
-          const x = rp.p[i]! * Math.exp(beta * rp.h[i]! - maks);
-          w.push(x);
-          sum += x;
-        }
-        if (!(sum > 0) || !Number.isFinite(sum)) return h;
-
-        /**
-         * ============ VRIDNINGEN LEGGES OPPÅ BASIS, IKKE I STEDET =====
-         *
-         * Første utgave trakk ALLTID fra den vridde fordelingen. Det var feil
-         * på en måte som ikke har med stil å gjøre: med `β = 0` er `p'` lik
-         * nettets rå softmax, mens `basis` er den INDRE AGENTEN — med
-         * konvensjonsvakt, budmodell og det hele. Å bytte den ut mot en
-         * trekning fra rånettet gjør rollout-motstanderen til en helt annen og
-         * svakere spiller, uansett hva vi har lært om stilen hennes.
-         *
-         * K6-testens nullarm fanget det: armene skilte lag mot en motstander
-         * uten vane, fordi selve MODELLEN var byttet, ikke bare vridd.
-         *
-         * Nå er `basis` standarden, og vi avviker fra den med sannsynlighet
-         * `w = min(1, |skift|)` — altså i takt med hvor stort det MÅLTE
-         * avviket er. Trumftrekkeren på 0,557 gir avvik i 56 % av stillingene,
-         * mot det gamle takets 35 %. Og `skift = 0` gir `w = 0`: bit-identisk.
-         */
-        const w0 = Math.min(1, Math.abs(skift));
-        // Deterministisk «mynt» fra stillingen, ikke Math.random: rolloutene må
-        // være reproduserbare, ellers dør parringen i målingene.
-        const mynt = ((s.stikkSpilt * 31 + s.bord.length * 7 + sete * 13 + rp.lov.length) % 1000) / 1000;
-        if (mynt >= w0) return h;
-        // Skalér mynten opp igjen, så trekningen bruker hele [0,1) og ikke bare
-        // den nedre delen av den — ellers ville lave kort vært systematisk favorisert.
-        const mynt2 = w0 > 0 ? mynt / w0 : 0;
-        let akk = 0;
+        let hBasis = 0;
         for (let i = 0; i < rp.lov.length; i++) {
-          akk += w[i]! / sum;
-          if (mynt2 < akk) return { type: "SPILL", spiller: sete, kort: rp.lov[i]! };
+          if (rp.lov[i]!.farge === h.kort.farge && rp.lov[i]!.verdi === h.kort.verdi) {
+            hBasis = rp.h[i]!;
+            break;
+          }
         }
-        return { type: "SPILL", spiller: sete, kort: rp.lov[rp.lov.length - 1]! };
+        const mål = Math.max(0, Math.min(1, hBasis + skift));
+        let beste = 0;
+        let bestAvstand = Infinity;
+        for (let i = 0; i < rp.lov.length; i++) {
+          const d = Math.abs(rp.h[i]! - mål);
+          if (d < bestAvstand) {
+            bestAvstand = d;
+            beste = i;
+          }
+        }
+        return { type: "SPILL", spiller: sete, kort: rp.lov[beste]! };
       },
     };
   }
