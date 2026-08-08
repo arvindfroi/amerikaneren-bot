@@ -36,7 +36,32 @@ vekslingskurs — se under.
 | **der vi står (v5)** | **15,83 %** |
 | **KRAVET** | **< 5,0 %** |
 
-**Status: ikke innfridd. 10,8 prosentpoeng igjen.**
+**Status: ikke innfridd — men avstanden er langt mer usikker enn tallet ser ut.**
+
+### < 5 % ER ET STREKKMÅL, og grunnlaget er tynnere enn overskriften
+
+Arvind, 8. august: «at mennesker skal bare kunne slå oss i 5% av kamper i et
+race til hundre er noe jeg tror er mulig, MEN det er bare et strekkmål.»
+
+Og de 15,8 % er **3 av 19 kamper**. Intervallet står i `docs/plan.md`:
+
+    MÅLT 15,8 %      95 %-intervall  5,5 % – 37,5 %
+
+**Den nedre enden er allerede på målet.** Vi vet ikke om familien slår Adams 5 %
+eller 35 % av gangene. Og «der vi står (v5) = 15,83 %» er målt mot en
+STEDFORTREDER — en bot valgt fordi den vinner omtrent like ofte som familien
+gjorde i de 19 kampene. Hele K1-målingen hviler altså på en proxy kalibrert mot
+tre observasjoner.
+
+Det har to konsekvenser, og begge peker samme vei:
+
+1. **Å si «10,8 prosentpoeng igjen» er å behandle 15,83 som et faktum.** Det er
+   det ikke. Avstanden kan være 10,8 — den kan også være 0,5.
+2. **Den bindende usikkerheten er ikke hvor sterk Adams er, men hvor godt vi
+   har målt menneskene.** Flere ekte familiekamper er derfor verdt mer enn
+   flere modulmålinger, og de koster ingen CPU — de koster kvelder.
+
+K1 behandles derfor som en RETNING, ikke som en port. K2–K8 er portene.
 
 Vekslingskursen er målt og flater ut: `+0,127 poeng/runde → −4,79 pp`, men
 `+0,3 → −2,88 pp`. Å komme dit er et generasjonssprang, ikke en finjustering.
