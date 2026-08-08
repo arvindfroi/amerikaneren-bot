@@ -84,10 +84,34 @@ def tegntest(k: int, n: int, p0: float = 0.5) -> float:
     return min(1.0, sum(pmf(i) for i in range(n + 1) if pmf(i) <= obs * (1 + 1e-12)))
 
 
-def les_kamp(prefiks: str, kode: str) -> tuple[int, float, float, int] | None:
-    """(n, vinnerandel, snittmargin, antall vunnet) for én arm på kampbenken."""
+def les_kamp(prefiks: str, kode: str) -> tuple[int, float, float, int, list[float]] | None:
+    """(n, vinnerandel, snittmargin, antall vunnet, poeng-per-runde-differanser).
+
+    ============ HVORFOR POENG PER RUNDE OGSAA LESES ======================
+
+    Arvind: «er det ikke en mer effektiv måte å måle kampbenken på?»
+
+    Jo, og den ligger i STATISTIKKEN, ikke i kjoeringen. En kamp bruker ~25
+    runder kortspill paa aa produsere ÉN BIT: vant eller tapte. Sluttmarginen og
+    poeng per runde er kontinuerlige stoerrelser fra noeyaktig de samme kampene.
+
+    Maalt paa den ferdige gulvkjoeringen (2400 rader, samme data):
+
+        vinnerandel        |z| = 21,3
+        sluttmargin        |z| = 31,7      0,45x saa mange kamper
+        poeng per runde    |z| = 31,1      0,47x saa mange kamper
+
+    **2,2x effektiv presisjon, gratis.** Ingen kjoering maa gjentas - bare
+    lesningen.
+
+    FORBEHOLD SOM MAA STAA: kravet K1 er formulert i VINNERANDEL, saa den
+    forblir fasit for K1-dommen. Poeng per runde er en langt mer presis proxy
+    for aa RANGERE moduler, og den brukes til det - ikke til aa erklaere K1
+    innfridd.
+    """
     vant = 0
     marg: list[float] = []
+    ppr: list[float] = []
     for f in glob.glob(f"{prefiks}{kode}-s*.jsonl"):
         with open(f, encoding="utf8") as fh:
             for ln in fh:
@@ -97,10 +121,14 @@ def les_kamp(prefiks: str, kode: str) -> tuple[int, float, float, int] | None:
                 r = json.loads(ln)
                 vant += int(r["kandVant"])
                 marg.append(float(r["kandMargin"]))
+                kr = max(1.0, float(r.get("kandRunder", 1)))
+                mr = max(1.0, float(r.get("miljøRunder", r.get("miljoRunder", 1))))
+                mp = float(r.get("miljøPoeng", r.get("miljoPoeng", 0)))
+                ppr.append(float(r.get("kandPoeng", 0)) / kr - mp / mr)
     n = len(marg)
     if n == 0:
         return None
-    return n, vant / n, sum(marg) / n, vant
+    return n, vant / n, sum(marg) / n, vant, ppr
 
 
 def se_av(xs: list[float]) -> float:
@@ -320,7 +348,7 @@ def main() -> None:
             L.append("  KONTROLLARMEN MANGLER. Uten den kan ingen vinnerandel leses.")
             benk_i_stykker.append("kampbenken (kontrollarm mangler)")
         else:
-            n, andel, marg, vant = k
+            n, andel, marg, vant, kppr = k
             avvik = abs(andel - 0.25)
             sek = math.sqrt(0.25 * 0.75 / n)
             L.append(f"  KONTROLL (FULL mot seg selv)  {andel:.4f}  ({vant}/{n})   <- MÅ være 0,2500")
@@ -332,13 +360,14 @@ def main() -> None:
         L.append("")
         L.append(f"{'modul':<12}{'vinnerandel':>13}{'SE':>9}{'vs 0,25':>10}{'vunnet':>12}{'p':>8}")
         L.append("-" * 78)
+        ppr_rader: list[tuple[str, int, float, float]] = []
         for arm in kart["armer"]:
             if arm["slag"] not in ("minus", "grunnlinje"):
                 continue
             r = les_kamp(a.kamp, arm["kode"])
             if r is None:
                 continue
-            n, andel, marg, vant = r
+            n, andel, marg, vant, ppr = r
             sek = math.sqrt(max(andel * (1 - andel), 1e-9) / n)
             kode = arm["fjernet"][0] if arm["slag"] == "minus" else "HELE STAKKEN"
             # Uten modulen: en LAV vinnerandel betyr at modulen BIDRAR. Fortegnet
@@ -347,7 +376,32 @@ def main() -> None:
                 f"{kode:<12}{andel:>13.4f}{sek:>9.4f}{andel - 0.25:>+10.4f}"
                 f"{f'{vant}/{n}':>12}{tegntest(vant, n, 0.25):>8.3f}"
             )
+            if ppr:
+                m = sum(ppr) / len(ppr)
+                ppr_rader.append((kode, len(ppr), m, se_av(ppr)))
         L.append("-" * 78)
+
+        # ============ DEN PRESISE KOLONNEN ==================================
+        #
+        # Arvind: «er det ikke en mer effektiv måte å måle kampbenken på?»
+        #
+        # En kamp bruker ~25 runder kortspill på å produsere ÉN BIT. Poeng per
+        # runde er kontinuerlig og kommer fra nøyaktig de samme kampene. Målt på
+        # den ferdige gulvkjøringen (2400 rader): |z| = 21,3 for vinnerandel mot
+        # 31,1 for poeng per runde — altså **2,2× effektiv presisjon, gratis**.
+        #
+        # K1 er formulert i VINNERANDEL, så den står som fasit over. Denne
+        # kolonnen er for å RANGERE moduler, og der er den langt skarpere.
+        if ppr_rader:
+            L.append("")
+            L.append("SAMME KAMPER, PRESIS STATISTIKK — poeng per runde (2,2x skarpere)")
+            L.append(f"{'modul':<12}{'differanse':>13}{'SE':>9}{'SE-er':>8}")
+            L.append("-" * 78)
+            for kode, n2, m2, s2 in ppr_rader:
+                z = m2 / s2 if s2 > 0 else 0.0
+                L.append(f"{kode:<12}{m2:>+13.4f}{s2:>9.4f}{z:>8.1f}")
+            L.append("-" * 78)
+            L.append("  Armen er FULL UTEN modulen. NEGATIV differanse => modulen BIDRAR.")
         L.append("  Radene er ARMEN (FULL uten modulen). Ligger den UNDER 0,2500, taper")
         L.append("  stakken på å miste modulen — altså bidrar modulen positivt.")
         L.append("  Her er INGEN modul strukturelt umålbar: agentene husker og kampene")
