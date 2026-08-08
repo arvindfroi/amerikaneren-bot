@@ -7795,3 +7795,129 @@ Modulen er **av i standard**, og ingenting er målt om den er verdt noe.
 
 Rekkefølgen i budplanen er altså fortsatt riktig — det som er gjort her er at
 steg 4 nå ER byggbart og målbart, ikke at det er målt.
+
+## §113 — måleriggen for Adams Max: ablasjon NEDOVER, ikke addisjon oppover
+
+Arvind: «det går nesten ikke an å måle Adams max del for del fordi alt er
+avhengig av hverandre. så du må bygge alle delene som moduler også må vi heller
+kjøre en omfattende test over samtlige deler individuelt og relasjonene mellom
+de.»
+
+Han har rett i premisset, og premisset er målt. Hittil har hver måling vært
+**grunnlinje + én modul**: miljøet er grunnlinja, kandidaten har den ene delen
+påslått. Det tallet har løyet gjentatte ganger, og verst her:
+
+| arm | effekt |
+|---|---|
+| `amu:alle` alene (§103) | **−0,2837 ± 0,0519** (z = −5,5) |
+| `amu:alle` med vaktens veto (§108) | **+0,4809 ± 0,1332** (3,6 SE) |
+
+Samme modul, motsatt fortegn. Grunnen er triviell når den er sagt: **en modul
+måles i det selskapet den står i.** Søket overstyrte konvensjonene fordi
+ingenting stoppet det; med vetoen på blir det et *tillegg* i stedet for en
+*erstatning*. «Modulen alene» er derfor ikke et tall om modulen — det er et
+tall om modulen pluss fraværet av alt annet.
+
+### Riggen snur retningen
+
+`examples/maxrigg.ts` + `verktoy/adams-max.sh` + `verktoy/adams-max-les.py`:
+
+```
+arm 0     FULL stakk (alle moduler på)   — og den er gate 2s MILJØ
+arm i     FULL MINUS modul i             — for hver modul
+arm K     GRUNNLINJA (alt av)
+```
+
+«Full minus X» måler hva X bidrar med **når alt annet er der**, som er det
+eneste spørsmålet med en handling bak seg: skal X være med i den boten vi
+faktisk ruller ut? Det er N+2 armer, ikke 2^N — det fulle faktorielle designet
+er 4096 armer for tolv moduler og er ikke en mulighet.
+
+Fortegnet snus i rapporten, ett sted: gate 2 rapporterer `d(A) = A − FULL`, og
+bidraget er `−d(FULL−X)`. Leses tabellen med gate 2s eget fortegn, står hver
+modul med motsatt fortegn av det den er verdt.
+
+### Relasjonene er et regnestykke, ikke en vurdering
+
+Med en tredje arm — full minus X minus Y — leses relasjonen direkte ut:
+
+```
+interaksjon(X,Y) = bidrag(X,Y samlet) − bidrag(X) − bidrag(Y)
+                 = −d(−X−Y) + d(−X) + d(−Y)
+```
+
+Positiv: de gjør hverandre bedre. Negativ: de konkurrerer om det samme — som
+`A6 mot A7` (§70), `sender mot leser` og `søket mot vakten` alle gjorde. Det er
+`verktoy/samspill.py` sin superadditivitet, bare regnet nedover fra full stakk
+i stedet for oppover fra grunnlinja. Standardfeilen oppgis som to grenser
+(uavhengige ledd / fullt korrelerte ledd), fordi leddene er målt på samme giv
+og den eksakte kovariansen ikke finnes i en rapportfil.
+
+### To porter, og rapporten sier hva den ikke kan se
+
+| modul | gate 2 | hvorfor |
+|---|---|---|
+| `okt:` | **umålbar** | `MIN_RUNDER = 4`, gate 2 gir 1 runde |
+| `profil:` | **umålbar** | fyller økt-boka over runder |
+| `amu «r»` | **umålbar** | `press` er eksakt 0 uten framdrift mot målPoeng |
+
+Røyktesten bekreftet det ved måling og ikke ved påstand: de tre armene kom ut
+**bit-identiske med FULL i hvert eneste par**. Rapporten skriver derfor «porten
+kan bevislig ikke se modulen» i stedet for å la en null i tabellen bli lest som
+«verdiløs». På kampbenken lever alle tre — der spilles det til `målPoeng` med
+agenter som husker.
+
+### Hva riggen nekter å late som
+
+* **Moduler som er AV i full stakk kan ikke ablateres nedover.** `amu «m2»`
+  (3,1× dyrere etter at `forover` ble glissen), `budm «kamp1.5»` (makro → meso,
+  ny og av som standard) og `eks:` (§56: −0,343 til −0,753) står i egen bolk med
+  grunnen, og `--med <kode>` slår dem på om de skal måles likevel. `budm
+  «kamp1.5»` er dessuten strukturelt usynlig på gate 2 av nøyaktig samme grunn
+  som `amu «r»`: `racepress` er eksakt 0 når hver giv starter på 0-0.
+* **Nøsting sies høyt.** `u-amu` fjerner `b`, `g`, `e`, `r` og `v` med seg, så
+  bidraget er laget *pluss* flaggene samlet.
+* **To armer med samme spek er en stille kollisjon.** gate 2 nøkler `d` på
+  spekstrengen; to like armer ville overskrevet hverandre uten å feile.
+  `--toerr` avviser det.
+* **Hver armspek bygges i tørrmodus.** En skrivefeil i en spek er en streng,
+  ikke en type, og ville ellers dukket opp i skard 7s `.err`-fil etter fire
+  timer.
+
+### Kostnaden, målt — og hvorfor tidsanslag i dette prosjektet er verdiløse
+uten kontensjonstallet
+
+`--tid` kalibrerte samme frø og samme speker to ganger:
+
+| kalibrering | ms per gate2-replay |
+|---|---|
+| med seks andre node-prosesser på maskinen | **25 206** |
+| uten | **5 085** |
+
+**5× på identisk arbeid.** Kostnadssveipet 7. august målte 67× på en mettet
+CPU. Et tidsanslag uten det tallet ved siden av er et anslag på *maskinen*, ikke
+på arbeidet, og `--tid` skriver derfor minstetid ved siden av snittet og advarer
+når spriket er over 1,5×.
+
+Med 5,1 s per replay: 1600 giv × 4 seter × 17 armer = 108 800 replays ≈ **154
+kjernetimer**, altså ~10 timer over 16 skard før kontensjon. Presisjonen blir
+SE ≈ ±0,082 poeng/runde per arm. 4000 giv ville gitt ±0,052 for fire ganger
+prisen — tørrkjøringen skriver begge, så valget kan tas på tall.
+
+### Kontrollarmene, som alltid
+
+gate 2 skal måle **eksakt 0,0000** for FULL mot seg selv, og kampbenken
+**0,2500** for fire like agenter. Riggen sender derfor FULL inn som kandidat i
+tillegg til å bruke den som miljø — kontrollen er en ekte arm, ikke en
+antakelse. Avviker en av dem, skriver rapporten «BENKEN ER I STYKKER» og sier at
+ingen andre tall kan leses.
+
+### Godkjenn designet før noe startes
+
+```
+node examples/maxrigg.ts --toerr --merke m1 --par okt,profil --par amuv,vakt
+```
+
+Kjører ingenting. Lister hver arm, hver spek, hver kommando, presisjonen og
+kostnaden, og skriver det til `analyse/max-m1-toerr.txt`. Ingenting er målt
+ennå — det som er gjort, er at det nå *kan* måles del for del og par for par.
