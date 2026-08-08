@@ -7981,3 +7981,37 @@ oppgave, og den er nå en forutsetning for steg 0 i planen.
 *Merk skillet mot §109:* der ble et LAGBEVISST mål for søket motbevist
 (−0,4185). Dette er ikke det samme spørsmålet. Der handlet det om hvilket mål
 som gir best spill under usikkerhet; her om at en FASIT måler feil størrelse.
+
+## §115 — regel 2 anvendt: hvilket mål optimerer hver del?
+
+Kravkartet ga fire arbeidsregler, og nummer to er «sjekk alltid hvilket mål hver
+del optimerer» — den har truffet fire av fire ganger. Første systematiske
+gjennomgang:
+
+| komponent | mål | dom |
+|---|---|---|
+| E1-korpuset (`sd-orakel.ts`) | `standardMål` — faktiske POENG ved rundeslutt | ikke DD-forgiftet |
+| alpha-mu | `standardMål` | poeng |
+| budmodellen | EV av kontrakten, i poeng | poeng |
+| `eks:` (eksakt sluttspill) | **dobbeltdummy-stikk** | **feil størrelse** |
+| `juks:` (klarsynt sonde) | **dobbeltdummy-stikk** | **feil størrelse** |
+
+**DD-PROBLEMET ER LOKALISERT, IKKE SYSTEMISK.** Det satt i de to eksakte
+løserne — ikke i nettene, ikke i korpuset, ikke i søket. Det var verdt å sjekke:
+hadde korpuset vært merket med DD-stikk, ville hele nettet båret −0,609-feilen
+og alt måtte vært trent på nytt.
+
+### Én ting som står åpen
+
+`standardMål` er «egne minus snittet av de tre andre». I MAKKERSETET trekker den
+fra førerens poeng, så «hjelpe kontrakten i havn» diskonteres med faktor tre.
+Det gjelder også KORPUSETS etiketter, ikke bare søket.
+
+§109 motbeviste et lagbevisst mål for SØKET (−0,4185, −5,2 SE). Men det er et
+annet spørsmål enn hva ETIKETTENE skal måle: søkets mål styrer valg under
+usikkerhet, etikettene former policyen nettet lærer. At det ene ble motbevist er
+ikke bevis om det andre.
+
+Det står som en åpen hypotese, ikke som en oppgave — og den skal ikke bygges før
+noe billigere har sagt at den er verdt å prøve. Å bygge på en hypotese som er
+motbevist i en nabo-form er nøyaktig feilen §98 og §109 begge var.
