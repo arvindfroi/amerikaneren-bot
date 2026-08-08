@@ -1,0 +1,12 @@
+{"frø":555000,"oppsett":0,"type":["A","B","A","B"],"delta":[20,0,10,1],"rolle":["fører","forsvar","makker","forsvar"],"budvinner":0,"bud":10,"makker":2,"klart":true,"lagStikk":11}
+{"frø":555000,"oppsett":1,"type":["B","A","B","A"],"delta":[2,0,10,20],"rolle":["forsvar","forsvar","makker","fører"],"budvinner":3,"bud":10,"makker":2,"klart":true,"lagStikk":10}
+{"frø":562717,"oppsett":0,"type":["A","B","A","B"],"delta":[-22,2,-11,0],"rolle":["fører","forsvar","makker","forsvar"],"budvinner":0,"bud":11,"makker":2,"klart":false,"lagStikk":10}
+{"frø":562717,"oppsett":1,"type":["B","A","B","A"],"delta":[22,1,11,0],"rolle":["fører","forsvar","makker","forsvar"],"budvinner":0,"bud":11,"makker":2,"klart":true,"lagStikk":11}
+{"frø":570434,"oppsett":0,"type":["A","B","A","B"],"delta":[22,0,11,1],"rolle":["fører","forsvar","makker","forsvar"],"budvinner":0,"bud":11,"makker":2,"klart":true,"lagStikk":11}
+{"frø":570434,"oppsett":1,"type":["B","A","B","A"],"delta":[1,1,10,20],"rolle":["forsvar","forsvar","makker","fører"],"budvinner":3,"bud":10,"makker":2,"klart":true,"lagStikk":10}
+{"frø":578151,"oppsett":0,"type":["A","B","A","B"],"delta":[-20,2,1,-10],"rolle":["fører","forsvar","forsvar","makker"],"budvinner":0,"bud":10,"makker":3,"klart":false,"lagStikk":9}
+{"frø":578151,"oppsett":1,"type":["B","A","B","A"],"delta":[10,1,1,20],"rolle":["makker","forsvar","forsvar","fører"],"budvinner":3,"bud":10,"makker":0,"klart":true,"lagStikk":10}
+{"frø":585868,"oppsett":0,"type":["A","B","A","B"],"delta":[0,20,10,1],"rolle":["forsvar","fører","makker","forsvar"],"budvinner":1,"bud":10,"makker":2,"klart":true,"lagStikk":11}
+{"frø":585868,"oppsett":1,"type":["B","A","B","A"],"delta":[0,20,10,1],"rolle":["forsvar","fører","makker","forsvar"],"budvinner":1,"bud":10,"makker":2,"klart":true,"lagStikk":11}
+{"frø":593585,"oppsett":0,"type":["A","B","A","B"],"delta":[20,10,2,0],"rolle":["fører","makker","forsvar","forsvar"],"budvinner":0,"bud":10,"makker":1,"klart":true,"lagStikk":10}
+{"frø":593585,"oppsett":1,"type":["B","A","B","A"],"delta":[10,2,0,20],"rolle":["makker","forsvar","forsvar","fører"],"budvinner":3,"bud":10,"makker":0,"klart":true,"lagStikk":10}

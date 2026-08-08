@@ -1,0 +1,31 @@
+24 filer, 4 armer
+
+ork:foerer:48@e1-modell/tro.bin:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  1623  +0.6112 +/- 0.1778 (+3.44 SE)  trimmet +0.0084  tegn 118/73 (z=+3.26)
+   avgjorte giver: 191 av 1623 (11.8 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     foerer   n=   398  +2.4925 +/- 0.7175  trimmet +2.7074  z=+3.26
+     makker   n=   405  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=   820  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+ork:foerer:24@e1-modell/tro.bin:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  1623  +0.2982 +/- 0.1611 (+1.85 SE)  trimmet +0.0055  tegn 105/81 (z=+1.76)
+   avgjorte giver: 186 av 1623 (11.5 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     foerer   n=   398  +1.2161 +/- 0.6553  trimmet +1.3158  z=+1.76
+     makker   n=   405  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=   820  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+ork:foerer:24@e1-modell/tro.bin+abmpd,abmpS:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  1623  +0.2612 +/- 0.1739 (+1.50 SE)  trimmet +0.0064  tegn 109/78 (z=+2.27)
+   avgjorte giver: 187 av 1623 (11.5 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     foerer   n=   398  +1.0653 +/- 0.7084  trimmet +1.1630  z=+2.27
+     makker   n=   405  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=   820  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  1623  +0.0000 +/- 0.0000 (+0.00 SE)  trimmet +0.0000  tegn 0/0 (z=+0.00)
+     foerer   n=   398  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     makker   n=   405  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=   820  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.

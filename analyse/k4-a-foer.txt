@@ -1,0 +1,71 @@
+# K4 — hukommelse og framoverblikk
+# 2026-08-07T18:22:17.683Z  giv=6 froe=4400000 maalrunde=8
+
+## PROEVE A — hukommelsen
+Samme runde 8, samme stillinger. FERSK agent mot METT agent.
+Stakken er deterministisk (budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin) saa et avvik ikke kan komme fra RNG.
+
+| arm | tikk | forkamper | giv | n | avvik | bud | spill | bokfoert | maks just |
+|---|---|---|---|---|---|---|---|---|---|
+| NULL (ingen minne) | nei | 0 | 6 | 87 | 0 | 0 | 0 | 0/0/0/0 | 0.000 |
+| NULL (ingen minne) | ja | 0 | 6 | 87 | 0 | 0 | 0 | 0/0/0/0 | 0.000 |
+| profil (kampminne) | nei | 0 | 6 | 87 | 0 | 0 | 0 | 0/0/0/0 | 0.000 |
+| profil (kampminne) | ja | 0 | 6 | 87 | 0 | 0 | 0 | 7/7/7/7 | 0.029 |
+| okt+profil | nei | 0 | 6 | 87 | 0 | 0 | 0 | 0/0/0/0 | 0.000 |
+| okt+profil | ja | 0 | 6 | 87 | 0 | 0 | 0 | 7/7/7/7 | 0.029 |
+| profil, 2 forkamper | ja | 2 | 6 | 87 | 0 | 0 | 0 | 7/7/7/7 | 0.029 |
+| okt+profil, 2 forkamper | ja | 2 | 6 | 87 | 0 | 0 | 0 | 56/56/56/56 | 0.508 |
+
+## HVA HUKOMMELSEN FAKTISK BA OM (okt-armen med forkamper)
+Profilen har ÉN kanal inn i beslutningen: «Profilbok.justering», som
+forskyver budterskelen paa -3,0. Alt annet den vet er ubrukt.
+  budstillinger der justeringen var ulik null: 3
+  snitt |justering|: 0.1001 budpoeng
+  maks  |justering|: 0.5075 budpoeng
+  til sammenlikning er terskelen den forskyver -3,0000
+
+  Oekt.aggressivitet per sete: -0.417, 0.154, -0.067, -0.360
+  null = under MIN_RUNDER=4. Da returnerer «motpartFor» basis UENDRET,
+  og A2-motstandermodellen i alpha-mu er en identitetsfunksjon.
+  TO tellere maa over 4, og de teller ulike ting:
+    «runder(sete)» = profil.bud.n, altsaa runder setet faktisk BOD i.
+    «trumfutspill.n» = runder setet var FORSVARER og ledet et stikk.
+  Den andre er den bindende: over ser du at bud.n naar 4 etter sju
+  runder, mens aggressiviteten fortsatt er null uten forkamper.
+
+## POSITIVKONTROLL — kan proeven SE at hukommelsen bet?
+Forskyvningen er «forsterk» naar boka HAR laert noe og eksakt 0 naar den
+er tom. Fortsatt en ren funksjon av hukommelsen, men den fyrer paa hver
+budbeslutning i stedet for paa de fem prosentene «justering» treffer.
+Er alle radene 0, er det PROEVEN som er i stykker, ikke hukommelsen.
+
+| forskyvning | n | avvik |
+|---|---|---|
+| 0.25 budpoeng | 87 | 0 |
+| 0.5 budpoeng | 87 | 0 |
+| 1 budpoeng | 86 | 2 |
+| 8 budpoeng | 87 | 5 |
+
+Minste forskyvning som snudde et valg: 1 budpoeng.
+Den EKTE hukommelsen ba om maks 0.508 - altsaa 2.0x for lite.
+
+## PROEVE A2 — kanalen inn i KORTSPILLET (Oekt.motpartFor, A2)
+Samme stilling, samme trukne verdener, samme alphaMu. Eneste forskjell:
+om rollout-motparten er basis eller den oekten laerte. RNG er bit-identisk.
+
+| forkamper | n | vridde seter | NULLARM (maa vaere 0) | kortvalg endret |
+|---|---|---|---|---|
+| 0 | 12 | 5/16 | 0 | 6 (50 %) |
+| 2 | 12 | 7/16 | 0 | 7 (58 %) |
+
+FORUTSETNINGEN BRUTT: raden med 0 forkamper er den samme proeven paa en oekt
+som ikke rekker over MIN_RUNDER. Er den ogsaa null, sier proeven «ingen
+hukommelse» naar det ikke er noen - og da betyr raden under noe.
+  aggressivitet per sete (2 forkamper): -0.333, -0.143, -0.034, -0.118
+
+## STRUKTUR — naar «okt:» faktisk gjennom speken?
+Antall bokfoerte runder i MIN oekt etter 4 runder, per plassering:
+  profil rett paa budm     16
+  profil bak vr:           16
+  ADAMS_V6/V7 er «okt:vr:…», altsaa den nederste raden.
+

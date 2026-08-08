@@ -1,0 +1,15 @@
+# KOLLAPSVAKT 2026-08-07 12:03  basislinje gen0, to fremmede prober
+# bredde 273, enhet cuda
+
+nett                        korpus                  n       tap    treff     anger
+----------------------------------------------------------------------------------
+d7alle.bin                  sd-frys2            87964    1.3930    51.6%    0.8652
+cny1.bin                    sd-frys2            87964    1.3961    51.4%    0.8721
+d7alle.bin                  sd-rv1             478784    1.4034    52.4%    0.6372
+cny1.bin                    sd-rv1             478784    1.4090    52.4%    0.6460
+d7alle.bin                  sd-natt-c           18958    1.5531    42.3%    1.1083
+cny1.bin                    sd-natt-c           18958    1.5394    43.9%    0.9788
+
+ETT TALL HERFRA BESTEMMER INGENTING. Stiger angeren paa en FREMMED
+mappe, kan det vaere kollaps - eller riktig uenighet med en svakere
+fasit. Bare en MONOTON kurve over flere generasjoner skiller dem.

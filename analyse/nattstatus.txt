@@ -1,0 +1,84 @@
+=== 03:00:41 ===
+ARM A (amu M=2, 12 verdener): 388 rader
+ARM B (amu M=1, 24 verdener): 171 rader
+levende prosesser: 56
+skard med feil: 0 av 18
+GPU: Enhet: cuda (NVIDIA GeForce RTX 5080 Laptop GPU)
+=== 03:33:22 ===
+ARM A (amu M=2, 12 verdener): 2773 rader
+ARM B (amu M=1, 24 verdener): 1268 rader
+levende prosesser: 82
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin
+=== 03:34:25 ===
+ARM A (714, nye etiketter): 2859 rader
+ARM C (273, SAMME etiketter - breddekontrollen): 439 rader
+levende prosesser: 82
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin
+=== 03:51:38 ===
+ARM A (714, nye etiketter): 4162 rader
+ARM C (273, SAMME etiketter - breddekontrollen): 941 rader
+levende prosesser: 82
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin
+=== 04:13:20 ===
+ARM A (714, nye etiketter): 5835 rader
+ARM C (273, SAMME etiketter - breddekontrollen): 1543 rader
+levende prosesser: 82
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin
+=== 04:18:34 ===
+ARM A (714, nye etiketter): 6242 rader
+ARM C (273, SAMME etiketter - breddekontrollen): 1705 rader
+levende prosesser: 84
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin
+=== 04:37:40 ===
+ARM A (714, nye etiketter): 7611 rader
+ARM C (273, SAMME etiketter - breddekontrollen): 2331 rader
+levende prosesser: 84
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin
+=== 04:47:37 ===
+ARM A (714, nye etiketter): 8353 rader
+ARM C (273, SAMME etiketter - breddekontrollen): 2645 rader
+levende prosesser: 84
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin
+=== 04:55:16 ===
+ARM A (714, nye etiketter): 8898 rader
+ARM C (273, SAMME etiketter - breddekontrollen): 2888 rader
+levende prosesser: 89
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin
+=== 05:08:32 ===
+ARM A (714, nye etiketter): 9868 rader
+ARM C (273, SAMME etiketter - breddekontrollen): 3313 rader
+levende prosesser: 89
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin
+=== 05:14:05 ===
+ARM A (714, nye etiketter): 10254 rader
+ARM C (273, SAMME etiketter - breddekontrollen): 3510 rader
+levende prosesser: 95
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin
+=== 05:24:19 ===
+ARM A (714, nye etiketter): 10945 rader
+ARM C (273, SAMME etiketter - breddekontrollen): 3800 rader
+levende prosesser: 95
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin
+=== 05:31:03 ===
+ARM A (714, nye etiketter): 11436 rader
+ARM C (273, SAMME etiketter - breddekontrollen): 4047 rader
+levende prosesser: 104
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin
+=== 05:56:34 ===
+ARM A (714, nye etiketter): 13179 rader
+ARM C (273, SAMME etiketter - breddekontrollen): 4978 rader
+levende prosesser: 104
+skard med feil: 0 av 18
+GPU: b714gammel ferdig: beste hold-anger 0.9460 på epoke 2 → e1-modell/b714gammel.bin

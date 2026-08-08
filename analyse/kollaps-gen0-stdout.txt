@@ -1,0 +1,46 @@
+Buffer: 87964 stillinger a 273 trekk fra sd-buffer/korpus-2c140fcc0bd26beb.npz (20s)
+Teller 478784 linjer i 6 filer (122s)
+KLIPPER til 273. Bredder funnet: {470: 6}
+Trekkbredde: 273 (v1)
+  sd-rv1/skard-0.jsonl: 79241 stillinger (totalt 79241)
+  sd-rv1/skard-1.jsonl: 79996 stillinger (totalt 159237)
+  sd-rv1/skard-2.jsonl: 78886 stillinger (totalt 238123)
+  sd-rv1/skard-3.jsonl: 80015 stillinger (totalt 318138)
+  sd-rv1/skard-4.jsonl: 80025 stillinger (totalt 398163)
+  sd-rv1/skard-5.jsonl: 80621 stillinger (totalt 478784)
+Leste 478784 stillinger, hoppet over 0 dubletter og 0 ugyldige, KLIPPET 478784 bredere rader ned til 273 (860s)
+Buffer skrevet: sd-buffer/korpus-7de80839edb5dd9f.npz
+Teller 23213 linjer i 12 filer (4s)
+KLIPPER til 273. Bredder funnet: {273: 12}
+Trekkbredde: 273 (v1)
+  sd-natt-c/skard-0.jsonl: 1911 stillinger (totalt 1911)
+  sd-natt-c/skard-1.jsonl: 1887 stillinger (totalt 3798)
+  sd-natt-c/skard-10.jsonl: 1008 stillinger (totalt 4806)
+  sd-natt-c/skard-11.jsonl: 954 stillinger (totalt 5760)
+  sd-natt-c/skard-2.jsonl: 1946 stillinger (totalt 7706)
+  sd-natt-c/skard-3.jsonl: 1787 stillinger (totalt 9493)
+  sd-natt-c/skard-4.jsonl: 1845 stillinger (totalt 11338)
+  sd-natt-c/skard-5.jsonl: 1911 stillinger (totalt 13249)
+  sd-natt-c/skard-6.jsonl: 1869 stillinger (totalt 15118)
+  sd-natt-c/skard-7.jsonl: 1957 stillinger (totalt 17075)
+  sd-natt-c/skard-8.jsonl: 926 stillinger (totalt 18001)
+  sd-natt-c/skard-9.jsonl: 957 stillinger (totalt 18958)
+Leste 18958 stillinger, hoppet over 4255 dubletter og 0 ugyldige (29s)
+Buffer skrevet: sd-buffer/korpus-02025cacfa0a547b.npz
+# KOLLAPSVAKT 2026-08-07 12:03  basislinje gen0, to fremmede prober
+# bredde 273, enhet cuda
+
+nett                        korpus                  n       tap    treff     anger
+----------------------------------------------------------------------------------
+d7alle.bin                  sd-frys2            87964    1.3930    51.6%    0.8652
+cny1.bin                    sd-frys2            87964    1.3961    51.4%    0.8721
+d7alle.bin                  sd-rv1             478784    1.4034    52.4%    0.6372
+cny1.bin                    sd-rv1             478784    1.4090    52.4%    0.6460
+d7alle.bin                  sd-natt-c           18958    1.5531    42.3%    1.1083
+cny1.bin                    sd-natt-c           18958    1.5394    43.9%    0.9788
+
+ETT TALL HERFRA BESTEMMER INGENTING. Stiger angeren paa en FREMMED
+mappe, kan det vaere kollaps - eller riktig uenighet med en svakere
+fasit. Bare en MONOTON kurve over flere generasjoner skiller dem.
+
+-> analyse/kollaps-gen0.txt og analyse/kollaps.jsonl

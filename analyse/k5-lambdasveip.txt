@@ -1,0 +1,16 @@
+# K5 lambda-sveip   2026-08-07T18:35:32.191Z
+# giv 20, froe 5100000, 40 stillinger, 7.7 grener i snitt
+# ETT soek per stilling. Alle lambda scores paa NYTT paa de samme
+# utfallsvektorene, saa sveipet er gratis etter soeket.
+
+strukturelt (full vekt, dvs. rent maks/min): grenen med hoeyest SNITT har ogsaa hoeyeste MAKSIMUM i 35.0 % av stillingene, og hoeyeste MINIMUM i 37.5 %.
+  (er det foerste 100 %, kan INGEN lambda velte et BAK-valg - da er formen fortsatt asymmetrisk)
+
+lambda   flyttet BAK   flyttet FORAN   spred BAK   spred FORAN
+0.40     0/40          1/40            6.163       6.225
+1.00     2/40          4/40            6.177       6.212
+1.50     8/40          4/40            6.198       6.202
+2.00     12/40         7/40            6.245       6.183
+3.00     26/40         27/40           6.853       5.599
+5.00     26/40         27/40           6.853       5.599
+10.00    26/40         27/40           6.853       5.599

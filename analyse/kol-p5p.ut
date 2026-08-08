@@ -1,0 +1,15 @@
+Enhet: cuda
+Leste 60000 stillinger a 376 trekk
+  foerer: 17023
+  makker: 13509
+  forsvar: 29468
+Grunn-anger: foerer 1.19599  makker 0.26723  forsvar 0.62996  alle 0.70888
+  40/376 kolonner
+  80/376 kolonner
+  120/376 kolonner
+  240/376 kolonner
+  280/376 kolonner
+  320/376 kolonner
+  360/376 kolonner
+
+Skrevet til analyse/kol-p5p.json og analyse/kol-p5p.txt

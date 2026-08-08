@@ -1,0 +1,8 @@
+{"type": "overlapp", "tid": "2026-08-03 16:02:09", "mapper": {"sd-v3": {"stillinger": 97343, "givere": 326}}, "overlapp": {}, "froebaand": {"sd-v3": [240000000, 253000020]}, "holdout": {"mappe": "sd-v3", "givere": 18, "givere_totalt": 326, "stillinger": 5184, "andel": 0.05, "froe": 20260726, "krysning": 0}}
+{"type": "start", "navn": "roykv3", "mix": ["sd-v3"], "dims": [356, 512, 384, 256, 52], "parametre": 491700, "trening": 92159, "holdout": 5184, "tid": "2026-08-03 16:02:09"}
+{"type": "epoke", "navn": "roykv3", "epoke": 1, "tren_tap_vektet": 1.56793, "tren_tap": 1.39427, "hold_tap": 1.40018, "gap": 0.00591, "tren_anger": 0.65086, "hold_anger": 0.63612, "tren_treff": 0.51873, "hold_treff": 0.5191, "lagret": true}
+{"type": "ferdig", "navn": "roykv3", "beste_hold_anger": 0.63612, "beste_epoke": 1, "fil": "e1-modell/roykv3.bin"}
+{"type": "overlapp", "tid": "2026-08-03 16:04:05", "mapper": {"sd-v3": {"stillinger": 99398, "givere": 330}}, "overlapp": {}, "froebaand": {"sd-v3": [240000000, 253000021]}, "holdout": {"mappe": "sd-v3", "givere": 18, "givere_totalt": 330, "stillinger": 5473, "andel": 0.05, "froe": 20260726, "krysning": 0}}
+{"type": "start", "navn": "roykmask", "mix": ["sd-v3"], "dims": [356, 512, 384, 256, 52], "parametre": 491700, "trening": 93925, "holdout": 5473, "tid": "2026-08-03 16:04:05"}
+{"type": "epoke", "navn": "roykmask", "epoke": 1, "tren_tap_vektet": 1.56823, "tren_tap": 1.39473, "hold_tap": 1.39896, "gap": 0.00423, "tren_anger": 0.65525, "hold_anger": 0.64044, "tren_treff": 0.51786, "hold_treff": 0.51946, "lagret": true}
+{"type": "ferdig", "navn": "roykmask", "beste_hold_anger": 0.64044, "beste_epoke": 1, "fil": "e1-modell/roykmask.bin"}

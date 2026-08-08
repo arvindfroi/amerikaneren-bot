@@ -1,0 +1,92 @@
+Enhet: cuda (NVIDIA GeForce RTX 5080 Laptop GPU)
+Teller 112894 linjer i 14 filer (2s)
+Trekkbredde: 356 (v3 med telleblokk)
+  sd-v3/skard-0.jsonl: 8105 stillinger (totalt 8105)
+  sd-v3/skard-1.jsonl: 7994 stillinger (totalt 16099)
+  sd-v3/skard-10.jsonl: 8088 stillinger (totalt 24187)
+  sd-v3/skard-11.jsonl: 8110 stillinger (totalt 32297)
+  sd-v3/skard-12.jsonl: 8035 stillinger (totalt 40332)
+  sd-v3/skard-13.jsonl: 7894 stillinger (totalt 48226)
+  sd-v3/skard-2.jsonl: 8084 stillinger (totalt 56310)
+  sd-v3/skard-3.jsonl: 8148 stillinger (totalt 64458)
+  sd-v3/skard-4.jsonl: 8125 stillinger (totalt 72583)
+  sd-v3/skard-5.jsonl: 8041 stillinger (totalt 80624)
+  sd-v3/skard-6.jsonl: 7988 stillinger (totalt 88612)
+  sd-v3/skard-7.jsonl: 8060 stillinger (totalt 96672)
+  sd-v3/skard-8.jsonl: 8063 stillinger (totalt 104735)
+  sd-v3/skard-9.jsonl: 8159 stillinger (totalt 112894)
+Leste 112894 stillinger, hoppet over 0 dubletter og 0 ugyldige (15s)
+
+=== OVERLAPP ===
+{
+  "mapper": {
+    "sd-v3": {
+      "stillinger": 112894,
+      "givere": 376
+    }
+  },
+  "overlapp": {},
+  "froebaand": {
+    "sd-v3": [
+      240000000,
+      253000024
+    ]
+  }
+}
+
+Giv-deling: 20 av 376 givere i sd-v3 → holdout (6168 stillinger). Ingen giver i to deler.
+  nullstiller kolonne 273-355 (83 trekk) i en KOPI av dataen
+  utvider inngangen 273 → 356: 83 nye kolonner NULLSTILT, saa nettet starter identisk
+  finjusterer fra e1-modell/ftf1.bin (lr 0.0001)
+
+=== v3n: sd-v3, 356 → 512 → 384 → 256 → 52 (491700 parametre) – trening 106726, holdout 6168 ===
+epoke 1/12: tren-tap 1.3956 hold-tap 1.3956 (gap +0.0000)  tren-anger 0.6579 hold-anger 0.6482 hold-treff 52.2 %
+epoke 2/12: tren-tap 1.3951 hold-tap 1.3969 (gap +0.0018)  tren-anger 0.6447 hold-anger 0.6434 hold-treff 52.3 %
+epoke 3/12: tren-tap 1.3941 hold-tap 1.3975 (gap +0.0034)  tren-anger 0.6359 hold-anger 0.6470 hold-treff 52.4 %
+epoke 4/12: tren-tap 1.3939 hold-tap 1.3988 (gap +0.0049)  tren-anger 0.6289 hold-anger 0.6412 hold-treff 52.4 %
+epoke 5/12: tren-tap 1.3940 hold-tap 1.4001 (gap +0.0061)  tren-anger 0.6225 hold-anger 0.6446 hold-treff 52.5 %
+epoke 6/12: tren-tap 1.3933 hold-tap 1.4005 (gap +0.0072)  tren-anger 0.6168 hold-anger 0.6380 hold-treff 52.5 %
+epoke 7/12: tren-tap 1.3936 hold-tap 1.4018 (gap +0.0081)  tren-anger 0.6126 hold-anger 0.6465 hold-treff 52.4 %
+epoke 8/12: tren-tap 1.3935 hold-tap 1.4023 (gap +0.0088)  tren-anger 0.6101 hold-anger 0.6452 hold-treff 52.5 %
+epoke 9/12: tren-tap 1.3935 hold-tap 1.4027 (gap +0.0092)  tren-anger 0.6070 hold-anger 0.6435 hold-treff 52.5 %
+epoke 10/12: tren-tap 1.3935 hold-tap 1.4030 (gap +0.0095)  tren-anger 0.6063 hold-anger 0.6452 hold-treff 52.4 %
+epoke 11/12: tren-tap 1.3935 hold-tap 1.4031 (gap +0.0096)  tren-anger 0.6059 hold-anger 0.6449 hold-treff 52.4 %
+epoke 12/12: tren-tap 1.3935 hold-tap 1.4032 (gap +0.0096)  tren-anger 0.6060 hold-anger 0.6444 hold-treff 52.4 %
+tidlig stopp: 6 epoker uten framgang (beste 0.6380)
+v3n ferdig: beste hold-anger 0.6380 på epoke 6 → e1-modell/v3n.bin
+  nullstiller kolonne 273-339 (67 trekk) i en KOPI av dataen
+  utvider inngangen 273 → 356: 83 nye kolonner NULLSTILT, saa nettet starter identisk
+  finjusterer fra e1-modell/ftf1.bin (lr 0.0001)
+
+=== v3k: sd-v3, 356 → 512 → 384 → 256 → 52 (491700 parametre) – trening 106726, holdout 6168 ===
+epoke 1/12: tren-tap 1.3955 hold-tap 1.3955 (gap +0.0000)  tren-anger 0.6582 hold-anger 0.6490 hold-treff 52.0 %
+epoke 2/12: tren-tap 1.3952 hold-tap 1.3970 (gap +0.0018)  tren-anger 0.6448 hold-anger 0.6436 hold-treff 52.2 %
+epoke 3/12: tren-tap 1.3942 hold-tap 1.3976 (gap +0.0034)  tren-anger 0.6361 hold-anger 0.6446 hold-treff 52.5 %
+epoke 4/12: tren-tap 1.3939 hold-tap 1.3988 (gap +0.0049)  tren-anger 0.6286 hold-anger 0.6431 hold-treff 52.4 %
+epoke 5/12: tren-tap 1.3940 hold-tap 1.4001 (gap +0.0061)  tren-anger 0.6224 hold-anger 0.6455 hold-treff 52.4 %
+epoke 6/12: tren-tap 1.3933 hold-tap 1.4005 (gap +0.0072)  tren-anger 0.6165 hold-anger 0.6403 hold-treff 52.5 %
+epoke 7/12: tren-tap 1.3936 hold-tap 1.4018 (gap +0.0082)  tren-anger 0.6126 hold-anger 0.6480 hold-treff 52.5 %
+epoke 8/12: tren-tap 1.3935 hold-tap 1.4023 (gap +0.0089)  tren-anger 0.6092 hold-anger 0.6490 hold-treff 52.5 %
+epoke 9/12: tren-tap 1.3934 hold-tap 1.4027 (gap +0.0093)  tren-anger 0.6064 hold-anger 0.6447 hold-treff 52.5 %
+epoke 10/12: tren-tap 1.3935 hold-tap 1.4031 (gap +0.0096)  tren-anger 0.6056 hold-anger 0.6466 hold-treff 52.5 %
+epoke 11/12: tren-tap 1.3935 hold-tap 1.4032 (gap +0.0097)  tren-anger 0.6055 hold-anger 0.6452 hold-treff 52.5 %
+epoke 12/12: tren-tap 1.3935 hold-tap 1.4032 (gap +0.0097)  tren-anger 0.6054 hold-anger 0.6452 hold-treff 52.5 %
+tidlig stopp: 6 epoker uten framgang (beste 0.6403)
+v3k ferdig: beste hold-anger 0.6403 på epoke 6 → e1-modell/v3k.bin
+  utvider inngangen 273 → 356: 83 nye kolonner NULLSTILT, saa nettet starter identisk
+  finjusterer fra e1-modell/ftf1.bin (lr 0.0001)
+
+=== v3m: sd-v3, 356 → 512 → 384 → 256 → 52 (491700 parametre) – trening 106726, holdout 6168 ===
+epoke 1/12: tren-tap 1.3952 hold-tap 1.3954 (gap +0.0002)  tren-anger 0.6567 hold-anger 0.6500 hold-treff 52.1 %
+epoke 2/12: tren-tap 1.3950 hold-tap 1.3972 (gap +0.0022)  tren-anger 0.6426 hold-anger 0.6465 hold-treff 52.2 %
+epoke 3/12: tren-tap 1.3940 hold-tap 1.3979 (gap +0.0039)  tren-anger 0.6342 hold-anger 0.6456 hold-treff 52.3 %
+epoke 4/12: tren-tap 1.3936 hold-tap 1.3991 (gap +0.0056)  tren-anger 0.6257 hold-anger 0.6512 hold-treff 52.3 %
+epoke 5/12: tren-tap 1.3937 hold-tap 1.4006 (gap +0.0068)  tren-anger 0.6189 hold-anger 0.6470 hold-treff 52.6 %
+epoke 6/12: tren-tap 1.3929 hold-tap 1.4010 (gap +0.0080)  tren-anger 0.6134 hold-anger 0.6473 hold-treff 52.4 %
+epoke 7/12: tren-tap 1.3933 hold-tap 1.4024 (gap +0.0091)  tren-anger 0.6081 hold-anger 0.6412 hold-treff 52.6 %
+epoke 8/12: tren-tap 1.3932 hold-tap 1.4029 (gap +0.0098)  tren-anger 0.6052 hold-anger 0.6464 hold-treff 52.5 %
+epoke 9/12: tren-tap 1.3932 hold-tap 1.4034 (gap +0.0102)  tren-anger 0.6030 hold-anger 0.6474 hold-treff 52.6 %
+epoke 10/12: tren-tap 1.3933 hold-tap 1.4038 (gap +0.0105)  tren-anger 0.6024 hold-anger 0.6478 hold-treff 52.7 %
+epoke 11/12: tren-tap 1.3933 hold-tap 1.4039 (gap +0.0107)  tren-anger 0.6020 hold-anger 0.6468 hold-treff 52.7 %
+epoke 12/12: tren-tap 1.3933 hold-tap 1.4039 (gap +0.0107)  tren-anger 0.6017 hold-anger 0.6458 hold-treff 52.7 %
+v3m ferdig: beste hold-anger 0.6412 på epoke 7 → e1-modell/v3m.bin

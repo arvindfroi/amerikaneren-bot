@@ -1,0 +1,13 @@
+# KOLLAPSVAKT 2026-08-07 11:52  basislinje foer generasjonsloekka
+# bredde 273, enhet cuda
+
+nett                        korpus                  n       tap    treff     anger
+----------------------------------------------------------------------------------
+d7alle.bin                  sd-frys2            87964    1.3930    51.6%    0.8652
+cny1.bin                    sd-frys2            87964    1.3961    51.4%    0.8721
+d7alle.bin                  sd-natt-c           18286    1.5540    42.3%    1.1068
+cny1.bin                    sd-natt-c           18286    1.5399    43.9%    0.9753
+
+ETT TALL HERFRA BESTEMMER INGENTING. Stiger angeren paa en FREMMED
+mappe, kan det vaere kollaps - eller riktig uenighet med en svakere
+fasit. Bare en MONOTON kurve over flere generasjoner skiller dem.

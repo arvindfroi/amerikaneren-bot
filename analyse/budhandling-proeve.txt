@@ -1,0 +1,32 @@
+
+=== Hva er det beste BUDET å avgi? 12 hender x 8 trekninger ===
+Budgiverens 12 kort er faste; de 40 andre deles ut på nytt hver trekning.
+De tre andre setene byr som vanlig (NevroHjerne) – setet kan bli OVERBUDT,
+og spiller da runden ut som forsvarer. Kandidat i eget sete: vakt:ab:e1:e1-modell/sd-r2.bin.
+
+handling   forventet poeng   fikk kontrakten   best på denne hånden
+----------------------------------------------------------------------
+PASS                2.80               0 %                 33 %
+bud 7               2.93               0 %                  0 %
+bud 8               3.85              10 %                  8 %
+bud 9               6.82              68 %                 42 %
+bud 10             -1.24              98 %                 17 %
+bud 11            -11.46             100 %                  0 %
+
+NEVROS EGET VALG, samme hender:
+  bud 5    100 %
+
+Å velge den poengbeste handlingen per hånd i stedet for nevros:
+  +0.00 ± 0.00 poeng per budgiverrunde (n=0)
+
+LESEVEILEDNING – og hvorfor dette IKKE motsier at 9 «pleier å gå».
+Et bud er ikke bra fordi det er sikkert, men fordi det slår alternativet.
+Forsvarersetet henter bare +1 per eget stikk, mens en innfridd niende gir
++18. Derfor kan bud 9 være klart riktig selv om det bommer hver tredje
+gang. Kolonnen «fikk kontrakten» viser den andre siden: byr man for lavt,
+blir man overbudt, og da er det gode budet verdt ingenting.
+
+TALLET ER ET ANSLAG PÅ ØVRE GRENSE. «Beste handling per hånd» velges HER
+med fasit i hånd – vi har simulert alle seks handlingene på nøyaktig denne
+hånden. En ekte budvurdering må gjette det fra kortene alene, og henter
+derfor mindre. Gapet er hva en budmodell har å spille om.

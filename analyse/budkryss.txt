@@ -1,0 +1,26 @@
+
+=== Budkrysset: hva er menneskets budplassering verdt? ===
+108 runder. Kortspillet er vakt:abmp:e1:e1-modell/sd-r2.bin i BEGGE armene.
+Samme giv, samme kort, samme spiller – bare budet byttes.
+
+arm                 bud     kontrakt klart    poengdiff
+---------------------------------------------------------
+BOTENS eget bud     9.09      85.2 %        9.614
+MENNESKETS bud      9.08      88.0 %        10.688
+---------------------------------------------------------
+
+DIFFERANSE (menneskets bud − botens), parret paa giv:
+  +1.074 ± 1.023   (1.0 SE), n=108
+
+Mennesket boed LAVERE enn boten i 38 runder, HOEYERE i 34.
+  paa de LAVERE:  +5.711 ± 2.210  (n=38)
+
+LESEVEILEDNING. Positivt = menneskets budplassering gir flere poeng enn
+botens, paa noeyaktig samme giv og med IDENTISK kortspill. Da kan
+differansen ikke komme fra spillefoeringen - den kommer fra hvor budet ble
+lagt.
+
+FORBEHOLD. Boten tvinges her til menneskets bud og FAAR kontrakten. I en
+ekte budrunde kunne et lavere bud blitt overbudt, og da er den lave
+plasseringen ikke gratis. Tallet er derfor verdien av aa SITTE med
+menneskets kontrakt, ikke av aa by som mennesket i en aapen budrunde.

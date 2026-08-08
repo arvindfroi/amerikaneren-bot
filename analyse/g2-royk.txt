@@ -1,0 +1,26 @@
+
+=== GATE 2: kandidat i ett sete, ukjent miljoe (rader fra foer miljoeet ble skrevet i radene) i de tre andre ===
+48 (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.
+
+arm                                        poeng/runde for setet
+--------------------------------------------------------------------
+KONTROLL                                   -0.000 ± 1.503
+vakt:abmpf:e1:e1-modell/cny1.bin           -1.333 ± 1.507
+vakt:abmpf:e1:e1-modell/d7alle.bin         -0.000 ± 1.503
+--------------------------------------------------------------------
+
+PARRET mot KONTROLL (miljoet mot seg selv i samme sete):
+  vakt:abmpf:e1:e1-modell/cny1.bin         -1.3333 ± 0.9421 (-1.4 SE)  6/11  p=1.000
+  vakt:abmpf:e1:e1-modell/d7alle.bin       +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+
+PER ROLLE (rollen er KONTROLLENS, saa parene er de samme):
+  vakt:abmpf:e1:e1-modell/cny1.bin
+    forsvar   n=   24  -0.0138 ± 0.1425 (-0.1 SE)  3/5  p=1.000
+  vakt:abmpf:e1:e1-modell/d7alle.bin
+    forsvar   n=   24  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+
+KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet
+i oppsettet, og ingen av de andre tallene kan leses.
+
+PORTEN: en ny vekt adopteres bare om den er positiv med margin OG
+positiv i klart over halvparten av parene. Aldri adoptere paa stoey.

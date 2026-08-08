@@ -1,0 +1,32 @@
+
+=== GATE 2: kandidat i ett sete, vakt:abmp (dagens) i de tre andre ===
+1200 (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.
+
+arm                                        poeng/runde for setet
+--------------------------------------------------------------------
+KONTROLL                                   +0.000 ± 0.290
+vakt:abmpk:e1:e1-modell/sd-r2.bin          +0.021 ± 0.291
+vakt:abmpd:e1:e1-modell/sd-r2.bin          -0.077 ± 0.290
+vakt:abmpD:e1:e1-modell/sd-r2.bin          -0.077 ± 0.291
+vakt:abmpe:e1:e1-modell/sd-r2.bin          -0.134 ± 0.291
+vakt:abmpl:e1:e1-modell/sd-r2.bin          -0.031 ± 0.291
+vakt:hbmp:e1:e1-modell/sd-r2.bin           +0.075 ± 0.290
+vakt:atmp:e1:e1-modell/sd-r2.bin           -0.052 ± 0.290
+vakt:abmpkd:e1:e1-modell/sd-r2.bin         -0.057 ± 0.291
+--------------------------------------------------------------------
+
+PARRET mot KONTROLL (miljoet mot seg selv i samme sete):
+  vakt:abmpk:e1:e1-modell/sd-r2.bin        +0.0206 ± 0.0815 (0.3 SE)  85/174  p=0.820
+  vakt:abmpd:e1:e1-modell/sd-r2.bin        -0.0772 ± 0.0700 (-1.1 SE)  9/28  p=0.087
+  vakt:abmpD:e1:e1-modell/sd-r2.bin        -0.0775 ± 0.0442 (-1.8 SE)  1/9  p=0.039
+  vakt:abmpe:e1:e1-modell/sd-r2.bin        -0.1342 ± 0.0764 (-1.8 SE)  9/31  p=0.029
+  vakt:abmpl:e1:e1-modell/sd-r2.bin        -0.0306 ± 0.0471 (-0.6 SE)  7/13  p=1.000
+  vakt:hbmp:e1:e1-modell/sd-r2.bin         +0.0747 ± 0.1125 (0.7 SE)  27/69  p=0.091
+  vakt:atmp:e1:e1-modell/sd-r2.bin         -0.0522 ± 0.0798 (-0.7 SE)  64/98  p=0.003
+  vakt:abmpkd:e1:e1-modell/sd-r2.bin       -0.0572 ± 0.1074 (-0.5 SE)  92/200  p=0.289
+
+KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet
+i oppsettet, og ingen av de andre tallene kan leses.
+
+PORTEN: en ny vekt adopteres bare om den er positiv med margin OG
+positiv i klart over halvparten av parene. Aldri adoptere paa stoey.

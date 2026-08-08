@@ -1,0 +1,17 @@
+
+=== Budagenten i spill ===
+80 (giv, sete), parret. Kandidat vakt:abmp:e1:e1-modell/sd-r2.bin i BEGGE armene.
+Bare budet skiller dem.
+
+arm        vant budrunden   snittkontrakt   klart      poengdiff
+------------------------------------------------------------------
+NEVRO              25.0 %          9.20    85.0 %       0.000
+MODELL             41.3 %          9.03    90.9 %       2.767
+------------------------------------------------------------------
+
+MODELL − NEVRO, parret:  +2.7666 ± 1.1443  (2.4 SE), n=80
+
+FORBEHOLD SKREVET FOER TALLET: modellen kan anbefale bud 8 og 11, og
+kortnettet er trent paa data der 92 % av kontraktene er 9-10. Et negativt
+tall her skiller ikke «modellen byr feil» fra «nettet kan ikke spille
+kontrakten modellen gir den». Det skillet krever fase 0.

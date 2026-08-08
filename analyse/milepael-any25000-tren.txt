@@ -1,0 +1,77 @@
+Enhet: cuda (NVIDIA GeForce RTX 5080 Laptop GPU)
+Teller 25747 linjer i 10 filer (5s)
+KLIPPER til 714. Bredder funnet: {714: 10}
+Trekkbredde: 714 (v10 hvem-la-hva)
+  sd-natt-a/skard-0.jsonl: 2492 stillinger (totalt 2492)
+  sd-natt-a/skard-1.jsonl: 2466 stillinger (totalt 4958)
+  sd-natt-a/skard-2.jsonl: 2397 stillinger (totalt 7355)
+  sd-natt-a/skard-3.jsonl: 2421 stillinger (totalt 9776)
+  sd-natt-a/skard-4.jsonl: 2500 stillinger (totalt 12276)
+  sd-natt-a/skard-5.jsonl: 2504 stillinger (totalt 14780)
+  sd-natt-a/skard-6.jsonl: 2378 stillinger (totalt 17158)
+  sd-natt-a/skard-7.jsonl: 2467 stillinger (totalt 19625)
+  sd-natt-a/skard-8.jsonl: 2401 stillinger (totalt 22026)
+  sd-natt-a/skard-9.jsonl: 2409 stillinger (totalt 24435)
+Leste 24435 stillinger, hoppet over 1351 dubletter og 0 ugyldige (48s)
+Buffer skrevet: sd-buffer/korpus-fbbb2e5f0fbfbcd4.npz
+
+=== OVERLAPP ===
+{
+  "mapper": {
+    "sd-natt-a": {
+      "stillinger": 24435,
+      "givere": 74
+    }
+  },
+  "overlapp": {},
+  "froebaand": {
+    "sd-natt-a": [
+      50000000,
+      59000006
+    ]
+  }
+}
+
+Giv-deling: 2 av 74 givere i sd-natt-a → holdout (659 stillinger). Ingen giver i to deler.
+  finjusterer fra e1-modell/b714gammel.bin (lr 0.0001)
+
+=== any25000: sd-natt-a, 714 → 512 → 384 → 256 → 52 (674996 parametre) – trening 23776, holdout 659 ===
+epoke 1/6: tren-tap 1.5523 hold-tap 1.5257 (gap -0.0266)  tren-anger 1.1021 hold-anger 1.1338 hold-treff 41.9 %
+epoke 2/6: tren-tap 1.5530 hold-tap 1.5265 (gap -0.0265)  tren-anger 1.0875 hold-anger 1.1083 hold-treff 41.4 %
+epoke 3/6: tren-tap 1.5521 hold-tap 1.5272 (gap -0.0250)  tren-anger 1.0715 hold-anger 1.1141 hold-treff 41.1 %
+epoke 4/6: tren-tap 1.5509 hold-tap 1.5264 (gap -0.0245)  tren-anger 1.0566 hold-anger 1.1107 hold-treff 41.3 %
+epoke 5/6: tren-tap 1.5505 hold-tap 1.5265 (gap -0.0239)  tren-anger 1.0538 hold-anger 1.1014 hold-treff 41.6 %
+epoke 6/6: tren-tap 1.5503 hold-tap 1.5265 (gap -0.0238)  tren-anger 1.0516 hold-anger 1.0994 hold-treff 41.7 %
+any25000 ferdig: beste hold-anger 1.0994 på epoke 6 → e1-modell/any25000.bin
+  skard 3: 4 rader     skard 3: 8 rader     skard 3: 12 rader     skard 3: 16 rader     skard 3: 20 rader     skard 3: 24 rader     skard 3: 28 rader     skard 2: 32 rader     skard 2: 36 rader     skard 2: 40 rader     skard 2: 44 rader     skard 2: 48 rader     skard 2: 52 rader     skard 2: 56 rader     skard 2: 60 rader     skard 2: 64 rader     skard 2: 68 rader     skard 3: 72 rader     skard 3: 76 rader     skard 3: 80 rader     skard 3: 84 rader     skard 3: 88 rader     skard 3: 92 rader     skard 3: 96 rader     skard 3: 100 rader     skard 3: 104 rader     skard 3: 108 rader     skard 3: 112 rader     skard 3: 116 rader     skard 3: 120 rader     skard 3: 124 rader     skard 3: 128 rader     skard 3: 132 rader     skard 3: 136 rader     skard 3: 140 rader     skard 3: 144 rader     skard 3: 148 rader     skard 3: 152 rader     skard 3: 156 rader     skard 3: 160 rader     skard 3: 164 rader     skard 3: 168 rader     skard 3: 172 rader     skard 3: 176 rader     skard 3: 180 rader     skard 3: 184 rader     skard 3: 188 rader     skard 3: 192 rader     skard 3: 196 rader     skard 3: 200 rader   
+Skard 3 ferdig: 200 rader → analyse/g2-any25000-3.jsonl
+
+=== GATE 2: kandidat i ett sete, vakt:abmpf:e1:e1-modell/b714gammel.bin i de tre andre ===
+1600 (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.
+
+arm                                        poeng/runde for setet
+--------------------------------------------------------------------
+KONTROLL                                   +0.000 ± 0.252
+vakt:abmpf:e1:e1-modell/any25000.bin       -0.152 ± 0.252
+vakt:abmpf:e1:e1-modell/b714gammel.bin     +0.000 ± 0.252
+--------------------------------------------------------------------
+
+PARRET mot KONTROLL (miljoet mot seg selv i samme sete):
+  vakt:abmpf:e1:e1-modell/any25000.bin     -0.1525 ± 0.1632 (-0.9 SE)  212/404  p=0.345
+  vakt:abmpf:e1:e1-modell/b714gammel.bin   +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+
+PER ROLLE (rollen er KONTROLLENS, saa parene er de samme):
+  vakt:abmpf:e1:e1-modell/any25000.bin
+    foerer    n=  400  -0.9975 ± 0.5493 (-1.8 SE)  77/141  p=0.312
+    makker    n=  400  -0.0242 ± 0.0678 (-0.4 SE)  25/52  p=0.890
+    forsvar   n=  800  +0.2058 ± 0.1716 (1.2 SE)  110/211  p=0.582
+  vakt:abmpf:e1:e1-modell/b714gammel.bin
+    foerer    n=  400  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+    makker    n=  400  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+    forsvar   n=  800  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+
+KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet
+i oppsettet, og ingen av de andre tallene kan leses.
+
+PORTEN: en ny vekt adopteres bare om den er positiv med margin OG
+positiv i klart over halvparten av parene. Aldri adoptere paa stoey.

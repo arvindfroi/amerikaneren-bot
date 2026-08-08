@@ -1,0 +1,27 @@
+K6 — LÆRE MOTSTANDERNES VANER OG UTNYTTE DEM
+
+Adams:      okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:6k8bgm1e0.25r0.4:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0:vakt:abmpf:e1:e1-modell/d7alle.bin
+Basis:      vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+Stilisert:  trumftrekker (leder alltid trumf, legger alltid dyrest)
+Kamper:     1 per arm per motstander, til 60 poeng
+Frøbånd:    810000000 + k·7717
+MIN_RUNDER: 4 (økten tror ikke på noe før den runden)
+Kjøretid:   92 s
+
+g(k,r) = kant mot stilisert − kant mot nøytral, parret på identisk giv.
+Kant = Adams' rundepoeng − snittet av de tre andres.
+
+=== ARM «okt-matet» ===
+  parrede runder            n = 2
+  K6.1 gevinst totalt       -6.000 ± 14.000
+  runde 0–3 (før terskel)     -6.000 ± 14.000  (n = 2)
+  runde 4+ (etter terskel)    0.000 ± NaN  (n = 0)
+  K6.2 vekst (sen − tidlig) 6.000 ± NaN  z = NaN
+  K6.2 stigning per runde   NaN ± NaN  z = NaN
+  profilboka så maks        1 runder om et motstandersete
+  aggressivitet lest        aldri (null i hver runde)
+  A2-vrien fyrte            0 av 2 runder
+
+Gevinst per rundenummer (arm; g; n):
+  okt-matet      r= 0   -20.000  n=1
+  okt-matet      r= 1     8.000  n=1

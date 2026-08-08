@@ -1,0 +1,18 @@
+MesterAI-h2h: vakt:at:e1:e1-modell/sd-r2.bin mot MesterAI, par [0, 200), frøbase 4000000, 450 ms per kortvalg
+→ analyse/h2h-L-kontroll.jsonl
+
+par 0 side 0 (frø 4000000, MesterAI på 0+2): mester 129 – 75 vakt:at:e1:e1-modell/sd-r2.bin, 14 runder, 113 s
+par 0 side 1 (frø 4000000, MesterAI på 1+3): mester 52 – 151 vakt:at:e1:e1-modell/sd-r2.bin, 14 runder, 101 s
+par 1 side 0 (frø 4000001, MesterAI på 0+2): mester 193 – 175 vakt:at:e1:e1-modell/sd-r2.bin, 20 runder, 160 s
+par 1 side 1 (frø 4000001, MesterAI på 1+3): mester 200 – 55 vakt:at:e1:e1-modell/sd-r2.bin, 10 runder, 109 s
+par 2 side 0 (frø 4000002, MesterAI på 0+2): mester 31 – 86 vakt:at:e1:e1-modell/sd-r2.bin, 18 runder, 169 s
+par 2 side 1 (frø 4000002, MesterAI på 1+3): mester 176 – 100 vakt:at:e1:e1-modell/sd-r2.bin, 13 runder, 88 s
+par 3 side 0 (frø 4000003, MesterAI på 0+2): mester 130 – 179 vakt:at:e1:e1-modell/sd-r2.bin, 16 runder, 117 s
+par 3 side 1 (frø 4000003, MesterAI på 1+3): mester 132 – 186 vakt:at:e1:e1-modell/sd-r2.bin, 20 runder, 146 s
+par 4 side 0 (frø 4000004, MesterAI på 0+2): mester 117 – 88 vakt:at:e1:e1-modell/sd-r2.bin, 18 runder, 120 s
+par 4 side 1 (frø 4000004, MesterAI på 1+3): mester 143 – 176 vakt:at:e1:e1-modell/sd-r2.bin, 18 runder, 156 s
+par 5 side 0 (frø 4000005, MesterAI på 0+2): mester 189 – 98 vakt:at:e1:e1-modell/sd-r2.bin, 26 runder, 220 s
+par 5 side 1 (frø 4000005, MesterAI på 1+3): mester 196 – 142 vakt:at:e1:e1-modell/sd-r2.bin, 21 runder, 166 s
+par 6 side 0 (frø 4000006, MesterAI på 0+2): mester 148 – 209 vakt:at:e1:e1-modell/sd-r2.bin, 41 runder, 414 s
+par 6 side 1 (frø 4000006, MesterAI på 1+3): mester 188 – 34 vakt:at:e1:e1-modell/sd-r2.bin, 13 runder, 121 s
+par 7 side 0 (frø 4000007, MesterAI på 0+2): mester 181 – 176 vakt:at:e1:e1-modell/sd-r2.bin, 16 runder, 133 s

@@ -1,0 +1,45 @@
+Enhet: cuda (NVIDIA GeForce RTX 5080 Laptop GPU)
+Teller 99251 linjer i 14 filer (2s)
+Trekkbredde: 356 (v3 med telleblokk)
+  sd-v3/skard-0.jsonl: 7156 stillinger (totalt 7156)
+  sd-v3/skard-1.jsonl: 7041 stillinger (totalt 14197)
+  sd-v3/skard-10.jsonl: 7098 stillinger (totalt 21295)
+  sd-v3/skard-11.jsonl: 7121 stillinger (totalt 28416)
+  sd-v3/skard-12.jsonl: 7108 stillinger (totalt 35524)
+  sd-v3/skard-13.jsonl: 6924 stillinger (totalt 42448)
+  sd-v3/skard-2.jsonl: 7110 stillinger (totalt 49558)
+  sd-v3/skard-3.jsonl: 7183 stillinger (totalt 56741)
+  sd-v3/skard-4.jsonl: 7180 stillinger (totalt 63921)
+  sd-v3/skard-5.jsonl: 7067 stillinger (totalt 70988)
+  sd-v3/skard-6.jsonl: 7029 stillinger (totalt 78017)
+  sd-v3/skard-7.jsonl: 7109 stillinger (totalt 85126)
+  sd-v3/skard-8.jsonl: 7094 stillinger (totalt 92220)
+  (utvider 99251 → 123197 rader; filene vokser)
+  sd-v3/skard-9.jsonl: 7178 stillinger (totalt 99398)
+Leste 99398 stillinger, hoppet over 0 dubletter og 0 ugyldige (16s)
+
+=== OVERLAPP ===
+{
+  "mapper": {
+    "sd-v3": {
+      "stillinger": 99398,
+      "givere": 330
+    }
+  },
+  "overlapp": {},
+  "froebaand": {
+    "sd-v3": [
+      240000000,
+      253000021
+    ]
+  }
+}
+
+Giv-deling: 18 av 330 givere i sd-v3 → holdout (5473 stillinger). Ingen giver i to deler.
+  nullstiller kolonne 273-339 (67 trekk) i en KOPI av dataen
+  utvider inngangen 273 → 356: 83 nye kolonner NULLSTILT, saa nettet starter identisk
+  finjusterer fra e1-modell/ftf1.bin (lr 0.0001)
+
+=== roykmask: sd-v3, 356 → 512 → 384 → 256 → 52 (491700 parametre) – trening 93925, holdout 5473 ===
+epoke 1/1: tren-tap 1.3947 hold-tap 1.3990 (gap +0.0042)  tren-anger 0.6553 hold-anger 0.6404 hold-treff 51.9 %
+roykmask ferdig: beste hold-anger 0.6404 på epoke 1 → e1-modell/roykmask.bin

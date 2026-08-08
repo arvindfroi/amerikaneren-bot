@@ -1,0 +1,83 @@
+Enhet: cuda (NVIDIA GeForce RTX 5080 Laptop GPU)
+Teller 112894 linjer i 14 filer (1s)
+Trekkbredde: 356 (v3 telleblokk)
+  sd-v3/skard-0.jsonl: 8105 stillinger (totalt 8105)
+  sd-v3/skard-1.jsonl: 7994 stillinger (totalt 16099)
+  sd-v3/skard-10.jsonl: 8088 stillinger (totalt 24187)
+  sd-v3/skard-11.jsonl: 8110 stillinger (totalt 32297)
+  sd-v3/skard-12.jsonl: 8035 stillinger (totalt 40332)
+  sd-v3/skard-13.jsonl: 7894 stillinger (totalt 48226)
+  sd-v3/skard-2.jsonl: 8084 stillinger (totalt 56310)
+  sd-v3/skard-3.jsonl: 8148 stillinger (totalt 64458)
+  sd-v3/skard-4.jsonl: 8125 stillinger (totalt 72583)
+  sd-v3/skard-5.jsonl: 8041 stillinger (totalt 80624)
+  sd-v3/skard-6.jsonl: 7988 stillinger (totalt 88612)
+  sd-v3/skard-7.jsonl: 8060 stillinger (totalt 96672)
+  sd-v3/skard-8.jsonl: 8063 stillinger (totalt 104735)
+  sd-v3/skard-9.jsonl: 8159 stillinger (totalt 112894)
+Leste 112894 stillinger, hoppet over 0 dubletter og 0 ugyldige (8s)
+
+=== OVERLAPP ===
+{
+  "mapper": {
+    "sd-v3": {
+      "stillinger": 112894,
+      "givere": 376
+    }
+  },
+  "overlapp": {},
+  "froebaand": {
+    "sd-v3": [
+      240000000,
+      253000024
+    ]
+  }
+}
+
+Giv-deling: 20 av 376 givere i sd-v3 → holdout (6168 stillinger). Ingen giver i to deler.
+  nullstiller kolonne 277-328 (52 trekk), 340-355 (16 trekk) i en KOPI av dataen
+  utvider inngangen 273 → 356: 83 nye kolonner NULLSTILT, saa nettet starter identisk
+  finjusterer fra e1-modell/ftf1.bin (lr 0.0001)
+
+=== mbal: sd-v3, 356 → 512 → 384 → 256 → 52 (491700 parametre) – trening 106726, holdout 6168 ===
+  spillefoerer    30100 rader, snittvekt 3.226 -> andel av vekt  44.4 %
+  makker          23955 rader, snittvekt 0.745 -> andel av vekt   8.2 %
+  forsvar         52671 rader, snittvekt 1.969 -> andel av vekt  47.4 %
+  rollebalansert: hver rolle bidrar naa proporsjonalt med radandelen
+  varmer opp kolonne 273-355 alene i 24 epoker (lr 0.001), resten frosset
+    oppvarming 1/24: snitt |vekt| ny 0.00141 vs gammel 0.08951 (1.6 %)
+    oppvarming 2/24: snitt |vekt| ny 0.00228 vs gammel 0.08951 (2.5 %)
+    oppvarming 3/24: snitt |vekt| ny 0.00303 vs gammel 0.08951 (3.4 %)
+    oppvarming 4/24: snitt |vekt| ny 0.00369 vs gammel 0.08951 (4.1 %)
+    oppvarming 5/24: snitt |vekt| ny 0.00425 vs gammel 0.08951 (4.7 %)
+    oppvarming 6/24: snitt |vekt| ny 0.00480 vs gammel 0.08951 (5.4 %)
+    oppvarming 7/24: snitt |vekt| ny 0.00530 vs gammel 0.08951 (5.9 %)
+    oppvarming 8/24: snitt |vekt| ny 0.00579 vs gammel 0.08951 (6.5 %)
+    oppvarming 9/24: snitt |vekt| ny 0.00624 vs gammel 0.08951 (7.0 %)
+    oppvarming 10/24: snitt |vekt| ny 0.00667 vs gammel 0.08951 (7.5 %)
+    oppvarming 11/24: snitt |vekt| ny 0.00712 vs gammel 0.08951 (8.0 %)
+    oppvarming 12/24: snitt |vekt| ny 0.00754 vs gammel 0.08951 (8.4 %)
+    oppvarming 13/24: snitt |vekt| ny 0.00795 vs gammel 0.08951 (8.9 %)
+    oppvarming 14/24: snitt |vekt| ny 0.00835 vs gammel 0.08951 (9.3 %)
+    oppvarming 15/24: snitt |vekt| ny 0.00873 vs gammel 0.08951 (9.8 %)
+    oppvarming 16/24: snitt |vekt| ny 0.00911 vs gammel 0.08951 (10.2 %)
+    oppvarming 17/24: snitt |vekt| ny 0.00949 vs gammel 0.08951 (10.6 %)
+    oppvarming 18/24: snitt |vekt| ny 0.00985 vs gammel 0.08951 (11.0 %)
+    oppvarming 19/24: snitt |vekt| ny 0.01020 vs gammel 0.08951 (11.4 %)
+    oppvarming 20/24: snitt |vekt| ny 0.01055 vs gammel 0.08951 (11.8 %)
+    oppvarming 21/24: snitt |vekt| ny 0.01089 vs gammel 0.08951 (12.2 %)
+    oppvarming 22/24: snitt |vekt| ny 0.01126 vs gammel 0.08951 (12.6 %)
+    oppvarming 23/24: snitt |vekt| ny 0.01160 vs gammel 0.08951 (13.0 %)
+    oppvarming 24/24: snitt |vekt| ny 0.01195 vs gammel 0.08951 (13.3 %)
+epoke 1/12: tren-tap 1.3951 hold-tap 1.4009 (gap +0.0058)  tren-anger 0.6314 hold-anger 0.6563 hold-treff 52.0 %
+epoke 2/12: tren-tap 1.3947 hold-tap 1.4025 (gap +0.0078)  tren-anger 0.6241 hold-anger 0.6604 hold-treff 52.1 %
+epoke 3/12: tren-tap 1.3934 hold-tap 1.4025 (gap +0.0091)  tren-anger 0.6156 hold-anger 0.6531 hold-treff 52.2 %
+epoke 4/12: tren-tap 1.3930 hold-tap 1.4037 (gap +0.0106)  tren-anger 0.6089 hold-anger 0.6523 hold-treff 52.2 %
+epoke 5/12: tren-tap 1.3926 hold-tap 1.4043 (gap +0.0117)  tren-anger 0.6034 hold-anger 0.6550 hold-treff 52.4 %
+epoke 6/12: tren-tap 1.3930 hold-tap 1.4059 (gap +0.0129)  tren-anger 0.5971 hold-anger 0.6542 hold-treff 52.4 %
+epoke 7/12: tren-tap 1.3928 hold-tap 1.4067 (gap +0.0138)  tren-anger 0.5951 hold-anger 0.6589 hold-treff 52.3 %
+epoke 8/12: tren-tap 1.3926 hold-tap 1.4070 (gap +0.0144)  tren-anger 0.5928 hold-anger 0.6571 hold-treff 52.3 %
+epoke 9/12: tren-tap 1.3927 hold-tap 1.4075 (gap +0.0148)  tren-anger 0.5917 hold-anger 0.6534 hold-treff 52.4 %
+epoke 10/12: tren-tap 1.3927 hold-tap 1.4078 (gap +0.0151)  tren-anger 0.5901 hold-anger 0.6560 hold-treff 52.4 %
+tidlig stopp: 6 epoker uten framgang (beste 0.6523)
+forsvar ferdig: beste hold-anger 0.6523 på epoke 4 → e1-modell/mbal.bin

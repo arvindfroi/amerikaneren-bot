@@ -1,0 +1,14 @@
+Enhet: cuda
+Leste 112894 stillinger a 356 trekk
+  foerer: 31796
+  makker: 25350
+  forsvar: 55748
+Grunn-anger: foerer 0.95991  makker 0.24459  forsvar 0.53986  alle 0.59186
+  40/356 kolonner
+  80/356 kolonner
+  120/356 kolonner
+  240/356 kolonner
+  280/356 kolonner
+  320/356 kolonner
+
+Skrevet til analyse/kolonner-wred.json og analyse/kolonner-wred.txt

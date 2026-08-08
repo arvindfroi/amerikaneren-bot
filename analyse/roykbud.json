@@ -1,0 +1,38 @@
+{
+  "spek": "vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin",
+  "runder": 40,
+  "rader": [
+    {
+      "bud": 0,
+      "n": 96,
+      "mLengste": 4.448,
+      "sdLengste": 0.647,
+      "mHonnør": 1.646,
+      "sdHonnør": 0.951
+    },
+    {
+      "bud": 8,
+      "n": 1,
+      "mLengste": 4,
+      "sdLengste": 0,
+      "mHonnør": 1,
+      "sdHonnør": 0
+    },
+    {
+      "bud": 9,
+      "n": 22,
+      "mLengste": 4.273,
+      "sdLengste": 0.767,
+      "mHonnør": 1.364,
+      "sdHonnør": 0.658
+    },
+    {
+      "bud": 10,
+      "n": 1,
+      "mLengste": 5,
+      "sdLengste": 0,
+      "mHonnør": 2,
+      "sdHonnør": 0
+    }
+  ]
+}

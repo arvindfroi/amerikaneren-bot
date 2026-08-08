@@ -1,0 +1,9 @@
+Spek: budm:e1-modell/bud-gbt.json:vakt:abmp:e1:e1-modell/ftf1.bin
+Makkerbeslutninger: 8796, med reelt valg: 5580
+
+  OVERTAKING av spillefoerer   216 av 3972 (5.4 %)      orakel 4.5 %   OVERSKUDD +0.9 pp
+  TRUMFSLOSING                 26 av 2353 (1.1 %)       orakel 1.2 %   OVERSKUDD -0.1 pp
+  HONNOERSLOSING               286 av 3813 (7.5 %)      orakel 23.1 %   OVERSKUDD -15.6 pp
+  TAPT REDNING                 33 av 547 (6.0 %)        orakel 16.1 %   OVERSKUDD -10.1 pp
+
+Skrevet til analyse/makkeratferd-orakel.json

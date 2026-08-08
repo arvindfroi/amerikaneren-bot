@@ -281,13 +281,120 @@ Adams var verre enn uniform.
 
 ---
 
+## K8 utvidet — hvert offentlig valg skal oppdatere alles tro
+
+> Arvind, 8. august: «hver gang en spiller gjør et valg som er offentlig så vil
+> jeg at alle sin tro om hva de andre sine kort er skal oppdatere seg. […] det
+> er ikke ja eller nei på hvor man tror, men at troen er spredd over de ukjente
+> på bordet basert på tidligere spill og atferd som vi kjenner til.»
+
+Dette er kjernen i K8, og det er en STRENGERE prøve enn den over. Log-tapet
+måler hvor god troen er *til slutt*. Kravet her er at den skal oppdatere seg
+**ved hvert offentlig valg** — og et offentlig valg er mer enn et spilt kort.
+
+Merk hva slags størrelse dette er. Troen er en **fordeling over de ukjente
+kortene**, ikke en liste med ja/nei. «Han har ikke hjerter» er hardt og sjeldent;
+«han har trolig ikke både konge og ess» er mykt og vanlig, og det er den myke
+typen det er flest av.
+
+### De seks kanalene, og hvor de står i koden
+
+Arvinds eksempler, hvert mappet til den kanalen som må bære det:
+
+| # | eksempelet | kanalen | bygd? | i den målte Adams? |
+|---|---|---|---|---|
+| 1 | «han byr 11 — da har han gode kort» | `handtrekk.ts` koder budene som felt 93–103 inn i `Trosnett` | **ja** | **NEI — låst** |
+| 2 | budvinner får ekstra verdi, og vraker for å skape renons | ingen | **nei** | nei |
+| 3 | «han ber om konge — da har han nok essen selv» | `Etterlysvelger` er BARE en beslutning | **nei** | nei |
+| 4 | «han trumfet — da har han ikke den sorten» | `hvemla-slutning.ts`, renons-settet | **ja** | **ja** |
+| 5 | makker la dame på mitt lave — K/A-fordelingen skifter | A5 `troverdighet.ts` + A6 `signal.ts` | delvis | ja, men svakt |
+| 6 | «enten bare trumf igjen, ellers denne fargen — jeg sparer kongen» | A8, forgreining over EGNE framtidige valg (`M`) | delvis | **nei — `M=1`** |
+
+**Kanal 4 alene står for 92,7 % av all K8-informasjon i dag** (§105). A1, A5 og
+A6 til sammen bidrar 1,3 %. Det er ikke fordi de andre kanalene er verdiløse —
+det er fordi fem av seks ikke er koblet.
+
+### Hvorfor kanal 1 er låst, og hva som åpner den
+
+Budet er allerede kodet som trekk til trosnettet: felt 95–97 hvem som passet,
+98–100 hvem som bød, 101–103 budets størrelse skalert mot antall stikk. Modellen
+finnes. Men `Trosnett` og `montetro` krever et nett med **≥ 558 trekk**, og
+Adams kjører `d7alle` på **273**. Det eneste brede nettet vi har (`b714gammel`)
+måler **−1,15** mot `d7alle` — å bytte ville gjort Adams verre for å slå på en
+evne.
+
+**Låsen åpnes av et bedre 714-nett, ikke av en spekendring.** Det er GPU-arbeid,
+ikke kodearbeid, og det er den enkeltstående viktigste hardware-oppgaven i hele
+Adams Max.
+
+### Ekvivalens er ikke en detalj
+
+Arvind sa det selv: «med mindre han har ekvivelens». Et spilt kort er bevis bare
+i forhold til **alternativene spilleren hadde**. Legger makker dame fra K‑D
+blanke, betyr damen noe helt annet enn fra D‑J‑10. En tro som leser kortet
+absolutt i stedet for relativt, slutter feil — og det er nøyaktig feilen A6
+hadde da avsenderen valgte relativt og mottakeren leste absolutt (§ signal).
+
+`troverdighet.ts` er den ene mekanismen som kan gjøre dette ærlig, fordi den
+regner `P(observasjon | verden)` under en policy og dermed normaliserer mot det
+spilleren KUNNE gjort. Kanal 5 hviler på den.
+
+### Og dette er K4 og K8 i samme sak
+
+«hver gang noen tar et offentlig valg så husker man det» — hukommelsen er
+premisset for slutningen. K4 lærer PÅ TVERS av runder hvordan dette setet
+oppfører seg; K8 slutter INNENFOR runden hva hun har. Uten koblingen vektes
+verdenene med feil modell: søket ruller ut en motstander økten har lært å kjenne,
+mens troen leser observasjonene som om hun spilte som oss.
+
+Den koblingen ER bygd (`Økt.atferdFor`, se `okt.ts`). Den er bare ikke utrullet.
+
+---
+
+## K5 utvidet — de tre nivåene
+
+> Arvind: «amerikaneren er et spill med 3 nivåer […] alle 3 nivåer må forstås
+> for å danne et bilde over spillet og tilpasse atferd på en passelig måte.»
+
+| nivå | hva det er | hvem eier det i dag | status |
+|---|---|---|---|
+| **makro** | sammenlagt ledelse og løpet mot 100 | `race.ts` — kvantilblanding vektet av `\|λ·press\|` | virker i SØKET, **ikke i budet** |
+| **meso** | selve kontrakten som spilles | `budm:` — μ, `vant[N]`, terskelen | kalibrert mot feil bord (se budplanen) |
+| **mikro** | hvert enkelt stikk | alpha-mu + konvensjonsvakten | sterkest av de tre |
+
+**Hullet er makro → meso.** Kampstillingen styrer hvor mye risiko søket tar i et
+stikk, men den påvirker ikke om Adams BYR. En bot som ligger 30 poeng bak med
+tre runder igjen må by annerledes enn en som leder — og i dag byr den likt. Det
+er steg 4 i budplanen, og det er koblingen K5 → K3.
+
+**Og makro er nettopp derfor kampbenken er den eneste prøven på K1.** Gate 2
+spiller én runde med friske agenter: `press` er strukturelt EKSAKT 0 der, så
+hele makronivået er usynlig. En måling som ikke kan se et nivå, kan ikke dømme
+det.
+
+### Hva dette betyr for MVP-en
+
+Arvind: «alt det jeg sier skal være i mvp for adams max.» Da er dette
+arbeidslista, og den er ærlig om hva som er kode og hva som er timer:
+
+1. **Kanal 3** — etterlysningen som bevis. Ren kode, liten.
+2. **Kanal 2** — vraket som bevis. Ren kode; budvinnerens vrak er offentlig
+   informasjon om hva hun IKKE ville beholde.
+3. **Kanal 6** — `M ≥ 2`. Bygd, men 5,3× dyrere enn `M=1`. Kostnadsspørsmål,
+   ikke byggespørsmål.
+4. **Kanal 5** — A6 er rettet, ny måling gjenstår.
+5. **Kanal 1** — krever 714-nettet. GPU.
+6. **Makro → meso** — budplanens fire steg.
+
+---
+
 ## Hva som mangler, oppsummert
 
 | krav | prøven finnes | innfridd |
 |---|---|---|
 | K1 bedre enn mennesker | ja | **nei** — 15,83 % mot < 5,0 % |
 | K2 aldri jukse | ja | **ja** (kortspill) — men se talonghullet |
-| K3 SOTA i alle faser | ja | delvis — **≥ 87 % av budtaket er klarsyn** |
+| K3 SOTA i alle faser | ja | delvis — **~21 % av budtaket er nåbart** (revidert) |
 | K4 hukommelse + planlegging | ja | **nei** — kortkanalen virker, budkanalen 2× for svak |
 | K5 kontekst og tilpasning | ja | halvveis — fikset, ny måling gjenstår |
 | K6 lære vaner og utnytte | ja | **nei** — tre brudd rettet, ommåling gjenstår |
@@ -454,3 +561,66 @@ etablert (z = +0,27).
 
 Skulle det bli utfallet, er planen likevel riktig utført: den erstatter en
 antakelse med et tall.
+
+---
+
+## Revisjon 8. august — budtaket var ikke der vi trodde
+
+K-kurven er målt: n = 114 giv per bånd, to disjunkte bånd, alle K på samme giv
+og et prefiks av de samme verdenene.
+
+| K | begge bånd ± SE | tegntest |
+|---|---|---|
+| 6 | −0,741 ± 0,794 | negativ i BEGGE bånd |
+| 12 | +1,246 ± 0,735 | 0,00 / −0,19 |
+| 240 | **+2,004 ± 0,586** (z 2,83) | **2,06 / 1,94 — positiv i begge** |
+| klarsyn | +9,627 ± 0,859 | — |
+
+**«≥ 87 % av budtaket er klarsyn» var et artefakt.** Tallet ble lest ved
+K = 12, som ligger under vippepunktet. Ved K = 240 er andelen **~79 % klarsyn,
+~21 % nåbart** — dobbelt så stort vindu som antatt.
+
+Det nye ved K = 240 er ikke snittet (det lå på +1,2 alt ved K = 12), men at
+**tegntesten snur positiv i begge bånd**. Gevinsten bæres av et flertall giv i
+stedet for noen få utslag. Det er nøyaktig skillet §65 falt på.
+
+**Vinnerens forbannelse er ekte og snur mellom K = 6 og K = 24.** K = 6 er
+negativt i begge bånd. Den konservative varianten blir også positiv
+(+1,228 ± 0,428) og ligger UNDER argmax ved K = 240 — forbannelsen er ikke
+lenger den bindende skranken.
+
+### Og den viktigste setningen
+
+**Budrunden er MODELLBEGRENSET, ikke informasjonsbegrenset.**
+
+Et søk som bare bruker lovlig informasjon henter ~21 % av klarsynstaket og
+~25 % av PASS-bøtta (+0,95 ± 0,33). μ (GBT-en) når **aldri over null** i noen
+bøtte, i noe bånd: −0,01 til −0,13, kryssvalidert −0,057. Informasjonen er ved
+bordet. Dagens budmodell kan ikke representere den.
+
+Det flytter budplanens tyngdepunkt: å rekalibrere μ er å finpusse en modell som
+ikke har uttrykkskraften. Søket har den.
+
+### Hva som er destillerbart, og hvor smalt
+
+**89 % av hele K = 240-gevinsten er ÉN binær beslutning: by 9 i stedet for 10**
+(29 giv, +1,785). Alt annet søket finner — 9→PASS, 9→5, 8→PASS — summerer til
+nøyaktig null.
+
+Etikettstabiliteten følger samme mønster: 65,8 % for hele budvalget, men
+**83,5 % for nettopp «by 9 i stedet for 10»**. Målet er derfor én binær
+klassifiserer på de ~42 % av givene der policyen byr 10 — ikke etiketter for
+hele budvalget. Og den kan ikke bygges på `budTrekk` alene: μ skiller de to
+klassene med bare −0,433 ± 0,303. Hendene ser nesten like ut for GBT-en.
+
+*Forbehold som må stå:* kurven er ikke monoton (K = 120 < K = 48), og fire
+disjunkte 60-blokker måler 1,40–2,11 — altså ±0,4 ren valgstøy. Platået fra
+K ≈ 48 er ETT platå, ikke en kurve med struktur. Den billige varianten («byr 10
+med svak μ, by 9») måler +0,301 ± 0,109, men tegntest +0,78/−0,25 og
+kryssvalidert −0,011 (z −3,17) — **ikke etablert**.
+
+*En feil ble funnet av kontrollene:* `JSON.parse` sorterer heltallsliknende
+nøkler først, så kandidatrekkefølgen snudde og uavgjorte argmax-valg ble brutt
+motsatt vei — 1 av 3 giv feil merket. Rekkefølgen hentes nå fra
+`lovligeHandlinger`. Kontrollen som fanget den: K = 12-valget skal være
+identisk med `k3-budgap.ts`, og er det nå på alle 194 felles giv.

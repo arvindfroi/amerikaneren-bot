@@ -1,0 +1,4 @@
+{"type": "overlapp", "tid": "2026-08-04 01:50:01", "mapper": {"sd-v5": {"stillinger": 278798, "givere": 1193}}, "overlapp": {}, "froebaand": {"sd-v5": [260000000, 273000010]}, "holdout": {"mappe": "sd-v5", "givere": 44, "givere_totalt": 1193, "stillinger": 10342, "andel": 0.05, "froe": 20260726, "krysning": 0}}
+{"type": "start", "navn": "rollproeve", "mix": ["sd-v5"], "dims": [376, 512, 384, 256, 52], "parametre": 501940, "trening": 268456, "holdout": 10342, "tid": "2026-08-04 01:50:02"}
+{"type": "epoke", "navn": "rollproeve", "epoke": 1, "tren_tap_vektet": 1.61088, "tren_tap": 1.3835, "hold_tap": 1.3796, "gap": -0.00389, "tren_anger": 0.77343, "hold_anger": 0.77277, "tren_treff": 0.50318, "hold_treff": 0.50619, "lagret": true}
+{"type": "ferdig", "navn": "rollproeve", "beste_hold_anger": 0.77277, "beste_epoke": 1, "fil": "e1-modell/rollproeve.bin"}

@@ -1,0 +1,23 @@
+
+=== Skal makkeren trumfe foer budvinneren? ===
+444 stillinger. Kandidat: vakt:ab:e1:e1-modell/sd-r2.bin, kontrakt 9.
+Betingelse: en FORSVARER spilte ut, makkeren er i tur FOER budvinneren,
+og makkeren har baade trumf som vinner OG et lovlig alternativ.
+
+Boten trumfer her i 78 % av stillingene.
+
+arm              poengdiff mot boten     laget vant stikket   foerer brukte trumf   innfridd
+-------------------------------------------------------------------------------------------
+trumf             +0.145 ± 0.070 (2.1 SE)             98.6 %              10.1 %     77.5 %
+ikke trumf       -0.347 ± 0.105 (-3.3 SE)             67.1 %              41.9 %     70.7 %
+BOTEN                                   –             91.4 %              17.3 %     75.5 %
+-------------------------------------------------------------------------------------------
+
+MEKANISMEN Arvind beskrev er kolonnen «foerer brukte trumf»: trumfer
+makkeren, skal budvinneren slippe aa gjoere det. Er de to armene like i
+den kolonnen, virker et eventuelt poengutslag av en ANNEN grunn enn
+hypotesen sier - og da vet vi ikke naar det slutter aa virke.
+
+Maalt paa utfallet i den ekte giva, ikke mot et orakel. Agentene er
+deterministiske, saa hver differanse er eksakt for den giva. Regelen ser
+bare egen haand og bordet, saa snittet er forventningsrett for regelen.

@@ -1,0 +1,3 @@
+[08-07 14:10] === GENERASJONSLØKKE start: mester d7alle.bin, bredde 273 ===
+[08-07 14:10] basis d7alle.bin (fast), 8 skard, terskel 40000 rader/gen
+[08-07 14:10] --- GEN 1: genererer med d7alle.bin -> sd-gen1 ---

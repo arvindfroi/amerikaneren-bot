@@ -1,0 +1,5 @@
+[08-07 14:10] === MILEPAELSVAKT: sd-natt-a, bredde 714, basis b714gammel.bin ===
+[08-07 14:10] terskler: 50000 100000 200000
+[08-07 14:20] --- terskel 50000 naadd (n=50476) ---
+[08-07 14:20] trener any50000: startlr=1e-4 epoker=6 fra b714gammel.bin
+[08-07 14:23] maaler any50000 paa gate 2 (8 skard x 4000 giv)...

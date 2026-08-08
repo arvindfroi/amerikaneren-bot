@@ -688,6 +688,61 @@ if (bånd.length === 0) {
   const enige = alle.filter((g) => argmaks(g, 0, h) === argmaks(g, h, Kmax)).length;
   si(`  ${enige} av ${alle.length} (${((100 * enige) / alle.length).toFixed(1)} %) ved K=${h} mot K=${h}`);
   si("  En etikett to uavhengige søk er uenige om, kan ingen modell lære.");
+  si("");
+
+  /**
+   * ============ DEN ENE BESLUTNINGEN SOM BÆRER ALT =======================
+   *
+   * Bøttetabellen over sier at 10 → 9 alene bærer nesten hele Kmax-gevinsten.
+   * Alt det andre søket finner på — 9 → PASS, 9 → 5, 8 → PASS — summerer til
+   * null. Da er det ikke «budsøket» som er tiltaket; det er ÉN binær regel:
+   *
+   *     byr policyen 10, og søket foretrekker 9 — by 9.
+   *
+   * Det er den regelen som eventuelt skal destilleres, og den skal måles for
+   * seg: båndvis, med tegntest, og med et stabilitetstall. En regel som er
+   * verdifull men hvis ETIKETT to uavhengige søk er uenige om, er ikke
+   * destillerbar uansett hvor stor gevinsten er.
+   */
+  si("DEN ENE BESLUTNINGEN: «byr policyen 10 og søket foretrekker 9 — by 9»");
+  const følg = (g: Giv, fra: number, til: number) =>
+    g.bPolicy === "10" && argmaks(g, fra, til) === "9" && g.vFaktisk["9"] !== undefined
+      ? g.vFaktisk["9"]! - g.vPolicy
+      : 0;
+  si(`  ${"utvalg".padEnd(24)} ${"per runde".padStart(9)} ${"± se".padStart(8)} ${"tegntest".padStart(9)} ${"fyrer".padStart(8)}`);
+  bånd.forEach((b, i) => si(`  ${rad(`BÅND ${i + 1}, K=${Kmax}`, b.giv.map((g) => følg(g, 0, Kmax)))}`));
+  si(`  ${rad(`begge bånd, K=${Kmax}`, alle.map((g) => følg(g, 0, Kmax)))}`);
+  for (const K of [48, 60, 120].filter((k) => k < Kmax)) {
+    si(`  ${rad(`begge bånd, K=${K}`, alle.map((g) => følg(g, 0, K)))}`);
+  }
+  si("");
+  si("  STABILITET PÅ AKKURAT DENNE ETIKETTEN (to disjunkte halvdeler):");
+  const tiere = alle.filter((g) => g.bPolicy === "10");
+  const a = tiere.map((g) => argmaks(g, 0, h) === "9");
+  const c = tiere.map((g) => argmaks(g, h, Kmax) === "9");
+  const enigeBin = a.filter((x, i) => x === c[i]).length;
+  const beggeJa = a.filter((x, i) => x && c[i]).length;
+  si(`  giv der policyen byr 10: ${tiere.length}`);
+  si(`  de to halvdelene enige om «by 9 i stedet»: ${enigeBin} av ${tiere.length} (${((100 * enigeBin) / Math.max(1, tiere.length)).toFixed(1)} %)`);
+  si(`  begge sier «by 9»: ${beggeJa}   bare den ene: ${tiere.length - enigeBin}`);
+  si("");
+  si("  KAN μ ALENE FORUTSI ETIKETTEN?  (det destillasjonen må klare)");
+  const merket = tiere.filter((g) => argmaks(g, 0, Kmax) === "9");
+  const ikke = tiere.filter((g) => argmaks(g, 0, Kmax) !== "9");
+  si(`  μ-snitt der søket sier «by 9»:      ${snitt(merket.map((g) => g.μ ?? 0)).toFixed(3)}  (n=${merket.length})`);
+  si(`  μ-snitt der søket lar 10 stå:       ${snitt(ikke.map((g) => g.μ ?? 0)).toFixed(3)}  (n=${ikke.length})`);
+  const sp =
+    Math.sqrt(
+      (merket.length > 1
+        ? merket.reduce((s, g) => s + ((g.μ ?? 0) - snitt(merket.map((x) => x.μ ?? 0))) ** 2, 0)
+        : 0) +
+        (ikke.length > 1
+          ? ikke.reduce((s, g) => s + ((g.μ ?? 0) - snitt(ikke.map((x) => x.μ ?? 0))) ** 2, 0)
+          : 0),
+    ) / Math.sqrt(Math.max(1, tiere.length - 2));
+  si(`  forskjell i μ: ${(snitt(merket.map((g) => g.μ ?? 0)) - snitt(ikke.map((g) => g.μ ?? 0))).toFixed(3)} ± ${sp.toFixed(3)}`);
+  si("  Er forskjellen liten, ser hendene like ut for GBT-en, og en billig");
+  si("  destillasjon av DENNE etiketten må ha trekk GBT-en ikke har i dag.");
 }
 
 writeFileSync(UT, `${linjer.join("\n")}\n`);

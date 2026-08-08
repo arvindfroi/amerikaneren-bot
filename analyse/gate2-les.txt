@@ -1,0 +1,11 @@
+6 filer, 1 armer
+
+vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/cny1.bin
+   n=   220  -0.2773 +/- 0.3483 (-0.80 SE)  trimmet -0.0017  tegn 10/12 (z=-0.43)
+   avgjorte giver: 22 av 220 (10.0 %)   <- FAA AVGJORTE: SE-en lyver, stol paa tegntesten
+     foerer   n=    56  -0.6845 +/- 1.0932  trimmet -0.0128  z=-0.33
+     makker   n=    56  -0.0059 +/- 0.0059  trimmet +0.0000  z=-1.00
+     forsvar  n=   108  -0.2068 +/- 0.4314  trimmet -0.0034  z=+0.00
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.

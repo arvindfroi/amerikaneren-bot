@@ -1,0 +1,176 @@
+K3 — K-KURVEN, PASS-BØTTA OG DESTILLERBARHET PÅ ÅPNINGSBUDET
+Kjørt 2026-08-08 med examples/k3-kkurve.ts (utspilling) og k3-analyse.ts
+(regning). Spek ADAMS — samme spek som tak-kart.ts, bud-feilklasser.ts og
+k3-budgap.ts, så tallene deler populasjon med §60/§61.
+
+Råtall: k3-kkurve-rapport.txt. Rådata: k3-kkurve-b{1,2}{,b,c}.jsonl (K-kurve)
+og k3-pass-b{1,2}.jsonl (passveipet). Kjørelogger: samme navn, .log.
+
+VINDUET er uendret fra k3-budgap.ts: åpningsbudet alene, setet til venstre for
+giveren, én beslutning tvunget og alt annet policy. I åpningen er auksjonen tom,
+så resamplingen av de 40 usette kortene er den EKSAKTE posterioren.
+
+================= KONTROLLENE ==========================================
+  tvunget policybud ulik ren policy      0    (alle seks kjøringer)
+  ikke-deterministisk utspilling         0    (alle seks kjøringer)
+  K=12-valget ulikt k3-budgap.ts         0 av 194 felles giv
+  avkuttede jsonl-linjer forkastet       0
+
+  Den tredje er den viktigste: metoden her reproduserer den forrige
+  kjøringens valg BIT FOR BIT på hver eneste felles giv. K-kurven er altså
+  den samme målingen som fikk +1,250 ved K=12, bare ført videre oppover.
+
+  (En feil ble funnet av nettopp den kontrollen: `JSON.parse` sorterer
+  heltallsliknende nøkler først, så kandidatrekkefølgen snudde og uavgjorte
+  argmax-valg ble brutt motsatt vei. Rekkefølgen hentes nå fra
+  `lovligeHandlinger`. Uten kontrollen ville 1 av 3 giv vært feil merket.)
+
+================= SPOR 1: K-KURVEN =====================================
+n = 114 giv per bånd, 228 totalt. To DISJUNKTE frøbånd. Alle K måles på
+SAMME giv og et PREFIKS av de SAMME verdenene, så kurven er parret.
+
+  K      bånd 1 (z)          bånd 2 (z)          begge ± se        tegntest
+  6     -0,500 (-0,54)      -0,982 (-1,52)     -0,741 ± 0,794      -1,48
+  12    +1,237 ( 0,00)      +1,254 (-0,19)     +1,246 ± 0,735      -0,13
+  24    +0,544 ( 0,00)      +1,649 ( 0,43)     +1,096 ± 0,694      +0,28
+  48    +2,018 ( 1,57)      +1,465 ( 0,45)     +1,741 ± 0,633      +1,47
+  60    +1,702 ( 1,40)      +1,088 ( 0,00)     +1,395 ± 0,595      +1,07
+  120   +1,009 ( 1,09)      +1,667 ( 1,07)     +1,338 ± 0,602      +1,52
+  180   +2,184 ( 2,24)      +2,193 ( 1,70)     +2,189 ± 0,610      +2,79
+  240   +1,982 ( 2,06)      +2,026 ( 1,94)     +2,004 ± 0,586      +2,83
+
+  KLARSYN (taket)  +10,263             +8,991            +9,627 ± 0,859  +10,63
+
+DET NÅBARE FINNES. Ved K = 240 måler BEGGE bånd ~+2,0 med POSITIV tegntest
+(+2,06 og +1,94). Det er prosjektets egen adopsjonsregel innfridd — til
+forskjell fra §65s auksjonskorreksjon (0,71 og 0,54) og til forskjell fra
+k3-budgap.ts' eget K=12-tall (0,56 og −0,19).
+
+Vippepunktet er bekreftet: K = 6 er NEGATIVT i begge bånd (−0,50 og −0,98).
+Vinnerens forbannelse er ekte, og den snur mellom K = 6 og K = 24.
+
+FORBEHOLD OM FORMEN. Kurven er ikke monoton: K = 120 (+1,338) ligger under
+K = 48 (+1,741). Fire DISJUNKTE blokker à 60 verdener på samme giv måler
+1,395 / 1,504 / 2,114 / 2,039 — altså ±0,4 ren valgstøy. Platået fra K ≈ 48
+og opp er derfor ett platå, ikke en kurve med struktur, og bare K ≥ 180 når
+tegntest over 2.
+
+PARRET, K mot K=12 (bare uenighetene teller, langt mindre støy):
+  K=240 − K=12   bånd 1 +0,746 (z 1,53)   bånd 2 +0,772 (z 1,80)
+                 begge  +0,759 ± 0,493 (z 2,36)
+  Å søke mer HJELPER, og det replikerer i begge bånd.
+
+DEN KONSERVATIVE VARIANTEN (bytter bare over støygulvet) blir også positiv:
+  K=240   bånd 1 +0,974 (z 1,67)   bånd 2 +1,482 (z 1,41)   begge +1,228 ± 0,428
+  Den ligger UNDER argmax ved høy K (−0,776 ± 0,411 parret) — altså er
+  vinnerens forbannelse ikke lenger den bindende skranken ved K = 240.
+
+KLARSYNSANDELEN, REVIDERT:
+  nåbart / tak = 2,004 / 9,627 = 20,8 %.
+  k3-budgap.ts' «minst 87 % av taket er klarsyn» var et artefakt av at K = 12
+  ligger UNDER vippepunktet. Det riktige tallet er ~79 % klarsyn, ~21 % nåbart.
+
+================= SPOR 2: PASS-BØTTA ===================================
+n = 1 500 giv per bånd, 3 000 totalt, to disjunkte bånd (frø 20e6 og 40e6).
+
+«Pass ALLTID i åpningen»:  −1,198 ± 0,227, tegntest −9,33. Klart dårlig.
+Pass er bedre enn policybudet i 15–16 % av giv (+20 poeng når det er det) og
+verre i 26–28 % (−16). Bøtta finnes; spørsmålet er om den kan PEKES UT.
+
+En passregel = EN RANGERING + EN GRENSE. Fire rangeringer, verdi per runde
+over ALLE giv:
+
+  pass på svakeste X %      10 %     15 %     20 %     25 %     50 %
+  μ (GBT, lovlig)         -0,011   -0,024   -0,009   -0,028   -0,132
+  μ/σ (GBT, lovlig)       -0,017   -0,027   -0,016   -0,014   -0,113
+  tilfeldig (kontroll)    -0,132   -0,226   -0,310   -0,353   -0,779
+  KLARSYN (taket)         +2,440   +3,164   +3,183   +3,183   +3,183
+
+  μ SLÅR TILFELDIG (den unngår skaden) MEN NÅR ALDRI OVER NULL. Ingen
+  grense i noe bånd er positiv med margin. Kryssvalidert — grensen valgt i
+  ett bånd, verdsatt i det andre — måler −0,057 ± 0,027 og 0,000.
+
+  μ-kvintilene viser hvorfor:
+    kvintil 1 (μ 8,20, svakest)   vPASS − vPolicy  −0,045 ± 0,123
+    kvintil 5 (μ 10,08, sterkest) vPASS − vPolicy  −6,035 ± 0,735
+  Å passe på de svakeste hendene er GRATIS, men ikke lønnsomt. Klarsynets
+  +3,18 kommer fra giv spredt ut over hele μ-skalaen, som μ ikke kan skille.
+
+MEN SØKET KAN DET. Rangert etter søkets eget PASS-anslag (K = 240, lovlig):
+  pass på svakeste 15 %:  bånd 1 +0,88 ± 0,44   bånd 2 +1,27 ± 0,56
+                          begge  +0,95 ± 0,33
+  mot μ på samme giv:     +0,05 ± 0,05      mot klarsyn: +3,76 ± 0,60
+
+  Søket henter altså ~25 % av passbøtta; μ henter ~1 %. SAMME INFORMASJON,
+  ULIK MODELL. Det er svaret på hovedspørsmålet: budrunden er
+  MODELLBEGRENSET, ikke informasjonsbegrenset.
+
+DEN BILLIGE VARIANTEN VIRKER IKKE. «Byr policyen 10 med svak μ, by 9»:
+  10 → 9 ved 25 %   begge +0,301 ± 0,109   men BÅNDVIS tegntest +0,78 / −0,25
+  kryssvalidert:    bånd 1 → bånd 2 +0,264 (z −0,33)
+                    bånd 2 → bånd 1 −0,011 (z −3,17)
+  Snittet bæres av noen få store utslag. Etter prosjektets egen regel er den
+  IKKE etablert — samme mønster som §65.
+  (X = 100 %, altså «by alltid 9 i stedet for 10», måler −0,317 ± 0,214. Bud
+  10 er riktig i snitt; μ peker bare ikke godt nok på unntakene.)
+
+================= SPOR 3: ER DETTE DESTILLERBART? ======================
+Kmax-søket bytter bud på 73 av 228 giv (32,0 %). Men gevinsten er ikke spredt:
+
+  bytte        giv     per runde   μ-snitt
+  10 → 9        29       +1,785      9,53     ← 89 % AV HELE GEVINSTEN
+  9 → 10         3       +0,219      9,21
+  alle andre    41        0,000        —
+
+  9 → PASS (11 giv), 8 → PASS (5), 9 → 5 (7), 9 → 6 (2), 9 → 7 (2) summerer
+  til NØYAKTIG null. Søkets argmax finner altså ikke passbøtta — det er
+  RANGERINGEN etter søkets PASS-margin som gjør det (se spor 2).
+
+DEN ENE BESLUTNINGEN, målt for seg:
+  «byr policyen 10 og søket foretrekker 9 — by 9»
+    bånd 1  +1,711 ± 0,848  tegntest +2,00  fyrer 14,0 %
+    bånd 2  +1,860 ± 0,761  tegntest +1,51  fyrer  9,6 %
+    begge   +1,785 ± 0,568  tegntest +2,50  fyrer 11,8 %
+  (Denne innsnevringen ble valgt ETTER å ha sett bøttetabellen, så tallet er
+  mildt optimistisk. Det uinnsnevrede +2,004 er det som skal siteres.)
+
+DE TO TALLENE DESTILLASJONEN AVHENGER AV:
+  ETIKETTSTABILITET. To DISJUNKTE halvdeler à 120 verdener, samme giv:
+    hele budvalget          150 av 228 enige (65,8 %)
+    «by 9 i stedet for 10»   81 av  97 enige (83,5 %)
+      begge sier «by 9»: 21   bare den ene: 16
+  Den binære etiketten er langt stabilere enn budvalget — men av de 37
+  givene der minst ett søk flagger, er bare 21 (57 %) enige. Etiketten er
+  støyete, og en destillasjon kan i beste fall lære den stabile delen.
+
+  ER ETIKETTEN SYNLIG FOR DAGENS TREKK?
+    μ der søket sier «by 9»:   9,535 (n = 29)
+    μ der søket lar 10 stå:    9,968 (n = 68)
+    forskjell:                −0,433 ± 0,303   (z ≈ 1,4)
+  Hendene ser nesten LIKE ut for GBT-en. Det forklarer nøyaktig hvorfor den
+  billige μ-regelen over feilet, og det sier hva destillasjon krever: nye
+  trekk, ikke bare flere etiketter.
+
+VURDERING. Destillasjon er verdt å prøve, men ikke som budplan.md skisserer
+den (regneren som etikettmaker for HELE budvalget). Målet er smalere og
+billigere: ÉN binær klassifiserer på de ~42 % av givene der policyen byr 10.
+Taket for den er +1,785 per runde i dette vinduet, etiketten er 83,5 % stabil,
+og et K = 240-søk koster ~60 s per bud på denne maskinen — altså overkommelig
+offline, umulig ved bordet. Men klassifisereren kan ikke bygges på `budTrekk`
+alene: μ skiller klassene med 1,4 SE.
+
+================= HVA SOM IKKE ER MÅLT =================================
+* Bare ÅPNINGSBUDET. §60s budvindu er fire seter og alle budturer. Tallene her
+  skal ikke ganges opp — ved senere budturer må verdenene betinges på det de
+  andre faktisk bød, og uten den betingelsen er det μ-skift-feilen i ny drakt.
+* n = 228 for K-kurven er beskjedent (SE 0,586). Maskinen delte CPU med ~16
+  fremmede node-prosesser hele natten; to kjøringer ble stoppet med vilje FØR
+  noen tall var lest, og stoppetidspunktet ble bundet på forhånd.
+* K = 240 er ikke utrullbart. Kurven sier hva som FINNES ved den regnemengden,
+  ikke at Adams kan bruke den.
+
+================= EN SRC-OBSERVASJON, IKKE RØRT ========================
+k3-budgap.ts' funn om at `trekkVerdener` + `medVerden` ga 100 % ugyldige
+verdener i budrunden er RETTET i src/moe2/sdkort.ts (talongen regnes nå som
+residualet). Verifisert på nytt her, 90 verdener: 0 % duplikatkort, talongen
+endres i 100 %. Se analyse/k3-a4sjekk.txt.

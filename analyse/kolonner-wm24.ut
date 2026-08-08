@@ -1,0 +1,14 @@
+Enhet: cuda
+Leste 112894 stillinger a 356 trekk
+  foerer: 31796
+  makker: 25350
+  forsvar: 55748
+Grunn-anger: foerer 0.75117  makker 0.24549  forsvar 0.54035  alle 0.53351
+  40/356 kolonner
+  80/356 kolonner
+  120/356 kolonner
+  240/356 kolonner
+  280/356 kolonner
+  320/356 kolonner
+
+Skrevet til analyse/kolonner-wm24.json og analyse/kolonner-wm24.txt

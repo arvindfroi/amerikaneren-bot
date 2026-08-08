@@ -1,0 +1,109 @@
+K6 — LÆRE MOTSTANDERNES VANER OG UTNYTTE DEM
+
+Adams:      okt:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0:vakt:abmpf:e1:e1-modell/d7alle.bin
+Basis:      vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+Stilisert:  trumftrekker (leder alltid trumf, legger alltid dyrest)
+Kamper:     4 per arm per motstander, til 300 poeng, maks 22 runder
+Frøbånd:    810000000 + k·7717
+MIN_RUNDER: 4 (økten tror ikke på noe før terskelen)
+Kjøretid:   7 s
+
+g(k,r) = kant mot stilisert − kant mot nøytral, parret på identisk giv.
+Kant    = Adams' rundepoeng − snittet av de tre andres.
+Skille:  runde < 12 er FØR terskelen, runde ≥ 12 er ETTER.
+
+=== ARM «okt» ===
+  parrede runder             n = 88
+  K6.1 gevinst totalt        6.996 ± 1.439  z = 4.86
+  runde 0–11   (før terskel)   7.986 ± 1.878  (n = 48)
+  runde 12+    (etter)        5.808 ± 2.234  (n = 40)
+  K6.2 vekst (sen − tidlig)  -2.178 ± 2.919  z = -0.75
+  K6.2 stigning per runde    -0.2043 ± 0.2270  z = -0.90
+  profilboka så maks         21 bokførte runder om setet
+  aggressivitet lest         29 av 88 runder, snitt 0.43
+  først lest i runde         11 (tidligste over alle kamper)
+  trumfutspill.n maks        9 (terskelen krever 4)
+  A2-vrien fyrte             48 av 88 runder
+
+=== ARM «uten-okt» ===
+  parrede runder             n = 88
+  K6.1 gevinst totalt        6.996 ± 1.439  z = 4.86
+  runde 0–11   (før terskel)   7.986 ± 1.878  (n = 48)
+  runde 12+    (etter)        5.808 ± 2.234  (n = 40)
+  K6.2 vekst (sen − tidlig)  -2.178 ± 2.919  z = -0.75
+  K6.2 stigning per runde    -0.2043 ± 0.2270  z = -0.90
+  profilboka så maks         0 bokførte runder om setet
+  aggressivitet lest         ALDRI (null i hver runde)
+  først lest i runde         aldri (tidligste over alle kamper)
+  trumfutspill.n maks        0 (terskelen krever 4)
+  A2-vrien fyrte             0 av 88 runder
+
+Parret rad for rad på giv: samme frø og rundenummer i begge armene.
+=== DOBBELTDIFFERANSE «okt» − «uten-okt» ===
+  parrede runder             n = 88
+  K6.1 gevinst totalt        0.000 ± 0.000  z = NaN
+  runde 0–11   (før terskel)   0.000 ± 0.000  (n = 48)
+  runde 12+    (etter)        0.000 ± 0.000  (n = 40)
+  K6.2 vekst (sen − tidlig)  0.000 ± 0.000  z = NaN
+  K6.2 stigning per runde    0.0000 ± 0.0000  z = NaN
+
+=== DOBBELTDIFFERANSE der A2-vrien FYRTE ===
+  parrede runder             n = 48
+  K6.1 gevinst totalt        0.000 ± 0.000  z = NaN
+  runde 0–11   (før terskel)   0.000 ± 0.000  (n = 11)
+  runde 12+    (etter)        0.000 ± 0.000  (n = 37)
+  K6.2 vekst (sen − tidlig)  0.000 ± 0.000  z = NaN
+  K6.2 stigning per runde    0.0000 ± 0.0000  z = NaN
+=== DOBBELTDIFFERANSE der den ikke fyrte (skal være 0,000) ===
+  parrede runder             n = 40
+  K6.1 gevinst totalt        0.000 ± 0.000  z = NaN
+  runde 0–11   (før terskel)   0.000 ± 0.000  (n = 37)
+  runde 12+    (etter)        0.000 ± 0.000  (n = 3)
+  K6.2 vekst (sen − tidlig)  0.000 ± 0.000  z = NaN
+  K6.2 stigning per runde    0.0000 ± 0.0000  z = NaN
+
+Gevinst per rundenummer (arm; g; n):
+  okt            r= 0     9.917 ± 7.931  n=4
+  okt            r= 1     6.583 ± 6.251  n=4
+  okt            r= 2     9.250 ± 12.151  n=4
+  okt            r= 3    15.333 ± 7.682  n=4
+  okt            r= 4     7.833 ± 4.777  n=4
+  okt            r= 5     6.583 ± 5.490  n=4
+  okt            r= 6     8.667 ± 8.566  n=4
+  okt            r= 7     4.250 ± 6.496  n=4
+  okt            r= 8     0.250 ± 0.370  n=4
+  okt            r= 9    12.417 ± 5.910  n=4
+  okt            r=10     5.417 ± 5.306  n=4
+  okt            r=11     9.333 ± 8.234  n=4
+  okt            r=12     7.000 ± 5.785  n=4
+  okt            r=13     9.250 ± 9.250  n=4
+  okt            r=14     2.083 ± 8.722  n=4
+  okt            r=15     6.083 ± 5.370  n=4
+  okt            r=16     0.083 ± 0.370  n=4
+  okt            r=17     9.667 ± 8.022  n=4
+  okt            r=18    10.333 ± 8.043  n=4
+  okt            r=19     9.500 ± 5.878  n=4
+  okt            r=20    -5.000 ± 5.479  n=4
+  okt            r=21     9.083 ± 12.336  n=4
+  uten-okt       r= 0     9.917 ± 7.931  n=4
+  uten-okt       r= 1     6.583 ± 6.251  n=4
+  uten-okt       r= 2     9.250 ± 12.151  n=4
+  uten-okt       r= 3    15.333 ± 7.682  n=4
+  uten-okt       r= 4     7.833 ± 4.777  n=4
+  uten-okt       r= 5     6.583 ± 5.490  n=4
+  uten-okt       r= 6     8.667 ± 8.566  n=4
+  uten-okt       r= 7     4.250 ± 6.496  n=4
+  uten-okt       r= 8     0.250 ± 0.370  n=4
+  uten-okt       r= 9    12.417 ± 5.910  n=4
+  uten-okt       r=10     5.417 ± 5.306  n=4
+  uten-okt       r=11     9.333 ± 8.234  n=4
+  uten-okt       r=12     7.000 ± 5.785  n=4
+  uten-okt       r=13     9.250 ± 9.250  n=4
+  uten-okt       r=14     2.083 ± 8.722  n=4
+  uten-okt       r=15     6.083 ± 5.370  n=4
+  uten-okt       r=16     0.083 ± 0.370  n=4
+  uten-okt       r=17     9.667 ± 8.022  n=4
+  uten-okt       r=18    10.333 ± 8.043  n=4
+  uten-okt       r=19     9.500 ± 5.878  n=4
+  uten-okt       r=20    -5.000 ± 5.479  n=4
+  uten-okt       r=21     9.083 ± 12.336  n=4

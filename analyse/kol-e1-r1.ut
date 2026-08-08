@@ -1,0 +1,12 @@
+Enhet: cuda
+Leste 60000 stillinger a 376 trekk
+  foerer: 17023
+  makker: 13509
+  forsvar: 29468
+Grunn-anger: foerer 2.19173  makker 0.31166  forsvar 0.87854  alle 1.12348
+  40/273 kolonner
+  80/273 kolonner
+  120/273 kolonner
+  240/273 kolonner
+
+Skrevet til analyse/kol-e1-r1.json og analyse/kol-e1-r1.txt

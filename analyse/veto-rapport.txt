@@ -1,0 +1,37 @@
+
+=== GATE 2: kandidat i ett sete, amu:foerer:12k16sm1e0.25r1.5:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin i de tre andre ===
+3600 (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.
+
+arm                                        poeng/runde for setet
+--------------------------------------------------------------------
+KONTROLL                                   +0.000 ± 0.188
+amu:alle:12k16sm1e0.25r1.5v0.5:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin +0.481 ± 0.187
+amu:alle:12k16sm1e0.25r1.5:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin -0.314 ± 0.188
+amu:foerer:12k16sm1e0.25r1.5:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin +0.000 ± 0.188
+--------------------------------------------------------------------
+
+PARRET mot KONTROLL (miljoet mot seg selv i samme sete):
+  amu:alle:12k16sm1e0.25r1.5v0.5:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin +0.4809 ± 0.1332 (3.6 SE)  934/1719  p=0.000
+  amu:alle:12k16sm1e0.25r1.5:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin -0.3145 ± 0.1102 (-2.9 SE)  709/1633  p=0.000
+  amu:foerer:12k16sm1e0.25r1.5:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+
+PER ROLLE (rollen er KONTROLLENS, saa parene er de samme):
+  amu:alle:12k16sm1e0.25r1.5v0.5:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+    foerer    n=  900  +1.9415 ± 0.3559 (5.5 SE)  308/401  p=0.000
+    makker    n=  900  -0.0655 ± 0.0961 (-0.7 SE)  188/393  p=0.420
+    forsvar   n= 1800  +0.0239 ± 0.1903 (0.1 SE)  438/925  p=0.114
+  amu:alle:12k16sm1e0.25r1.5:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+    foerer    n=  900  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+    makker    n=  900  -0.3733 ± 0.1089 (-3.4 SE)  210/508  p=0.000
+    forsvar   n= 1800  -0.4424 ± 0.2134 (-2.1 SE)  499/1125  p=0.000
+  amu:foerer:12k16sm1e0.25r1.5:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+    foerer    n=  900  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+    makker    n=  900  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+    forsvar   n= 1800  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+
+KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet
+i oppsettet, og ingen av de andre tallene kan leses.
+
+PORTEN: en ny vekt adopteres bare om den er positiv med margin OG
+positiv i klart over halvparten av parene. Aldri adoptere paa stoey.
+FERDIG - 3600 rader

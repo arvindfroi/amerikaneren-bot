@@ -1,0 +1,24 @@
+# K4 — hukommelse og framoverblikk
+# 2026-08-07T18:21:11.822Z  giv=6 froe=4400000 maalrunde=8
+
+## DIAGNOSE — hvorfor budkanalen er for svak, ledd for ledd
+Hver budbeslutning fokussetet tar i maalkampen, med boka slik den sto da.
+
+budbeslutninger:              53
+  ingen ANNEN hadde bydd:     12 (23 %) - «justering» gir 0 per konstruksjon
+  noen bod, men tiltro = 0:   0
+  justeringen fyrte:          41 (77 %)
+
+| form | snitt \|just\| | maks \|just\| | klippet av MAKS_UTSLAG=2 |
+|---|---|---|---|
+| slik den er (tiltro x2) | 0.2438 | 0.8005 | 0 |
+| tiltro talt EN gang | 0.5295 | 1.3905 | 0 |
+
+tiltro der kanalen fyrte:     snitt 0.433, maks 0.586
+  Den staar TO ganger i formelen. Faktoren som gaar tapt er altsaa
+  omtrent 0.433 - og proeven maalte at kanalen er 2,0x for svak.
+
+«klarte» observeres BARE naar setet vant budet, altsaa ~1 av 4 runder:
+  observerte runder for det hoeyeste setet: snitt 39.8
+  derav «klarte»-observasjoner:             snitt 9.7
+

@@ -1,0 +1,37 @@
+6 filer, 182 giver
+
+=== ANGER PER EKTE VALG (>1 lovlig kort), i stikk ===
+  rolle           n     snitt       SE   andel>0   tvungne
+  fører        1542    0.4261   0.0173     33.2 %     15.3 %
+  makker       1336    0.2560   0.0149     20.7 %     26.6 %
+  forsvar      2737    0.2050   0.0096     16.7 %     24.8 %
+
+=== ANGER PER GIV, summert over rollens trekk i giva ===
+  (dette er taket i STIKK for hva perfekt spill i rollen ville gitt)
+  fører     n=  182   3.610 +/- 0.159 stikk per giv
+  makker    n=  182   1.879 +/- 0.116 stikk per giv
+  forsvar   n=  182   3.082 +/- 0.177 stikk per giv  (to seter til sammen)
+
+=== HVOR I SPILLET SITTER ANGEREN? (snitt per valg, per stikk) ===
+  stikk        2       3       4       5       6       7       8       9      10
+  fører    0.802   0.711   0.476   0.409   0.400   0.448   0.376   0.207   0.012
+  makker   0.355   0.435   0.474   0.290   0.248   0.205   0.117   0.121   0.041
+  forsvar  0.352   0.350   0.244   0.260   0.232   0.164   0.124   0.077   0.023
+
+«.» = færre enn 20 valg, ikke rapportert.
+
+=== VAR RUNDEN I SPILL? (DD-fasit ved foerste analyserte stilling) ===
+  182 giver. DD-fasit minus kontrakt:
+     -4 stikk:     2 (  1.1 %)
+     -2 stikk:    12 (  6.6 %)
+     -1 stikk:    25 ( 13.7 %)
+     +0 stikk:    48 ( 26.4 %)
+     +1 stikk:    51 ( 28.0 %)
+     +2 stikk:    38 ( 20.9 %)
+     +3 stikk:     5 (  2.7 %)
+  PAA MARGINEN (innen +/-1 stikk): 124 av 182 = 68.1 %
+  Utenfor marginen er runden avgjort av giva, ikke av spillet -
+  og der er forsvarets anger uten poengverdi uansett stoerrelse.
+
+TAKET, IKKE SLOESERIET: fasiten ser alle fire hender, boten ser sin egen.
+En del av angeren er uunngaaelig fordi informasjonen ikke finnes.

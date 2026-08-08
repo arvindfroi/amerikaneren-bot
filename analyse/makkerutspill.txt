@@ -1,0 +1,33 @@
+
+=== Makkerens utspill i stikk 2, etter aa ha tatt stikk 1 ===
+2173 stillinger. Kandidat: vakt:ab:e1:e1-modell/sd-r2.bin. SD med 12 verdener.
+Verdien er POENGDIFFERANSE: egne poeng minus snittet av de tre andre.
+
+HVA GJOER BOTEN VAAR
+  spiller trumf ut              23 %
+  anger mot beste lovlige kort  0.713 ± 0.012
+  traff beste kort              12 %
+
+HVA ER BEST (etter SD)
+  beste kort er TRUMF           20 %
+  beste kort er HOEYEST lovlig  13 %
+  beste kort er LAVEST lovlig   13 %
+
+FASTE REGLER, rangert etter oppnaadd SD-verdi
+regel                          verdi     mot botens valg      traff beste
+----------------------------------------------------------------------------
+hoeyeste trumf                 -3.608   +0.008 ± 0.014         14 %
+laveste trumf                  -3.614   +0.001 ± 0.014         13 %
+laveste kort uansett           -3.659   -0.044 ± 0.014         11 %
+hoeyeste kort uansett          -3.672   -0.056 ± 0.014         11 %
+hoeyeste sidekort              -3.676   -0.061 ± 0.014         11 %
+laveste sidekort               -3.680   -0.064 ± 0.015         10 %
+lengste sidefarge, hoeyest     -3.686   -0.070 ± 0.014         10 %
+BOTEN VAAR                     -3.616                 –         12 %
+beste lovlige (fasit)          -2.903
+----------------------------------------------------------------------------
+
+LESEVEILEDNING. «mot botens valg» er parret paa stilling. En regel maa
+slaa boten HER for i det hele tatt aa vaere interessant – men selv da er
+den ikke et funn foer den er maalt i SPILL paa et friskt froebaand. En
+regel kan hente SD-verdi i stikk 2 og tape mer senere i runden.

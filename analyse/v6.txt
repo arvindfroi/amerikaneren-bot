@@ -1,0 +1,31 @@
+24 filer, 4 armer
+
+sik:foerer:0.5:24:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/1:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  5760  +0.4513 +/- 0.0881 (+5.12 SE)  trimmet +0.0096  tegn 438/259 (z=+6.78)
+   avgjorte giver: 697 av 5760 (12.1 %)
+     foerer   n=  1470  +1.7225 +/- 0.3369  trimmet +1.8356  z=+6.59
+     makker   n=  1432  +0.0270 +/- 0.0350  trimmet +0.0000  z=+1.07
+     forsvar  n=  2858  +0.0100 +/- 0.0281  trimmet +0.0000  z=+1.21
+
+sik:foerer:0.25:24:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  5760  +0.4299 +/- 0.0874 (+4.92 SE)  trimmet +0.0081  tegn 414/242 (z=+6.72)
+   avgjorte giver: 656 av 5760 (11.4 %)
+     foerer   n=  1440  +1.7195 +/- 0.3474  trimmet +1.8874  z=+6.72
+     makker   n=  1440  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  2880  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+sik:foerer:0.5:24:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  5760  +0.4202 +/- 0.0840 (+5.00 SE)  trimmet +0.0067  tegn 393/230 (z=+6.53)
+   avgjorte giver: 623 av 5760 (10.8 %)
+     foerer   n=  1440  +1.6808 +/- 0.3338  trimmet +1.7071  z=+6.53
+     makker   n=  1440  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  2880  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+   n=  5760  +0.0000 +/- 0.0000 (+0.00 SE)  trimmet +0.0000  tegn 0/0 (z=+0.00)
+     foerer   n=  1440  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     makker   n=  1440  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+     forsvar  n=  2880  +0.0000 +/- 0.0000  trimmet +0.0000  z=+0.00
+
+KONTROLLARMEN er miljoespeken selv og MAA vaere nøyaktig 0,0000.
+Er den ikke det, er noe ikke-deterministisk og hele maalingen er ugyldig.

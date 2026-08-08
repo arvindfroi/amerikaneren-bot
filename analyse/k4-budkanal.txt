@@ -1,0 +1,41 @@
+# K4 — hukommelse og framoverblikk
+# 2026-08-07T18:28:59.330Z  giv=60 froe=4400000 maalrunde=8
+
+## BUDKANALEN ALENE — samme arm, mange giv
+okt+profil, tikk, to forkamper. Den ENESTE armen der hukommelsen baade
+har rukket aa laere noe og har en vei inn i budet.
+
+giv som naadde maalrunden:    60
+beslutninger sammenliknet:    868
+bokfoerte runder per sete:    77/77/77/77
+budstillinger med just != 0:  32   <- ANLEDNINGENE
+snitt |justering|:            0.2545 budpoeng
+maks  |justering|:            1.7244 budpoeng
+
+AVVIK (fersk mot mett):       0  (bud 0, spill 0)
+
+## DIAGNOSE — hvorfor budkanalen er for svak, ledd for ledd
+Hver budbeslutning fokussetet tar i maalkampen, med boka slik den sto da.
+
+budbeslutninger:              556
+  ingen ANNEN hadde bydd:     120 (22 %) - «justering» gir 0 per konstruksjon
+  noen bod, men tiltro = 0:   0
+  justeringen fyrte:          436 (78 %)
+
+| form | snitt \|just\| | maks \|just\| | klippet av MAKS_UTSLAG=2 |
+|---|---|---|---|
+| «Profilbok.justering» slik den er | 0.4550 | 1.9467 | 0 |
+| tiltroen talt EN gang, regnet for haand | 0.4550 | 1.9467 | 0 |
+
+RADENE ER EN SELVKONTROLL, ikke to varianter: den nederste er regnet ut
+her i fila, av bokas egne tall, med tiltroen talt EN gang. Er de LIKE, er
+«justering» fri for dobbelttellingen. Er den oeverste mindre, staar
+tiltroen fortsatt to ganger og forholdet mellom dem ER den tapte faktoren.
+
+tiltro der kanalen fyrte:     snitt 0.451, maks 0.684
+forhold nederste/oeverste:    1.000x paa snittet, 1.000x paa maks
+
+«klarte» observeres BARE naar setet vant budet, altsaa ~1 av 4 runder:
+  observerte runder for det hoeyeste setet: snitt 42.9
+  derav «klarte»-observasjoner:             snitt 10.6
+

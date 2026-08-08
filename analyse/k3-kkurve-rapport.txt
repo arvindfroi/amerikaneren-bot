@@ -1,0 +1,273 @@
+=== K3 — K-KURVEN, PASS-BØTTA OG DESTILLERBARHET =======================
+kilder K-kurve: analyse/k3-kkurve-b1.jsonl+analyse/k3-kkurve-b1b.jsonl+analyse/k3-kkurve-b1c.jsonl (n=114)   analyse/k3-kkurve-b2.jsonl+analyse/k3-kkurve-b2b.jsonl+analyse/k3-kkurve-b2c.jsonl (n=114)
+avkuttede siste linjer forkastet: 0  (én per kjøring som ble stoppet)
+Kmax i data: 240   punkter: 6, 12, 24, 48, 60, 120, 180, 240
+
+--- SPOR 1: K-KURVEN --------------------------------------------------
+Per runde for åpnersetet, parret mot policyen på samme giv.
+Alle K bruker SAMME giv og et PREFIKS av de SAMME verdenene.
+
+  BÅND 1 — analyse/k3-kkurve-b1.jsonl+analyse/k3-kkurve-b1b.jsonl+analyse/k3-kkurve-b1c.jsonl  (n = 114)
+  regel                    per runde     ± se  tegntest   endret
+  POLICY (nullpunkt)           0.000    0.000      0.00     0.0%   n=114
+  argmax K=6                  -0.500    1.160     -0.54    27.2%   n=114
+  argmax K=12                  1.237    1.070      0.00    29.8%   n=114
+  argmax K=24                  0.544    1.071      0.00    26.3%   n=114
+  argmax K=48                  2.018    0.946      1.57    22.8%   n=114
+  argmax K=60                  1.702    0.871      1.40    21.9%   n=114
+  argmax K=120                 1.009    0.894      1.09    18.4%   n=114
+  argmax K=180                 2.184    0.903      2.24    17.5%   n=114
+  argmax K=240                 1.982    0.883      2.06    16.7%   n=114
+  konservativ K=6             -1.219    0.807     -1.39    11.4%   n=114
+  konservativ K=12            -0.289    0.693     -1.51     9.6%   n=114
+  konservativ K=24             0.430    0.578      0.00     7.0%   n=114
+  konservativ K=48             0.596    0.441      1.41     7.0%   n=114
+  konservativ K=60             0.570    0.411      1.13     6.1%   n=114
+  konservativ K=120            0.693    0.580      1.00     7.9%   n=114
+  konservativ K=180            1.307    0.606      1.90     8.8%   n=114
+  konservativ K=240            0.974    0.512      1.67     7.9%   n=114
+  KLARSYN (taket)             10.263    1.223      7.68    51.8%   n=114
+
+  BÅND 2 — analyse/k3-kkurve-b2.jsonl+analyse/k3-kkurve-b2b.jsonl+analyse/k3-kkurve-b2c.jsonl  (n = 114)
+  regel                    per runde     ± se  tegntest   endret
+  POLICY (nullpunkt)           0.000    0.000      0.00     0.0%   n=114
+  argmax K=6                  -0.982    1.089     -1.52    30.7%   n=114
+  argmax K=12                  1.254    1.012     -0.19    25.4%   n=114
+  argmax K=24                  1.649    0.884      0.43    19.3%   n=114
+  argmax K=48                  1.465    0.845      0.45    17.5%   n=114
+  argmax K=60                  1.088    0.814      0.00    15.8%   n=114
+  argmax K=120                 1.667    0.809      1.07    12.3%   n=114
+  argmax K=180                 2.193    0.825      1.70    14.9%   n=114
+  argmax K=240                 2.026    0.773      1.94    11.4%   n=114
+  konservativ K=6             -0.018    0.540     -0.71     7.0%   n=114
+  konservativ K=12             0.921    0.595      0.71     7.0%   n=114
+  konservativ K=24             0.886    0.596      0.33     7.9%   n=114
+  konservativ K=48             0.658    0.488      0.38     6.1%   n=114
+  konservativ K=60             0.956    0.577      0.71     7.0%   n=114
+  konservativ K=120            0.886    0.549      0.82     5.3%   n=114
+  konservativ K=180            1.219    0.638      1.13     6.1%   n=114
+  konservativ K=240            1.482    0.686      1.41     7.0%   n=114
+  KLARSYN (taket)              8.991    1.209      7.35    47.4%   n=114
+
+  BEGGE BÅND SLÅTT SAMMEN  (n = 228)
+  regel                    per runde     ± se  tegntest   endret
+  POLICY (nullpunkt)           0.000    0.000      0.00     0.0%   n=228
+  argmax K=6                  -0.741    0.794     -1.48    28.9%   n=228
+  argmax K=12                  1.246    0.735     -0.13    27.6%   n=228
+  argmax K=24                  1.096    0.694      0.28    22.8%   n=228
+  argmax K=48                  1.741    0.633      1.47    20.2%   n=228
+  argmax K=60                  1.395    0.595      1.07    18.9%   n=228
+  argmax K=120                 1.338    0.602      1.52    15.4%   n=228
+  argmax K=180                 2.189    0.610      2.79    16.2%   n=228
+  argmax K=240                 2.004    0.586      2.83    14.0%   n=228
+  konservativ K=6             -0.618    0.486     -1.53     9.2%   n=228
+  konservativ K=12             0.316    0.457     -0.69     8.3%   n=228
+  konservativ K=24             0.658    0.414      0.24     7.5%   n=228
+  konservativ K=48             0.627    0.328      1.29     6.6%   n=228
+  konservativ K=60             0.763    0.354      1.29     6.6%   n=228
+  konservativ K=120            0.789    0.398      1.29     6.6%   n=228
+  konservativ K=180            1.263    0.439      2.18     7.5%   n=228
+  konservativ K=240            1.228    0.428      2.18     7.5%   n=228
+  KLARSYN (taket)              9.627    0.859     10.63    49.6%   n=228
+
+--- PARRET: argmax ved K mot argmax ved 12 ----------------------------
+Null der de to velger samme bud. Bare uenighetene teller.
+
+  BÅND 1 (n = 114)
+  K=24 − K=12                 -0.693    0.699     -0.24    14.9%   n=114
+  K=48 − K=12                  0.781    0.575      1.81    13.2%   n=114
+  K=60 − K=12                  0.465    0.682      1.29    13.2%   n=114
+  K=120 − K=12                -0.228    0.791      0.63    20.2%   n=114
+  K=180 − K=12                 0.947    0.736      1.63    21.1%   n=114
+  K=240 − K=12                 0.746    0.642      1.53    18.4%   n=114
+  konservativ − argmax (K=240)    -1.009    0.731     -1.26     8.8%   n=114
+
+  BÅND 2 (n = 114)
+  K=24 − K=12                  0.395    0.805      0.73    14.9%   n=114
+  K=48 − K=12                  0.211    0.694      0.45    17.5%   n=114
+  K=60 − K=12                 -0.167    0.721      0.22    18.4%   n=114
+  K=120 − K=12                 0.412    0.727      1.28    19.3%   n=114
+  K=180 − K=12                 0.939    0.659      1.71    19.3%   n=114
+  K=240 − K=12                 0.772    0.752      1.80    21.9%   n=114
+  konservativ − argmax (K=240)    -0.544    0.376     -1.34     4.4%   n=114
+
+  BEGGE BÅND (n = 228)
+  K=24 − K=12                 -0.149    0.533      0.34    14.9%   n=228
+  K=48 − K=12                  0.496    0.450      1.52    15.4%   n=228
+  K=60 − K=12                  0.149    0.496      1.00    15.8%   n=228
+  K=120 − K=12                 0.092    0.537      1.34    19.7%   n=228
+  K=180 − K=12                 0.943    0.493      2.36    20.2%   n=228
+  K=240 − K=12                 0.759    0.493      2.36    20.2%   n=228
+  konservativ − argmax (K=240)    -0.776    0.411     -1.81     6.6%   n=228
+
+--- STØYEN I VALGREGELEN ALENE ---------------------------------------
+Fire DISJUNKTE blokker à 60 verdener, samme giv. Sprik = valgstøy.
+
+  argmax K=60, disjunkte blokker: 1.395  1.504  2.114  2.039
+  argmax K=120, disjunkte blokker: 1.338  2.285
+
+--- KONTROLL: K=12 mot den forrige kjøringen -------------------------
+  felles giv 194   ULIKT K=12-valg 0   (må være 0)
+
+--- SPOR 2: PASS-BØTTA ------------------------------------------------
+kilder: analyse/k3-pass-b1.jsonl (n=1500)   analyse/k3-pass-b2.jsonl (n=1500)
+
+RÅTALLET: «pass ALLTID i åpningen», parret mot policyen
+  k3-pass-b1.jsonl            -1.564    0.326     -7.54    43.2%   n=1500
+  k3-pass-b2.jsonl            -0.833    0.317     -5.64    42.3%   n=1500
+  begge bånd                  -1.198    0.227     -9.33    42.7%   n=3000
+
+HVOR OFTE PASS ER BEDRE ENN POLICYBUDET, og hva det er verdt når det er det:
+  k3-pass-b1.jsonl         bedre 15.2 % (snitt +20.4)   verre 28.0 % (snitt -16.7)
+  k3-pass-b2.jsonl         bedre 16.4 % (snitt +19.9)   verre 25.9 % (snitt -15.8)
+
+RANGERING: μ (GBT, lovlig)
+  pass på svakeste                   bånd 1               bånd 2                begge
+  2 %                           0.000 ±0.00          0.000 ±0.00     0.000 ±0.00 z0.0
+  5 %                           0.000 ±0.00          0.000 ±0.00     0.000 ±0.00 z0.0
+  10 %                         -0.033 ±0.02         -0.011 ±0.01   -0.011 ±0.01 z-0.6
+  15 %                         -0.019 ±0.03         -0.029 ±0.02   -0.024 ±0.02 z-1.5
+  20 %                          0.011 ±0.04         -0.029 ±0.02   -0.009 ±0.02 z-1.3
+  25 %                          0.019 ±0.05         -0.057 ±0.03   -0.028 ±0.03 z-1.7
+  30 %                         -0.026 ±0.06         -0.097 ±0.05   -0.067 ±0.04 z-2.3
+  40 %                         -0.027 ±0.07         -0.160 ±0.06   -0.093 ±0.04 z-2.5
+  50 %                         -0.111 ±0.08         -0.160 ±0.09   -0.132 ±0.06 z-2.6
+
+RANGERING: μ/σ (GBT, lovlig)
+  pass på svakeste                   bånd 1               bånd 2                begge
+  2 %                           0.000 ±0.00          0.000 ±0.00     0.000 ±0.00 z0.0
+  5 %                           0.000 ±0.00          0.000 ±0.00     0.000 ±0.00 z0.0
+  10 %                         -0.008 ±0.02         -0.013 ±0.01   -0.017 ±0.01 z-1.9
+  15 %                         -0.025 ±0.03         -0.029 ±0.02   -0.027 ±0.02 z-1.7
+  20 %                          0.029 ±0.04         -0.047 ±0.02   -0.016 ±0.02 z-1.3
+  25 %                          0.029 ±0.05         -0.058 ±0.03   -0.014 ±0.03 z-1.3
+  30 %                          0.026 ±0.06         -0.063 ±0.04   -0.021 ±0.03 z-1.8
+  40 %                         -0.081 ±0.07         -0.100 ±0.06   -0.090 ±0.05 z-2.4
+  50 %                         -0.123 ±0.08         -0.111 ±0.09   -0.113 ±0.06 z-2.6
+
+RANGERING: tilfeldig (kontroll)
+  pass på svakeste                   bånd 1               bånd 2                begge
+  2 %                           0.036 ±0.06         -0.021 ±0.06     0.017 ±0.04 z0.0
+  5 %                          -0.050 ±0.08         -0.153 ±0.07   -0.083 ±0.05 z-2.3
+  10 %                         -0.147 ±0.11         -0.092 ±0.10   -0.132 ±0.07 z-3.4
+  15 %                         -0.243 ±0.13         -0.112 ±0.12   -0.226 ±0.09 z-4.4
+  20 %                         -0.398 ±0.15         -0.288 ±0.14   -0.310 ±0.10 z-5.0
+  25 %                         -0.482 ±0.16         -0.260 ±0.16   -0.353 ±0.11 z-5.5
+  30 %                         -0.512 ±0.18         -0.238 ±0.17   -0.342 ±0.12 z-5.3
+  40 %                         -0.787 ±0.21         -0.387 ±0.20   -0.621 ±0.14 z-7.0
+  50 %                         -0.970 ±0.24         -0.558 ±0.22   -0.779 ±0.16 z-7.9
+
+RANGERING: KLARSYN (taket)
+  pass på svakeste                   bånd 1               bånd 2                begge
+  2 %                           0.600 ±0.11          0.600 ±0.11     0.600 ±0.08 z7.7
+  5 %                           1.359 ±0.15          1.388 ±0.16    1.374 ±0.11 z12.2
+  10 %                          2.428 ±0.19          2.453 ±0.19    2.440 ±0.14 z17.3
+  15 %                          3.101 ±0.20          3.193 ±0.21    3.164 ±0.14 z21.2
+  20 %                          3.103 ±0.20          3.263 ±0.21    3.183 ±0.14 z21.8
+  25 %                          3.103 ±0.20          3.263 ±0.21    3.183 ±0.14 z21.8
+  30 %                          3.103 ±0.20          3.263 ±0.21    3.183 ±0.14 z21.8
+  40 %                          3.103 ±0.20          3.263 ±0.21    3.183 ±0.14 z21.8
+  50 %                          3.103 ±0.20          3.263 ±0.21    3.183 ±0.14 z21.8
+
+KRYSSVALIDERT — grensen valgt i ett bånd, verdsatt i det andre
+  rangering                 valgt X                holdt ute
+  μ (GBT, lovlig)          X=25 % → -0.057 ± 0.027 (z -1.73)   |   X=2 % → 0.000 ± 0.000 (z 0.00)
+  μ/σ (GBT, lovlig)        X=25 % → -0.058 ± 0.031 (z -1.39)   |   X=2 % → 0.000 ± 0.000 (z 0.00)
+  tilfeldig (kontroll)     X=2 % → -0.021 ± 0.055 (z -0.83)   |   X=2 % → 0.036 ± 0.056 (z 0.53)
+  KLARSYN (taket)          X=20 % → 3.263 ± 0.206 (z 15.68)   |   X=20 % → 3.103 ± 0.203 (z 15.10)
+
+KAN SØKET FINNE PASS-BØTTA DER μ IKKE KAN?  (K-kurvefilene)
+  rangering                         2%       5%      10%      15%      20%      25%      30%      40%      50%
+  søk K=240 (lovlig, dyrt)        0.27     0.56     0.95     0.95     1.07     1.07     0.94     1.08     1.21
+  ± se                            0.19     0.25     0.33     0.33     0.36     0.36     0.38     0.41     0.45
+  μ (GBT, lovlig)                 0.00     0.00     0.00     0.05     0.05     0.04     0.04     0.08    -0.11
+  ± se                            0.00     0.00     0.00     0.05     0.05     0.05     0.05     0.16     0.19
+  KLARSYN (taket)                 0.66     1.44     2.73     3.76     4.26     4.26     4.26     4.26     4.26
+  ± se                            0.29     0.42     0.55     0.60     0.62     0.62     0.62     0.62     0.62
+
+  X=15 % båndvis  søk K=240 (lovlig, dyrt)   b1 0.88±0.44   b2 1.27±0.56
+  X=15 % båndvis  μ (GBT, lovlig)            b1 0.10±0.10   b2 0.00±0.00
+  X=15 % båndvis  KLARSYN (taket)            b1 3.87±0.88   b2 3.65±0.83
+
+NEDGRADERING — «byr policyen B med svak μ, by A i stedet»
+X = 100 % er kontrollen: der gjør rangeringen ingenting.
+  regel                                 10%             25%             50%             75%            100%
+  10 → 9  n=1144  μ            0.142 ±0.069    0.301 ±0.109    0.384 ±0.155    0.304 ±0.191   -0.317 ±0.214
+  10 → 9  n=1144  tilfeldig    -0.048 ±0.067   -0.100 ±0.104   -0.172 ±0.151   -0.256 ±0.187   -0.317 ±0.214
+    25 % μ, BÅNDVIS        b1 0.338±0.153 (z 0.78)   b2 0.264±0.157 (z -0.25)
+
+  10 → 8  n=1144  μ            0.105 ±0.064    0.160 ±0.099    0.083 ±0.140   -0.177 ±0.171   -0.789 ±0.194
+  10 → 8  n=1144  tilfeldig    -0.074 ±0.061   -0.191 ±0.096   -0.400 ±0.137   -0.610 ±0.169   -0.789 ±0.194
+    25 % μ, BÅNDVIS        b1 0.185±0.138 (z 0.38)   b2 0.134±0.142 (z -0.37)
+
+  10 → PASS  n=1144  μ         0.136 ±0.070    0.255 ±0.110    0.173 ±0.156   -0.056 ±0.192   -1.010 ±0.216
+  10 → PASS  n=1144  tilfeldig    -0.082 ±0.070   -0.255 ±0.108   -0.594 ±0.154   -0.815 ±0.188   -1.010 ±0.216
+    25 % μ, BÅNDVIS        b1 0.291±0.155 (z 0.78)   b2 0.219±0.155 (z -0.25)
+
+  9 → 8  n=1615  μ            -0.022 ±0.014   -0.011 ±0.024   -0.070 ±0.041   -0.134 ±0.056   -0.183 ±0.072
+  9 → 8  n=1615  tilfeldig    -0.033 ±0.021   -0.063 ±0.032   -0.113 ±0.046   -0.152 ±0.062   -0.183 ±0.072
+    25 % μ, BÅNDVIS        b1 0.013±0.045 (z -0.69)   b2 -0.035±0.020 (z -1.00)
+
+  9 → PASS  n=1615  μ         -0.020 ±0.015   -0.009 ±0.025   -0.069 ±0.041   -0.134 ±0.056   -0.189 ±0.071
+  9 → PASS  n=1615  tilfeldig    -0.062 ±0.022   -0.094 ±0.034   -0.159 ±0.046   -0.168 ±0.062   -0.189 ±0.071
+    25 % μ, BÅNDVIS        b1 0.011±0.045 (z -0.89)   b2 -0.029±0.021 (z -1.00)
+
+KRYSSVALIDERT NEDGRADERING — regel valgt i ett bånd, verdsatt i det andre
+  valgt i bånd 1: 10→9 ved 25 %      (in-sample 0.326)  →  bånd 2: 0.264 ± 0.160  (z -0.33)
+  valgt i bånd 2: 10→9 ved 75 %      (in-sample 0.655)  →  bånd 1: -0.011 ± 0.275  (z -3.17)
+
+SKILLER μ MELLOM HENDER DER PASS LØNNER SEG?
+  μ-kvintil      μ-snitt    vPASS − vPolicy     ± se                policybud
+  1                 8.20             -0.045    0.123         9:359 8:175 7:66
+  2                 8.77             -0.422    0.186                    9:600
+  3                 9.13             -0.467    0.257                    9:600
+  4                 9.50              0.977    0.767              10:544 9:56
+  5                10.08             -6.035    0.735                   10:600
+
+--- SPOR 3: ER SØKETS ETIKETT DESTILLERBAR? ---------------------------
+Etiketten er søkets valg ved Kmax. Spørsmålet destillasjonen stiller er
+om den etiketten er en FUNKSJON AV HÅNDEN — hvis samme μ gir motsatte
+etiketter, finnes det ingen billig modell som kan lære den.
+
+  giv der Kmax-søket bytter bud: 73 av 228 (32.0 %)
+  bytte              giv       sum  per runde   μ-snitt
+  10 → 9              29       407      1.785      9.53
+  9 → 10               3        50      0.219      9.21
+  7 → 9                2         1      0.004      7.68
+  9 → 9               81         0      0.000      8.85
+  10 → 10             68         0      0.000      9.97
+  9 → PASS            11         0      0.000      8.61
+  8 → 9                9         0      0.000      8.03
+  9 → 5                7         0      0.000      8.75
+  9 → 6                2         0      0.000      8.48
+  8 → PASS             5         0      0.000      8.03
+  9 → 7                2         0      0.000      8.88
+  8 → 8                4         0      0.000      7.99
+  7 → 7                2         0      0.000      7.62
+  8 → 6                1         0      0.000      8.12
+  9 → 8                2        -1     -0.004      8.54
+
+STABILITET: velger to DISJUNKTE halvdeler av verdenene samme bud?
+  150 av 228 (65.8 %) ved K=120 mot K=120
+  En etikett to uavhengige søk er uenige om, kan ingen modell lære.
+
+DEN ENE BESLUTNINGEN: «byr policyen 10 og søket foretrekker 9 — by 9»
+  utvalg                   per runde     ± se  tegntest    fyrer
+  BÅND 1, K=240                1.711    0.848      2.00    14.0%   n=114
+  BÅND 2, K=240                1.860    0.761      1.51     9.6%   n=114
+  begge bånd, K=240            1.785    0.568      2.50    11.8%   n=228
+  begge bånd, K=48             1.281    0.549      1.00    11.0%   n=228
+  begge bånd, K=60             1.114    0.536      0.78    11.4%   n=228
+  begge bånd, K=120            1.228    0.563      1.57    11.4%   n=228
+
+  STABILITET PÅ AKKURAT DENNE ETIKETTEN (to disjunkte halvdeler):
+  giv der policyen byr 10: 97
+  de to halvdelene enige om «by 9 i stedet»: 81 av 97 (83.5 %)
+  begge sier «by 9»: 21   bare den ene: 16
+
+  KAN μ ALENE FORUTSI ETIKETTEN?  (det destillasjonen må klare)
+  μ-snitt der søket sier «by 9»:      9.535  (n=29)
+  μ-snitt der søket lar 10 stå:       9.968  (n=68)
+  forskjell i μ: -0.433 ± 0.303
+  Er forskjellen liten, ser hendene like ut for GBT-en, og en billig
+  destillasjon av DENNE etiketten må ha trekk GBT-en ikke har i dag.

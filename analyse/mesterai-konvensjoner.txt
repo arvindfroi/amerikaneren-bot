@@ -1,11 +1,10 @@
 === TO KONVENSJONSBRUDD MOT MESTERAI ===
 
-Runder profilert:  800
+Runder profilert:  40
 Frøbase:           660000 (12 runder per kamp)
-MesterAI:          450 ms per kortvalg, alle fire seter
-Tidsbruk:          267.7 min
-Skrevet:           2026-07-26T05:33:34.371Z
-Merke:             sd-r2-begge-512 vs sd-r1 vs nevro; tung maskinlast (7 fasegap-adaptere, 2 e1-orakel, graf-puls, live.ts)
+MesterAI:          40 verdener per kortvalg (låst), alle fire seter
+Tidsbruk:          26.8 min
+Skrevet:           2026-08-03T13:04:18.837Z
 
 Alle kolonnene svarer på DE SAMME stillingene, i den samme kjøringen.
 MesterAI driver spillet; kandidatene svarer på hvert beslutningspunkt
@@ -53,27 +52,27 @@ konstruksjon ikke se verdien av informasjon. Utspillingen her går gjennom
 
 BRUDD 1/stikk 1
 ----------------------------------------------------------------------------------------------------------
-                                            MesterAI   sd-r2-begge-512             sd-r1             nevro
-  SLO sitt eget etterlyste kort                  7 %              50 %              50 %               1 %
-    n                                            800               800               800               800
-    … av dem som KUNNE slå det                  13 %              99 %              98 %               1 %
-    n                                            406               406               406               406
-    … når det var til å unngå                   13 %              99 %              98 %               1 %
-    n                                            406               406               406               406
-  ESS på makkerens KONGE                        11 %              99 %              98 %               0 %
-    n                                            230               230               230               230
-  drepte et GARANTERT stikk                     13 %              99 %              98 %               1 %
-    n                                            406               406               406               406
-  valør på utspillet (alle)                     7.47              9.09              9.31              5.69
-    n                                            800               800               800               800
-  valør lagt VED BRUDD                         14.00             13.60             13.72             14.00
-    n                                             54               403               398               5 *
-    … etterlyst valør der                      12.09             12.31             12.31             10.20
-    n                                             54               403               398               5 *
-  stikk-kostnad per anledning                  -0.05             -0.30             -0.32             -0.03
-    n                                            406               406               406               406
-  stikk-kostnad per brudd                      -0.43             -0.30             -0.32             -0.40
-    n                                             54               403               398               5 *
+                                            MesterAI        vabmp:ftf1              ftf1             nevro
+  SLO sitt eget etterlyste kort                  5 %               0 %              13 %               0 %
+    n                                           40 *              40 *              40 *              40 *
+    … av dem som KUNNE slå det                  10 %               0 %              25 %               0 %
+    n                                           20 *              20 *              20 *              20 *
+    … når det var til å unngå                   10 %               0 %              25 %               0 %
+    n                                           20 *              20 *              20 *              20 *
+  ESS på makkerens KONGE                         0 %               0 %              10 %               0 %
+    n                                           10 *              10 *              10 *              10 *
+  drepte et GARANTERT stikk                     10 %               0 %              25 %               0 %
+    n                                           20 *              20 *              20 *              20 *
+  valør på utspillet (alle)                     7.03              5.97              7.20              5.15
+    n                                           40 *              40 *              40 *              40 *
+  valør lagt VED BRUDD                         14.00                 –             12.60                 –
+    n                                            2 *                 –               5 *                 –
+    … etterlyst valør der                      12.00                 –             11.40                 –
+    n                                            2 *                 –               5 *                 –
+  stikk-kostnad per anledning                  -0.05              0.05              0.10             -0.05
+    n                                           20 *              20 *              20 *              20 *
+  stikk-kostnad per brudd                       0.00                 –              0.20                 –
+    n                                            2 *                 –               5 *                 –
 
 KONVENSJONSBRUDD 2 – MAKKERENS UTSPILL I STIKK 2
 
@@ -93,58 +92,58 @@ mønsteret knyttet til avsløringen, eller bare generell utspillsstil?
 
 BRUDD 2/makker stikk 2
 ----------------------------------------------------------------------------------------------------------
-                                            MesterAI   sd-r2-begge-512             sd-r1             nevro
-  trumf ut                                      24 %              27 %              21 %              36 %
-    n                                            746               746               746               746
-  ess ut                                         3 %              15 %              15 %               1 %
-    n                                            746               746               746               746
-  høyeste kort på hånden                        10 %              15 %              19 %               9 %
-    n                                            746               746               746               746
-  singleton (eneste i fargen)                   15 %              13 %              10 %              31 %
-    n                                            746               746               746               746
-  høyeste i sin egen farge                      46 %              37 %              39 %              58 %
-    n                                            746               746               746               746
-  KONVENSJONELT (union)                         38 %              45 %              41 %              54 %
-    n                                            746               746               746               746
-  BRUDD: lavt, ikke singleton                   62 %              55 %              59 %              46 %
-    n                                            746               746               746               746
-    … og valør ≤ 9                              48 %              54 %              56 %              35 %
-    n                                            746               746               746               746
-  snittvalør på utspillet                       7.02              6.56              7.47              6.81
-    n                                            746               746               746               746
-  snittvalør VED BRUDD                          6.28              5.24              6.03              5.98
-    n                                            462               412               440               340
+                                            MesterAI        vabmp:ftf1              ftf1             nevro
+  trumf ut                                      26 %              87 %              39 %              26 %
+    n                                           38 *              38 *              38 *              38 *
+  ess ut                                         3 %               0 %               3 %               0 %
+    n                                           38 *              38 *              38 *              38 *
+  høyeste kort på hånden                        11 %               0 %               3 %               8 %
+    n                                           38 *              38 *              38 *              38 *
+  singleton (eneste i fargen)                   21 %              26 %              18 %              34 %
+    n                                           38 *              38 *              38 *              38 *
+  høyeste i sin egen farge                      63 %              29 %              34 %              58 %
+    n                                           38 *              38 *              38 *              38 *
+  KONVENSJONELT (union)                         45 %              87 %              45 %              53 %
+    n                                           38 *              38 *              38 *              38 *
+  BRUDD: lavt, ikke singleton                   55 %              13 %              55 %              47 %
+    n                                           38 *              38 *              38 *              38 *
+    … og valør ≤ 9                              39 %              13 %              50 %              39 %
+    n                                           38 *              38 *              38 *              38 *
+  snittvalør på utspillet                       7.50              5.39              6.08              7.03
+    n                                           38 *              38 *              38 *              38 *
+  snittvalør VED BRUDD                          6.33              6.20              6.05              5.39
+    n                                           21 *               5 *              21 *              18 *
 
 BRUDD 2/makker stikk 3   (KONTROLL)
 ----------------------------------------------------------------------------------------------------------
-                                            MesterAI   sd-r2-begge-512             sd-r1             nevro
-  trumf ut                                      16 %              25 %               7 %              24 %
-    n                                             95                95                95                95
-  ess ut                                         1 %              15 %              13 %               2 %
-    n                                             95                95                95                95
-  høyeste kort på hånden                        17 %              15 %              18 %              13 %
-    n                                             95                95                95                95
-  singleton (eneste i fargen)                   17 %              17 %              13 %              34 %
-    n                                             95                95                95                95
-  høyeste i sin egen farge                      62 %              37 %              38 %              65 %
-    n                                             95                95                95                95
-  KONVENSJONELT (union)                         44 %              47 %              34 %              54 %
-    n                                             95                95                95                95
-  BRUDD: lavt, ikke singleton                   56 %              53 %              66 %              46 %
-    n                                             95                95                95                95
-    … og valør ≤ 9                              37 %              53 %              63 %              37 %
-    n                                             95                95                95                95
-  snittvalør på utspillet                       8.01              6.64              7.06              6.99
-    n                                             95                95                95                95
-  snittvalør VED BRUDD                          7.02              5.28              5.62              6.00
-    n                                             53                50                63              44 *
+                                            MesterAI        vabmp:ftf1              ftf1             nevro
+  trumf ut                                      50 %               0 %               0 %               0 %
+    n                                            2 *               2 *               2 *               2 *
+  ess ut                                         0 %              50 %              50 %               0 %
+    n                                            2 *               2 *               2 *               2 *
+  høyeste kort på hånden                         0 %              50 %              50 %               0 %
+    n                                            2 *               2 *               2 *               2 *
+  singleton (eneste i fargen)                    0 %               0 %               0 %              50 %
+    n                                            2 *               2 *               2 *               2 *
+  høyeste i sin egen farge                       0 %              50 %              50 %              50 %
+    n                                            2 *               2 *               2 *               2 *
+  KONVENSJONELT (union)                         50 %              50 %              50 %              50 %
+    n                                            2 *               2 *               2 *               2 *
+  BRUDD: lavt, ikke singleton                   50 %              50 %              50 %              50 %
+    n                                            2 *               2 *               2 *               2 *
+    … og valør ≤ 9                              50 %              50 %              50 %              50 %
+    n                                            2 *               2 *               2 *               2 *
+  snittvalør på utspillet                       2.00              9.00              9.00              7.50
+    n                                            2 *               2 *               2 *               2 *
+  snittvalør VED BRUDD                          2.00              4.00              4.00              4.00
+    n                                            1 *               1 *               1 *               1 *
 
 
 === STILLINGSGRUNNLAGET (likt i alle kolonnene) ===
 
-  BRUDD 1  anledninger: 800   kunne slå: 406   til å unngå: 406   garanti å drepe: 406   ess-på-konge: 230
-  BRUDD 2  makkerutspill i stikk 2: 746
-  BRUDD 2  makkerutspill i stikk 3: 95
+  BRUDD 1  anledninger: 40   kunne slå: 20   til å unngå: 20   garanti å drepe: 20   ess-på-konge: 10
+  BRUDD 2  makkerutspill i stikk 2: 38
+  BRUDD 2  makkerutspill i stikk 3: 2
 
 
 === FUNN: bruddradene først, deretter største avvik ===
@@ -154,96 +153,87 @@ derfor et NEDRE anslag – stillingene er identiske, så den virkelige
 presisjonen er bedre. Tommelfinger: |z| < 2 er støy, |z| > 4 er reelt.
 Rader med n < 50 er merket USIKKER og skal ikke leses som funn.
 
-BRUDD |z|  49.5  sd-r2-begge-512 MER    BRUDD 1/stikk 1 /   … av dem som KUNNE slå det: 99 % mot MesterAIs 13 % (avvik +86 %, n=406)
-BRUDD |z|  49.5  sd-r2-begge-512 MER    BRUDD 1/stikk 1 /   … når det var til å unngå: 99 % mot MesterAIs 13 % (avvik +86 %, n=406)
-BRUDD |z|  49.5  sd-r2-begge-512 MER    BRUDD 1/stikk 1 / drepte et GARANTERT stikk: 99 % mot MesterAIs 13 % (avvik +86 %, n=406)
-BRUDD |z|  46.5  sd-r1 MER    BRUDD 1/stikk 1 /   … av dem som KUNNE slå det: 98 % mot MesterAIs 13 % (avvik +85 %, n=406)
-BRUDD |z|  46.5  sd-r1 MER    BRUDD 1/stikk 1 /   … når det var til å unngå: 98 % mot MesterAIs 13 % (avvik +85 %, n=406)
-BRUDD |z|  46.5  sd-r1 MER    BRUDD 1/stikk 1 / drepte et GARANTERT stikk: 98 % mot MesterAIs 13 % (avvik +85 %, n=406)
-BRUDD |z|  40.4  sd-r2-begge-512 MER    BRUDD 1/stikk 1 / ESS på makkerens KONGE: 99 % mot MesterAIs 11 % (avvik +88 %, n=230)
-BRUDD |z|  38.5  sd-r1 MER    BRUDD 1/stikk 1 / ESS på makkerens KONGE: 98 % mot MesterAIs 11 % (avvik +87 %, n=230)
-BRUDD |z|  22.1  sd-r2-begge-512 MER    BRUDD 1/stikk 1 / SLO sitt eget etterlyste kort: 50 % mot MesterAIs 7 % (avvik +44 %, n=800)
-BRUDD |z|  21.7  sd-r1 MER    BRUDD 1/stikk 1 / SLO sitt eget etterlyste kort: 50 % mot MesterAIs 7 % (avvik +43 %, n=800)
-BRUDD |z|   6.8  nevro MINDRE BRUDD 1/stikk 1 /   … av dem som KUNNE slå det: 1 % mot MesterAIs 13 % (avvik -12 %, n=406)
-BRUDD |z|   6.8  nevro MINDRE BRUDD 1/stikk 1 /   … når det var til å unngå: 1 % mot MesterAIs 13 % (avvik -12 %, n=406)
-BRUDD |z|   6.8  nevro MINDRE BRUDD 1/stikk 1 / drepte et GARANTERT stikk: 1 % mot MesterAIs 13 % (avvik -12 %, n=406)
-BRUDD |z|   6.6  nevro MINDRE BRUDD 1/stikk 1 / SLO sitt eget etterlyste kort: 1 % mot MesterAIs 7 % (avvik -6 %, n=800)
-BRUDD |z|   6.4  nevro MINDRE BRUDD 2/makker stikk 2 / BRUDD: lavt, ikke singleton: 46 % mot MesterAIs 62 % (avvik -16 %, n=746)
-BRUDD |z|   5.4  nevro MINDRE BRUDD 1/stikk 1 / ESS på makkerens KONGE: 0 % mot MesterAIs 11 % (avvik -11 %, n=230)
-BRUDD |z|   5.0  nevro MINDRE BRUDD 2/makker stikk 2 /   … og valør ≤ 9: 35 % mot MesterAIs 48 % (avvik -13 %, n=746)
-BRUDD |z|   3.8  sd-r1 MER    BRUDD 2/makker stikk 3 /   … og valør ≤ 9: 63 % mot MesterAIs 37 % (avvik +26 %, n=95)
-BRUDD |z|   3.3  sd-r1 MER    BRUDD 2/makker stikk 2 /   … og valør ≤ 9: 56 % mot MesterAIs 48 % (avvik +8 %, n=746)
-BRUDD |z|   2.6  sd-r2-begge-512 MINDRE BRUDD 2/makker stikk 2 / BRUDD: lavt, ikke singleton: 55 % mot MesterAIs 62 % (avvik -7 %, n=746)
-BRUDD |z|   2.6  sd-r2-begge-512 MER    BRUDD 2/makker stikk 2 /   … og valør ≤ 9: 54 % mot MesterAIs 48 % (avvik +7 %, n=746)
-BRUDD |z|   2.2  sd-r2-begge-512 MER    BRUDD 2/makker stikk 3 /   … og valør ≤ 9: 53 % mot MesterAIs 37 % (avvik +16 %, n=95)
-BRUDD |z|   1.5  sd-r1 MER    BRUDD 2/makker stikk 3 / BRUDD: lavt, ikke singleton: 66 % mot MesterAIs 56 % (avvik +11 %, n=95)
-BRUDD |z|   1.3  nevro MINDRE BRUDD 2/makker stikk 3 / BRUDD: lavt, ikke singleton: 46 % mot MesterAIs 56 % (avvik -9 %, n=95)
-BRUDD |z|   1.2  sd-r1 MINDRE BRUDD 2/makker stikk 2 / BRUDD: lavt, ikke singleton: 59 % mot MesterAIs 62 % (avvik -3 %, n=746)
-BRUDD |z|   0.4  sd-r2-begge-512 MINDRE BRUDD 2/makker stikk 3 / BRUDD: lavt, ikke singleton: 53 % mot MesterAIs 56 % (avvik -3 %, n=95)
-BRUDD |z|   0.0  nevro MINDRE BRUDD 2/makker stikk 3 /   … og valør ≤ 9: 37 % mot MesterAIs 37 % (avvik 0 %, n=95)
-      |z|   9.9  sd-r2-begge-512 MINDRE BRUDD 1/stikk 1 / valør lagt VED BRUDD: 13.60 mot MesterAIs 14.00 (avvik -0.40, n=403)
-      |z|   9.9  nevro MINDRE BRUDD 1/stikk 1 / valør på utspillet (alle): 5.69 mot MesterAIs 7.47 (avvik -1.78, n=800)
-      |z|   8.6  sd-r1 MER    BRUDD 1/stikk 1 / valør på utspillet (alle): 9.31 mot MesterAIs 7.47 (avvik +1.83, n=800)
-      |z|   8.1  sd-r1 MINDRE BRUDD 1/stikk 1 / valør lagt VED BRUDD: 13.72 mot MesterAIs 14.00 (avvik -0.28, n=398)
-      |z|   8.1  sd-r2-begge-512 MER    BRUDD 2/makker stikk 2 / ess ut: 15 % mot MesterAIs 3 % (avvik +12 %, n=746)
-      |z|   8.1  sd-r1 MER    BRUDD 2/makker stikk 2 / ess ut: 15 % mot MesterAIs 3 % (avvik +12 %, n=746)
-      |z|   7.5  nevro MER    BRUDD 2/makker stikk 2 / singleton (eneste i fargen): 31 % mot MesterAIs 15 % (avvik +16 %, n=746)
-      |z|   7.4  sd-r2-begge-512 MER    BRUDD 1/stikk 1 / valør på utspillet (alle): 9.09 mot MesterAIs 7.47 (avvik +1.62, n=800)
-      |z|   6.4  nevro MER    BRUDD 2/makker stikk 2 / KONVENSJONELT (union): 54 % mot MesterAIs 38 % (avvik +16 %, n=746)
-      |z|   5.9  sd-r2-begge-512 MINDRE BRUDD 2/makker stikk 2 / snittvalør VED BRUDD: 5.24 mot MesterAIs 6.28 (avvik -1.04, n=412)
-      |z|   5.1  nevro MER    BRUDD 2/makker stikk 2 / trumf ut: 36 % mot MesterAIs 24 % (avvik +12 %, n=746)
-      |z|   4.6  sd-r1 MER    BRUDD 2/makker stikk 2 / høyeste kort på hånden: 19 % mot MesterAIs 10 % (avvik +8 %, n=746)
-      |z|   4.6  nevro MER    BRUDD 2/makker stikk 2 / høyeste i sin egen farge: 58 % mot MesterAIs 46 % (avvik +12 %, n=746)
-      |z|   3.8  sd-r2-begge-512 MINDRE BRUDD 2/makker stikk 2 / høyeste i sin egen farge: 37 % mot MesterAIs 46 % (avvik -10 %, n=746)
-      |z|   3.8  sd-r1 MINDRE BRUDD 1/stikk 1 / stikk-kostnad per anledning: -0.32 mot MesterAIs -0.05 (avvik -0.26, n=406)
-      |z|   3.6  sd-r2-begge-512 MER    BRUDD 2/makker stikk 3 / ess ut: 15 % mot MesterAIs 1 % (avvik +14 %, n=95)
-      |z|   3.6  sd-r2-begge-512 MINDRE BRUDD 2/makker stikk 3 / høyeste i sin egen farge: 37 % mot MesterAIs 62 % (avvik -25 %, n=95)
-      |z|   3.5  sd-r2-begge-512 MINDRE BRUDD 1/stikk 1 / stikk-kostnad per anledning: -0.30 mot MesterAIs -0.05 (avvik -0.25, n=406)
-      |z|   3.4  sd-r1 MINDRE BRUDD 2/makker stikk 3 / høyeste i sin egen farge: 38 % mot MesterAIs 62 % (avvik -24 %, n=95)
-      |z|   3.2  sd-r1 MER    BRUDD 2/makker stikk 3 / ess ut: 13 % mot MesterAIs 1 % (avvik +12 %, n=95)
-      |z|   3.2  sd-r1 MINDRE BRUDD 2/makker stikk 2 / singleton (eneste i fargen): 10 % mot MesterAIs 15 % (avvik -5 %, n=746)
-      |z|   3.2  sd-r2-begge-512 MINDRE BRUDD 2/makker stikk 3 / snittvalør VED BRUDD: 5.28 mot MesterAIs 7.02 (avvik -1.74, n=50)
-      |z|   3.0  nevro MINDRE BRUDD 2/makker stikk 2 / ess ut: 1 % mot MesterAIs 3 % (avvik -2 %, n=746)
-      |z|   2.9  sd-r1 MINDRE BRUDD 2/makker stikk 2 / høyeste i sin egen farge: 39 % mot MesterAIs 46 % (avvik -7 %, n=746)
-      |z|   2.8  nevro MINDRE BRUDD 1/stikk 1 /   … etterlyst valør der: 10.20 mot MesterAIs 12.09 (avvik -1.89, n=5)  ← USIKKER (n < 50)
-      |z|   2.7  sd-r2-begge-512 MER    BRUDD 2/makker stikk 2 / høyeste kort på hånden: 15 % mot MesterAIs 10 % (avvik +5 %, n=746)
-      |z|   2.7  nevro MER    BRUDD 2/makker stikk 3 / singleton (eneste i fargen): 34 % mot MesterAIs 17 % (avvik +17 %, n=95)
-      |z|   2.6  sd-r2-begge-512 MER    BRUDD 2/makker stikk 2 / KONVENSJONELT (union): 45 % mot MesterAIs 38 % (avvik +7 %, n=746)
-      |z|   2.6  sd-r2-begge-512 MINDRE BRUDD 2/makker stikk 3 / snittvalør på utspillet: 6.64 mot MesterAIs 8.01 (avvik -1.37, n=95)
-      |z|   2.5  sd-r1 MINDRE BRUDD 2/makker stikk 3 / snittvalør VED BRUDD: 5.62 mot MesterAIs 7.02 (avvik -1.40, n=63)
-      |z|   2.5  sd-r2-begge-512 MINDRE BRUDD 2/makker stikk 2 / snittvalør på utspillet: 6.56 mot MesterAIs 7.02 (avvik -0.46, n=746)
-      |z|   2.3  sd-r1 MER    BRUDD 2/makker stikk 2 / snittvalør på utspillet: 7.47 mot MesterAIs 7.02 (avvik +0.44, n=746)
-      |z|   1.9  nevro MINDRE BRUDD 2/makker stikk 3 / snittvalør på utspillet: 6.99 mot MesterAIs 8.01 (avvik -1.02, n=95)
-      |z|   1.8  sd-r1 MINDRE BRUDD 2/makker stikk 3 / trumf ut: 7 % mot MesterAIs 16 % (avvik -8 %, n=95)
-      |z|   1.8  sd-r1 MINDRE BRUDD 2/makker stikk 3 / snittvalør på utspillet: 7.06 mot MesterAIs 8.01 (avvik -0.95, n=95)
-      |z|   1.6  sd-r2-begge-512 MER    BRUDD 2/makker stikk 3 / trumf ut: 25 % mot MesterAIs 16 % (avvik +9 %, n=95)
-      |z|   1.5  sd-r1 MINDRE BRUDD 2/makker stikk 3 / KONVENSJONELT (union): 34 % mot MesterAIs 44 % (avvik -11 %, n=95)
-      |z|   1.5  sd-r1 MINDRE BRUDD 2/makker stikk 2 / trumf ut: 21 % mot MesterAIs 24 % (avvik -3 %, n=746)
-      |z|   1.5  nevro MER    BRUDD 2/makker stikk 3 / trumf ut: 24 % mot MesterAIs 16 % (avvik +8 %, n=95)
-      |z|   1.4  nevro MINDRE BRUDD 2/makker stikk 3 / snittvalør VED BRUDD: 6.00 mot MesterAIs 7.02 (avvik -1.02, n=44)  ← USIKKER (n < 50)
-      |z|   1.4  sd-r1 MINDRE BRUDD 2/makker stikk 2 / snittvalør VED BRUDD: 6.03 mot MesterAIs 6.28 (avvik -0.25, n=440)
-      |z|   1.3  sd-r2-begge-512 MER    BRUDD 1/stikk 1 /   … etterlyst valør der: 12.31 mot MesterAIs 12.09 (avvik +0.22, n=403)
-      |z|   1.3  sd-r1 MER    BRUDD 1/stikk 1 /   … etterlyst valør der: 12.31 mot MesterAIs 12.09 (avvik +0.21, n=398)
-      |z|   1.3  nevro MER    BRUDD 2/makker stikk 3 / KONVENSJONELT (union): 54 % mot MesterAIs 44 % (avvik +9 %, n=95)
-      |z|   1.3  nevro MINDRE BRUDD 2/makker stikk 2 / snittvalør VED BRUDD: 5.98 mot MesterAIs 6.28 (avvik -0.30, n=340)
-      |z|   1.2  sd-r2-begge-512 MER    BRUDD 2/makker stikk 2 / trumf ut: 27 % mot MesterAIs 24 % (avvik +3 %, n=746)
-      |z|   1.2  sd-r1 MER    BRUDD 2/makker stikk 2 / KONVENSJONELT (union): 41 % mot MesterAIs 38 % (avvik +3 %, n=746)
-      |z|   1.1  nevro MINDRE BRUDD 2/makker stikk 2 / snittvalør på utspillet: 6.81 mot MesterAIs 7.02 (avvik -0.21, n=746)
-      |z|   0.9  sd-r2-begge-512 MINDRE BRUDD 2/makker stikk 2 / singleton (eneste i fargen): 13 % mot MesterAIs 15 % (avvik -2 %, n=746)
-      |z|   0.8  nevro MINDRE BRUDD 2/makker stikk 3 / høyeste kort på hånden: 13 % mot MesterAIs 17 % (avvik -4 %, n=95)
-      |z|   0.8  sd-r1 MINDRE BRUDD 2/makker stikk 3 / singleton (eneste i fargen): 13 % mot MesterAIs 17 % (avvik -4 %, n=95)
-      |z|   0.8  nevro MINDRE BRUDD 2/makker stikk 2 / høyeste kort på hånden: 9 % mot MesterAIs 10 % (avvik -1 %, n=746)
-      |z|   0.7  sd-r2-begge-512 MER    BRUDD 1/stikk 1 / stikk-kostnad per brudd: -0.30 mot MesterAIs -0.43 (avvik +0.13, n=403)
-      |z|   0.6  nevro MER    BRUDD 2/makker stikk 3 / ess ut: 2 % mot MesterAIs 1 % (avvik +1 %, n=95)
-      |z|   0.6  sd-r1 MER    BRUDD 1/stikk 1 / stikk-kostnad per brudd: -0.32 mot MesterAIs -0.43 (avvik +0.10, n=398)
-      |z|   0.5  nevro MER    BRUDD 1/stikk 1 / stikk-kostnad per anledning: -0.03 mot MesterAIs -0.05 (avvik +0.02, n=406)
-      |z|   0.5  nevro MER    BRUDD 2/makker stikk 3 / høyeste i sin egen farge: 65 % mot MesterAIs 62 % (avvik +3 %, n=95)
-      |z|   0.4  sd-r2-begge-512 MER    BRUDD 2/makker stikk 3 / KONVENSJONELT (union): 47 % mot MesterAIs 44 % (avvik +3 %, n=95)
-      |z|   0.4  sd-r2-begge-512 MINDRE BRUDD 2/makker stikk 3 / høyeste kort på hånden: 15 % mot MesterAIs 17 % (avvik -2 %, n=95)
-      |z|   0.2  sd-r1 MER    BRUDD 2/makker stikk 3 / høyeste kort på hånden: 18 % mot MesterAIs 17 % (avvik +1 %, n=95)
-      |z|   0.1  nevro MER    BRUDD 1/stikk 1 / stikk-kostnad per brudd: -0.40 mot MesterAIs -0.43 (avvik +0.03, n=5)  ← USIKKER (n < 50)
-      |z|   0.0  nevro MINDRE BRUDD 1/stikk 1 / valør lagt VED BRUDD: 14.00 mot MesterAIs 14.00 (avvik 0.00, n=5)  ← USIKKER (n < 50)
-      |z|   0.0  sd-r2-begge-512 MINDRE BRUDD 2/makker stikk 3 / singleton (eneste i fargen): 17 % mot MesterAIs 17 % (avvik 0 %, n=95)
+BRUDD |z|   4.3  vabmp:ftf1 MINDRE BRUDD 2/makker stikk 2 / BRUDD: lavt, ikke singleton: 13 % mot MesterAIs 55 % (avvik -42 %, n=38)  ← USIKKER (n < 50)
+BRUDD |z|   2.7  vabmp:ftf1 MINDRE BRUDD 2/makker stikk 2 /   … og valør ≤ 9: 13 % mot MesterAIs 39 % (avvik -26 %, n=38)  ← USIKKER (n < 50)
+BRUDD |z|   1.5  vabmp:ftf1 MINDRE BRUDD 1/stikk 1 /   … av dem som KUNNE slå det: 0 % mot MesterAIs 10 % (avvik -10 %, n=20)  ← USIKKER (n < 50)
+BRUDD |z|   1.5  nevro MINDRE BRUDD 1/stikk 1 /   … av dem som KUNNE slå det: 0 % mot MesterAIs 10 % (avvik -10 %, n=20)  ← USIKKER (n < 50)
+BRUDD |z|   1.5  vabmp:ftf1 MINDRE BRUDD 1/stikk 1 /   … når det var til å unngå: 0 % mot MesterAIs 10 % (avvik -10 %, n=20)  ← USIKKER (n < 50)
+BRUDD |z|   1.5  nevro MINDRE BRUDD 1/stikk 1 /   … når det var til å unngå: 0 % mot MesterAIs 10 % (avvik -10 %, n=20)  ← USIKKER (n < 50)
+BRUDD |z|   1.5  vabmp:ftf1 MINDRE BRUDD 1/stikk 1 / drepte et GARANTERT stikk: 0 % mot MesterAIs 10 % (avvik -10 %, n=20)  ← USIKKER (n < 50)
+BRUDD |z|   1.5  nevro MINDRE BRUDD 1/stikk 1 / drepte et GARANTERT stikk: 0 % mot MesterAIs 10 % (avvik -10 %, n=20)  ← USIKKER (n < 50)
+BRUDD |z|   1.5  vabmp:ftf1 MINDRE BRUDD 1/stikk 1 / SLO sitt eget etterlyste kort: 0 % mot MesterAIs 5 % (avvik -5 %, n=40)  ← USIKKER (n < 50)
+BRUDD |z|   1.5  nevro MINDRE BRUDD 1/stikk 1 / SLO sitt eget etterlyste kort: 0 % mot MesterAIs 5 % (avvik -5 %, n=40)  ← USIKKER (n < 50)
+BRUDD |z|   1.3  ftf1 MER    BRUDD 1/stikk 1 /   … av dem som KUNNE slå det: 25 % mot MesterAIs 10 % (avvik +15 %, n=20)  ← USIKKER (n < 50)
+BRUDD |z|   1.3  ftf1 MER    BRUDD 1/stikk 1 /   … når det var til å unngå: 25 % mot MesterAIs 10 % (avvik +15 %, n=20)  ← USIKKER (n < 50)
+BRUDD |z|   1.3  ftf1 MER    BRUDD 1/stikk 1 / drepte et GARANTERT stikk: 25 % mot MesterAIs 10 % (avvik +15 %, n=20)  ← USIKKER (n < 50)
+BRUDD |z|   1.2  ftf1 MER    BRUDD 1/stikk 1 / SLO sitt eget etterlyste kort: 13 % mot MesterAIs 5 % (avvik +8 %, n=40)  ← USIKKER (n < 50)
+BRUDD |z|   1.1  ftf1 MER    BRUDD 1/stikk 1 / ESS på makkerens KONGE: 10 % mot MesterAIs 0 % (avvik +10 %, n=10)  ← USIKKER (n < 50)
+BRUDD |z|   0.9  ftf1 MER    BRUDD 2/makker stikk 2 /   … og valør ≤ 9: 50 % mot MesterAIs 39 % (avvik +11 %, n=38)  ← USIKKER (n < 50)
+BRUDD |z|   0.7  nevro MINDRE BRUDD 2/makker stikk 2 / BRUDD: lavt, ikke singleton: 47 % mot MesterAIs 55 % (avvik -8 %, n=38)  ← USIKKER (n < 50)
+BRUDD |z|   0.0  vabmp:ftf1 MINDRE BRUDD 1/stikk 1 / ESS på makkerens KONGE: 0 % mot MesterAIs 0 % (avvik 0 %, n=10)  ← USIKKER (n < 50)
+BRUDD |z|   0.0  nevro MINDRE BRUDD 1/stikk 1 / ESS på makkerens KONGE: 0 % mot MesterAIs 0 % (avvik 0 %, n=10)  ← USIKKER (n < 50)
+BRUDD |z|   0.0  ftf1 MINDRE BRUDD 2/makker stikk 2 / BRUDD: lavt, ikke singleton: 55 % mot MesterAIs 55 % (avvik 0 %, n=38)  ← USIKKER (n < 50)
+BRUDD |z|   0.0  nevro MINDRE BRUDD 2/makker stikk 2 /   … og valør ≤ 9: 39 % mot MesterAIs 39 % (avvik 0 %, n=38)  ← USIKKER (n < 50)
+BRUDD |z|   0.0  vabmp:ftf1 MINDRE BRUDD 2/makker stikk 3 / BRUDD: lavt, ikke singleton: 50 % mot MesterAIs 50 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
+BRUDD |z|   0.0  ftf1 MINDRE BRUDD 2/makker stikk 3 / BRUDD: lavt, ikke singleton: 50 % mot MesterAIs 50 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
+BRUDD |z|   0.0  nevro MINDRE BRUDD 2/makker stikk 3 / BRUDD: lavt, ikke singleton: 50 % mot MesterAIs 50 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
+BRUDD |z|   0.0  vabmp:ftf1 MINDRE BRUDD 2/makker stikk 3 /   … og valør ≤ 9: 50 % mot MesterAIs 50 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
+BRUDD |z|   0.0  ftf1 MINDRE BRUDD 2/makker stikk 3 /   … og valør ≤ 9: 50 % mot MesterAIs 50 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
+BRUDD |z|   0.0  nevro MINDRE BRUDD 2/makker stikk 3 /   … og valør ≤ 9: 50 % mot MesterAIs 50 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
+      |z|   6.7  vabmp:ftf1 MER    BRUDD 2/makker stikk 2 / trumf ut: 87 % mot MesterAIs 26 % (avvik +61 %, n=38)  ← USIKKER (n < 50)
+      |z|   4.3  vabmp:ftf1 MER    BRUDD 2/makker stikk 2 / KONVENSJONELT (union): 87 % mot MesterAIs 45 % (avvik +42 %, n=38)  ← USIKKER (n < 50)
+      |z|   3.2  vabmp:ftf1 MINDRE BRUDD 2/makker stikk 2 / høyeste i sin egen farge: 29 % mot MesterAIs 63 % (avvik -34 %, n=38)  ← USIKKER (n < 50)
+      |z|   2.8  vabmp:ftf1 MINDRE BRUDD 2/makker stikk 2 / snittvalør på utspillet: 5.39 mot MesterAIs 7.50 (avvik -2.11, n=38)  ← USIKKER (n < 50)
+      |z|   2.7  ftf1 MINDRE BRUDD 1/stikk 1 / valør lagt VED BRUDD: 12.60 mot MesterAIs 14.00 (avvik -1.40, n=5)  ← USIKKER (n < 50)
+      |z|   2.6  ftf1 MINDRE BRUDD 2/makker stikk 2 / høyeste i sin egen farge: 34 % mot MesterAIs 63 % (avvik -29 %, n=38)  ← USIKKER (n < 50)
+      |z|   2.5  nevro MINDRE BRUDD 1/stikk 1 / valør på utspillet (alle): 5.15 mot MesterAIs 7.03 (avvik -1.88, n=40)  ← USIKKER (n < 50)
+      |z|   2.1  vabmp:ftf1 MINDRE BRUDD 2/makker stikk 2 / høyeste kort på hånden: 0 % mot MesterAIs 11 % (avvik -11 %, n=38)  ← USIKKER (n < 50)
+      |z|   1.8  ftf1 MINDRE BRUDD 2/makker stikk 2 / snittvalør på utspillet: 6.08 mot MesterAIs 7.50 (avvik -1.42, n=38)  ← USIKKER (n < 50)
+      |z|   1.6  nevro MER    BRUDD 2/makker stikk 3 / snittvalør på utspillet: 7.50 mot MesterAIs 2.00 (avvik +5.50, n=2)  ← USIKKER (n < 50)
+      |z|   1.5  vabmp:ftf1 MINDRE BRUDD 1/stikk 1 / valør på utspillet (alle): 5.97 mot MesterAIs 7.03 (avvik -1.05, n=40)  ← USIKKER (n < 50)
+      |z|   1.4  vabmp:ftf1 MINDRE BRUDD 2/makker stikk 3 / trumf ut: 0 % mot MesterAIs 50 % (avvik -50 %, n=2)  ← USIKKER (n < 50)
+      |z|   1.4  ftf1 MINDRE BRUDD 2/makker stikk 3 / trumf ut: 0 % mot MesterAIs 50 % (avvik -50 %, n=2)  ← USIKKER (n < 50)
+      |z|   1.4  nevro MINDRE BRUDD 2/makker stikk 3 / trumf ut: 0 % mot MesterAIs 50 % (avvik -50 %, n=2)  ← USIKKER (n < 50)
+      |z|   1.4  vabmp:ftf1 MER    BRUDD 2/makker stikk 3 / ess ut: 50 % mot MesterAIs 0 % (avvik +50 %, n=2)  ← USIKKER (n < 50)
+      |z|   1.4  ftf1 MER    BRUDD 2/makker stikk 3 / ess ut: 50 % mot MesterAIs 0 % (avvik +50 %, n=2)  ← USIKKER (n < 50)
+      |z|   1.4  vabmp:ftf1 MER    BRUDD 2/makker stikk 3 / høyeste kort på hånden: 50 % mot MesterAIs 0 % (avvik +50 %, n=2)  ← USIKKER (n < 50)
+      |z|   1.4  ftf1 MER    BRUDD 2/makker stikk 3 / høyeste kort på hånden: 50 % mot MesterAIs 0 % (avvik +50 %, n=2)  ← USIKKER (n < 50)
+      |z|   1.4  nevro MER    BRUDD 2/makker stikk 3 / singleton (eneste i fargen): 50 % mot MesterAIs 0 % (avvik +50 %, n=2)  ← USIKKER (n < 50)
+      |z|   1.4  vabmp:ftf1 MER    BRUDD 2/makker stikk 3 / høyeste i sin egen farge: 50 % mot MesterAIs 0 % (avvik +50 %, n=2)  ← USIKKER (n < 50)
+      |z|   1.4  ftf1 MER    BRUDD 2/makker stikk 3 / høyeste i sin egen farge: 50 % mot MesterAIs 0 % (avvik +50 %, n=2)  ← USIKKER (n < 50)
+      |z|   1.4  nevro MER    BRUDD 2/makker stikk 3 / høyeste i sin egen farge: 50 % mot MesterAIs 0 % (avvik +50 %, n=2)  ← USIKKER (n < 50)
+      |z|   1.4  ftf1 MINDRE BRUDD 2/makker stikk 2 / høyeste kort på hånden: 3 % mot MesterAIs 11 % (avvik -8 %, n=38)  ← USIKKER (n < 50)
+      |z|   1.4  vabmp:ftf1 MER    BRUDD 2/makker stikk 3 / snittvalør på utspillet: 9.00 mot MesterAIs 2.00 (avvik +7.00, n=2)  ← USIKKER (n < 50)
+      |z|   1.4  ftf1 MER    BRUDD 2/makker stikk 3 / snittvalør på utspillet: 9.00 mot MesterAIs 2.00 (avvik +7.00, n=2)  ← USIKKER (n < 50)
+      |z|   1.3  nevro MER    BRUDD 2/makker stikk 2 / singleton (eneste i fargen): 34 % mot MesterAIs 21 % (avvik +13 %, n=38)  ← USIKKER (n < 50)
+      |z|   1.2  ftf1 MER    BRUDD 2/makker stikk 2 / trumf ut: 39 % mot MesterAIs 26 % (avvik +13 %, n=38)  ← USIKKER (n < 50)
+      |z|   1.0  vabmp:ftf1 MINDRE BRUDD 2/makker stikk 2 / ess ut: 0 % mot MesterAIs 3 % (avvik -3 %, n=38)  ← USIKKER (n < 50)
+      |z|   1.0  nevro MINDRE BRUDD 2/makker stikk 2 / ess ut: 0 % mot MesterAIs 3 % (avvik -3 %, n=38)  ← USIKKER (n < 50)
+      |z|   1.0  ftf1 MINDRE BRUDD 1/stikk 1 /   … etterlyst valør der: 11.40 mot MesterAIs 12.00 (avvik -0.60, n=5)  ← USIKKER (n < 50)
+      |z|   1.0  nevro MINDRE BRUDD 2/makker stikk 2 / snittvalør VED BRUDD: 5.39 mot MesterAIs 6.33 (avvik -0.94, n=18)  ← USIKKER (n < 50)
+      |z|   0.7  nevro MER    BRUDD 2/makker stikk 2 / KONVENSJONELT (union): 53 % mot MesterAIs 45 % (avvik +8 %, n=38)  ← USIKKER (n < 50)
+      |z|   0.7  ftf1 MER    BRUDD 1/stikk 1 / stikk-kostnad per anledning: 0.10 mot MesterAIs -0.05 (avvik +0.15, n=20)  ← USIKKER (n < 50)
+      |z|   0.5  nevro MINDRE BRUDD 2/makker stikk 2 / snittvalør på utspillet: 7.03 mot MesterAIs 7.50 (avvik -0.47, n=38)  ← USIKKER (n < 50)
+      |z|   0.5  vabmp:ftf1 MER    BRUDD 2/makker stikk 2 / singleton (eneste i fargen): 26 % mot MesterAIs 21 % (avvik +5 %, n=38)  ← USIKKER (n < 50)
+      |z|   0.5  ftf1 MER    BRUDD 1/stikk 1 / stikk-kostnad per brudd: 0.20 mot MesterAIs 0.00 (avvik +0.20, n=5)  ← USIKKER (n < 50)
+      |z|   0.5  vabmp:ftf1 MER    BRUDD 1/stikk 1 / stikk-kostnad per anledning: 0.05 mot MesterAIs -0.05 (avvik +0.10, n=20)  ← USIKKER (n < 50)
+      |z|   0.5  nevro MINDRE BRUDD 2/makker stikk 2 / høyeste i sin egen farge: 58 % mot MesterAIs 63 % (avvik -5 %, n=38)  ← USIKKER (n < 50)
+      |z|   0.4  nevro MINDRE BRUDD 2/makker stikk 2 / høyeste kort på hånden: 8 % mot MesterAIs 11 % (avvik -3 %, n=38)  ← USIKKER (n < 50)
+      |z|   0.3  ftf1 MINDRE BRUDD 2/makker stikk 2 / snittvalør VED BRUDD: 6.05 mot MesterAIs 6.33 (avvik -0.29, n=21)  ← USIKKER (n < 50)
+      |z|   0.3  ftf1 MINDRE BRUDD 2/makker stikk 2 / singleton (eneste i fargen): 18 % mot MesterAIs 21 % (avvik -3 %, n=38)  ← USIKKER (n < 50)
+      |z|   0.2  ftf1 MER    BRUDD 1/stikk 1 / valør på utspillet (alle): 7.20 mot MesterAIs 7.03 (avvik +0.17, n=40)  ← USIKKER (n < 50)
+      |z|   0.1  vabmp:ftf1 MINDRE BRUDD 2/makker stikk 2 / snittvalør VED BRUDD: 6.20 mot MesterAIs 6.33 (avvik -0.13, n=5)  ← USIKKER (n < 50)
+      |z|   0.0  nevro MINDRE BRUDD 1/stikk 1 / stikk-kostnad per anledning: -0.05 mot MesterAIs -0.05 (avvik 0.00, n=20)  ← USIKKER (n < 50)
+      |z|   0.0  nevro MINDRE BRUDD 2/makker stikk 2 / trumf ut: 26 % mot MesterAIs 26 % (avvik 0 %, n=38)  ← USIKKER (n < 50)
+      |z|   0.0  ftf1 MINDRE BRUDD 2/makker stikk 2 / ess ut: 3 % mot MesterAIs 3 % (avvik 0 %, n=38)  ← USIKKER (n < 50)
+      |z|   0.0  ftf1 MINDRE BRUDD 2/makker stikk 2 / KONVENSJONELT (union): 45 % mot MesterAIs 45 % (avvik 0 %, n=38)  ← USIKKER (n < 50)
+      |z|   0.0  nevro MINDRE BRUDD 2/makker stikk 3 / ess ut: 0 % mot MesterAIs 0 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
+      |z|   0.0  nevro MINDRE BRUDD 2/makker stikk 3 / høyeste kort på hånden: 0 % mot MesterAIs 0 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
+      |z|   0.0  vabmp:ftf1 MINDRE BRUDD 2/makker stikk 3 / singleton (eneste i fargen): 0 % mot MesterAIs 0 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
+      |z|   0.0  ftf1 MINDRE BRUDD 2/makker stikk 3 / singleton (eneste i fargen): 0 % mot MesterAIs 0 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
+      |z|   0.0  vabmp:ftf1 MINDRE BRUDD 2/makker stikk 3 / KONVENSJONELT (union): 50 % mot MesterAIs 50 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
+      |z|   0.0  ftf1 MINDRE BRUDD 2/makker stikk 3 / KONVENSJONELT (union): 50 % mot MesterAIs 50 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
+      |z|   0.0  nevro MINDRE BRUDD 2/makker stikk 3 / KONVENSJONELT (union): 50 % mot MesterAIs 50 % (avvik 0 %, n=2)  ← USIKKER (n < 50)
 
-Beslutninger som kastet unntak: MesterAI: 0, sd-r2-begge-512: 0, sd-r1: 0, nevro: 0
+Beslutninger som kastet unntak: MesterAI: 0, vabmp:ftf1: 0, ftf1: 0, nevro: 0
 

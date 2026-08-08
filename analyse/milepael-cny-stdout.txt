@@ -1,0 +1,2 @@
+[08-07 09:34] === MILEPAELSVAKT: sd-natt-c, bredde 273, basis d7alle.bin ===
+[08-07 09:34] terskler: 25000 50000 100000 200000

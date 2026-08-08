@@ -1,0 +1,41 @@
+# K4 — hukommelse og framoverblikk
+# 2026-08-07T18:31:07.194Z  giv=6 froe=4400000 maalrunde=8
+
+## PROEVE B — framoverblikket (M=2 mot M=1)
+12 verdener (k16), dommer paa 32 friske verdener med uavhengig froe.
+TO DISJUNKTE FROEBAAND, fordi vedlegget krever replikasjon foer et
+fortegn faar staa. Baandene deler ingen giv og ingen dommerfroe.
+
+stillinger:            240
+uenige (M2 != M1):     29  (12.1 %)
+ms per beslutning M=1: 586.3
+ms per beslutning M=2: 1093.1
+kostnadsforhold:       1.86x
+
+| dommer / baand | n | gevinst M=2 minus M=1 | tegntest |
+|---|---|---|---|
+| GRUNN (M=1), baand 1 | 15 | +0.246 +/- 0.240 | 9/15 |
+| GRUNN (M=1), baand 2 | 14 | -0.012 +/- 0.666 | 7/14 |
+| GRUNN (M=1), samlet | 29 | +0.121 +/- 0.339 | 16/29 |
+| DYP (M=2), baand 1 | 15 | +0.640 +/- 0.377 | 9/15 |
+| DYP (M=2), baand 2 | 14 | +1.255 +/- 0.784 | 9/14 |
+| DYP (M=2), samlet | 29 | +0.937 +/- 0.422 | 18/29 |
+
+GRUNN dommer: snittet +0.121 ligger innenfor 2 SE (0.678). Fortegnet er IKKE vist - underdimensjonert.
+DYP dommer: M=2 er BEDRE enn M=1 (0.937 > 2 SE = 0.844).
+
+DE TO DOMMERNE ER ENIGE om fortegnet (+). Det er det sterkeste denne fila kan si: fortegnet henger ikke paa dommerens dybde.
+Per BESLUTNING (dyp dommer x uenighetsandel): +0.1132 stikk.
+
+GRENSENE PAA DENNE MAALINGEN, SAGT HOEYT:
+  1. Den GRUNNE dommeren er selv et M=1-oppspill. Den kan ikke se
+     verdien av en plan som foerst betaler seg to av EGNE valg fram,
+     saa den er konservativ i M=2s disfavoer. Den DYPE dommeren retter
+     det, men deler algoritmisk skjevhet med soeket den doemmer.
+     Derfor staar begge, og bare enighet mellom dem er et funn.
+  2. Bare uenighetene doemmes. Der de er enige er gevinsten null per
+     definisjon, saa tallet over er gevinsten NAAR den fyrer - ikke per
+     beslutning. Per beslutning er den ganget med uenighetsandelen.
+  3. Dommeren maaler STIKK i ett oppspill, ikke poeng over en kamp.
+     Vekslingskursen mellom de to er ikke maalt her.
+

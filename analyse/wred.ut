@@ -1,0 +1,123 @@
+Enhet: cuda (NVIDIA GeForce RTX 5080 Laptop GPU)
+Teller 112894 linjer i 14 filer (5s)
+Trekkbredde: 356 (v3 med telleblokk)
+  sd-v3/skard-0.jsonl: 8105 stillinger (totalt 8105)
+  sd-v3/skard-1.jsonl: 7994 stillinger (totalt 16099)
+  sd-v3/skard-10.jsonl: 8088 stillinger (totalt 24187)
+  sd-v3/skard-11.jsonl: 8110 stillinger (totalt 32297)
+  sd-v3/skard-12.jsonl: 8035 stillinger (totalt 40332)
+  sd-v3/skard-13.jsonl: 7894 stillinger (totalt 48226)
+  sd-v3/skard-2.jsonl: 8084 stillinger (totalt 56310)
+  sd-v3/skard-3.jsonl: 8148 stillinger (totalt 64458)
+  sd-v3/skard-4.jsonl: 8125 stillinger (totalt 72583)
+  sd-v3/skard-5.jsonl: 8041 stillinger (totalt 80624)
+  sd-v3/skard-6.jsonl: 7988 stillinger (totalt 88612)
+  sd-v3/skard-7.jsonl: 8060 stillinger (totalt 96672)
+  sd-v3/skard-8.jsonl: 8063 stillinger (totalt 104735)
+  sd-v3/skard-9.jsonl: 8159 stillinger (totalt 112894)
+Leste 112894 stillinger, hoppet over 0 dubletter og 0 ugyldige (25s)
+
+=== OVERLAPP ===
+{
+  "mapper": {
+    "sd-v3": {
+      "stillinger": 112894,
+      "givere": 376
+    }
+  },
+  "overlapp": {},
+  "froebaand": {
+    "sd-v3": [
+      240000000,
+      253000024
+    ]
+  }
+}
+
+Giv-deling: 20 av 376 givere i sd-v3 → holdout (6168 stillinger). Ingen giver i to deler.
+  nullstiller kolonne 277-328 (52 trekk), 340-355 (16 trekk) i en KOPI av dataen
+  utvider inngangen 273 → 356: 83 nye kolonner NULLSTILT, saa nettet starter identisk
+  finjusterer fra e1-modell/ftf1.bin (lr 0.0001)
+
+=== wred: sd-v3, 356 → 512 → 384 → 256 → 52 (491700 parametre) – trening 106726, holdout 6168 ===
+  varmer opp kolonne 273-355 alene i 24 epoker (lr 0.001), resten frosset
+    oppvarming 1/24: snitt |vekt| ny 0.00141 vs gammel 0.08951 (1.6 %)
+    oppvarming 2/24: snitt |vekt| ny 0.00226 vs gammel 0.08951 (2.5 %)
+    oppvarming 3/24: snitt |vekt| ny 0.00296 vs gammel 0.08951 (3.3 %)
+    oppvarming 4/24: snitt |vekt| ny 0.00361 vs gammel 0.08951 (4.0 %)
+    oppvarming 5/24: snitt |vekt| ny 0.00417 vs gammel 0.08951 (4.7 %)
+    oppvarming 6/24: snitt |vekt| ny 0.00471 vs gammel 0.08951 (5.3 %)
+    oppvarming 7/24: snitt |vekt| ny 0.00518 vs gammel 0.08951 (5.8 %)
+    oppvarming 8/24: snitt |vekt| ny 0.00565 vs gammel 0.08951 (6.3 %)
+    oppvarming 9/24: snitt |vekt| ny 0.00607 vs gammel 0.08951 (6.8 %)
+    oppvarming 10/24: snitt |vekt| ny 0.00648 vs gammel 0.08951 (7.2 %)
+    oppvarming 11/24: snitt |vekt| ny 0.00691 vs gammel 0.08951 (7.7 %)
+    oppvarming 12/24: snitt |vekt| ny 0.00733 vs gammel 0.08951 (8.2 %)
+    oppvarming 13/24: snitt |vekt| ny 0.00771 vs gammel 0.08951 (8.6 %)
+    oppvarming 14/24: snitt |vekt| ny 0.00810 vs gammel 0.08951 (9.0 %)
+    oppvarming 15/24: snitt |vekt| ny 0.00845 vs gammel 0.08951 (9.4 %)
+    oppvarming 16/24: snitt |vekt| ny 0.00882 vs gammel 0.08951 (9.9 %)
+    oppvarming 17/24: snitt |vekt| ny 0.00917 vs gammel 0.08951 (10.2 %)
+    oppvarming 18/24: snitt |vekt| ny 0.00951 vs gammel 0.08951 (10.6 %)
+    oppvarming 19/24: snitt |vekt| ny 0.00985 vs gammel 0.08951 (11.0 %)
+    oppvarming 20/24: snitt |vekt| ny 0.01020 vs gammel 0.08951 (11.4 %)
+    oppvarming 21/24: snitt |vekt| ny 0.01052 vs gammel 0.08951 (11.8 %)
+    oppvarming 22/24: snitt |vekt| ny 0.01086 vs gammel 0.08951 (12.1 %)
+    oppvarming 23/24: snitt |vekt| ny 0.01119 vs gammel 0.08951 (12.5 %)
+    oppvarming 24/24: snitt |vekt| ny 0.01151 vs gammel 0.08951 (12.9 %)
+epoke 1/12: tren-tap 1.3946 hold-tap 1.4000 (gap +0.0054)  tren-anger 0.6291 hold-anger 0.6610 hold-treff 52.2 %
+epoke 2/12: tren-tap 1.3944 hold-tap 1.4016 (gap +0.0072)  tren-anger 0.6216 hold-anger 0.6568 hold-treff 52.3 %
+epoke 3/12: tren-tap 1.3935 hold-tap 1.4021 (gap +0.0086)  tren-anger 0.6134 hold-anger 0.6548 hold-treff 52.4 %
+epoke 4/12: tren-tap 1.3931 hold-tap 1.4032 (gap +0.0102)  tren-anger 0.6064 hold-anger 0.6508 hold-treff 52.8 %
+epoke 5/12: tren-tap 1.3925 hold-tap 1.4036 (gap +0.0111)  tren-anger 0.6027 hold-anger 0.6551 hold-treff 52.9 %
+epoke 6/12: tren-tap 1.3930 hold-tap 1.4055 (gap +0.0124)  tren-anger 0.5967 hold-anger 0.6543 hold-treff 52.9 %
+epoke 7/12: tren-tap 1.3928 hold-tap 1.4061 (gap +0.0133)  tren-anger 0.5935 hold-anger 0.6545 hold-treff 52.8 %
+epoke 8/12: tren-tap 1.3927 hold-tap 1.4067 (gap +0.0140)  tren-anger 0.5908 hold-anger 0.6499 hold-treff 52.8 %
+epoke 9/12: tren-tap 1.3928 hold-tap 1.4072 (gap +0.0144)  tren-anger 0.5887 hold-anger 0.6458 hold-treff 52.8 %
+epoke 10/12: tren-tap 1.3928 hold-tap 1.4075 (gap +0.0147)  tren-anger 0.5876 hold-anger 0.6477 hold-treff 52.8 %
+epoke 11/12: tren-tap 1.3927 hold-tap 1.4075 (gap +0.0148)  tren-anger 0.5876 hold-anger 0.6491 hold-treff 52.8 %
+epoke 12/12: tren-tap 1.3927 hold-tap 1.4076 (gap +0.0148)  tren-anger 0.5872 hold-anger 0.6481 hold-treff 52.8 %
+wred ferdig: beste hold-anger 0.6458 på epoke 9 → e1-modell/wred.bin
+  nullstiller kolonne 277-328 (52 trekk) i en KOPI av dataen
+  utvider inngangen 273 → 356: 83 nye kolonner NULLSTILT, saa nettet starter identisk
+  finjusterer fra e1-modell/ftf1.bin (lr 0.0001)
+
+=== wredt: sd-v3, 356 → 512 → 384 → 256 → 52 (491700 parametre) – trening 106726, holdout 6168 ===
+  varmer opp kolonne 273-355 alene i 24 epoker (lr 0.001), resten frosset
+    oppvarming 1/24: snitt |vekt| ny 0.00282 vs gammel 0.08951 (3.1 %)
+    oppvarming 2/24: snitt |vekt| ny 0.00462 vs gammel 0.08951 (5.2 %)
+    oppvarming 3/24: snitt |vekt| ny 0.00621 vs gammel 0.08951 (6.9 %)
+    oppvarming 4/24: snitt |vekt| ny 0.00768 vs gammel 0.08951 (8.6 %)
+    oppvarming 5/24: snitt |vekt| ny 0.00899 vs gammel 0.08951 (10.0 %)
+    oppvarming 6/24: snitt |vekt| ny 0.01028 vs gammel 0.08951 (11.5 %)
+    oppvarming 7/24: snitt |vekt| ny 0.01148 vs gammel 0.08951 (12.8 %)
+    oppvarming 8/24: snitt |vekt| ny 0.01266 vs gammel 0.08951 (14.1 %)
+    oppvarming 9/24: snitt |vekt| ny 0.01372 vs gammel 0.08951 (15.3 %)
+    oppvarming 10/24: snitt |vekt| ny 0.01479 vs gammel 0.08951 (16.5 %)
+    oppvarming 11/24: snitt |vekt| ny 0.01589 vs gammel 0.08951 (17.8 %)
+    oppvarming 12/24: snitt |vekt| ny 0.01693 vs gammel 0.08951 (18.9 %)
+    oppvarming 13/24: snitt |vekt| ny 0.01794 vs gammel 0.08951 (20.0 %)
+    oppvarming 14/24: snitt |vekt| ny 0.01895 vs gammel 0.08951 (21.2 %)
+    oppvarming 15/24: snitt |vekt| ny 0.01992 vs gammel 0.08951 (22.3 %)
+    oppvarming 16/24: snitt |vekt| ny 0.02092 vs gammel 0.08951 (23.4 %)
+    oppvarming 17/24: snitt |vekt| ny 0.02191 vs gammel 0.08951 (24.5 %)
+    oppvarming 18/24: snitt |vekt| ny 0.02284 vs gammel 0.08951 (25.5 %)
+    oppvarming 19/24: snitt |vekt| ny 0.02380 vs gammel 0.08951 (26.6 %)
+    oppvarming 20/24: snitt |vekt| ny 0.02472 vs gammel 0.08951 (27.6 %)
+    oppvarming 21/24: snitt |vekt| ny 0.02563 vs gammel 0.08951 (28.6 %)
+    oppvarming 22/24: snitt |vekt| ny 0.02655 vs gammel 0.08951 (29.7 %)
+    oppvarming 23/24: snitt |vekt| ny 0.02746 vs gammel 0.08951 (30.7 %)
+    oppvarming 24/24: snitt |vekt| ny 0.02836 vs gammel 0.08951 (31.7 %)
+epoke 1/12: tren-tap 1.3945 hold-tap 1.4018 (gap +0.0073)  tren-anger 0.6244 hold-anger 0.6707 hold-treff 51.9 %
+epoke 2/12: tren-tap 1.3945 hold-tap 1.4039 (gap +0.0094)  tren-anger 0.6163 hold-anger 0.6688 hold-treff 52.2 %
+epoke 3/12: tren-tap 1.3935 hold-tap 1.4043 (gap +0.0108)  tren-anger 0.6071 hold-anger 0.6632 hold-treff 52.3 %
+epoke 4/12: tren-tap 1.3930 hold-tap 1.4054 (gap +0.0123)  tren-anger 0.6000 hold-anger 0.6587 hold-treff 52.7 %
+epoke 5/12: tren-tap 1.3927 hold-tap 1.4060 (gap +0.0133)  tren-anger 0.5942 hold-anger 0.6537 hold-treff 52.5 %
+epoke 6/12: tren-tap 1.3930 hold-tap 1.4076 (gap +0.0146)  tren-anger 0.5893 hold-anger 0.6522 hold-treff 52.4 %
+epoke 7/12: tren-tap 1.3929 hold-tap 1.4084 (gap +0.0155)  tren-anger 0.5874 hold-anger 0.6521 hold-treff 52.5 %
+epoke 8/12: tren-tap 1.3927 hold-tap 1.4089 (gap +0.0162)  tren-anger 0.5837 hold-anger 0.6593 hold-treff 52.3 %
+epoke 9/12: tren-tap 1.3928 hold-tap 1.4094 (gap +0.0166)  tren-anger 0.5824 hold-anger 0.6577 hold-treff 52.4 %
+epoke 10/12: tren-tap 1.3928 hold-tap 1.4097 (gap +0.0169)  tren-anger 0.5806 hold-anger 0.6579 hold-treff 52.4 %
+epoke 11/12: tren-tap 1.3928 hold-tap 1.4097 (gap +0.0170)  tren-anger 0.5803 hold-anger 0.6588 hold-treff 52.4 %
+epoke 12/12: tren-tap 1.3928 hold-tap 1.4098 (gap +0.0170)  tren-anger 0.5802 hold-anger 0.6587 hold-treff 52.4 %
+wredt ferdig: beste hold-anger 0.6521 på epoke 7 → e1-modell/wredt.bin

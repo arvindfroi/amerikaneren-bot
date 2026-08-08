@@ -1,0 +1,31 @@
+
+=== Regresjon med fast effekt per giv ===
+12000 rader, 6000 giver, 2 agenter.
+Utfall: poengdiff. Basiskategori: vaktabe1-sd-r2 (alle koeffisienter leses MOT den).
+Standardfeil klynget paa giv – de fire setene deler kort.
+
+M1: BARE AGENT-DUMMYER
+  agent=vaktabmpe1-sd-r2   +  0.0438 ± 0.0265      1.7 SE
+
+M2: AGENT + ATFERD (atferden som mediator)
+  agent=vaktabmpe1-sd-r2   +  0.0473 ± 0.0266      1.8 SE
+  trumf ut                  -0.0230 ± 0.0828     -0.3 SE
+  honnoer ut               +  0.5121 ± 0.1495      3.4 SE
+  tok stikket              +  4.1929 ± 0.4278      9.8 SE
+  trumfet inn               -0.9051 ± 0.2504     -3.6 SE
+
+MEDIASJON – hvor mye av agentkanten forklarer atferden?
+
+  agent                     M1        M2      forklart
+  ------------------------------------------------------
+  vaktabmpe1-sd-r2           0.044    0.047      -8 %
+  ------------------------------------------------------
+
+  Hoey «forklart» = kanten gaar GJENNOM den maalte atferden, og da vet vi
+  hva som skal endres. Lav = agenten virker gjennom noe vi IKKE har maalt,
+  og da er det neste sted aa lete.
+
+FORBEHOLD. Atferdsmaalene er utfall av de samme valgene som gir poengene,
+ikke uavhengige aarsaker. M2 skal derfor leses som en DEKOMPONERING av hvor
+kanten viser seg, ikke som et kausalt anslag paa hva som ville skjedd om man
+endret atferden alene.

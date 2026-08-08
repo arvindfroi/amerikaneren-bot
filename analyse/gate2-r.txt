@@ -1,0 +1,20 @@
+
+=== GATE 2: kandidat i ett sete, vakt:abmp:e1:e1-modell/sd-r2.bin i de tre andre ===
+1600 (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.
+
+arm                                        poeng/runde for setet
+--------------------------------------------------------------------
+KONTROLL                                   +0.000 ± 0.249
+vakt:abmp:e1:e1-modell/ablasjon-v1.bin     -0.293 ± 0.249
+vakt:abmp:e1:e1-modell/ablasjon-v2.bin     -0.565 ± 0.250
+--------------------------------------------------------------------
+
+PARRET mot KONTROLL (miljoet mot seg selv i samme sete):
+  vakt:abmp:e1:e1-modell/ablasjon-v1.bin   -0.2931 ± 0.1889 (-1.6 SE)  319/727  p=0.001
+  vakt:abmp:e1:e1-modell/ablasjon-v2.bin   -0.5652 ± 0.1977 (-2.9 SE)  309/745  p=0.000
+
+KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet
+i oppsettet, og ingen av de andre tallene kan leses.
+
+PORTEN: en ny vekt adopteres bare om den er positiv med margin OG
+positiv i klart over halvparten av parene. Aldri adoptere paa stoey.

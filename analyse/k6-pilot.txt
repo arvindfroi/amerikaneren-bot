@@ -1,0 +1,72 @@
+K6 — LÆRE MOTSTANDERNES VANER OG UTNYTTE DEM
+
+Adams:      okt:amu:alle:6k8bgm1e0.25r0.4:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0:vakt:abmpf:e1:e1-modell/d7alle.bin
+Basis:      vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+Stilisert:  trumftrekker (leder alltid trumf, legger alltid dyrest)
+Kamper:     2 per arm per motstander, til 300 poeng, maks 12 runder
+Frøbånd:    810000000 + k·7717
+MIN_RUNDER: 4 (økten tror ikke på noe før terskelen)
+Kjøretid:   487 s
+
+g(k,r) = kant mot stilisert − kant mot nøytral, parret på identisk giv.
+Kant    = Adams' rundepoeng − snittet av de tre andres.
+Skille:  runde < 4 er FØR terskelen, runde ≥ 4 er ETTER.
+
+=== ARM «okt» ===
+  parrede runder             n = 24
+  K6.1 gevinst totalt        4.778 ± 2.842  z = 1.68
+  runde 0–3   (før terskel)   -1.750 ± 6.313  (n = 8)
+  runde 4+    (etter)        8.042 ± 2.674  (n = 16)
+  K6.2 vekst (sen − tidlig)  9.792 ± 6.856  z = 1.43
+  K6.2 stigning per runde    1.1002 ± 0.8085  z = 1.36
+  profilboka så maks         11 bokførte runder om setet
+  aggressivitet lest         1 av 24 runder, snitt 0.50
+  først lest i runde         11 (median over kamper i JSONL)
+  A2-vrien fyrte             1 av 24 runder
+
+=== ARM «uten-okt» ===
+  parrede runder             n = 24
+  K6.1 gevinst totalt        4.139 ± 2.718  z = 1.52
+  runde 0–3   (før terskel)   -1.750 ± 6.313  (n = 8)
+  runde 4+    (etter)        7.083 ± 2.442  (n = 16)
+  K6.2 vekst (sen − tidlig)  8.833 ± 6.769  z = 1.30
+  K6.2 stigning per runde    0.3730 ± 0.8012  z = 0.47
+  profilboka så maks         0 bokførte runder om setet
+  aggressivitet lest         ALDRI (null i hver runde)
+  først lest i runde         aldri (median over kamper i JSONL)
+  A2-vrien fyrte             0 av 24 runder
+
+Parret rad for rad på giv: samme frø og rundenummer i begge armene.
+=== DOBBELTDIFFERANSE «okt» − «uten-okt» ===
+  parrede runder             n = 24
+  K6.1 gevinst totalt        0.639 ± 1.583  z = 0.40
+  runde 0–3   (før terskel)   0.000 ± 0.000  (n = 8)
+  runde 4+    (etter)        0.958 ± 2.396  (n = 16)
+  K6.2 vekst (sen − tidlig)  0.958 ± 2.396  z = 0.40
+  K6.2 stigning per runde    0.7273 ± 0.4424  z = 1.64
+
+Gevinst per rundenummer (arm; g; n):
+  okt            r= 0    -9.667 ± 10.333  n=2
+  okt            r= 1    16.000 ± 8.000  n=2
+  okt            r= 2     4.167 ± 3.500  n=2
+  okt            r= 3   -17.500 ± 16.500  n=2
+  okt            r= 4    11.500 ± 11.500  n=2
+  okt            r= 5    12.500 ± 10.167  n=2
+  okt            r= 6     0.667 ± 0.333  n=2
+  okt            r= 7     0.500 ± 0.167  n=2
+  okt            r= 8     3.500 ± 3.500  n=2
+  okt            r= 9    12.167 ± 11.833  n=2
+  okt            r=10    11.167 ± 11.167  n=2
+  okt            r=11    12.333 ± 11.667  n=2
+  uten-okt       r= 0    -9.667 ± 10.333  n=2
+  uten-okt       r= 1    16.000 ± 8.000  n=2
+  uten-okt       r= 2     4.167 ± 3.500  n=2
+  uten-okt       r= 3   -17.500 ± 16.500  n=2
+  uten-okt       r= 4    11.500 ± 11.500  n=2
+  uten-okt       r= 5    22.833 ± 0.167  n=2
+  uten-okt       r= 6     0.833 ± 0.167  n=2
+  uten-okt       r= 7     0.167 ± 0.500  n=2
+  uten-okt       r= 8     7.333 ± 0.000  n=2
+  uten-okt       r= 9    11.833 ± 11.500  n=2
+  uten-okt       r=10     0.667 ± 0.667  n=2
+  uten-okt       r=11     1.500 ± 0.833  n=2

@@ -1,0 +1,253 @@
+# K5-proeven kjoert 2026-08-07T16:27:17.811Z (giv 3, froe 5100000)
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+NULLPUNKT (l=0 i begge armer, fast stilling) n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+FYRINGSPROEVE (bak/foran, l=0.4)             n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+HOVEDPROEVE (bak 70-90 mot foran 90-70)      n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+RETNING (leder 90-70, l=0 mot l=0.4)         n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+RETNING (bak 70-90, l=0 mot l=0.4)           n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T16:35:49.759Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=0.4)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+FAST 90-70 (foran), l=0 mot l=0.4            n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-0.4           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=0.4              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T16:48:48.336Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=0.4)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+FAST 90-70 (foran), l=0 mot l=0.4            n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-0.4           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=0.4              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T16:53:13.830Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=0.4)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+FAST 90-70 (foran), l=0 mot l=0.4            n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-0.4           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=0.4              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T17:02:05.683Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=0.4)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+FAST 90-70 (foran), l=0 mot l=0.4            n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-0.4           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=0.4              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T17:05:26.195Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=0.4)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+FAST 90-70 (foran), l=0 mot l=0.4            n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-0.4           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=0.4              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T17:15:30.711Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=0.4)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+FAST 90-70 (foran), l=0 mot l=0.4            n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-0.4           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=0.4              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T17:19:45.225Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=0.4)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+FAST 90-70 (foran), l=0 mot l=0.4            n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-0.4           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=0.4              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T17:27:45.187Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=0.4)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.418  racejustert=12
+FAST 90-70 (foran), l=0 mot l=0.4            n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-0.4           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=0.4              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T17:29:32.529Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=0.4)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.418  racejustert=12
+FAST 90-70 (foran), l=0 mot l=0.4            n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-0.4           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=0.4              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T17:33:00.803Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=0.4)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.418  racejustert=12
+FAST 90-70 (foran), l=0 mot l=0.4            n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-0.4           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=0.4              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T17:35:25.617Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+FAST 90-70 (foran), l=0 mot l=1.5            n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-1.5           n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 70-90 (bak), l=0 mot l=1.5              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T17:38:09.735Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+FAST 90-70 (foran), l=0 mot l=1.5            n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-1.5           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=1.5              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T17:44:33.904Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+FAST 90-70 (foran), l=0 mot l=1.5            n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-1.5           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=1.5              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T18:28:37.753Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+FAST 90-70 (foran), l=0 mot l=1.5            n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-1.5           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=1.5              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T18:31:14.006Z (giv 3, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=12
+FAST 70-90 (bak), l=0 mot l=0                n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=6   ulike=1   press 0.360/-0.360  spred 3.418/3.412  racejustert=12
+FAST 90-70 (foran), l=0 mot l=1.5            n=6   ulike=1   press -0.360/-0.360  spred 3.418/3.412  racejustert=6
+FAST 90-70 (foran), l=0 mot l=-1.5           n=6   ulike=0   press -0.360/-0.360  spred 3.418/3.418  racejustert=6
+FAST 70-90 (bak), l=0 mot l=1.5              n=6   ulike=0   press 0.360/0.360  spred 3.418/3.418  racejustert=6
+  # bak-retningen endret 0 av 6 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T21:09:14.145Z (giv 5, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=10  ulike=0   press 0.360/0.360  spred 3.614/3.614  racejustert=20
+FAST 70-90 (bak), l=0 mot l=0                n=10  ulike=0   press 0.360/0.360  spred 3.570/3.570  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=10  ulike=2   press 0.360/-0.360  spred 3.614/3.567  racejustert=20
+FAST 90-70 (foran), l=0 mot l=1.5            n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.567  racejustert=10
+FAST 90-70 (foran), l=0 mot l=-1.5           n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.615  racejustert=10
+FAST 70-90 (bak), l=0 mot l=1.5              n=10  ulike=1   press 0.360/0.360  spred 3.570/3.614  racejustert=10
+  # bak-retningen endret 1 av 10 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T21:25:31.071Z (giv 5, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=10  ulike=0   press 0.360/0.360  spred 3.614/3.614  racejustert=20
+FAST 70-90 (bak), l=0 mot l=0                n=10  ulike=0   press 0.360/0.360  spred 3.570/3.570  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=10  ulike=2   press 0.360/-0.360  spred 3.614/3.567  racejustert=20
+FAST 90-70 (foran), l=0 mot l=1.5            n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.567  racejustert=10
+FAST 90-70 (foran), l=0 mot l=-1.5           n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.615  racejustert=10
+FAST 70-90 (bak), l=0 mot l=1.5              n=10  ulike=1   press 0.360/0.360  spred 3.570/3.614  racejustert=10
+  # bak-retningen endret 1 av 10 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-07T21:30:28.094Z (giv 5, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=10  ulike=0   press 0.360/0.360  spred 3.614/3.614  racejustert=20
+FAST 70-90 (bak), l=0 mot l=0                n=10  ulike=0   press 0.360/0.360  spred 3.570/3.570  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=10  ulike=2   press 0.360/-0.360  spred 3.614/3.567  racejustert=20
+FAST 90-70 (foran), l=0 mot l=1.5            n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.567  racejustert=10
+FAST 90-70 (foran), l=0 mot l=-1.5           n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.615  racejustert=10
+FAST 70-90 (bak), l=0 mot l=1.5              n=10  ulike=1   press 0.360/0.360  spred 3.570/3.614  racejustert=10
+  # bak-retningen endret 1 av 10 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-08T00:02:10.337Z (giv 5, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=10  ulike=0   press 0.360/0.360  spred 3.614/3.614  racejustert=20
+FAST 70-90 (bak), l=0 mot l=0                n=10  ulike=0   press 0.360/0.360  spred 3.570/3.570  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=10  ulike=2   press 0.360/-0.360  spred 3.614/3.567  racejustert=20
+FAST 90-70 (foran), l=0 mot l=1.5            n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.567  racejustert=10
+FAST 90-70 (foran), l=0 mot l=-1.5           n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.615  racejustert=10
+FAST 70-90 (bak), l=0 mot l=1.5              n=10  ulike=1   press 0.360/0.360  spred 3.570/3.614  racejustert=10
+  # bak-retningen endret 1 av 10 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-08T00:12:08.271Z (giv 5, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=10  ulike=0   press 0.360/0.360  spred 3.614/3.614  racejustert=20
+FAST 70-90 (bak), l=0 mot l=0                n=10  ulike=0   press 0.360/0.360  spred 3.570/3.570  racejustert=0
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=10  ulike=2   press 0.360/-0.360  spred 3.614/3.567  racejustert=20
+FAST 90-70 (foran), l=0 mot l=1.5            n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.567  racejustert=10
+FAST 90-70 (foran), l=0 mot l=-1.5           n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.615  racejustert=10
+FAST 70-90 (bak), l=0 mot l=1.5              n=10  ulike=1   press 0.360/0.360  spred 3.570/3.614  racejustert=10
+  # bak-retningen endret 1 av 10 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+
+# K5-proeven kjoert 2026-08-08T01:18:53.375Z (giv 5, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=10  ulike=0   press 0.360/0.360  spred 3.614/3.614  racejustert=20  opp/ned=0/0  foerer=0/4
+FAST 70-90 (bak), l=0 mot l=0                n=10  ulike=0   press 0.360/0.360  spred 3.570/3.570  racejustert=0  opp/ned=0/0  foerer=0/4
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=10  ulike=2   press 0.360/-0.360  spred 3.614/3.567  racejustert=20  opp/ned=0/2  foerer=1/4
+FAST 90-70 (foran), l=0 mot l=1.5            n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.567  racejustert=10  opp/ned=0/1  foerer=1/4
+FAST 90-70 (foran), l=0 mot l=-1.5           n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.615  racejustert=10  opp/ned=1/0  foerer=0/4
+FAST 70-90 (bak), l=0 mot l=1.5              n=10  ulike=1   press 0.360/0.360  spred 3.570/3.614  racejustert=10  opp/ned=1/0  foerer=0/4
+  # bak-retningen endret 1 av 10 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+  # foerersetet ALENE (det utrullede amu:foerer ser bare det): 0 av 4 valg endret seg.
+
+# K5-proeven kjoert 2026-08-08T01:27:42.942Z (giv 5, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=10  ulike=0   press 0.360/0.360  spred 3.614/3.614  racejustert=20  opp/ned=0/0  foerer=0/4
+FAST 70-90 (bak), l=0 mot l=0                n=10  ulike=0   press 0.360/0.360  spred 3.570/3.570  racejustert=0  opp/ned=0/0  foerer=0/4
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=10  ulike=2   press 0.360/-0.360  spred 3.614/3.567  racejustert=20  opp/ned=0/2  foerer=1/4
+FAST 90-70 (foran), l=0 mot l=1.5            n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.567  racejustert=10  opp/ned=0/1  foerer=1/4
+FAST 90-70 (foran), l=0 mot l=-1.5           n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.615  racejustert=10  opp/ned=1/0  foerer=0/4
+FAST 70-90 (bak), l=0 mot l=1.5              n=10  ulike=1   press 0.360/0.360  spred 3.570/3.614  racejustert=10  opp/ned=1/0  foerer=0/4
+  # bak-retningen endret 1 av 10 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+  # foerersetet ALENE (det utrullede amu:foerer ser bare det): 0 av 4 valg endret seg.
+
+# K5-proeven kjoert 2026-08-08T01:33:11.237Z (giv 5, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=10  ulike=0   press 0.360/0.360  spred 3.614/3.614  racejustert=20  opp/ned=0/0  foerer=0/4
+FAST 70-90 (bak), l=0 mot l=0                n=10  ulike=0   press 0.360/0.360  spred 3.570/3.570  racejustert=0  opp/ned=0/0  foerer=0/4
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=10  ulike=2   press 0.360/-0.360  spred 3.614/3.567  racejustert=20  opp/ned=0/2  foerer=1/4
+FAST 90-70 (foran), l=0 mot l=1.5            n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.567  racejustert=10  opp/ned=0/1  foerer=1/4
+FAST 90-70 (foran), l=0 mot l=-1.5           n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.615  racejustert=10  opp/ned=1/0  foerer=0/4
+FAST 70-90 (bak), l=0 mot l=1.5              n=10  ulike=1   press 0.360/0.360  spred 3.570/3.614  racejustert=10  opp/ned=1/0  foerer=0/4
+  # bak-retningen endret 1 av 10 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+  # foerersetet ALENE (det utrullede amu:foerer ser bare det): 0 av 4 valg endret seg.
+
+# K5-proeven kjoert 2026-08-08T01:54:53.498Z (giv 5, froe 5100000)
+racepress 0-0 = 0 (alle seter); racepress 70-90 = 0.360
+KONTROLL (bit-identiske armer)               n=10  ulike=0   press 0.360/0.360  spred 3.614/3.614  racejustert=20  opp/ned=0/0  foerer=0/4
+FAST 70-90 (bak), l=0 mot l=0                n=10  ulike=0   press 0.360/0.360  spred 3.570/3.570  racejustert=0  opp/ned=0/0  foerer=0/4
+BAK 70-90 mot FORAN 90-70 (l=1.5)            n=10  ulike=2   press 0.360/-0.360  spred 3.614/3.567  racejustert=20  opp/ned=0/2  foerer=1/4
+FAST 90-70 (foran), l=0 mot l=1.5            n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.567  racejustert=10  opp/ned=0/1  foerer=1/4
+FAST 90-70 (foran), l=0 mot l=-1.5           n=10  ulike=1   press -0.360/-0.360  spred 3.571/3.615  racejustert=10  opp/ned=1/0  foerer=0/4
+FAST 70-90 (bak), l=0 mot l=1.5              n=10  ulike=1   press 0.360/0.360  spred 3.570/3.614  racejustert=10  opp/ned=1/0  foerer=0/4
+  # bak-retningen endret 1 av 10 valg. Er den 0, er halve knotten inert - se hodet paa denne testen.
+  # foerersetet ALENE (det utrullede amu:foerer ser bare det): 0 av 4 valg endret seg.
+

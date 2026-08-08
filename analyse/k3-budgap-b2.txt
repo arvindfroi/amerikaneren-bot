@@ -1,0 +1,67 @@
+# framdrift 20/100  nåbar 1.150  klarsyn 11.000  96 s
+# framdrift 40/100  nåbar 0.800  klarsyn 9.750  182 s
+# framdrift 60/100  nåbar 0.517  klarsyn 8.833  260 s
+# framdrift 80/100  nåbar 0.950  klarsyn 9.313  334 s
+# framdrift 100/100  nåbar 1.070  klarsyn 9.210  415 s
+
+=== K3 BUDGAP — ÅPNINGSBUDET, TRE NIVÅER ==============================
+spek       vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+giv        100   frø 5100000   verdener per giv 12   415 s
+policy     2.720 poeng per runde for åpnersetet
+
+KONTROLLER (må være 0 — ellers er alt under ugyldig)
+  tvunget policybud ulik ren policy   0
+  ikke-deterministisk utspilling      0
+
+nivå                  per runde     ± se  tegntest   endret
+NÅBART (argmax K)         1.070    1.092     -0.19    27.0%
+nåbart (argmax K/2)      -0.940    1.152     -1.30    29.0%
+NÅBART (konservativ)      1.050    0.677      0.71     8.0%
+KLARSYN (§60-taket)       9.210    1.302      6.78    46.0%
+
+enig med policy:  nåbart 62.0 %   klarsyn 54.0 %
+klarsynsandel av taket i dette vinduet: 88.4 %   (best nåbar 1.070 av tak 9.210)
+
+BØTTER — NÅBART, argmax (dette kan en budmodell hente)
+bøtte                          giv   andel       sum  per runde
+bød for høyt                    13   13.0%       118      1.180
+ingen endring                   62   62.0%         0      0.000
+bød, burde passet               13   13.0%        -5     -0.050
+bød for lavt                    12   12.0%        -6     -0.060
+
+BØTTER — NÅBART, konservativ (bytter bare over støygulvet)
+bøtte                          giv   andel       sum  per runde
+bød for høyt                     8    8.0%        75      0.750
+bød, burde passet                2    2.0%        30      0.300
+ingen endring                   87   87.0%         0      0.000
+bød for lavt                     3    3.0%         0      0.000
+
+BØTTER — KLARSYN (§61s deling, samme vindu)
+bøtte                          giv   andel       sum  per runde
+bød for lavt                    21   21.0%       280      2.800
+bød, burde passet               11   11.0%       272      2.720
+melding (amerikaner/solo)        7    7.0%       220      2.200
+bød for høyt                     7    7.0%       149      1.490
+ingen endring                   54   54.0%         0      0.000
+
+FASIT — budet mot lagstikket i policy-linja (etterpåklokskap, ikke tiltak)
+klasse                           giv   andel  poeng/runde
+andre bød — slark 1               17   17.0%        0.440
+andre bød — akkurat               16   16.0%        0.700
+vi bød — akkurat                  14   14.0%        2.740
+andre bød — bet med 1             12   12.0%       -0.270
+vi bød — bet med 1                12   12.0%       -2.400
+vi bød — slark 1                   9    9.0%        1.800
+andre bød — bet med 2              6    6.0%       -0.260
+andre bød — bet med 3              4    4.0%       -0.170
+andre bød — slark 2                3    3.0%        0.100
+vi bød — slark 2                   3    3.0%        0.600
+vi bød — bet med 2                 2    2.0%       -0.400
+vi bød — bet med 4                 1    1.0%       -0.200
+andre bød — bet med 4              1    1.0%        0.040
+
+A4-SAMPLEREN (trekkVerdener + medVerden), 30 giv × 3 verdener
+  verdener prøvd                 90
+  med DUPLIKATKORT (hånd+talong) 90  (100.0 %)
+  duplikatkort per verden        3.66 av 52
+  talongen uendret fra virkelig  90  (100.0 %)

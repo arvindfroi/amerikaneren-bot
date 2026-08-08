@@ -1,0 +1,52 @@
+K6 — LÆRE MOTSTANDERNES VANER OG UTNYTTE DEM
+
+Adams:      okt:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0:vakt:abmpf:e1:e1-modell/d7alle.bin
+Basis:      vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+Stilisert:  trumftrekker (leder alltid trumf, legger alltid dyrest)
+Kamper:     8 per arm per motstander, til 300 poeng, maks 22 runder
+Frøbånd:    810000000 + k·7717
+MIN_RUNDER: 4 (økten tror ikke på noe før terskelen)
+Kjøretid:   9 s
+
+g(k,r) = kant mot stilisert − kant mot nøytral, parret på identisk giv.
+Kant    = Adams' rundepoeng − snittet av de tre andres.
+Skille:  runde < 4 er FØR terskelen, runde ≥ 4 er ETTER.
+
+=== ARM «okt» ===
+  parrede runder             n = 176
+  K6.1 gevinst totalt        6.830 ± 0.988  z = 6.91
+  runde 0–3   (før terskel)   8.198 ± 2.808  (n = 32)
+  runde 4+    (etter)        6.525 ± 1.038  (n = 144)
+  K6.2 vekst (sen − tidlig)  -1.672 ± 2.993  z = -0.56
+  K6.2 stigning per runde    -0.1456 ± 0.1558  z = -0.93
+  profilboka så maks         21 bokførte runder om setet
+  aggressivitet lest         50 av 176 runder, snitt 0.30
+  først lest i runde         9 (tidligste over alle kamper)
+  trumfutspill.n maks        10 (terskelen krever 4)
+  A2-vrien fyrte             25 av 176 runder
+
+INGEN DOBBELTDIFFERANSE: falsifiseringsarmen «uten-okt» var ikke med.
+
+Gevinst per rundenummer (arm; g; n):
+  okt            r= 0    13.708 ± 5.454  n=8
+  okt            r= 1    -0.500 ± 5.757  n=8
+  okt            r= 2     5.917 ± 5.815  n=8
+  okt            r= 3    13.667 ± 4.772  n=8
+  okt            r= 4     4.167 ± 2.625  n=8
+  okt            r= 5     6.833 ± 3.408  n=8
+  okt            r= 6    11.750 ± 5.525  n=8
+  okt            r= 7     8.083 ± 4.590  n=8
+  okt            r= 8     3.583 ± 2.842  n=8
+  okt            r= 9     9.458 ± 4.038  n=8
+  okt            r=10     8.250 ± 4.470  n=8
+  okt            r=11     5.667 ± 5.581  n=8
+  okt            r=12    11.000 ± 5.003  n=8
+  okt            r=13     9.750 ± 5.393  n=8
+  okt            r=14     1.500 ± 4.047  n=8
+  okt            r=15     3.500 ± 2.680  n=8
+  okt            r=16     3.208 ± 2.976  n=8
+  okt            r=17     9.792 ± 5.246  n=8
+  okt            r=18     5.875 ± 4.096  n=8
+  okt            r=19     4.958 ± 3.219  n=8
+  okt            r=20     1.958 ± 5.290  n=8
+  okt            r=21     8.125 ± 7.573  n=8

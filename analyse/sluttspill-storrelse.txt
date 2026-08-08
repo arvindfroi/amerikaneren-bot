@@ -5,3 +5,4 @@ k	verdener	noder	blader	historikker	stillinger
 3	1.68e+3	4.21e+3	6.89e+2	6.89e+2	12
 4	3.47e+4	4.16e+5	6.88e+4	6.88e+4	12
 5	7.57e+5	6.44e+7	1.05e+7	1.05e+7	12
+6	1.72e+7	3.40e+10	5.60e+9	5.60e+9	12
