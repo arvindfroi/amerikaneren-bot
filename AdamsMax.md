@@ -331,3 +331,126 @@ dem finnes etter at noe gikk galt uten den.
 
 Og de rammene som ER dine: offentlig repo uten fornavn, ingen utrulling uten
 beskjed, ingen kryssøkt-lagring.
+
+---
+
+## Planen for de to manglende koblingene
+
+Arvind: «da får du lage en plan for dette. vi skal ha alt på plass for AdamsMax.»
+
+To koblinger mangler, og de er ulike i natur. Den ene er en **manglende
+inngang** (budet ser ikke kampstillingen). Den andre er en **frossen
+kalibrering** (budet er stilt inn mot en spillestyrke vi har forlatt).
+
+Den andre må komme først. Rekalibrerer man ikke μ, måler man den nye
+kampstillings-knotten oppå en modell som allerede systematisk bommer — og da
+vet man ikke hvilken av dem tallet kommer fra.
+
+### Hva budmodellen faktisk består av
+
+```
+dim   128            v1-trekk: EGEN HÅND alene
+mμ    GBT-skog       anslår LAGSTIKK          → en påstand om SPILLESTYRKE
+mσ    GBT-skog       anslår usikkerheten
+vant  {9: 0,097, 10: 0,940, 11: 1,000}  P(bud N vinner auksjonen)
+                                         → en påstand om MOTSTANDERNE
+```
+
+Beslutningen er `ev = p·2N(2P−1) + (1−p)·fv`, der `P = P(lagstikk ≥ N)` fra
+(μ, σ) og `p = vant[N]`.
+
+**Begge de to påstandene er frosne filer.** Blir spillet bedre, flytter μ seg.
+Endres motstanderne, flytter `vant` seg. Ingen av delene oppdager det selv.
+
+---
+
+### Steg 1 — rekalibrer μ mot dagens spillestyrke
+
+**Fellen først, for den har bitt før.** μ-skiftet ble målt som residualen
+(faktisk lagstikk − μ) blant dem som VANT budrunden. Man vinner budrunden
+nettopp når modellen anslår høyt, så utvalget er valgt PÅ den størrelsen som
+måles. Sveipet ga −0,090 og −0,393 da det ble prøvd.
+
+**Målingen som unngår den:** TVING en kontrakt på hvert sete uavhengig av
+auksjonen, spill den ut med dagens stakk, og sammenlikn faktisk lagstikk med
+GBT-ens μ. Da er utvalget alle hender, ikke vinnerne.
+
+*Godkjent når:* residualen er sentrert innenfor 2 SE etter korreksjon, og
+korreksjonen replikerer i to disjunkte frøbånd. Er residualen allerede
+sentrert, er modellen fortsatt riktig kalibrert — og det er et like gyldig
+svar.
+
+### Steg 2 — rekalibrer `vant[N]` mot dagens motstandere
+
+`vant` sier at bud 9 vinner auksjonen i 9,7 % av tilfellene og bud 10 i 94,0 %.
+Det er en påstand om hvem som sitter ved bordet, ikke om kortene.
+
+*Målingen:* spill auksjoner med dagens stakk i alle fire seter og tell hvor
+ofte hvert bud vinner.
+
+*Godkjent når:* de målte andelene ligger innenfor SE av fila, eller fila er
+oppdatert. Merk at `vant` allerede er navngitt riktig: den heter `bud-vant`
+fordi den er **riktig når bordet er fire Adams** — mot familien er den en annen
+fordeling, og det er derfor appen bruker en annen fil.
+
+### Steg 3 — gjenåpne terskelen
+
+§63 målte terskelen optimal i fire retninger. Det er sant — **for den
+spillestyrken den ble målt mot.** Etter steg 1–2 er den påstanden ikke lenger
+etablert.
+
+*Målingen:* sveip `evForsvar` på nytt, i to disjunkte bånd, med tegntest ved
+siden av snittet.
+
+*Godkjent når:* enten er den gamle verdien fortsatt optimal (og da vet vi det
+igjen), eller en ny er positiv og replikert. **Aldri adopter på ett bånd** —
+auksjonskorreksjonen (§65) hadde z = 0,71 i ett og 0,54 i det neste.
+
+### Steg 4 — koble kampstillingen inn i budet (K5 → K3)
+
+`totalPoeng` har i dag **null treff** i `budmodell.ts` og `budagent.ts`.
+
+Formen skal være den samme som i kortspillet, av en grunn: der ble
+`snitt + λ·press·spredning` målt ASYMMETRISK — bare det negative leddet kunne
+velte et valg. Kvantilformen erstattet den. Budet har samme struktur (en
+fordeling over lagstikk), så det er samme fiks:
+
+```
+ligger BAK   → verdsett budet etter en ØVRE kvantil av lagstikkfordelingen
+leder        → etter en NEDRE
+```
+
+*Nullpunkt:* `racepress` er allerede eksakt 0 når `framdrift < 0,3`, så en
+kamp fra 0–0 er bit-identisk med i dag. Det kravet er ikke til pynt — uten det
+kan ingen sveip starte fra noe kjent.
+
+*Målingen kan IKKE være gate 2.* Hver giv der starter på 0–0, så presset er
+null per konstruksjon. **Kampbenken er den eneste porten som kan se dette**, og
+`verktoy/kampport.sh` finnes allerede.
+
+*Godkjent når:* effekten er positiv på kampbenken, replikert i disjunkte bånd,
+med kontrollarmen på 0,2500.
+
+---
+
+### Rekkefølgen er ikke valgfri
+
+```
+1. rekalibrer μ      →  2. rekalibrer vant  →  3. gjenåpne terskelen  →  4. kampstilling
+   (spillestyrke)        (motstanderne)         (nå målbar igjen)        (ny inngang)
+```
+
+Steg 3 er meningsløst før 1 og 2: en terskel sveipet mot en skjev μ finner
+optimum for skjevheten. Og steg 4 lagt oppå en feilkalibrert modell måler to
+ting samtidig.
+
+### Og den ærlige risikoen
+
+Steg 1–3 kan ende med at **ingenting flytter seg** — at μ allerede er sentrert
+og terskelen fortsatt optimal. Da er budrunden informasjonsbegrenset og ikke
+kalibreringsbegrenset, og det stemmer med det K3-agenten allerede målte:
+**≥ 87 % av åpningsbudets tak er klarsyn**, og de resterende 13 % er ikke
+etablert (z = +0,27).
+
+Skulle det bli utfallet, er planen likevel riktig utført: den erstatter en
+antakelse med et tall.
