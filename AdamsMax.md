@@ -395,17 +395,43 @@ arbeidslista, og den er ærlig om hva som er kode og hva som er timer:
 | K1 bedre enn mennesker | ja | **nei** — 15,83 % mot < 5,0 % |
 | K2 aldri jukse | ja | **ja** (kortspill) — men se talonghullet |
 | K3 SOTA i alle faser | ja | delvis — **~21 % av budtaket er nåbart** (revidert) |
-| K4 hukommelse + planlegging | ja | **nei** — kortkanalen virker, budkanalen 2× for svak |
-| K5 kontekst og tilpasning | ja | halvveis — fikset, ny måling gjenstår |
-| K6 lære vaner og utnytte | ja | **nei** — tre brudd rettet, ommåling gjenstår |
+| K4 hukommelse + planlegging | ja | **nei** — hviler på samme tall som K6, se §108. `M=1`, så framoverblikket er av |
+| K5 kontekst og tilpasning | ja | **nei** — alfa-mu i alle roller MÅLT: makker og forsvar ≤ 0 i alle armer (§109) |
+| K6 lære vaner og utnytte | ja | **nei** — detektoren målt og felt: den finner ikke en stilisert vane (§108) |
 | K7 optimalt sluttspill | ja | **ja** — 0,3 % av taket |
-| K8 predikere kort | ja | delvis — A5 virker, A1 nøytral, A6 fikset |
+| K8 predikere kort | ja | delvis — 1 av 6 kanaler koblet; kanal 3s harde halvdel rettet (§107) |
 
 **Alle åtte har nå en prøve.** Det var fire uten da fila ble skrevet.
 
-**Seks av åtte krav er ubeviste, og tre av dem har ingen prøve.** Det er den
-ærlige tilstanden. Komponentene er bygd og koblet; det som mangler er å vise at
-de gjør det de skal.
+**Seks av åtte krav er ubeviste.** Det er den ærlige tilstanden.
+
+### Hvor det står 8. august, etter en natt med målinger
+
+Tre hypoteser gikk inn i natten. **Alle tre er felt av sine egne målinger:**
+
+| hypotese | dom |
+|---|---|
+| vakt-vetoen løfter alfa-mu i alle roller (+0,4809) | **halverte til +0,1742 ± 0,0970 (1,8 SE)** — under porten |
+| lagmålet løfter makker og forsvar | **motbevist:** −0,4185 (−5,2 SE), og verst i nettopp de to rollene |
+| K6-detektoren trengte bare kalibrering | **felt:** den leser en stilisert trumftrekker som mindre aggressiv enn snittet |
+
+Det som BLE flyttet er av en annen type — feil som ikke krevde en hypotese:
+
+* **22,7 % av verdenene i stikk 1 var regelstridige** (§107). Budvinneren fikk
+  det kortet hun umulig kan ha, og 1742 av 1742 slike verdener gjorde henne til
+  sin egen makker — med feil poengregler i rolloutene.
+* **Den utrullede boten hadde ingen av evnene.** Ingen `okt:`, `profil:` eller
+  `amu:`, feil vaktflagg, og et trosnett appen laster ned og workeren aldri
+  leser. Broen finnes nå og er testhåndhevet.
+* **Budtaket var dobbelt så stort som antatt** — ~21 % nåbart, ikke ~13 %. Og
+  budrunden er **modellbegrenset, ikke informasjonsbegrenset**.
+
+### Den ene setningen
+
+Ingen av de åtte kravene flyttet seg fra nei til ja i natt. Men tre blindveier
+er stengt med tall, og tre ekte feil er borte. **Det er slik avstanden til K1
+faktisk krymper** — ikke ved at en god idé virker, men ved at de dårlige blir
+avvist billig.
 
 ### Rekkefølgen
 
