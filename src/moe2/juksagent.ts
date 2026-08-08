@@ -31,10 +31,30 @@
 import { FARGER, likeKort, type Farge, type Kort } from "../kort.ts";
 import type { GameState, Handling } from "../motor.ts";
 import { kortTilInt, intTilKort, rotVerdier } from "../solver/dds.ts";
+import { poengRotVerdier, type Poengmål } from "../solver/poengdds.ts";
 import type { Innagent } from "./budmodell.ts";
 
 /** Leses av vakttesten. Enhver modul som jukser må merke seg selv slik. */
 export const KREVER_FASIT = true;
+
+/**
+ * ============ BRYTEREN: HVILKEN FASIT SONDEN SPØR ======================
+ *
+ * `dd` er NULLPUNKTET og standardverdien: dobbelt dummy på budlagets stikk,
+ * bit-identisk med sonden slik den var før 8. august.
+ * `test/juks-nullpunkt.test.ts` håndhever bit-identiteten.
+ *
+ * `egen` og `diff` går til `solver/poengdds.ts`, som gjør bakoverinduksjon på
+ * SPILLERNES POENG i stedet. Les løsningsbegrepet i hodet på den fila før et
+ * tall derfra tolkes som «optimalt»: det er en delspillperfekt likevekt i et
+ * generell-sum-spill, ikke et minimax-optimum.
+ *
+ * BAKGRUNNEN (plan.md §114): `juks:6` med `dd` målte 0,1100 mot grunnlinjas
+ * 0,2500. En bot som ser kortene spilte dramatisk verre, fordi den minimerte
+ * budlagets stikk i tre av fire seter — og en forsvarer som minimerer føreren
+ * kan gjøre det ved å gi stikket til den ANDRE forsvareren, og score null selv.
+ */
+export type Jukselmål = "dd" | Poengmål;
 
 export interface Jukstelling {
   /** Stillinger der juksing var i vinduet og faktisk ble regnet ut. */
@@ -47,11 +67,13 @@ export interface Jukstelling {
 export class Juksagent implements Innagent {
   private readonly indre: Innagent;
   private readonly terskel: number;
+  private readonly mål: Jukselmål;
   readonly telling: Jukstelling = { løst: 0, overstyrt: 0, msTotalt: 0 };
 
-  constructor(indre: Innagent, terskel: number) {
+  constructor(indre: Innagent, terskel: number, mål: Jukselmål = "dd") {
     this.indre = indre;
     this.terskel = terskel;
+    this.mål = mål;
   }
 
   nyKamp(): void {
@@ -67,7 +89,8 @@ export class Juksagent implements Innagent {
     if (state.trumf === null) return h;
 
     const t0 = performance.now();
-    const kort = fasitKort(state, h.spiller);
+    const kort =
+      this.mål === "dd" ? fasitKort(state, h.spiller) : poengfasitKort(state, h.spiller, this.mål);
     this.telling.msTotalt += performance.now() - t0;
     if (kort === null) return h;
 
@@ -84,7 +107,7 @@ export class Juksagent implements Innagent {
  * `rotVerdier` gir stikk for BUDLAGET. Sitter setet i forsvaret, er det beste
  * kortet det som MINIMERER det tallet — ikke det som maksimerer det.
  */
-function fasitKort(state: GameState, sete: number): Kort | null {
+export function fasitKort(state: GameState, sete: number): Kort | null {
   const N = state.antallSpillere;
   const trumf = state.trumf as Farge;
   const trumfIdx = FARGER.indexOf(trumf);
@@ -126,5 +149,51 @@ function fasitKort(state: GameState, sete: number): Kort | null {
   for (const v of verdier) {
     if (vilHa ? v.lagStikk > best.lagStikk : v.lagStikk < best.lagStikk) best = v;
   }
+  return intTilKort(best.kort);
+}
+
+/**
+ * Det POENGBESTE kortet for `sete`, med alle hender åpne.
+ *
+ * Forskjellen fra `fasitKort` er ikke en knott, det er et annet spill:
+ * `poengRotVerdier` fører fire poengfunksjoner samtidig gjennom
+ * bakoverinduksjonen og lar hvert sete maksimere SIN egen. Løsningsbegrepet
+ * (delspillperfekt likevekt, ikke minimax, ikke entydig) står i hodet på
+ * `solver/poengdds.ts` og må leses før tallene tolkes.
+ *
+ * Merk at makkeren hentes fra motoren selv om den ikke er avslørt: dette er et
+ * tak, ikke en spiller.
+ */
+export function poengfasitKort(state: GameState, sete: number, mål: Poengmål): Kort | null {
+  const N = state.antallSpillere;
+  if (state.budvinner === null || state.melding === null || state.trumf === null) return null;
+  const trumfIdx = FARGER.indexOf(state.trumf as Farge);
+
+  const hender: number[][] = [];
+  for (let p = 0; p < N; p++) {
+    const hånd = state.hender[p];
+    if (!hånd || hånd.length === 0) return null;
+    hender.push(hånd.map(kortTilInt));
+  }
+
+  const svar = poengRotVerdier({
+    N,
+    trump: trumfIdx,
+    hender,
+    iTur: sete,
+    bord: state.bord.map((b) => ({ spiller: b.spiller, kort: kortTilInt(b.kort) })),
+    stikkFør: state.stikkVunnet.slice(),
+    ferdigeStikk: state.stikkSpilt,
+    totalStikk: state.giving.antallStikk,
+    budvinner: state.budvinner,
+    makker: state.makker,
+    melding: state.melding,
+    målPoeng: state.regler.målPoeng,
+    mål,
+  });
+  if (svar.verdier.length === 0) return null;
+
+  let best = svar.verdier[0]!;
+  for (const v of svar.verdier) if (v.verdi > best.verdi) best = v;
   return intTilKort(best.kort);
 }

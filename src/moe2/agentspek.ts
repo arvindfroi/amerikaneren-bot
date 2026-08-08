@@ -32,7 +32,7 @@ import { Vrakvelger2, lesVrakflagg } from "./vrakvelg2.ts";
 import { Trosnett } from "./trosnett.ts";
 import { Profilagent, type Budjusterbar } from "./profilagent.ts";
 import { EksaktSluttspill, delEksaktSpek } from "./eksaktagent.ts";
-import { Juksagent } from "./juksagent.ts";
+import { Juksagent, type Jukselmål } from "./juksagent.ts";
 import { Alphamuagent } from "./amuagent.ts";
 import { monteTro } from "./montetro.ts";
 import { forover } from "../nevro/nett.ts";
@@ -929,12 +929,41 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
    * ekte løser av det imperfekte delspillet ville fått mindre.
    *
    * `test/ingen-juks-i-appen.test.ts` håndhever at den aldri når nettappen.
+   *
+   * ============ FASITBRYTEREN: `juks:6` mot `juks:6p` ==================
+   *
+   * Terskelen kan etterfølges av én bokstav som velger HVILKEN fasit sonden
+   * spør:
+   *
+   *   `juks:6`    dobbelt dummy på budlagets stikk. NULLPUNKTET — bit-identisk
+   *               med sonden slik den alltid har vært.
+   *   `juks:6p`   poengløseren med `diff`-målet (egne poeng minus snittet av
+   *               de andres — samme størrelse som benken måler).
+   *   `juks:6e`   poengløseren med `egen`-målet (rå egne rundepoeng).
+   *
+   * §114 målte `juks:6` til 0,1100 mot grunnlinjas 0,2500: DD-fasiten
+   * minimerer budlagets stikk i tre av fire seter, men forsvarerne scorer sine
+   * EGNE stikk. `p`/`e` går til `solver/poengdds.ts`, som fører fire
+   * poengfunksjoner gjennom bakoverinduksjonen samtidig. Løsningsbegrepet der
+   * er en delspillperfekt likevekt, ikke minimax — les filhodet før tallene
+   * kalles «optimale».
    */
   if (indre.startsWith("juks:")) {
     const d = indre.slice(5);
     const kolon = d.indexOf(":");
     if (kolon < 0) throw new Error(`Ugyldig juks-spek «${indre}»`);
-    return new Juksagent(lagIndre(d.slice(kolon + 1), ctx), tall(d.slice(0, kolon), 4, "juks-terskel"));
+    let terskelTekst = d.slice(0, kolon);
+    let jukselmål: Jukselmål = "dd";
+    const siste = terskelTekst.slice(-1).toLowerCase();
+    if (siste === "p" || siste === "e") {
+      jukselmål = siste === "p" ? "diff" : "egen";
+      terskelTekst = terskelTekst.slice(0, -1);
+    }
+    return new Juksagent(
+      lagIndre(d.slice(kolon + 1), ctx),
+      tall(terskelTekst, 4, "juks-terskel"),
+      jukselmål,
+    );
   }
   if (indre.startsWith("profil:")) {
     const inn = lagIndre(indre.slice(7), ctx);

@@ -271,7 +271,7 @@ eller `fetch`.
 **100 % samsvar**, ikke 95 %. Og løsningen må mates inn i søket over det, slik
 at planen fram dit vet hva sluttspillet er verdt.
 
-**Status: innfridd for selve sluttspillet, og det er målt.**
+**Status: UMÅLT igjen fra 8. august. Tallene under står, men grunnlaget er borte.**
 
 | | |
 |---|---|
@@ -279,9 +279,23 @@ at planen fram dit vet hva sluttspillet er verdt.
 | stikk 10–11 | +0,064 |
 | hele sluttspillet | **0,3 % av taket** |
 
-Sluttspillet er lukket som gevinstkilde. Den andre halvdelen av kravet —
-«kombineres med å planlegge frem i tid» — er det alpha-muens `M` gjør, og den
-står på 1.
+> ⚠️ **«Taket» ble regnet med en ødelagt dobbelt-dummy-løser.** §115 fant to
+> feil i `src/solver/dds.ts` som gjorde at `løsDD` svarte feil i **86 av 400**
+> tilfeldige 3–4-kortsgivinger, og `rotVerdier` enda oftere. Begge er rettet og
+> avviket mot en råsøker er nå eksakt 0, men hvert eneste tak-tall i tabellen
+> over ble målt FØR rettelsen. Et tak som er regnet feil er ikke et tak, og
+> «0,3 % av taket» kan derfor ikke leses som noe.
+>
+> Retningen på feilen er kjent fra kampbenken: den samme klarsynte sonden gikk
+> fra **0,1100 til 0,2925** i vinnerandel bare av rettelsen. Taket var altså
+> målt for LAVT, ikke for høyt — «sluttspillet er lukket som gevinstkilde» er
+> nettopp den konklusjonen som ikke tåler det.
+>
+> Påstanden er ikke motbevist, den er umålt. Prøven må kjøres om igjen med den
+> rettede løseren før K7 kan stå som innfridd.
+
+Den andre halvdelen av kravet — «kombineres med å planlegge frem i tid» — er
+det alpha-muens `M` gjør, og den står på 1.
 
 ---
 
@@ -450,12 +464,14 @@ arbeidslista, og den er ærlig om hva som er kode og hva som er timer:
 | K4 hukommelse + planlegging | ja | **nei** — hviler på samme tall som K6, se §108. `M=1`, så framoverblikket er av |
 | K5 kontekst og tilpasning | ja | **nei** — alfa-mu i alle roller MÅLT: makker og forsvar ≤ 0 i alle armer (§109) |
 | K6 lære vaner og utnytte | ja | **nei** — detektoren målt og felt: den finner ikke en stilisert vane (§108) |
-| K7 optimalt sluttspill | ja | **ja** — 0,3 % av taket |
+| K7 optimalt sluttspill | ja | **umålt** — taket var regnet med en ødelagt DD-løser, rettet i §115 |
 | K8 predikere kort | ja | delvis — 1 av 6 kanaler koblet; kanal 3s harde halvdel rettet (§107) |
 
 **Alle åtte har nå en prøve.** Det var fire uten da fila ble skrevet.
 
-**Seks av åtte krav er ubeviste.** Det er den ærlige tilstanden.
+**Sju av åtte krav er ubeviste.** K7 var det sjuende, og falt tilbake til umålt
+8. august da taket det ble målt mot viste seg å være regnet med en ødelagt
+løser (§115). Det er den ærlige tilstanden.
 
 ### Hvor det står 8. august, etter en natt med målinger
 

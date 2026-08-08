@@ -73,6 +73,31 @@ export interface DDPosisjon {
   hender: number[][];
   iTur: number;
   ledFarge: number;
+  /**
+   * Stikkbufferne er indeksert `trickStart + i`, IKKE `i`.
+   *
+   * ============ HVORFOR, OG HVA SOM GIKK GALT UTEN ====================
+   *
+   * `angreTrekk` ruller tilbake `trickLen`, men skrev aldri tilbake KORTENE.
+   * Skrev hvert stikk til indeks 0..N−1, overskrev stikk nr. 2 kortene til
+   * stikk nr. 1, og etter tilbakerullingen leste `stikkvinnerPos` det neste
+   * stikkets kort som om de lå i det forrige. Søket regnet da ut feil
+   * stikkvinner for hvert eneste søskentrekk etter det første.
+   *
+   * Målt 8. august mot en råsøker uten avskjæring, ekvivalensklasser eller
+   * transposisjonstabell: **86 av 400 tilfeldige 3–4-kortsgivinger ga feil
+   * `løsDD`-verdi**, og 411 av rotkortene feil `rotVerdier`-verdi. Med 1 kort
+   * på hånden (ingen andre stikk å overskrive med) var avviket eksakt 0 – det
+   * er signaturen til nettopp denne feilen.
+   *
+   * Feilen var usynlig for hele testmappa fordi hver eneste DDS-test enten
+   * hadde ett stikk, eller sjekket et tall som tilfeldigvis ble riktig.
+   *
+   * Rettelsen gir hvert stikk sin egen plass i bufferne. Det koster ingenting
+   * (samme antall skrivinger, ingen kopiering) og gjør tilbakerullingen
+   * triviell: `trickStart` går ned igjen, og kortene under står urørt.
+   */
+  trickStart: number;
   trickSpillere: number[];
   trickKort: number[];
   trickLen: number;
@@ -125,6 +150,7 @@ export function lagPosisjon(o: DDOppsett): DDPosisjon {
     hender,
     iTur: o.iTur,
     ledFarge,
+    trickStart: 0,
     trickSpillere,
     trickKort,
     trickLen: trickSpillere.length,
@@ -148,14 +174,26 @@ function slår(ny: number, best: number, trump: number, led: number): boolean {
 }
 
 function stikkvinnerPos(pos: DDPosisjon): number {
-  let bestI = 0;
-  for (let i = 1; i < pos.trickLen; i++) {
+  const s = pos.trickStart;
+  let bestI = s;
+  for (let i = s + 1; i < s + pos.trickLen; i++) {
     if (slår(pos.trickKort[i]!, pos.trickKort[bestI]!, pos.trump, pos.ledFarge)) bestI = i;
   }
   return pos.trickSpillere[bestI]!;
 }
 
-interface Undo {
+/**
+ * Angreinformasjon for ett trekk. EKSPORTERT sammen med `gjørTrekk`,
+ * `angreTrekk` og `genererOgOrdne` slik at `poengdds.ts` kan kjøre sin egen
+ * bakoverinduksjon over NØYAKTIG samme stillingsmaskineri. Alternativet var en
+ * kopi av bitmaske-, stikkvinner- og ekvivalensklasselogikken, og to utgaver av
+ * spillereglene er samme feilform som GBT-kopien (§76): rettes den ene, måler
+ * den andre noe annet uten at noe feiler.
+ *
+ * Eksportene er rent additive – ingen av dem endrer oppførselen til `løsDD`,
+ * `rotVerdier` eller `evaluerHybrid`.
+ */
+export interface Undo {
   spiller: number;
   kort: number;
   ledFør: number;
@@ -164,7 +202,7 @@ interface Undo {
   declØkning: number;
 }
 
-function gjørTrekk(pos: DDPosisjon, kort: number): Undo {
+export function gjørTrekk(pos: DDPosisjon, kort: number): Undo {
   const spiller = pos.iTur;
   const f = fargeAv(kort);
   pos.hender[spiller]![f]! &= ~(1 << rangAv(kort));
@@ -180,8 +218,8 @@ function gjørTrekk(pos: DDPosisjon, kort: number): Undo {
     declØkning: 0,
   };
 
-  pos.trickSpillere[pos.trickLen] = spiller;
-  pos.trickKort[pos.trickLen] = kort;
+  pos.trickSpillere[pos.trickStart + pos.trickLen] = spiller;
+  pos.trickKort[pos.trickStart + pos.trickLen] = kort;
   pos.trickLen++;
   if (pos.trickLen === 1) pos.ledFarge = f;
 
@@ -193,6 +231,8 @@ function gjørTrekk(pos: DDPosisjon, kort: number): Undo {
       undo.declØkning = 1;
     }
     pos.ferdigeStikk++;
+    // Neste stikk får sin EGEN plass i bufferne – se DDPosisjon.trickStart.
+    pos.trickStart += pos.N;
     pos.trickLen = 0;
     pos.ledFarge = -1;
     pos.iTur = vinner;
@@ -202,10 +242,11 @@ function gjørTrekk(pos: DDPosisjon, kort: number): Undo {
   return undo;
 }
 
-function angreTrekk(pos: DDPosisjon, undo: Undo): void {
+export function angreTrekk(pos: DDPosisjon, undo: Undo): void {
   if (undo.fullført) {
     pos.ferdigeStikk--;
     if (undo.declØkning) pos.declStikk--;
+    pos.trickStart -= pos.N;
     pos.trickLen = pos.N - 1;
   } else {
     pos.trickLen--;
@@ -218,10 +259,33 @@ function angreTrekk(pos: DDPosisjon, undo: Undo): void {
   pos.hash2 = (pos.hash2 ^ Z2[undo.kort]![undo.spiller]!) >>> 0;
 }
 
-/** I-spill-maske (alle spilleres kort) for en farge. */
+/**
+ * I-spill-maske for en farge: alle kort som fortsatt kan påvirke utfallet.
+ *
+ * ============ KORTENE PÅ BORDET TELLER MED ==========================
+ *
+ * Masken brukes til å avgjøre hvilke av egne kort som er UMULIGE Å SKILLE:
+ * to kort uten noe annet i-spill-kort imellom seg er samme trekk. Kort fra
+ * TIDLIGERE stikk er ute av spillet og skiller ingenting.
+ *
+ * Men kortene i DET PÅGÅENDE stikket gjør det. Ligger K5 på bordet og du har
+ * K6 og K2, er de to alt annet enn like: K6 tar stikket, K2 taper det. Uten
+ * bordet i masken ble de slått sammen til én ekvivalensklasse, og det ene av
+ * de to trekkene forsvant fra søket.
+ *
+ * Målt 8. august mot en råsøker: dette alene ga 2 av 300 feil `løsDD`-verdier
+ * i 3-kortsgivinger. Det er sjeldnere enn `trickStart`-feilen (se der), men
+ * like ekte, og de to sammen forklarte hvert eneste avvik – etter begge
+ * rettelsene er avviket EKSAKT 0 over de samme givingene.
+ */
 function iSpillMaske(pos: DDPosisjon, farge: number): number {
   let m = 0;
   for (let p = 0; p < pos.N; p++) m |= pos.hender[p]![farge]!;
+  const s = pos.trickStart;
+  for (let i = s; i < s + pos.trickLen; i++) {
+    const c = pos.trickKort[i]!;
+    if (fargeAv(c) === farge) m |= 1 << rangAv(c);
+  }
   return m;
 }
 
@@ -277,7 +341,7 @@ for (let i = 0; i < MAKS_PLY; i++) {
  * effektiv avskjæring: vinn så billig som mulig, ellers kast billigst – men
  * ikke overtrumf din egen makker. Skriver til buf, returnerer antall.
  */
-function genererOgOrdne(pos: DDPosisjon, buf: Int32Array, nøkkel: Int32Array): number {
+export function genererOgOrdne(pos: DDPosisjon, buf: Int32Array, nøkkel: Int32Array): number {
   const iTur = pos.iTur;
   const følger = pos.trickLen > 0 && pos.hender[iTur]![pos.ledFarge]! !== 0;
   const fStart = følger ? pos.ledFarge : 0;
@@ -305,8 +369,9 @@ function genererOgOrdne(pos: DDPosisjon, buf: Int32Array, nøkkel: Int32Array): 
   if (pos.trickLen === 0) {
     for (let i = 0; i < n; i++) nøkkel[i] = 12 - rangAv(buf[i]!); // høyt kort først
   } else {
-    let bestI = 0;
-    for (let i = 1; i < pos.trickLen; i++) {
+    const s = pos.trickStart;
+    let bestI = s;
+    for (let i = s + 1; i < s + pos.trickLen; i++) {
       if (slår(pos.trickKort[i]!, pos.trickKort[bestI]!, pos.trump, pos.ledFarge)) bestI = i;
     }
     const bestKort = pos.trickKort[bestI]!;

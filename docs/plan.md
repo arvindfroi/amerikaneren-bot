@@ -4117,6 +4117,13 @@ utspilleren som ikke vet hvem som la hva.
 
 ## 56. «EKSAKT» SLUTTSPILL VAR IKKE EKSAKT — jeg brukte det utenfor gyldighetsområdet
 
+> ⚠️ **LES §115 FØR DENNE.** Tallene under ble målt med en dobbelt-dummy-løser
+> som svarte feil i 86 av 400 tilfeldige småstillinger. `eks:` kaller
+> `rotVerdier` inne i hver verden, så hver verdi den produserte var korrupt.
+> Feilen er rettet, og forklaringen i dette avsnittet — strategifusjon, DD som
+> feil fasit — er ikke motbevist, men den forklarte et tall som ikke fantes.
+> `eks:` må måles på nytt på gate 2 før noe her kan brukes.
+
 Første måling av `eks:` var sterkt negativ:
 
 | arm | samlet | fører | trimmet (fører) |
@@ -7924,6 +7931,11 @@ ennå — det som er gjort, er at det nå *kan* måles del for del og par for pa
 
 ## §114 — gulvet er fortsatt ukjent, fordi vi ikke har en gyldig klarsynt sonde
 
+> ⚠️ **LES §115 ETTER DENNE.** Diagnosen her er riktig som regnskap, men den
+> forklarer bare en liten del av utslaget: `juks:6` målte 0,1100 fordi
+> `dds.ts` var ØDELAGT, ikke først og fremst fordi målet var feil. Med rettet
+> løser måler den samme sonden 0,2925, og med poengmålet 0,3175.
+
 Jeg satte i gang å måle GULVET for K1: hvor få kamper kan en motstander holdes
 til, selv av en bot som ser kortene? Er gulvet over 5 %, er kravet umulig som
 formulert, og da er svaret ikke å jobbe hardere.
@@ -8015,3 +8027,122 @@ ikke bevis om det andre.
 Det står som en åpen hypotese, ikke som en oppgave — og den skal ikke bygges før
 noe billigere har sagt at den er verdt å prøve. Å bygge på en hypotese som er
 motbevist i en nabo-form er nøyaktig feilen §98 og §109 begge var.
+
+---
+
+## §115 — «−0,609» var ikke et målefeil i FASITEN, det var en FEIL i løseren
+
+§114 fant at `juks:6` — boten som SER alle fire hendene fra seks kort igjen —
+vant **0,1100** av kampene mot grunnlinjas 0,2500. Forklaringen der var at
+sonden optimerer feil mål: `rotVerdier` gir budlagets stikk, mens hver
+forsvarer scorer sine EGNE. Den forklaringen er riktig som regneark. Den var
+bare ikke den viktigste årsaken.
+
+### Første steg: bygg fasiten som skulle rette det
+
+`src/solver/poengdds.ts` gjør bakoverinduksjon på spillernes POENG. Fire
+poengfunksjoner føres samtidig gjennom treet, og hvert sete maksimerer sin
+egen. Løsningsbegrepet er en **delspillperfekt likevekt i et generell-sum-spill
+med perfekt informasjon** — ikke minimax, ikke entydig, ingen verstefalls-
+garanti. Det står utførlig i filhodet, og det MÅ leses før tallene derfra kalles
+«optimale».
+
+### Andre steg: den nye løseren måtte kontrolleres, og da falt bunnen ut
+
+En poengløser uten alfa-beta trenger en råsøker å måles mot. Råsøkeren ble
+skrevet — ren minimax, ingen avskjæring, ingen ekvivalensklasser, ingen
+transposisjonstabell — og pekt mot `dds.ts` først, som oppvarming.
+
+**`løsDD` tok feil i 86 av 400 tilfeldige 3–4-kortsgivinger.**
+
+| kort per hånd | feil `løsDD` | feil `rotVerdier`-kort |
+|---|---|---|
+| 1 | 0 | 0 |
+| 2 | 20 / 300 | 58 |
+| 3 | 42 / 300 | 249 |
+| 4 | 52 / 300 | 356 |
+
+Nullen ved ett kort er signaturen: feilen kunne bare oppstå når søket
+BACKTRACKET over et fullført stikk. To feil, begge i stillingsmaskineriet:
+
+1. **`angreTrekk` rullet tilbake `trickLen`, men ikke KORTENE.** Hvert stikk
+   skrev til indeks 0..N−1, så stikk nr. 2 skrev over stikk nr. 1. Etter
+   tilbakerullingen leste `stikkvinnerPos` det neste stikkets kort som om de lå
+   i det forrige, og regnet ut feil stikkvinner for hvert eneste SØSKENTREKK
+   etter det første. Rettet ved å gi hvert stikk sin egen plass (`trickStart`).
+2. **`iSpillMaske` regnet ikke kortene på BORDET som skilletegn.** Ligger K5 på
+   bordet og hånden har K6 og K2, er de to alt annet enn like — K6 tar stikket,
+   K2 taper det — men uten bordet i masken ble de slått sammen til én
+   ekvivalensklasse og det ene trekket forsvant fra søket. 2 av 300 til.
+
+Etter begge rettelsene er avviket mot råsøkeren **eksakt 0** over 1–5 kort per
+hånd. `test/dds-fasit.test.ts` er kontrollen som ville ha fanget dem fra dag én,
+og den er nå i mappa.
+
+### Målt på kampbenken — samme spek, samme frø, samme kontrollarm
+
+| arm | vinnerandel | mot 0,2500 | kontroll | tegntest |
+|---|---|---|---|---|
+| `juks:6` (§114, ødelagt løser) | 0,1100 | **−0,1400 ± 0,0134** (−10,4 SE) | 0,2500 ✓ | 2 opp / 58 ned |
+| `juks:6` (rettet løser) | **0,2925** | **+0,0425 ± 0,0151** (+2,81 SE) | 0,2500 ✓ | 23 opp / 8 ned |
+| `juks:6p` (poengmålet, `diff`) | **0,3175** | **+0,0675 ± 0,0154** (+4,37 SE) | 0,2500 ✓ | 30 opp / 6 ned |
+| `juks:6p` MOT tre `juks:6` | 0,2550 | +0,0050 ± 0,0035 (+1,42 SE) | 0,2500 ✓ | 2 opp / 0 ned |
+| `eks:3` (rettet løser) | 0,2400 | −0,0100 ± 0,0061 (−1,65 SE) | 0,2500 ✓ | 1 opp / 5 ned |
+
+600 kamper, 6 skard, frø 505000000, miljø `vr:…:e1:e1-modell/d7alle.bin`.
+Kontrollarmen står på eksakt 0,2500 i hver eneste av dem.
+
+**Klarsyn er igjen verdt noe.** En bot som ser kortene vinner nå MER enn
+grunnlinja, som den må. Fortegnet snudde fra −0,14 til +0,04 uten at ett eneste
+mål ble endret — bare ved at løseren begynte å svare riktig.
+
+### Hva som skjedde med hypotesen fra §114
+
+Poengmålet måler høyere enn DD-målet (+0,0675 mot +0,0425), men de to
+måleusikkerhetene overlapper, og den DIREKTE parringen — `juks:6p` mot tre
+`juks:6` — ga **+0,0050 ± 0,0035**. Det er ikke et nullfunn, men det er heller
+ikke etablert.
+
+Uenigheten mellom fasitene er samtidig stor. `examples/juks-mal-avvik.ts`
+(resultat i `analyse/juks-mal-avvik.tsv`, 1600 kortvalg):
+
+| stikk igjen | forsvar | fører | makker |
+|---|---|---|---|
+| 1 | 0,000 | 0,000 | 0,000 |
+| 3 | 0,356 | 0,288 | 0,325 |
+| 5 | **0,506** | 0,425 | 0,438 |
+
+Nullen ved ett stikk er tvang, som den skal være. Ved fem stikk velger de to
+fasitene FORSKJELLIG kort i halvparten av forsvarsstillingene — og likevel
+flytter det knapt kampresultatet. Den mest sparsommelige lesningen er at
+mesteparten av uenigheten står mellom trekk som er omtrent like mye verdt.
+§114s regnskap var riktig; virkningen var bare mye mindre enn feilen som skjulte
+den.
+
+### Følgene for `eks:` og for K7 — begge påstander må leses om igjen
+
+**`eks:` er av som standard på grunn av −0,343 fra §56, og det tallet ble målt
+med en ødelagt løser.** Modulen kaller `rotVerdier` inne i hver verden, så hver
+eneste verdi den har produsert var korrupt. På kampbenken måler `eks:3` nå
+−0,0100 ± 0,0061 — omtrent nøytralt, ikke katastrofalt. MERK: §56 målte på
+gate 2, ikke på kampbenken, så tallene er ikke direkte sammenlignbare. Det som
+er etablert er at grunnlaget for −0,343 er borte; det som gjenstår er en
+gate 2-kjøring med rettet løser. **`eks:` skal fortsatt ikke slås på før den
+kjøringen finnes.**
+
+**K7 står som «innfridd — 0,3 % av taket» i `AdamsMax.md`.** Det taket ble
+regnet med den samme ødelagte løseren, og et tak som er regnet feil er ikke et
+tak. Påstanden er ikke motbevist — den er umålt. Den er merket som det i
+`AdamsMax.md`, og ingenting er fjernet.
+
+### Hva som var lærdommen
+
+Testmappa hadde 480 grønne tester og ingen av dem kunne se feilen, fordi ingen
+av dem sammenlignet den optimerte løseren med en dum en. Hver DDS-test sjekket
+et tall som var riktig — de fleste hadde ett stikk, og med ett stikk finnes det
+ikke noe forrige stikk å skrive over.
+
+Og §114 gjorde det denne planen advarer mot flere steder: den fant en RIKTIG
+forklaring på et galt tall, og sluttet å lete. Regnestykket om forsvarernes
+stikk var korrekt, det er dokumentert på nytt her, og det holdt fram en
+hypotese som forklarte fortegnet pent. Den forklarte bare 3 % av utslaget.

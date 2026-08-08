@@ -1,0 +1,32 @@
+[08-08 16:22] === KAMPPORT: juks6p-mot-6dd ===
+[08-08 16:22] kandidat: juks:6p:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+[08-08 16:22] miljoe:   juks:6:vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+[08-08 16:22] 600 kamper, 6 skard, froe 505000000
+[08-08 16:22] PARRET modus - kamp-les.py krever fire rader per froe og virker ikke uparret.
+[08-08 16:22] startet 6 skard
+[08-08 16:26] alle skard ferdige - 2400 rader
+100 froe, 400 rader, 17.4 runder per kamp
+
+  KANDIDATENS vinnerandel   0.2550
+  MILJOETS vinnerandel      0.2500   <- MAA vaere 0.2500
+
+  differanse i vinnerandel  +0.0050 +/- 0.0035  (+1.42 SE)
+  tegntest froe             2 opp / 0 ned  (z=+1.41)
+
+  differanse i sluttmargin  +0.555 +/- 0.227  (+2.44 SE)
+
+  Grunnlinja er 0,2500. En vinnerandel paa 0,2500 betyr INGEN forskjell;
+  0,3333 betyr at kandidaten vinner 1 av 3 mot tre like motstandere.
+[08-08 16:26] RESULTAT:
+100 froe, 400 rader, 17.4 runder per kamp
+
+  KANDIDATENS vinnerandel   0.2550
+  MILJOETS vinnerandel      0.2500   <- MAA vaere 0.2500
+
+  differanse i vinnerandel  +0.0050 +/- 0.0035  (+1.42 SE)
+  tegntest froe             2 opp / 0 ned  (z=+1.41)
+
+  differanse i sluttmargin  +0.555 +/- 0.227  (+2.44 SE)
+
+  Grunnlinja er 0,2500. En vinnerandel paa 0,2500 betyr INGEN forskjell;
+  0,3333 betyr at kandidaten vinner 1 av 3 mot tre like motstandere.
