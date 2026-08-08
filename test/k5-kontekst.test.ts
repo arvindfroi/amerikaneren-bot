@@ -15,9 +15,10 @@
  *     if (framdrift < 0.3) return 0;
  *
  * Hver gate2-giv starter på 0–0. `framdrift` er 0, `racepress` returnerer
- * eksakt null, og `racescore` faller tilbake til snittet. `r0.4` i ADAMS_V6 og
- * ADAMS_V7 har derfor aldri vært kjørt én eneste gang i noen måling. Den er
- * ikke målt til null — den har aldri fått lov til å fyre.
+ * eksakt null, og `racescore` faller tilbake til snittet. `r` i ADAMS_V6 og
+ * ADAMS_V7 (den sto `r0.4`, står nå `r1.5`) har derfor aldri vært kjørt én
+ * eneste gang i noen måling. Den er ikke målt til null — den har aldri fått lov
+ * til å fyre.
  *
  * Denne prøven konstruerer kampstillingen i stedet for å vente på at benken
  * skal produsere den: stillingen spilles fram på vanlig vis fra 0–0, og så
@@ -46,7 +47,7 @@
  *
  *   1. NETTET selv. `src/nevro/trekk.ts` fyller trekk 231/232 med egen og
  *      beste motstanders poengandel. Kanalen har alltid vært der.
- *   2. RACEPRESSET i alpha-muens score — det `r0.4` skrur på.
+ *   2. RACEPRESSET i alpha-muens score — det `r1.5` skrur på.
  *
  * Derfor holder prøven STILLINGEN FAST og varierer λ i stedet. Det er den
  * eneste sammenlikningen der racepresset er alene om å skille armene.
@@ -94,16 +95,25 @@ const FRØ = 5_100_000;
  * 1,5 gir vekt 0,54 ved press 0,36, og `test/race.test.ts` laaser saken formen
  * maa klare: BAK velter til en risikabel gren med LAVERE snitt.
  *
- * ================= OG DET VIRKET, MAALT I SPILL =========================
+ * ================= OG DET VIRKET - MEN BARE DEN ENE HALVDELEN ===========
  *
- * `analyse/k5-kontekst-rettet.txt`, 20 giv / 40 stillinger, samme froebaand som
- * maalingen over:
+ * Maalt i TO DISJUNKTE FROEBAAND, 20 giv / 40 stillinger hver
+ * (`analyse/k5-omkjort-b1.txt`, `-b2.txt`, oppsummert i
+ * `analyse/k5-omkjort-sammendrag.txt`):
  *
- *     BAK  (stilling fast 70-90)    8 av 40   spredning 6,163 -> 6,198  OPP
- *     FORAN (stilling fast 90-70)   4 av 40   spredning 6,225 -> 6,202  NED
- *     kontrollarmen                 0 av 40
+ *                    baand 5,1M          baand 7,3M          tegntest sum
+ *     BAK  70-90     8/40  6,163->6,198  5/40  7,185->7,220  10 opp / 2 ned
+ *     FORAN 90-70    4/40  6,225->6,202  3/40  7,059->7,060   1 opp / 5 ned
+ *     KONTROLL       0/40                0/40
  *
- * Begge retningene fyrer, og begge gaar RIKTIG vei. BAK-tallet var 0.
+ * BAK-TALLET VAR 0 OG ER DET IKKE LENGER. Det replikerer: samme fortegn, samme
+ * stoerrelse (+0,035 i begge baand), og tegntesten 10 mot 2 gir p = 0,039.
+ *
+ * FORAN REPLIKERER IKKE. Baand 1 er rent (0 opp / 4 ned), baand 2 er ingenting
+ * (1-1, snittet +0,001). Med den GAMLE formen var FORAN halvdelen som virket og
+ * BAK den doede; naa er det byttet om. Testen «aa LEDE skal gi mindre risiko»
+ * under er derfor GROENN PAA SITT EGET BAAND og ikke et replikert funn - les
+ * den slik, og ikke som at begge retningene er bevist.
  */
 const LAMBDA = 1.5;
 const RAPPORT = "analyse/k5-kontekst-test.txt";
@@ -115,7 +125,11 @@ function loggfør(navn: string, r: K5Resultat): K5Resultat {
     `${navn.padEnd(44)} n=${String(r.stillinger).padEnd(3)} ulike=${String(r.ulike).padEnd(3)} ` +
       `press ${r.pressBak.toFixed(3)}/${r.pressForan.toFixed(3)}  ` +
       `spred ${r.spredBak?.toFixed(3) ?? "-"}/${r.spredForan?.toFixed(3) ?? "-"}  ` +
-      `racejustert=${r.racejustert}`,
+      `racejustert=${r.racejustert}  ` +
+      // Tegntesten ved siden av snittet, og foerersetet for seg. Se hodet paa
+      // den siste testen i fila for hvorfor foerertallet er det utrullede.
+      `opp/ned=${r.oppMedKnott}/${r.nedMedKnott}  ` +
+      `foerer=${r.førerUlike}/${r.førerStillinger}`,
   );
   return r;
 }
@@ -180,7 +194,7 @@ test("K5: diagnosen - i hver maaling prosjektet har gjort er racepresset EKSAKT 
    *     if (framdrift < 0.3) return 0;
    *
    * `racescore` faller da tilbake paa snittet uansett hva lambda er, saa
-   * «r0.4» i ADAMS_V6 og ADAMS_V7 er bit-identisk med aa ikke ha parameteren.
+   * «r1.5» i ADAMS_V6 og ADAMS_V7 er bit-identisk med aa ikke ha parameteren.
    */
   const s = opprettSpill({ antallSpillere: 4 }, 5_100_000);
   for (let sete = 0; sete < 4; sete++) {
@@ -315,11 +329,21 @@ test("K5: proeven kan FEILE - en knott som er vendt feil vei blir tatt", () => {
    * av kravet. NOEYAKTIG samme kriterium (`bestaarRetning`) kjoeres paa den, og
    * den maa ryke.
    *
-   * MAALT: den ryker fordi `ulike` blir 0. Det er ikke tilfeldig, og formen
-   * forklarer det: `snitt + λ·press·spredning`. Grenen med hoeyest snitt har som
-   * regel ogsaa stoerst spredning, saa et POSITIVT ledd loefter den som alt
-   * ledet og flytter ingenting. Bare det NEGATIVE leddet kan velte et valg.
-   * Snudd knott = bare loeft = ingen virkning = ingen tilpasning.
+   * MAALT: den ryker. Men GRUNNEN har endret seg med formen, og den nye grunnen
+   * er svakere - det skal staa her og ikke bare i analysefila.
+   *
+   * Med den gamle formen ryket den fordi `ulike` ble 0: et positivt ledd kunne
+   * ikke velte noe. Med kvantilformen endrer den vendte knotten faktisk valg,
+   * og den blir tatt paa RETNINGEN i stedet. I baand 7 300 000 var to av dens
+   * tre endringer de SAMME endringene den riktige knotten gjorde:
+   *
+   *     froe 7348499 sete 0   K14 -> R14   i BEGGE retninger
+   *     froe 7357317 sete 2   S7  -> S13   i BEGGE retninger
+   *
+   * Slike grener vinner paa baade oevre OG nedre kvantil og taper bare paa
+   * snittet, saa de flyttes av enhver lambda uansett fortegn. De radene beviser
+   * ingenting om retning. Falsifiseringsarmen er altsaa fortsatt skarp nok til
+   * aa ta den vendte knotten, men marginen er tynnere enn foer.
    */
   const vendt = lambdaarm("foran", -LAMBDA);
   assert.ok(vendt.stillinger >= 5, `bare ${vendt.stillinger} stillinger`);
@@ -352,6 +376,10 @@ test("K5: retningen - aa ligge BAK skal ikke gi mindre risiko", () => {
    * ligger under, gjoer knotten det motsatte av navnet sitt og proeven skal
    * feile. Begynner den aa virke, gaar spredningen OPP og proeven staar - saa
    * denne testen laaser ikke funnet inne.
+   *
+   * OG DEN BEGYNTE AA VIRKE. Kvantilformen gjorde BAK-tallet til 8 av 40 i
+   * baand 5,1M og 5 av 40 i baand 7,3M, tegntest 10 opp mot 2 ned samlet.
+   * Dette er den ENE halvdelen av K5 som replikerer i disjunkte baand.
    */
   const r = lambdaarm("bak");
   assert.ok(r.stillinger >= 5, `bare ${r.stillinger} stillinger`);
@@ -365,5 +393,26 @@ test("K5: retningen - aa ligge BAK skal ikke gi mindre risiko", () => {
   linjer.push(
     `  # bak-retningen endret ${r.ulike} av ${r.stillinger} valg. Er den 0, er halve ` +
       `knotten inert - se hodet paa denne testen.`,
+  );
+  /**
+   * OG DET TALLET SOM GJELDER DEN UTRULLEDE BOTEN, SAGT HOEYT.
+   *
+   * Denne benken kjoerer alpha-mu i ALLE fire seter (`roller: []`). Den
+   * utrullede spekken er `amu:foerer` - §103 maalte `amu:alle` til -0,284 og
+   * rullet den tilbake. Racescore kan derfor bare naa et valg der Adams
+   * FOERER; i makker- og forsvarssetene gaar beslutningen rett til `indre` og
+   * knotten ser den aldri.
+   *
+   * MAALT (analyse/k5-omkjort-b1.txt, 20 giv): BAK endret 8 av 40 valg totalt,
+   * men bare **1 av 14 foerervalg** - og 6 av de 8 laa i forsvarssetet. Det er
+   * ikke en feil i knotten; det er raskkevidden dens i den boten vi ruller ut.
+   *
+   * Dette ASSERTERES IKKE. Et krav om at foerertallet skal vaere > 0 ville
+   * vaert stoey ved n = 10, og aa laase et tall vi ikke har nok data for er
+   * verre enn aa logge det. Men det skal staa i fila, hver kjoering.
+   */
+  linjer.push(
+    `  # foerersetet ALENE (det utrullede amu:foerer ser bare det): ` +
+      `${r.førerUlike} av ${r.førerStillinger} valg endret seg.`,
   );
 });

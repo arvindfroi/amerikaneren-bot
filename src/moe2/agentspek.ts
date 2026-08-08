@@ -130,7 +130,8 @@ export const STANDARDNETT = "e1-modell/d7alle.bin";
  *     s       verdenene vektes av SPILLET, ikke bare budrunden (A1)
  *     m2      Pareto over egne framtidige valg (A8)
  *     e0.25   uleselighet blant kort innenfor ε (A7)
- *     r0.4    kampstillingsstyrt varians
+ *     r1.5    kampstillingsstyrt varians. Sto 0,4, som var MAALT INERT:
+ *             kvantilformen vekter |lambda*press|, saa 0,4 ga vekt 0,144.
  *   profil:   motstandermodellen, som fyller `okt`-boka
  *   budm:     budgivningen
  *   vakt:abmpf  konvensjonene, inkludert `f` (stikk 1 billigst, +0,031)

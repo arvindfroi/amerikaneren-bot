@@ -1,0 +1,162 @@
+# K5 ETTER KVANTILFIKSEN - to disjunkte froebaand, 2026-08-08
+#
+# Spoersmaalet: BAK-retningen maalte 0 av 20 med den gamle formen
+# `snitt + lambda*press*spredning`. Er den fortsatt null etter at
+# `src/moe2/race.ts` gikk over til en kvantilblanding og lambda ble hevet
+# 0,4 -> 1,5?
+#
+# Kilder (raatall, med rad-for-rad-lister):
+#   analyse/k5-omkjort-b1.txt   giv 20, froe 5 100 000   (samme baand som foer)
+#   analyse/k5-omkjort-b2.txt   giv 20, froe 7 300 000   (DISJUNKT baand)
+#   analyse/k5-sveip-b2.txt     lambdasveip paa baand 2
+#   analyse/k5-kontekst-test.txt  siste linjer = test/k5-kontekst.test.ts
+#
+# Kode: src/moe2/race.ts urort ved HEAD (git diff tom). Speken ADAMS_V6 og
+# ADAMS_V7 staar begge paa r1.5, altsaa samme lambda som maalt.
+
+===========================================================================
+1. KONTROLLARMEN - uten den betyr ingenting annet noe
+===========================================================================
+
+  baand 1   0 av 40 endrede valg   (racejustert 80 av 80)
+  baand 2   0 av 40 endrede valg   (racejustert 80 av 80)
+
+To armer med BIT-IDENTISKE tilstander gir bit-identisk valg. Benken maaler
+kampstilling og ikke RNG-tilstand eller agentbygging. Nullpunktet (lambda=0 i
+begge armer) maalte ogsaa eksakt 0, og racejustert var 0 der - knotten lekker
+ikke inn i en arm som skal ha den av.
+
+===========================================================================
+2. BAK-RETNINGEN - det avgjoerende tallet, som var 0 av 20
+===========================================================================
+
+Stillingen holdt FAST paa 70-90 (press +0,360), bare lambda varieres. Da er
+racepresset ALENE om aa skille armene.
+
+                        baand 1            baand 2            sum
+  endrede valg          8 av 40            5 av 40            13 av 80
+  snittspredning        6,163 -> 6,198     7,185 -> 7,220     begge +0,035
+  tegntest (endrede)    7 opp / 1 ned      3 opp / 1 ned      10 opp / 2 ned
+
+**BAK ER IKKE LENGER NULL.** Retningen er riktig i begge baand, snittet flytter
+seg like mye i begge (+0,035), og tegntesten er 10 mot 2 - binomialt p = 0,039
+tosidig. Det er den paastanden kravet gjoer: aa ligge under gir MER risiko.
+
+Dette er det eneste tallet i fila som replikerer rent.
+
+===========================================================================
+3. FORAN-RETNINGEN - den som VIRKET foer, replikerer IKKE
+===========================================================================
+
+                        baand 1            baand 2            sum
+  endrede valg          4 av 40            3 av 40            7 av 80
+  snittspredning        6,225 -> 6,202     7,059 -> 7,060     -0,023 / +0,001
+  tegntest (endrede)    0 opp / 4 ned      1 opp / 1 ned      1 opp / 5 ned
+
+Baand 1 er rent (4 av 4 ned, altsaa mindre risiko naar vi leder). Baand 2 er
+ingenting: snittet flytter seg +0,001 og tegntesten er 1-1. Summen 1 opp / 5
+ned gir p = 0,22 - ikke skilt fra myntkast.
+
+Med den GAMLE formen var FORAN den halvdelen som virket (4 av 20) og BAK den
+doede. Etter formskiftet er det motsatt vei. Det skal sies rett ut, og ikke
+skjules bak et snitt over to baand.
+
+===========================================================================
+4. FALSIFISERINGSARMEN - og hvorfor den flagget baand 2
+===========================================================================
+
+Samme knott med fortegnet snudd (lambda = -1,5). Den beloenner varians naar vi
+LEDER, altsaa det motsatte av kravet, og maa rykes av samme kriterium.
+
+  baand 1  vendt BAK   2 av 40   6,163 -> 6,155   0 opp / 2 ned   TATT
+           vendt FORAN 4 av 40   6,225 -> 6,363   2 opp / 2 ned   TATT
+  baand 2  vendt BAK   3 av 40   7,185 -> 7,189   1 opp / 1 ned   FLAGGET SVEKKET
+           vendt FORAN 5 av 40   7,059 -> 7,074   4 opp / 0 ned   TATT
+
+Baand 2s «SVEKKET» kommer fra en snittdifferanse paa **+0,004**, og den
+differansen har EN kilde: raden froe 7357317 sete 2, som hoppet 0,59 -> 0,82.
+Rad for rad er den vendte BAK-armen 1 opp / 1 ned / 1 likt - altsaa null.
+
+**Men den flagget med rette likevel**, av en annen grunn enn snittet:
+
+  froe 7348499 sete 0 (foerer)   S->  K14 -> R14   i BEGGE retninger
+  froe 7357317 sete 2 (forsvar)  S->  S7  -> S13   i BEGGE retninger
+
+To av den vendte armens tre endringer er de SAMME endringene den riktige
+knotten gjorde. Det er ikke stoey - det betyr at de grenene vinner paa baade
+oevre OG nedre kvantil, og bare taper paa snittet. En slik gren flyttes av
+enhver lambda uansett fortegn, og de radene beviser derfor ingenting om
+retning. I baand 1 var overlappet null (0 av 2).
+
+KONSEKVENS FOR BENKEN: snittkriteriet i DOMMEN er for skjoert naar bare 3-5 av
+40 valg endrer seg. Tegntellingen er lagt til i `examples/k5-kontekst.ts` og
+skrives naa ut ved siden av snittet, ogsaa for de vendte armene.
+
+===========================================================================
+5. STRUKTURPROEVEN - er asymmetrien virkelig borte?
+===========================================================================
+
+Ved full vekt (|lambda*press| >= 1) er scoren rent maksimum (bak) eller rent
+minimum (foran). Spoersmaalet er hvor ofte grenen med hoeyest SNITT ogsaa har
+hoeyeste maksimum - er det 100 %, kan ingen lambda velte et BAK-valg.
+
+  baand 1   maksimum 35,0 %   minimum 37,5 %   (40 stillinger, 7,7 grener)
+  baand 2   maksimum 35,0 %   minimum 27,5 %   (40 stillinger, 7,9 grener)
+
+Ikke 100 %, og likt i begge baand. **Den strukturelle asymmetrien den gamle
+formen hadde er borte.** Det var den fiksen skulle gjoere, og det er vist.
+
+LAMBDASVEIP (baand 2, gratis - ett soek per stilling, alle lambda scores paa
+nytt paa de samme utfallsvektorene):
+
+  lambda   flyttet BAK   flyttet FORAN   spred BAK   spred FORAN
+  0.40     1/40          0/40            7.185       7.059
+  1.00     2/40          1/40            7.186       7.059
+  1.50     5/40          3/40            7.220       7.060
+  2.00     3/40          3/40            7.233       7.057
+  3.00     26/40         31/40           7.728       6.527
+  5.00     26/40         31/40           7.728       6.527
+
+Ved lambda >= 3 metter vekten (|3*0,36| = 1,08 >= 1) og scoren blir rent
+maks/min: 26 av 40 BAK-valg flytter seg og spredningen skiller 7,73 mot 6,53.
+**1,5 er altsaa en forsiktig innstilling med mye rom igjen** - men hvor mye av
+det rommet som er gevinst og hvor mye som er tapt EV er IKKE maalt her. Denne
+benken maaler ATFERD, ikke poeng.
+
+===========================================================================
+6. DEN VIKTIGSTE FORBEHOLDEN: benken er bredere enn boten
+===========================================================================
+
+Denne benken kjoerer alpha-mu i ALLE fire seter (`roller: []`). Den utrullede
+spekken er `amu:foerer` - §103 maalte `amu:alle` til -0,284 og rullet den
+tilbake. I makker- og forsvarssetet gaar beslutningen rett til `indre`, og
+racescore ser den aldri.
+
+Samme tall, bare foerersetet:
+
+                        baand 1        baand 2        sum
+  BAK endrede           1 av 14        2 av 17        3 av 31
+  FORAN endrede         1 av 14        2 av 17        3 av 31
+
+Av de 8 BAK-endringene i baand 1 laa 6 i FORSVARSSETET og 1 i makkersetet.
+
+Det er ikke en feil i fiksen. Det er rekkevidden dens i den boten vi faktisk
+ruller ut - og `ADAMS` (utrullingsspekken, agentspek.ts linje 68) har ikke
+`amu:` i det hele tatt, saa der finnes racescore ikke.
+
+===========================================================================
+DOMMEN
+===========================================================================
+
+  BAK-retningen (var 0 av 20):  13 av 80, tegntest 10-2, replikert.  FIKSET.
+  FORAN-retningen:               7 av 80, tegntest 1-5, replikerer IKKE.
+  Kontrollarmen:                 0 av 40 i begge baand.  Benken er ren.
+  Foerersetet alene:             3 av 31 hver vei.
+
+K5 er DELVIS innfridd. Kvantilfiksen gjorde det den skulle: den doede halvdelen
+lever, strukturelt og maalt, i to disjunkte baand. Men halve knotten virker
+fortsatt om gangen - naa er det FORAN som ikke replikerer - og i den utrullede
+`amu:foerer` naar knotten bare 3 av 31 valg.
+
+Aa kalle K5 innfridd paa 13 av 80 med halve knotten ureplikert ville vaert
+nettopp den feilen §65s auksjonskorreksjon er advarselen om.

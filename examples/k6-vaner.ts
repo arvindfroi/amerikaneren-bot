@@ -152,7 +152,7 @@ export const ARMER: readonly Arm[] = [
  * BEGGE armene mister den likt, så differansen er upåvirket.
  */
 export const K6_ADAMS =
-  "okt:amu:alle:6k8bgm1e0.25r0.4:profil:" +
+  "okt:amu:alle:6k8bgm1e0.25r1.5:profil:" +
   "budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0:vakt:abmpf:e1:e1-modell/d7alle.bin";
 
 export type Motstander = "stilisert" | "noytral";

@@ -18,9 +18,10 @@
  *     if (framdrift < 0.3) return 0;
  *
  * Hver gate2-giv starter på 0–0. `framdrift` er da 0, presset returnerer EKSAKT
- * NULL, og `racescore` faller tilbake til snittet. Parameteren `r0.4` i
- * ADAMS_V6 og ADAMS_V7 har derfor aldri gjort noe i et eneste tall prosjektet
- * har produsert. Den er ikke målt til null — den er aldri kjørt.
+ * NULL, og `racescore` faller tilbake til snittet. Parameteren `r` i
+ * ADAMS_V6 og ADAMS_V7 (den sto `r0.4`, står nå `r1.5`) har derfor aldri gjort
+ * noe i et eneste tall prosjektet har produsert. Den er ikke målt til null —
+ * den er aldri kjørt.
  *
  * Denne benken konstruerer kampstillingen i stedet for å vente på den: samme
  * stilling spilles fram på vanlig vis fra 0–0, og så settes `totalPoeng`
@@ -67,6 +68,7 @@ import { lagIndre, ADAMS_MAALT, tall } from "../src/moe2/agentspek.ts";
 import { Alphamuagent } from "../src/moe2/amuagent.ts";
 import { alphaMu } from "../src/moe2/alphamu.ts";
 import { racepress, racescore, snittOgSpredning } from "../src/moe2/race.ts";
+import { rolleFor, type Rolle } from "../src/moe2/rolleorakel.ts";
 import { standardMål, trekkVerdener, type Utspiller } from "../src/moe2/sdkort.ts";
 import { lagVerdensvekt } from "../src/moe2/verdensvekt.ts";
 
@@ -117,7 +119,7 @@ export interface K5Opts {
    * Den andre er nødvendig fordi den første ikke kan skille kanalene: nettet
    * ser kampstillingen selv (trekk 231/232), også inne i rolloutene. Endrer
    * valget seg mellom BAK og FORAN, kan det like gjerne være nettet som
-   * `racescore`. Bare «lambda» svarer på om `r0.4` gjør noe i det hele tatt.
+   * `racescore`. Bare «lambda» svarer på om `r1.5` gjør noe i det hele tatt.
    */
   readonly sammenlikn?: "stilling" | "lambda";
   /** Hvilken stilling «lambda»-sammenlikningen holdes fast i. */
@@ -128,6 +130,14 @@ export interface K5Rad {
   readonly frø: number;
   readonly stikk: number;
   readonly sete: number;
+  /**
+   * SETETS ROLLE. Den står her fordi den utrullede Adams er `amu:foerer` — søket
+   * kjøres BARE i førersetet (§103 målte `amu:alle` til −0,284). Denne benken
+   * kjører alpha-mu i alle fire seter, så et aggregert K5-tall teller også valg
+   * der racescore aldri får ordet i den boten vi faktisk ruller ut. Uten dette
+   * feltet ville prøven svart på et annet spørsmål enn det den stiller.
+   */
+  readonly rolle: Rolle | null;
   readonly kortBak: string;
   readonly kortForan: string;
   readonly ulikt: boolean;
@@ -157,6 +167,27 @@ export interface K5Resultat {
   readonly pressForan: number;
   /** `tellere.racejustert` summert — beviser at mekanismen FYRTE. */
   readonly racejustert: number;
+  /**
+   * TEGNTESTEN, og den er ikke det samme som snittene over.
+   *
+   * `spredBak`/`spredForan` er SNITT over alle stillinger, og de uendrede
+   * bidrar med nøyaktig samme tall på begge sider. En differanse på 0,035 kan
+   * derfor komme fra én enkelt rad med stor spredning. Derfor telles retningen
+   * rad for rad blant de stillingene der valget FAKTISK endret seg:
+   *
+   *   `oppMedKnott`  knotten PÅ ga et kort med STØRRE spredning
+   *   `nedMedKnott`  knotten PÅ ga et kort med MINDRE spredning
+   *
+   * I «lambda»-modus er venstre arm λ=0 (knotten av) og høyre arm λ (på), så
+   * «med knott» er høyre side. I «stilling»-modus er høyre side FORAN-armen.
+   */
+  readonly oppMedKnott: number;
+  readonly nedMedKnott: number;
+  /** Samme tall, men BARE i førersetet — der den utrullede `amu:foerer` søker. */
+  readonly førerStillinger: number;
+  readonly førerUlike: number;
+  readonly førerOpp: number;
+  readonly førerNed: number;
   readonly rader: readonly K5Rad[];
 }
 
@@ -293,6 +324,9 @@ export function målK5(opts: K5Opts = {}): K5Resultat {
             frø,
             stikk: s.stikkSpilt,
             sete,
+            // Rollen leses av GRUNNTILSTANDEN. Den avhenger av budvinner og
+            // makker, ikke av `totalPoeng`, så den er lik i begge armene.
+            rolle: rolleFor(s, sete),
             kortBak: bak.kort,
             kortForan: foran.kort,
             ulikt: bak.kort !== foran.kort,
@@ -314,6 +348,15 @@ export function målK5(opts: K5Opts = {}): K5Resultat {
   const medSpred = rader.filter((r) => r.spredBak !== null && r.spredForan !== null);
   const snitt = (xs: number[]): number | null =>
     xs.length === 0 ? null : xs.reduce((a, b) => a + b, 0) / xs.length;
+  /**
+   * TEGNTELLINGEN, over de ENDREDE radene. `spredForan` er knotten på i begge
+   * modusene, så «opp» er alltid «mer risiko med knotten på».
+   */
+  const endret = medSpred.filter((r) => r.ulikt);
+  const opp = (xs: readonly K5Rad[]): number => xs.filter((r) => r.spredForan! > r.spredBak! + 1e-9).length;
+  const ned = (xs: readonly K5Rad[]): number => xs.filter((r) => r.spredForan! < r.spredBak! - 1e-9).length;
+  const fører = rader.filter((r) => r.rolle === "foerer");
+  const førerEndret = endret.filter((r) => r.rolle === "foerer");
   return {
     arm,
     lambda,
@@ -330,6 +373,12 @@ export function målK5(opts: K5Opts = {}): K5Resultat {
     pressBak: rader[0]?.pressBak ?? 0,
     pressForan: rader[0]?.pressForan ?? 0,
     racejustert,
+    oppMedKnott: opp(endret),
+    nedMedKnott: ned(endret),
+    førerStillinger: fører.length,
+    førerUlike: fører.filter((r) => r.ulikt).length,
+    førerOpp: opp(førerEndret),
+    førerNed: ned(førerEndret),
     rader,
   };
 }
@@ -631,7 +680,10 @@ if (erHovedmodul()) {
   l.push("");
   l.push("# arm 1 = venstre side, arm 2 = hoeyre side i «ulike»-sammenlikningen");
   l.push("");
-  l.push("arm".padEnd(46) + "n    ulike  andel   press 1/2        spred 1/2        racejust");
+  l.push(
+    "arm".padEnd(46) +
+      "n    ulike  andel   press 1/2        spred 1/2        racejust  opp/ned  foerer(n/ulike/opp/ned)",
+  );
   for (const { navn, r } of armer) {
     const sb = r.spredBak === null ? "  -  " : r.spredBak.toFixed(2);
     const sf = r.spredForan === null ? "  -  " : r.spredForan.toFixed(2);
@@ -642,7 +694,9 @@ if (erHovedmodul()) {
         r.andelUlike.toFixed(3).padEnd(8) +
         `${r.pressBak.toFixed(3)} / ${r.pressForan.toFixed(3)}`.padEnd(17) +
         `${sb} / ${sf}`.padEnd(17) +
-        String(r.racejustert),
+        String(r.racejustert).padEnd(10) +
+        `${r.oppMedKnott}/${r.nedMedKnott}`.padEnd(9) +
+        `${r.førerStillinger}/${r.førerUlike}/${r.førerOpp}/${r.førerNed}`,
     );
   }
   l.push("");
@@ -713,6 +767,58 @@ if (erHovedmodul()) {
       ? "    PROEVEN ER SVEKKET: den vendte knotten oppfoerer seg som den riktige i minst en retning."
       : "    Den vendte knotten blir tatt - kriteriet kan feile.",
   );
+  /**
+   * OG DEN SAMME DOMMEN SOM TEGNTELLING, FORDI SNITTET LOEY EN GANG.
+   *
+   * Baand 7 300 000 flagget «SVEKKET» paa en snittdifferanse i den VENDTE
+   * BAK-armen paa +0,004 - og den kom fra EN rad som hoppet 0,59 -> 0,82. Rad
+   * for rad var det 1 opp / 1 ned / 1 likt, altsaa ingenting. Snittet over 40
+   * stillinger kan flyttes av en enkelt rad naar bare tre av dem endrer seg;
+   * tellingen kan det ikke. Begge staar her, og de skal leses sammen.
+   */
+  l.push(
+    `    tegntest paa de vendte armene: bak ${vendtBak.oppMedKnott} opp / ${vendtBak.nedMedKnott} ned ` +
+      `av ${vendtBak.ulike}, foran ${vendtForan.oppMedKnott} opp / ${vendtForan.nedMedKnott} ned ` +
+      `av ${vendtForan.ulike}. Er de jevne, er «SVEKKET»-flagget over et snittartefakt.`,
+  );
+  l.push("");
+  /**
+   * TEGNTESTEN VED SIDEN AV SNITTET (vedleggsregel 1). Snittspredningen over
+   * ALLE stillinger kan flyttes av én enkelt rad; tellingen kan den ikke.
+   */
+  l.push("# TEGNTEST - retning rad for rad blant de ENDREDE stillingene");
+  l.push(
+    `  BAK  (fast 70-90): ${bak.oppMedKnott} opp / ${bak.nedMedKnott} ned av ${bak.ulike} endrede. ` +
+      `Kravet vil ha OPP.`,
+  );
+  l.push(
+    `  FORAN (fast 90-70): ${foran.oppMedKnott} opp / ${foran.nedMedKnott} ned av ${foran.ulike} endrede. ` +
+      `Kravet vil ha NED.`,
+  );
+  l.push("");
+  /**
+   * OG DET SAMME I FOERERSETET ALENE.
+   *
+   * Denne benken kjoerer alpha-mu i alle fire seter (`roller: []`). Den
+   * UTRULLEDE Adams er `amu:foerer` - §103 maalte `amu:alle` til -0,284 og
+   * rullet den tilbake. Et K5-tall som teller makker- og forsvarsvalg svarer
+   * derfor paa en bot vi ikke ruller ut. Vedleggsregel 4: det maalte og det
+   * utrullede maa vaere samme ting.
+   */
+  l.push("# DEN UTRULLEDE BOTEN ER amu:foerer - samme tall, bare foerersetet");
+  l.push(
+    `  BAK  (fast 70-90): ${bak.førerUlike} av ${bak.førerStillinger} foerervalg endret seg ` +
+      `(${bak.førerOpp} opp / ${bak.førerNed} ned).`,
+  );
+  l.push(
+    `  FORAN (fast 90-70): ${foran.førerUlike} av ${foran.førerStillinger} foerervalg endret seg ` +
+      `(${foran.førerOpp} opp / ${foran.førerNed} ned).`,
+  );
+  l.push(
+    bak.førerUlike === 0
+      ? "    I DEN UTRULLEDE BOTEN ER BAK-RETNINGEN FORTSATT NULL. Fiksen fyrer bare i seter der soeket er avslaatt."
+      : "    Racepresset endrer ogsaa foerervalg - fiksen naar den utrullede boten.",
+  );
   l.push("");
   for (const { navn, r } of armer) {
     if (r.ulike === 0) continue;
@@ -720,7 +826,7 @@ if (erHovedmodul()) {
     for (const rad of r.rader) {
       if (!rad.ulikt) continue;
       l.push(
-        `  froe ${rad.frø} stikk ${rad.stikk} sete ${rad.sete}: arm1 ${rad.kortBak} ` +
+        `  froe ${rad.frø} stikk ${rad.stikk} sete ${rad.sete} (${rad.rolle ?? "?"}): arm1 ${rad.kortBak} ` +
           `(spred ${rad.spredBak?.toFixed(2) ?? "-"}), arm2 ${rad.kortForan} (spred ${rad.spredForan?.toFixed(2) ?? "-"})`,
       );
     }
