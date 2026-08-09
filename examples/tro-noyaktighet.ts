@@ -53,6 +53,7 @@ import { lovligeKort } from "../src/motor.ts";
 import { lagIndre, ADAMS_MAALT, lesNett, tall } from "../src/moe2/agentspek.ts";
 import { monteTro } from "../src/moe2/montetro.ts";
 import { lagVerdensvekt, type Vektkilde } from "../src/moe2/verdensvekt.ts";
+import type { Vrakvekt } from "../src/solver/sampler.ts";
 import { kortIndeks } from "../src/nevro/trekk.ts";
 import { forover } from "../src/nevro/nett.ts";
 import { e1SpillTrekk } from "../src/e1/trekk.ts";
@@ -97,6 +98,26 @@ const PERGIV = tall(arg("--pergiv", "4"), 4, "pergiv");
  * DAARLIGERE enn ingenting i foerste kjoering.
  */
 const DRIVER = arg("--drivere", ADAMS_MAALT);
+/**
+ * KANAL 2 SOM EGEN ARM — «bayes+W».
+ *
+ * 0 = armen finnes ikke, og da er hele fila bit-identisk med foer
+ * (vedleggsregel 5). Med `--vrakalfa 2` legges armen til bakerst.
+ *
+ * OG HER ER FELLA DEN ER BYGD FOR AA UNNGAA. Kanal 2 vekter verdener etter hvor
+ * mange sidefargerenonser budvinneren har - et bevis om HENNES haand, lest av
+ * de fire kortene hun kastet. Er observatoeren SELV budvinneren, kjenner hun
+ * baade sin egen haand og sitt eget vrak: `trekkVerden` setter da
+ * `doedKapasitet = 0`, `vrakVerden` blir tom, og `vrakLogVekt` returnerer 0.
+ * Kanalen er stum der - ikke svak, stum.
+ *
+ * Maalt utenfor denne fila: 22 avvikende valg med `amu:alle`, 0 med
+ * `amu:foerer`. En maaling som bare ser paa budvinnerens eget sete ville
+ * konkludert «kanal 2 gjoer ingenting» naar sannheten er «kanal 2 KAN ikke
+ * gjoere noe der». Derfor bokfoeres `erBv` per rad, og rapporten skiller de to
+ * setene.
+ */
+const VRAKALFA = Number(arg("--vrakalfa", "0"));
 const UT = arg("--ut", "analyse/tro-noyaktighet-0.jsonl");
 const [SI, SN] = (arg("--skard", "0/1").split("/") as [string, string]).map(Number) as [number, number];
 
@@ -112,6 +133,8 @@ interface Arm {
   navn: string;
   kilde: Vektkilde;
   signal: boolean;
+  /** KANAL 2. Udefinert = av, og da gaar `monteTro` den gamle veien. */
+  vrakvekt?: Vrakvekt;
 }
 /**
  * ARMENE, OG HVORFOR «g» MAA MAALES ALENE.
@@ -135,6 +158,14 @@ const ARMER: Arm[] = [
   { navn: "g", kilde: "av", signal: true },
   { navn: "bayes+g", kilde: "bayes", signal: true },
 ];
+/**
+ * BETA = 0, ikke fordi null er riktig, men fordi det er det `amuagent` bruker:
+ * `(vrakalfa ?? 0) > 0 ? { alfa, beta: 0 }`. Maaler vi noe annet enn det boten
+ * ville kjoert, maaler vi ikke boten.
+ */
+if (VRAKALFA > 0) {
+  ARMER.push({ navn: "bayes+W", kilde: "bayes", signal: false, vrakvekt: { alfa: VRAKALFA, beta: 0 } });
+}
 
 /**
  * Hvilke seter kan holde et kort i fargen, gitt KJENT renons?
@@ -205,6 +236,14 @@ for (let g = 0; g < GIVER; g++) {
         }
         if (kort === 0) break;
         rad.kort = kort;
+        /**
+         * SETET SOM AVGJOER OM KANAL 2 KAN FYRE I DET HELE TATT.
+         *
+         * Skrives bare naar armen finnes, slik at nullpunktet (`--vrakalfa 0`)
+         * er bit-identisk med kjoeringene foer denne. Uten feltet maatte
+         * rapporten gjette, og en gjetning er ikke en maaling.
+         */
+        if (VRAKALFA > 0) rad.erBv = sete === s.budvinner ? 1 : 0;
         rad.gulv = Number((gulvTap / kort).toFixed(5));
         rad.gulvPluss = Number((gulvPlussTap / kort).toFixed(5));
 
@@ -220,7 +259,7 @@ for (let g = 0; g < GIVER; g++) {
             signal: arm.signal,
             atferd,
           });
-          const tro = monteTro(s, sete, VERDENER, rng, vekt, KAND);
+          const tro = monteTro(s, sete, VERDENER, rng, vekt, KAND, arm.vrakvekt);
           if (tro === null) {
             rad[arm.navn] = NaN;
             continue;

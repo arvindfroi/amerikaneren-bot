@@ -51,8 +51,20 @@ for (const f of filer) {
   }
 }
 
-const ARMER = ["av", "regel", "bayes", "g", "bayes+g"];
+/**
+ * ARMENE LESES UT AV DATA, ikke fra en liste her.
+ *
+ * Lista var hardkodet, og det gjorde at en ny arm (`bayes+W`, kanal 2) ville
+ * blitt stille IGNORERT av rapporten: kjøringen ville kostet timer og tallet
+ * aldri vist seg. Hver arm skriver `<navn>` og `<navn>_treff`, så suffikset er
+ * den ærlige nøkkelen. Rekkefølgen arves fra rada, altså fra `ARMER` i
+ * `tro-noyaktighet.ts` — gamle filer gir nøyaktig samme liste som før.
+ */
+const ARMER = Object.keys(rader[0])
+  .filter((k) => k.endsWith("_treff"))
+  .map((k) => k.slice(0, -"_treff".length));
 const REFS = ["gulv", "gulvPluss"];
+const HAR = (navn) => ARMER.includes(navn);
 /**
  * Navnet på frø-feltet finnes ved UTELUKKELSE, ikke ved å skrive «frø».
  * Feltet heter `frø` i jsonl-en, og en æøå-streng skrevet i denne fila kan
@@ -60,7 +72,7 @@ const REFS = ["gulv", "gulvPluss"];
  * lagret. Alt annet i raden er kjent, så resten er frøet.
  */
 const KJENT = new Set([
-  "stikk", "sete", "verdener", "kort", ...REFS,
+  "stikk", "sete", "verdener", "kort", "erBv", ...REFS,
   ...ARMER, ...ARMER.map((a) => `${a}_treff`), ...ARMER.map((a) => `${a}_gulvbandt`),
 ]);
 const FRØ = Object.keys(rader[0]).find((k) => !KJENT.has(k));
@@ -270,6 +282,67 @@ for (const navn of ARMER.filter((a) => a !== "av")) {
 }
 p();
 
+// ---- kanal 2: kunne den i det hele tatt fyre? ------------------------------
+/**
+ * KANAL 2 OG FORSKJELLEN MELLOM «GJORDE INGENTING» OG «KUNNE IKKE».
+ *
+ * `vrakLogVekt` vekter verdener etter hvor mange sidefargerenonser budvinneren
+ * har — et bevis lest av de fire kortene hun kastet. Men er OBSERVATØREN selv
+ * budvinneren, kjenner hun sitt eget vrak: `trekkVerden` setter da
+ * `dødKapasitet = 0`, `vrakVerden` blir tom, og vekten returnerer 0 per
+ * konstruksjon. Kanalen er STUM i det setet, ikke svak.
+ *
+ * En rapport som slo de to setene sammen ville derfor fortynnet effekten mot
+ * null uten å si det, og en rapport som bare så budvinnerens sete ville målt en
+ * strukturell null og kalt den et funn. Begge tall står her, hver for seg.
+ */
+if (HAR("bayes+W")) {
+  p("KANAL 2 — VRAKET SOM BEVIS: fyrte den, og hvor kunne den fyre?");
+  p("-".repeat(70));
+  const harErBv = rader[0].erBv !== undefined;
+  if (!harErBv) {
+    p("  erBv IKKE BOKFØRT — kan ikke skille budvinnerens sete fra de andre.");
+  } else {
+    const ulik = (r) => Math.abs(r["bayes+W"] - r["bayes"]) > 1e-9;
+    const grupper = [
+      ["observatør ≠ budvinner (kanalen KAN fyre)", (r) => r.erBv === 0],
+      ["observatør = budvinner (strukturelt stum)", (r) => r.erBv === 1],
+    ];
+    p("  utvalg                                       rader   avvik mot «bayes»");
+    for (const [navn, f] of grupper) {
+      const u = rader.filter(f);
+      const a = u.filter(ulik).length;
+      const andel = u.length === 0 ? 0 : (100 * a) / u.length;
+      p(`  ${navn.padEnd(44)} ${String(u.length).padStart(5)}   ${String(a).padStart(5)} = ${andel.toFixed(1).replace(".", ",")} %`);
+    }
+    p();
+    p("  gevinst mot «bayes» (positiv = kanal 2 hjelper)");
+    p("  utvalg                                       gevinst      SE        z");
+    for (const [navn, f] of [...grupper, ["alle rader", () => true]]) {
+      const kl = KL.map((k) => k.filter(f)).filter((k) => k.length > 0);
+      if (kl.length === 0) continue;
+      const g = (u) => vektet(u, (r) => r["bayes+W"] - r["bayes"]);
+      const pt = g(kl);
+      // Bootstrap over de FILTRERTE klyngene: giv er fortsatt enheten.
+      let s = 0, s2 = 0, rng = 20250809;
+      const neste = () => { rng ^= rng << 13; rng >>>= 0; rng ^= rng >>> 17; rng ^= rng << 5; rng >>>= 0; return rng / 4294967296; };
+      for (let b = 0; b < B; b++) {
+        const u = new Array(kl.length);
+        for (let i = 0; i < kl.length; i++) u[i] = kl[Math.floor(neste() * kl.length)];
+        const v = g(u); s += v; s2 += v * v;
+      }
+      const m = s / B;
+      const se = Math.sqrt(Math.max(0, s2 / B - m * m));
+      p(`  ${navn.padEnd(44)} ${n3(-pt)}    ${n4(se)}   ${n3(se > 0 ? -pt / se : NaN)}`);
+    }
+    p();
+    p("  LES DETTE FØR TALLET BRUKES: raden «strukturelt stum» skal ha 0 avvik.");
+    p("  Har den det, er nullen der en EGENSKAP ved sampleren, ikke et funn om");
+    p("  kanal 2. Bare den øverste raden er en måling av kanalen.");
+  }
+  p();
+}
+
 // ---- replikasjon i disjunkte givbånd ---------------------------------------
 /**
  * VEDLEGGSREGEL 1: aldri adoptere på støy — replikert i disjunkte bånd.
@@ -291,6 +364,9 @@ const kontraster = [
   ["bayes+g − av", (r) => r["bayes+g"] - r["av"]],
   ["S_tap (samspill)", sRad],
 ];
+if (HAR("bayes+W")) {
+  kontraster.push(["bayes+W − bayes (kanal 2)", (r) => r["bayes+W"] - r["bayes"]]);
+}
 for (const [navn, f] of kontraster) {
   p(`  ${navn.padEnd(26)} ${n3(iBånd(halv[0], f)).padStart(9)}   ${n3(iBånd(halv[1], f)).padStart(9)}   ${n3(vektet(KL, f)).padStart(9)}`);
 }

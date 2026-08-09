@@ -45,6 +45,7 @@ import type { Kort } from "../kort.ts";
 import { intTilKort } from "../solver/dds.ts";
 import { kortIndeks } from "../nevro/trekk.ts";
 import { trekkVerdener } from "./sdkort.ts";
+import type { Vrakvekt } from "../solver/sampler.ts";
 
 /** Relativt sete: 1 = neste i tur, 2, 3. Samme koding som `fyllSanser` bruker. */
 const rel = (sete: number, p: number, n: number): number => (p - sete + n) % n;
@@ -63,8 +64,22 @@ export function monteTro(
   rng: () => number,
   ekstraVekt?: (v: { hender: number[][] }) => number,
   kandidater = 3,
+  /**
+   * KANAL 2 — budvinnerens vrak som bevis. Udefinert = av, bit-identisk.
+   *
+   * `ekstraVekt` kan IKKE bære denne: den ser bare `hender`, mens
+   * `vrakLogVekt` må lese `verden.vrakVerden` — de fire kortene sampleren la i
+   * den døde bingen. Derfor går kanal 2 sin egen vei helt ned til
+   * `trekkVerdenBelief`, som allerede tar den.
+   *
+   * MERK HVOR DEN IKKE KAN FYRE. Er observatøren selv budvinneren, setter
+   * `trekkVerden` `dødKapasitet = 0` — hun kjenner jo sitt eget vrak — og da er
+   * `vrakVerden` tom og `vrakLogVekt` returnerer 0 per konstruksjon. Kanal 2 er
+   * altså strukturelt stum i førersetet, ikke bare svak der.
+   */
+  vrakvekt?: Vrakvekt,
 ): number[][] | null {
-  const verdener = trekkVerdener(state, sete, antall, rng, undefined, ekstraVekt, kandidater);
+  const verdener = trekkVerdener(state, sete, antall, rng, undefined, ekstraVekt, kandidater, vrakvekt);
   if (verdener.length === 0) return null;
 
   const n = state.antallSpillere;
