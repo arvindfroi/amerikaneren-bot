@@ -929,3 +929,73 @@ hypoteser og bekreftet én.
 **Lesning finner FEIL. Benking avgjør VERDI.** De svarer på ulike spørsmål, og
 lesningen er hundre ganger billigere. Standarden er derfor: les koden
 kontinuerlig, benk når noe skal avgjøres.
+
+---
+
+## Bærende prinsipp: modulene UTVIDER nettet, de overkjører det ikke
+
+Arvind, 9. august: «det er ikke bra at det er konflikt mellom nettet og
+modulene, fordi tanken var at modulene var en utvidelse av nettet og gjør det
+slik at nettet kan ta mer informerte valg gjennom en hel kamp — som å maksimere
+nytte.»
+
+Det er en annen arkitektur enn den vi har, og den forklarer kollisjonene bedre
+enn min egen diagnose gjorde.
+
+### Forskjellen, sagt presist
+
+|  | overstyring | **utvidelse** |
+|---|---|---|
+| hva laget sier | «jeg vet bedre, ignorer nettet» | «her er noe nettet ikke kunne se» |
+| hvem bestemmer | siste lag som skriver | ÉN argmax over summen |
+| ved uenighet | den ytterste vinner | begge bidrag teller |
+| kollisjoner | uunngåelige | strukturelt umulige |
+
+I dag er kjeden en stabel av overstyringer: `vakt` erstatter nettets valg,
+`amu` erstatter vaktens, `vr` ligger utenpå igjen. Siste skriver vinner. Det er
+**derfor** vi har hatt fire kollisjoner med identisk form — to deler som
+optimerer ulike mål over samme beslutning:
+
+    A6 avsender mot A7 leser      de frie kortvalgene, 36,2 %
+    avsender mot leser            signalkoden var to koder
+    søket mot vakten              68 % av valgene, ble til vetoen
+    DD-fasit mot poeng            −0,609 korrelasjon
+
+Vetoen (`v0.5`) var et halvt skritt i riktig retning: søket får bare overkjøre
+vakten når marginen er stor nok. Men det er fortsatt en overstyring med en
+terskel — ikke en sum.
+
+### Formen vi skal ha
+
+Hvert lag bidrar med et **tillegg til samme poengsum**, og beslutningen er én
+argmax over totalen:
+
+    score(kort) =  nettets verdi
+                 + konvensjonsbonus      (vakt vet noe om åpningsutspill)
+                 + søkets korreksjon     (amu vet noe om framtiden)
+                 + stilkorreksjon        (okt vet noe om DENNE motstanderen)
+                 + stillingskorreksjon   (race vet noe om kampen)
+
+Da kan to lag aldri «vinne over» hverandre — de veier hverandre. Og hvert
+tillegg har en vekt som kan **måles**, i stedet for en rekkefølge som avgjør alt.
+
+Det er også nøyaktig det Arvind beskriver: nettet tar mer informerte valg
+gjennom en hel kamp, fordi lagene gir det informasjon det ikke selv har.
+
+### Og budmodellen skal til slutt virke likedan
+
+«etterhvert må vi jo trene en budmodell som også funker på samme måte og byr
+det aller beste basert på valg.»
+
+Samme form: budet skal være én argmax over en sum av bidrag — egen styrke,
+kampstillingen, og hvem vi byr mot — ikke en formel med unntak lagt oppå.
+
+### Rekkefølgen, bestemt 9. august
+
+1. **K2–K8 innfris.** Ingen destillering før det. Arvind: «jeg tenker ikke på
+   distillering nå før adams max har nådd kravene.»
+2. **Intern testing** når kravene står.
+3. **Deploy.**
+
+Destillering og ekspert-iterasjon er riktige verktøy, men de hører til ETTER at
+kravene er innfridd — ellers destillerer vi en stakk vi ikke har validert.
