@@ -209,6 +209,47 @@ export class Sandkassenett {
     ]);
   }
 
+  /**
+   * VEKTENE UT IGJEN, i samme format `nettFraBytes` leser.
+   *
+   * Finnes fordi epoke 0 må kunne LAGES uten at en Python-kjøring har vært
+   * innom først. `verktoy/mlb-tren.py --referanse` kan også skrive et tilfeldig
+   * nett, men den krever et datasett å hente referanserader fra, og da er
+   * «start ligaen fra tilfeldige vekter» (AVGJØRELSE 1) plutselig avhengig av
+   * at det finnes data. Det er en kobling som ikke skal finnes.
+   *
+   * `test/mlb-nett.test.ts` krever at `fraBytes(tilBytes(n))` gir bit-like
+   * vekter — en skriver uten en leser rundt seg er en fil ingen kan bruke.
+   */
+  tilBytes(): Uint8Array {
+    const nett = [this.stamme, this.policyHode, this.verdiHode, this.troHode];
+    let bytes = 4;
+    for (const n of nett) {
+      bytes += 4;
+      for (const l of n.lag) bytes += 8 + l.inn * l.ut * 4 + l.ut * 4;
+    }
+    const ut = new Uint8Array(bytes);
+    const dv = new DataView(ut.buffer);
+    let p = 0;
+    const skrivInt = (v: number): void => {
+      dv.setInt32(p, v, true);
+      p += 4;
+    };
+    skrivInt(nett.length);
+    for (const n of nett) {
+      skrivInt(n.lag.length);
+      for (const l of n.lag) {
+        skrivInt(l.inn);
+        skrivInt(l.ut);
+        for (let i = 0; i < l.vekter.length; i++) dv.setFloat32(p + i * 4, l.vekter[i]!, true);
+        p += l.vekter.length * 4;
+        for (let i = 0; i < l.bias.length; i++) dv.setFloat32(p + i * 4, l.bias[i]!, true);
+        p += l.bias.length * 4;
+      }
+    }
+    return ut;
+  }
+
   /** Antall parametre, per del og totalt — for rapportering, ikke for pynt. */
   parametre(): { readonly stamme: number; readonly policy: number; readonly verdi: number; readonly tro: number; readonly sum: number } {
     const s = antallVekter(this.stamme);

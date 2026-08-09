@@ -51,8 +51,24 @@ import { byggTrekk, TREKK_LENGDE, type Trofordeler } from "../src/mlb/trekk.ts";
 // Riggen
 // ===========================================================================
 
-/** Lite nett, men ekte: tre hoder over ett underlag, deterministisk av frøet. */
-const NETT = Sandkassenett.tilfeldig(20_260_809, [128, 64]);
+/**
+ * Lite nett, men ekte: tre hoder over ett underlag, deterministisk av frøet.
+ *
+ * ===================== ELLER EPOKENS EGNE VEKTER =======================
+ *
+ * `MLB_K2_NETT` bytter ut stubben med en ekte vektfil. Uten den prøvde K2 bare
+ * ARKITEKTUREN — og det var et hull: `verktoy/mlb-epoke.py` kjører prøven etter
+ * hver epoke nettopp for å gi vektene som skal spille en blindhetsattest, og en
+ * prøve som ikke rører dem kan ikke gi den.
+ *
+ * Garantien er strukturell, så et trent nett SKAL passere. Poenget er at
+ * påstanden nå er prøvd på det som faktisk kjører, ikke bare på en slektning av
+ * det. Uten variabelen er oppførselen nøyaktig som før.
+ */
+const NETT =
+  process.env.MLB_K2_NETT === undefined || process.env.MLB_K2_NETT === ""
+    ? Sandkassenett.tilfeldig(20_260_809, [128, 64])
+    : Sandkassenett.fraFil(process.env.MLB_K2_NETT);
 
 /**
  * ET EKSTERNT TROHODE SOM FORSTERKER, IKKE DEMPER — samme som i

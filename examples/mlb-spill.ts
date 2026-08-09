@@ -73,6 +73,17 @@ let målPoeng = 30;
 let temperatur = 1.0;
 let trosti: string | null = null;
 let nettsti: string | null = null;
+/**
+ * BEFOLKNINGEN, som filer.
+ *
+ * `--beste` er ligaens nåværende beste (vekt 0,4) og `--tidligere` er de
+ * porterte forgjengerne (0,3). Uten dem har ligaen bare ETT nett, og §3s
+ * «tidligere epoker, 30 %, hindrer at vi glemmer» er en tom rad i en tabell.
+ * Standardvalget — ingen av delene — er epoke 0, der de tomme gruppene faller
+ * bort av seg selv i `Liga.trekkMotstander`.
+ */
+let bestesti: string | null = null;
+let tidligereStier: string[] = [];
 let kjørK2 = true;
 let bareMål = false;
 /**
@@ -101,6 +112,8 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--ut") ut = v ?? ut;
   else if (a === "--tro") trosti = v ?? "e1-modell/mlb-tro.bin";
   else if (a === "--nett") nettsti = v ?? null;
+  else if (a === "--beste") bestesti = v ?? null;
+  else if (a === "--tidligere") tidligereStier = (v ?? "").split(",").filter((x) => x.length > 0);
   else if (a === "--maksrunder") maksRunder = tall(v, maksRunder, "--maksrunder");
   else if (a === "--uten-k2") kjørK2 = false;
   else if (a === "--maal") bareMål = true;
@@ -143,23 +156,48 @@ const tronett = trosti === null ? null : MlbTronett.fraBytes(readFileSync(trosti
 const sandkasse = nettsti === null ? null : Sandkassenett.fraFil(nettsti);
 
 /**
+ * MOTSTANDERNE, lastet ÉN gang.
+ *
+ * `Sandkassenett.fraFil` leser 9,5 MB og bygger 2,4 M vekter; å gjøre det per
+ * kamp ville kostet mer enn kampen. Vektene er de samme for alle kamper, og
+ * `framover` er ren, så én instans per fil holder.
+ */
+const besteNett = bestesti === null ? null : Sandkassenett.fraFil(bestesti);
+const tidligereNett = tidligereStier.map((s) => ({ sti: s, nett: Sandkassenett.fraFil(s) }));
+
+const navnAv = (sti: string): string => sti.replace(/\\/g, "/").split("/").pop() ?? sti;
+
+/**
  * ETT BORD, gitt kampnummeret.
  *
  * Kandidaten roterer gjennom setene. Å la den sitte fast i sete 0 ville blandet
  * «bedre bot» med «bedre plass»: giveren roterer, og budrunden er ikke
  * symmetrisk rundt bordet.
+ *
+ * KANDIDATEN ER `--nett`, BEFOLKNINGEN ER `--beste` + `--tidligere` + vanene.
+ * De to er ikke det samme etter epoke 0: arbeidsvektene trenes hver epoke,
+ * mens ligaens «beste» bare flyttes av PORTEN. Faller de sammen (epoke 0, og
+ * hver gang porten godkjenner), settes ingen egen `beste`-deltaker inn — da
+ * ville kandidaten møtt seg selv to ganger under to navn, og vektene i §3
+ * hadde ikke betydd det de sier.
  */
 function lagBord(kampnr: number, frø: number): Sete[] {
   const rng = lagRng(frø ^ 0x2b7c_1d55);
   const liga = new Liga(VANER_TRENING);
-  liga.settFørste(
-    epokeDeltaker(
-      nettsti === null ? "epoke0.tilfeldig" : "epoke0",
-      sandkasse ?? tilfeldigNett(lagRng(frø ^ 0x9e37_79b9)),
-      "beste",
-    ),
+  const kandidat = epokeDeltaker(
+    nettsti === null ? "epoke0.tilfeldig" : navnAv(nettsti),
+    sandkasse ?? tilfeldigNett(lagRng(frø ^ 0x9e37_79b9)),
+    "beste",
   );
-  return liga.bord(liga.beste(), kampnr % 4, temperatur, rng);
+  liga.settFørste(
+    besteNett === null
+      ? kandidat
+      : epokeDeltaker(navnAv(bestesti!), besteNett, "beste"),
+  );
+  for (const t of tidligereNett) {
+    liga.leggTilTidligere(epokeDeltaker(navnAv(t.sti), t.nett, "tidligere"));
+  }
+  return liga.bord(kandidat, kampnr % 4, temperatur, rng);
 }
 
 // ---------------------------------------------------------------------------
@@ -307,7 +345,9 @@ if (skardI >= 0) {
   appendFileSync(
     rapportfil,
     `kamper=${kamper} kjerner=${kjerner} maalpoeng=${målPoeng} temperatur=${temperatur} ` +
-      `tro=${trosti ?? "av"} nett=${nettsti ?? "tilfeldig"} froe=${frøBase}\n`,
+      `tro=${trosti ?? "av"} nett=${nettsti ?? "tilfeldig"} froe=${frøBase} ` +
+      `maksrunder=${maksRunder} beste=${bestesti ?? "(kandidaten selv)"} ` +
+      `tidligere=[${tidligereStier.join(",")}]\n`,
   );
   if (kjørK2) k2EllerStopp();
 

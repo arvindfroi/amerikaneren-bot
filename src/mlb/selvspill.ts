@@ -239,6 +239,20 @@ export interface Kamplogg {
   readonly seter: readonly string[];
   readonly koder: readonly number[];
   readonly fasit: Kampfasit;
+  /**
+   * HVILKE SETER BLE SAMLET — altså hvilke seter kandidaten satt i.
+   *
+   * Uten dette feltet må en gjenspilling GJETTE hvem som var kandidaten, og
+   * navnet duger ikke: `liga.bord` trekker «beste» som motstander i 40 % av
+   * setene, så to seter kan hete «epoke7» uten at begge er kandidaten. Å regne
+   * `kampnr % 4` ut av frøet i ettertid ville dessuten bundet eksportøren til
+   * kjøringsskriptets frøformel — nøyaktig den slags stille kobling som §122
+   * kaller «det målte var ikke det jeg mente».
+   *
+   * Feltet er UTLEDET av seteoppsettet, ikke sendt inn, og valgfritt fordi
+   * logger skrevet før §123 ikke har det. Leseren skal si fra, ikke gjette.
+   */
+  readonly samleSeter?: readonly number[];
 }
 
 export interface Erfaring {
@@ -273,6 +287,69 @@ export function tdFordel(
   const r = poengEtter - rad.poengFør;
   const vNeste = neste !== null ? verdi(neste) : 0;
   return r + vNeste - verdi(rad);
+}
+
+/**
+ * FORDELEN MED EN HORISONT — GAE(λ), og hvorfor den måtte inn.
+ *
+ * ===================== DET SOM VAR GALT MED TD ALENE ====================
+ *
+ * `tdFordel` over er λ = 0: `A = r + V(s') − V(s)`. AVGJØRELSE 3 valgte den
+ * med rette, fordi den plasserer krediten på handlingen som flyttet noe. Men
+ * den HVILER PÅ AT `V` VIRKER, og i epoke 1 gjør den ikke det.
+ *
+ * Målt i den første røykprøven med ekte gradienter:
+ *
+ *   - `r` er NULL for nesten hver beslutning. Poeng faller bare ved
+ *     rundeslutt, og et sete tar ~15 beslutninger per runde (bud, vrak, velg,
+ *     og kortene). For alle unntatt den siste er `A = V(s') − V(s)`.
+ *   - verdihodet forklarte **−0,97 av variansen** etter én epoke, altså verre
+ *     enn å spå snittet.
+ *
+ * Policygradienten ble da drevet av ren støy fra et utrent hode — og den drev
+ * i FEIL retning: andelen `amerikaner`/`solo` steg fra 46,6 % til 58,0 % av
+ * budvalgene på én epoke, og 82 % av kampene nådde rundetaket. Nettet lærte å
+ * skyte seg selv i foten, fordi straffen lå femten steg unna i et ledd som
+ * ikke fantes ennå.
+ *
+ * ===================== LØSNINGEN ER EN PARAMETER, IKKE ET VALG ==========
+ *
+ *     δ_t = r_t + V(s_{t+1}) − V(s_t)
+ *     A_t = δ_t + λ · A_{t+1}
+ *
+ * λ = 0 gir NØYAKTIG `tdFordel`. λ = 1 gir NØYAKTIG `G_t − V(s_t)`, der
+ * `G_t` er det setet faktisk fikk resten av kampen — «faktisk minus ventet»,
+ * `docs/sandkassen.md` §6 ordrett, uten et eneste bootstrap-ledd.
+ *
+ * Begge endepunktene er ren selvtrening: `G` er utfallet, ikke en dom. λ er
+ * derfor ikke et kompromiss mellom to filosofier, det er hvor mye vi tør å
+ * stole på verdihodet — og det er et tall vi kan MÅLE oss fram til i stedet
+ * for å velge én gang for alle.
+ *
+ * `test/mlb-epoke.test.ts` krever at de to endepunktene stemmer eksakt.
+ */
+export function gaeFordel(
+  rader: readonly Beslutningsrad[],
+  fasit: Kampfasit,
+  verdi: (rad: Beslutningsrad) => number,
+  lambda: number,
+): Float64Array {
+  const ut = new Float64Array(rader.length);
+  // BAKLENGS, fordi `A_t` avhenger av `A_{t+1}`. Rekkefølgen i `rader` er
+  // kronologisk per sete, og `nesteISete` peker framover — så en baklengs
+  // gjennomgang over indeksen treffer alltid en ferdig utregnet etterfølger.
+  for (let i = rader.length - 1; i >= 0; i--) {
+    const rad = rader[i]!;
+    const j = rad.nesteISete;
+    const neste = j >= 0 ? rader[j]! : null;
+    const poengEtter =
+      neste !== null ? neste.poengFør : (fasit.sluttpoeng[rad.sete] ?? rad.poengFør);
+    const r = poengEtter - rad.poengFør;
+    const vNeste = neste !== null ? verdi(neste) : 0;
+    const δ = r + vNeste - verdi(rad);
+    ut[i] = δ + lambda * (j >= 0 ? (ut[j] ?? 0) : 0);
+  }
+  return ut;
 }
 
 // ===========================================================================
@@ -569,6 +646,7 @@ export function spillKamp(opts: Kampopsjoner): Erfaring {
       seter: opts.seter.map((x) => x.navn),
       koder,
       fasit,
+      samleSeter: opts.seter.flatMap((x, i) => (x.samle !== false ? [i] : [])),
     },
   };
 }

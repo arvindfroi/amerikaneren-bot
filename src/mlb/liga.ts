@@ -419,6 +419,23 @@ export class Liga {
     return this.gamle;
   }
 
+  /**
+   * GJENOPPBYGG BEFOLKNINGEN I EN NY PROSESS.
+   *
+   * Ligaen eier ingen filer (se toppen), så en epoke som starter i et nytt
+   * `node`-kall må kunne sette inn de forgjengerne PORTEN allerede har sluppet
+   * inn. Det er ikke en vei UTENOM porten: dommen er felt, i en tidligere
+   * epoke, av `portDom`, og driveren skriver den til en varig logg før den
+   * skriver filnavnet den her leses tilbake fra.
+   *
+   * `adopter` er fortsatt den eneste veien inn når prosessen selv eier ligaen —
+   * denne tar ikke en kandidat, den tar en historie.
+   */
+  leggTilTidligere(d: Deltaker): void {
+    this.gamle.push({ ...d, slag: "tidligere" });
+    while (this.gamle.length > TIDLIGERE_VINDU) this.gamle.splice(1, 1);
+  }
+
   leggTilYtre(d: Deltaker): void {
     if (d.slag !== "ytre") throw new Error("leggTilYtre tar bare ytre deltakere");
     this.ytre.push(d);

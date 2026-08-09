@@ -92,3 +92,9 @@ sd-*/
 bud-adams2/
 tro-data/
 vrak-data/
+
+# MLB fase 0.5 (§123): epokedriverens mellomlagre.
+# Kamploggene er ~23 MB per epoke og erfaringsfilene ~1,2 GB — de skrives om
+# igjen hver epoke og kan gjenskapes fra froeet. Rapportene under analyse/
+# er det varige sporet.
+mlb-epoke-data/
