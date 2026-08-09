@@ -72,6 +72,61 @@ mester. Lærer det av **hva som skjedde**, er det selvtrening.
 
 ---
 
+## 0b. De to beslutningene, tatt 9. august
+
+Arvind: «det er sykt vanskelig å velge. jeg vil jo ha visjonen til Adams max, og
+bryr meg ikke nødvendigvis over hvordan vi får den, men jeg vil få den etter
+idéen. for min del så kan det være en black box som spiller spillet slik jeg ser
+for meg at Adams skal gjøre.»
+
+Da er begge mine, og begge følger av visjonen — ikke av teknikken.
+
+### AVGJØRELSE 6: ingen privilegert kritiker
+
+Revisjonen foreslo et verdihode som under trening ser alle fire hender. Det
+ville kuttet variansen, og det er ikke en «mester» i vanlig forstand.
+
+**Men ånden i «uten mester» er at boten blir sterk AV SEG SELV**, ikke ved å bli
+formet av noe den aldri kan se. En kritiker med privilegert syn verdsetter
+stillinger på måter aktøren ikke kan handle på — en kjent felle i seg selv.
+
+Verdihodet ser derfor **bare lovlig informasjon**, akkurat som policyen. TD med
+en vanlig kritiker er standard og virker. Blir variansen en reell sperre, kommer
+vi tilbake med en MÅLING, ikke med en antakelse.
+
+Bieffekt: `spillerVisning`-garantien gjelder da hele nettet, ikke bare halve.
+K2 blir enklere å håndheve, ikke vanskeligere.
+
+### AVGJØRELSE 7: prøvene måler KVALITETEN, ikke mekanismen
+
+Revisjonen fant at K3, K4-B og K7 krever ordrett «et søk eller en løser» og
+«gevinsten ved M=2». Et rent nett kan da aldri innfri dem, uansett hvor godt det
+spiller.
+
+**Det er min feil i formuleringen av prøvene.** Arvinds krav var:
+
+> «spille optimalt med SOTA komponenter i alle faser» · «evnen til å planlegge
+> framover» · «finne matematisk optimale løsninger i sluttspillet»
+
+Det er KVALITETER. Jeg oversatte dem til MEKANISMER, og låste dermed en
+arkitektur han uttrykkelig ikke bryr seg om.
+
+Prøvene skrives om:
+
+| krav | før (mekanisme) | nå (kvalitet) |
+|---|---|---|
+| K3 | «beslutningen tas av et søk eller en løser» | avstanden til fasens tak |
+| K4-B | «gevinsten ved M=2 mot M=1» | spiller den ULIKT når et framtidig eget valg står på spill? |
+| K7 | «100 % samsvar med løseren» | avstanden til sluttspillets tak (+0,947 ved fem stikk i dag) |
+
+Takene er allerede målt med klarsyn og uavhengig av mekanisme, så tallene er
+sammenlignbare på tvers av arkitekturer.
+
+**Og det fjerner den siste «trent ≠ utrullet»-risikoen:** ingenting legges oppå
+etterpå. Det som trenes er det som spiller.
+
+---
+
 ## 1. Faser
 
 ### Fase 0a — TROHODET ALENE. Én dag, og den kan felle seg selv.
