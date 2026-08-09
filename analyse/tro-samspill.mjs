@@ -245,7 +245,9 @@ const beste = ARMER.reduce((a, b) => (nivå[a] <= nivå[b] ? a : b));
 const trinn = [
   ["renonser         (gulv → gulv+)", "gulv", "gulvPluss"],
   ["sampler+budrunde (gulv+ → av)", "gulvPluss", "av"],
-  [`A1+A5+A6         (av → ${beste})`, "av", beste],
+  // Etiketten navngir ARMEN, ikke en fast liste moduler: med kanal 2 i
+  // utvalget kan `beste` vaere `bayes+W`, og «A1+A5+A6» ville da vaert loegn.
+  [`slutningene      (av → ${beste})`.padEnd(33), "av", beste],
 ];
 p("HVOR KOMMER TROENS KUNNSKAP FRA?");
 p("  trinn                              vinning       SE       andel");

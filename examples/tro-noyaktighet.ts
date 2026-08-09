@@ -166,6 +166,21 @@ const ARMER: Arm[] = [
 if (VRAKALFA > 0) {
   ARMER.push({ navn: "bayes+W", kilde: "bayes", signal: false, vrakvekt: { alfa: VRAKALFA, beta: 0 } });
 }
+/**
+ * `--armer av,bayes`: KJOER BARE ET UTVALG. Tom = alle, bit-identisk.
+ *
+ * Den finnes for V-SVEIPEN. Spoersmaalet «taper Adams mot gulv+ fordi troen er
+ * daarlig, eller fordi den er et Monte-Carlo-ESTIMAT?» avgjoeres ved aa kjoere
+ * de samme stillingene paa V=16, 64 og 256. Gulvene er analytiske og har ingen
+ * V; armene har det. Krymper avstanden med V, er den oppimot oppfloesning.
+ *
+ * En slik sveip paa alle seks armene ved V=256 koster 16x en vanlig kjoering.
+ * Med to armer koster den 5x, og svaret er det samme.
+ */
+const ARMVALG = arg("--armer", "");
+const VALGTE: Arm[] =
+  ARMVALG === "" ? ARMER : ARMER.filter((a) => ARMVALG.split(",").includes(a.navn));
+if (VALGTE.length === 0) throw new Error(`--armer «${ARMVALG}» valgte ingen arm`);
 
 /**
  * Hvilke seter kan holde et kort i fargen, gitt KJENT renons?
@@ -247,7 +262,7 @@ for (let g = 0; g < GIVER; g++) {
         rad.gulv = Number((gulvTap / kort).toFixed(5));
         rad.gulvPluss = Number((gulvPlussTap / kort).toFixed(5));
 
-        for (const arm of ARMER) {
+        for (const arm of VALGTE) {
           /**
            * SAMME FRØ PER ARM. Uten det skiller armene seg på hvilke verdener
            * som tilfeldigvis ble trukket, ikke på slutningen — samme prinsipp
