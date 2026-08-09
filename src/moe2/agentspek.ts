@@ -435,6 +435,27 @@ export function utenSøk(spek: string): string {
       s = s.slice(4).split(":").slice(3).join(":");
     } else if (s.startsWith("vv:")) {
       s = s.slice(3).split(":").slice(1).join(":");
+    } else if (s.startsWith("amu:")) {
+      /**
+       * ============ AMU MANGLET HER, OG DET ER EN FELLE =================
+       *
+       * `amu:<rolle>:<felt>:<indre>` — samme oppdeling som parseren bruker
+       * (`d.slice(2)`), saa strippingen gjoer noeyaktig det bygget gjoer.
+       *
+       * Den har ligget og ventet. `utenSøk` finnes for aa lage en
+       * ROLLOUT-MOTPART, og gis soekeagenten en motpart som selv soeker,
+       * starter hver rollout et nytt soek — eksponentielt. Kommentaren i
+       * `web/worker.ts` sier det rett ut: «Gis soekeagenten seg selv, starter
+       * hver rollout et nytt soek.»
+       *
+       * Den var ikke naabar saa lenge `amu:` alltid laa YTTERST av soekelagene.
+       * Med `sum:` er den det: `sum:...:amu:...` bygger et soekeledd hvis
+       * motpart hentes fra den indre speken — som inneholder `amu:`.
+       *
+       * Samme klasse som `ork:` en gang kostet en hel natt. Fikset foer den
+       * fikk kostet noe.
+       */
+      s = s.slice(4).split(":").slice(2).join(":");
     } else if (s.startsWith("sum:")) {
       // sum:<vekter>:<indre> – søkeleddet i summen er et søk som alle andre, og
       // en rollout-motpart skal ikke ha det. Vektlista har ingen kolon, så ett
