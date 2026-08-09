@@ -174,6 +174,16 @@ export function lagSumledd(v: Sumvekter, k: Sumkilder): Ledd[] {
   const nettledd: Ledd = {
     navn: "nett",
     vekt: v.nett,
+    /**
+     * SOFTMAX, IKKE MIN-MAX. Nettets logits skal bli SANNSYNLIGHETER, fordi
+     * magnituden da baerer hvor sikkert nettet er: en trygg stilling gir
+     * 0,95/0,03/0,02, en aapen gir 0,4/0,35/0,25.
+     *
+     * Med min-max ville begge blitt [0, 1], og en konvensjonsbonus paa 0,3
+     * ville veltet DEM BEGGE like lett. Da er det ikke en avveining, bare et
+     * jevnt dytt - og hele grunnen til aa bygge summen faller bort.
+     */
+    skala: "softmax",
     poeng: (s, sete) => poengFor(s, sete),
   };
 

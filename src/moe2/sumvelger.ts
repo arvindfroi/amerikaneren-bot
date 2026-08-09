@@ -52,11 +52,15 @@
  * tre systemer, men tre LEDD som havner i samme sum:
  *
  *     MIKRO   nettets verdi + konvensjonen + søket   → dette kortet
- *     MESO    budmodellen                            → denne kontrakten
  *     MAKRO   racepresset                            → hele kampen
  *
- * Og makroleddet skal inn i BEGGE summene — både kortvalget og budet. Det er
- * hullet K5→K3 peker på, og i summeformen er det bare ett ledd til.
+ * MESO PASSER IKKE INN HER, og det skal stå. Første utgave av denne fila satte
+ * budmodellen inn som «et ledd i samme sum». Det går ikke: summen er over KORT,
+ * og budet har et helt annet handlingsrom. `budm:` blir liggende som stabellag.
+ *
+ * Meso trenger sin EGEN sum — én argmax over bud, med egne ledd (egen styrke,
+ * kampstillingen, motstanderne). Formen er den samme, summen er det ikke. Og
+ * makroleddet går inn i BEGGE, som er hullet K5→K3.
  *
  * ================= NULL-PUNKTET ========================================
  *
@@ -86,6 +90,37 @@ export interface Ledd {
   readonly navn: string;
   /** Vekten leddet ganges med. 0 = leddet finnes ikke. */
   readonly vekt: number;
+  /**
+   * ============ SKALAEN ER IKKE EN DETALJ — DEN VAR EN DESIGNFEIL ======
+   *
+   * Første utgave normaliserte HVERT ledd til [0, 1] med min–max. Det høres
+   * uskyldig ut og drepte hele gevinsten summen ble bygd for.
+   *
+   * Løftet var: «er nettet svært sikkert, vinner nettet; er det nesten
+   * likegyldig, avgjør konvensjonen.» Men min–max gjør en stilling der nettets
+   * logits spenner **0,01** og en der de spenner **10** om til nøyaktig samme
+   * [0, 1]. SIKKERHETEN — den ene størrelsen avveiningen skulle bygge på — er
+   * nettopp det som skaleres bort. Da er «avveining» bare et jevnt dytt.
+   *
+   * ================= DE TRE SKALAENE ==================================
+   *
+   *   «softmax»  logits → sannsynligheter. Magnituden BÆRER sikkerheten: en
+   *              sikker stilling gir 0,95/0,03/0,02, en usikker 0,4/0,35/0,25.
+   *              Da kan en konvensjonsbonus på 0,3 velte den usikre og ikke
+   *              den sikre — nøyaktig oppførselen vi ville ha.
+   *   «minmax»   for ledd der bare RANGERINGEN har mening, ikke avstanden.
+   *   «raa»      tallene brukes som de er. For ledd som alt er i felles enhet.
+   *
+   * Sannsynligheter er dessuten en NATURLIG felles enhet: de summerer til 1
+   * over de lovlige kortene, så en vekt betyr det samme i hver stilling UTEN å
+   * kaste bort spennet.
+   *
+   * Og det peker mot policyhodet: nettet er trent på VERDI, så softmax over
+   * verdier er ikke en kalibrert sannsynlighet — skarpheten er en fri
+   * parameter vi gjetter. Summen virker med den, men den virker RIKTIG først
+   * med et hode trent på «hvilket kort ble valgt».
+   */
+  readonly skala?: "softmax" | "minmax" | "raa";
   poeng(state: GameState, sete: number, lovlige: readonly Kort[]): Map<number, number>;
 }
 
@@ -103,6 +138,29 @@ export interface Ledd {
  * Er alle verdiene like, er leddet uten mening her og gir 0 til alle — ikke
  * 0,5, som ville vært et vilkårlig dytt.
  */
+/**
+ * Logits → sannsynligheter over de lovlige kortene.
+ *
+ * Maks trekkes fra før eksponering, som overalt ellers i prosjektet: uten det
+ * gir en logit på 800 `Infinity`, og hele stillingen blir NaN.
+ */
+export function softmaks(m: Map<number, number>): Map<number, number> {
+  if (m.size === 0) return m;
+  let maks = -Infinity;
+  for (const v of m.values()) if (v > maks) maks = v;
+  let sum = 0;
+  const e = new Map<number, number>();
+  for (const [k, v] of m) {
+    const x = Math.exp(v - maks);
+    e.set(k, x);
+    sum += x;
+  }
+  if (!(sum > 0) || !Number.isFinite(sum)) return normaliser(m);
+  const ut = new Map<number, number>();
+  for (const [k, x] of e) ut.set(k, x / sum);
+  return ut;
+}
+
 export function normaliser(m: Map<number, number>): Map<number, number> {
   if (m.size === 0) return m;
   let lav = Infinity;
@@ -193,12 +251,12 @@ export function velgSum(
    * beslutning, så «regn det og gang med null» er ikke en akseptabel form for
    * «av» — det er hele kostnaden uten noen av effekten.
    */
-  const bidragRå: { navn: string; vekt: number; rå: Map<number, number> }[] = [];
+  const bidragRå: { navn: string; vekt: number; rå: Map<number, number>; skala: "softmax" | "minmax" | "raa" }[] = [];
   for (const l of ledd) {
     if (l.vekt === 0) continue;
     const rå = l.poeng(state, sete, lovlige);
     if (rå.size === 0) continue;
-    bidragRå.push({ navn: l.navn, vekt: l.vekt, rå });
+    bidragRå.push({ navn: l.navn, vekt: l.vekt, rå, skala: l.skala ?? "minmax" });
   }
 
   const total = new Map<number, number>();
@@ -207,7 +265,18 @@ export function velgSum(
   const enkelt = bidragRå.length === 1;
   const bidrag = new Map<string, Map<number, number>>();
   for (const b of bidragRå) {
-    const n = enkelt ? b.rå : normaliser(b.rå);
+    /**
+     * SKALAEN ER LEDDETS EGEN. Se `Ledd.skala`: min–max skalerer bort
+     * SIKKERHETEN, som er nettopp det avveiningen skal bygge på. Nettleddet
+     * bruker derfor «softmax», der magnituden bærer hvor sikkert nettet er.
+     */
+    const n = enkelt
+      ? b.rå
+      : b.skala === "raa"
+        ? b.rå
+        : b.skala === "softmax"
+          ? softmaks(b.rå)
+          : normaliser(b.rå);
     bidrag.set(b.navn, n);
     for (const k of lovlige) {
       const i = kortIndeks(k);
