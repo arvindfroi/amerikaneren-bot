@@ -214,6 +214,34 @@ export class E1Agent {
     return beste;
   }
 
+  /**
+   * ============ POENGSUMMEN PER KORT — for SUMMEFORMEN ================
+   *
+   * ARVIND, 9. august: «tanken var at modulene var en utvidelse av nettet og
+   * gjør det slik at nettet kan ta mer informerte valg gjennom en hel kamp.»
+   *
+   * En utvidelse må kunne LEGGE TIL noe. Det krever at nettets vurdering er
+   * tilgjengelig som et TALL PER KORT, ikke bare som ett valgt kort — ellers
+   * kan et lag over bare erstatte valget, og da er vi tilbake til
+   * overstyringer og kollisjoner.
+   *
+   * Dette er den ene metoden som gjør summeformen mulig:
+   *
+   *     score(kort) = nettets verdi + konvensjonsbonus + søkets korreksjon + …
+   *
+   * `velgKort` er nøyaktig argmax over det samme kartet, så de kan ikke drive
+   * fra hverandre.
+   */
+  scorer(state: GameState, sete: number): Map<number, number> {
+    const logits = forover(this.nett, this.trekkvektor(state, sete));
+    const ut = new Map<number, number>();
+    for (const k of lovligeKort(state, sete)) {
+      const i = kortIndeks(k);
+      ut.set(i, logits[i] ?? 0);
+    }
+    return ut;
+  }
+
   /** Kortene rangert best først – prior til søket (HybridAgent-mønsteret). */
   rangerKort(state: GameState, sete: number, lovlige: readonly Kort[]): Kort[] {
     const logits = forover(this.nett, this.trekkvektor(state, sete));

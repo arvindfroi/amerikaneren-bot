@@ -43,9 +43,10 @@
  *   vakt:at:e1:e1-modell/sd-r2.bin    begge (billigst-varianten av vakt 2 er b)
  */
 
-import { likeKort, type Farge, type Kort } from "../kort.ts";
+import { FARGER, likeKort, type Farge, type Kort } from "../kort.ts";
 import { lovligeKort, stikkvinner, type GameState, type Handling } from "../motor.ts";
 import { billigste, dyreste, garantertSynlig, lagetSynlig, ukjenteKort } from "./synlig.ts";
+import { kortIndeks } from "../nevro/trekk.ts";
 import { minstBrukFor } from "./nytte.ts";
 
 /** Hvilke av reglene som er slått på. */
@@ -846,17 +847,61 @@ export interface Innagent {
   nyKamp?(): void;
 }
 
-/** Legger vaktreglene utenpå en vilkårlig agent uten å røre resten av spillet. */
+/** Et lag som kan gi nettets vurdering PER KORT, ikke bare ett valg. */
+export interface Scorbar {
+  scorer(state: GameState, sete: number): Map<number, number>;
+}
+
+/**
+ * ============ VAKTEN SOM TILLEGG, IKKE SOM OVERSTYRING =================
+ *
+ * ARVIND, 9. august: «det er ikke bra at det er konflikt mellom nettet og
+ * modulene, fordi tanken var at modulene var en utvidelse av nettet.»
+ *
+ * Dagens vakt ERSTATTER nettets valg. Det er en overstyring, og den har en
+ * målt kostnad: prosjektet har hatt fire kollisjoner, alle med samme form —
+ * to deler som optimerer ulike mål over samme beslutning. Søket mot vakten
+ * var én av dem (68 % av valgene), og «løsningen» ble et veto med terskel:
+ * fortsatt en overstyring, bare med en dør foran.
+ *
+ * SUMMEFORMEN fjerner klassen i stedet for å måle den:
+ *
+ *     score(kort) = nettets verdi + (konvensjonen foretrekker det ? vekt : 0)
+ *
+ * Da kan de to aldri «vinne over» hverandre. Er nettet svært sikkert på et
+ * annet kort, vinner nettet. Er det nesten likegyldig, vinner konvensjonen.
+ * Og VEKTEN er et tall som kan måles, i stedet for en rekkefølge som avgjør alt.
+ *
+ * ================= TO GRENSETILFELLER, BEGGE MENINGSFULLE =============
+ *
+ *   vekt = 0         vakten gjør ingenting
+ *   vekt = uendelig  konvensjonen vinner alltid — NØYAKTIG dagens oppførsel
+ *
+ * Overstyringen er altså et SPESIALTILFELLE av summen. Det er derfor dette
+ * ikke er en ny mekanisme som konkurrerer med den gamle, men den samme
+ * mekanismen med en knott som til nå har stått på uendelig uten at noen valgte
+ * det.
+ *
+ * ================= NULL-PUNKTET =======================================
+ *
+ * `vekt` udefinert ⇒ overstyring, bit-identisk med før. Og hvis det indre
+ * laget ikke kan gi poeng per kort (`Scorbar`), faller den tilbake til
+ * overstyring — en sum uten tall å summere ville vært et stille tap.
+ */
 export class Konvensjonsvakt implements Innagent {
   private readonly indre: Innagent;
   private readonly valg: Vaktvalg;
+  private readonly vekt: number | null;
   /** Hvor mange kortvalg vakten har overstyrt – kontroll på at den virker. */
   overstyrt = 0;
   valgTotalt = 0;
+  /** Hvor mange ganger summen lot NETTET vinne over konvensjonen. */
+  nettVant = 0;
 
-  constructor(indre: Innagent, valg: Vaktvalg) {
+  constructor(indre: Innagent, valg: Vaktvalg, vekt: number | null = null) {
     this.indre = indre;
     this.valg = valg;
+    this.vekt = vekt !== null && vekt > 0 ? vekt : null;
   }
 
   nyKamp(): void {
@@ -867,9 +912,45 @@ export class Konvensjonsvakt implements Innagent {
     const h = this.indre.velgHandling(state);
     if (h.type !== "SPILL") return h;
     this.valgTotalt++;
-    const kort = vaktKort(state, h.spiller, h.kort, this.valg);
-    if (likeKort(kort, h.kort)) return h;
-    this.overstyrt++;
-    return { type: "SPILL", spiller: h.spiller, kort };
+    const ønsket = vaktKort(state, h.spiller, h.kort, this.valg);
+    if (likeKort(ønsket, h.kort)) return h;
+
+    // OVERSTYRING: standarden, og bit-identisk med før.
+    const scorbar = this.indre as unknown as Partial<Scorbar>;
+    if (this.vekt === null || typeof scorbar.scorer !== "function") {
+      this.overstyrt++;
+      return { type: "SPILL", spiller: h.spiller, kort: ønsket };
+    }
+
+    /**
+     * SUMMEN. Konvensjonens kort får `vekt` i tillegg; alle andre står som
+     * nettet vurderte dem. Så velges argmax over totalen.
+     *
+     * Merk at det er nettets EGEN skala vekten legges på. Den er derfor ikke
+     * tolkbar som poeng — den må sveipes, og det er hele poenget: en vekt kan
+     * måles, en rekkefølge kan ikke.
+     */
+    const poeng = scorbar.scorer!(state, h.spiller);
+    const iØnsket = kortIndeks(ønsket);
+    let beste = ønsket;
+    let bestePoeng = (poeng.get(iØnsket) ?? 0) + this.vekt;
+    for (const [i, p] of poeng) {
+      if (i === iØnsket) continue;
+      if (p > bestePoeng) {
+        bestePoeng = p;
+        beste = intTilKortIdx(i);
+      }
+    }
+    if (likeKort(beste, ønsket)) {
+      this.overstyrt++;
+      return { type: "SPILL", spiller: h.spiller, kort: ønsket };
+    }
+    this.nettVant++;
+    return { type: "SPILL", spiller: h.spiller, kort: beste };
   }
+}
+
+/** Kortindeks → kort. `kortIndeks` er inversen, og de deler rekkefølgen. */
+function intTilKortIdx(i: number): Kort {
+  return { farge: FARGER[Math.floor(i / 13)]!, verdi: ((i % 13) + 2) as Kort["verdi"] };
 }
