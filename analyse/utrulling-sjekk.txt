@@ -1,0 +1,18 @@
+# Utrullingssjekk mot https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/
+#
+# En 200-status betyr INGENTING her: bud-vant.json svarte 200 med
+# 209 309 byte HTML i ukevis. Innholdet er det som teller.
+
+fil                   kode        ute      her  merknad
+------------------------------------------------------------------------------
+adams-kort.b64        200     2395808  2395808  ok
+adams-vrak.b64        200       19848    19848  ok
+app.js                200      692461   705304  AVVIKER fra web/dist/app.js (-12843 byte)
+bud-gbt.json          200      322134   322134  ok
+bud-menneske.json     200      209309   362698  HTML-FEILSIDE — filen er ikke lastet opp
+bud-vant.json         200      209309   362638  HTML-FEILSIDE — filen er ikke lastet opp
+sdr2.b64              200     2395808  2395808  ok
+tro.b64               200      209309        -  HTML-FEILSIDE — filen er ikke lastet opp
+worker.js             200       20761   623547  AVVIKER fra web/dist/worker.js (-602786 byte)
+
+5 av 9 filer er GALE. Se merknadene over.
