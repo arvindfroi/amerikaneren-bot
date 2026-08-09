@@ -121,7 +121,7 @@ const ærlig: Bygger = (s, sete, huk) =>
  * KONTROLLEN: den ærlige vektoren pluss ett bit.
  *
  * «Holder relativt sete 1 spar ess?» er den minste tenkelige lekkasjen — ett
- * flagg av 1131. Finner prøven ikke den, finner den heller ikke en ekte.
+ * flagg av 1 032. Finner prøven ikke den, finner den heller ikke en ekte.
  */
 const jukser: Bygger = (s, sete, huk) => {
   const v = ærlig(s, sete, huk);

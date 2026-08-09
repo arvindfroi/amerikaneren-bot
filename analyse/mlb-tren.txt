@@ -1,0 +1,19 @@
+
+=== MLB 0.3: tilfeldig init (2026-08-09 18:38) ===
+dim 1032, skjult [1024, 768, 512], froe 20260809, parametre 2380821
+vekter -> e1-modell/mlb-init.bin
+referanse (64 rader) -> e1-modell/mlb-init-ref.bin
+
+=== MLB fase 0.3: sandkassenettet (2026-08-09 18:40) ===
+dim 1032, skjult [1024, 768, 512], parametre 2380821, epoker 20, lr 0.001
+trening 428212 rader, holdout 77125 rader (eget froebaand)
+X i float32
+GRUNNLINJER: tro-K8 kapasitet 1.09559, verdi-RMSE ved snitt 14.89233
+foer trening (epoke 0): CE4 1.38785  treff 24.29 %  K8 1.09981  verdi-RMSE 16.67266
+beste epoke 14: CE4 1.20315  treff 34.24 %  K8 1.06210  verdi-RMSE 3.86967
+vekter -> e1-modell/mlb-sandkasse.bin
+
+=== MLB 0.3: tilfeldig init (2026-08-09 18:40) ===
+dim 1032, skjult [1024, 768, 512], froe 20260809, parametre 2380821
+vekter -> e1-modell/mlb-trent-kopi.bin
+referanse (64 rader) -> e1-modell/mlb-trent-ref.bin

@@ -8830,3 +8830,189 @@ ulike vektorer.
 
 `npm test`: **554 grønne, 0 røde** (531 før fase 0.1 og 0.3). Typecheck ren.
 Fase 0.1 er dermed ferdig, og fase 0.4 kan bygge nettet på en låst layout.
+
+---
+
+## §121 — MLB fase 0.3: ett underlag, tre hoder — og troen ble et hode i stedet for en ekstra passering
+
+`docs/mlb.md` fase 0.4 og `docs/sandkassen.md` §5: ett nett som tar alle
+beslutninger, med tre hoder over en felles stamme. Bygd i `src/mlb/nett.ts`.
+
+| hode | ut | etikett |
+|---|---|---|
+| **policy** | 68 (`HANDLING_LENGDE`) | utfallet — selvtrent, og IKKE trent her |
+| **verdi** | 1 | rundens faktiske poeng |
+| **tro** | 208 (52 × 4) | hvor kortene FAKTISK lå |
+
+### Formen, og hva den koster i parametre
+
+| del | lag | parametre |
+|---|---|---|
+| stamme | 1032 → 1024 → 768 → 512 | 2 238 720 |
+| policy | 512 → 68 | 34 884 |
+| verdi | 512 → 1 | 513 |
+| tro | 512 → 208 | 106 704 |
+| **sum** | | **2 380 821** |
+
+Vektfila er FIRE nett i appens Int32/Float32-format, i rekkefølgen stamme,
+policy, verdi, tro. `src/nevro/nett.ts` leser den uendret, så hele
+verktøykjeden virker. Alle fire breddene håndheves ved lasting: en forskjøvet
+fil blir en feilmelding, ikke stille søppel, og `test/mlb-nett.test.ts` bygger
+en HÅNDREGNET fil med små heltall og krever eksakt likhet på hvert utgangstall.
+En transponert vektlesning eller en bias på avveie faller der.
+
+### Hvorfor troen ble et hode — og hva det faktisk kostet
+
+§120 målte at trekkbyggeren koster 0,067 ms uten trohodet og 0,516 ms med. Det
+var to framoverpasseringer etter hverandre. Nå er det målt igjen, på de samme
+stillingene, med hele kjeden (`analyse/mlb-nett-maal.txt`, 6 000 beslutninger):
+
+| ledd | ms/beslutning |
+|---|---|
+| `byggTrekk`, ekstern tro AV | **0,0695** (§120: 0,067) |
+| `byggTrekk`, ekstern tro PÅ | 0,6070 (§120: 0,516) |
+| `Sandkassenett.framover` | **0,6498** |
+| `velgKode` | 0,0021 |
+| **ÉN PASSERING (tro = hode)** | **0,7214** |
+| **TO PASSERINGER (tro som inngang)** | **1,3284 — 1,84× dyrere** |
+
+Arkitekturbeslutningen er dermed målt og ikke bare begrunnet. Men to ting skal
+sies rett ut:
+
+**Nettet er nå det dyre leddet, ikke trekkbyggeren.** 0,65 av 0,72 ms er
+framoverpasseringen. Det er samme lærdom som §120 trakk om trohodet, bare
+flyttet: det er MODELLSTØRRELSEN som setter epoketiden. Og 0,72 ms ligger over
+`docs/mlb.md` §5b sitt budsjett på ~0,5 ms per beslutning — ikke en sperre, men
+et tall som må stå her og ikke oppdages i uke tre.
+
+**Ingenting er fjernet.** `trekk.ts` sin `tronett`-inngang står urørt og er
+fortsatt AVSKRUBAR, standard AV. `test/mlb-nett.test.ts` håndhever alle tre
+delene av den påstanden: fordelingsblokken er null og `tro.tilgjengelig` er 0
+når den står av, blokken fylles og flagget er 1 når den står på, og resten av
+vektoren er BIT-IDENTISK i begge stillinger. Spørsmålet «tilfører en ekstern tro
+noe utover hodet?» kan derfor måles i stedet for antas.
+
+### `velgKode` — den harde skranken
+
+`velgKode(logits, maske, temperatur, rng)` returnerer ALLTID en kode der
+`maske[kode] === 1`. Ikke «nesten alltid». `handling.ta` kaster på en ulovlig
+kode, og en agent som kaster én gang i timen stopper en flertimers liga midt i.
+
+Hvert degenererte tilfelle er håndtert eksplisitt, og prøvd med tilfeldige
+logits og masker over 21 600 kombinasjoner: `NaN` hoppes over, `-Infinity` får
+vekt null, alle-umulige faller til uniformt trekk, `+Infinity` gir en
+ikke-endelig maksimum og faller samme vei, og en `rng()` som gir 1, `NaN` eller
+en avrundingsrest lander på siste plass med vekt. Masker med bare ÉN åpen plass
+svares uten aritmetikk i det hele tatt.
+
+**Og prøven kan feile:** en velger som ikke ser masken kjøres gjennom nøyaktig
+samme rigg og blir tatt. I tillegg spilte den tilfeldige driveren i
+`examples/mlb-data.ts` over 4 millioner beslutninger gjennom `maske` →
+`velgKode` → `ta` → `utfør` i alle fire faser og alle fem delsteg, med **0
+ulovlige valg**. Det er samtidig fornuftssjekken `docs/mlb.md` fase 1 ber om.
+
+### K2 for HELE kjeden, ikke bare for vektoren
+
+`test/mlb-k2-nett.test.ts` lukker kjeden trekk → nett → valg. Et avvik i
+trekkvektoren er en lekkasje som KANSKJE endrer valget; et avvik i valget er en
+lekkasje som SIKKERT er synlig. Prøven bytter ut bare de skjulte hendene og
+krever bit-identisk policy, verdi, tro OG valgt kode — både argmaks og samplet
+med samme frø — i alle fire faser, og i BEGGE stillinger av den avskrubare
+troen. Kontrollarmen lekker ett bit inn i trekkvektoren før nettet ser den, og
+blir tatt.
+
+### TypeScript mot PyTorch: 1,2 · 10⁻⁶ relativt
+
+`verktoy/mlb-tren.py --referanse` skriver vektene og PyTorchs egne utganger for
+64 ekte trekkvektorer, med INNGANGENE lagt ved i float32 — leste TS-siden dem
+fra datafila i stedet, ville vi målt lasteren og aritmetikken samtidig.
+
+| vekter | maks absolutt | maks relativt |
+|---|---|---|
+| tilfeldig initiert | 1,9 · 10⁻⁸ | **3,8 · 10⁻⁷** |
+| trent | 1,7 · 10⁻⁶ | **1,2 · 10⁻⁶** |
+
+**Toleransen er 10⁻⁴ relativt, og verst målt er 1,2 · 10⁻⁶ — hundre ganger
+innenfor.** Bit-likhet er ikke mulig og skal ikke kreves: `nevro/nett.ts`
+akkumulerer i float64 og hopper over ledd der inngangen er null, PyTorch
+akkumulerer i float32 med sin egen summeringsrekkefølge og FMA. Flyttall er ikke
+assosiative. Vektfila ble i tillegg lest tilbake inn i PyTorch og skrevet ut på
+nytt: **byte-identisk** (samme md5).
+
+### Rørgata virker: tapet falt for begge hodene som har fasit
+
+428 212 treningsrader og 77 125 holdoutrader fra TILFELDIG spill, i disjunkte
+frøbånd (2,000 G … og 3,000 G …, ingen overlapp med §119s bånd). Dette er en
+fornuftssjekk på at rørgata virker ende til ende, **ikke en kvalitetsmåling.**
+
+| | før trening | beste epoke (14) | grunnlinje |
+|---|---|---|---|
+| tro, CE4 | 1,3879 | **1,2032** | — |
+| tro, treff@1 | 24,29 % | **34,24 %** | 25 % (uniform) |
+| tro, K8-formen | 1,0998 | **1,0621** | 1,0956 (kapasitet), 1,0986 (gulv) |
+| verdi, RMSE i poeng | 16,673 | **3,870** | 14,892 (spå snittet) |
+
+Begge falt, og begge falt under sin grunnlinje. Tjue epoker tok under to
+minutter på RTX 5080.
+
+**Tallene er IKKE sammenliknbare med §119s 0,9630.** Der ble troen målt på
+SPILL-stillinger fra Adams-spill; her er alle fire faser med, og i BUDRUNDE er
+det ingenting spilt å slutte fra. Radene fra en budrunde er nesten ren prior, og
+de drar snittet opp. Sammenlikningen som betyr noe kommer i fase 0.4, på samme
+stillingsutvalg som §119.
+
+### Hva som var galt — fem ting
+
+**1. Et sandkassenett er IKKE en `Trofordeler`, selv om det ser slik ut.**
+Første utkast lot trohodet oppfylle grensesnittet, så det kunne settes rett inn
+i den avskrubare `tronett`-inngangen. En prøve stoppet det: `Trofordeler` mates
+med `troTrekk(...)` på 660 trekk, mens hodet tar hele sandkassevektoren på
+1 032 — og koblingen ville dessuten vært SIRKULÆR, siden TRO-blokken er en del
+av de 1 032. Metoden heter derfor `troFordeling` og ikke `fordeling`, med vilje:
+to funksjoner med samme navn og ulik inngangsbredde er en feil som venter.
+
+**2. `verktoy/mlb-tro-tren.py` trener på float16-innganger, TS mater float32.**
+Det er en stille presisjonsforskjell mellom det modellen ble trent på og det den
+ser i drift. Den nye treneren lagrer X i **float32** som standard (2,1 GB for
+428 k rader — greit på 16 GB), og `--fp16` finnes for større korpus, der avviket
+da er valgt og ikke arvet.
+
+**3. Rundens poeng finnes ikke når valget tas, og en fasebasert bokføring ville
+mistet to hele kategorier.** `RUNDE_SLUTT`-FASEN hoppes over når kampen er
+vunnet — motoren går rett til `FERDIG` — så den siste rundens rader ville
+forsvunnet i hver eneste kamp. Og passer alle fire, kastes givet uten poeng, mens
+`sisteRunde` står igjen med FORRIGE rundes tall; radene ville fått naborundens
+etikett, som er verre enn ingen rad. Begge er løst ved å bokføre på HENDELSENE
+(`RUNDE_SLUTT` og `ALLE_PASSET`), ikke på fasen.
+
+**4. `forover` legger ikke ReLU på det siste laget i et nett** — riktig når det
+er logits, galt for en stamme som mater tre hoder. Aktiveringen gjøres derfor
+eksplisitt på TS-siden rett etter kallet, og PyTorch-siden bygger nøyaktig samme
+form. Prøven med håndregnede vekter setter et lag i negativ og krever at det
+nulles; TS-mot-PyTorch-sjekken ville avslørt uenighet med et avvik på titalls
+prosent, ikke 10⁻⁶.
+
+**5. Tilfeldig spill gir enorme kamper.** Et løp til 30 poeng tok **~365 runder**
+med uniformt handlingsvalg, mot en håndfull med en spillende bot, fordi
+rundepoengene i snitt er **−7,5**. Det er verdt å ha med inn i fase 0.4:
+epoketidsanslagene i `docs/mlb.md` §8 forutsetter en bot som faktisk klarer
+kontrakter, og de første epokene vil ikke oppføre seg slik.
+
+Og en liten en: `TREKK_LENGDE`-kommentaren i `trekk.ts` sto igjen på `1131` fra
+før LOVLIG-blokken krympet fra 173 til 68. Rettet til 1 032.
+
+### Status
+
+`npm test`: **571 grønne, 0 røde** (555 før fase 0.3). Typecheck ren.
+`test/mlb-herkomst.test.ts` passerer uendret — `src/mlb/nett.ts` når ingen
+orakelkilde.
+
+Filer: `src/mlb/nett.ts`, `examples/mlb-data.ts`, `examples/mlb-nettsjekk.ts`,
+`examples/mlb-nettmaal.ts`, `verktoy/mlb-tren.py`, `test/mlb-nett.test.ts`,
+`test/mlb-k2-nett.test.ts`. Målinger: `analyse/mlb-nett-maal.txt`,
+`analyse/mlb-nettsjekk.txt`, `analyse/mlb-nettsjekk-trent.txt`,
+`analyse/mlb-tren.jsonl`, `analyse/mlb-tren.txt`.
+
+Kontrakten i oppdraget er holdt uendret, så selvspilløkka i fase 0.4 kan bygge
+på den: `POLICY_UT`, `TRO_UT`, `Framover`, `Sandkassenett.fraBytes` /
+`fraFil` / `framover` / `inngangsLengde`, og `velgKode`.

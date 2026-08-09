@@ -534,7 +534,7 @@ export const TREKK_NAVN: readonly string[] = [
   ...LOVLIG_NAVN,
 ];
 
-export const TREKK_LENGDE = TREKK_NAVN.length; // 1131
+export const TREKK_LENGDE = TREKK_NAVN.length; // 1032
 
 // ===========================================================================
 // 11. Byggeren
