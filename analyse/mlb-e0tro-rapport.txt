@@ -1,0 +1,11 @@
+mlb-spill startet 2026-08-09T16:46:26.595Z
+kamper=5000 kjerner=20 maalpoeng=30 temperatur=1 tro=e1-modell/mlb-tro.bin froe=4100000
+K2/selvspill: GRØNN etter 0.5 s
+FERDIG 2026-08-09T16:56:18.800Z
+kamper=5000 veggtid=591.7 s
+kamper/s totalt=8.45  kamper/s/kjerne=0.47
+beslutninger/kamp=1543.6  rader/kamp=400.8  bytes/kamp=4574
+avbrutt paa rundetaket=14.7 %
+erfaring på disk=22.9 MB
+EPOKEANSLAG 5000 kamper: 9.9 min
+TI EPOKER: 1.64 timer

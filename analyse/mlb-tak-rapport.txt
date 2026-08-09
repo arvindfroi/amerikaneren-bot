@@ -1,0 +1,3 @@
+MÅL kamper=40 maalpoeng=30 tro=av nett=e1-modell/mlb-sandkasse.bin maksrunder=100 sek=26.65 kamper/s/kjerne=1.50 beslutninger/kamp=1398.8 rader/kamp=367.1 runder/kamp=23.70 avbrutt=12.5% ms/beslutning=0.476
+MÅL kamper=40 maalpoeng=30 tro=av nett=e1-modell/mlb-sandkasse.bin maksrunder=60 sek=19.91 kamper/s/kjerne=2.01 beslutninger/kamp=1116.3 rader/kamp=297.0 runder/kamp=18.70 avbrutt=12.5% ms/beslutning=0.446
+MÅL kamper=40 maalpoeng=30 tro=av nett=e1-modell/mlb-sandkasse.bin maksrunder=40 sek=16.68 kamper/s/kjerne=2.40 beslutninger/kamp=975.3 rader/kamp=261.1 runder/kamp=16.20 avbrutt=12.5% ms/beslutning=0.428

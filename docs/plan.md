@@ -9016,3 +9016,210 @@ Filer: `src/mlb/nett.ts`, `examples/mlb-data.ts`, `examples/mlb-nettsjekk.ts`,
 Kontrakten i oppdraget er holdt uendret, så selvspilløkka i fase 0.4 kan bygge
 på den: `POLICY_UT`, `TRO_UT`, `Framover`, `Sandkassenett.fraBytes` /
 `fraFil` / `framover` / `inngangsLengde`, og `velgKode`.
+
+## §122 — MLB fase 0.4: selvspilløkka, ligaen og porten — og et løp til 30 som aldri tok slutt
+
+`docs/mlb.md` fase 0.5 og 0.6, `docs/sandkassen.md` §6. Bygd i
+`src/mlb/selvspill.ts` (spill én kamp, samle erfaringen), `src/mlb/liga.ts`
+(befolkningen og porten) og `examples/mlb-spill.ts` (N kamper over skard,
+skrevet løpende til fil). Ingen gradient er tatt ennå — dette er
+datagrunnlaget og seleksjonsregelen, og bare det.
+
+### Det som var galt, og det første er ikke lite
+
+**1. ET LØP TIL 30 TAR IKKE ALLTID SLUTT.**
+
+`docs/mlb.md` fase 1 spør «spiller et TILFELDIG nett lovlig i 1000 kamper uten å
+krasje?». Det gjør det. Kampen tok bare aldri slutt.
+
+`amerikaner` og `solo` ligger i masken, en tilfeldig policy tar dem i omtrent to
+av elleve budvalg, og de koster `målPoeng/2` og `målPoeng` når de ryker — som de
+nesten alltid gjør. Da synker ALLE fire seter monotont, og maksimum synker med
+dem. Frø 4 161 736 sto i **runde 365** på −1455 / −2364 / −2044 / −1693 og var
+fortsatt ikke ferdig. Løpet er ikke tregt, det er **ubundet**.
+
+Prøven som fantes kunne ikke se det: den spurte om lovlighet, ikke om
+terminering. Rettelsen er at rundetaket er en del av spillets DEFINISJON i
+selvspill — `maksRunder` (standard 100), lederen vinner en avbrutt kamp, og
+`Kampfasit.avbrutt` står i loggen slik at andelen kan MÅLES. Målt med et utrent
+sandkassenett: **14,7 % av kampene** når taket.
+
+Og andelen er et gratis helsetall: en policy som blir bedre, avbrytes sjeldnere.
+
+**2. FIRE HUKOMMELSESBØKER GJORDE DEN SAMME JOBBEN FIRE GANGER.**
+
+Første utgave ga hvert sete sin egen `Hukommelse`, med den begrunnelsen at en
+delt bok ville vært «sete 0 som leser sete 1s observasjoner av sete 2». Den
+begrunnelsen er feil. `bok(sete)` er statistikk OM det setet, utledet av
+`RUNDE_SLUTT` — det alle fire så. Innholdet avhenger ikke av hvem som
+observerer.
+
+Målt, ikke antatt: **2 192 sammenlikninger, 0 avvik** mellom én delt bok og fire
+egne. Og `bokfør` spiller hele runden om igjen for å regne residualer, så
+duplikasjonen var **0,10 ms av 0,15 ms per beslutning** — større enn hele
+trekkbyggeren. Én bok ga **2,35× fart** (5,09 → 11,98 kamper/s/kjerne).
+
+**3. TO «DISJUNKTE» VANER VAR 99,7 % LIKE.**
+
+Vanene skal deles i disjunkte trenings- og testsett, ellers måler K6
+gjenkjenning i vektene i stedet for læring i løpet (`docs/mlb.md` §6). Første
+utkast hadde fire spillestiler og lot settene dele dem. Målt på 1 175 ekte
+stillinger:
+
+```
+vane.trumfjeger mot test.nølende:  0,3 % ulike valg  (4 av 1 175)
+```
+
+`trumfjeger` («ta trumf når du kan») ER `høyest`, fordi `pris` allerede legger
+100 på trumf. To bots med hvert sitt navn og samme atferd — **femtende
+forekomst av feilklassen §118 kaller «det målte var ikke det jeg mente»**, og
+den ble tatt av en måling, ikke av en gjennomlesning.
+
+**84 % av alle beslutninger er kortvalg.** Deler to vaner spillestil, kan de
+aldri skille seg i mer enn ~16 % av valgene uansett hvor ulikt de byr. Stilene
+er derfor åtte, og settene deler ingen: treningsvanene spiller HØYT,
+testvanene LAVT. Nå er det NÆRMESTE krysspar **51,9 % ulike**, og terskelen i
+prøven står på 25 %.
+
+**4. MÅLETALLET SELV VAR FEIL.** «Beslutninger per kamp» talte de SAMLEDE
+radene — ett av fire seter — og «ms per beslutning» ble dermed fire ganger for
+høy. Rapporten skiller nå `beslutninger/kamp` (som setter maskintiden) fra
+`rader/kamp` (som er erfaringen epoken kan trene på).
+
+**5. TO DOKUMENTER MOTSA HVERANDRE, TO GANGER.**
+
+| | `docs/sandkassen.md` | `docs/mlb.md` | avgjort |
+|---|---|---|---|
+| `rask` i ligaen | §6: med, 15 % | AVGJØRELSE 1b: ut, den er målestokken | **mlb.md** |
+| verdietiketten | §5: rundens poeng | §2 REVISJON: kampens utfall | **begge, presist** |
+
+`rask` er ute av TRENINGSligaen, og det er ikke bare en avgjørelse — det er en
+typegrense. `src/mlb/liga.ts` kan ikke importere `agentspek.ts` uten å dra inn
+`vrakrang`, `juksagent`, `sdkort` og `alphamu` i samme kall, og
+`test/mlb-herkomst.test.ts` ville blitt rød. Ligaen har derfor et `ytre`-spor
+med vekt **0** i trening, og en egen prøve teller 4 000 trekninger og krever
+**0 ytre**. De 15 prosentpoengene gikk til VANENE og ikke til «beste», fordi
+vanene er den eneste raden i tabellen som er en krav-avhengighet.
+
+Verdietiketten er ikke et enten–eller når den skrives presist:
+`A = r + V(s') − V(s)`, der `r` er poengene som falt mellom denne beslutningen
+og neste beslutning SAMME sete står i, og `V` læres mot kampens utfall. Raden
+bærer `poengFør` og `nesteISete`, så `r` er en DIFFERANSE og ikke et tredje tall
+som kan komme i utakt. En egen prøve krever at summen av alle `r` for ett sete
+er nøyaktig setets kamppoeng.
+
+**6. STILLASET BLE EN ANDRE SANNHET.** Fila ble skrevet mot kontrakten mens
+`src/mlb/nett.ts` ennå ikke fantes, med egne `POLICY_UT`, `TRO_UT`, `Framover`
+og `velgKodeStandard`. Da nettet landet midt i økta, var de fire en ANDRE
+definisjon av de samme tingene — og begge ville kjørt. De er nå re-eksporter fra
+`nett.ts`. Det er samme feilklasse som punkt 3, bare mellom to økter i stedet
+for i én fil.
+
+### §5a er innfridd, og det er prøvd bit for bit
+
+Bufferet lagrer KAMPER, ikke trekkvektorer: `(frø, hvem satt hvor, hvilke koder
+ble valgt)`. Én kamp er **4 574 bytes**; de samme beslutningene som vektorer er
+6,4 MB — **1 400× mer**. 5 000 kamper er **22,9 MB på disk**.
+
+Det er hele grunnen til at trekklayouten IKKE er låst: endres den, gjenspilles
+bufferet. Påstanden er bare sann hvis gjenspillingen gir NØYAKTIG de samme
+vektorene, og det er prøvd — hver av 1 032 plasser, i hver rad, gjennom
+serialiseringen. Spillingen og gjenspillingen bruker dessuten SAMME løkke;
+forskjellen er bare hvor koden kommer fra.
+
+### K2 kjøres FØR hver epoke, ikke etter
+
+`test/mlb-k2-selvspill.test.ts` prøver UTGANGEN og ikke bare inngangen: velger
+selvspillagenten samme kode når bare de skjulte hendene byttes? Fire faser, alle
+fem delsteg, hukommelsen på, og et nett som forsterker enhver forskjell i
+inngangen til en forskjell i utgangen. Kontrollarmen ser ÉN bit — «holder
+relativt sete 1 spar ess?» — og brukes bare til å vippe mellom to LOVLIGE koder.
+Den blir tatt.
+
+`examples/mlb-spill.ts` kjører prøven som underprosess og STOPPER epoken på
+rødt, før en eneste kamp er skrevet. Det er `docs/sandkassen.md` §2 lest riktig
+vei: en epoke som lekker skal ikke rekke å skrive 5 000 forgiftede rader først.
+
+### Porten: fire krav, og hvert av dem er en måte vi FAKTISK er blitt lurt på
+
+| krav | hva det stopper |
+|---|---|
+| parret på giv, z ≥ 2 | det opprinnelige kravet |
+| tegntest, z ≥ 1,5 | et snitt båret av noen få enorme kamper (§109) |
+| ≥ 2 disjunkte frøbånd, alle enige om fortegnet | §65 |
+| kontrollarm ≈ 0, ellers **UGYLDIG** | en rigg som måler noe annet enn den tror |
+
+Den tredje utgangen er ikke pynt: `port.ts` sier at «en konklusjon som ikke kan
+bli 'vet ikke' er ikke en konklusjon». En ødelagt kontrollarm gir derfor
+`ugyldig`, ikke `avvist`.
+
+Prøvd med 40 uavhengige rene STØY-armer: porten godkjente **0 av 40**. Med en
+ekte effekt slipper den gjennom. Uenige bånd avvises selv når snittet er stort.
+
+### Farten, målt på denne maskinen (24 logiske kjerner)
+
+| oppsett | kamper/s/kjerne | ms/beslutning |
+|---|---|---|
+| stubbenett, tro av | **11,98** | 0,066 |
+| stubbenett, tro som TREKK | 2,18 | 0,371 |
+| **`Sandkassenett`, tro av** | **1,28** | **0,534** |
+
+Delt på ledd (37 272 beslutninger): `byggTrekk` 0,038 ms, hukommelsen
+0,0013 ms, masken 0,0004 ms — resten er nettet. Det bekrefter §121 fra en annen
+kant: **modellstørrelsen setter epoketiden, ikke trekkbyggeren.**
+
+Erfaring per kamp: **1 544 beslutninger**, hvorav 401 fra kandidatsetet, over
+~21 runder.
+
+### Budsjettet: 10 epoker under to timer
+
+Kravet var 10 epoker på under to timer. Målt ende til ende, 5 000 kamper per
+epoke, 20 skard, `Sandkassenett`, tro AV:
+
+| | veggtid |
+|---|---|
+| én epoke, 5 000 kamper | **10,9 min** (654 s, 7,64 kamper/s totalt) |
+| **ti epoker** | **1,82 timer** |
+
+**Budsjettet holder — og det er alt det gjør.** Det er 9 % margin, og
+måletiden mellom epokene er ikke med. Med trohodet i tillegg som TREKK ble
+den samme epoken 9,9 min med stubbenettet alene; sammen med `Sandkassenett`
+ville de to passeringene sprengt taket. §121 målte det samme forholdet fra en
+annen kant (1,84× for to passeringer), og konklusjonen er den samme: **troen
+skal være et hode, ikke en inngang.**
+
+Den billigste knappen er rundetaket, og den er målt:
+
+| `maksRunder` | kamper/s/kjerne | runder/kamp | avbrutt |
+|---|---|---|---|
+| 100 (standard) | 1,50 | 23,7 | 12,5 % |
+| 60 | 2,01 | 18,7 | 12,5 % |
+| 40 | 2,40 | 16,2 | 12,5 % |
+
+**Andelen avbrutte kamper står stille på 12,5 % uansett tak.** Det er de samme
+fem kampene av førti; taket bestemmer bare hvor lenge vi betaler for dem. Et
+tak på 60 gir **1,34× fart** og koster ingenting vi kan måle — de ferdigspilte
+kampene bruker 7–31 runder. Det er 1,4 timer for ti epoker, altså den margin
+måletiden trenger.
+
+Og tallene over gjelder et UTRENT nett. En policy som blir bedre, spiller
+kortere løp og avbrytes sjeldnere, så epoketiden skal falle av seg selv.
+
+### Status
+
+`npm test`: **596 grønne, 0 røde** (555 før denne økta; §121 la til 14, denne 27). Typecheck ren.
+`test/mlb-herkomst.test.ts` er uendret og grønn — ingenting under `src/mlb/`
+når et orakel, en dobbeltdummy eller `d7alle`, heller ikke transitivt.
+
+Nye filer: `src/mlb/selvspill.ts`, `src/mlb/liga.ts`, `examples/mlb-spill.ts`,
+`test/mlb-selvspill.test.ts`, `test/mlb-liga.test.ts`,
+`test/mlb-k2-selvspill.test.ts`. Målinger:
+`analyse/mlb-e0nett-rapport.txt` (epoken med nettet),
+`analyse/mlb-e0tro-rapport.txt` (med troen som trekk),
+`analyse/mlb-tak-rapport.txt` (rundetaket).
+
+**Det som IKKE er gjort, og som er neste steg:** ingen gradient er tatt. Det
+finnes ingen epokedriver som binder sammen «spill → tren → K2 → port →
+adopter», og porten er derfor prøvd på konstruerte tall og ikke på en ekte
+epoke ennå. `rask` som målearm er et spor i `liga.ts`, ikke en kobling — den
+hører hjemme i et måleskript i `examples/`, utenfor herkomstgrensen.
