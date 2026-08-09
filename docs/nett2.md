@@ -98,54 +98,67 @@ korfordelingen, og det er nettopp representasjonen K8 mangler.
 
 ---
 
-## 5. Hvordan trene uten en sterkere lærer
+## 5. Hvordan trene uten en sterkere lærer — REN SELVTRENING
 
-Arvinds spørsmål, og det er det viktigste i fila.
+Arvind, 9. august: «men jeg skal ikke ha noe ekspert-trening. det skal være
+selvtrening.»
 
-**Søket er læreren.** Et søk over N verdener spiller bedre enn nettet det bruker
-som prior — det ER hva det vil si at søket virker. Så:
+### Først en oppklaring, fordi ordet villedet
+
+«Ekspert-iterasjon» høres ut som en ekstern lærer. Det er det ikke — «eksperten»
+er botens EGET søk på sitt EGET nett. Ingen mester dømmer. Men Arvind vil ha
+noe annet enn «lær å etterligne ditt eget søk», og det er en ekte og annerledes
+konstruksjon.
+
+### Signalet er UTFALLET
 
 ```
-1. Spill med søk på dagens nett
-2. Etiketter:  policy = søkets valg
-               verdi  = rundens faktiske poeng
-               tro    = hvor kortene faktisk lå
-3. Tren nett 2
-4. Søk på nett 2 er sterkere enn søk på nett 1
+1. Spill kamper mot ligaen
+2. Se hva som faktisk ga poeng
+3. Flytt policyen mot handlinger som ga MER enn ventet
+4. Verdihodet lærer hva stillingen faktisk var verdt
 5. Gjenta
 ```
 
-Det er ekspert-iterasjon, og den løser «vi har ingenting bedre enn oss selv»:
-**søket gjør deg bedre enn deg selv.**
+Ingen fasit, ingen etterligning. Boten blir sterkere fordi den ser hva som
+virket. `verdi` er ankeret: den lærer forventningen, og policyen flyttes etter
+AVVIKET fra den — handlinger som ga mer enn ventet forsterkes, de som ga mindre
+svekkes.
 
-### PREMISSET MÅ SJEKKES FØRST, og det er ikke gitt
+Det er også hva Arvind ba om helt i starten, 7. august: «trenes på å bli bedre
+av å spille mot seg selv og ingen mester dømmer, men at den blir sterkere over
+tid.»
 
-Er ikke søket bedre enn nettet, har løkka ingen motor. Og målingene spriker:
+### Kostnaden, sagt én gang
 
-| måling | søkets verdi |
-|---|---|
-| §46, førersetet, to disjunkte bånd | **+0,95 til +1,55** (z ≈ 3) |
-| ablasjonen 8. august, i selskap | +0,167 (1,5 SE) |
-| matrisen 9. august | `maks` **taper** mot `rask` |
+Utfallssignalet er TYNNERE per kamp enn et søkevalg. En kamp gir noen få
+poengtall; et søk gir en vurdering i hvert eneste stikk. Ren selvtrening trenger
+derfor vesentlig flere kamper.
 
-De to siste er forurenset — matrisens `maks` hadde `d5`/`B4`/`kamp` påslått, og
-de kostet 0,8 poeng/runde alene. Men det må måles rent:
+Det er akseptabelt — maskinen kan gå i dager — men det er grunnen til at
+korpuset er den bindende skranken (§46), og til at ligaen må være billig nok til
+å kjøre lenge.
 
-> **Port 0: søket alene mot nettet alene, på gate 2, parret, replikert i
-> disjunkte bånd.** Er det ikke klart positivt, skal ingen ekspert-iterasjon
-> starte — da er læreren ikke bedre enn eleven, og løkka forsterker bare støy.
+### Hva søket da er
 
-### To lærere til, som ikke avhenger av premisset
+En SPILLEKOMPONENT, ikke et treningssignal. K3 og K7 krever at boten tenker godt
+i sanntid, og søket gjør det. Det lærer bare ikke nettet noe direkte.
 
-**Faktisk utfall** for verdihodet. Alltid sant, ingen sirkularitet.
+**Port 0 gjelder fortsatt, men er ikke lenger en sperre for trening.** Spørsmålet
+er nå «fortjener søket plassen sin i boten?», ikke «har vi en lærer?». Målingene
+spriker (§46: +0,95..+1,55; ablasjonen: +0,167 med 1,5 SE; matrisen: `maks`
+taper mot `rask`), og det må avklares før stakken låses — men treningen kan gå
+uansett svar.
 
-**Eksakt poengløsning i sluttspillet.** `poengdds.ts` maksimerer spillerens
-faktiske poeng, og den er nå verifisert mot en uavhengig råsøker (`løsDD` var
-feil i 86 av 400 givinger før 8. august). I de siste 3–4 stikkene er den en
-FASIT, ikke et anslag — og K7 målte at gapet der er +0,947 poeng/runde ved fem
-stikk. Det er ekte lærersignal på stillinger vi vet vi spiller dårlig.
+### Verdihodet og trohodet har fortsatt perfekte etiketter
 
----
+Ingen sirkularitet noe sted:
+
+- **verdi** ← rundens faktiske poeng. Alltid sant.
+- **tro** ← hvor kortene FAKTISK lå, kjent ved rundeslutt. Fasit.
+
+Det er bare POLICYEN som læres av utfall, og det er nettopp den delen som skal
+være selvtrent.
 
 ## 6. Rekkefølgen
 
@@ -153,11 +166,13 @@ Arvind: «jeg vil liksom at hele adams max skal være klart, også trener nettet
 siste gang før vi tar budmodellen.»
 
 1. **K2–K8 låses.** Alle moduler bestemt, alt som ikke bærer sin vekt parkert.
-2. **Port 0:** er søket bedre enn nettet? Uten et ja stopper det her.
-3. **Korpus** genereres med den låste stakken — fordelingsskiftet forsvinner,
-   fordi korpuset lages av policyen som faktisk spiller.
-4. **Nett 2 trenes** med tre hoder.
-5. **Iterér** til gevinsten flater ut.
+2. **Port 0:** fortjener søket plassen sin i boten? Avgjør stakken, ikke
+   treningen — den går uansett svar.
+3. **Ligaen startes.** Kampene ER korpuset; det genereres løpende av policyen
+   som faktisk spiller, så fordelingsskiftet oppstår aldri.
+4. **Nett 2 trenes** med tre hoder: policy fra UTFALL, verdi fra faktiske poeng,
+   tro fra fasit.
+5. **Iterér** til de åtte prøvene passerer — ikke til tapet flater ut.
 6. **Budmodellen sist**, mot den endelige spillestyrken. `μ` er forventet
    stikktall, altså en funksjon av hvor godt vi spiller — kalibreres den før,
    må den kalibreres om.
