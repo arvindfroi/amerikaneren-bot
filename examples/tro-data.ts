@@ -60,6 +60,7 @@ import { Budagent, lesBudmodell } from "../src/moe2/budagent.ts";
 import { Konvensjonsvakt, delVaktspek } from "../src/moe2/konvensjonsvakt.ts";
 import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
 import { nettFraBytes } from "../src/nevro/nett.ts";
+import { lagIndre } from "../src/moe2/agentspek.ts";
 
 let givere = 5000;
 let frøBase = 700_000_000;
@@ -85,36 +86,6 @@ for (let i = 2; i < process.argv.length; i++) {
 
 type Agent = { velgHandling(s: GameState): Handling; nyKamp(): void };
 
-function lag(s: string): Agent {
-  if (s === "nevro") return new NevroAgent();
-  if (s.startsWith("vakt:")) {
-    const v = delVaktspek(s);
-    if (v === null) throw new Error(`Ugyldig vaktspek «${s}»`);
-    return new Konvensjonsvakt(lag(v.indre), v.valg);
-  }
-  if (s.startsWith("vr:")) {
-    const r = s.slice(3);
-    const i = r.indexOf(":");
-    const j = r.indexOf(":", i + 1);
-    if (i < 0 || j < 0) throw new Error(`Ugyldig vr-spek «${s}»`);
-    const nett = nettFraBytes(new Uint8Array(readFileSync(r.slice(0, i))))[0];
-    if (nett === undefined) throw new Error(`Tomme vekter i «${r.slice(0, i)}»`);
-    return new Vrakrangerer(lag(r.slice(j + 1)), nett, r.slice(i + 1, j));
-  }
-  if (s.startsWith("budm:")) {
-    const r = s.slice(5);
-    const k = r.indexOf(":");
-    if (k < 0) throw new Error(`Ugyldig budm-spek «${s}»`);
-    const hode = r.slice(0, k);
-    const at = hode.lastIndexOf("@");
-    const fil = at < 0 ? hode : hode.slice(0, at);
-    const ev = at < 0 ? 2.5 : Number(hode.slice(at + 1));
-    if (!Number.isFinite(ev)) throw new Error(`Ugyldig evForsvar i «${s}»`);
-    return new Budagent(lag(r.slice(k + 1)), lesBudmodell(fil), ev);
-  }
-  if (s.startsWith("e1:")) return E1Agent.fraFil(s.slice(3));
-  throw new Error(`Ukjent spek «${s}»`);
-}
 
 const relSete = (sete: number, annet: number): number => (annet - sete + 4) % 4;
 
@@ -152,7 +123,7 @@ function fasit(s: GameState, sete: number): number[] {
 }
 
 mkdirSync(dirname(ut), { recursive: true });
-const agenter = [0, 1, 2, 3].map(() => lag(spek));
+const agenter = [0, 1, 2, 3].map(() => lagIndre(spek));
 let rng = 1234567 + skardI * 7919;
 const tilfeldig = (): number => {
   rng = (rng * 1103515245 + 12345) & 0x7fffffff;

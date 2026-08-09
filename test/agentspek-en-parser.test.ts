@@ -91,13 +91,12 @@ const KJENT_DRIFT: readonly string[] = [
   join("examples", "mesterai-konvensjoner.ts"),
   join("examples", "rolleanger.ts"),
   join("examples", "sd-orakel.ts"),
-  join("examples", "stikk-kalibrering.ts"), // DATA
-  join("examples", "tro-data.ts"), // DATA
-  join("examples", "tro-sampler.ts"), // DATA
-  join("examples", "vanttabell.ts"), // DATA
-  join("examples", "vrakbenk.ts"), // DATA
+  join("examples", "vrakbenk.ts"), // DATA — har egne «vv:»/«vv2:»-lag som agentspek ikke kjenner
   join("examples", "vrakorakel.ts"),
 ];
+// Betalt 9. august: tro-data, tro-sampler, stikk-kalibrering, vanttabell.
+// Alle fire defaultet til «nevro» og KASTET på en moderne full spek — de kunne
+// ikke bygge dagens kjede i det hele tatt. Nå går de gjennom `lagIndre`.
 
 test("bare agentspek.ts parser HELE spec-kjeden", () => {
   const skyldige: string[] = [];
