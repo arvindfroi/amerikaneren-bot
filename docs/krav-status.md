@@ -127,13 +127,29 @@ modell av de andre*:
 | `atferdFor` | vekter hvilke verdener vi trekker — altså **troen** |
 | `motpartFor` | hvem søket ruller ut som motstander |
 
-**Ingen av dem endrer vårt eget valg direkte.** Å vite at hun spiller høyt
-oftere enn ventet flytter bare vår tro om hånden hennes, og troen er den
-svakeste kanalen vi har — K8 står på 12,34 % av veien til taket. Vanekunnskapen
-blir fortynnet til nesten ingenting før den når en beslutning.
+**Ingen av dem endrer vårt eget valg direkte.** Begge går inn i søkets modell
+av de andre. Har stakken ikke søk, har vanen ingen vei inn i det hele tatt.
 
-Det forklarer også hvorfor `okt:`/`profil:` endret **0,9 % av valgene** selv mot
-en åpenbar vane.
+Og det er nøyaktig hva `analyse/k4-hukommelse.txt` måler:
+
+| stakk | hva hukommelsen endret |
+|---|---|
+| `ADAMS`, `ADAMS_MAALT` (uten `amu:`) | **0 av 87 valg** |
+| `V6`/`V7` (med `amu:`), kortkanalen A2 | **58 % av kortvalgene** |
+
+På de søkfrie stakkene er eneste kanal `Profilbok.justering`, som ba om maks
+**0,5075** budpoeng mot en terskel på **−3,0**. Minste forskyvning som snur et
+valg er 1,0. Den kan altså ikke endre noe, uansett hvor mye den lærer.
+
+**Men i V6/V7 fyrer kortkanalen hardt — 58 %.** Den er ikke frakoblet, og
+`test/k4-hukommelse.test.ts` låser fast at `okt:` nå NÅR gjennom `vr:` (den
+defekten er rettet). A2 krever at `aggressivitet` passerer `MIN_RUNDER = 4` per
+sete; med to forkamper står tellerne på 25/24/24/27.
+
+**Det gjør gåten skarpere, ikke løsere.** Hukommelsen endrer 58 % av valgene, og
+K6 måler likevel ingen vekst med rundenummer (z = 0,23). Da er ikke problemet at
+signalet mangler — det er at **endringene ikke er forbedringer**. Spørsmålet
+flytter seg fra ledningen til kvaliteten på motstandermodellen.
 
 **Og mekanismen som VILLE endret valget finnes:** `sumledd.ts:238` har et
 `stil`-ledd som former vårt eget kortvalg direkte —
