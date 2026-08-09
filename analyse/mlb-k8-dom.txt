@@ -1,0 +1,87 @@
+MLB FASE 0a — K8 MED TROHODET SOM EGEN ARM
+==========================================================================
+kilder        analyse/mlb-k8-hel.jsonl
+stillinger    9600   giv (klynger) 1200   skjulte kort 187200
+forkastet     0 rader med NaN i en arm
+verdener      V=64 for Monte-Carlo-armene; nettet har ingen V
+stikk         2–9
+SE            klyngebootstrap over giv, B=20000
+
+NIVÅ (log-tap per skjult kort; LAVERE er bedre)
+  arm             log-tap      SE        treff@1     % av veien gulv → tak
+  gulv           1,0986   ±0,0000          —        0,00 %
+  gulvPluss      1,0347   ±0,0011          —        5,82 %
+  av             1,0554   ±0,0018    38,97 %        3,93 %
+  bayes          1,0529   ±0,0018    39,40 %        4,16 %
+  bayes+W        1,0506   ±0,0018    39,61 %        4,37 %
+  nett           0,9630   ±0,0020    46,55 %       12,34 %
+  klarsyn        0,0000   (tak)                     100,00 %
+
+PARRET, SAMME STILLINGER (forbedring positiv = raden er BEST)
+  kontrast                     forbedring    SE        z        giv der best
+  nett mot av                  +0,0924     0,0020   +46,0426   1097/1200 = 91,42 %
+  nett mot bayes               +0,0899     0,0020   +45,0971   1096/1200 = 91,33 %
+  nett mot bayes+W             +0,0875     0,0020   +44,2804   1089/1200 = 90,75 %
+  nett mot gulv+               +0,0717     0,0016   +44,7684   1092/1200 = 91,00 %
+  nett mot gulv                +0,1356     0,0020   +68,3065   1169/1200 = 97,42 %
+  av mot gulv+                 −0,0207     0,0013   −15,6107   419/1200 = 34,92 %
+  bayes mot gulv+              −0,0182     0,0013   −13,7254   469/1200 = 39,08 %
+  bayes+W mot gulv+            −0,0158     0,0013   −12,0707   488/1200 = 40,67 %
+
+REPLIKASJON I DISJUNKTE FRØBÅND (600 og 600 giv, ingen overlapp)
+  kontrast                     bånd A       bånd B       samlet
+  nett mot av                    +0,0918     +0,0929     +0,0924
+  nett mot bayes                 +0,0894     +0,0903     +0,0899
+  nett mot bayes+W               +0,0872     +0,0879     +0,0875
+  nett mot gulv+                 +0,0705     +0,0728     +0,0717
+  nett mot gulv                  +0,1343     +0,1369     +0,1356
+  av mot gulv+                   −0,0213     −0,0201     −0,0207
+  bayes mot gulv+                −0,0189     −0,0175     −0,0182
+  bayes+W mot gulv+              −0,0167     −0,0150     −0,0158
+
+PER STIKK (log-tap per kort)
+  stikk    n         gulv gulvPluss        av     bayes   bayes+W      nett
+      2  1200       1,0986    1,0753    1,0978    1,0974    1,0967    1,0452
+      3  1200       1,0986    1,0674    1,0845    1,0827    1,0806    1,0034
+      4  1200       1,0986    1,0521    1,0683    1,0664    1,0643    0,9781
+      5  1200       1,0986    1,0303    1,0482    1,0450    1,0410    0,9407
+      6  1200       1,0986    1,0067    1,0230    1,0204    1,0162    0,9111
+      7  1200       1,0986    0,9926    1,0152    1,0120    1,0096    0,8969
+      8  1200       1,0986    0,9746    1,0016    0,9970    0,9947    0,8899
+      9  1200       1,0986    0,9721    1,0126    1,0056    1,0040    0,8918
+
+SETE FOR SETE (budvinneren kjenner sitt eget vrak; kanal 2 er stum der)
+  utvalg                        rader         gulv gulvPluss        av     bayes   bayes+W      nett
+  observatør ≠ budvinner        3436       1,0986    0,9864    0,9843    0,9810    0,9745    0,8242
+  observatør = budvinner        6164       1,0986    1,0621    1,0957    1,0937    1,0937    1,0418
+
+EFFEKTIV SANNSYNLIGHET på riktig sete, exp(−log-tap)  (uvitenhet = 0,3333)
+  gulv           0,3333
+  gulvPluss      0,3553
+  av             0,3481
+  bayes          0,3489
+  bayes+W        0,3497
+  nett           0,3817
+
+DOMMEN
+==========================================================================
+  dagens beste Monte-Carlo-arm   bayes+W  (log-tap 1,0506, 4,37 % av veien)
+  gulv+ (bare renonser)          1,0347  (5,82 % av veien)
+  MLB-trohodet                   0,9630  (12,34 % av veien)
+
+  nett slår bayes+W              +0,0875 ± 0,0020  (z = +44,2804)
+    z ≥ 2 og samme fortegn i A og B?  JA  (A +0,0872, B +0,0879)
+  nett slår gulv+                +0,0717 ± 0,0016  (z = +44,7684)
+    z ≥ 2 og samme fortegn i A og B?  JA  (A +0,0705, B +0,0728)
+
+  HYPOTESEN (docs/mlb.md fase 0a): et trohode trent veiledet på perfekte
+  etiketter slår dagens tro, og kanskje gulv+, uten noe søk.
+  SVAR: JA — begge
+
+  LES DETTE FØR TALLENE BRUKES:
+   · Monte-Carlo-armene har et gulv på p (1/(2V)) som hindrer log(0). Det er
+     en HJELP de får og nettet ikke får. Skjevheten går i dagens tros favør.
+   · Stillingene er spilt av ADAMS_MAALT i alle fire seter. Fordelingen av
+     stillinger arver spilleren, og det gjør troens vanskelighetsgrad også.
+   · Dommen gjelder de stikkene som står i tabellen over, ikke runden i sin
+     helhet. Troen skal bli skarpere utover i runden.

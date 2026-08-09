@@ -1,0 +1,75 @@
+MLB FASE 0a — K8 MED TROHODET SOM EGEN ARM
+==========================================================================
+kilder        analyse/mlb-k8-nevro-hel.jsonl
+stillinger    9600   giv (klynger) 1200   skjulte kort 187200
+forkastet     0 rader med NaN i en arm
+verdener      V=64 for Monte-Carlo-armene; nettet har ingen V
+stikk         2–9
+SE            klyngebootstrap over giv, B=20000
+
+NIVÅ (log-tap per skjult kort; LAVERE er bedre)
+  arm             log-tap      SE        treff@1     % av veien gulv → tak
+  gulv           1,0986   ±0,0000          —        0,00 %
+  gulvPluss      1,0413   ±0,0011          —        5,22 %
+  bayes          1,0476   ±0,0016    39,62 %        4,65 %
+  nett           1,0427   ±0,0024    42,69 %        5,09 %
+  klarsyn        0,0000   (tak)                     100,00 %
+
+PARRET, SAMME STILLINGER (forbedring positiv = raden er BEST)
+  kontrast                     forbedring    SE        z        giv der best
+  nett mot bayes               +0,0049     0,0023    +2,0955   653/1200 = 54,42 %
+  nett mot gulv+               −0,0014     0,0022    −0,6338   623/1200 = 51,92 %
+  nett mot gulv                +0,0559     0,0024   +22,8367   904/1200 = 75,33 %
+  bayes mot gulv+              −0,0063     0,0010    −6,4984   516/1200 = 43,00 %
+
+REPLIKASJON I DISJUNKTE FRØBÅND (600 og 600 giv, ingen overlapp)
+  kontrast                     bånd A       bånd B       samlet
+  nett mot bayes                 +0,0044     +0,0054     +0,0049
+  nett mot gulv+                 −0,0017     −0,0010     −0,0014
+  nett mot gulv                  +0,0560     +0,0558     +0,0559
+  bayes mot gulv+                −0,0061     −0,0064     −0,0063
+
+PER STIKK (log-tap per kort)
+  stikk    n         gulv gulvPluss     bayes      nett
+      2  1200       1,0986    1,0844    1,0931    1,1032
+      3  1200       1,0986    1,0697    1,0768    1,0615
+      4  1200       1,0986    1,0574    1,0654    1,0640
+      5  1200       1,0986    1,0408    1,0490    1,0340
+      6  1200       1,0986    1,0234    1,0324    1,0239
+      7  1200       1,0986    1,0101    1,0130    1,0052
+      8  1200       1,0986    0,9754    0,9757    0,9687
+      9  1200       1,0986    0,9465    0,9412    0,9466
+
+SETE FOR SETE (budvinneren kjenner sitt eget vrak; kanal 2 er stum der)
+  utvalg                        rader         gulv gulvPluss     bayes      nett
+  observatør ≠ budvinner        3684       1,0986    1,0075    1,0082    0,9611
+  observatør = budvinner        5916       1,0986    1,0633    1,0733    1,0959
+
+EFFEKTIV SANNSYNLIGHET på riktig sete, exp(−log-tap)  (uvitenhet = 0,3333)
+  gulv           0,3333
+  gulvPluss      0,3530
+  bayes          0,3508
+  nett           0,3525
+
+DOMMEN
+==========================================================================
+  dagens beste Monte-Carlo-arm   bayes  (log-tap 1,0476, 4,65 % av veien)
+  gulv+ (bare renonser)          1,0413  (5,22 % av veien)
+  MLB-trohodet                   1,0427  (5,09 % av veien)
+
+  nett slår bayes                +0,0049 ± 0,0023  (z = +2,0955)
+    z ≥ 2 og samme fortegn i A og B?  JA  (A +0,0044, B +0,0054)
+  nett slår gulv+                −0,0014 ± 0,0022  (z = −0,6338)
+    z ≥ 2 og samme fortegn i A og B?  NEI  (A −0,0017, B −0,0010)
+
+  HYPOTESEN (docs/mlb.md fase 0a): et trohode trent veiledet på perfekte
+  etiketter slår dagens tro, og kanskje gulv+, uten noe søk.
+  SVAR: DELVIS — slår dagens tro, men ikke gulv+
+
+  LES DETTE FØR TALLENE BRUKES:
+   · Monte-Carlo-armene har et gulv på p (1/(2V)) som hindrer log(0). Det er
+     en HJELP de får og nettet ikke får. Skjevheten går i dagens tros favør.
+   · Stillingene er spilt av ADAMS_MAALT i alle fire seter. Fordelingen av
+     stillinger arver spilleren, og det gjør troens vanskelighetsgrad også.
+   · Dommen gjelder de stikkene som står i tabellen over, ikke runden i sin
+     helhet. Troen skal bli skarpere utover i runden.

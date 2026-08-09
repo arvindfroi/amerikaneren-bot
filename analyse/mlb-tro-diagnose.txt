@@ -1,0 +1,33 @@
+=== MLB fase 0a: hva laerte trohodet? (2026-08-09 15:18) ===
+nett e1-modell/mlb-tro.bin   holdout mlb-tro-data/holdout-*.bin   147000 stillinger, 3094804 usette kort
+
+FORVIRRINGSMATRISE (rad = fasit, kolonne = argmaks)
+  fasit \ gjett   rel sete 1  rel sete 2  rel sete 3      TALONG     recall
+  rel sete 1          439945      220352      208472       52359     47.76 %
+  rel sete 2          216191      412259      208136       47875     46.61 %
+  rel sete 3          208971      203116      392393       43083     46.30 %
+  TALONG               88087       83904       72901      196760     44.55 %
+  --------------------------------------------------------------------------
+  presisjon rel sete 1    46.15 %
+  presisjon rel sete 2    44.83 %
+  presisjon rel sete 3    44.49 %
+  presisjon TALONG        57.86 %
+
+ARVINDS KJEDE: faller P(doed) med kortets verdi - i fasiten OG i modellen?
+  kort        n     fasit P(doed)    modell P(doed)
+     2     200451         26.19 %          26.75 %
+     3     219592         22.19 %          22.23 %
+     4     218146         20.52 %          20.92 %
+     5     226666         18.26 %          18.23 %
+     6     228195         17.62 %          17.56 %
+     7     239841         15.25 %          15.61 %
+     8     247988         13.94 %          13.61 %
+     9     258942         12.34 %          12.51 %
+    10     259720         12.75 %          11.71 %
+     J     271359         10.96 %          11.21 %
+     D     265128         10.29 %          10.66 %
+     K     244867          8.08 %           8.37 %
+     E     213909          0.48 %           0.52 %
+
+  Faller begge kolonnene fra 2 mot E, har nettet laert kjeden av aa se hvor
+  kortene laa - ingen fortalte det. Faller bare den foerste, har det ikke.

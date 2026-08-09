@@ -1,0 +1,24 @@
+
+=== MLB fase 0a: trohodet trent alene (2026-08-09 15:00) ===
+tapsform ce4, dims [660, 1024, 768, 512, 208], epoker 30, lr 0.001
+trening 1472490 rader, holdout 147000 rader (eget froebaand)
+kapasitetsreferanse: treff 31.50 %, K8-tap 1.0945
+beste epoke 7: CE4 1.05570  treff 45.98 %  honnoer 48.98 %  K8-tap 0.92305 (n=2653152)
+K8-tap per stikk: {0: 1.02809, 1: 0.99383, 2: 0.97619, 3: 0.94743, 4: 0.91389, 5: 0.87986, 6: 0.84249, 7: 0.80967, 8: 0.77775, 9: 0.75558, 10: 0.73548, 11: 0.63559}
+vekter -> e1-modell/mlb-tro.bin
+
+=== MLB fase 0a: trohodet trent alene (2026-08-09 15:04) ===
+tapsform ce4, dims [660, 1024, 768, 512, 208], epoker 26, lr 0.001
+trening 2454019 rader, holdout 147000 rader (eget froebaand)
+kapasitetsreferanse: treff 31.50 %, K8-tap 1.0945
+beste epoke 8: CE4 1.04653  treff 46.57 %  honnoer 49.76 %  K8-tap 0.91417 (n=2653152)
+K8-tap per stikk: {0: 1.02271, 1: 0.98839, 2: 0.97082, 3: 0.94015, 4: 0.90509, 5: 0.86879, 6: 0.83091, 7: 0.79627, 8: 0.76224, 9: 0.73672, 10: 0.71222, 11: 0.61793}
+vekter -> e1-modell/mlb-tro.bin
+
+=== MLB fase 0a: trohodet trent alene (2026-08-09 15:35) ===
+tapsform ce4, dims [660, 1024, 768, 512, 208], epoker 16, lr 0.001
+trening 980836 rader, holdout 146918 rader (eget froebaand)
+kapasitetsreferanse: treff 31.49 %, K8-tap 1.0945
+beste epoke 16: CE4 1.02526  treff 48.39 %  honnoer 48.47 %  K8-tap 0.88712 (n=2653152)
+K8-tap per stikk: {0: 1.02228, 1: 0.98471, 2: 0.95074, 3: 0.91576, 4: 0.88225, 5: 0.84513, 6: 0.80039, 7: 0.74667, 8: 0.68775, 9: 0.62675, 10: 0.57542, 11: 0.51667}
+vekter -> e1-modell/mlb-tro-nevro.bin

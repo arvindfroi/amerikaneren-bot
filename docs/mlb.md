@@ -148,6 +148,13 @@ etterpå. Det som trenes er det som spiller.
 > P(kortet er dødt) faller fra 26,2 % for en toer til 0,48 % for et ess, og
 > modellen treffer kalibreringen på hver rang.
 >
+> **OG DEN VIKTIGSTE MÅLINGEN: troen er MOTSTANDERSPESIFIKK.** Mot
+> `nevro`-stillinger, som nettet ikke er trent på, faller det til 5,09 % og slår
+> **ikke** `gulv+`. Trent på `nevro` og målt på `nevro`: **16,43 %**. Metoden
+> overføres, vektene ikke. Det binder fase 0a til ligaen — trohodet må trenes på
+> befolkningen det spiller mot, og trenes om når den flytter seg. I ligaen er det
+> gratis, for stillingene finnes allerede og etiketten er fasit om fortiden.
+>
 > Filer: `src/mlb/trotrekk.ts`, `src/mlb/tronett.ts`,
 > `examples/mlb-trodata.ts`, `verktoy/mlb-tro-tren.py`, `examples/mlb-k8.ts`,
 > `analyse/mlb-k8-dom.mjs`, `test/mlb-k2-tro.test.ts`,

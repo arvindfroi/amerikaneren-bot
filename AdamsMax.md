@@ -376,8 +376,23 @@ stikk 4 (688 av 800 rader) og kunne ikke se runden.
 | | log-tap | andel av veien gulv → tak |
 |---|---|---|
 | gulv+ (bare renonser) | 1,0342 | 5,86 % |
-| beste arm (bayes+W) | 1,0525 | **4,20 %** |
+| beste Monte-Carlo-arm (bayes+W) | 1,0525 | 4,20 % |
+| **MLB-trohodet** (§119) | **0,9630** | **12,34 %** |
 | klarsyn | 0 | 100 % |
+
+**§119 FLYTTET TALLET, OG IKKE MED EN SLUTNINGSREGEL.** Et rent nett trent
+veiledet på «hvor kortene faktisk lå» — ingen mester, ingen orakel, ingen søk —
+måler 0,9630 mot 1,0506 for den beste Monte-Carlo-armen på nøyaktig de samme
+9 600 stillingene (+0,0875 ± 0,0020, z = +44,3, best i 1 089 av 1 200 giv,
+replikert i to disjunkte frøbånd). Det er den første armen som slår `gulv+`, og
+den er nesten tre ganger så langt oppe som alt vi hadde. Se §119.
+
+**MEN TALLET GJELDER ÉN MOTSTANDER.** Målt mot `nevro`-stillinger, som nettet
+ikke er trent på, faller det til 5,09 % og slår **ikke** `gulv+`
+(−0,0014 ± 0,0022). Trent på `nevro` og målt mot `nevro` går det til **16,43 %**.
+Metoden overføres, vektene gjør det ikke — og prisen for å ta feil om
+motstanderen er ~7 prosentpoeng av veien til taket. Det er «K8 uten K6 er en
+énmodell-antakelse», nå med et tall på.
 
 **Avstanden til taket er ~95 %.** Alle slutningene til sammen flytter troen
 0,42 % av veien fra uvitenhet til klarsyn. Renonsene alene flytter tretten
@@ -390,8 +405,10 @@ V-sveipen på nøyaktig samme 982 stillinger: underskuddet for «av» er −0,08
 ved V=16, −0,0211 ved V=64 og −0,0079 ved V=256; for «bayes» −0,0840, −0,0191
 og **−0,0053 (z = −1,5), der det ikke lenger er signifikant**. Serien har ikke
 konvergert — skrittet 64 → 256 er fortsatt z = +11 — så det sanne nivået ligger
-under tallene i tabellen over. **Å heve V er det billigste kjente løftet på
-troen**, og det er ikke prøvd på benken.
+under tallene i tabellen over. Å heve V så derfor ut som det billigste kjente
+løftet på troen. **§119 viste at det ikke var det:** hele Jensen-straffen er
+verdt ~0,02, mens nettet henter +0,0875. Straffen var ekte, men den var ikke
+der pengene lå.
 
 Tre feil i selve målingen er fanget underveis, og alle tre er fortsatt
 gjeldende advarsler: Monte-Carlo-oppløsningen (V=12 måler oppløsning, ikke
@@ -535,7 +552,7 @@ arbeidslista, og den er ærlig om hva som er kode og hva som er timer:
 | K5 kontekst og tilpasning | ja | **nei** — alfa-mu i alle roller MÅLT: makker og forsvar ≤ 0 i alle armer (§109) |
 | K6 lære vaner og utnytte | ja | **nei** — detektoren målt og felt: den finner ikke en stilisert vane (§108) |
 | K7 optimalt sluttspill | ja | **nei** — +0,064 igjen ved to stikk, +0,947 ved fem. Full alpha-mu-dybde målte null (§117) |
-| K8 predikere kort | ja | **nei** — 4,20 % av veien gulv → tak, altså ~95 % igjen (§117). 2 av 6 kanaler koblet |
+| K8 predikere kort | ja | **nei** — men 4,20 % → **12,34 %** av veien gulv → tak med MLB-trohodet (§119). Første arm som slår `gulv+` — og bare mot den motstanderen den er trent på |
 
 **Alle åtte har nå en prøve.** Det var fire uten da fila ble skrevet.
 
@@ -578,9 +595,11 @@ avvist billig.
 ### Rekkefølgen
 
 1. ~~K2-prøven~~ — **ferdig.**
-2. ~~K8-prøven~~ — **ferdig** (§117). Svaret er 4,20 % av veien til taket, og
-   det neste steget er ikke flere slutningsregler, men **V** — sveipen viser at
-   oppløsningen koster mer enn alle slutningene til sammen gir.
+2. ~~K8-prøven~~ — **ferdig** (§117), og **besvart på nytt** (§119). Et
+   trohode trent veiledet på «hvor kortene faktisk lå» står på **12,34 %** av
+   veien til taket mot dagens 4,20 %, og er den første armen som slår `gulv+`.
+   K8 er en DATAOPPGAVE, ikke en slutningsoppgave — verken flere
+   slutningsregler eller høyere V var svaret.
 3. **Kampbenken som port** — låser opp K4, K5 og K6, som er umålbare uten den.
 4. **K6-prøven** — stilisert motstander, gevinst som vokser med rundenummer.
 5. **K3 budrunden** — 41,8 % av taket, det eneste vinduet stort nok for K1.

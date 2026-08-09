@@ -8518,3 +8518,196 @@ seg. Alle tre er nå parkert som standard, og det er den riktige lærdommen:
 
 `d5` og `B4` har hver sin målte kostnad og null målt gevinst. `kamp1.5` er
 umålt — den kunne ikke sees på gate 2 og ble aldri kjørt alene på kampbenken.
+
+## §119 — MLB fase 0a: trohodet alene slår dagens tro med tre ganger, og hypotesen holdt
+
+`docs/mlb.md` fase 0a var den ene delen av MLB-planen som kunne gi et
+falsifiserbart svar på én dag. Den er kjørt, og svaret er ja.
+
+**Hypotesen, skarpt formulert:** dagens tro er et MONTE-CARLO-ESTIMAT — den
+trekker V verdener og teller. Log-tap straffer den variansen systematisk
+(Jensen), og §117 målte at underskuddet kollapser med V. **Et nett har ingen
+slik straff.** Det gir én glatt fordeling per stilling. Et trohode trent
+veiledet på perfekte etiketter burde derfor slå dagens tro, og kanskje `gulv+`,
+uten noe søk i det hele tatt.
+
+### Dommen, på 9 600 stillinger fra 1 200 giv
+
+`analyse/mlb-k8-dom.txt`. Samme stillingsutvalg, samme drivere, samme frøbånd og
+samme renormalisering som §117 — bare med nettet som en arm ved siden av.
+
+| arm | log-tap | SE | treff@1 | % av veien gulv → tak |
+|---|---|---|---|---|
+| gulv (uniform over 3) | 1,0986 | — | — | 0 % |
+| **gulv+** (uniform over ikke-renons) | 1,0347 | ±0,0011 | — | 5,82 % |
+| av | 1,0554 | ±0,0018 | 38,97 % | 3,93 % |
+| bayes (A5) | 1,0529 | ±0,0018 | 39,40 % | 4,16 % |
+| bayes+W (A5 + kanal 2) | 1,0506 | ±0,0018 | 39,61 % | 4,37 % |
+| **MLB-trohodet** | **0,9630** | ±0,0020 | **46,55 %** | **12,34 %** |
+| klarsyn | 0 | — | — | 100 % |
+
+Armene reproduserer §117 innenfor 0,002 på hver eneste rad, så riggen måler det
+samme som sist.
+
+Parret på giv:
+
+```
+nett − bayes+W    +0,0875 ± 0,0020   (z = +44,3)   best i 1 089/1 200 giv
+nett − gulv+      +0,0717 ± 0,0016   (z = +44,8)   best i 1 092/1 200 giv
+```
+
+Replikert i to disjunkte frøbånd: +0,0872 og +0,0879 mot `bayes+W`, +0,0705 og
++0,0728 mot `gulv+`.
+
+**Dagens beste sto på 4,20 % av veien gulv → tak (§117). Trohodet står på
+12,34 %.** Nesten tre ganger så langt, og — for første gang — over `gulv+`.
+
+### Kontrollen: var det bare oppløsning? Nei.
+
+§117 endte med at «å heve V er det billigste kjente løftet på troen». Samme
+9 600 stillinger, `bayes` kjørt om igjen på **V=256** (`analyse/mlb-k8-dom-v256.txt`):
+
+| arm | log-tap | % av veien |
+|---|---|---|
+| gulv+ | 1,0347 | 5,82 % |
+| bayes, V=64 | 1,0529 | 4,16 % |
+| **bayes, V=256** | 1,0400 | 5,33 % |
+| **nett** | **0,9630** | **12,34 %** |
+
+`bayes − gulv+` er `−0,0053 ± 0,0012` ved V=256 — **identisk til fjerde desimal
+med §117s delutvalg**, som er en uavhengig bekreftelse av at riggen måler det
+samme. Firedobling av V kjøper `+0,0129`. Nettet kjøper `+0,0899` over samme arm
+ved V=64, og `+0,0770 ± 0,0019` (z = +39,9) over den ved V=256.
+
+**Jensen-straffen var ekte, men den var ikke der pengene lå.**
+
+### Skjevheten går i dagens tros favør, ikke i nettets
+
+Monte-Carlo-armene får et gulv på sannsynligheten (`1/(2V)`) som hindrer
+`log(0)`. Det er en HJELP. Nettet får ingenting tilsvarende: softmax er aldri
+null, så det trenger ikke noe gulv, og det får heller ikke noe. Målt gulvbinding
+for nettet: 0 av 9 600 rader, per konstruksjon.
+
+### Og troen blir skarpere utover i runden — for nettet
+
+| stikk | gulv+ | bayes+W | nett |
+|---|---|---|---|
+| 2 | 1,0753 | 1,0967 | 1,0452 |
+| 5 | 1,0303 | 1,0410 | 0,9407 |
+| 9 | 0,9721 | 1,0040 | **0,8918** |
+
+Monte-Carlo-armene faller fra 1,0967 til 1,0040 — og går faktisk OPP igjen i
+stikk 9. Nettet faller monotont, fra 1,0452 til 0,8918. Det er nettopp der
+Jensen-straffen skulle vokse (p nærmer seg 0 eller 1), og nettet betaler den
+ikke.
+
+### Nettet lærte Arvinds egen slutningskjede, uten at noen fortalte den
+
+Arvind, 4. august: «jeg tipper budvinneren hiv de lave kortene i vrak fordi det
+egnet han best og det hadde ikke vært bra for han å hive en ess.»
+
+`analyse/mlb-tro-diagnose.txt`, 3,09 millioner usette kort på holdout:
+
+| kort | fasit P(død) | modell P(død) |
+|---|---|---|
+| 2 | 26,19 % | 26,75 % |
+| 5 | 18,26 % | 18,23 % |
+| 9 | 12,34 % | 12,51 % |
+| K | 8,08 % | 8,37 % |
+| **E** | **0,48 %** | **0,52 %** |
+
+Femtiseks ganger lavere sannsynlighet for at et ess er dødt enn en toer, og
+modellen treffer kalibreringen på hver eneste rang innenfor noen tideler. Ingen
+regel er kodet inn: nettet har sett hvor kortene lå, og lest budvinnerens vaner
+ut av det.
+
+Det er også der gevinsten er størst. Delt på observatørens sete:
+
+```
+observatør ≠ budvinner   gulv+ 0,9864   bayes+W 0,9745   nett 0,8242
+observatør = budvinner   gulv+ 1,0621   bayes+W 1,0937   nett 1,0418
+```
+
+Er observatøren selv budvinneren, kjenner hun sitt eget vrak, og talongklassen
+er umulig — den slutningen er da verdiløs. Er hun det ikke, er den den største
+enkeltkilden nettet har.
+
+### DEN VIKTIGSTE MÅLINGEN: troen er MOTSTANDERSPESIFIKK, og det er ikke en detalj
+
+Rapporten over har én åpenbar innvending: stillingene er spilt av
+`ADAMS_MAALT`, og nettet er trent på stillinger fra `ADAMS_MAALT`. Lærte det
+troen, eller lærte det den spilleren? Prøvd, i stedet for antatt — samme prøve,
+men stillingene spilt av `nevro`, en helt annen bot:
+
+| trent på | målt på | log-tap | % av veien | mot `gulv+` |
+|---|---|---|---|---|
+| `ADAMS_MAALT` | `ADAMS_MAALT` | 0,9630 | **12,34 %** | +0,0717 (z = +44,8) |
+| `ADAMS_MAALT` | `nevro` | 1,0427 | 5,09 % | **−0,0014 (z = −0,63)** |
+| `nevro` | `nevro` | **0,9182** | **16,43 %** | +0,1232 (z = +61,5) |
+
+**Mot en spiller den ikke er trent på, slår trohodet ikke engang `gulv+`.** Hele
+gevinsten er borte: `+0,0049 ± 0,0023` mot `bayes`, som er innenfor det vi ellers
+kaller støy. Treffraten faller fra 46,55 % til 42,69 % mens `bayes` står stille
+på 39,6 % — altså er det nettet som taper, ikke stillingene som er vanskeligere.
+
+Og trent på den SAMME spilleren den måles mot, går den til 16,43 % og er best i
+1 155 av 1 200 giv.
+
+**Metoden overføres. Vektene gjør det ikke.** Det er ikke en svakhet ved
+resultatet, det er hva troen ER: `AdamsMax.md` skriver selv at «K8 uten K6 er en
+énmodell-antakelse». Her er den antakelsen målt, og prisen for å ta feil om
+motstanderen er ~7 prosentpoeng av veien til taket — mer enn alt A1, A5, A6 og
+kanal 2 gir til sammen, mange ganger om.
+
+**Følgen for MLB:** trohodet må trenes på den befolkningen det spiller mot, og
+trenes om når befolkningen flytter seg. I ligaen er det gratis — stillingene
+finnes allerede, og etiketten er fasit om fortiden. Utenfor ligaen er det en
+åpen risiko, og det er samme risiko K6 handler om.
+
+### Herkomsten, håndhevet og ikke lovet
+
+- Trekkene bygges av `spillerVisning(state, sete)` — aldri av `state`.
+  `test/mlb-k2-tro.test.ts` bytter ut de skjulte hendene med
+  `trekkVerdener` + `medVerden` og krever **bit-identisk** trekkvektor. Prøven
+  har en kontroll som lekker ÉN bit, og den blir tatt.
+- `test/mlb-herkomst.test.ts` følger importgrafen fra `src/mlb/` og feiler hvis
+  den noen gang når `src/solver/` (dobbeltdummy), noe med `orakel` i navnet,
+  SD-agentene, alpha-mu, `juksagent` eller `vrakrang`. Den har også en kontroll
+  som viser at regelsettet fanger en konstruert forbudt sti.
+- Etiketten er hvor kortene FAKTISK lå, kjent ved rundeslutt. Ingen
+  SD-evaluering, ingen dobbeltdummy, ingen `d7alle` i inngang eller gradient.
+
+**Stillingene er spilt av `ADAMS_MAALT` i alle fire seter**, og det står her
+fordi fordelingen av stillinger arver spilleren. Det er en MÅLING og ikke en
+gradient, som `docs/mlb.md` §0 uttrykkelig tillater — og hvor mye det betyr er
+målt over, ikke antatt.
+
+### Oppskriften, som er billigere enn noen trodde
+
+```
+node examples/mlb-trodata.ts --giver 100000 --skard i/12 --band trening ...   ~2 min på 12 kjerner
+verktoy/mlb-tro-tren.py --epoker 26 --skjult 1024,768,512                     ~2 min på RTX 5080
+node examples/mlb-k8.ts --giver 1200 --skard i/12                             ~9 min på 12 kjerner
+```
+
+2,45 millioner treningsrader, 660 trekk, 52 × 4 utganger, 1,96 M vekter. Hele
+fase 0a — fra ingenting til dommen — er en drøy time maskintid.
+
+### Hva det betyr, og hva det ikke betyr
+
+**Det betyr at K8 er en dataoppgave, ikke en slutningsoppgave.** §117 avsluttet
+med at «veien dit går ikke gjennom flere slutningsregler». Den gikk gjennom å
+lære fordelingen direkte. A1, A5, A6 og kanal 2 flytter til sammen +0,0046;
+nettet flytter +0,0875 mot den beste av dem.
+
+**Det betyr ikke at K8 er innfridd.** 12,34 % av veien til klarsyn er fortsatt
+~88 % igjen, og «veldig høyt nivå» er ikke definert som et bestemt tall. Men det
+er første gang tallet beveger seg mer enn en brøkdel.
+
+**Og tallet gjelder én motstander.** Mot en annen bot faller det til 5,09 % og
+slår ikke `gulv+`. Skal K8 påstås generelt, må prøven kjøres mot flere
+befolkninger — eller trohodet må lære motstanderen underveis, som er K4 og K6.
+
+**Og det er ikke utrullet.** Trohodet er målt som en arm, ikke koblet til
+`fyllSanser`, `monteTro` eller søket. Om bedre tro gir bedre spill er et annet
+spørsmål med sin egen benk.
