@@ -116,8 +116,45 @@ lærer henne. Andre rad er den egentlige prøven, og den er null.
 **Det som virker:** `stilbias.ts` — residualet mot nettets egen forventning.
 Kontroll ga 0 falske positive, en innøvd vane ble tatt på 17 SE.
 
-**MLB-svaret:** befolkningen MÅ inneholde stiliserte vaner. Møter nettet bare
-seg selv, finnes det ingen vane å utnytte, og K6 kan ikke læres.
+### Hvorfor en detektor som VIRKER ikke gir vekst (funnet 9. august)
+
+Detektoren er ikke problemet. **Ledningen er.** Det oppdagede tiltet `beta`
+(`okt.ts:306`) går til nøyaktig to steder, og begge ligger inne i *søkets
+modell av de andre*:
+
+| bane | hva den gjør |
+|---|---|
+| `atferdFor` | vekter hvilke verdener vi trekker — altså **troen** |
+| `motpartFor` | hvem søket ruller ut som motstander |
+
+**Ingen av dem endrer vårt eget valg direkte.** Å vite at hun spiller høyt
+oftere enn ventet flytter bare vår tro om hånden hennes, og troen er den
+svakeste kanalen vi har — K8 står på 12,34 % av veien til taket. Vanekunnskapen
+blir fortynnet til nesten ingenting før den når en beslutning.
+
+Det forklarer også hvorfor `okt:`/`profil:` endret **0,9 % av valgene** selv mot
+en åpenbar vane.
+
+**Og mekanismen som VILLE endret valget finnes:** `sumledd.ts:238` har et
+`stil`-ledd som former vårt eget kortvalg direkte —
+`mål = h(nettets kort) + stilvri(sete)`. Det er bygd og testet. Antall
+navngitte stakker som bruker `sum:`: **null.**
+
+| stakk | lag |
+|---|---|
+| `ADAMS`, `ADAMS_MAALT` | `vr: budm: vakt: e1:` — **ingen `okt:`, ingen `profil:`** |
+| `ADAMS_V6`, `ADAMS_V7` | `okt: vr: amu: profil: budm: vakt: e1:` |
+
+Altså: den utrullede og den mest målte stakken har **ikke noe vaneapparat i det
+hele tatt**, og de to som har det, mater det bare inn i søkets motstandermodell.
+
+Dette er samme mønster som gammelkode-revisjonen fant én etasje opp: **fiksen
+blir skrevet, dokumentert og testet — og så ikke koblet inn til ende.**
+
+**MLB-svaret:** de 144 hukommelsestallene går rett inn i **policyen**, ikke bare
+i verdenstrekkingen. Da kan vanen endre valget, ikke bare troen. Og befolkningen
+MÅ inneholde stiliserte vaner — møter nettet bare seg selv, finnes det ingen
+vane å utnytte, og K6 kan ikke læres.
 
 ---
 
