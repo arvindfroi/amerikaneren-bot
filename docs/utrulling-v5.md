@@ -1,5 +1,11 @@
 # Adams-v5 — utrullingssjekkliste
 
+> **10. AUGUST: LISTA ER HALVVEIS UTFØRT, OG DET ER VERRE ENN IKKE UTFØRT.**
+> Se «Målt mot det levende endepunktet» nederst. Steg 1 og halve steg 2 ER
+> gjort — `app.js` ute er bit-identisk med `web/dist/app.js` — mens
+> `worker.js` og budmodellene aldri ble lastet opp. Setningen under, om at
+> familien «møter fortsatt v3», er derfor **feil siden 6. august**.
+
 Alt i denne lista er **forberedt, ikke utført**. `web/dist/app.js` er urørt, så
 familien møter fortsatt v3 til noen kjører stegene under.
 
@@ -120,6 +126,102 @@ sett soekevidden til null i `web/app.ts` for å slå søket av uten andre endrin
 **Nedlastingen dobles:** 2,4 MB kortvekter + 4,6 MB trosnett. Det finnes
 allerede en `.gz.b64`-variant i `web/dist` som presedens hvis det blir for
 tungt på mobil.
+
+## MÅLT MOT DET LEVENDE ENDEPUNKTET — 10. august
+
+Ikke lest av lista, ikke antatt: hentet med `curl` og prøvd i en nettleser.
+
+| fil | ute | lokalt | dom |
+|---|---|---|---|
+| `app.js` | 692 461 B, md5 `9a8ff21a…` | **identisk** | v5 ER ute |
+| `worker.js` | 20 761 B | 598 836 B | **gammel** |
+| `bud-menneske.json` | HTML-fallback | finnes | **aldri lastet opp** |
+| `bud-vant.json` | HTML-fallback | finnes | **aldri lastet opp** |
+| `bud-gbt.json` | 322 134 B | finnes | ute (v3-modellen) |
+| `adams-kort.b64`, `adams-vrak.b64` | riktig | — | ute |
+
+### 1. Workeren svarer på meldinger den ikke kjenner — med feil bot
+
+Den utrullede `worker.js` inneholder verken `"adams-init"` eller
+`"adams-trekk"`. `onmessage` er en kjede av `if (m.type === …) return;` som
+ender i en **ukommentert felle**: alt som ikke er `init` eller `pondre` faller
+gjennom til `beslutt`-grenen.
+
+Prøvd i en nettleser (`scratchpad/worker-probe.mjs`):
+
+```
+adams-init   -> {"feil":"TypeError: … undefined (reading 'fase')"}
+adams-trekk  -> {"id":4242,"feil":"TypeError: … undefined (reading 'antallStikk')"}
+```
+
+Begge feilene kommer fra `beslutt`-grenen, og `adams-trekk` svarer **med
+forespørselens id**. Med en EKTE stilling kaster den ikke — den returnerer
+`{ id, handling }`, altså et lovlig kort valgt av den gamle PIMC-agenten med
+tomme opsjoner (`init` sendes aldri i «Vaar»-løypa). Appen kan ikke se
+forskjell, godtar det, og logger `soek: { brukt: true }`.
+
+**Førersetets kortvalg — tre av fire runder — har vært tatt av PIMC**, som
+taper 72,6 ± 8,5 poeng per kamp mot MesterAI der Adams taper 5,0 ± 1,5. Ikke
+et stille fall tilbake: et stille BYTTE.
+
+Rettet i `web/app.ts` med en **kvittering**: workeren svarer `{ klar: true }`
+på `adams-init`, og `adams-trekk` sendes ikke før den er kommet. En eldre
+worker kjenner ikke feltet og faller ut av veien i stedet. Uteblir
+kvitteringen, spiller hovedtrådens søkfrie Adams — svakere enn Adams med søk,
+mye sterkere enn PIMC. **Dette gjør ikke søket levende igjen; det krever at
+`web/dist/worker.js` faktisk lastes opp.**
+
+### 2. Budmodellen har ikke vært i bruk siden 6. august
+
+Konstanten ble 6. august flyttet fra `bud-gbt.json` til `bud-menneske.json`
+med `bud-vant.json` som reserve. **Ingen av de to er lastet opp.** Val Town
+svarer 200 med HTML, `hentBudmodell` gjør riktig og returnerer `null` for
+begge, og kjeden hadde ikke noe tredje ledd — så appen falt helt ned på
+NevroHjernes budgivning. Konsollen sa det hver eneste gang; ingen leser en
+nettleserkonsoll på en iPad i sofaen.
+
+Målt kostnad: `bud-gbt` mot ingen budmodell er **+0,618 ± 0,166 poeng per
+runde (3,7 SE)** parret mot MesterAI. Det er det familien har spilt uten.
+
+`web/app.ts` har nå `BUDMODELL_SISTE_UTVEI = "bud-gbt.json"` som tredje ledd.
+Det er en **nødbrems, ikke rettelsen** — rettelsen er å laste opp
+`bud-menneske.json`.
+
+### 3. Testhullet
+
+`test/utrullet-lik-maalt.test.ts` håndhever at reserven er en ANNEN fil enn
+hovedmodellen, med begrunnelsen «feiler den ene, feiler den andre likedan».
+Nøyaktig det skjedde — og testen var grønn, fordi den sjekker at navnene er
+ulike, ikke at filene er UTLAGT. En test som sjekker det levende endepunktet
+er det som mangler.
+
+### 4. Byggekommandoen i denne lista stemmer ikke med artefakten
+
+Lista sier `--minify`. Den utrullede `app.js` begynner med `// src/kort.ts`,
+altså esbuilds filgrense-kommentar — **den er ikke minifisert**. `worker.js`
+er det. To artefakter, to byggekommandoer, én dokumentert.
+
+Det er ikke uskyldig: første forsøk på å måle `src/`-driften sammenlignet en
+minifisert ny bunt mot den umminifiserte utrullede og «fant» 70 KB forskjell.
+Målt riktig, begge umminifisert:
+
+| | byte |
+|---|---|
+| utrullet `app.js` | 692 461 |
+| gammel `web/app.ts` + dagens `src/` | 700 804 |
+| ny `web/app.ts` + dagens `src/` | 705 304 |
+
+**`src/`-driften er 8 343 B, ikke 70 000.** Frontend-endringene er 4 500 B.
+Fjortende-og-litt-til utgave av «det målte var ikke det jeg mente» — fanget
+før det rakk inn i en beslutning, men bare så vidt.
+
+`web/dist/app.js` bygges nå UTEN `--minify`, slik den utrullede er, så en
+opplasting endrer én ting av gangen. Skal den minifiseres, er det en egen
+beslutning.
+
+MLB, sumvelgeren og vaktendringene fra 8.–10. august følger uansett med i
+enhver ny bunt, og de er ikke målt i appens miljø. Det er lite kode, men det
+er ikke null.
 
 **`bud-menneske.json` er IKKE med i v5.** Den er kalibrert mot familiens
 faktiske budgivning (§47, §50) og er trolig riktigere for appen enn

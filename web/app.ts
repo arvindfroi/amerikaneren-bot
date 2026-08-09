@@ -147,6 +147,42 @@ const VAKTFLAGG = "abmp";
 const BUDMODELL = "bud-menneske.json";
 const BUDMODELL_RESERVE = "bud-vant.json";
 /**
+ * TREDJE LEDD — LAGT TIL 10. AUGUST FORDI KJEDEN FAKTISK BRAST I DRIFT.
+ *
+ * Kommentaren over sier at kjeden er «målt modell → forrige utrullede →
+ * NevroHjerne», og at Val Town svarer 200 med HTML på filer som ikke er lastet
+ * opp. Begge deler stemmer. Det som IKKE stemte, var at kjeden hadde det
+ * mellomste leddet:
+ *
+ *     GET /bud-menneske.json  ->  <!doctype html…   (209 309 byte)
+ *     GET /bud-vant.json      ->  <!doctype html…   (209 309 byte)
+ *     GET /bud-gbt.json       ->  {"dim":128,…      (322 134 byte)
+ *
+ * Målt mot det levende endepunktet, ikke antatt. Verken `bud-menneske` eller
+ * `bud-vant` er lastet opp. Det ENESTE budmodellfilnavnet som finnes der er
+ * `bud-gbt.json` — det v3 brukte — og da konstanten 6. august ble flyttet fra
+ * `bud-gbt` til `bud-menneske`, falt appen ut av budmodellen helt og ned på
+ * NevroHjernes budgivning uten at noe feilet.
+ *
+ * Vaktposten i `hentBudmodell` gjorde jobben sin: den så HTML-en og
+ * returnerte `null`. Men reserven pekte på en fil som heller ikke lå der, og
+ * da var det ingenting igjen. Konsollen sa det hele tiden — «Budmodellen
+ * kunne ikke lastes – spiller med NevroHjernes bud» — men ingen leser en
+ * nettleserkonsoll på en iPad i sofaen.
+ *
+ * KOSTNADEN ER MÅLT, og den står i kommentaren over denne: `bud-gbt` mot
+ * ingen budmodell er **+0,618 ± 0,166 poeng per runde (3,7 SE)** parret mot
+ * MesterAI. Det er den forskjellen familien har spilt uten.
+ *
+ * DETTE ER EN NØDBREMS, IKKE RETTELSEN. Rettelsen er å laste opp
+ * `bud-menneske.json`, som er den best kalibrerte for nettopp dette bordet
+ * (+0,127 over `bud-gbt` for `bud-vant`, og `bud-menneske` er kalibrert på
+ * familiens EGNE runder). Så lenge den ikke ligger ute, er `bud-gbt` det
+ * beste tilgjengelige — og et tredje ledd koster ingenting den dagen de to
+ * første virker, for da blir det aldri spurt.
+ */
+const BUDMODELL_SISTE_UTVEI = "bud-gbt.json";
+/**
  * BUDTERSKELEN. Beslutningsregelen ser ut som en avveining mot verdien av å
  * forsvare, men leddet `(1−p)·evForsvar` kansellerer mot terskelen:
  *
@@ -338,7 +374,10 @@ function besteBot(): Promise<Bot> {
     hentBudmodell(BUDMODELL).then(async (m) => {
       if (m !== null) return m;
       console.warn(`${BUDMODELL} kunne ikke hentes – faller tilbake til ${BUDMODELL_RESERVE}.`);
-      return hentBudmodell(BUDMODELL_RESERVE);
+      const r = await hentBudmodell(BUDMODELL_RESERVE);
+      if (r !== null) return r;
+      console.warn(`${BUDMODELL_RESERVE} kunne heller ikke hentes – siste utvei ${BUDMODELL_SISTE_UTVEI}.`);
+      return hentBudmodell(BUDMODELL_SISTE_UTVEI);
     }),
     // Vrakrangereren. Samme vilkår som de to over: feiler den, vraker og
     // velger trumf boten som i går. Ingen enkeltdel får lov til å ta ned
@@ -498,31 +537,93 @@ let tenkStart = 0;
  * Gir workeren vektene så den kan bygge sin egen Adams med søk. Kalles én
  * gang; workeren holder agenten mellom trekk.
  */
-let adamsSendt = false;
+/**
+ * ============ WORKEREN MÅ KVITTERE, OG HER ER HVORFOR ===================
+ *
+ * Her sto `adamsSendt = true` rett etter `postMessage`, altså «sendt» brukt
+ * som om det betydde «mottatt og forstått». Det gjør det ikke, og forskjellen
+ * er ikke teoretisk. Målt mot det levende endepunktet 10. august:
+ *
+ *     GET /worker.js   20 761 byte
+ *     inneholder «init» og «pondre» — og HVERKEN «adams-init» ELLER
+ *     «adams-trekk». Lokalt ligger en 598 836 byte worker som har begge.
+ *
+ * Den utrullede `app.js` er derimot BIT-IDENTISK med `web/dist/app.js`
+ * (md5 9a8ff21a…), altså v5. Appen ute er ny, workeren ute er gammel.
+ *
+ * OG DET FEILER IKKE STILLE — DET FEILER FEIL. Den gamle workerens
+ * `onmessage` er en kjede av `if (m.type === …) return;` som ender i en
+ * ukommentert felle: alt som ikke er «init» eller «pondre» faller gjennom til
+ * `beslutt`-grenen. `adams-trekk` bærer en ekte `state`, så grenen kjører
+ *
+ *     agentFor(s.iTur).beslutt(s, m.maksMs)      // maksMs er undefined
+ *
+ * og svarer med `{ id, handling }` — samme form som et ekte søkesvar. Appen
+ * kan ikke se forskjell, godtar det, og logger `soek: { brukt: true }`.
+ *
+ * Kortet er altså valgt av den GAMLE PIMC-agenten med tomme opsjoner (`init`
+ * sendes aldri i «Vaar»-løypa), ikke av Adams med søk. PIMC taper 72,6 ± 8,5
+ * poeng per kamp mot MesterAI der Adams taper 5,0 ± 1,5. Førersetets kortvalg
+ * — tre av fire runder — har vært tatt av den svakeste boten vi har, og
+ * loggen har sagt at søket ble brukt.
+ *
+ * Det er prosjektets mest gjentatte feilklasse i ny drakt: DET MÅLTE OG DET
+ * UTRULLEDE VAR IKKE SAMME TING — bare at her var det ikke engang det samme
+ * fra det ene meldingsfeltet til det neste.
+ *
+ * RETTELSEN er en kvittering. Workeren svarer `{ klar: true }` på
+ * `adams-init`, og `adams-trekk` sendes ikke før den kvitteringen er kommet.
+ * En eldre worker kan ikke sende `klar` — den kjenner ikke feltet — så den
+ * faller ut av veien i stedet for å svare på vegne av en annen bot.
+ *
+ * NÅR KVITTERINGEN UTEBLIR spiller hovedtrådens søkfrie Adams, som er
+ * reserven den alltid har vært. Den er svakere enn Adams med søk og MYE
+ * sterkere enn PIMC, så feilmodusen peker riktig vei nå.
+ *
+ * MERK: dette gjør ikke søket levende igjen. Det krever at `web/dist/worker.js`
+ * lastes opp — steg 2 i `docs/utrulling-v5.md`, som aldri ble utført.
+ */
+let adamsKlar: Promise<Worker | null> | null = null;
+/** Settes mens vi venter på kvitteringen; kalles av workerens `onmessage`. */
+let kvitter: ((ok: boolean) => void) | null = null;
+
 async function sikreAdamsIWorker(): Promise<Worker | null> {
   if (råVekter === null || SØKVERDENER <= 0) return null;
-  try {
-    const w = await hentWorker();
-    if (!adamsSendt) {
-      w.postMessage({
-        type: "adams-init",
-        kort: råVekter.kort,
-        bud: råVekter.bud,
-        vrak: råVekter.vrak,
-        tro: råVekter.tro,
-        vaktflagg: VAKTFLAGG,
-        vrakflagg: VRAKFLAGG,
-        budterskel: BUDTERSKEL,
-        verdener: SØKVERDENER,
-        sigma: SØKSIGMA,
+  adamsKlar ??= (async (): Promise<Worker | null> => {
+    try {
+      const w = await hentWorker();
+      return await new Promise<Worker | null>((løs) => {
+        // Kvitteringen har en frist. En worker som ikke svarer på seks
+        // sekunder er enten feil worker eller ute av stand til å bygge
+        // Adams; begge deler betyr «spill uten søk», ikke «vent lenger».
+        const frist = setTimeout(() => {
+          kvitter = null;
+          console.warn(
+            "Workeren kvitterte ikke på «adams-init» innen 6 s – den er sannsynligvis en eldre " +
+              "utgave uten Adams-meldingene. Spiller med hovedtrådens søkfrie bot.",
+          );
+          løs(null);
+        }, 6_000);
+        kvitter = (ok) => { clearTimeout(frist); kvitter = null; løs(ok ? w : null); };
+        w.postMessage({
+          type: "adams-init",
+          kort: råVekter!.kort,
+          bud: råVekter!.bud,
+          vrak: råVekter!.vrak,
+          tro: råVekter!.tro,
+          vaktflagg: VAKTFLAGG,
+          vrakflagg: VRAKFLAGG,
+          budterskel: BUDTERSKEL,
+          verdener: SØKVERDENER,
+          sigma: SØKSIGMA,
+        });
       });
-      adamsSendt = true;
+    } catch (feil) {
+      console.warn("Kunne ikke gi workeren Adams – spiller uten søk:", feil);
+      return null;
     }
-    return w;
-  } catch (feil) {
-    console.warn("Kunne ikke gi workeren Adams – spiller uten søk:", feil);
-    return null;
-  }
+  })();
+  return adamsKlar;
 }
 
 /** Ber workeren om ETT kortvalg. `null` betyr «bruk hovedtrådens bot». */
@@ -546,7 +647,15 @@ function hentWorker(): Promise<Worker> {
       .then((r) => r.text())
       .then((kode) => {
         const w = new Worker(URL.createObjectURL(new Blob([kode], { type: "text/javascript" })));
-        w.onmessage = (e: MessageEvent<{ id: number; handling?: Handling; feil?: string }>) => {
+        w.onmessage = (e: MessageEvent<{ id: number; handling?: Handling; feil?: string; klar?: boolean }>) => {
+          // Kvitteringen på «adams-init». Den bæres av et EGET felt, ikke av
+          // at det kommer et svar i det hele tatt — en eldre worker svarer
+          // også, bare med noe helt annet. Se `sikreAdamsIWorker`.
+          if (e.data.klar !== undefined) {
+            if (e.data.klar === false) console.warn("Workeren klarte ikke bygge Adams:", e.data.feil);
+            kvitter?.(e.data.klar === true);
+            return;
+          }
           const løs = venterPåSvar.get(e.data.id);
           venterPåSvar.delete(e.data.id);
           if (løs && e.data.handling) løs(e.data.handling);
@@ -666,8 +775,44 @@ let nettAgenter: SeteAgent[] | null = null; // sete 1–3 ved Nevro/C4/D1
 
 const FARGE_TEGN: Record<Farge, string> = { S: "♠", H: "♥", R: "♦", K: "♣" };
 const FARGE_NAVN: Record<Farge, string> = { S: "spar", H: "hjerter", R: "ruter", K: "kløver" };
-// Firefarget kortstokk: lettere å skille på avstand og for fargeblinde.
-const FARGE_CSS: Record<Farge, string> = { S: "#1a1a1a", H: "#d32f2f", R: "#1565c0", K: "#2e7d32" };
+/**
+ * FARGEN SETTES SOM KLASSE, IKKE SOM STILSTRENG — og det er hele rettelsen.
+ *
+ * ARVIND: «når du velger trumf og etterlyser kort så er ikke spar så lett å
+ * se.»
+ *
+ * Her sto det en `FARGE_CSS` med ÉN verdi per farge, spar = `#1a1a1a`. Den
+ * verdien er riktig som blekk på en hvit kortflate, og den ble brukt der. Men
+ * den ble ogsaa brukt som `style="color:..."` paa MOERK bakgrunn tre steder:
+ *
+ *   – overskriften i trumf-/etterlysningspanelet, oppå `rgba(8,16,10,.94)`
+ *   – bekreftelseslinja, samme flate
+ *   – hver eneste valørknapp i etterlysningen, oppå `#16232f`
+ *
+ * Kontrasten for spar der er ca. **1,2:1**. WCAG krever 4,5:1 for tekst. Det
+ * var ikke «litt vanskelig å se»; det var usynlig. Kløver `#2e7d32` lå på
+ * 2,1:1 og var nest verst — nøyaktig de to svarte fargene Arvind nevnte.
+ *
+ * Rettelsen er ikke en lysere spar-farge. Én farge kan ikke tjene både hvit
+ * og mørk flate. Derfor har `index.html` nå to variabler per farge — `--f`
+ * (blekk på hvitt) og `--fd` (flateverdi på mørkt) — og klassen `f-<farge>`
+ * setter begge. Hvert visningssted velger den som passer flaten sin:
+ *
+ *   HVIT FLATE (kort, minikort, trumfkort)  bruker `--f` som tekstfarge.
+ *   MØRK FLATE (overskrifter, skilt, bekreftelse) bruker ALDRI farget tekst,
+ *   men `fargeMerke()`: et fylt merke med `--fd` som BAKGRUNN og nesten svart
+ *   symbol oppå. Kontrasten blir 11–14:1 for alle fire, og spar er da den
+ *   LYSESTE av dem i stedet for den mørkeste.
+ *
+ * OG ALDRI FARGE ALENE. `fargeMerke` skriver alltid symbolet, og navnet der
+ * det er plass. Fargen er en snarvei, aldri den eneste bæreren.
+ */
+const fargeKlasse = (f: Farge): string => `f-${f}`;
+/** Farge som fylt merke — den ENE måten en farge vises på mørk flate. */
+const fargeMerke = (f: Farge, medNavn = true): string =>
+  `<span class="fargemerke ${fargeKlasse(f)}"><span class="sym" aria-hidden="true">${FARGE_TEGN[f]}</span>${
+    medNavn ? FARGE_NAVN[f] : `<span class="skjult">${FARGE_NAVN[f]}</span>`
+  }</span>`;
 const VERDI_TEKST = (v: number): string =>
   v === 14 ? "A" : v === 13 ? "K" : v === 12 ? "D" : v === 11 ? "J" : String(v);
 
@@ -728,8 +873,31 @@ function logg(type: string, data: unknown): void {
   }).catch(() => { /* offline – localStorage har kopien */ });
 }
 
-const kortTekst = (k: Kort): string => `${FARGE_TEGN[k.farge]}${VERDI_TEKST(k.verdi)}`;
+// `kortTekst` er borte: den skrev «♠A» som ren tekst, og det eneste stedet
+// den ble brukt (etterlysningsskiltet på bordet) viser nå fargemerket i
+// stedet. Symbol uten flate var akkurat den formen som ikke tålte mørk
+// bakgrunn.
 const kortTale = (k: Kort): string => `${FARGE_NAVN[k.farge]} ${VERDI_TEKST(k.verdi)}`;
+
+/**
+ * Ventetilstand med framdrift. Erstatter den nakne overskriften: en skjerm som
+ * står helt stille i fem sekunder er ikke til å skille fra en som har krasjet,
+ * og det var den eneste tilbakemeldingen appen ga mens 2,4 MB ble hentet.
+ */
+const laster = (tittel: string, undertekst = ""): string =>
+  `<div class="overlegg"><div class="panel start"><div class="laster">
+    <h2>${tittel}</h2>
+    <div class="stripe" role="progressbar" aria-label="${tittel}"><i></i></div>
+    ${undertekst ? `<p class="bekreftsmatt">${undertekst}</p>` : ""}
+  </div></div></div>`;
+
+/** Feiltilstand som sier hva som gikk galt OG gir en vei videre. */
+const feilrute = (tittel: string, hva: string): string =>
+  `<div class="overlegg"><div class="panel start">
+    <h2>${tittel} 😕</h2>
+    <p class="bekreftsmatt">${hva}</p>
+    <button class="stor bekreft" id="tilbake">Tilbake</button>
+  </div></div>`;
 
 // --- Spilløkke --------------------------------------------------------------
 async function start(navn: string): Promise<void> {
@@ -739,24 +907,30 @@ async function start(navn: string): Promise<void> {
   if (motstander === "Vaar") {
     // Vår beste bot: vektene lastes én gang og bufres i nettleseren. ÉTT delt
     // eksemplar fører alle tre botsetene, slik benken kjører den.
-    rot.innerHTML = `<div class="panel start"><h2>Laster vår beste bot…</h2></div>`;
+    // 2,4 MB kortvekter over mobilnett kan ta flere sekunder. En naken
+    // overskrift på en stille skjerm ser ut som en krasj; framdriftsstripa
+    // sier at noe skjer.
+    rot.innerHTML = laster("Laster boten…", "Henter kortvektene — 2,4 MB første gang, deretter fra hurtigbufferen.");
     try {
       const bot = await besteBot();
       nettAgenter = [bot, bot, bot];
     } catch {
-      rot.innerHTML = `<div class="panel start"><h2>Klarte ikke laste boten 😕</h2>
-        <button class="stor bekreft" id="tilbake">Tilbake</button></div>`;
+      rot.innerHTML = feilrute(
+        "Klarte ikke laste boten",
+        "Vektfilene kunne ikke hentes. Sjekk nettet og prøv igjen — spillet trenger dem for å ha noen å spille mot.",
+      );
       document.getElementById("tilbake")!.onclick = () => startskjerm();
       return;
     }
   } else if (motstander === "MesterAI") {
-    rot.innerHTML = `<div class="panel start"><h2>Kobler til MesterAI…</h2></div>`;
+    rot.innerHTML = laster("Kobler til MesterAI…", "Broen kjører på laptopen.");
     try {
       await broSend({ type: "helse" }).catch(() => broSend({ type: "init", mesterSeter: [] }));
     } catch {
-      rot.innerHTML = `<div class="panel start"><h2>Fikk ikke kontakt med MesterAI 😕</h2>
-        <p class="sub">Er broen startet på laptopen? (arena/mesterai-bro.ts)</p>
-        <button class="stor bekreft" id="tilbake">Tilbake</button></div>`;
+      rot.innerHTML = feilrute(
+        "Fikk ikke kontakt med MesterAI",
+        "Er broen startet på laptopen? (arena/mesterai-bro.ts)",
+      );
       document.getElementById("tilbake")!.onclick = () => startskjerm();
       return;
     }
@@ -913,6 +1087,11 @@ function fortsett(): void {
       });
       return;
     }
+    // Tegner ETTER at `travelt` er satt, slik at «… tenker»-bobla rekker å
+    // vises også for bud, vrak og trumfvalg. Uten dette sto skjermen helt
+    // stille i de fasene — og en stille skjerm er ikke til å skille fra en
+    // hengt side, selv når pausen er et halvt sekund.
+    tegn();
     setTimeout(() => {
       const h = nettAgenter![aktør - 1]!.velgHandling(state);
       travelt = false;
@@ -973,13 +1152,24 @@ function menneskeSpill(kort: Kort): void {
 const budTekst = (b: Bud): string =>
   b === PASS ? "Pass" : b === AMERIKANER ? "Amerikaner!" : b === SOLO ? "Solo!" : String(b);
 
-function kortKnapp(k: Kort, opts: { valgbar?: boolean; valgt?: boolean; liten?: boolean; onKlikk?: () => void }): string {
+function kortKnapp(
+  k: Kort,
+  opts: { valgbar?: boolean; valgt?: boolean; liten?: boolean; ny?: boolean },
+): string {
   const id = `kort-${k.farge}${k.verdi}`;
-  return `<button id="${id}" class="kort${opts.liten ? " liten" : ""}${opts.valgt ? " valgt" : ""}"
-    style="--f:${FARGE_CSS[k.farge]}" ${opts.valgbar ? "" : "disabled"}
+  const sym = FARGE_TEGN[k.farge];
+  const v = VERDI_TEKST(k.verdi);
+  // Indeksen i BEGGE hjørner, som på et ekte kort. Det øverste er det som er
+  // synlig når hånden ligger i vifte; det nederste er det som gjør at kortet
+  // LESER som et kort i stedet for som en knapp med et symbol på.
+  const hjorne = (ned: boolean): string =>
+    `<span class="hjorne${ned ? " ned" : ""}" aria-hidden="true">${v}<span class="sym">${sym}</span></span>`;
+  return `<button id="${id}" class="kort ${fargeKlasse(k.farge)}${opts.liten ? " liten" : ""}${opts.valgt ? " valgt" : ""}${opts.ny ? " ny" : ""}"
+    ${opts.valgbar ? "" : "disabled"}
     aria-label="${kortTale(k)}${opts.valgt ? ", valgt" : ""}" data-farge="${k.farge}" data-verdi="${k.verdi}">
-    <span class="hjorne">${VERDI_TEKST(k.verdi)}<br>${FARGE_TEGN[k.farge]}</span>
-    <span class="midt">${FARGE_TEGN[k.farge]}</span>
+    ${hjorne(false)}
+    <span class="midt" aria-hidden="true">${sym}</span>
+    ${hjorne(true)}
   </button>`;
 }
 
@@ -994,49 +1184,151 @@ function topplinje(): string {
   const m = state.melding;
   const kontrakt =
     state.budvinner !== null && m !== null
-      ? `${NAVN[state.budvinner]}: ${m.type === "tall" ? m.bud : m.type} ${state.trumf ? FARGE_TEGN[state.trumf] : ""}`
+      ? `<span class="hvem">${NAVN[state.budvinner]}</span> meldte <b>${m.type === "tall" ? m.bud : m.type}</b>${state.trumf ? ` i ${fargeMerke(state.trumf)}` : ""}`
       : state.fase === "BUDRUNDE"
         ? "Budrunde"
         : "";
   // Stikkteller vises så snart runden spilles (også mens stikket er fryst).
   const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
+  // HVEM SIN TUR DET ER sto ikke noe sted. Boblen «… tenker» dekket botene,
+  // men ingenting sa «det er din tur» — og i en firemannsrunde med to sekunders
+  // pauser er det nettopp det man mister oversikten over.
+  const iTur = frystStikk !== null ? null : (state.iTur ?? null);
   return `<header>
     <div class="poeng" role="group" aria-label="Poengstilling og stikk">
-      ${state.totalPoeng.map((p, i) => `<div class="spiller${i === MENNESKE ? " deg" : ""}"><span>${NAVN[i]}</span><b>${p}</b>${iSpill ? `<span style="color:#7fe08a;font-weight:700" aria-label="stikk denne runden">${state.stikkVunnet[i]} stikk</span>` : ""}</div>`).join("")}
+      ${state.totalPoeng
+        .map(
+          (p, i) =>
+            `<div class="spiller${i === MENNESKE ? " deg" : ""}${i === iTur ? " itur" : ""}"><span class="navn">${NAVN[i]}</span><b>${p}</b>${iSpill ? `<span class="stikk" aria-label="stikk denne runden">${state.stikkVunnet[i]} stikk</span>` : ""}</div>`,
+        )
+        .join("")}
     </div>
-    <div class="kontrakt">${kontrakt}</div>
-    <div class="runde">Runde ${state.rundeNr + 1} · først til ${state.regler.målPoeng}</div>
+    ${kontrakt ? `<div class="kontrakt">${kontrakt}</div>` : ""}
+    <div class="runde">Runde ${state.rundeNr + 1}<br>først til ${state.regler.målPoeng}</div>
   </header>`;
 }
+
+/**
+ * Kortene som lå på bordet ved FORRIGE tegning.
+ *
+ * `tegn()` bygger hele DOM-en på nytt med `innerHTML`, så et kort som blir
+ * liggende er likevel et nytt element hver gang. Uten denne ville
+ * innleggings-animasjonen spilt av på ALLE fire kortene hver gang noe som
+ * helst annet endret seg — som er verre enn ingen animasjon. Med den animeres
+ * bare det kortet som faktisk nettopp ble lagt ned.
+ */
+let forrigeBordkort = new Set<string>();
 
 function bordet(): string {
   // bord[i] plasseres etter sete: 0 nederst, 1 venstre, 2 øverst, 3 høyre.
   const plass = ["bunn", "venstre", "topp", "høyre"];
   // Fryst stikk: alle fire kortene blir stående med vinnermarkering.
   const påBordet = frystStikk !== null ? frystStikk.kort : state.bord;
+  const nå = new Set(påBordet.map((b) => `${b.spiller}${kortId(b.kort)}`));
+  const erNy = (b: { spiller: number; kort: Kort }): boolean =>
+    !forrigeBordkort.has(`${b.spiller}${kortId(b.kort)}`);
   const kort = påBordet
-    .map((b) => `<div class="bordkort ${plass[b.spiller]}">
-      <div class="hvem">${NAVN[b.spiller]}${frystStikk !== null && b.spiller === frystStikk.vinner ? ' <span style="color:#ffd54f">★ vant stikket</span>' : ""}</div>${kortKnapp(b.kort, { liten: true })}</div>`)
+    .map((b) => {
+      const vant = frystStikk !== null && b.spiller === frystStikk.vinner;
+      return `<div class="bordkort ${plass[b.spiller]}${vant ? " vant" : ""}">
+      <div class="hvem">${NAVN[b.spiller]}${vant ? ' <span class="vant">★ vant stikket</span>' : ""}</div>${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}</div>`;
+    })
     .join("");
+  forrigeBordkort = nå;
+
+  // «TENKER»-BOBLA GJALDT BARE KORTSPILLET. Botene bruker like lang tid på
+  // bud, vrak og trumfvalg — og der sto skjermen helt stille, som er umulig å
+  // skille fra at siden har hengt seg. Nå gjelder den alle fasene.
+  const tenkeSete =
+    frystStikk === null && !venterPåMenneske && travelt && state.fase !== "RUNDE_SLUTT" && state.fase !== "FERDIG"
+      ? (state.fase === "VRAK" || state.fase === "VELG" ? state.budvinner : state.iTur)
+      : null;
   const tenker =
-    frystStikk === null &&
-    !venterPåMenneske && state.fase === "SPILL" && state.iTur !== null && state.iTur !== MENNESKE
-      ? `<div class="tenker ${plass[state.iTur]}">${NAVN[state.iTur]} tenker<span id="tenker-tid"></span>…</div>`
+    tenkeSete !== null && tenkeSete !== MENNESKE
+      ? `<div class="tenker ${plass[tenkeSete]}"><span class="prikker" aria-hidden="true"><i></i><i></i><i></i></span>${NAVN[tenkeSete]} tenker<span id="tenker-tid"></span></div>`
+      : "";
+
+  // TRUMFEN SKAL ALLTID VÆRE SYNLIG. Den lå som ett lite tegn i kontraktlinja
+  // øverst; midt i en runde er det nøyaktig den ene opplysningen man ser etter
+  // oftest, og den skal ikke måtte letes fram.
+  const trumfskilt =
+    state.trumf !== null && (state.fase === "SPILL" || frystStikk !== null)
+      ? `<div class="trumfskilt"><span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>`
       : "";
   const info = state.etterlyst
-    ? `<div class="etterlyst">Etterlyst: ${kortTekst(state.etterlyst)}${state.makkerAvslørt && state.makker !== null ? ` (${NAVN[state.makker]})` : " (skjult makker)"}</div>`
+    ? `<div class="etterlyst"><span class="merkelapp">Etterlyst</span>${fargeMerke(state.etterlyst.farge, false)} <b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? ` · ${NAVN[state.makker]}` : " · skjult makker"}</div>`
     : "";
+  // «DIN TUR» sto ingen steder. Botene fikk en boble, mennesket fikk
+  // ingenting — og med to sekunders pauser mellom hvert stikk er det lett å
+  // sitte og vente på en skjerm som venter på deg.
+  const dinTur =
+    venterPåMenneske && state.fase === "SPILL" && frystStikk === null
+      ? `<div class="dintur">Din tur — spill et kort</div>`
+      : "";
+  const midt =
+    trumfskilt || info || dinTur ? `<div class="midtfelt">${trumfskilt}${info}${dinTur}</div>` : "";
+
   // Forrige stikk: alltid synlig i hjørnet mens neste stikk spilles.
   const forrige =
     frystStikk === null && state.fase === "SPILL" && state.forrigeStikk !== null
-      ? `<div style="position:absolute;right:0.5%;top:1%;background:rgba(0,0,0,.55);border:2px solid #2c4a35;border-radius:12px;padding:0.6vh 0.8vw;text-align:center" aria-label="Forrige stikk">
-          <div style="font-size:0.7em;color:#b9c7ad;margin-bottom:0.3vh">Forrige stikk · <b style="color:#ffd54f">${NAVN[state.forrigeStikk.vinner]}</b> vant</div>
-          <div style="display:flex;gap:4px;justify-content:center">${state.forrigeStikk.kort
-            .map((b) => `<div style="zoom:0.5"><div style="font-size:1.4em;color:#b9c7ad">${NAVN[b.spiller].split(" ")[0]}</div>${kortKnapp(b.kort, { liten: true })}</div>`)
+      ? `<div class="forrige" aria-label="Forrige stikk">
+          <div class="tittel">Forrige · <b>${NAVN[state.forrigeStikk.vinner]}</b> vant</div>
+          <div class="rad">${state.forrigeStikk.kort
+            .map((b) => `<div><div class="navn">${NAVN[b.spiller].split(" ")[0]}</div>${kortKnapp(b.kort, {})}</div>`)
             .join("")}</div>
         </div>`
       : "";
-  return `<div class="bord" aria-label="Bordet">${kort}${tenker}${info}${forrige}</div>`;
+  return `<div class="bord" aria-label="Bordet">${kort}${midt}${tenker}${forrige}</div>`;
+}
+
+/**
+ * HVOR MANGE KORT DET SKAL VÆRE PLASS TIL PER RAD.
+ *
+ * ============ HVA SOM VAR GALT, OG HVORFOR DET IKKE SYNTES ==============
+ *
+ * Hånden lå i én `flex-wrap: nowrap`-rad med `width: clamp(82px, 11.5vh,
+ * 184px)`. `nowrap` hindrer bryting, men ikke KRYMPING: flex-elementer har
+ * `flex-shrink: 1` som standard, så tretten kort i 390 piksler ble klemt til
+ * rundt 30 px hver. `overflow: hidden` på `body` gjorde at det ikke engang
+ * ble en scrollbar å ta tak i — kortene ble bare små.
+ *
+ * 30 px er under enhver lesbarhetsgrense og godt under de 44 px Apple og
+ * Google begge oppgir som minste trykkflate. På PC syntes ingenting av det,
+ * fordi der var det plass.
+ *
+ * ============ REGELEN, OG HVORFOR DEN TAR HØYDEN MED ====================
+ *
+ * Å bare la raden brekke er ikke nok. Da blir kortene så små som gulvet
+ * tillater, i stedet for så store som plassen tillater. Derfor velges
+ * ANTALL RADER først, og bredden følger av det.
+ *
+ * Bredden sier hvor mange rader som trengs for at et kort skal nå målbredden.
+ * Høyden sier hvor mange rader det er RÅD til: en liggende telefon har 390
+ * piksler totalt, og to rader kort ville spist over halvparten av bordet.
+ * Derfor er taket 1 rad under 500 px høyde, 2 under 700, ellers 3.
+ *
+ *     PC 1440×900        1 rad,  13 per rad  → 107 px kort
+ *     iPad 820×1180      2 rader, 7 per rad  → 101 px kort (mot 59 før)
+ *     telefon 390×844    3 rader, 5 per rad  →  75 px kort (mot ~30 før)
+ *     telefon 844×390    1 rad,  13 per rad  →  61 px kort, bordet beholdt
+ *
+ * Liggende telefon er den formfaktoren som pleier å bli glemt, og det er
+ * nøyaktig den som taper på en regel som bare ser på bredden.
+ */
+const MÅLBREDDE = 76; // px inkludert luft — under dette blir kortet for smått
+/** Andel av skjermhøyden hånden får lov å bruke, uansett antall rader. */
+const HÅNDHØYDE = 0.42;
+function håndmål(antall: number): { n: number; maks: number } {
+  const b = window.innerWidth || 1024;
+  const h = window.innerHeight || 768;
+  if (antall <= 1) return { n: 1, maks: 132 };
+  const takRader = h < 500 ? 1 : h < 700 ? 2 : 3;
+  const passerPerRad = Math.max(1, Math.floor(b / MÅLBREDDE));
+  const rader = Math.min(takRader, Math.max(1, Math.ceil(antall / passerPerRad)));
+  // Taket er en HØYDEGRENSE, ikke en smaksdom: `rader` kort à `bredde/0,7` i
+  // høyden skal ikke spise mer enn 42 % av skjermen, ellers forsvinner bordet.
+  const maks = Math.min(132, Math.max(46, Math.floor((HÅNDHØYDE * h * 0.7) / rader)));
+  return { n: Math.ceil(antall / rader), maks };
 }
 
 function håndPanel(): string {
@@ -1046,7 +1338,11 @@ function håndPanel(): string {
     venterPåMenneske && lov.fase === "SPILL"
       ? new Set(lov.kort.map((k) => `${k.farge}${k.verdi}`))
       : null;
-  return `<div class="hånd" role="group" aria-label="Kortene dine">
+  const mål = håndmål(hånd.length);
+  // «passiv» = kortene er ikke valgbare fordi et panel har ordet, ikke fordi
+  // de er ulovlige. Da skal de være fullt lesbare — se `.hånd.passiv` i CSS.
+  const passiv = spillbare === null;
+  return `<div class="hånd${passiv ? " passiv" : ""}" role="group" aria-label="Kortene dine" style="--n:${mål.n};--kmaks:${mål.maks}px">
     ${hånd
       .map((k) =>
         kortKnapp(k, {
@@ -1063,27 +1359,28 @@ function budPanel(): string {
   if (!venterPåMenneske || lov.fase !== "BUDRUNDE") return "";
   const tall = lov.bud.filter((b): b is number => typeof b === "number");
   const høyeste = state.budrunde.høyeste;
-  return `<div class="panel" role="dialog" aria-label="Ditt bud">
-    <h2>Ditt bud${høyeste ? ` (høyeste: ${budTekst(høyeste.bud)} fra ${NAVN[høyeste.spiller]})` : ""}</h2>
+  return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Ditt bud">
+    <h2>Ditt bud${høyeste ? ` <span class="bekreftsmatt">— høyeste er ${budTekst(høyeste.bud)} fra ${NAVN[høyeste.spiller]}</span>` : ""}</h2>
     <div class="knapper">
       <button class="stor pass" data-bud="PASS">Pass</button>
       ${tall.map((b) => `<button class="stor tallbud" data-bud="${b}">${b}</button>`).join("")}
       ${lov.bud.includes(AMERIKANER) ? `<button class="stor spesial" data-bud="AMERIKANER">Amerikaner</button>` : ""}
       ${lov.bud.includes(SOLO) ? `<button class="stor spesial" data-bud="SOLO">Solo</button>` : ""}
     </div>
-  </div>`;
+  </div></div>`;
 }
 
 function vrakPanel(): string {
   const lov = lovligeHandlinger(state);
   if (!venterPåMenneske || lov.fase !== "VRAK") return "";
-  return `<div class="panel" role="dialog" aria-label="Vrak kort">
-    <h2>Du vant budet! Velg ${lov.antall} kort å legge bort (${vrakValg.length}/${lov.antall} valgt)</h2>
+  return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Vrak kort">
+    <h2>Du vant budet! Velg ${lov.antall} kort å legge bort
+      <span class="bekreftsmatt">(${vrakValg.length} av ${lov.antall} valgt)</span></h2>
     <div class="vrakhånd">${sorterHånd(lov.hånd)
       .map((k) => kortKnapp(k, { valgbar: true, valgt: vrakValg.some((v) => v.farge === k.farge && v.verdi === k.verdi) }))
       .join("")}</div>
     <button class="stor bekreft" id="vrak-ok" ${vrakValg.length === lov.antall ? "" : "disabled"}>Legg bort valgte</button>
-  </div>`;
+  </div></div>`;
 }
 
 function velgPanel(): string {
@@ -1091,32 +1388,50 @@ function velgPanel(): string {
   if (!venterPåMenneske || lov.fase !== "VELG") return "";
 
   if (velgTrumfValg === null) {
-    return `<div class="panel" role="dialog" aria-label="Velg trumf">
+    /**
+     * FIRE KORT, IKKE FIRE TEKSTKNAPPER — og det er rettelsen på klagen.
+     *
+     * Knappene var `background:#f5f5ee` med `color:--f`, altså riktig vei
+     * (mørkt blekk på lyst). Problemet var at de var SMÅ og at symbolet var
+     * satt i samme størrelse som teksten ved siden av. På telefon var ♠ og ♣
+     * to like små sorte flekker.
+     *
+     * Nå er hver farge et kort: farget stripe langs toppen (leses av på
+     * avstand, uten å tyde symbolet), symbolet stort i blekkfargen på hvit
+     * flate, og navnet skrevet under. Tre uavhengige kjennetegn — form, farge
+     * og ord — så ingen av dem trenger å bære valget alene.
+     */
+    return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Velg trumf">
       <h2>Velg trumffarge</h2>
-      <div class="knapper">${(["S", "H", "R", "K"] as Farge[])
-        .map((f) => `<button class="stor farge" style="--f:${FARGE_CSS[f]}" data-trumf="${f}">${FARGE_TEGN[f]} ${FARGE_NAVN[f]}</button>`)
+      <div class="trumfvalg">${(["S", "K", "H", "R"] as Farge[])
+        .map(
+          (f) => `<button class="trumfkort ${fargeKlasse(f)}" data-trumf="${f}" aria-label="${FARGE_NAVN[f]}">
+            <span class="stripe" aria-hidden="true"></span>
+            <span class="tsym" aria-hidden="true">${FARGE_TEGN[f]}</span>
+            <span class="tnavn">${FARGE_NAVN[f]}</span>
+          </button>`,
+        )
         .join("")}</div>
-    </div>`;
+    </div></div>`;
   }
   if (!lov.måEtterlyse) return ""; // solo: ingen etterlysning
 
   const trumf = velgTrumfValg;
   const symbol = FARGE_TEGN[trumf];
-  const css = FARGE_CSS[trumf];
 
   // BEKREFTELSESSTEGET. Ingenting sendes til motoren før dette er trykket.
   if (velgEtterlysValg !== null) {
     const e = velgEtterlysValg;
-    return `<div class="panel" role="dialog" aria-label="Bekreft valget">
+    return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Bekreft valget">
       <h2>Bekreft</h2>
-      <p class="bekreftlinje">Trumf <b style="color:${css}">${symbol} ${FARGE_NAVN[trumf]}</b>
-         — du etterlyser <b style="color:${css}">${symbol}${VERDI_TEKST(e.verdi)}</b>.</p>
+      <p class="bekreftlinje">Trumf blir ${fargeMerke(trumf)}
+         — du etterlyser ${fargeMerke(trumf, false)} <b>${VERDI_TEKST(e.verdi)}</b>.</p>
       <p class="bekreftsmatt">Den som har kortet blir din hemmelige makker.</p>
       <div class="knapper">
         <button class="stor bekreft" id="velg-ok">Bekreft</button>
         <button class="stor" id="velg-angre">Angre</button>
       </div>
-    </div>`;
+    </div></div>`;
   }
 
   /**
@@ -1128,16 +1443,31 @@ function velgPanel(): string {
    * før (egne kort ble deaktivert, vrakede ikke).
    */
   const lovlige = lovligeEtterlys(state, trumf);
-  return `<div class="panel" role="dialog" aria-label="Etterlys et kort">
-    <h2>Trumf <span style="color:${css}">${symbol} ${FARGE_NAVN[trumf]}</span> — hvilket kort etterlyser du?</h2>
+  /**
+   * VALØRKNAPPENE VAR DET VERSTE STEDET, og de er nå MINIKORT.
+   *
+   * De hadde `background:#16232f` (mørk blå) og `style="color:${css}"`. For
+   * spar ble det `#1a1a1a` på `#16232f` — kontrast 1,2:1. Man kunne se at det
+   * sto NOE i knappen, ikke hva. Kløver lå på 2,1:1.
+   *
+   * Nå har hver valør hvit kortflate og blekkfarge, altså samme kontrast som
+   * kortene på hånden, og de er minst 48×60 px. Overskriften bærer fargen som
+   * et fylt merke, ikke som farget tekst.
+   */
+  return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Etterlys et kort">
+    <h2>Trumf blir ${fargeMerke(trumf)} — hvilket kort etterlyser du?</h2>
     <p class="bekreftsmatt">Eieren blir din hemmelige makker. Kortet må være trumf.</p>
     <div class="etterlysrad">${lovlige
       .slice()
       .sort((a, b) => b.verdi - a.verdi)
-      .map((k) => `<button class="mini" style="color:${css}" data-ev="${k.verdi}">${symbol}${VERDI_TEKST(k.verdi)}</button>`)
+      .map(
+        (k) => `<button class="minikort ${fargeKlasse(trumf)}" data-ev="${k.verdi}" aria-label="${kortTale(k)}">
+          <span class="v">${VERDI_TEKST(k.verdi)}</span><span class="sym" aria-hidden="true">${symbol}</span>
+        </button>`,
+      )
       .join("")}</div>
     <div class="knapper"><button class="stor" id="velg-tilbake">Bytt trumffarge</button></div>
-  </div>`;
+  </div></div>`;
 }
 
 function rundeSluttPanel(): string {
@@ -1145,27 +1475,45 @@ function rundeSluttPanel(): string {
   const r = state.sisteRunde;
   const m = r.melding;
   const hva = m.type === "tall" ? `${m.bud}` : m.type;
-  return `<div class="panel resultat" role="dialog" aria-label="Rundens resultat">
-    <h2>${NAVN[r.budvinner]} meldte ${hva} og ${r.klart ? "KLARTE det! ✅" : "falt ❌"} (${r.lagStikk} stikk${r.makker !== null ? ` med ${NAVN[r.makker]}` : ""})</h2>
+  return `<div class="overlegg"><div class="panel resultat" role="dialog" aria-label="Rundens resultat">
+    <h2>${NAVN[r.budvinner]} meldte ${hva} og ${r.klart ? "KLARTE det! ✅" : "falt ❌"}<br>
+      <span class="bekreftsmatt">${r.lagStikk} stikk${r.makker !== null ? ` sammen med ${NAVN[r.makker]}` : ""}</span></h2>
     <div class="delta">${r.delta.map((d, i) => `<span class="${d >= 0 ? "pluss" : "minus"}">${NAVN[i]}: ${d >= 0 ? "+" : ""}${d}</span>`).join("")}</div>
     <button class="stor bekreft" id="neste">Neste runde</button>
-  </div>`;
+  </div></div>`;
 }
 
 function ferdigPanel(): string {
   if (state.fase !== "FERDIG") return "";
   const vantDu = state.vinner === MENNESKE;
-  return `<div class="panel resultat" role="dialog" aria-label="Kampen er ferdig">
+  return `<div class="overlegg"><div class="panel resultat" role="dialog" aria-label="Kampen er ferdig">
     <h2>${vantDu ? "🎉 DU VANT! 🎉" : `${NAVN[state.vinner!]} vant kampen`}</h2>
     <div class="delta">${state.totalPoeng.map((p, i) => `<span>${NAVN[i]}: ${p}</span>`).join("")}</div>
     <button class="stor bekreft" id="nytt-spill">Nytt spill</button>
     <p class="lite">Resultatene er lagret. <a href="${DATA_URL}" target="_blank" rel="noopener">Se innsamlede data</a></p>
-  </div>`;
+  </div></div>`;
 }
+
+/** Hvilket panel som sto framme ved forrige tegning — se `fersk` under. */
+let sistPanel = "";
 
 function tegn(): void {
   if (!state) return;
   rot.innerHTML = topplinje() + bordet() + budPanel() + vrakPanel() + velgPanel() + rundeSluttPanel() + ferdigPanel() + håndPanel();
+  /**
+   * «fersk» = panelet er et ANNET enn forrige gang, og bare da skal det
+   * animeres inn.
+   *
+   * `innerHTML` bygger alt på nytt ved hver tilstandsendring, så et panel som
+   * blir stående er likevel et nytt element. Med animasjonen bundet til
+   * elementet blinket og gled hele vrakpanelet hver gang man huket av ett
+   * kort — fordi tellerne «(1/4 valgt)» endret seg og utløste en ny tegning.
+   * Det så ut som en feil, og det var en.
+   */
+  const panel = rot.querySelector<HTMLElement>(".overlegg > .panel");
+  const nøkkel = panel?.getAttribute("aria-label") ?? "";
+  if (panel !== null && nøkkel !== sistPanel) panel.parentElement!.classList.add("fersk");
+  sistPanel = nøkkel;
   koble();
 }
 
@@ -1237,9 +1585,9 @@ function koble(): void {
 
 // --- Startskjerm ------------------------------------------------------------
 function startskjerm(): void {
-  rot.innerHTML = `<div class="panel start" role="dialog" aria-label="Start">
+  rot.innerHTML = `<div class="overlegg"><div class="panel start" role="dialog" aria-label="Start">
     <h1>🃏 Amerikaneren mot botene</h1>
-    <p>Store kort, laget for TV-en. Velg motstander:</p>
+    <p>Store kort, laget for TV, iPad og telefon. Velg motstander:</p>
     <div class="knapper motstandere" role="radiogroup" aria-label="Motstander">
       ${MOTSTANDERE()
         .map((m) => `<button class="stor motstander${m === motstander ? " aktiv" : ""}" data-mot="${m}"
@@ -1249,9 +1597,9 @@ function startskjerm(): void {
     <!-- Styrkevalget hoerte til PIMC, som er fjernet. Nevronettet bruker
          mikrosekunder per trekk, saa det finnes ingen tidsbudsjett aa velge. -->
     <label for="navn">Hvem spiller? (for dataloggen)</label>
-    <input id="navn" type="text" placeholder="f.eks. mamma" autocomplete="off">
+    <input id="navn" type="text" placeholder="f.eks. kallenavn" autocomplete="off" enterkeyhint="go">
     <button class="stor bekreft" id="start-knapp">Start spillet</button>
-  </div>`;
+  </div></div>`;
   for (const b of rot.querySelectorAll<HTMLButtonElement>("[data-mot]")) {
     b.onclick = () => {
       motstander = b.dataset["mot"] as Motstander;
@@ -1270,6 +1618,27 @@ function startskjerm(): void {
   felt.onkeydown = (e) => { if (e.key === "Enter") void start(felt.value.trim()); };
   (knapp as HTMLButtonElement).focus();
 }
+
+/**
+ * ROTASJON MÅ REGNES OM. `håndmål()` leser `innerWidth`/`innerHeight`, så en
+ * telefon som vris fra stående til liggende beholder ellers stående-layouten
+ * til noe annet får spillet til å tegne på nytt — og i en stikkpause kan det
+ * ta flere sekunder.
+ *
+ * Tegner BARE når utfallet faktisk endrer seg. `tegn()` bygger hele DOM-en
+ * med `innerHTML` og river dermed fokus ut av knappen brukeren står på; å
+ * gjøre det for hver piksel under en dra-i-vindus-kant ville vært verre enn
+ * problemet.
+ */
+let sistLayout = "";
+addEventListener("resize", () => {
+  if (!state) return;
+  const m = håndmål((state.hender[MENNESKE] ?? []).length);
+  const nøkkel = `${m.n}:${m.maks}`;
+  if (nøkkel === sistLayout) return;
+  sistLayout = nøkkel;
+  tegn();
+});
 
 // Tenketid-teller i «tenker…»-boblen (oppdateres utenom re-tegning).
 setInterval(() => {

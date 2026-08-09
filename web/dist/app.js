@@ -652,6 +652,7 @@ function lagPosisjon(o) {
     hender,
     iTur: o.iTur,
     ledFarge,
+    trickStart: 0,
     trickSpillere,
     trickKort,
     trickLen: trickSpillere.length,
@@ -673,8 +674,9 @@ function slår(ny, best, trump, led) {
   return rangAv(ny) > rangAv(best);
 }
 function stikkvinnerPos(pos) {
-  let bestI = 0;
-  for (let i = 1; i < pos.trickLen; i++) {
+  const s = pos.trickStart;
+  let bestI = s;
+  for (let i = s + 1; i < s + pos.trickLen; i++) {
     if (slår(pos.trickKort[i], pos.trickKort[bestI], pos.trump, pos.ledFarge)) bestI = i;
   }
   return pos.trickSpillere[bestI];
@@ -693,8 +695,8 @@ function gjørTrekk(pos, kort) {
     fullført: false,
     declØkning: 0
   };
-  pos.trickSpillere[pos.trickLen] = spiller;
-  pos.trickKort[pos.trickLen] = kort;
+  pos.trickSpillere[pos.trickStart + pos.trickLen] = spiller;
+  pos.trickKort[pos.trickStart + pos.trickLen] = kort;
   pos.trickLen++;
   if (pos.trickLen === 1) pos.ledFarge = f;
   if (pos.trickLen === pos.N) {
@@ -705,6 +707,7 @@ function gjørTrekk(pos, kort) {
       undo.declØkning = 1;
     }
     pos.ferdigeStikk++;
+    pos.trickStart += pos.N;
     pos.trickLen = 0;
     pos.ledFarge = -1;
     pos.iTur = vinner;
@@ -717,6 +720,7 @@ function angreTrekk(pos, undo) {
   if (undo.fullført) {
     pos.ferdigeStikk--;
     if (undo.declØkning) pos.declStikk--;
+    pos.trickStart -= pos.N;
     pos.trickLen = pos.N - 1;
   } else {
     pos.trickLen--;
@@ -731,6 +735,11 @@ function angreTrekk(pos, undo) {
 function iSpillMaske(pos, farge) {
   let m = 0;
   for (let p = 0; p < pos.N; p++) m |= pos.hender[p][farge];
+  const s = pos.trickStart;
+  for (let i = s; i < s + pos.trickLen; i++) {
+    const c = pos.trickKort[i];
+    if (fargeAv(c) === farge) m |= 1 << rangAv(c);
+  }
   return m;
 }
 var MAKS_PLY = 60;
@@ -765,8 +774,9 @@ function genererOgOrdne(pos, buf, nøkkel2) {
   if (pos.trickLen === 0) {
     for (let i = 0; i < n; i++) nøkkel2[i] = 12 - rangAv(buf[i]);
   } else {
-    let bestI = 0;
-    for (let i = 1; i < pos.trickLen; i++) {
+    const s = pos.trickStart;
+    let bestI = s;
+    for (let i = s + 1; i < s + pos.trickLen; i++) {
       if (slår(pos.trickKort[i], pos.trickKort[bestI], pos.trump, pos.ledFarge)) bestI = i;
     }
     const bestKort = pos.trickKort[bestI];
@@ -1008,7 +1018,7 @@ function trekkVerden(state2, observator, rng) {
     if (måPlassereEtterlyst && etterlystInt !== null) {
       const f = Math.floor(etterlystInt / 13);
       const kandidater = bins.filter(
-        (b2) => b2.spiller !== -1 && b2.kapasitet > 0 && !(b2.forbud && b2.forbud.has(f))
+        (b2) => b2.spiller !== -1 && b2.spiller !== budvinner && b2.kapasitet > 0 && !(b2.forbud && b2.forbud.has(f))
       );
       if (kandidater.length === 0) return null;
       const b = kandidater[Math.floor(rng() * kandidater.length)];
@@ -1049,7 +1059,8 @@ function trekkVerden(state2, observator, rng) {
     const declLag = new Array(N).fill(false);
     if (budvinner !== null) declLag[budvinner] = true;
     if (makkerVerden !== null) declLag[makkerVerden] = true;
-    return { hender, declLag, makkerVerden };
+    const vrakVerden = bins.find((b) => b.spiller === -1)?.kort ?? [];
+    return { hender, declLag, makkerVerden, vrakVerden };
   };
   for (let i = 0; i < 30; i++) {
     const v = forsøk(false);
@@ -1118,7 +1129,35 @@ function lærtForenlighet(state2, verden, observator, prior, navn) {
   }
   return logW;
 }
-function trekkVerdenBelief(state2, observator, rng, kandidater = 3, prior, navn = (s) => `sete${s}`, ekstraVekt) {
+function vrakLogVekt(state2, verden, v) {
+  const bv = state2.budvinner;
+  if (bv === null || bv === void 0) return 0;
+  if (verden.vrakVerden.length === 0) return 0;
+  const trumf = state2.trumf;
+  if (trumf === null) return 0;
+  const trumfIdx = FARGER.indexOf(trumf);
+  const holdt = /* @__PURE__ */ new Set();
+  for (const c of verden.hender[bv] ?? []) holdt.add(Math.floor(c / 13));
+  for (const stikk of state2.historikk) {
+    for (const kp of stikk.kort) if (kp.spiller === bv) holdt.add(FARGER.indexOf(kp.kort.farge));
+  }
+  for (const kp of state2.bord) if (kp.spiller === bv) holdt.add(FARGER.indexOf(kp.kort.farge));
+  let renonser2 = 0;
+  for (let f = 0; f < 4; f++) if (f !== trumfIdx && !holdt.has(f)) renonser2++;
+  const rang = (c) => (Math.floor(c / 13) === trumfIdx ? 100 : 0) + c % 13;
+  const beholdt = verden.hender[bv] ?? [];
+  let inv = 0;
+  let par = 0;
+  for (const b of beholdt) {
+    for (const k of verden.vrakVerden) {
+      par++;
+      if (rang(b) < rang(k)) inv++;
+    }
+  }
+  const rate = par === 0 ? 0 : inv / par;
+  return v.alfa * renonser2 - v.beta * rate;
+}
+function trekkVerdenBelief(state2, observator, rng, kandidater = 3, prior, navn = (s) => `sete${s}`, ekstraVekt, vrakvekt) {
   const harInfo = ekstraVekt !== void 0 || state2.budrunde.sisteBud.some(
     (b, p) => p !== observator && (b !== null || state2.budrunde.passet[p])
   );
@@ -1128,7 +1167,10 @@ function trekkVerdenBelief(state2, observator, rng, kandidater = 3, prior, navn 
     const v = trekkVerden(state2, observator, rng);
     if (v) {
       const budW = prior === void 0 ? budForenlighet(state2, v, observator) : lærtForenlighet(state2, v, observator, prior, navn);
-      utvalg.push({ verden: v, logW: budW + (ekstraVekt === void 0 ? 0 : ekstraVekt(v)) });
+      utvalg.push({
+        verden: v,
+        logW: budW + (ekstraVekt === void 0 ? 0 : ekstraVekt(v)) + (vrakvekt === void 0 ? 0 : vrakLogVekt(state2, v, vrakvekt))
+      });
     }
   }
   if (utvalg.length === 0) return null;
@@ -1431,7 +1473,7 @@ function velgTrumfOgKall(state2, spiller, opts) {
           totalStikk: T
         };
         const lag = evaluerHybrid(oppsett, terskel, opts.nodeTak ?? NODE_TAK);
-        sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker }, {
+        sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker, vrakVerden: [] }, {
           observator: spiller,
           budvinner: spiller,
           meldingstype: state2.melding.type,
@@ -1545,7 +1587,7 @@ function velgVrak(state2, spiller, opts) {
           terskel,
           opts.nodeTak ?? NODE_TAK
         );
-        sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker }, {
+        sum += observatørPoeng(lag, { hender, declLag, makkerVerden: makker, vrakVerden: [] }, {
           observator: spiller,
           budvinner: spiller,
           meldingstype: state2.melding.type,
@@ -1822,19 +1864,37 @@ var BITER = [
 var NEVRO_VEKTER_B64 = BITER.join("");
 
 // src/nevro/nett.ts
+var bufA = new Float32Array(0);
+var bufB = new Float32Array(0);
+var ikkeNull = new Int32Array(0);
 function forover(nett, x) {
+  const sisteLag = nett.lag.length - 1;
   let a = x;
   for (let i = 0; i < nett.lag.length; i++) {
     const l = nett.lag[i];
-    const y = new Float32Array(l.ut);
+    if (ikkeNull.length < l.inn) ikkeNull = new Int32Array(l.inn);
+    let m = 0;
+    for (let c = 0; c < l.inn; c++) if (a[c] !== 0) ikkeNull[m++] = c;
+    let y;
+    if (i === sisteLag) {
+      y = new Float32Array(l.ut);
+    } else {
+      if (a === bufA) {
+        if (bufB.length < l.ut) bufB = new Float32Array(l.ut);
+        y = bufB;
+      } else {
+        if (bufA.length < l.ut) bufA = new Float32Array(l.ut);
+        y = bufA;
+      }
+    }
     for (let r = 0; r < l.ut; r++) {
       let sum = l.bias[r];
       const rad = r * l.inn;
-      for (let c = 0; c < l.inn; c++) sum += l.vekter[rad + c] * a[c];
-      y[r] = sum;
-    }
-    if (i < nett.lag.length - 1) {
-      for (let j = 0; j < y.length; j++) if (y[j] < 0) y[j] = 0;
+      for (let k = 0; k < m; k++) {
+        const c = ikkeNull[k];
+        sum += l.vekter[rad + c] * a[c];
+      }
+      y[r] = i < sisteLag && sum < 0 ? 0 : sum;
     }
     a = y;
   }
@@ -2193,6 +2253,123 @@ var KONTRAKTSENSORER = (() => {
   return ut;
 })();
 
+// src/e1/stikksjanse.ts
+var STIKK_FRA = 470;
+var STIKK_ANTALL = 52;
+var relSete = (sete, annet) => (annet - sete + 4) % 4;
+function slår2(ny, best, trumf, ledFarge) {
+  const nyT = ny.farge === trumf;
+  const bT = best.farge === trumf;
+  if (nyT && !bT) return true;
+  if (!nyT && bT) return false;
+  if (nyT && bT) return ny.verdi > best.verdi;
+  if (ny.farge !== ledFarge) return false;
+  if (best.farge !== ledFarge) return true;
+  return ny.verdi > best.verdi;
+}
+function fyllStikksjanse(v, state2, sete, tro) {
+  if (tro === null || state2.trumf === null || state2.fase !== "SPILL") return;
+  const trumf = state2.trumf;
+  const hånd = state2.hender[sete] ?? [];
+  if (hånd.length === 0) return;
+  const bord = state2.bord;
+  const N = state2.antallSpillere;
+  const ledFarge = bord.length > 0 ? bord[0].kort.farge : null;
+  const igjen = [];
+  for (let i = bord.length + 1; i < N; i++) {
+    const utspiller = bord.length > 0 ? bord[0].spiller : sete;
+    igjen.push((utspiller + i) % N);
+  }
+  let best = null;
+  for (const kp of bord) {
+    if (best === null || slår2(kp.kort, best, trumf, ledFarge ?? kp.kort.farge)) best = kp.kort;
+  }
+  const sett = /* @__PURE__ */ new Set();
+  for (const k of hånd) sett.add(kortIndeks(k));
+  for (const stikk of state2.historikk) for (const kp of stikk.kort) sett.add(kortIndeks(kp.kort));
+  for (const kp of bord) sett.add(kortIndeks(kp.kort));
+  for (const mitt of hånd) {
+    const led = ledFarge ?? mitt.farge;
+    if (best !== null && !slår2(mitt, best, trumf, led)) {
+      v[STIKK_FRA + kortIndeks(mitt)] = 0;
+      continue;
+    }
+    let p = 1;
+    for (const annen of igjen) {
+      const r = relSete(sete, annen);
+      let harIkkeLed = 1;
+      const ledIdx = fargeIndeks(led);
+      for (let verdi = 2; verdi <= 14; verdi++) {
+        const ki = kortIndeks({ farge: FARGER[ledIdx], verdi });
+        if (sett.has(ki)) continue;
+        harIkkeLed *= 1 - (tro[ki]?.[r - 1] ?? 0);
+      }
+      const harLed = 1 - harIkkeLed;
+      let ikkeSlårIFarge = 1;
+      for (let verdi = 2; verdi <= 14; verdi++) {
+        const kort = { farge: FARGER[ledIdx], verdi };
+        const ki = kortIndeks(kort);
+        if (sett.has(ki)) continue;
+        if (slår2(kort, mitt, trumf, led)) ikkeSlårIFarge *= 1 - (tro[ki]?.[r - 1] ?? 0);
+      }
+      let ikkeSlårMedTrumf = 1;
+      if (led !== trumf) {
+        const tIdx = fargeIndeks(trumf);
+        for (let verdi = 2; verdi <= 14; verdi++) {
+          const kort = { farge: FARGER[tIdx], verdi };
+          const ki = kortIndeks(kort);
+          if (sett.has(ki)) continue;
+          if (slår2(kort, mitt, trumf, led)) ikkeSlårMedTrumf *= 1 - (tro[ki]?.[r - 1] ?? 0);
+        }
+      }
+      const slårIkke = harLed * ikkeSlårIFarge + harIkkeLed * ikkeSlårMedTrumf;
+      p *= Math.max(0, Math.min(1, slårIkke));
+    }
+    v[STIKK_FRA + kortIndeks(mitt)] = p;
+  }
+}
+
+// src/e1/sanser.ts
+var SANS_ANTALL = STIKK_ANTALL + 16 + 16 + 4;
+var LENGDE = STIKK_FRA + STIKK_ANTALL;
+var RENONS2 = LENGDE + 16;
+var POSISJON = RENONS2 + 16;
+function fyllSanser(v, state2, sete, tro) {
+  if (state2.fase === "SPILL") {
+    const p = Math.min(3, state2.bord.length);
+    v[POSISJON + p] = 1;
+  }
+  if (tro === null) return;
+  fyllStikksjanse(v, state2, sete, tro);
+  const sett = /* @__PURE__ */ new Set();
+  for (const k of state2.hender[sete] ?? []) sett.add(kortIndeks(k));
+  for (const stikk of state2.historikk) for (const kp of stikk.kort) sett.add(kortIndeks(kp.kort));
+  for (const kp of state2.bord) sett.add(kortIndeks(kp.kort));
+  if (state2.budvinner === sete) for (const k of state2.vrak) sett.add(kortIndeks(k));
+  for (let r = 1; r <= 3; r++) {
+    for (let f = 0; f < 4; f++) {
+      const farge = FARGER[f];
+      let forventet = 0;
+      let ingen = 1;
+      for (let verdi = 2; verdi <= 14; verdi++) {
+        const ki = kortIndeks({ farge, verdi });
+        if (sett.has(ki)) continue;
+        const p = tro[ki]?.[r - 1] ?? 0;
+        forventet += p;
+        ingen *= 1 - p;
+      }
+      v[LENGDE + (r - 1) * 4 + f] = Math.min(1, forventet / 13);
+      v[RENONS2 + (r - 1) * 4 + f] = Math.max(0, Math.min(1, ingen));
+    }
+  }
+  const egen = state2.hender[sete] ?? [];
+  for (let f = 0; f < 4; f++) {
+    const n = egen.filter((k) => fargeIndeks(k.farge) === f).length;
+    v[LENGDE + 12 + f] = n / 13;
+    v[RENONS2 + 12 + f] = n === 0 ? 1 : 0;
+  }
+}
+
 // src/e1/plan.ts
 var PLAN_FRA = 364;
 var PLAN_ANTALL = 12;
@@ -2239,7 +2416,7 @@ function fyllPlanblokk(v) {
 // src/e1/tro.ts
 var TRO_FRA = 376;
 var TRO_ANTALL = 52;
-var relSete = (sete, annet) => (annet - sete + 4) % 4;
+var relSete2 = (sete, annet) => (annet - sete + 4) % 4;
 function fyllTroblokk(v, state2, sete) {
   const HØY = TRO_FRA;
   const LAV = TRO_FRA + 16;
@@ -2255,7 +2432,7 @@ function fyllTroblokk(v, state2, sete) {
   for (const stikk of stikkene) {
     const led = stikk[0]?.kort.farge;
     for (const kp of stikk) {
-      const r = relSete(sete, kp.spiller);
+      const r = relSete2(sete, kp.spiller);
       const f = fargeIndeks(kp.kort.farge);
       if (høyest[r][f] === 0 || kp.kort.verdi > høyest[r][f]) høyest[r][f] = kp.kort.verdi;
       if (lavest[r][f] === 0 || kp.kort.verdi < lavest[r][f]) lavest[r][f] = kp.kort.verdi;
@@ -2407,123 +2584,6 @@ function fyllDødeblokk(v, state2, sete) {
   v[EGEN_TRUMF] = egenTrumf / 13;
   v[ANDEL] = uteTrumf + egenTrumf === 0 ? 0 : egenTrumf / (uteTrumf + egenTrumf);
   v[ER_BUDVINNER2] = erBudvinner ? 1 : 0;
-}
-
-// src/e1/stikksjanse.ts
-var STIKK_FRA = 470;
-var STIKK_ANTALL = 52;
-var relSete2 = (sete, annet) => (annet - sete + 4) % 4;
-function slår2(ny, best, trumf, ledFarge) {
-  const nyT = ny.farge === trumf;
-  const bT = best.farge === trumf;
-  if (nyT && !bT) return true;
-  if (!nyT && bT) return false;
-  if (nyT && bT) return ny.verdi > best.verdi;
-  if (ny.farge !== ledFarge) return false;
-  if (best.farge !== ledFarge) return true;
-  return ny.verdi > best.verdi;
-}
-function fyllStikksjanse(v, state2, sete, tro) {
-  if (tro === null || state2.trumf === null || state2.fase !== "SPILL") return;
-  const trumf = state2.trumf;
-  const hånd = state2.hender[sete] ?? [];
-  if (hånd.length === 0) return;
-  const bord = state2.bord;
-  const N = state2.antallSpillere;
-  const ledFarge = bord.length > 0 ? bord[0].kort.farge : null;
-  const igjen = [];
-  for (let i = bord.length + 1; i < N; i++) {
-    const utspiller = bord.length > 0 ? bord[0].spiller : sete;
-    igjen.push((utspiller + i) % N);
-  }
-  let best = null;
-  for (const kp of bord) {
-    if (best === null || slår2(kp.kort, best, trumf, ledFarge ?? kp.kort.farge)) best = kp.kort;
-  }
-  const sett = /* @__PURE__ */ new Set();
-  for (const k of hånd) sett.add(kortIndeks(k));
-  for (const stikk of state2.historikk) for (const kp of stikk.kort) sett.add(kortIndeks(kp.kort));
-  for (const kp of bord) sett.add(kortIndeks(kp.kort));
-  for (const mitt of hånd) {
-    const led = ledFarge ?? mitt.farge;
-    if (best !== null && !slår2(mitt, best, trumf, led)) {
-      v[STIKK_FRA + kortIndeks(mitt)] = 0;
-      continue;
-    }
-    let p = 1;
-    for (const annen of igjen) {
-      const r = relSete2(sete, annen);
-      let harIkkeLed = 1;
-      const ledIdx = fargeIndeks(led);
-      for (let verdi = 2; verdi <= 14; verdi++) {
-        const ki = kortIndeks({ farge: FARGER[ledIdx], verdi });
-        if (sett.has(ki)) continue;
-        harIkkeLed *= 1 - (tro[ki]?.[r - 1] ?? 0);
-      }
-      const harLed = 1 - harIkkeLed;
-      let ikkeSlårIFarge = 1;
-      for (let verdi = 2; verdi <= 14; verdi++) {
-        const kort = { farge: FARGER[ledIdx], verdi };
-        const ki = kortIndeks(kort);
-        if (sett.has(ki)) continue;
-        if (slår2(kort, mitt, trumf, led)) ikkeSlårIFarge *= 1 - (tro[ki]?.[r - 1] ?? 0);
-      }
-      let ikkeSlårMedTrumf = 1;
-      if (led !== trumf) {
-        const tIdx = fargeIndeks(trumf);
-        for (let verdi = 2; verdi <= 14; verdi++) {
-          const kort = { farge: FARGER[tIdx], verdi };
-          const ki = kortIndeks(kort);
-          if (sett.has(ki)) continue;
-          if (slår2(kort, mitt, trumf, led)) ikkeSlårMedTrumf *= 1 - (tro[ki]?.[r - 1] ?? 0);
-        }
-      }
-      const slårIkke = harLed * ikkeSlårIFarge + harIkkeLed * ikkeSlårMedTrumf;
-      p *= Math.max(0, Math.min(1, slårIkke));
-    }
-    v[STIKK_FRA + kortIndeks(mitt)] = p;
-  }
-}
-
-// src/e1/sanser.ts
-var SANS_ANTALL = STIKK_ANTALL + 16 + 16 + 4;
-var LENGDE = STIKK_FRA + STIKK_ANTALL;
-var RENONS2 = LENGDE + 16;
-var POSISJON = RENONS2 + 16;
-function fyllSanser(v, state2, sete, tro) {
-  if (state2.fase === "SPILL") {
-    const p = Math.min(3, state2.bord.length);
-    v[POSISJON + p] = 1;
-  }
-  if (tro === null) return;
-  fyllStikksjanse(v, state2, sete, tro);
-  const sett = /* @__PURE__ */ new Set();
-  for (const k of state2.hender[sete] ?? []) sett.add(kortIndeks(k));
-  for (const stikk of state2.historikk) for (const kp of stikk.kort) sett.add(kortIndeks(kp.kort));
-  for (const kp of state2.bord) sett.add(kortIndeks(kp.kort));
-  if (state2.budvinner === sete) for (const k of state2.vrak) sett.add(kortIndeks(k));
-  for (let r = 1; r <= 3; r++) {
-    for (let f = 0; f < 4; f++) {
-      const farge = FARGER[f];
-      let forventet = 0;
-      let ingen = 1;
-      for (let verdi = 2; verdi <= 14; verdi++) {
-        const ki = kortIndeks({ farge, verdi });
-        if (sett.has(ki)) continue;
-        const p = tro[ki]?.[r - 1] ?? 0;
-        forventet += p;
-        ingen *= 1 - p;
-      }
-      v[LENGDE + (r - 1) * 4 + f] = Math.min(1, forventet / 13);
-      v[RENONS2 + (r - 1) * 4 + f] = Math.max(0, Math.min(1, ingen));
-    }
-  }
-  const egen = state2.hender[sete] ?? [];
-  for (let f = 0; f < 4; f++) {
-    const n = egen.filter((k) => fargeIndeks(k.farge) === f).length;
-    v[LENGDE + 12 + f] = n / 13;
-    v[RENONS2 + 12 + f] = n === 0 ? 1 : 0;
-  }
 }
 
 // src/moe2/trosnett.ts
@@ -2715,6 +2775,7 @@ var E1Agent = class _E1Agent {
   søkFaser;
   søkVerdener;
   trosnett;
+  tro;
   teller = 0;
   constructor(nett, nevro = new NevroAgent(), opts = {}) {
     this.nett = nett;
@@ -2723,9 +2784,10 @@ var E1Agent = class _E1Agent {
     this.søkFaser = opts.søkFaser ?? [];
     this.søkVerdener = opts.søkVerdener ?? 12;
     this.trosnett = opts.trosnett ?? null;
-    if (this.dim >= E1_SPILL_DIM_V9 && this.trosnett === null) {
+    this.tro = opts.tro ?? null;
+    if (this.dim >= E1_SPILL_DIM_V9 && this.trosnett === null && this.tro === null) {
       throw new Error(
-        `Nettet er ${this.dim} bredt og har sanseblokken, men det er ikke gitt noe trosnett. Da ville 84 av 88 sansetrekk vært konstant null. Send opts.trosnett.`
+        `Nettet er ${this.dim} bredt og har sanseblokken, men verken opts.trosnett eller opts.tro er gitt. Da ville 84 av 88 sansetrekk vært konstant null.`
       );
     }
   }
@@ -2755,18 +2817,60 @@ var E1Agent = class _E1Agent {
     }
     return this.nevro.velgHandling(state2);
   }
+  /**
+   * Trekkvektoren, med sanseblokken fylt fra den kilden som finnes.
+   *
+   * `trosnett` foerst (bakoverkompatibelt), saa `tro` fra stillingen. Er begge
+   * null er bredden under v9, og da finnes blokken ikke.
+   */
+  trekkvektor(state2, sete) {
+    if (this.trosnett !== null || this.dim < E1_SPILL_DIM_V9) {
+      return e1SpillTrekkMedTro(state2, sete, this.dim, this.trosnett);
+    }
+    const v = e1SpillTrekk(state2, sete, this.dim);
+    const t = this.tro === null ? null : this.tro(state2, sete);
+    if (t !== null) fyllSanser(v, state2, sete, t);
+    return v;
+  }
   /** Argmax over LOVLIGE kort – reglene håndheves av motoren, ikke av nettet. */
   velgKort(state2, sete) {
     const lovlige = lovligeKort(state2, sete);
     if (lovlige.length === 1) return lovlige[0];
-    const logits = forover(this.nett, e1SpillTrekkMedTro(state2, sete, this.dim, this.trosnett));
+    const logits = forover(this.nett, this.trekkvektor(state2, sete));
     let beste = lovlige[0];
     for (const k of lovlige) if (logits[kortIndeks(k)] > logits[kortIndeks(beste)]) beste = k;
     return beste;
   }
+  /**
+   * ============ POENGSUMMEN PER KORT — for SUMMEFORMEN ================
+   *
+   * ARVIND, 9. august: «tanken var at modulene var en utvidelse av nettet og
+   * gjør det slik at nettet kan ta mer informerte valg gjennom en hel kamp.»
+   *
+   * En utvidelse må kunne LEGGE TIL noe. Det krever at nettets vurdering er
+   * tilgjengelig som et TALL PER KORT, ikke bare som ett valgt kort — ellers
+   * kan et lag over bare erstatte valget, og da er vi tilbake til
+   * overstyringer og kollisjoner.
+   *
+   * Dette er den ene metoden som gjør summeformen mulig:
+   *
+   *     score(kort) = nettets verdi + konvensjonsbonus + søkets korreksjon + …
+   *
+   * `velgKort` er nøyaktig argmax over det samme kartet, så de kan ikke drive
+   * fra hverandre.
+   */
+  scorer(state2, sete) {
+    const logits = forover(this.nett, this.trekkvektor(state2, sete));
+    const ut = /* @__PURE__ */ new Map();
+    for (const k of lovligeKort(state2, sete)) {
+      const i = kortIndeks(k);
+      ut.set(i, logits[i] ?? 0);
+    }
+    return ut;
+  }
   /** Kortene rangert best først – prior til søket (HybridAgent-mønsteret). */
   rangerKort(state2, sete, lovlige) {
-    const logits = forover(this.nett, e1SpillTrekkMedTro(state2, sete, this.dim, this.trosnett));
+    const logits = forover(this.nett, this.trekkvektor(state2, sete));
     return lovlige.slice().sort((a, b) => logits[kortIndeks(b)] - logits[kortIndeks(a)]);
   }
 };
@@ -2905,9 +3009,10 @@ function lesVaktflagg(flagg) {
     else if (tegn2 === "m") valg = { ...valg, makkerTrumfTilbake: true };
     else if (tegn2 === "p") valg = { ...valg, makkerTrumferFørst: true };
     else if (tegn2 === "f") valg = { ...valg, stikk1Billigst: true };
+    else if (tegn2 === "F") valg = { ...valg, stikk1FørerBilligst: true };
     else {
       throw new Error(
-        `Ukjent vaktflagg «${tegn2}» (a = åpning/billigst, h = åpning/høyest, l = åpning/alltid lavest, t = ikke trumf, b = billigst, f = stikk 1 billigst)`
+        `Ukjent vaktflagg «${tegn2}» (a = åpning/billigst, h = åpning/høyest, l = åpning/alltid lavest, t = ikke trumf, b = billigst, f = stikk 1 billigst (forsvar), F = stikk 1 billigst (foerer))`
       );
     }
   }
@@ -3007,6 +3112,10 @@ function vaktKort(s, sete, valgt, valg) {
     const trumfKort = lovlige.filter((k) => k.farge === trumf);
     if (trumfKort.length > 0) return billigste(trumfKort, trumf);
   }
+  if (valg.stikk1FørerBilligst === true && s.stikkSpilt === 0 && s.bord.length === 0 && sete === s.budvinner && valgt.farge === trumf) {
+    const trumfKort = lovlige.filter((k) => k.farge === trumf);
+    if (trumfKort.length > 0) return billigste(trumfKort, trumf);
+  }
   if (valg.stikk1Billigst === true && s.stikkSpilt === 0 && s.bord.length > 0 && sete !== s.budvinner && s.etterlyst !== null && valgt.farge === trumf && !(s.hender[sete] ?? []).some((k) => likeKort(k, s.etterlyst))) {
     const trumfKort = lovlige.filter((k) => k.farge === trumf);
     if (trumfKort.length > 0) return billigste(trumfKort, trumf);
@@ -3045,12 +3154,16 @@ function vaktKort(s, sete, valgt, valg) {
 var Konvensjonsvakt = class {
   indre;
   valg;
+  vekt;
   /** Hvor mange kortvalg vakten har overstyrt – kontroll på at den virker. */
   overstyrt = 0;
   valgTotalt = 0;
-  constructor(indre, valg) {
+  /** Hvor mange ganger summen lot NETTET vinne over konvensjonen. */
+  nettVant = 0;
+  constructor(indre, valg, vekt = null) {
     this.indre = indre;
     this.valg = valg;
+    this.vekt = vekt !== null && vekt > 0 ? vekt : null;
   }
   nyKamp() {
     this.indre.nyKamp?.();
@@ -3059,12 +3172,35 @@ var Konvensjonsvakt = class {
     const h = this.indre.velgHandling(state2);
     if (h.type !== "SPILL") return h;
     this.valgTotalt++;
-    const kort = vaktKort(state2, h.spiller, h.kort, this.valg);
-    if (likeKort(kort, h.kort)) return h;
-    this.overstyrt++;
-    return { type: "SPILL", spiller: h.spiller, kort };
+    const ønsket = vaktKort(state2, h.spiller, h.kort, this.valg);
+    if (likeKort(ønsket, h.kort)) return h;
+    const scorbar = this.indre;
+    if (this.vekt === null || typeof scorbar.scorer !== "function") {
+      this.overstyrt++;
+      return { type: "SPILL", spiller: h.spiller, kort: ønsket };
+    }
+    const poeng = scorbar.scorer(state2, h.spiller);
+    const iØnsket = kortIndeks(ønsket);
+    let beste = ønsket;
+    let bestePoeng = (poeng.get(iØnsket) ?? 0) + this.vekt;
+    for (const [i, p] of poeng) {
+      if (i === iØnsket) continue;
+      if (p > bestePoeng) {
+        bestePoeng = p;
+        beste = intTilKortIdx(i);
+      }
+    }
+    if (likeKort(beste, ønsket)) {
+      this.overstyrt++;
+      return { type: "SPILL", spiller: h.spiller, kort: ønsket };
+    }
+    this.nettVant++;
+    return { type: "SPILL", spiller: h.spiller, kort: beste };
   }
 };
+function intTilKortIdx(i) {
+  return { farge: FARGER[Math.floor(i / 13)], verdi: i % 13 + 2 };
+}
 
 // src/moe2/vrakpolicy.ts
 var INGEN_POLICY = {
@@ -3213,6 +3349,14 @@ var Vrakrangerer = class {
     this.indre.nyKamp();
     this.nevro.nyKamp();
     this.valgt = null;
+  }
+  /**
+   * Videresender bokfoeringskroken. Uten den naar `observer` aldri
+   * `Profilagent`, som ligger LENGER NED i stakken enn dette laget - og da er
+   * profilen tom paa kampbenken (maalt 0 bokfoerte runder mot 25 med tikk).
+   */
+  observer(state2) {
+    this.indre.observer?.(state2);
   }
   velgHandling(state2) {
     if (state2.fase === "VRAK" && state2.budvinner !== null) {
@@ -3441,6 +3585,45 @@ function budTrekk2(state2, sete, dim = BUD_DIM2) {
   return v;
 }
 
+// src/moe2/budsok.ts
+function blandMu(modell, søkt, blanding) {
+  if (søkt === null || blanding <= 0) return modell;
+  const b = Math.min(1, blanding);
+  return {
+    μ: modell.μ * (1 - b) + søkt.μ * b,
+    σ: modell.σ * (1 - b) + søkt.σ * b
+  };
+}
+
+// src/moe2/race.ts
+function racepress(state2, sete) {
+  const mål = state2.regler.målPoeng;
+  if (mål <= 0) return 0;
+  const egne = state2.totalPoeng[sete] ?? 0;
+  let beste = 0;
+  for (let p = 0; p < state2.antallSpillere; p++) {
+    if (p !== sete) beste = Math.max(beste, state2.totalPoeng[p] ?? 0);
+  }
+  const framdrift = Math.min(1, Math.max(egne, beste) / mål);
+  if (framdrift < 0.3) return 0;
+  const gap = (beste - egne) / mål;
+  return Math.max(-1, Math.min(1, gap * 2 * framdrift));
+}
+
+// src/moe2/budrace.ts
+function kampvipp(press, lambda) {
+  if (lambda === 0 || press === 0) return 0;
+  return Math.max(-1, Math.min(1, lambda * press));
+}
+function kampjustertMu(μ, σ, press, lambda) {
+  const vipp = kampvipp(press, lambda);
+  if (vipp === 0) return μ;
+  return μ + vipp * σ;
+}
+function budpress(state2, sete) {
+  return racepress(state2, sete);
+}
+
 // src/moe2/budmodell.ts
 function tolkBudmodell(rå) {
   const m = rå;
@@ -3549,6 +3732,32 @@ var Budagent = class {
    */
   auksjonskorreksjon;
   /**
+   * A4: SØKT ANSLAG PÅ LAGSTIKK. Gitt, blandes modellens μ med et anslag fra
+   * å faktisk spille hånden ut (`budsok.ts`). `null` = av, og da er
+   * beslutningen bit-identisk med før.
+   *
+   * Budgivning skjer 1–4 ganger per runde mot kortvalgets 12, så en budbeslutning
+   * har råd til det samme som ett kortsøk. Kostnaden var aldri grunnen til at
+   * dette ikke fantes.
+   */
+  søktAnslag;
+  /**
+   * Hvor mye av SOEKETS anslag som brukes, i [0, 1]. 0 = av (bit-identisk
+   * med modellen alene), 1 = full erstatning. Skal sveipes, ikke settes.
+   */
+  budblanding;
+  /**
+   * MAKRO → MESO: hvor hardt kampstillingen skal vippe verdsettingen av budet.
+   *
+   * 0 = av, og da er beslutningen BIT-IDENTISK med før — `kampjustertMu`
+   * returnerer μ uendret uten å røre et flyttall. Se `budrace.ts` for formen,
+   * for hvorfor presset gjenbrukes fra `race.ts`, og for den viktigste
+   * forbeholdet: **modulen er strukturelt usynlig på gate 2**, der hver giv
+   * starter på 0–0 og `racepress` derfor er eksakt 0. Bare kampbenken
+   * (`examples/kamp.ts`) kan måle den.
+   */
+  kampLambda;
+  /**
    * PERSONAVHENGIG JUSTERING av forsvarsverdien, eller `null`.
    *
    * `evForsvar` er en KONSTANT der det burde stått en modell: hva forsvar er
@@ -3570,7 +3779,7 @@ var Budagent = class {
   settForsvarsjustering(f) {
     this.forsvarsjustering = f;
   }
-  constructor(indre, m, evForsvar = 2.5, σGulv = 0.6, μSkift = 0, forsvarsverdi = evForsvar, forsvarsjustering = null, auksjonskorreksjon = false) {
+  constructor(indre, m, evForsvar = 2.5, σGulv = 0.6, μSkift = 0, forsvarsverdi = evForsvar, forsvarsjustering = null, auksjonskorreksjon = false, søktAnslag = null, budblanding = 1, kampLambda = 0) {
     this.indre = indre;
     this.m = m;
     this.evForsvar = evForsvar;
@@ -3579,6 +3788,9 @@ var Budagent = class {
     this.auksjonskorreksjon = auksjonskorreksjon;
     this.σGulv = σGulv;
     this.μSkift = μSkift;
+    this.søktAnslag = søktAnslag;
+    this.budblanding = budblanding;
+    this.kampLambda = kampLambda;
   }
   nyKamp() {
     this.indre.nyKamp();
@@ -3597,10 +3809,20 @@ var Budagent = class {
     const just = this.forsvarsjustering === null ? 0 : this.forsvarsjustering(state2);
     const terskel = this.evForsvar + just;
     const fv = this.forsvarsverdi + just;
+    let μB = μ;
+    let σB = σ;
+    if (this.søktAnslag !== null) {
+      const s2 = this.søktAnslag(state2, sete);
+      const b = blandMu({ μ, σ }, s2, this.budblanding);
+      μB = b.μ;
+      σB = Math.max(this.σGulv, b.σ);
+    }
+    const press = this.kampLambda === 0 ? 0 : budpress(state2, sete);
+    const μK = kampjustertMu(μB, σB, press, this.kampLambda);
     let beste = PASS;
     let bv = terskel;
     for (const N of tall) {
-      const P = 1 - Φ((N - 0.5 - μ) / σ);
+      const P = 1 - Φ((N - 0.5 - μK) / σB);
       const p = this.m.vant[String(N)] ?? (N >= 11 ? 1 : 0);
       const ev = p * (2 * N * (2 * P - 1)) + (1 - p) * fv;
       if (ev > bv) {
@@ -3611,7 +3833,7 @@ var Budagent = class {
     const kanAmerikaner = lov.bud.some((b) => b === AMERIKANER);
     if (kanAmerikaner) {
       const alle = state2.giving.antallStikk;
-      const P = 1 - Φ((alle - 0.5 - μ) / σ);
+      const P = 1 - Φ((alle - 0.5 - kampjustertMu(μ, σ, press, this.kampLambda)) / σ);
       const p = this.m.vant["AMERIKANER"] ?? 1;
       const sats = state2.regler.målPoeng / 2;
       const ev = p * (sats * (2 * P - 1)) + (1 - p) * fv;
@@ -3633,6 +3855,7 @@ var MESTER_SETER = [1, 2, 3];
 var VAKTFLAGG = "abmp";
 var BUDMODELL = "bud-menneske.json";
 var BUDMODELL_RESERVE = "bud-vant.json";
+var BUDMODELL_SISTE_UTVEI = "bud-gbt.json";
 var BUDTERSKEL = -3;
 var KORTVEKTER = "adams-kort.b64";
 var VRAKRANGERER = "adams-vrak.b64";
@@ -3711,7 +3934,10 @@ function besteBot() {
     hentBudmodell(BUDMODELL).then(async (m) => {
       if (m !== null) return m;
       console.warn(`${BUDMODELL} kunne ikke hentes – faller tilbake til ${BUDMODELL_RESERVE}.`);
-      return hentBudmodell(BUDMODELL_RESERVE);
+      const r = await hentBudmodell(BUDMODELL_RESERVE);
+      if (r !== null) return r;
+      console.warn(`${BUDMODELL_RESERVE} kunne heller ikke hentes – siste utvei ${BUDMODELL_SISTE_UTVEI}.`);
+      return hentBudmodell(BUDMODELL_SISTE_UTVEI);
     }),
     // Vrakrangereren. Samme vilkår som de to over: feiler den, vraker og
     // velger trumf boten som i går. Ingen enkeltdel får lov til å ta ned
@@ -3841,31 +4067,45 @@ var workerLast = null;
 var venterPåSvar = /* @__PURE__ */ new Map();
 var nesteWorkerId = 1;
 var tenkStart = 0;
-var adamsSendt = false;
+var adamsKlar = null;
+var kvitter = null;
 async function sikreAdamsIWorker() {
   if (råVekter === null || SØKVERDENER <= 0) return null;
-  try {
-    const w = await hentWorker();
-    if (!adamsSendt) {
-      w.postMessage({
-        type: "adams-init",
-        kort: råVekter.kort,
-        bud: råVekter.bud,
-        vrak: råVekter.vrak,
-        tro: råVekter.tro,
-        vaktflagg: VAKTFLAGG,
-        vrakflagg: VRAKFLAGG,
-        budterskel: BUDTERSKEL,
-        verdener: SØKVERDENER,
-        sigma: SØKSIGMA
+  adamsKlar ??= (async () => {
+    try {
+      const w = await hentWorker();
+      return await new Promise((løs) => {
+        const frist = setTimeout(() => {
+          kvitter = null;
+          console.warn(
+            "Workeren kvitterte ikke på «adams-init» innen 6 s – den er sannsynligvis en eldre utgave uten Adams-meldingene. Spiller med hovedtrådens søkfrie bot."
+          );
+          løs(null);
+        }, 6e3);
+        kvitter = (ok) => {
+          clearTimeout(frist);
+          kvitter = null;
+          løs(ok ? w : null);
+        };
+        w.postMessage({
+          type: "adams-init",
+          kort: råVekter.kort,
+          bud: råVekter.bud,
+          vrak: råVekter.vrak,
+          tro: råVekter.tro,
+          vaktflagg: VAKTFLAGG,
+          vrakflagg: VRAKFLAGG,
+          budterskel: BUDTERSKEL,
+          verdener: SØKVERDENER,
+          sigma: SØKSIGMA
+        });
       });
-      adamsSendt = true;
+    } catch (feil) {
+      console.warn("Kunne ikke gi workeren Adams – spiller uten søk:", feil);
+      return null;
     }
-    return w;
-  } catch (feil) {
-    console.warn("Kunne ikke gi workeren Adams – spiller uten søk:", feil);
-    return null;
-  }
+  })();
+  return adamsKlar;
 }
 async function søkTrekk(st, sete) {
   const w = await sikreAdamsIWorker();
@@ -3889,6 +4129,11 @@ function hentWorker() {
     workerLast = fetch(DATA_URL + "worker.js").then((r) => r.text()).then((kode) => {
       const w = new Worker(URL.createObjectURL(new Blob([kode], { type: "text/javascript" })));
       w.onmessage = (e) => {
+        if (e.data.klar !== void 0) {
+          if (e.data.klar === false) console.warn("Workeren klarte ikke bygge Adams:", e.data.feil);
+          kvitter?.(e.data.klar === true);
+          return;
+        }
         const løs = venterPåSvar.get(e.data.id);
         venterPåSvar.delete(e.data.id);
         if (løs && e.data.handling) løs(e.data.handling);
@@ -3950,7 +4195,8 @@ var motstander = "Vaar";
 var nettAgenter = null;
 var FARGE_TEGN = { S: "♠", H: "♥", R: "♦", K: "♣" };
 var FARGE_NAVN = { S: "spar", H: "hjerter", R: "ruter", K: "kløver" };
-var FARGE_CSS = { S: "#1a1a1a", H: "#d32f2f", R: "#1565c0", K: "#2e7d32" };
+var fargeKlasse = (f) => `f-${f}`;
+var fargeMerke = (f, medNavn = true) => `<span class="fargemerke ${fargeKlasse(f)}"><span class="sym" aria-hidden="true">${FARGE_TEGN[f]}</span>${medNavn ? FARGE_NAVN[f] : `<span class="skjult">${FARGE_NAVN[f]}</span>`}</span>`;
 var VERDI_TEKST = (v) => v === 14 ? "A" : v === 13 ? "K" : v === 12 ? "D" : v === 11 ? "J" : String(v);
 var state;
 var spillId = "";
@@ -3988,31 +4234,43 @@ function logg(type, data) {
   }).catch(() => {
   });
 }
-var kortTekst = (k) => `${FARGE_TEGN[k.farge]}${VERDI_TEKST(k.verdi)}`;
 var kortTale = (k) => `${FARGE_NAVN[k.farge]} ${VERDI_TEKST(k.verdi)}`;
+var laster = (tittel, undertekst = "") => `<div class="overlegg"><div class="panel start"><div class="laster">
+    <h2>${tittel}</h2>
+    <div class="stripe" role="progressbar" aria-label="${tittel}"><i></i></div>
+    ${undertekst ? `<p class="bekreftsmatt">${undertekst}</p>` : ""}
+  </div></div></div>`;
+var feilrute = (tittel, hva) => `<div class="overlegg"><div class="panel start">
+    <h2>${tittel} 😕</h2>
+    <p class="bekreftsmatt">${hva}</p>
+    <button class="stor bekreft" id="tilbake">Tilbake</button>
+  </div></div>`;
 async function start(navn) {
   spillerNavn = navn || "familien";
   spillId = Math.random().toString(36).slice(2, 10);
   nettAgenter = null;
   if (motstander === "Vaar") {
-    rot.innerHTML = `<div class="panel start"><h2>Laster vår beste bot…</h2></div>`;
+    rot.innerHTML = laster("Laster boten…", "Henter kortvektene — 2,4 MB første gang, deretter fra hurtigbufferen.");
     try {
       const bot = await besteBot();
       nettAgenter = [bot, bot, bot];
     } catch {
-      rot.innerHTML = `<div class="panel start"><h2>Klarte ikke laste boten 😕</h2>
-        <button class="stor bekreft" id="tilbake">Tilbake</button></div>`;
+      rot.innerHTML = feilrute(
+        "Klarte ikke laste boten",
+        "Vektfilene kunne ikke hentes. Sjekk nettet og prøv igjen — spillet trenger dem for å ha noen å spille mot."
+      );
       document.getElementById("tilbake").onclick = () => startskjerm();
       return;
     }
   } else if (motstander === "MesterAI") {
-    rot.innerHTML = `<div class="panel start"><h2>Kobler til MesterAI…</h2></div>`;
+    rot.innerHTML = laster("Kobler til MesterAI…", "Broen kjører på laptopen.");
     try {
       await broSend({ type: "helse" }).catch(() => broSend({ type: "init", mesterSeter: [] }));
     } catch {
-      rot.innerHTML = `<div class="panel start"><h2>Fikk ikke kontakt med MesterAI 😕</h2>
-        <p class="sub">Er broen startet på laptopen? (arena/mesterai-bro.ts)</p>
-        <button class="stor bekreft" id="tilbake">Tilbake</button></div>`;
+      rot.innerHTML = feilrute(
+        "Fikk ikke kontakt med MesterAI",
+        "Er broen startet på laptopen? (arena/mesterai-bro.ts)"
+      );
       document.getElementById("tilbake").onclick = () => startskjerm();
       return;
     }
@@ -4146,6 +4404,7 @@ function fortsett() {
       });
       return;
     }
+    tegn();
     setTimeout(() => {
       const h = nettAgenter[aktør - 1].velgHandling(state);
       travelt = false;
@@ -4198,11 +4457,15 @@ function menneskeSpill(kort) {
 var budTekst = (b) => b === PASS ? "Pass" : b === AMERIKANER ? "Amerikaner!" : b === SOLO ? "Solo!" : String(b);
 function kortKnapp(k, opts) {
   const id = `kort-${k.farge}${k.verdi}`;
-  return `<button id="${id}" class="kort${opts.liten ? " liten" : ""}${opts.valgt ? " valgt" : ""}"
-    style="--f:${FARGE_CSS[k.farge]}" ${opts.valgbar ? "" : "disabled"}
+  const sym = FARGE_TEGN[k.farge];
+  const v = VERDI_TEKST(k.verdi);
+  const hjorne = (ned) => `<span class="hjorne${ned ? " ned" : ""}" aria-hidden="true">${v}<span class="sym">${sym}</span></span>`;
+  return `<button id="${id}" class="kort ${fargeKlasse(k.farge)}${opts.liten ? " liten" : ""}${opts.valgt ? " valgt" : ""}${opts.ny ? " ny" : ""}"
+    ${opts.valgbar ? "" : "disabled"}
     aria-label="${kortTale(k)}${opts.valgt ? ", valgt" : ""}" data-farge="${k.farge}" data-verdi="${k.verdi}">
-    <span class="hjorne">${VERDI_TEKST(k.verdi)}<br>${FARGE_TEGN[k.farge]}</span>
-    <span class="midt">${FARGE_TEGN[k.farge]}</span>
+    ${hjorne(false)}
+    <span class="midt" aria-hidden="true">${sym}</span>
+    ${hjorne(true)}
   </button>`;
 }
 function sorterHånd(hånd) {
@@ -4213,34 +4476,62 @@ function sorterHånd(hånd) {
 }
 function topplinje() {
   const m = state.melding;
-  const kontrakt = state.budvinner !== null && m !== null ? `${NAVN[state.budvinner]}: ${m.type === "tall" ? m.bud : m.type} ${state.trumf ? FARGE_TEGN[state.trumf] : ""}` : state.fase === "BUDRUNDE" ? "Budrunde" : "";
+  const kontrakt = state.budvinner !== null && m !== null ? `<span class="hvem">${NAVN[state.budvinner]}</span> meldte <b>${m.type === "tall" ? m.bud : m.type}</b>${state.trumf ? ` i ${fargeMerke(state.trumf)}` : ""}` : state.fase === "BUDRUNDE" ? "Budrunde" : "";
   const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
+  const iTur = frystStikk !== null ? null : state.iTur ?? null;
   return `<header>
     <div class="poeng" role="group" aria-label="Poengstilling og stikk">
-      ${state.totalPoeng.map((p, i) => `<div class="spiller${i === MENNESKE ? " deg" : ""}"><span>${NAVN[i]}</span><b>${p}</b>${iSpill ? `<span style="color:#7fe08a;font-weight:700" aria-label="stikk denne runden">${state.stikkVunnet[i]} stikk</span>` : ""}</div>`).join("")}
+      ${state.totalPoeng.map(
+    (p, i) => `<div class="spiller${i === MENNESKE ? " deg" : ""}${i === iTur ? " itur" : ""}"><span class="navn">${NAVN[i]}</span><b>${p}</b>${iSpill ? `<span class="stikk" aria-label="stikk denne runden">${state.stikkVunnet[i]} stikk</span>` : ""}</div>`
+  ).join("")}
     </div>
-    <div class="kontrakt">${kontrakt}</div>
-    <div class="runde">Runde ${state.rundeNr + 1} · først til ${state.regler.målPoeng}</div>
+    ${kontrakt ? `<div class="kontrakt">${kontrakt}</div>` : ""}
+    <div class="runde">Runde ${state.rundeNr + 1}<br>først til ${state.regler.målPoeng}</div>
   </header>`;
 }
+var forrigeBordkort = /* @__PURE__ */ new Set();
 function bordet() {
   const plass = ["bunn", "venstre", "topp", "høyre"];
   const påBordet = frystStikk !== null ? frystStikk.kort : state.bord;
-  const kort = påBordet.map((b) => `<div class="bordkort ${plass[b.spiller]}">
-      <div class="hvem">${NAVN[b.spiller]}${frystStikk !== null && b.spiller === frystStikk.vinner ? ' <span style="color:#ffd54f">★ vant stikket</span>' : ""}</div>${kortKnapp(b.kort, { liten: true })}</div>`).join("");
-  const tenker = frystStikk === null && !venterPåMenneske && state.fase === "SPILL" && state.iTur !== null && state.iTur !== MENNESKE ? `<div class="tenker ${plass[state.iTur]}">${NAVN[state.iTur]} tenker<span id="tenker-tid"></span>…</div>` : "";
-  const info = state.etterlyst ? `<div class="etterlyst">Etterlyst: ${kortTekst(state.etterlyst)}${state.makkerAvslørt && state.makker !== null ? ` (${NAVN[state.makker]})` : " (skjult makker)"}</div>` : "";
-  const forrige = frystStikk === null && state.fase === "SPILL" && state.forrigeStikk !== null ? `<div style="position:absolute;right:0.5%;top:1%;background:rgba(0,0,0,.55);border:2px solid #2c4a35;border-radius:12px;padding:0.6vh 0.8vw;text-align:center" aria-label="Forrige stikk">
-          <div style="font-size:0.7em;color:#b9c7ad;margin-bottom:0.3vh">Forrige stikk · <b style="color:#ffd54f">${NAVN[state.forrigeStikk.vinner]}</b> vant</div>
-          <div style="display:flex;gap:4px;justify-content:center">${state.forrigeStikk.kort.map((b) => `<div style="zoom:0.5"><div style="font-size:1.4em;color:#b9c7ad">${NAVN[b.spiller].split(" ")[0]}</div>${kortKnapp(b.kort, { liten: true })}</div>`).join("")}</div>
+  const nå = new Set(påBordet.map((b) => `${b.spiller}${kortId(b.kort)}`));
+  const erNy = (b) => !forrigeBordkort.has(`${b.spiller}${kortId(b.kort)}`);
+  const kort = påBordet.map((b) => {
+    const vant = frystStikk !== null && b.spiller === frystStikk.vinner;
+    return `<div class="bordkort ${plass[b.spiller]}${vant ? " vant" : ""}">
+      <div class="hvem">${NAVN[b.spiller]}${vant ? ' <span class="vant">★ vant stikket</span>' : ""}</div>${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}</div>`;
+  }).join("");
+  forrigeBordkort = nå;
+  const tenkeSete = frystStikk === null && !venterPåMenneske && travelt && state.fase !== "RUNDE_SLUTT" && state.fase !== "FERDIG" ? state.fase === "VRAK" || state.fase === "VELG" ? state.budvinner : state.iTur : null;
+  const tenker = tenkeSete !== null && tenkeSete !== MENNESKE ? `<div class="tenker ${plass[tenkeSete]}"><span class="prikker" aria-hidden="true"><i></i><i></i><i></i></span>${NAVN[tenkeSete]} tenker<span id="tenker-tid"></span></div>` : "";
+  const trumfskilt = state.trumf !== null && (state.fase === "SPILL" || frystStikk !== null) ? `<div class="trumfskilt"><span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>` : "";
+  const info = state.etterlyst ? `<div class="etterlyst"><span class="merkelapp">Etterlyst</span>${fargeMerke(state.etterlyst.farge, false)} <b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? ` · ${NAVN[state.makker]}` : " · skjult makker"}</div>` : "";
+  const dinTur = venterPåMenneske && state.fase === "SPILL" && frystStikk === null ? `<div class="dintur">Din tur — spill et kort</div>` : "";
+  const midt = trumfskilt || info || dinTur ? `<div class="midtfelt">${trumfskilt}${info}${dinTur}</div>` : "";
+  const forrige = frystStikk === null && state.fase === "SPILL" && state.forrigeStikk !== null ? `<div class="forrige" aria-label="Forrige stikk">
+          <div class="tittel">Forrige · <b>${NAVN[state.forrigeStikk.vinner]}</b> vant</div>
+          <div class="rad">${state.forrigeStikk.kort.map((b) => `<div><div class="navn">${NAVN[b.spiller].split(" ")[0]}</div>${kortKnapp(b.kort, {})}</div>`).join("")}</div>
         </div>` : "";
-  return `<div class="bord" aria-label="Bordet">${kort}${tenker}${info}${forrige}</div>`;
+  return `<div class="bord" aria-label="Bordet">${kort}${midt}${tenker}${forrige}</div>`;
+}
+var MÅLBREDDE = 76;
+var HÅNDHØYDE = 0.42;
+function håndmål(antall) {
+  const b = window.innerWidth || 1024;
+  const h = window.innerHeight || 768;
+  if (antall <= 1) return { n: 1, maks: 132 };
+  const takRader = h < 500 ? 1 : h < 700 ? 2 : 3;
+  const passerPerRad = Math.max(1, Math.floor(b / MÅLBREDDE));
+  const rader = Math.min(takRader, Math.max(1, Math.ceil(antall / passerPerRad)));
+  const maks = Math.min(132, Math.max(46, Math.floor(HÅNDHØYDE * h * 0.7 / rader)));
+  return { n: Math.ceil(antall / rader), maks };
 }
 function håndPanel() {
   const lov = lovligeHandlinger(state);
   const hånd = sorterHånd(state.hender[MENNESKE] ?? []);
   const spillbare = venterPåMenneske && lov.fase === "SPILL" ? new Set(lov.kort.map((k) => `${k.farge}${k.verdi}`)) : null;
-  return `<div class="hånd" role="group" aria-label="Kortene dine">
+  const mål = håndmål(hånd.length);
+  const passiv = spillbare === null;
+  return `<div class="hånd${passiv ? " passiv" : ""}" role="group" aria-label="Kortene dine" style="--n:${mål.n};--kmaks:${mål.maks}px">
     ${hånd.map(
     (k) => kortKnapp(k, {
       valgbar: spillbare !== null && spillbare.has(`${k.farge}${k.verdi}`),
@@ -4254,83 +4545,99 @@ function budPanel() {
   if (!venterPåMenneske || lov.fase !== "BUDRUNDE") return "";
   const tall = lov.bud.filter((b) => typeof b === "number");
   const høyeste = state.budrunde.høyeste;
-  return `<div class="panel" role="dialog" aria-label="Ditt bud">
-    <h2>Ditt bud${høyeste ? ` (høyeste: ${budTekst(høyeste.bud)} fra ${NAVN[høyeste.spiller]})` : ""}</h2>
+  return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Ditt bud">
+    <h2>Ditt bud${høyeste ? ` <span class="bekreftsmatt">— høyeste er ${budTekst(høyeste.bud)} fra ${NAVN[høyeste.spiller]}</span>` : ""}</h2>
     <div class="knapper">
       <button class="stor pass" data-bud="PASS">Pass</button>
       ${tall.map((b) => `<button class="stor tallbud" data-bud="${b}">${b}</button>`).join("")}
       ${lov.bud.includes(AMERIKANER) ? `<button class="stor spesial" data-bud="AMERIKANER">Amerikaner</button>` : ""}
       ${lov.bud.includes(SOLO) ? `<button class="stor spesial" data-bud="SOLO">Solo</button>` : ""}
     </div>
-  </div>`;
+  </div></div>`;
 }
 function vrakPanel() {
   const lov = lovligeHandlinger(state);
   if (!venterPåMenneske || lov.fase !== "VRAK") return "";
-  return `<div class="panel" role="dialog" aria-label="Vrak kort">
-    <h2>Du vant budet! Velg ${lov.antall} kort å legge bort (${vrakValg.length}/${lov.antall} valgt)</h2>
+  return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Vrak kort">
+    <h2>Du vant budet! Velg ${lov.antall} kort å legge bort
+      <span class="bekreftsmatt">(${vrakValg.length} av ${lov.antall} valgt)</span></h2>
     <div class="vrakhånd">${sorterHånd(lov.hånd).map((k) => kortKnapp(k, { valgbar: true, valgt: vrakValg.some((v) => v.farge === k.farge && v.verdi === k.verdi) })).join("")}</div>
     <button class="stor bekreft" id="vrak-ok" ${vrakValg.length === lov.antall ? "" : "disabled"}>Legg bort valgte</button>
-  </div>`;
+  </div></div>`;
 }
 function velgPanel() {
   const lov = lovligeHandlinger(state);
   if (!venterPåMenneske || lov.fase !== "VELG") return "";
   if (velgTrumfValg === null) {
-    return `<div class="panel" role="dialog" aria-label="Velg trumf">
+    return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Velg trumf">
       <h2>Velg trumffarge</h2>
-      <div class="knapper">${["S", "H", "R", "K"].map((f) => `<button class="stor farge" style="--f:${FARGE_CSS[f]}" data-trumf="${f}">${FARGE_TEGN[f]} ${FARGE_NAVN[f]}</button>`).join("")}</div>
-    </div>`;
+      <div class="trumfvalg">${["S", "K", "H", "R"].map(
+      (f) => `<button class="trumfkort ${fargeKlasse(f)}" data-trumf="${f}" aria-label="${FARGE_NAVN[f]}">
+            <span class="stripe" aria-hidden="true"></span>
+            <span class="tsym" aria-hidden="true">${FARGE_TEGN[f]}</span>
+            <span class="tnavn">${FARGE_NAVN[f]}</span>
+          </button>`
+    ).join("")}</div>
+    </div></div>`;
   }
   if (!lov.måEtterlyse) return "";
   const trumf = velgTrumfValg;
   const symbol = FARGE_TEGN[trumf];
-  const css = FARGE_CSS[trumf];
   if (velgEtterlysValg !== null) {
     const e = velgEtterlysValg;
-    return `<div class="panel" role="dialog" aria-label="Bekreft valget">
+    return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Bekreft valget">
       <h2>Bekreft</h2>
-      <p class="bekreftlinje">Trumf <b style="color:${css}">${symbol} ${FARGE_NAVN[trumf]}</b>
-         — du etterlyser <b style="color:${css}">${symbol}${VERDI_TEKST(e.verdi)}</b>.</p>
+      <p class="bekreftlinje">Trumf blir ${fargeMerke(trumf)}
+         — du etterlyser ${fargeMerke(trumf, false)} <b>${VERDI_TEKST(e.verdi)}</b>.</p>
       <p class="bekreftsmatt">Den som har kortet blir din hemmelige makker.</p>
       <div class="knapper">
         <button class="stor bekreft" id="velg-ok">Bekreft</button>
         <button class="stor" id="velg-angre">Angre</button>
       </div>
-    </div>`;
+    </div></div>`;
   }
   const lovlige = lovligeEtterlys(state, trumf);
-  return `<div class="panel" role="dialog" aria-label="Etterlys et kort">
-    <h2>Trumf <span style="color:${css}">${symbol} ${FARGE_NAVN[trumf]}</span> — hvilket kort etterlyser du?</h2>
+  return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Etterlys et kort">
+    <h2>Trumf blir ${fargeMerke(trumf)} — hvilket kort etterlyser du?</h2>
     <p class="bekreftsmatt">Eieren blir din hemmelige makker. Kortet må være trumf.</p>
-    <div class="etterlysrad">${lovlige.slice().sort((a, b) => b.verdi - a.verdi).map((k) => `<button class="mini" style="color:${css}" data-ev="${k.verdi}">${symbol}${VERDI_TEKST(k.verdi)}</button>`).join("")}</div>
+    <div class="etterlysrad">${lovlige.slice().sort((a, b) => b.verdi - a.verdi).map(
+    (k) => `<button class="minikort ${fargeKlasse(trumf)}" data-ev="${k.verdi}" aria-label="${kortTale(k)}">
+          <span class="v">${VERDI_TEKST(k.verdi)}</span><span class="sym" aria-hidden="true">${symbol}</span>
+        </button>`
+  ).join("")}</div>
     <div class="knapper"><button class="stor" id="velg-tilbake">Bytt trumffarge</button></div>
-  </div>`;
+  </div></div>`;
 }
 function rundeSluttPanel() {
   if (state.fase !== "RUNDE_SLUTT" || state.sisteRunde === null) return "";
   const r = state.sisteRunde;
   const m = r.melding;
   const hva = m.type === "tall" ? `${m.bud}` : m.type;
-  return `<div class="panel resultat" role="dialog" aria-label="Rundens resultat">
-    <h2>${NAVN[r.budvinner]} meldte ${hva} og ${r.klart ? "KLARTE det! ✅" : "falt ❌"} (${r.lagStikk} stikk${r.makker !== null ? ` med ${NAVN[r.makker]}` : ""})</h2>
+  return `<div class="overlegg"><div class="panel resultat" role="dialog" aria-label="Rundens resultat">
+    <h2>${NAVN[r.budvinner]} meldte ${hva} og ${r.klart ? "KLARTE det! ✅" : "falt ❌"}<br>
+      <span class="bekreftsmatt">${r.lagStikk} stikk${r.makker !== null ? ` sammen med ${NAVN[r.makker]}` : ""}</span></h2>
     <div class="delta">${r.delta.map((d, i) => `<span class="${d >= 0 ? "pluss" : "minus"}">${NAVN[i]}: ${d >= 0 ? "+" : ""}${d}</span>`).join("")}</div>
     <button class="stor bekreft" id="neste">Neste runde</button>
-  </div>`;
+  </div></div>`;
 }
 function ferdigPanel() {
   if (state.fase !== "FERDIG") return "";
   const vantDu = state.vinner === MENNESKE;
-  return `<div class="panel resultat" role="dialog" aria-label="Kampen er ferdig">
+  return `<div class="overlegg"><div class="panel resultat" role="dialog" aria-label="Kampen er ferdig">
     <h2>${vantDu ? "🎉 DU VANT! 🎉" : `${NAVN[state.vinner]} vant kampen`}</h2>
     <div class="delta">${state.totalPoeng.map((p, i) => `<span>${NAVN[i]}: ${p}</span>`).join("")}</div>
     <button class="stor bekreft" id="nytt-spill">Nytt spill</button>
     <p class="lite">Resultatene er lagret. <a href="${DATA_URL}" target="_blank" rel="noopener">Se innsamlede data</a></p>
-  </div>`;
+  </div></div>`;
 }
+var sistPanel = "";
 function tegn() {
   if (!state) return;
   rot.innerHTML = topplinje() + bordet() + budPanel() + vrakPanel() + velgPanel() + rundeSluttPanel() + ferdigPanel() + håndPanel();
+  const panel = rot.querySelector(".overlegg > .panel");
+  const nøkkel2 = panel?.getAttribute("aria-label") ?? "";
+  if (panel !== null && nøkkel2 !== sistPanel) panel.parentElement.classList.add("fersk");
+  sistPanel = nøkkel2;
   koble();
 }
 function koble() {
@@ -4400,9 +4707,9 @@ function koble() {
   }
 }
 function startskjerm() {
-  rot.innerHTML = `<div class="panel start" role="dialog" aria-label="Start">
+  rot.innerHTML = `<div class="overlegg"><div class="panel start" role="dialog" aria-label="Start">
     <h1>🃏 Amerikaneren mot botene</h1>
-    <p>Store kort, laget for TV-en. Velg motstander:</p>
+    <p>Store kort, laget for TV, iPad og telefon. Velg motstander:</p>
     <div class="knapper motstandere" role="radiogroup" aria-label="Motstander">
       ${MOTSTANDERE().map((m) => `<button class="stor motstander${m === motstander ? " aktiv" : ""}" data-mot="${m}"
           role="radio" aria-checked="${m === motstander}">${MOTSTANDER_INFO[m]}</button>`).join("")}
@@ -4410,9 +4717,9 @@ function startskjerm() {
     <!-- Styrkevalget hoerte til PIMC, som er fjernet. Nevronettet bruker
          mikrosekunder per trekk, saa det finnes ingen tidsbudsjett aa velge. -->
     <label for="navn">Hvem spiller? (for dataloggen)</label>
-    <input id="navn" type="text" placeholder="f.eks. mamma" autocomplete="off">
+    <input id="navn" type="text" placeholder="f.eks. kallenavn" autocomplete="off" enterkeyhint="go">
     <button class="stor bekreft" id="start-knapp">Start spillet</button>
-  </div>`;
+  </div></div>`;
   for (const b of rot.querySelectorAll("[data-mot]")) {
     b.onclick = () => {
       motstander = b.dataset["mot"];
@@ -4433,6 +4740,15 @@ function startskjerm() {
   };
   knapp.focus();
 }
+var sistLayout = "";
+addEventListener("resize", () => {
+  if (!state) return;
+  const m = håndmål((state.hender[MENNESKE] ?? []).length);
+  const nøkkel2 = `${m.n}:${m.maks}`;
+  if (nøkkel2 === sistLayout) return;
+  sistLayout = nøkkel2;
+  tegn();
+});
 setInterval(() => {
   const el = document.getElementById("tenker-tid");
   if (el !== null && travelt && tenkStart > 0) {

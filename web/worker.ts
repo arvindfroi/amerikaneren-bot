@@ -155,9 +155,16 @@ self.onmessage = (e: MessageEvent<Melding>) => {
         // sitt, er dette den ene bryteren som slaar dem paa i appen.
         økt: false,
       }).agent;
+      /**
+       * KVITTERINGEN. Uten den kan ikke hovedtråden vite at det er DENNE
+       * workeren den snakker med — se den lange kommentaren ved
+       * `sikreAdamsIWorker` i `web/app.ts`. `klar: true` sendes bare herfra,
+       * så en eldre worker kan ikke forfalske den ved uhell.
+       */
+      (self as unknown as Worker).postMessage({ id: 0, klar: true });
     } catch (feil) {
       adams = null;
-      (self as unknown as Worker).postMessage({ id: 0, feil: `adams-init: ${String(feil)}` });
+      (self as unknown as Worker).postMessage({ id: 0, klar: false, feil: `adams-init: ${String(feil)}` });
     }
     return;
   }
