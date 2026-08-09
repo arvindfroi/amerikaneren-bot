@@ -381,3 +381,80 @@ resultatet. Ikke et argument for å trene lenger.
 
 Ingenting. Den er målbar, den er utrullet, og den er referansen MLB må slå.
 `rask` er med i ligaen nettopp derfor.
+
+---
+
+## 8. Avbruddskriteriet — skrevet FØR vi ser tallene
+
+Arvind, 9. august: «hvis dette ikke går så må vi hitte nuclear-knappen. da må vi
+bygge alle delene helt på nytt … vi har hatt en veldig patchwork-ordning med
+gamle deler og mye svikt. sunken cost. MEN det er bare hvis dette feiler.»
+
+**Da må «feiler» stå her, nå.** Skrives det etterpå, blir det en diskusjon i
+stedet for en måling — og i en diskusjon vinner sunk cost hver gang.
+
+### Tre ulike feil, tre ulike svar
+
+| hva som feiler | hva det betyr | hva vi gjør |
+|---|---|---|
+| **Fase 0a** — trohodet slår ikke dagens tro | sanseblokk-hypotesen er død | MLB fortsetter. K8 må komme et annet sted fra |
+| **Fase 1** — tilfeldig nett spiller ulovlig, eller K2 ryker | ingeniørfeil | fiks den. Ikke et argument om noe som helst |
+| **Fase 2** — MLB slår ikke `rask` | **selvspill uten mester når ikke fram her** | nuclear |
+
+Bare den tredje er en dom over veien.
+
+### Fase 2s kriterium, konkret
+
+MLB har feilet når **alle tre** holder:
+
+1. **≥ 30 epoker** er kjørt, ELLER **5 døgn** maskintid er brukt — det som kommer først
+2. Beste epoke slår ikke `rask` **parret, over 2 SE, med tegntesten med seg**
+3. Kurven over epoker er **flat eller fallende** de siste ti
+
+Punkt 3 er med fordi «ikke framme ennå» og «kommer ikke fram» er ulike ting, og
+bare kurven skiller dem.
+
+### Et tidlig varsel, som ikke er et avbrudd
+
+Etter **10 epoker** skal MLB slå et TILFELDIG nett klart. Gjør den ikke det, er
+noe strukturelt galt — kredittilordningen, utforskningen eller
+belønningsformen — og da skal jeg lete etter feilen, ikke kjøre flere epoker.
+
+Det er den samme lærdommen som fra `løsDD`: en feil sprer seg langs kall, ikke
+langs tid. Flere epoker fikser ikke en gal gradient.
+
+### Hva «nuclear» faktisk ville være
+
+Arvind: «hver del og modul må skrives helt fra starten.» Da er det verdt å si
+presist hva som er patchwork og hva som er grunnfjell — ellers river vi feil
+vegg.
+
+**Rives:**
+
+| | hvorfor |
+|---|---|
+| hele `src/moe2/` | stabelen av overstyringer. Fire kollisjoner, alle samme form |
+| spek-språket | posisjonsfelt, flagg som kolliderer, `utenSøk` som glemte `amu:` |
+| `d7alle` og korpuset | orakeltrent, feil målestokk, fordelingsskift |
+| budmodellen som egen GBT | skal inn i nettet uansett |
+
+**Beholdes, og det er ikke sentimentalitet:**
+
+| | hvorfor |
+|---|---|
+| `src/motor.ts`, `src/regler.ts` | det ER spillet. Å skrive det om endrer reglene, ikke boten |
+| prøvene for K1–K8 | de definerer målet. Uten dem vet vi ikke hva «bedre» betyr |
+| benkene med kontrollarmene | gate 2 må måle 0,0000, kampbenken 0,2500. Det er infrastrukturen som har fanget hver eneste feil |
+| `poengdds` | eksakt, verifisert mot en uavhengig råsøker |
+| disiplinen | parret måling, disjunkte bånd, aldri adoptere på støy |
+
+**Og det som IKKE er en grunn til å rive:** at det er gammelt, eller at det tok
+lang tid å bygge. Det er nettopp sunk cost med motsatt fortegn.
+
+### Merk hva som allerede ER revet
+
+A7 og A6-avsenderen er parkert. `d5`, `B4` og `kamp1.5` er slått av etter at de
+målte −0,8. Summeformen er bygd og deretter satt til side fordi sveipen sa at
+overstyringen var optimum.
+
+Det er ikke tegn på at vi holder fast i ting. Det er tegn på at porten virker.
