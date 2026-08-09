@@ -129,7 +129,7 @@ ikke av en håndskrevet regel, og (b) gapet til fasens tak er målt.
 | Trumfvalg | vrakvelger | målt |
 | Utspill stikk 1 | konvensjonsvakt + søk | §73: regelen målte null |
 | Midtspill | alpha-mu, alle roller | måles nå |
-| Sluttspill | eksakt løser | 0,3 % av taket — **umålt igjen**, se K7 og §116 |
+| Sluttspill | alpha-mu, full dybde tilgjengelig | 0,3 % av taket ved to stikk, **~4,9 % ved fem** (§117) |
 
 **Status: delvis.** Budrunden er det store hullet — og det eneste vinduet stort
 nok til å nå K1. Tre forsøk der har målt null (terskelen er optimal;
@@ -271,31 +271,65 @@ eller `fetch`.
 **100 % samsvar**, ikke 95 %. Og løsningen må mates inn i søket over det, slik
 at planen fram dit vet hva sluttspillet er verdt.
 
-**Status: UMÅLT igjen fra 8. august. Tallene under står, men grunnlaget er borte.**
+**Status: IKKE INNFRIDD — men avstanden er målt, og den er ikke et søkeproblem
+(§117).**
 
-| | |
-|---|---|
-| siste stikk | eksakt **0,0000** over 1000 målinger — tvunget |
-| stikk 10–11 | +0,064 |
-| hele sluttspillet | **0,3 % av taket** |
+| vindu | poeng per runde igjen | fører | av alt som er å hente |
+|---|---|---|---|
+| siste stikk | eksakt **0,0000** over 1000 målinger — tvunget | 0,0000 | 0 % |
+| stikk 10–11 | +0,0640 | +0,1600 | **0,3 %** |
+| stikk 8–9 | +0,477 | +1,584 | 2,5 % |
+| **siste FEM stikk** | **+0,9470** | **+2,5440** | **~4,9 %** |
 
-> ⚠️ **«Taket» ble regnet med en ødelagt dobbelt-dummy-løser.** §116 fant to
-> feil i `src/solver/dds.ts` som gjorde at `løsDD` svarte feil i **86 av 400**
-> tilfeldige 3–4-kortsgivinger, og `rotVerdier` enda oftere. Begge er rettet og
-> avviket mot en råsøker er nå eksakt 0, men hvert eneste tak-tall i tabellen
-> over ble målt FØR rettelsen. Et tak som er regnet feil er ikke et tak, og
-> «0,3 % av taket» kan derfor ikke leses som noe.
->
-> Retningen på feilen er kjent fra kampbenken: den samme klarsynte sonden gikk
-> fra **0,1100 til 0,2925** i vinnerandel bare av rettelsen. Taket var altså
-> målt for LAVT, ikke for høyt — «sluttspillet er lukket som gevinstkilde» er
-> nettopp den konklusjonen som ikke tåler det.
->
-> Påstanden er ikke motbevist, den er umålt. Prøven må kjøres om igjen med den
-> rettede løseren før K7 kan stå som innfridd.
+### Taket sto aldri i fare — §116 tok feil om det
+
+§116 satte K7 tilbake til umålt fordi taket «ble regnet med den ødelagte
+DD-løseren». **Det gjorde det ikke.** `tak-kart.ts` setter `lagIndre(ADAMS)` i
+alle fire seter og lar bladet være rundens faktiske poeng — ingen `løsDD`,
+ingen `rotVerdier`, ingen `evaluerHybrid` i den stien.
+
+Vinduet ble kjørt om på HEAD med identisk frø-rekke: **592 rader, 0 avvik mot
+arkivet fra før fiksen** — både Adams' eget spill og beste svar, rad for rad,
+gjennom hele runden. Feilen spredte seg langs kall, ikke langs tema.
+
+### Og den snevre lesningen var det som bar «innfridd»
+
+«0,3 % av taket» gjelder de siste TO stikkene. De siste FEM er **+0,947 poeng
+per runde**, femten ganger så mye. K7 hvilte på den trangeste mulige lesningen
+av sitt eget ord.
+
+### Riktig algoritme målt mot den store lesningen — og den ga null
+
+`d<stikk>` gir full alpha-mu-dybde når få stikk gjenstår, altså `M ≥`
+gjenstående stikk, der alpha-mu er eksakt for verdensutvalget. Gate 2, full
+stakk i alle fire seter, 349 giver × 4 seter = 1 396 par, frø 900 000:
+
+| arm | poeng/runde | tegntest | dom |
+|---|---|---|---|
+| **KONTROLL** | **0,0000** | — | **benken er frisk** |
+| `d4` | +0,0489 ± 0,0343 (1,4 SE) | 4 opp / 0 ned, p = 0,125 | under porten |
+| `d5` | −0,0236 ± 0,0725 (−0,3 SE) | 10 opp / 10 ned, p = 1,000 | flat |
+
+Makker og forsvar målte **eksakt 0,0000** i begge armene — speken er
+`amu:foerer:`, så flagget kan bare bite i førersetet. Det er koblingssjekken
+innebygd i selve målingen.
+
+Og tallene er tynnere enn de ser ut: `d4` endret utfallet i **4 av 1 396 par**,
+`d5` i 20. Fire hendelser er en anekdote.
+
+### Hvorfor dypere søk ikke hjelper
+
+Taket er målt MED KLARSYN. To tredeler av de +0,947 ligger i **16 giver av
+1 000**, og +39,8 per treff er kontraktvipp. Det er stillinger der ett kort
+avgjør kontrakten — og hvilket kort det er, må gjettes. Dypere eksakt søk
+kjøper ikke informasjon. **Resten av sluttspillet er K8s problem, ikke K7s.**
+
+Flagget er parkert, ikke fjernet: `d0` er standard og bit-identisk, og
+måletallene står i doc-kommentaren til `sluttdybde` i `amuagent.ts`.
 
 Den andre halvdelen av kravet — «kombineres med å planlegge frem i tid» — er
-det alpha-muens `M` gjør, og den står på 1.
+det alpha-muens `M` gjør, og den står fortsatt på 1. Forsøket på å heve den der
+den er billigst målte null.
 
 ---
 
@@ -500,14 +534,18 @@ arbeidslista, og den er ærlig om hva som er kode og hva som er timer:
 | K4 hukommelse + planlegging | ja | **nei** — hviler på samme tall som K6, se §108. `M=1`, så framoverblikket er av |
 | K5 kontekst og tilpasning | ja | **nei** — alfa-mu i alle roller MÅLT: makker og forsvar ≤ 0 i alle armer (§109) |
 | K6 lære vaner og utnytte | ja | **nei** — detektoren målt og felt: den finner ikke en stilisert vane (§108) |
-| K7 optimalt sluttspill | ja | **umålt** — taket var regnet med en ødelagt DD-løser, rettet i §116 |
+| K7 optimalt sluttspill | ja | **nei** — +0,064 igjen ved to stikk, +0,947 ved fem. Full alpha-mu-dybde målte null (§117) |
 | K8 predikere kort | ja | **nei** — 4,20 % av veien gulv → tak, altså ~95 % igjen (§117). 2 av 6 kanaler koblet |
 
 **Alle åtte har nå en prøve.** Det var fire uten da fila ble skrevet.
 
-**Sju av åtte krav er ubeviste.** K7 var det sjuende, og falt tilbake til umålt
-8. august da taket det ble målt mot viste seg å være regnet med en ødelagt
-løser (§116). Det er den ærlige tilstanden.
+**Sju av åtte krav er ubeviste.** K7 var det sjuende. Det falt til umålt
+8. august, og 9. august ble det avgjort: taket sto aldri i fare — `tak-kart.ts`
+kaller ikke løseren, og 592 rader kjørt om er bit-identiske med arkivet fra før
+fiksen. Men kravet er **ikke innfridd**, for «0,3 %» gjaldt bare de to siste
+stikkene; de fem siste rommer +0,947 poeng per runde, og full alpha-mu-dybde
+(`d4`, `d5`) klarte ikke å hente noe av det (§117). Det er den ærlige
+tilstanden.
 
 ### Hvor det står 8. august, etter en natt med målinger
 

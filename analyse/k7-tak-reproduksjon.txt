@@ -1,0 +1,19 @@
+REPRODUKSJON AV SLUTTSPILLTAKET MED RETTET DD-LOESER (§117)
+
+examples/tak-kart.ts --fase spill --fra 10 --til 10 --merke s10, froe 900000,
+delt paa fire skard ved aa forskyve --froe med g*7717 slik at froe-rekka er
+IDENTISK med arkivet, ikke bare statistisk lik.
+
+  arkiv  : analyse/tak-enkelt-10.jsonl   skrevet 2026-08-08 04:26 (FOER fiksen)
+  fiksen : src/solver/dds.ts 90e625f     landet 2026-08-08 16:34
+  ny     : analyse/k7-tak-s10-*.jsonl    kjoert paa HEAD 2026-08-09
+
+  rader kjoert paa nytt          : 592
+  rader som avvek fra arkivet    : 0
+  rader uten motpart i arkivet   : 0
+
+Bade rein (Adams eget spill) og tak (beste svar) stemmer rad for rad.
+tak-kart.ts kaller ikke loeseren: alle fire seter er lagIndre(ADAMS) og
+bladet er rundens faktiske poeng. Taket sto aldri i fare.
+
+Arkivets fulle tall staar dermed: n=1000, +0,0640 alle seter, +0,1600 foerer.

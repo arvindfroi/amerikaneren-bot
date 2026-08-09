@@ -55,8 +55,26 @@ const FRA = tall(arg("--fra", "0"), 0, "fra");
 const TIL = tall(arg("--til", "2"), 2, "til");
 const UT = arg("--ut", "analyse/tak-kart.jsonl");
 const MERKE = arg("--merke", `${FASE}-${FRA}-${TIL}`);
+/**
+ * HVILKEN BOT MÅLES MOT TAKET — og hvorfor det ikke er likegyldig.
+ *
+ * Kartet i §60 ble målt med `ADAMS`, den UTRULLEDE stakken: ingen `okt:`,
+ * ingen `amu:`, ingen `profil:`. Tallet «sluttspillet er 0,3 % av taket» er
+ * derfor gapet til taket for DEN boten, ikke for full stakk. Og det er full
+ * stakk gate 2 måler kandidater i.
+ *
+ * Det er ikke en liten forskjell i prinsippet: alpha-mu sitter nettopp i
+ * sluttspillet, så et vindu som er lukket for en bot uten `amu:` kan i
+ * prinsippet være åpnet eller lukket hardere av en bot med den. Uten dette
+ * flagget kunne spørsmålet ikke stilles.
+ *
+ * STANDARD ER `ADAMS`, så null-punktet er bit-identisk med hvert tall som
+ * allerede står i `analyse/tak-enkelt-*.jsonl` og i §60. Verifisert ved at
+ * `--fra 10 --til 10 --giver 250` reproduserer arkivet rad for rad.
+ */
+const SPEK = arg("--spek", ADAMS);
 
-const nyeAgenter = () => [0, 1, 2, 3].map(() => lagIndre(ADAMS));
+const nyeAgenter = () => [0, 1, 2, 3].map(() => lagIndre(SPEK));
 
 /** Er dette en av VÅRE beslutninger inne i vinduet vi måler? */
 function iVindu(s: GameState, vårt: number): boolean {

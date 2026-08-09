@@ -175,6 +175,32 @@ export interface AmuOpts {
    * ødelagte DD-løseren, §116, så de skal måles på nytt uansett.)
    *
    * 0 = av, og da er `M` konstant som før — bit-identisk.
+   *
+   * ================= MÅLT, OG DEN ER PARKERT (§117) ===================
+   *
+   * Gate 2, full stakk i alle fire seter, 349 giver × 4 seter = 1 396 par,
+   * frø 900 000. Kontrollarmen målte 0,0000 (§117):
+   *
+   *     d4   +0,0489 ± 0,0343  (1,4 SE)   4 opp / 0 ned   p = 0,125
+   *     d5   −0,0236 ± 0,0725  (−0,3 SE)  10 opp / 10 ned p = 1,000
+   *
+   * Ingen av dem passerer porten (over 2 SE OG tegntesten). Og tallene er
+   * tynnere enn de ser ut: `d4` endret UTFALLET i 4 av 1 396 par, `d5` i 20.
+   * Fire hendelser er en anekdote, ikke en måling — retningen er hyggelig,
+   * men den kan ikke leses.
+   *
+   * MAKKER OG FORSVAR MÅLTE EKSAKT 0,0000, som de skal: speken er
+   * `amu:foerer:`, så sluttdybden kan bare bite i førersetet. At de to
+   * rollene står på null er koblingssjekken innebygd i selve målingen.
+   *
+   * HVORFOR SÅ LITE: takkartet (§60) sier at de siste to stikkene bare rommer
+   * +0,064 poeng per runde, og de siste fem +0,947 — men det taket er målt MED
+   * KLARSYN, og to tredeler av potten ligger i 16 giver av 1 000. Det er
+   * stillinger der man må gjette hvor et nøkkelkort sitter. Dypere EKSAKT søk
+   * kjøper ikke informasjon, og det er informasjon som mangler.
+   *
+   * Flagget blir stående, av som standard. Det er riktig algoritme på et
+   * problem som ikke er søkebegrenset.
    */
   readonly sluttdybde?: number;
   /**

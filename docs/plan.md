@@ -8313,3 +8313,164 @@ Det som ER nytt siden §105:
 
 Det som IKKE er nytt: kravet står fortsatt på nei, og veien dit går ikke
 gjennom flere slutningsregler.
+
+---
+
+## §117 — K7 avgjort: taket sto aldri i fare, og sluttspillet er ikke søkebegrenset
+
+§116 satte K7 tilbake til UMÅLT med denne begrunnelsen:
+
+> «K7 står som «innfridd — 0,3 % av taket» i `AdamsMax.md`. Det taket ble
+> regnet med den samme ødelagte løseren, og et tak som er regnet feil er ikke
+> et tak.»
+
+**Den begrunnelsen var feil, og det er verdt å si tydelig.** `tak-kart.ts`
+kaller ikke dobbeltdummy-løseren. Den setter `lagIndre(ADAMS)` i alle fire
+seter, forgreiner VÅRT sete over alle lovlige kort inne i vinduet, og bladet er
+rundens FAKTISKE poeng. Ingen `løsDD`, ingen `rotVerdier`, ingen `evaluerHybrid`
+noe sted i den stien.
+
+### Bevist, ikke argumentert
+
+Arkivet `analyse/tak-enkelt-10.jsonl` ble skrevet 8. august kl. 04:26. Fiksen i
+`dds.ts` landet kl. 16:34 samme dag. Vinduet ble kjørt på nytt på HEAD med
+nøyaktig samme frø, samme antall giver og samme merke, delt på fire skard ved å
+forskyve `--froe` med `g × 7717` (så seed-rekka er identisk, ikke bare
+statistisk lik):
+
+| | |
+|---|---|
+| rader kjørt på nytt med rettet løser | **592** |
+| rader som avvek fra arkivet | **0** |
+| rader uten motpart i arkivet | 0 |
+
+Både `rein` (Adams' eget spill) og `tak` (beste svar) stemmer rad for rad. Det
+er ikke bare tallet som er likt — hele rundetrajektorien er det, gjennom
+budrunde, vrak, trumfvalg og tolv stikk. **Stakken rører aldri løseren.**
+
+Det samme gjelder full stakk, som er den gate 2 måler i: verken `alphamu.ts`,
+`amuagent.ts`, `profil.ts` eller `okt.ts` importerer fra `src/solver/dds.ts`.
+Løseren er nåbar fra `juks:`, `eks:`, `e1/orakel.ts`, `sdvrak.ts` og
+korpusbyggerne — og ingen av dem er i spill.
+
+### Taket, med tallene som nå står
+
+`analyse/takkart.txt` og `analyse/tak-t5.txt` er dermed gyldige som de er:
+
+| vindu | alle seter | fører | traff | av de 19,287 |
+|---|---|---|---|---|
+| siste stikk (`s11`) | **0,0000** | 0,0000 | 0,0 % | 0 % |
+| stikk 10–11 | +0,0640 | +0,1600 | 0,6 % | **0,3 %** |
+| stikk 8–9 | +0,477 | +1,584 | 3,2 % | 2,5 % |
+| siste FEM stikk (terskel 5) | **+0,9470** | **+2,5440** | 7,2 % | ~4,9 % |
+
+**Og her er nyansen som «0,3 %» skjulte.** Tallet 0,3 % gjelder de siste TO
+stikkene. Definerer man sluttspillet som de siste FEM — som er nøyaktig det
+`d<stikk>` gjør noe med — er potten +0,947 poeng per runde, femten ganger så
+stor. K7 hvilte på den snevrest mulige lesningen av sitt eget ord.
+
+### Så ble den riktige algoritmen målt mot den store lesningen
+
+`d<stikk>` gir full alpha-mu-dybde når få stikk gjenstår, altså `M ≥`
+gjenstående stikk — der alpha-mu er eksakt for verdensutvalget og
+strategifusjonen er borte. Målt kostnad var 1,24× for `d4` og 1,73× for `d5`,
+mot 4,0× for `M=2` overalt.
+
+Gate 2, full stakk i alle fire seter, bare sluttdybden skiller kandidaten:
+
+```
+okt:vr:…/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5[d4|d5]:profil:
+budm:…/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:…/d7alle.bin
+```
+
+349 giver × 4 seter = 1 396 par, frø 900 000, parret på (giv, sete):
+
+| arm | poeng/runde | SE | tegntest | dom |
+|---|---|---|---|---|
+| **KONTROLL** | **0,0000** | — | — | **benken er frisk** |
+| `d4` | +0,0489 ± 0,0343 | 1,4 | 4 opp / 0 ned, p = 0,125 | under porten |
+| `d5` | −0,0236 ± 0,0725 | −0,3 | 10 opp / 10 ned, p = 1,000 | flat |
+
+Per rolle, med kontrollens rolle som nøkkel:
+
+| rolle | n | `d4` | `d5` |
+|---|---|---|---|
+| fører | 349 | +0,1958 ± 0,1369 | −0,0946 ± 0,2904 |
+| makker | 349 | **0,0000** | **0,0000** |
+| forsvar | 698 | **0,0000** | **0,0000** |
+
+**Kontrollarmen målte 0,0000.** Den er eksakt null ved konstruksjon når hver
+giv har alle fire seter — summen av «egne minus snittet av de tre andre» over
+fire seter er identisk null — så de seks radene fra giver der en skard ble
+stoppet midt i er tatt ut før rapporten. Restsummen 0,051 over 1 396 rader er
+avrundingen i `Math.round(x*1000)/1000`, ikke seteskjevhet.
+
+**Makker og forsvar på eksakt 0,0000 er koblingssjekken innebygd i målingen.**
+Speken er `amu:foerer:`, så sluttdybden KAN bare bite i førersetet. At de to
+andre rollene ikke rikket seg ett tusendels poeng er beviset på at flagget
+gjør nøyaktig det det sier og ingenting annet.
+
+### Hvorfor tallene er tynnere enn de ser ut
+
+`d4` endret UTFALLET i **4 av 1 396 par**. `d5` i 20. Fire hendelser er en
+anekdote. At alle fire gikk oppover er hyggelig og betyr ingenting: p = 0,125
+er nettopp «fire myntkast på rad».
+
+Og `d5` — som ser MER av sluttspillet enn `d4` — er den som står svakest.
+Dypere er ikke bedre her.
+
+### Den ærlige forklaringen
+
+Taket er målt MED KLARSYN: beste svar når man vet hvordan hver linje faktisk
+endte. To tredeler av de +0,947 ligger i 16 giver av 1 000, og +39,8 per treff
+er kontraktvipp — 4n ved bud 9–10. Det er stillinger der ett kort avgjør
+kontrakten, og det ene kortet er per konstruksjon det man må GJETTE hvor
+sitter.
+
+**Dypere eksakt søk kjøper ikke informasjon.** `d4`/`d5` fjerner
+strategifusjonen fra søket over verdensutvalget — men verdensutvalget selv er
+det som er feil, og det er K8s problem, ikke K7s. Det er den samme grensen
+§59 pekte på og som ingen har krysset: «Hvor mye av de 0,95 som overlever UTEN
+klarsyn er det åpne spørsmålet, ikke om potten finnes.»
+
+### Dommen på K7
+
+> «finne matematiske optimale løsninger i sluttspillet (kombineres med å
+> planlegge frem i tid)»
+
+**IKKE INNFRIDD — men avstanden er målt, og den er ikke et søkeproblem.**
+
+* Siste stikk: **0,0000 over 1 000 målinger.** Der er spillet tvunget, og
+  «optimalt» er gratis. Det er den eneste delen som er innfridd, og den er
+  triviell.
+* Siste to stikk: **+0,064 poeng per runde igjen**, 0,3 % av alt som er å hente.
+* Siste fem stikk: **+0,947 poeng per runde igjen**, ~4,9 %.
+* Andre halvdel av kravet, «planlegge frem i tid», er alpha-muens `M`, og den
+  står fortsatt på 1 utenfor sluttspillet. Forsøket på å heve den DER den er
+  billig — `d4`, `d5` — målte null.
+
+Påstanden «0,3 % av taket» kan igjen leses, og den er riktig for de to siste
+stikkene. Den er bare ikke det samme som å ha innfridd K7.
+
+### To ting som ble ryddet mens dette sto på
+
+**`--spek` på `tak-kart.ts`.** Kartet i §60 ble målt med `ADAMS`, den UTRULLEDE
+stakken: ingen `okt:`, ingen `amu:`, ingen `profil:`. Gate 2 måler full stakk.
+De to er ikke samme bot, og «0,3 % av taket» gjelder altså gapet for den
+SVAKERE av dem. Flagget lar spørsmålet stilles. Standard er `ADAMS`, og
+null-punktet er verifisert bit-identisk mot arkivet rad for rad.
+
+**Sluttdybden er parkert, ikke fjernet.** Måletallene står nå i doc-kommentaren
+til `sluttdybde` i `amuagent.ts`, der neste som vurderer flagget vil se dem.
+`d0` er fortsatt standard og bit-identisk.
+
+### Lærdommen
+
+§116 gjorde det motsatte av §114, og bommet på samme måte. §114 fant en riktig
+forklaring på et galt tall og sluttet å lete. §116 fant en ekte og alvorlig
+feil, og **antok deretter at alt som hadde vært i nærheten av løseren var
+smittet** — uten å sjekke hvilke stier som faktisk kalte den. Det kostet K7 et
+krav i to døgn.
+
+En feil sprer seg langs kall, ikke langs tema. Sjekken var én grep og én
+kjøring på 592 rader.
