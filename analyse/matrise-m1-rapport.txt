@@ -1,0 +1,32 @@
+# MATRISEN — HELE STAKKER MOT HVERANDRE
+
+To av hver ved bordet. Laget avgjøres av BUDET, ikke av setet, så to
+like agenter blir vekselvis makkere og motstandere — partnerskapet
+blir faktisk prøvd. Hver giv spilles speilvendt, så seteskjevhet
+faller ut av differansen.
+
+2000 kamper totalt.
+
+A mot B                                 Δ poeng/runde       SE   SE-er    A vant
+----------------------------------------------------------------------------------
+maks mot maks-m2                               0.0345   0.1843     0.2     46/83
+maks mot rask                                 -0.4631   0.1930    -2.4    80/138
+maks mot maks-uten-minne                       0.0345   0.1843     0.2     46/83
+maks mot maks-uten-nye                        -0.8051   0.1901    -4.2    85/141
+maks-m2 mot rask                              -0.6352   0.2142    -3.0    79/143
+maks-m2 mot maks-uten-minne                    0.0000   0.1951     0.0     40/80
+maks-m2 mot maks-uten-nye                     -0.7495   0.1930    -3.9    80/141
+rask mot maks-uten-minne                       0.6352   0.2142     3.0    64/143
+rask mot maks-uten-nye                        -0.4314   0.2314    -1.9    89/195
+maks-uten-minne mot maks-uten-nye             -0.7495   0.1930    -3.9    80/141
+----------------------------------------------------------------------------------
+
+Δ er A minus B i poeng per runde, snittet over de to setene hver
+stakk hadde. POSITIV betyr at A er sterkest.
+
+PORTEN: over 2 SE OG tegntesten med seg. Aldri adoptere på snittet
+alene, og aldri på ett frøbånd — replikér i et disjunkt bånd.
+
+VINNERANDELEN er med fordi K1 er formulert i den, men rangeringen
+gjøres på poeng per runde: målt 2,2x mer presist på samme kamper.
+FERDIG 2000 rader

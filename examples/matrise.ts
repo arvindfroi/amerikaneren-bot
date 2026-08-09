@@ -75,17 +75,50 @@ const BUDSOK = "budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5";
  * de er ikke i K1–K8.
  */
 export const STAKKER: Record<string, string> = {
-  /** Adams Max: alt som er bygd for kravene, påslått. */
+  /**
+   * Adams Max: alt som er bygd for kravene, påslått.
+   *
+   * MERK AT DEN HAR `m1`, IKKE `m2`. Framoverblikket overalt koster 4,0×
+   * (~450 ms per beslutning), og med to søkende seter over 40 runder ble en
+   * enkelt kamp flere minutter. Prosjektets egen regel gjelder: **en spek som
+   * ikke kan måles er ikke en kandidat, den er en hypotese.**
+   *
+   * Dybden er i stedet dekket der den er BILLIG: `d5` gir full alpha-mu-dybde
+   * i de siste fem stikkene til 1,73×. Og `maks-m2` står som egen stakk for
+   * den som vil betale for resten.
+   */
   maks:
+    `okt:${VR}:amu:foerer:12k16bgm1e0r1.5v0.5d5B4:profil:` +
+    `${BUDSOK}/kamp1.5:${NETT}`,
+
+  /** Maks MED framoverblikk overalt. Dyr — egen stakk så den kan velges bort. */
+  "maks-m2":
     `okt:${VR}:amu:foerer:12k16bgm2e0r1.5v0.5d5B4:profil:` +
     `${BUDSOK}/kamp1.5:${NETT}`,
 
   /** «Rask»: ingen søk, ingen hukommelse. Den utrullede boten i dag. */
   rask: `${VR}:${BUD}:${NETT}`,
 
-  /** Maks UTEN hukommelsen — isolerer K4 og K6 i ett par. */
+  /**
+   * Maks UTEN hukommelsen — isolerer K4 og K6 i ett par.
+   *
+   * ============ DENNE HADDE `m2` OG SKULLE HATT `m1` =================
+   *
+   * Da `maks` ble endret fra `m2` til `m1` (fordi M=2 gjorde en kamp flere
+   * minutter), ble den avledede stakken staaende igjen med `m2`. Foelgen:
+   * «maks-uten-minne» var ikke maks uten hukommelse, men **maks-m2 uten
+   * hukommelse** — og siden hukommelsen endrer naer null, ble den BIT-IDENTISK
+   * med `maks-m2`: 0 av 440 valg ulike.
+   *
+   * Matrisen 9. august maalte derfor «maks-m2 mot maks-uten-minne» til eksakt
+   * 0,0000 over 200 kamper. Det tallet er ikke et funn — det er to like bots.
+   *
+   * Fjortende forekomst av prosjektets mest gjentatte feilklasse: **det maalte
+   * var ikke det jeg mente aa maale.** Og den ble fanget av at to par ga
+   * IDENTISKE tall til fjerde desimal, ikke av at noe krasjet.
+   */
   "maks-uten-minne":
-    `${VR}:amu:foerer:12k16bgm2e0r1.5v0.5d5B4:${BUDSOK}/kamp1.5:${NETT}`,
+    `${VR}:amu:foerer:12k16bgm1e0r1.5v0.5d5B4:${BUDSOK}/kamp1.5:${NETT}`,
 
   /** Maks uten dagens tillegg (m2, d5, B4, kamp) — isolerer det nye. */
   "maks-uten-nye": `okt:${VR}:amu:foerer:12k16bgm1e0r1.5v0.5:profil:${BUDSOK}:${NETT}`,
@@ -181,7 +214,16 @@ function kjør(): void {
         const rad: Rad = { a, b, frø, speil, ...k };
         ut.push(JSON.stringify(rad));
       }
-      if (ut.length % 20 === 0) writeFileSync(UT, ut.join("\n") + "\n");
+      /**
+       * SKRIV HVER RAD. Første utgave skrev hver 20. — og med flere minutter
+       * per kamp gjorde det meg BLIND i over en time: jeg kunne ikke se om
+       * kjøringen gikk framover i det hele tatt.
+       *
+       * Det er brudd på prosjektets egen regel. Resultater skal skrives til
+       * varige filer av prosessen selv, LØPENDE. En fil som først dukker opp
+       * når alt er ferdig, er ikke en logg — den er et løfte.
+       */
+      writeFileSync(UT, ut.join("\n") + "\n");
     }
   }
   writeFileSync(UT, ut.join("\n") + "\n");

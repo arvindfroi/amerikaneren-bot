@@ -8474,3 +8474,47 @@ krav i to døgn.
 
 En feil sprer seg langs kall, ikke langs tema. Sjekken var én grep og én
 kjøring på 592 rader.
+
+## §118 — matrisen: dagens tillegg koster 0,8 poeng/runde, og maks er verre enn rask
+
+2000 kamper, ti parvise oppgjør, to av hver stakk ved bordet, hver giv speilvendt.
+
+### Først: én av fem stakker var feil bygd
+
+`maks-uten-minne` sto igjen med `m2` etter at `maks` ble endret til `m1`. Den var
+derfor ikke «maks uten hukommelse», men **maks-m2 uten hukommelse** — og siden
+hukommelsen endrer nær null, ble den **bit-identisk med `maks-m2`: 0 av 440
+valg ulike.**
+
+Derfor målte «maks-m2 mot maks-uten-minne» eksakt 0,0000 over 200 kamper. Det er
+ikke et funn, det er to like bots.
+
+**Fjortende forekomst av feilklassen «det målte var ikke det jeg mente».** Den
+ble fanget av at to par ga identiske tall til fjerde desimal — ikke av at noe
+krasjet. Hukommelsens verdi er dermed fortsatt umålt på kampbenken.
+
+### Det som overlever, og det er entydig
+
+| | Δ poeng/runde | SE-er |
+|---|---|---|
+| maks-uten-nye mot rask | +0,431 | 1,9 |
+| **rask mot maks** | **+0,463** | **2,4** |
+| **maks-uten-nye mot maks** | **+0,805** | **4,2** |
+
+**Rangering: `maks-uten-nye` > `rask` > `maks`.**
+
+**Dagens tillegg — `d5`, `B4`, `kamp1.5` — koster ~0,8 poeng per runde**, og det
+passerer porten med 4,2 SE. Og `maks` er dårligere enn `rask`, altså dårligere
+enn boten uten søk og uten hukommelse i det hele tatt.
+
+Det stemmer uavhengig med K7-målingen: `d4` og `d5` ga ingenting på gate 2.
+Her koster de.
+
+### Hva det betyr
+
+Jeg bygde tre ting 8.–9. august og slo dem på i «maks» uten å måle dem hver for
+seg. Alle tre er nå parkert som standard, og det er den riktige lærdommen:
+**en modul som ikke er målt alene, skal ikke være på i en stakk som måles.**
+
+`d5` og `B4` har hver sin målte kostnad og null målt gevinst. `kamp1.5` er
+umålt — den kunne ikke sees på gate 2 og ble aldri kjørt alene på kampbenken.
