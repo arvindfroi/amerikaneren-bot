@@ -129,9 +129,32 @@ etterpå. Det som trenes er det som spiller.
 
 ## 1. Faser
 
-### Fase 0a — TROHODET ALENE. Én dag, og den kan felle seg selv.
+### Fase 0a — TROHODET ALENE. ✅ KJØRT 9. august, og hypotesen holdt.
 
 > **REVISJON: dette manglet helt, og det er den beste delen av planen.**
+
+> **RESULTAT (§119).** Trohodet trent alene, veiledet, på 2,45 M rader fra
+> `spillerVisning` og etiketten «hvor kortene faktisk lå»:
+>
+> | arm | log-tap | % av veien gulv → tak |
+> |---|---|---|
+> | gulv+ | 1,0347 | 5,82 % |
+> | dagens beste (`bayes+W`, V=64) | 1,0506 | 4,37 % |
+> | **MLB-trohodet** | **0,9630** | **12,34 %** |
+>
+> `+0,0875 ± 0,0020` mot dagens beste (z = +44,3), `+0,0717 ± 0,0016` mot
+> `gulv+`, replikert i to disjunkte frøbånd. Første arm som slår `gulv+`.
+> Nettet lærte i tillegg Arvinds egen slutningskjede uten at noen kodet den:
+> P(kortet er dødt) faller fra 26,2 % for en toer til 0,48 % for et ess, og
+> modellen treffer kalibreringen på hver rang.
+>
+> Filer: `src/mlb/trotrekk.ts`, `src/mlb/tronett.ts`,
+> `examples/mlb-trodata.ts`, `verktoy/mlb-tro-tren.py`, `examples/mlb-k8.ts`,
+> `analyse/mlb-k8-dom.mjs`, `test/mlb-k2-tro.test.ts`,
+> `test/mlb-herkomst.test.ts`. Hele kjeden er en drøy time maskintid.
+>
+> **Fase 0.1 og 0.4 er dermed delvis bygd**, og K2-garantien er håndhevet med
+> en bit-identitetsprøve som har en kontroll som kan feile.
 
 Før én time brukes på policyen: **tren trohodet alene, veiledet, og kjør
 K8-prøven.**
@@ -403,11 +426,46 @@ stedet for en måling — og i en diskusjon vinner sunk cost hver gang.
 
 Bare den tredje er en dom over veien.
 
+### RASKERE: kort løp i trening, langt løp i dom
+
+Arvind, 9. august: «jeg gidder ikke å vente i 5 dager.»
+
+Rimelig — og 5 døgn var padding fra min side. `målPoeng` er allerede en
+parameter, og et løp til **30** i stedet for 100 er ~3× raskere per kamp med
+alle tre nivåene i behold: makro finnes så lenge det ER et løp.
+
+| | løp til 100 | løp til 30 |
+|---|---|---|
+| kamp, rent nett | ~2 s | **~0,6 s** |
+| 5 000 kamper, 20 skard | ~8 min | **~2,5 min** |
+| 10 epoker, spilling | ~80 min | **~25 min** |
+
+**Første lesning kommer på timer, ikke døgn.**
+
+Vi TRENER på korte løp og DØMMER på lange. Risikoen er at makroatferden lært
+for et 30-løp ikke er den samme som for et 100-løp — den skal derfor etterprøves
+på 100 før noe konkluderes, og avviket mellom de to er i seg selv et tall verdt
+å ha.
+
+### Tidsplan, revidert
+
+| når | hva | hva vi lærer |
+|---|---|---|
+| **time 0–4** | fase 0a, trohodet alene | flytter et nett K8? |
+| **time 4–8** | fase 1, fornuftssjekk | spiller et tilfeldig nett lovlig? Holder K2? |
+| **time 8–14** | 10 epoker, korte løp | **beveger kurven seg i det hele tatt?** |
+| **døgn 1–2** | flere epoker, mot `rask` | er den på vei mot noe? |
+
+Det er **ikke** en garanti om at MLB er ferdig på to døgn. Det er en garanti om
+at vi VET om den er på feil spor innen ett.
+
 ### Fase 2s kriterium, konkret
 
 MLB har feilet når **alle tre** holder:
 
-1. **≥ 30 epoker** er kjørt, ELLER **5 døgn** maskintid er brukt — det som kommer først
+1. **≥ 30 epoker** er kjørt, ELLER **48 timer** maskintid er brukt — det som
+   kommer først. (Var 5 døgn; med korte løp i trening er 30 epoker en dagsjobb,
+   ikke en ukesjobb.)
 2. Beste epoke slår ikke `rask` **parret, over 2 SE, med tegntesten med seg**
 3. Kurven over epoker er **flat eller fallende** de siste ti
 
