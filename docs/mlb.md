@@ -1,4 +1,9 @@
-# MLB — planen
+# MLB — planen (revisjon 2)
+
+> **REVIDERT 9. august etter ekstern gjennomgang.** Tre ting holdt ikke, og to av
+> dem kunne ikke rettes etterpå. Revisjonen ligger i `docs/mlb-revisjon.md`;
+> endringene er arbeidet inn under. De opprinnelige feilene står igjen som
+> merknader, fordi de er lærdommen.
 
 **Formålet: lage Adams Max UTEN å trene med en mester eller et orakel.**
 
@@ -21,6 +26,33 @@ utelukker tre ting vi bruker i dag:
 **Og det utelukker å starte fra E1.** `d7alle` ER orakelets kunnskap i vektform.
 Initialiserer vi fra den, kan vi aldri påstå at resultatet er orakelfritt.
 
+### REVISJON: forbudet var ikke håndhevbart, og lakk fem steder
+
+Utkastet forbød orakelet i GRADIENTEN og slapp det inn gjennom INNGANGENE og
+LIGAEN. Funnet ved lesning:
+
+| snikvei | hvor |
+|---|---|
+| `vrakrang.bin` | laget av `vrakorakel.ts`, 60 verdener per kandidat — «policy = søkets valg», lagret som fil |
+| budmodellens `μ` som TREKK | `hand-tren.py`: fasiten er «SD-orakelets lagstikk» |
+| `rask` i ligaen | inneholder både `vrakrang.bin` og `d7alle` |
+| stiliserte vaner | `lagTrumftrekker(spek)` er en kappe utenpå hele Adams-stakken |
+| `d7alle` i det hele tatt | orakeltrent |
+
+**En orakeletikett som INNGANG er strengere enn E1-initialisering** — den kan
+aldri trenes bort.
+
+> **AVGJØRELSE 1b (ny): herkomstregelen.**
+>
+> *Ingen gradient og ingen INNGANG skal avhenge av `sd-orakel`, dobbeltdummy
+> eller `d7alle`. MÅLINGER kan.*
+>
+> `rask` flyttes ut av treningsligaen og inn i målestokken — den er referansen
+> MLB skal slå, ikke en motstander den skal lære av. Stiliserte vaner bygges på
+> en MLB-epoke eller en ren regelagent. `μ`, `σ` og `vrakrang` ut av
+> trekkmengden. `test/mlb-herkomst.test.ts` håndhever importgrensen, så den ikke
+> kan brytes ved et uhell.
+
 > **AVGJØRELSE 1: MLB starter fra tilfeldige vekter.**
 >
 > Kostnaden er reell — selvspill fra null i et firespillerspill med imperfekt
@@ -41,6 +73,28 @@ mester. Lærer det av **hva som skjedde**, er det selvtrening.
 ---
 
 ## 1. Faser
+
+### Fase 0a — TROHODET ALENE. Én dag, og den kan felle seg selv.
+
+> **REVISJON: dette manglet helt, og det er den beste delen av planen.**
+
+Før én time brukes på policyen: **tren trohodet alene, veiledet, og kjør
+K8-prøven.**
+
+- perfekte etiketter (hvor kortene faktisk lå)
+- ingen liga, ingen kredittilordning, ingen utforskning
+- ingen mester — fasit om fortiden er ikke en dom
+
+Og §117 gir gevinsten på forhånd: dagens tro taper **0,0211 mot `gulv+`
+utelukkende på Monte-Carlo-oppløsning** (Jensen-straff på variansen). **Et nett
+har ingen slik straff.** K8 står i dag på 4,20 % av veien gulv → tak.
+
+Det er den eneste delen av MLB som kan gi et **falsifiserbart svar på én dag** i
+stedet for i uke fire — og samtidig den som mest sannsynlig flytter et krav fra
+nei til ja.
+
+Går den ikke, har vi lært noe stort for én dag. Går den, har vi K8 og en
+sanseblokk resten av planen kan bygge på.
 
 ### Fase 0 — grunnmuren (kode, ingen trening)
 
@@ -69,9 +123,16 @@ for hver epoke:
     spill N kamper mot befolkningen
     tren policy (utfall), verdi (poeng), tro (fasit)
     K2-prøven MÅ passere
-    port: slår den forrige epoke PARRET, over 2 SE?  → inn i befolkningen
+    port: slår den et PANEL av tidligere epoker, parret, over 2 SE,
+          MED tegntest og kontrollarm, replikert i disjunkt frøbånd?
     ellers: forkast, og prøv med flere kamper
 ```
+
+> **REVISJON: porten min brøt prosjektets egen adopsjonsregel.** «Over 2 SE»
+> uten replikering, tegntest og kontrollarm er nøyaktig fella §65 og §109 falt i
+> — og her skulle den brukes titalls ganger. Den porter dessuten mot ETT panel,
+> ikke bare forrige epoke: ligaspill er intransitivt, så A kan slå B som slår C
+> som slår A.
 
 ### Fase 3 — kravene
 
@@ -82,7 +143,17 @@ flater ut.
 
 ## 2. Læringssignalet, presist
 
-**Verdi** ← rundens faktiske poeng for setet. Ren regresjon, alltid sant.
+**Verdi** ← KAMPENS utfall, ikke rundens.
+
+> **REVISJON, og den var alvorlig:** utkastet skrev «rundens faktiske poeng».
+> Da får makrotrekkene — kampstillingen, hukommelsen over løpet, racepresset —
+> **eksakt null gradient**. Det er nøyaktig den strukturelle blindheten gate 2
+> har, den som felte `r0.4` og gjør `kamp1.5` umålbar der.
+>
+> **K5 kunne aldri blitt lært.** Uansett antall epoker.
+>
+> Episoden er derfor KAMPEN. Rundens poeng er en delbelønning underveis, ikke
+> målet.
 
 **Tro** ← hvor hvert usett kort faktisk lå. Ren klassifikasjon, fasit.
 
@@ -149,18 +220,20 @@ kunne lære.*
 
 ---
 
-## 4. Agentene, og hvorfor de ikke kolliderer
+## 4. Agentene
+
+> **REVISJON: rekkefølgen min var feil.** Jeg skrev at A og B er uavhengige.
+> De er de ikke — hukommelsen (B) DEFINERER omtrent 84 av trekkene som A skal
+> sette sammen. Riktig rekkefølge er **B → A → C**.
 
 | agent | eier | avhenger av |
 |---|---|---|
-| **A** | `src/mlb/trekk.ts` + K2-garantien | — |
-| **B** | `src/mlb/hukommelse.ts` | — |
-| **C** | `src/mlb/nett.ts` + `selvspill.ts` | A sitt trekkoppsett |
-| **D** | `src/mlb/liga.ts` + målerigg | — |
+| **B** | `src/mlb/hukommelse.ts` — hva som bokføres, per nivå | — |
+| **A** | `src/mlb/trekk.ts` + K2-garantien | B |
+| **C** | `src/mlb/nett.ts` + `selvspill.ts` | A |
+| **D** | `src/mlb/liga.ts` + målerigg + herkomsttesten | — |
 
-A og B er helt uavhengige (ulike filer, ulike data). C venter på A sin
-trekklayout — den låses FØRST, som ett tall og ett dokument, så C kan begynne
-mot en kontrakt i stedet for mot kode.
+D er uavhengig av alle tre og kan gå parallelt fra start.
 
 Ingen agent rører `src/moe2/`, `src/e1/` eller `web/`. Dagens bot skal fortsatt
 virke og fortsatt være målbar.
@@ -178,21 +251,45 @@ virke og fortsatt være målbar.
 
 ---
 
+## 5a. Bufferet lagrer KAMPER, ikke trekkvektorer
+
+> **REVISJON:** utkastet ville fryse trekklayouten før første kamp, fordi
+> bufferet skulle inneholde ferdige trekkvektorer. Det er 17–67 GB per epoke —
+> og låsen var min tyngste selvpålagte begrensning.
+>
+> Lagrer vi i stedet `(frø, handlingslogg, hvem som satt hvor)`, er en epoke
+> **~36 MB**, og kampen kan spilles om igjen deterministisk. Da kan trekklayouten
+> ENDRES senere uten at noe blir ubrukelig: vi bygger trekkene på nytt fra
+> kampen.
+>
+> Låsen forsvinner. Det er den enkleste og største forenklingen i hele
+> revisjonen.
+
+---
+
 ## 5b. Størrelsesorden — hva dette faktisk koster
 
 Grovt, med dagens maskin (24 kjerner):
 
 | | anslag |
 |---|---|
-| kamp uten søk (`rask` mot `rask`) | ~2 s |
+| kamp, rent nett (~1 400 beslutninger × 0,5 ms) | ~2 s |
+| kamp MED `amu` som trekk (138 ms/beslutning) | **~193 s** |
 | kamper per epoke | 5 000–20 000 |
 | epoketid, 20 skard | **10–40 min spilling** |
 | trening per epoke (GPU) | minutter |
 | epoker til noe kan leses | titalls |
 
-Det er dager, ikke timer — men det er FARBART, og det er billigere enn ligaen
-med søk. Derfor er søket en spillekomponent og ikke en del av treningsløkka:
-et søk per beslutning ville gjort epoken 100× dyrere.
+> **REVISJON: mine to dokumenter motsa hverandre.** `mlb.md` sa at et søk per
+> beslutning er 100× for dyrt; `sandkassen.md` bestilte likevel `amu` som TREKK.
+> Med søket inne blir én epoke på 5 000 kamper **~268 kjernetimer**, ikke 10–40
+> minutter.
+>
+> **AVGJØRELSE 5 (ny): søket er IKKE et trekk under trening.** Det er en
+> spillekomponent i sanntid, og bare det. Skal det evalueres som trekk, skjer
+> det i en egen liten kjøring etterpå.
+
+Med søket ute er tallene over farbare: dager, ikke timer.
 
 **Måletid kommer i tillegg**, og den er ikke liten: porten mellom epoker krever
 en parret måling over 2 SE.
@@ -210,6 +307,15 @@ per handling, og verdihodet må være rimelig før policyen kan lære noe.
 
 **Ligakollaps.** Uten porten mellom epoker fylles befolkningen med versjoner som
 ikke er bedre, og «beste» blir et snitt av støy.
+
+**K6 trener på testmotstanderen.** Vanene i ligaen er de samme som K6-prøven
+måler mot. Da måler prøven gjenkjenning i vektene, ikke læring i løpet. Vanene
+må deles i DISJUNKTE trenings- og testsett.
+
+**K2-prøven dekker bare én av fire faser.** Den prøver kortvalg fra stikk 7.
+BUD, VRAK og VELG er uprøvd — og vrakfasen er nettopp der talonglekkasjen bet
+(§ talonglekkasje: prøven kunne ikke se den, fordi den aldri besøkte fasen).
+Prøven må utvides før MLB spiller en eneste kamp.
 
 **Og den viktigste:** hvis MLB ikke slår `rask` etter rimelig tid, er DET
 resultatet. Ikke et argument for å trene lenger.
