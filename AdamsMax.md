@@ -316,26 +316,54 @@ TAKET    klarsyn (1,0 på riktig sete)
 Rapporteres som log-loss eller Brier-skår. **«Veldig høyt nivå» må bli et tall
 mellom gulvet og taket**, ellers er kravet ikke etterprøvbart.
 
-**Status: MÅLT for første gang.** `examples/tro-noyaktighet.ts`.
+**Status: MÅLT, og kravet er IKKE innfridd.** `examples/tro-noyaktighet.ts`,
+siste kjøring §117: **2 832 stillinger, 354 giv, 55 224 skjulte kort, V=64**,
+ett sete per stikk fra 2 til 9 — 354 i hvert stikk. Den forrige kjøringen lå i
+stikk 4 (688 av 800 rader) og kunne ikke se runden.
 
-| arm | log-tap (n=1 280) |
-|---|---|
-| gulv (uniform over 3) | 1,0986 |
-| gulv+ (uniform over ikke-renons) | 1,0304 |
-| av | 1,0279 |
-| regel (A1) | 1,0278 |
-| **bayes (A5)** | **1,0253** |
-| bayes+g (A6) | 1,0345 |
+| arm | log-tap (n=2 832) | SE |
+|---|---|---|
+| gulv (uniform over 3) | 1,0986 | — |
+| **gulv+** (uniform over ikke-renons) | **1,0342** | ±0,0020 |
+| av | 1,0571 | ±0,0034 |
+| regel (A1) | 1,0590 | ±0,0033 |
+| bayes (A5) | 1,0546 | ±0,0034 |
+| g (A6-leser) | 1,0554 | ±0,0034 |
+| bayes+g | 1,0534 | ±0,0034 |
+| **bayes+W** (A5 + kanal 2) | **1,0525** | ±0,0033 |
+| klarsyn | 0 | tak |
 
-**A5 er den eneste slutningen som gjør troen bedre.** A1 er nøytral. A6 skadet
-— og to årsaker er funnet og rettet siden: senderen manglet helt, og deretter
-leste mottakeren kortet ABSOLUTT mens avsenderen valgte relativt. Ny måling
-kjører.
+**Kanal 2 er den sterkeste slutningen vi har på troen:** +0,0046 ± 0,0004 mot
+«av» (z = +10,8), og +0,0056 ± 0,0007 regnet bare der den KAN fyre. A5 gir
++0,0025, A6-leseren +0,0017, og **A1 er fortsatt målbart skadelig** (−0,0019).
 
-To feil i selve målingen ble fanget underveis: Monte-Carlo-oppløsningen (V=12
-måler oppløsning, ikke tro) og manglende renormalisering (troens rader summerer
-ikke til 1 — resten er talongen). Uten den siste «viste» første kjøring at
-Adams var verre enn uniform.
+**Tallet mellom gulvet og taket, som kravet ba om:**
+
+| | log-tap | andel av veien gulv → tak |
+|---|---|---|
+| gulv+ (bare renonser) | 1,0342 | 5,86 % |
+| beste arm (bayes+W) | 1,0525 | **4,20 %** |
+| klarsyn | 0 | 100 % |
+
+**Avstanden til taket er ~95 %.** Alle slutningene til sammen flytter troen
+0,42 % av veien fra uvitenhet til klarsyn. Renonsene alene flytter tretten
+ganger så mye — og de er en hard regel, ikke en slutning.
+
+**Hver arm måler dårligere enn gulv+, og det er OPPLØSNING, ikke tro.** Gulvene
+er analytiske og har ingen V; troen er et Monte-Carlo-estimat, og log-tap
+straffer den variansen systematisk (Jensen: `E[−log p̂] ≥ −log E[p̂]`).
+V-sveipen på nøyaktig samme 982 stillinger: underskuddet for «av» er −0,0859
+ved V=16, −0,0211 ved V=64 og −0,0079 ved V=256; for «bayes» −0,0840, −0,0191
+og **−0,0053 (z = −1,5), der det ikke lenger er signifikant**. Serien har ikke
+konvergert — skrittet 64 → 256 er fortsatt z = +11 — så det sanne nivået ligger
+under tallene i tabellen over. **Å heve V er det billigste kjente løftet på
+troen**, og det er ikke prøvd på benken.
+
+Tre feil i selve målingen er fanget underveis, og alle tre er fortsatt
+gjeldende advarsler: Monte-Carlo-oppløsningen (V=12 måler oppløsning, ikke
+tro), manglende renormalisering (troens rader summerer ikke til 1 — resten er
+talongen), og nå Jensen-straffen, som `gulvbandt` ikke kan se: den måler
+**0,0 % på hver eneste arm** samtidig som straffen er der.
 
 ---
 
@@ -362,7 +390,7 @@ Arvinds eksempler, hvert mappet til den kanalen som må bære det:
 | # | eksempelet | kanalen | bygd? | i den målte Adams? |
 |---|---|---|---|---|
 | 1 | «han byr 11 — da har han gode kort» | `handtrekk.ts` koder budene som felt 93–103 inn i `Trosnett` | **ja** | **NEI — låst** |
-| 2 | budvinner får ekstra verdi, og vraker for å skape renons | ingen | **nei** | nei |
+| 2 | budvinner får ekstra verdi, og vraker for å skape renons | `vrakLogVekt` i `sampler.ts`, bryter `W<alfa>` | **ja** | **målt, av som standard** |
 | 3 | «han ber om konge — da har han nok essen selv» | `Etterlysvelger` er BARE en beslutning | **nei** | nei |
 | 4 | «han trumfet — da har han ikke den sorten» | `hvemla-slutning.ts`, renons-settet | **ja** | **ja** |
 | 5 | makker la dame på mitt lave — K/A-fordelingen skifter | A5 `troverdighet.ts` + A6 `signal.ts` | delvis | ja, men svakt |
@@ -371,6 +399,14 @@ Arvinds eksempler, hvert mappet til den kanalen som må bære det:
 **Kanal 4 alene står for 92,7 % av all K8-informasjon i dag** (§105). A1, A5 og
 A6 til sammen bidrar 1,3 %. Det er ikke fordi de andre kanalene er verdiløse —
 det er fordi fem av seks ikke er koblet.
+
+**Kanal 2 er koblet siden §117, og den er nummer to.** +0,0046 ± 0,0004 mot
+«av» der alle setene telles, +0,0056 ± 0,0007 der den kan fyre. Forskjellen på
+de to tallene er hele poenget: er observatøren SELV budvinneren, kjenner hun
+sitt eget vrak, `dødKapasitet` settes til 0, og vekten returnerer 0 **per
+konstruksjon**. Målt: 681 avvik av 1 055 rader i de andre setene, **0 av 1 777**
+i hennes eget. En slutning kan altså være stum uten å være svak, og de to må
+aldri slås sammen i samme tall.
 
 ### Hvorfor kanal 1 er låst, og hva som åpner den
 
@@ -465,7 +501,7 @@ arbeidslista, og den er ærlig om hva som er kode og hva som er timer:
 | K5 kontekst og tilpasning | ja | **nei** — alfa-mu i alle roller MÅLT: makker og forsvar ≤ 0 i alle armer (§109) |
 | K6 lære vaner og utnytte | ja | **nei** — detektoren målt og felt: den finner ikke en stilisert vane (§108) |
 | K7 optimalt sluttspill | ja | **umålt** — taket var regnet med en ødelagt DD-løser, rettet i §116 |
-| K8 predikere kort | ja | delvis — 1 av 6 kanaler koblet; kanal 3s harde halvdel rettet (§107) |
+| K8 predikere kort | ja | **nei** — 4,20 % av veien gulv → tak, altså ~95 % igjen (§117). 2 av 6 kanaler koblet |
 
 **Alle åtte har nå en prøve.** Det var fire uten da fila ble skrevet.
 
@@ -504,7 +540,9 @@ avvist billig.
 ### Rekkefølgen
 
 1. ~~K2-prøven~~ — **ferdig.**
-2. **K8-prøven** — trosnøyaktighet mot gulv og tak.
+2. ~~K8-prøven~~ — **ferdig** (§117). Svaret er 4,20 % av veien til taket, og
+   det neste steget er ikke flere slutningsregler, men **V** — sveipen viser at
+   oppløsningen koster mer enn alle slutningene til sammen gir.
 3. **Kampbenken som port** — låser opp K4, K5 og K6, som er umålbare uten den.
 4. **K6-prøven** — stilisert motstander, gevinst som vokser med rundenummer.
 5. **K3 budrunden** — 41,8 % av taket, det eneste vinduet stort nok for K1.

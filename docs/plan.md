@@ -8152,3 +8152,164 @@ Og §114 gjorde det denne planen advarer mot flere steder: den fant en RIKTIG
 forklaring på et galt tall, og sluttet å lete. Regnestykket om forsvarernes
 stikk var korrekt, det er dokumentert på nytt her, og det holdt fram en
 hypotese som forklarte fortegnet pent. Den forklarte bare 3 % av utslaget.
+
+## §117 — K8 målt om igjen: kanal 2 fyrer, og «Adams taper mot gulv+» var oppløsning
+
+`examples/tro-noyaktighet.ts` kjørt på nytt med dagens kode. Tre ting hadde
+endret seg siden §105 uten at noen av dem var målt på troen: kanal 3s harde
+halvdel (§107), kanal 2 som modul (§111), og delingen av A6 i leser `g` og
+avsender `G` — der `G` er parkert.
+
+**354 komplette giv, 2 832 stillinger, 55 224 skjulte kort, V=64.** Ett sete
+per stikk fra 2 til 9, altså **354 i hvert stikk**. Det er den viktigste
+forskjellen fra §105, som lå i stikk 4 (688 av 800 rader) og derfor ikke kunne
+se runden. Data i `analyse/tro-kanal2-hel.jsonl`, rapport i
+`analyse/tro-k8-dom2.txt`.
+
+### Nivåene
+
+| arm | log-tap | SE | treff@1 |
+|---|---|---|---|
+| gulv (uniform over 3) | 1,0986 | — | — |
+| **gulv+** (uniform over ikke-renons) | **1,0342** | ±0,0020 | — |
+| av | 1,0571 | ±0,0034 | 38,73 % |
+| regel (A1) | 1,0590 | ±0,0033 | 38,63 % |
+| bayes (A5) | 1,0546 | ±0,0034 | 39,30 % |
+| g (A6-leser) | 1,0554 | ±0,0034 | 39,50 % |
+| bayes+g | 1,0534 | ±0,0034 | 39,65 % |
+| **bayes+W** (A5 + kanal 2) | **1,0525** | ±0,0033 | 39,51 % |
+| klarsyn | 0 | — | tak |
+
+Mot «av», parret på giv:
+
+| arm | gevinst | SE | z |
+|---|---|---|---|
+| regel (A1) | **−0,0019** | ±0,0009 | −2,10 |
+| bayes (A5) | +0,0025 | ±0,0003 | +7,27 |
+| g (A6-leser) | +0,0017 | ±0,0012 | +1,46 |
+| bayes+g | +0,0037 | ±0,0012 | +3,10 |
+| **bayes+W** | **+0,0046** | ±0,0004 | **+10,81** |
+
+**Kanal 2 er den sterkeste enkeltslutningen vi har på troen.** A1 er fortsatt
+målbart skadelig, som i §105 — kalibreringen i §104 rettet konstantene, og
+reglene er fremdeles verre enn ingen slutning.
+
+Superadditiviteten A5×A6 er `S_tap = +0,0005 ± 0,0004` (z = +1,19). Fortsatt
+ikke avgjort, verken forsterkning eller konkurranse.
+
+### Kanal 2 kan ikke fyre i førersetet — og målingen skiller det fra en null
+
+`vrakLogVekt` vekter verdener etter hvor mange sidefargerenonser budvinneren
+har, lest av de fire kortene hun kastet. Er **observatøren selv budvinneren**,
+kjenner hun både sin egen hånd og sitt eget vrak: `trekkVerden` setter da
+`dødKapasitet = 0`, `vrakVerden` blir tom, og vekten returnerer 0 **per
+konstruksjon**. Kanalen er STUM der, ikke svak.
+
+| utvalg | rader | avvik mot `bayes` | gevinst | SE | z |
+|---|---|---|---|---|---|
+| observatør ≠ budvinner (kan fyre) | 1 055 | **681 = 64,5 %** | **+0,0056** | ±0,0007 | +7,93 |
+| observatør = budvinner (stum) | 1 777 | **0 = 0,0 %** | +0,0000 | 0 | — |
+| slått sammen | 2 832 | 681 = 24,0 % | +0,0021 | ±0,0003 | +8,06 |
+
+Nullen i midtraden er **eksakt**, og den er en egenskap ved sampleren, ikke et
+funn om kanal 2. Det er derfor de to setene står hver for seg: en rapport som
+slo dem sammen ville fortynnet +0,0056 til +0,0021 uten å si hvorfor, og en
+rapport som bare så budvinnerens sete ville målt en strukturell null og kalt
+den en dom. Det stemmer med koblingssjekken utenfor denne fila: 22 avvikende
+valg med `amu:alle`, **0 med `amu:foerer`**.
+
+### Og så det som nesten ble en gal dom
+
+Den nye stikkdekningen snudde ett fortegn: **hver eneste arm taper mot gulv+**,
+i hvert eneste stikk, og underskuddet vokser utover i runden. §105 målte
+motsatt (+0,0041 for «av»), men §105 lå i stikk 4.
+
+```
+bayes+W − gulv+   −0,0183 ± 0,0024   (z = −7,65)   replikert: A +0,0183, B +0,0183
+```
+
+z = −7,65 og identisk i begge disjunkte bånd. Fristelsen er å skrive at Adams'
+tro er dårligere enn å spre uniformt over de ikke-renonse setene.
+
+**Det er feil, og fella er §102s egen.** Gulvene er ANALYTISKE og har ingen V.
+Adams' tro er et Monte-Carlo-ESTIMAT over V trukne verdener, kvantisert til
+multipler av 1/V. Log-tap straffer den variansen SYSTEMATISK, ikke tilfeldig:
+
+```
+E[−log p̂]  ≥  −log E[p̂]        (Jensen)
+```
+
+En **forventningsrett** estimator taper altså mot den glatte fordelingen den
+estimerer, og straffen vokser når p nærmer seg 0 eller 1 — altså sent i runden,
+der troen skulle vært skarpest. Det forklarer både fortegnet og at det vokser
+med stikknummeret.
+
+Og legg merke til hvorfor den gamle vakten ikke fanget det: `gulvbandt` måler
+**0,0 % på hver eneste arm**. Gulvet på p binder aldri ved V=64. Den sjekken
+svarte på «binder gulvet?», ikke på «koster oppløsningen?».
+
+### V-sveipen, som avgjør det
+
+Samme stillinger, tre V. `analyse/tro-vsveip.mjs` parrer på (frø, stikk, sete),
+og selvsjekken er at gulvene må komme ut bit-like i hver kolonne — de gjør det,
+spredning `0,0e+0`. **123 giv, 982 felles stillinger.** Rapport i
+`analyse/tro-vsveip.txt`.
+
+| | V=16 | V=64 | V=256 |
+|---|---|---|---|
+| gulv+ | 1,0352 | 1,0352 | 1,0352 |
+| av | 1,1212 | 1,0563 | 1,0431 |
+| bayes | 1,1192 | 1,0544 | 1,0405 |
+
+| kontrast | V=16 | V=64 | V=256 |
+|---|---|---|---|
+| av − gulv+ | −0,0859 (z −16,8) | −0,0211 (z −5,6) | −0,0079 (z −2,3) |
+| bayes − gulv+ | −0,0840 (z −16,8) | −0,0191 (z −5,1) | **−0,0053 (z −1,5)** |
+
+Parrede skritt, samme stilling og samme arm:
+
+```
+av      16 → 64    +0,0648 ± 0,0030   (z = +21,6)
+av      64 → 256   +0,0132 ± 0,0012   (z = +11,2)
+bayes   16 → 64    +0,0649 ± 0,0030   (z = +21,8)
+bayes   64 → 256   +0,0138 ± 0,0012   (z = +11,6)
+```
+
+**Underskuddet mot gulv+ kollapser med V, og for `bayes` er det ikke lenger
+signifikant ved V=256.** Det som så ut som en dårlig tro er i hovedsak
+oppløsning. Serien har ikke konvergert — 64→256 er fortsatt z = +11 — så det
+sanne nivået ligger under tallene i tabellen over.
+
+**Følgen for alt annet i prosjektet:** det er ikke bare et måleartefakt.
+`fyllSanser` mates av nøyaktig den samme `monteTro`, og søket ruller ut i
+nøyaktig de samme verdenene. Straffen målingen ser, ER en straff boten betaler —
+den er bare ikke en påstand om hva troen VET. Å heve V er det billigste
+kjente løftet på troen som finnes, og det er ikke prøvd på benken.
+
+### Dommen på K8
+
+«Veldig høyt nivå» skulle bli et tall mellom gulvet og taket. Det er det nå:
+
+| | log-tap | andel av veien gulv → tak |
+|---|---|---|
+| gulv | 1,0986 | 0 % |
+| gulv+ (bare renonser) | 1,0342 | **5,86 %** |
+| beste arm, V=64 (bayes+W) | 1,0525 | 4,20 % |
+| beste arm, V=256 (bayes, delutvalg) | 1,0405 | 5,29 % |
+| klarsyn | 0 | 100 % |
+
+**K8 er ikke innfridd, og avstanden til taket er ~95 %.** Alle slutningene til
+sammen — A1, A5, A6-leseren og kanal 2 — flytter troen `+0,0046`, altså
+**0,42 % av veien fra uvitenhet til klarsyn**. Renonsene alene flytter
+`+0,0644`, tretten ganger så mye, og de er en hard regel og ikke en slutning.
+
+Det som ER nytt siden §105:
+
+1. **Kanal 2 er koblet og målt, og den virker** — +0,0056 ± 0,0007 der den kan
+   fyre. To av seks kanaler er nå koblet, ikke én.
+2. **Prøven dekker stikk 2–9**, ikke stikk 4.
+3. **Underskuddet mot gulv+ er identifisert som oppløsning**, ikke som tro, og
+   det er målt med en sveip i stedet for antatt.
+
+Det som IKKE er nytt: kravet står fortsatt på nei, og veien dit går ikke
+gjennom flere slutningsregler.

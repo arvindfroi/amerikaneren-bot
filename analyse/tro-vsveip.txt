@@ -1,0 +1,62 @@
+V-SVEIPEN — koster Monte-Carlo-oppløsningen avstanden til gulv+?
+======================================================================
+kilder      analyse/tro-v16.jsonl analyse/tro-v64.jsonl analyse/tro-v256.jsonl
+V-nivåer    16, 64, 256
+felles stillinger 982   giv 123   armer av, bayes
+
+SELVSJEKK — gulvene har ingen V og skal være bit-like i hver kolonne
+  gulv          1,0986   1,0986   1,0986   spredning 0.0e+0
+  gulvPluss     1,0352   1,0352   1,0352   spredning 0.0e+0
+
+LOG-TAP PER V (lavere er bedre)
+  arm              V=16     V=64    V=256
+  gulv           1,0986   1,0986   1,0986
+  gulvPluss      1,0352   1,0352   1,0352
+  av             1,1212   1,0563   1,0431
+  bayes          1,1192   1,0544   1,0405
+
+ARM MOT GULV+ , PER V   (positiv = armen slår gulv+)
+  arm            V   forbedring      SE        z
+  av            16      −0,0859    0,0051   −16,7826
+  av            64      −0,0211    0,0038   −5,5732
+  av           256      −0,0079    0,0035   −2,2695
+  bayes         16      −0,0840    0,0050   −16,8291
+  bayes         64      −0,0191    0,0038   −5,0919
+  bayes        256      −0,0053    0,0035   −1,5231
+
+PARRET SKRITT I V (samme stilling, samme arm, ulik V)
+  arm          skritt          vinning      SE        z
+  av             16 → 64      +0,0648    0,0030   +21,6342
+  av             64 → 256     +0,0132    0,0012   +11,1599
+  bayes          16 → 64      +0,0649    0,0030   +21,7934
+  bayes          64 → 256     +0,0138    0,0012   +11,6429
+
+PER STIKK: arm − gulv+ (negativ = armen taper mot gulv+)
+  av
+    stikk  n         V=16      V=64     V=256
+        2 123      +0,0784   +0,0209   +0,0106
+        3 123      +0,0821   +0,0167   +0,0043
+        4 123      +0,1006   +0,0263   +0,0106
+        5 123      +0,0892   +0,0247   +0,0085
+        6 123      +0,0700   +0,0195   +0,0028
+        7 123      +0,0811   +0,0121   +0,0087
+        8 122      +0,0912   +0,0205   +0,0060
+        9 122      +0,1082   +0,0314   +0,0122
+  bayes
+    stikk  n         V=16      V=64     V=256
+        2 123      +0,0807   +0,0216   +0,0094
+        3 123      +0,0895   +0,0162   +0,0024
+        4 123      +0,0954   +0,0245   +0,0086
+        5 123      +0,0841   +0,0229   +0,0051
+        6 123      +0,0680   +0,0179   −0,0006
+        7 123      +0,0668   +0,0089   +0,0054
+        8 122      +0,0884   +0,0141   +0,0015
+        9 122      +0,1030   +0,0226   +0,0085
+
+GULVET PÅ p BANDT (andel skjulte kort)
+  arm              V=16     V=64    V=256
+  av              0,71%    0,00%    0,00%
+  bayes           0,67%    0,00%    0,00%
+  MERK: 0 % her utelukker IKKE oppløsningsstraffen. Gulvet fanger bare
+  log(0); Jensen-straffen rammer hver eneste p som ikke er 0 eller 1.
+
