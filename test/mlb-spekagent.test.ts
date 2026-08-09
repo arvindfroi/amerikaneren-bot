@@ -21,6 +21,7 @@ import { medVerden, trekkVerdener } from "../src/moe2/sdkort.ts";
 import { Sandkasseagent } from "../src/mlb/spekagent.ts";
 import { Sandkassenett } from "../src/mlb/nett.ts";
 import { spillKamp } from "../src/mlb/selvspill.ts";
+import { lagIndre } from "../src/moe2/agentspek.ts";
 
 const nett = Sandkassenett.tilfeldig(7_310_001);
 
@@ -231,4 +232,35 @@ test("MLB-bro: adapteren velger aldri ulovlig, i noen fase", () => {
     }
   }
   assert.ok(valg > 500, `for få valg prøvd: ${valg}`);
+});
+
+// ===========================================================================
+// 4. «mlb:»-laget — broen skal kunne bygges av den KANONISKE parseren
+// ===========================================================================
+
+test("MLB-bro: «mlb:»-speken bygger, alene og nestet under et annet lag", () => {
+  for (const spek of [
+    "mlb:tilfeldig7310001",
+    "mlb:tilfeldig7310001@0.7",
+    "mlb:tilfeldig7310001h0",
+    "vakt:abmp:mlb:tilfeldig7310001",
+  ]) {
+    const a = lagIndre(spek);
+    assert.ok(a !== null && typeof a.velgHandling === "function", `«${spek}» bygde ikke`);
+  }
+});
+
+test("MLB-bro: «mlb:» feiler HØYLYTT på en ugyldig spek", () => {
+  for (const spek of ["mlb:", "mlb:tilfeldig7310001@abc", "mlb:tilfeldigxyz"]) {
+    assert.throws(() => lagIndre(spek), `«${spek}» skulle kastet`);
+  }
+});
+
+test("MLB-bro: temperaturen er 0 som standard — en benk skal ikke sample", () => {
+  // AVGJØRELSE 4: samplet i trening, argmaks i måling. Står den ikke i speken,
+  // MÅ den være 0 — ellers måler gate 2 sin egen støy og nullarmen bommer.
+  const s = opprettSpill({ antallSpillere: 4 }, 7_900_001);
+  const a = lagIndre("mlb:tilfeldig7310001");
+  const b = lagIndre("mlb:tilfeldig7310001");
+  assert.equal(nøkkel(a.velgHandling(s)), nøkkel(b.velgHandling(s)));
 });

@@ -44,6 +44,8 @@ import type { Utspiller } from "./sdkort.ts";
 import { lagHvemLaVekt } from "./hvemla-slutning.ts";
 import { lagRng } from "../kort.ts";
 import { Økt } from "./okt.ts";
+import { Sandkassenett } from "../mlb/nett.ts";
+import { Sandkasseagent } from "../mlb/spekagent.ts";
 
 /**
  * Nettene leses ÉN gang og deles. `E1Agent` holder ingen tilstand mellom
@@ -1220,6 +1222,46 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       ? (inn as unknown as Budjusterbar)
       : null;
     return new Profilagent(inn, bud, ctx.økt?.bok ?? null);
+  }
+  /**
+   * `mlb:<vektfil|tilfeldig<froe>>[@<temperatur>][h0]`
+   *
+   * ============ BROEN TIL SANDKASSEN, OG HVORFOR DEN GAAR DENNE VEIEN ======
+   *
+   * Ligaen i `src/mlb/liga.ts` er MLB-only: herkomstgrensen sier at
+   * `src/mlb/` aldri naar den gamle stakken, fordi formaalet med MLB er aa
+   * laere UTEN en mester. Men da fantes det ingen maalestokk mot
+   * `ADAMS_MAALT` - vi kunne se at epoke 8 slo epoke 7 uten aa vite om noen
+   * av dem var verdt aa ha.
+   *
+   * Denne grenen lukker det, og RETNINGEN er det som gjoer det trygt:
+   * `agentspek.ts` importerer fra `src/mlb/`, aldri motsatt. Herkomstproeven
+   * maaler importgrafen UT FRA `src/mlb/`, saa broen kan ikke smugle et
+   * orakel inn i treningen - den lar bare en maaling se inn.
+   *
+   * TEMPERATUREN ER 0 SOM STANDARD, med vilje. AVGJOERELSE 4 i `mlb.md`:
+   * samplet i trening, argmaks i maaling. En benk som sampler maaler sin egen
+   * stoey oppaa forskjellen den er satt til aa finne, og gate 2s nullarm ville
+   * ikke lenger treffe 0,0000.
+   *
+   * `tilfeldig<froe>` finnes for kontrollarmer og proever: en nullarm skal
+   * kunne bygges uten at noen foerst har trent et nett.
+   */
+  if (indre.startsWith("mlb:")) {
+    let rest = indre.slice(4);
+    let hukommelse = true;
+    if (rest.endsWith("h0")) {
+      hukommelse = false;
+      rest = rest.slice(0, -2);
+    }
+    const at = rest.lastIndexOf("@");
+    const kilde = at < 0 ? rest : rest.slice(0, at);
+    const temperatur = at < 0 ? 0 : tall(rest.slice(at + 1), 0, `temperatur i «${indre}»`);
+    if (kilde === "") throw new Error(`Tom vektkilde i «${indre}»`);
+    const nett = kilde.startsWith("tilfeldig")
+      ? Sandkassenett.tilfeldig(tall(kilde.slice(9), 0, `froe i «${indre}»`))
+      : Sandkassenett.fraFil(kilde);
+    return new Sandkasseagent(nett, { temperatur, hukommelse }) as unknown as Spekagent;
   }
   if (indre.startsWith("e1:")) {
     const rest = indre.slice(3);
