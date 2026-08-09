@@ -206,3 +206,102 @@ kom til fra hver sin kant samme dag.
 
 Derfor er nett 2 svaret, ikke enda en vektform: når modulene blir INNGANGER,
 forsvinner spørsmålet om hvem som overstyrer hvem.
+
+---
+
+## 9. Ligaen — epoker, og hvorfor ikke bare selvspill
+
+Arvind, 9. august: «eventuelt så burde vi sette opp sånn liga-oppsett med epoker
+og trening sånn at nettet blir nevralt. … La nettet trene alle sine variabler.»
+
+### Hvorfor liga og ikke ren selvspill
+
+Ekspert-iterasjon mot seg selv har en kjent svakhet: den **kollapser mot én smal
+strategi**. Nettet blir godt mot sin egen forrige versjon og mister bredden —
+og et bord med familien er ikke en kopi av oss selv.
+
+Ligaen er motgiften. Hver epoke spiller mot en BEFOLKNING:
+
+| motstander | andel | hvorfor |
+|---|---|---|
+| nåværende beste | ~40 % | driver framgangen |
+| tidligere epoker | ~30 % | hindrer at vi glemmer det vi kunne |
+| `rask` (uten søk) | ~15 % | den er faktisk best i matrisen i dag — den er ikke en stråmann |
+| stiliserte vaner | ~15 % | trumftrekkeren og slektninger: tvinger K6 til å bety noe |
+
+Den siste raden er ikke pynt. K6 krever at boten UTNYTTER vaner. Møter den bare
+seg selv, finnes det ingen vane å utnytte — og vi ville trent bort nettopp den
+evnen kravet ber om. Det er samme fella som gjorde at koblingssjekken målte
+0 av 657 mot fire like agenter: **ingenting å lære er ikke det samme som ikke å
+kunne lære.**
+
+### Epoken
+
+```
+1. SPILL      ligaen, N kamper, søk på gjeldende nett
+2. ETIKETT    policy = søkets valg · verdi = faktisk utfall · tro = fasit
+3. TREN       alle tre hoder, felles kropp
+4. PORT       ny epoke må slå forrige PARRET, i disjunkt frøbånd, over 2 SE
+5. LIGA       består den, går den inn i befolkningen. Ellers forkastes den
+```
+
+Steg 4 er ikke en formalitet. Uten en port vokser ligaen med versjoner som ikke
+er bedre, og «beste» blir et gjennomsnitt av støy.
+
+### «La nettet trene alle sine variabler»
+
+Dette er den delen jeg ikke hadde tenkt ferdig, og den er stor.
+
+**Hver konstant jeg har målt for hånd denne uka er en parameter nettet kunne
+lært selv:**
+
+| konstant | dagens verdi | hvordan den ble til |
+|---|---|---|
+| `BEFOLKNING_RESIDUAL` | −0,0976 | målt over 8812 valg, hardkodet |
+| `BEFOLKNING.trumfutspill` | 0,2524 | målt over 1874 utspill, hardkodet |
+| vaktens veto | 0,5 | sveipet, replikerte ikke |
+| `MAKS_VRI` | 0,35 | satt, aldri målt |
+| signifikansporten | 2 SE | valgt fordi gate 2 bruker den |
+| søkets `lambda` | 1,5 | sveipet |
+| konvensjonsvekten | ∞ | sveipet 9. august, optimum på grensen |
+
+Sju tall, hvert av dem en dags arbeid å måle, og hvert av dem en KONSTANT der
+sannheten er en FUNKSJON av stillingen. `MAKS_VRI` bør være liten når vi har
+sett lite og stor når vi har sett mye. Troen bør veie tungt sent i runden og
+lite i stikk 1.
+
+Blir modulene INNGANGER, forsvinner hele lista: nettet lærer vektingen selv, og
+den blir stillingsavhengig gratis. **Det er den egentlige gevinsten ved nett 2 —
+ikke bredden, men at vi slutter å håndsette ting som burde vært lært.**
+
+### Utgangsbetingelsen er KRAVENE, ikke tapskurven
+
+Arvind: «det er viktig at når all denne treningen er ferdig så har adams max
+sine krav 2–8 blitt innfridd (utenom budmodellen) og den spiller helt optimalt
+med sine sensorer.»
+
+Da er utgangsbetingelsen ikke «tapet flater ut». Den er **at de åtte prøvene
+passerer**, og hver av dem finnes allerede:
+
+| krav | prøven | hva ligaen må levere |
+|---|---|---|
+| K2 | `k2-aldri-jukse.test.ts` | invarians under skjult informasjon — må HOLDE gjennom hele treningen |
+| K3 | fasegapene | ingen fase svak. Budrunden unntatt, den kommer sist |
+| K4 | hukommelsen endrer valg + `M ≥ 2` | trenes inn som INNGANG, ikke som lag |
+| K5 | samme kort, ulik kampstilling → ulikt valg | kampstillingen er en inngang |
+| K6 | gevinsten VOKSER med rundenummeret | derfor må stiliserte vaner være i ligaen |
+| K7 | avstand til taket i sluttspillet | +0,947 ved fem stikk i dag |
+| K8 | log-tap mellom gulv og tak | 4,20 % i dag. Trohodet angriper dette direkte |
+
+**K2 er den som må voktes hardest.** En liga med søk og tro er nettopp der
+lekkasjer sniker seg inn — og prøven er den ene i prosjektet som kan avgjøres
+absolutt. Den skal kjøres etter HVER epoke, ikke bare til slutt.
+
+### Ærlig om kostnaden
+
+Ligaen multipliserer antall kamper: fire motstandertyper, hver epoke, med søk.
+Korpuset er allerede den bindende skranken (§46). Så dette er ikke en kveldsjobb
+— det er GPU-arbeid over dager, og det er grunnen til at steg 1–2 (låse
+modulene, og Port 0) må være ferdige først.
+
+Å starte ligaen før modulene er låst er å generere et korpus vi må kaste.
