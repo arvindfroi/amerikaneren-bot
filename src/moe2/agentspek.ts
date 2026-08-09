@@ -22,7 +22,9 @@ import { Vrakrangerer } from "./vrakrang.ts";
 import { nettFraBytes } from "../nevro/nett.ts";
 import { NevroAgent } from "../nevro/index.ts";
 import { Budagent, lesBudmodell } from "./budagent.ts";
-import { Konvensjonsvakt, delVaktspek } from "./konvensjonsvakt.ts";
+import { Konvensjonsvakt, delVaktspek, lesVaktflagg, type Scorbar } from "./konvensjonsvakt.ts";
+import { Sumvelger } from "./sumvelger.ts";
+import { lagSumledd, type Sumvekter } from "./sumledd.ts";
 import { Ensemble, type EnsembleModus } from "./ensemble.ts";
 import { Rolleorakel, type Rolle } from "./rolleorakel.ts";
 import { Sikkerorakel } from "./sikkerorakel.ts";
@@ -271,6 +273,109 @@ export function tall(v: string | undefined, standard: number, navn: string): num
   return x;
 }
 
+/**
+ * VEKTLISTA TIL `sum:` — «nett=1,vakt=0.3,sok=0.5,stil=0,race=0».
+ *
+ * ================= HVORFOR NAVN OG IKKE POSISJONER =====================
+ *
+ * `budm:` har sju posisjonelle felt, og kommentaren der må si «merk den TOMME
+ * sjette luken». Det er en form som krever at leseren teller skråstreker, og
+ * som gjør en ny knott til en brekkstang: legges den midt i, endres hver
+ * eksisterende spek i stillhet.
+ *
+ * Fem vekter som skal SVEIPES tåler ikke det. `nett=1,race=0.2` sier hva den
+ * gjør, kan skrives i hvilken som helst rekkefølge, og et felt som ikke
+ * finnes er en FEIL og ikke en tolkning.
+ *
+ * ================= OG DEN FEILER HØYT, IKKE STILLE =====================
+ *
+ * Hvert tall går gjennom `tall()`. Grunnen står der: `Number("vr:...")` gir
+ * `NaN` uten et pip, og et NaN-frø ga 5. august samme giv om og om igjen — en
+ * måling som så ferdig ut og var ren søppel. Her er innsatsen den samme, bare
+ * verre: en `NaN`-vekt gjør HELE summen til `NaN`, alle kort blir like, og
+ * uavgjortregelen velger første lovlige kort i hver eneste stilling. Det ville
+ * sett ut som en bot og vært en konstant.
+ *
+ * Derfor kaster den også på: tomt felt, ukjent navn, dobbelt navn, felt uten
+ * «=», ukjent rolle, og på at ALLE vektene er null (en sum uten ledd er ikke
+ * en bot, det er argmaks over nuller).
+ */
+const SUM_VEKTER = ["nett", "vakt", "sok", "stil", "race"] as const;
+const SUM_KNOTTER = ["verdener", "kand", "M", "roller", "rlambda", "fro", "vaktflagg"] as const;
+
+export function lesSumvekter(
+  felt: string,
+  spek: string,
+): { vekter: Sumvekter; vaktflagg: string | null } {
+  if (felt.trim() === "") {
+    throw new Error(`Tom vektliste i «${spek}» – forventet f.eks. «sum:nett=1,vakt=0.3:<indre>»`);
+  }
+  const sett = new Map<string, string>();
+  for (const del of felt.split(",")) {
+    if (del.trim() === "") throw new Error(`Tomt felt i vektlista «${felt}» i «${spek}»`);
+    const eq = del.indexOf("=");
+    if (eq <= 0) throw new Error(`Ugyldig felt «${del}» i «${spek}» – forventet <navn>=<verdi>`);
+    const navn = del.slice(0, eq).trim();
+    if (sett.has(navn)) throw new Error(`«${navn}» er oppgitt to ganger i «${spek}»`);
+    sett.set(navn, del.slice(eq + 1).trim());
+  }
+  const kjente = new Set<string>([...SUM_VEKTER, ...SUM_KNOTTER]);
+  for (const navn of sett.keys()) {
+    if (!kjente.has(navn)) {
+      throw new Error(
+        `Ukjent felt «${navn}» i «${spek}» – gyldige er ${[...kjente].join(", ")}`,
+      );
+    }
+  }
+
+  const vekt = (navn: string): number => tall(sett.get(navn), 0, navn);
+  const nett = vekt("nett");
+  const vaktV = vekt("vakt");
+  const sok = vekt("sok");
+  const stil = vekt("stil");
+  const race = vekt("race");
+  if (nett === 0 && vaktV === 0 && sok === 0 && stil === 0 && race === 0) {
+    throw new Error(
+      `Alle vektene i «${spek}» er null. Da er summen argmaks over nuller, altså ` +
+        `første lovlige kort i hver stilling – oppgi minst ett ledd med vekt.`,
+    );
+  }
+
+  const heltall = (navn: string, standard: number, minst: number): number => {
+    const x = tall(sett.get(navn), standard, navn);
+    if (!Number.isInteger(x) || x < minst) {
+      throw new Error(`«${navn}» i «${spek}» må være et helt tall ≥ ${minst}, fikk «${x}»`);
+    }
+    return x;
+  };
+
+  const rolletekst = sett.get("roller") ?? "foerer";
+  let roller: readonly Rolle[];
+  if (rolletekst === "alle") roller = [];
+  else if (rolletekst === "foerer" || rolletekst === "makker" || rolletekst === "forsvar") {
+    roller = [rolletekst];
+  } else {
+    throw new Error(`Ukjent rolle «${rolletekst}» i «${spek}» (foerer, makker, forsvar, alle)`);
+  }
+
+  return {
+    vekter: {
+      nett,
+      vakt: vaktV,
+      sok,
+      stil,
+      race,
+      verdener: heltall("verdener", 12, 1),
+      kand: heltall("kand", 16, 1),
+      M: heltall("M", 1, 1),
+      roller,
+      rlambda: tall(sett.get("rlambda"), 1, "rlambda"),
+      frø: tall(sett.get("fro"), 20260809, "fro"),
+    },
+    vaktflagg: sett.get("vaktflagg") ?? null,
+  };
+}
+
 /** Det ethvert lag i stakken må kunne. */
 export interface Spekagent {
   velgHandling(s: GameState): Handling;
@@ -330,6 +435,12 @@ export function utenSøk(spek: string): string {
       s = s.slice(4).split(":").slice(3).join(":");
     } else if (s.startsWith("vv:")) {
       s = s.slice(3).split(":").slice(1).join(":");
+    } else if (s.startsWith("sum:")) {
+      // sum:<vekter>:<indre> – søkeleddet i summen er et søk som alle andre, og
+      // en rollout-motpart skal ikke ha det. Vektlista har ingen kolon, så ett
+      // felt hoppes over. Ingen eksisterende spek inneholder «sum:», så linja
+      // kan ikke endre noe som er målt.
+      s = s.slice(4).split(":").slice(1).join(":");
     } else {
       return s;
     }
@@ -638,6 +749,77 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       // objektet, og `Profilagent` ligger flere lag lenger ned.
       observer: (s: GameState) => (inn as { observer?(x: GameState): void }).observer?.(s),
     };
+  }
+  /**
+   * `sum:<vekter>:<indre>` — SUMMEFORMEN. Se `sumvelger.ts` for hvorfor.
+   *
+   *     sum:nett=1:e1:e1-modell/d7alle.bin              null-punktet
+   *     sum:nett=1,vakt=0.3:vakt:abmpf:e1:...:bin       nett + konvensjon
+   *     sum:nett=1,sok=0.5,race=0.2,verdener=12:...     med søk og kampstilling
+   *
+   * ================= HVOR HVERT LEDD FÅR TALLENE SINE ==================
+   *
+   *   nett   `E1Agent.scorer` på det indre laget. Er det indre laget ikke selv
+   *          `Scorbar` (fordi det ligger en vakt eller en budmodell utenpå),
+   *          bygges `e1:`-halen av speken for seg. Samme fil, og `lesNett`
+   *          deler instansen, så vektene er de samme.
+   *   vakt   `vaktflagg=<flagg>` om det står der, ellers `vakt:<flagg>` fra den
+   *          indre speken. Finnes ingen av delene, KASTER den: et vaktledd med
+   *          vekt og uten konvensjon ville vært stumt uten å si fra.
+   *   søk    alpha-mu med `verdener`/`kand`/`M`, rullet ut mot den indre speken
+   *          UTEN søkelag — samme `utenSøk` som `amu:` bruker, og av samme
+   *          grunn: de andre ved bordet søker ikke.
+   *   stil   `okt:`-økten. Uten den kaster den, se over.
+   *   race   `racepress` på søkets utfallsvektor. Deler alpha-mu med søkeleddet.
+   *
+   * ================= DEN INDRE SPEKEN SKAL VÆRE BASEN ==================
+   *
+   * `Sumvelger` spør fortsatt det indre laget om et trekk — det er slik den
+   * teller hvor ofte summen er UENIG med stabelen, og slik bud, vrak og
+   * trumfvalg går uendret gjennom. Legger man et søk INNENFOR summen, betales
+   * altså søket to ganger: én gang av stabelen og én gang av søkeleddet. Den
+   * indre speken skal være basen (`vakt:...:e1:...`), ikke en hel stabel.
+   */
+  if (indre.startsWith("sum:")) {
+    const rest = indre.slice(4);
+    const skille = rest.indexOf(":");
+    if (skille < 0) throw new Error(`Ugyldig sum-spek «${indre}» – forventet sum:<vekter>:<indre>`);
+    const { vekter, vaktflagg } = lesSumvekter(rest.slice(0, skille), indre);
+    const innSpek = rest.slice(skille + 1);
+    if (innSpek === "") throw new Error(`Ugyldig sum-spek «${indre}» – mangler indre agent`);
+    const inn = lagIndre(innSpek, ctx);
+
+    const scorbar = inn as unknown as Partial<Scorbar>;
+    let scorer: (s: GameState, sete: number) => Map<number, number>;
+    if (typeof scorbar.scorer === "function") {
+      // SAMME OBJEKT, og det er verdt noe: et nett med `montetro` har sin egen
+      // RNG-strøm, så to instanser av samme fil ville gitt ulik tro.
+      scorer = (s, sete) => scorbar.scorer!(s, sete);
+    } else {
+      const m = /(?:^|:)(e1:[^:]+)$/.exec(innSpek);
+      if (m === null) {
+        throw new Error(
+          `Fant ingen «e1:<fil>» i «${innSpek}». Uten nettets poeng per kort finnes ` +
+            `ikke nettleddet, og en sum uten prior er ikke summeformen.`,
+        );
+      }
+      const nettAgent = lagIndre(m[1]!, ctx) as unknown as Scorbar;
+      scorer = (s, sete) => nettAgent.scorer(s, sete);
+    }
+
+    const flagg = vaktflagg ?? /(?:^|:)vakt:([a-zA-Z]+):/.exec(innSpek)?.[1] ?? null;
+    const utenS = utenSøk(innSpek);
+    const motpart = (utenS === innSpek ? inn : lagIndre(utenS, ctx)) as unknown as Utspiller;
+
+    return new Sumvelger(
+      inn,
+      lagSumledd(vekter, {
+        scorer,
+        vaktvalg: flagg === null ? null : lesVaktflagg(flagg),
+        motpart,
+        økt: ctx.økt ?? null,
+      }),
+    ) as unknown as Spekagent;
   }
   if (indre.startsWith("amu:")) {
     const d = indre.slice(4).split(":");

@@ -121,18 +121,61 @@ export interface Sumvalg {
   readonly kort: Kort;
   /** Totalpoeng per kort, for `forklar` og for tester. */
   readonly total: Map<number, number>;
-  /** Hvert ledds normaliserte bidrag, før vekt. */
+  /** Hvert ledds bidrag, før vekt (normalisert, se `velgSum`). */
   readonly bidrag: Map<string, Map<number, number>>;
+}
+
+/**
+ * ARGMAKS OVER LOVLIGE KORT, MED NØYAKTIG E1-AGENTENS EGEN REGEL.
+ *
+ * Regelen er: gå gjennom `lovlige` i rekkefølge, og bytt bare på STRENGT
+ * høyere poeng. Ved uavgjort vinner altså det FØRSTE lovlige kortet.
+ *
+ * ================= HVORFOR IKKE «LAVESTE KORTINDEKS» ===================
+ *
+ * Første utgave av denne fila brøt uavgjort på laveste kortindeks. Den er like
+ * deterministisk — `lovligeKort` er en ren funksjon av stillingen, så begge
+ * regler gir samme kort hver gang — men DETERMINISME ER IKKE KRAVET HER.
+ *
+ * Kravet er null-punktet: med bare nettleddet skal summen velge NØYAKTIG som
+ * `E1Agent.velgKort`, og den løkka er `for (const k of lovlige) if (logits[k] >
+ * logits[beste]) beste = k`. Bryter de to uavgjort ulikt, spriker de i hver
+ * eneste stilling der to kort har samme poeng — og da er null-punktet ikke et
+ * null-punkt, men «nesten».
+ *
+ * ÉN DEFINISJON, brukt av både `velgSum` og leddene som trenger et BASISKORT
+ * (vakten og stilen spør begge «hva ville nettet lagt?»). To kopier ville
+ * drevet fra hverandre, som `pris`-sorteringen i `stilbias.ts` gjorde.
+ */
+export function argmaks(lovlige: readonly Kort[], poeng: Map<number, number>): Kort {
+  let beste = lovlige[0]!;
+  let bestePoeng = poeng.get(kortIndeks(beste)) ?? 0;
+  for (const k of lovlige) {
+    const p = poeng.get(kortIndeks(k)) ?? 0;
+    if (p > bestePoeng) {
+      bestePoeng = p;
+      beste = k;
+    }
+  }
+  return beste;
 }
 
 /**
  * Velger kortet med høyest sum.
  *
- * DETERMINISTISK VED UAVGJORT: laveste kortindeks vinner. Uten en fast regel
- * ville to like summer gitt ulikt kort avhengig av innsettingsrekkefølge, og
- * da dør parringen i målingene — samme feilklasse som `pris`-sorteringen i
- * `stilbias.ts`, der to farger med samme valør byttet rang og ALLE 329
- * rekonstruerte residualer avvek.
+ * ================= ETT AKTIVT LEDD NORMALISERES IKKE ====================
+ *
+ * Normaliseringen er MATEMATISK monoton, så med bare ett bidragende ledd kan
+ * den ikke flytte argmaks. I FLYTTALL kan den: `(v − lav) / spenn` er 1,0 for
+ * det beste kortet, og et kort som ligger noen få ulp under kan runde til
+ * nøyaktig 1,0 når spennet er stort. Da avgjør uavgjortregelen, og summen
+ * velger et annet kort enn nettet ville gjort.
+ *
+ * Sannsynligheten er forsvinnende. Men null-punktet er ikke en sannsynlighet:
+ * det er påstanden om at summen med bare nettleddet ER `E1Agent`. Så når
+ * nøyaktig ett ledd bidrar, summeres RÅTALLENE, og påstanden holder uten
+ * forbehold. Med to eller flere ledd må skalaene gjøres sammenliknbare, og da
+ * er normaliseringen både nødvendig og uskyldig.
  */
 export function velgSum(
   state: GameState,
@@ -145,33 +188,34 @@ export function velgSum(
     return { kort: lovlige[0]!, total: new Map(), bidrag: new Map() };
   }
 
-  const total = new Map<number, number>();
-  for (const k of lovlige) total.set(kortIndeks(k), 0);
-
-  const bidrag = new Map<string, Map<number, number>>();
+  /**
+   * ET LEDD MED VEKT 0 KALLES IKKE. Søkeleddet koster en full alpha-mu per
+   * beslutning, så «regn det og gang med null» er ikke en akseptabel form for
+   * «av» — det er hele kostnaden uten noen av effekten.
+   */
+  const bidragRå: { navn: string; vekt: number; rå: Map<number, number> }[] = [];
   for (const l of ledd) {
     if (l.vekt === 0) continue;
     const rå = l.poeng(state, sete, lovlige);
     if (rå.size === 0) continue;
-    const n = normaliser(rå);
-    bidrag.set(l.navn, n);
+    bidragRå.push({ navn: l.navn, vekt: l.vekt, rå });
+  }
+
+  const total = new Map<number, number>();
+  for (const k of lovlige) total.set(kortIndeks(k), 0);
+
+  const enkelt = bidragRå.length === 1;
+  const bidrag = new Map<string, Map<number, number>>();
+  for (const b of bidragRå) {
+    const n = enkelt ? b.rå : normaliser(b.rå);
+    bidrag.set(b.navn, n);
     for (const k of lovlige) {
       const i = kortIndeks(k);
-      total.set(i, (total.get(i) ?? 0) + l.vekt * (n.get(i) ?? 0));
+      total.set(i, (total.get(i) ?? 0) + b.vekt * (n.get(i) ?? 0));
     }
   }
 
-  let beste = kortIndeks(lovlige[0]!);
-  let bestePoeng = total.get(beste) ?? 0;
-  for (const k of lovlige) {
-    const i = kortIndeks(k);
-    const p = total.get(i) ?? 0;
-    if (p > bestePoeng || (p === bestePoeng && i < beste)) {
-      bestePoeng = p;
-      beste = i;
-    }
-  }
-  return { kort: kortFraIndeks(beste), total, bidrag };
+  return { kort: argmaks(lovlige, total), total, bidrag };
 }
 
 /**
@@ -198,6 +242,17 @@ export class Sumvelger {
 
   nyKamp(): void {
     this.indre.nyKamp?.();
+  }
+
+  /**
+   * Videresender bokføringskroken. Uten den når `observer` aldri `Profilagent`,
+   * som ligger lenger ned i stakken — og da er profilen strukturelt tom på
+   * kampbenken, som er den ENESTE benken som spiller kamper lange nok til at
+   * stil- og raceleddet i det hele tatt kan slå inn. Målt 0 bokførte runder mot
+   * 25 da `Alphamuagent` manglet den samme linja.
+   */
+  observer(state: GameState): void {
+    (this.indre as { observer?(s: GameState): void }).observer?.(state);
   }
 
   velgHandling(state: GameState): Handling {
