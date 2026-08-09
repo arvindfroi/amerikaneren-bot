@@ -70,11 +70,68 @@ ene i prosjektet som kan avgjøres absolutt.
 - vraket og trumfvalget som er gjort
 - kontrakten som spilles, og hvor mange stikk laget har
 
-### Makro — kampen
+### Makro — kampen, OG HUKOMMELSEN
 
 - alle fires poeng, runder spilt, `racepress`
-- **stilen per motstander**: residualet fra `stilbias.ts` med sin standardfeil
-- hvor mange runder som er sett av hver motstander (tiltroen)
+
+#### Hukommelsen er den store, og den er i dag nesten tom
+
+Arvind, 9. august: «jeg snakket egentlig om hukommelsen og hvordan den tilpasser
+seg til motstandere på alle 3 nivåer i løpet.»
+
+**Ved rundeslutt er ALT avdekket.** Hver spilte runde gir oss motstanderens
+eksakte hånd OG hva hun gjorde med den. Det er ikke juks — det er slik et
+menneske leser en medspiller over en kveld, og `Profilbok` bygger allerede på
+nettopp det premisset.
+
+I dag komprimerer vi hele den historien til **ett tall per sete**: residualet fra
+`stilbias.ts`. Det er langt for lite. Vi kaster et datasett som vokser med hver
+runde.
+
+For hver motstander, akkumulert over kampen — og delt på de tre nivåene:
+
+**MIKRO — hvordan hun spiller kortene sine**
+- residualet mot nettets forventning (dagens `stilbias`), med standardfeil
+- hvor ofte hun tar stikk hun kunne latt gå
+- hvor ofte hun sparer honnører til sent
+- hvordan hun spiller når hun er renons — trumfer eller kaster av
+- signalene hun faktisk sender blant likegyldige kort
+
+**MESO — hvordan hun byr og fører kontrakter**
+- budet hun ga MOT HÅNDEN HUN VISTE SEG Å HA. Det er den sterkeste:
+  vi vet i etterkant nøyaktig hva hun bød på, så vi kan måle om hun
+  overbyr eller underbyr, og med hvor mye
+- hvor ofte hun klarer kontrakten hun tar
+- hva hun VRAKER, nå som vi ser hånden hun hadde før og etter
+- hvilken trumf hun velger med hvilken form
+- hvordan hun forsvarer mot en kontrakt
+
+**MAKRO — hvordan hun endrer seg gjennom løpet**
+- byr hun mer når hun ligger under?
+- blir hun forsiktig når hun leder?
+- endrer stilen seg fra runde 1 til runde 20?
+
+Det siste nivået er det ingen har rørt, og det er nettopp det Arvind ber om:
+tilpasningen skal virke **i løpet**, ikke bare per runde.
+
+#### Hvorfor det hører hjemme som TREKK og ikke som en modul
+
+Hver av disse er i dag enten fraværende, eller et tall bak en terskel. Som trekk
+trenger de ingen terskel: nettet lærer selv når fire observasjoner er for lite
+og når tjue er nok. Tiltroen (`n` per statistikk) går inn ved siden av hvert
+tall, så nettet kan skille «hun er passiv» fra «vi har ikke sett nok».
+
+Det er samme lærdom som §108: en hard dør (`|a| ≥ 0,2`) gjorde detektoren
+ubrukelig, mens krymping virket. En lært vekting er krympingen tatt hele veien.
+
+#### Og grensen mot K2 er skarp
+
+Hukommelsen ser bare **ferdigspilte runder**. Inneværende runde er skjult til
+den er over, nøyaktig som `Profilbok.observer` alt håndhever ved å bokføre på
+`RUNDE_SLUTT`. `stilbias` lærer av samme grunn bare ved rundeslutt.
+
+Valgene i runde `r` ser altså bare hukommelse fra runde `< r`. Det er det som
+gjør at K2-prøven fortsatt kan passere med full hukommelse påslått.
 
 ### Verktøyene som trekk
 
