@@ -801,3 +801,131 @@ stikk er ikke eksakt på poeng — og da er alt den har målt, målt mot feil li
 
 Den siste er Arvinds egen setning fra 7. august: «K3–K8 er midlene, K1 er
 målet.» Setningen var forstått med én gang. **Hvorfor** den er sann, først nå.
+
+---
+
+## Må nettet trenes til å bruke modulene?
+
+Arvind, 9. august: «jeg lurer litt på om når alle modulene er klare og satt opp
+korrekt inni adams max så må den trenes til å bruke de, eller er det ikke
+nødvendig? er nettet inni adams trent til å bruke alle sansene og evnene?»
+
+### Nei — og bildet er snudd
+
+**Modulene bruker nettet. Nettet bruker ikke modulene.**
+
+```
+okt: / profil:   vrir rollout-policyen          → bruker nettet
+amu:             prior og rollouts              → bruker nettet
+vakt:            overstyrer nettets valg
+budm:            egen GBT-modell, helt separat
+      ↓
+   E1-nettet     ser kort, stikk, renonser, budrunde — og ikke noe mer
+```
+
+Nettet er BUNNLAGET. Det ser ikke motstandermodellen, ikke trosfordelingen, ikke
+søkets svar. Så det finnes ingen «lære å bruke dem» — de er lag rundt det.
+
+### Med ett ekte unntak: sanseblokken
+
+Et nett på **≥ 558 trekk** tar trosfordelingen inn som TREKK. Da ser nettet
+faktisk troen, og da gjelder spørsmålet fullt ut. `d7alle` har **273**.
+
+Det er kanal 1 i K8, og den er låst av NETTBREDDE — ikke av kode. Åpnes bare av
+GPU-trening av et bredere nett på et større korpus.
+
+### Men det finnes et ekte treningsproblem: FORDELINGSSKIFTET
+
+Korpuset ble laget av en orakelpolicy (`sd-orakel`, mål `standardMål`). I dag
+spiller boten med søk, konvensjonsvakt, hukommelse og veto — **en annen policy
+enn den som lagde treningsdataene.**
+
+Nettet er altså trent på stillinger det ikke lenger selv produserer. Det er
+klassisk fordelingsskift, og det blir VERRE jo mer stakken forbedres: hver ny
+modul flytter spillet lenger fra korpuset.
+
+**Fiksen er iterert trening.** Lag korpuset på nytt med DAGENS fulle stakk,
+tren, gjenta. Det er der «trene den til å bruke evnene» faktisk betyr noe — ikke
+som en ny inngang i nettet, men som at nettet blir en god komponent i NETTOPP
+denne stakken.
+
+Rekkefølgen er ikke fri: korpuset må lages av den stakken vi faktisk skal rulle
+ut. Lages det før modulene er avgjort, må det lages om.
+
+---
+
+## Budmodellen — sist, og med tre innganger
+
+Arvind: «vi må også ikke glemme budmodellen og å tilpasse de ulike delene for å
+trene den til å by perfekt etter adams sin evne. OG den må også ta hensyn til
+konteksten og tilpassingen til motstandere.»
+
+### Hvorfor den må være sist
+
+`μ` er FORVENTET STIKKTALL — en funksjon av hvor godt vi spiller. Kalibreres den
+nå og mikrospillet så forbedres, har vi kalibrert mot en spiller vi har forlatt.
+Budplanens eget steg 1 sier det: «rekalibrer μ mot dagens spillestyrke».
+
+Arvind, 8. august: «bud ligger mellom meso og makro, og ja det preger mikro, men
+bud er helt avhengig av at mikro skal være på plass.» Det stemmer: budet avgjør
+kontrakten (meso) og styres av stillingen (makro), men VERDIEN av en kontrakt er
+hvor mange stikk vi faktisk tar — som er mikro.
+
+**Advarsel som må stå:** når mikrospillet blir bedre, kan tallene FALLE før de
+stiger. Budmodellen er kalibrert mot en svakere spiller, så et sterkere spill
+gjør den mer feilkalibrert — den byr for forsiktig i forhold til hva vi klarer.
+En regresjon etter en mikroforbedring er sannsynligvis dette, ikke en feil.
+
+### De tre inngangene budmodellen må ha
+
+| inngang | krav | status |
+|---|---|---|
+| **egen styrke** (μ mot dagens spill) | K3 | budplanens steg 1–3, ikke gjort |
+| **kontekst** (kampstillingen) | K5→K3 | `kamp<λ>` bygd 8. august, umålt |
+| **motstanderne** (hvem vi byr mot) | K4/K6→K3 | `forsvarsjustering` finnes, målte **−1,25 pp** |
+
+Den tredje er den svakeste. `Profilagent` påvirker i dag budet gjennom ÉN
+konstant (`forsvarsverdi`), og den koblingen målte negativt. K4-prøven fant
+dessuten at justeringen ber om maks 0,649 budpoeng mens det trengs 1,0 for å snu
+ett eneste valg — **budkanalen er en målt grense, ikke en bug.**
+
+Og K3-agenten fant hvor verdien faktisk ligger: **89 % av hele gevinsten er ÉN
+binær beslutning — by 9 i stedet for 10.** Målet er derfor ikke en bedre
+budmodell i sin alminnelighet, men én klassifiserer på de ~42 % av givene der
+policyen byr 10.
+
+### Rekkefølgen
+
+1. Mikro låses (K4, K5-mikro, K6, K7, K8)
+2. Korpus lages på nytt med den stakken → nettet trenes → fordelingsskiftet borte
+3. `μ` og `vant[N]` kalibreres mot DEN spillestyrken
+4. Terskelen gjenåpnes
+5. Kontekst og motstandermodell kobles inn i budet
+6. K1 måles til slutt — den følger, eller den følger ikke
+
+---
+
+## Arbeidsform: lete i koden er billigere enn å benke
+
+Arvind, 9. august: «vi finner veldig mange feil og mangler ved å lete manuelt
+gjennom koden og det burde du fortsette med å gjøre. Jeg forstår jo at vi må
+sjekke og benke underveis, men jeg vil ikke gjøre det konstant.»
+
+Han har rett, og regnskapet støtter det. Funnene fra manuell lesning 8.–9.
+august:
+
+| funn | hvordan |
+|---|---|
+| DD-løseren feil i 86 av 400 givinger | lesning + råsøker som orakel |
+| 22,7 % av verdenene i stikk 1 regelstridige | lesning av `lovligeEtterlys` |
+| kanal 2 nådde aldri fram fra speken | lesning av parameterkjeden |
+| ruteren vred vårt EGET sete | lesning av `motpartFor` |
+| `tro` sendes til workeren og leses aldri | lesning av meldingstypen |
+| søket hadde ingen beskjæring i det hele tatt | lesning av `alphamu.ts` |
+
+Seks feil, ingen benk. Til sammenligning har nattens målinger felt tre
+hypoteser og bekreftet én.
+
+**Lesning finner FEIL. Benking avgjør VERDI.** De svarer på ulike spørsmål, og
+lesningen er hundre ganger billigere. Standarden er derfor: les koden
+kontinuerlig, benk når noe skal avgjøres.
