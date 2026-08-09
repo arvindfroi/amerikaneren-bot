@@ -8711,3 +8711,122 @@ befolkninger — eller trohodet må lære motstanderen underveis, som er K4 og K
 **Og det er ikke utrullet.** Trohodet er målt som en arm, ikke koblet til
 `fyllSanser`, `monteTro` eller søket. Om bedre tro gir bedre spill er et annet
 spørsmål med sin egen benk.
+
+## §120 — MLB fase 0.1: trekkbyggeren, 1 032 tall, og tre ting som var galt
+
+`docs/mlb.md` fase 0.1: «Trekkbygger fra `spillerVisning` alene — K2 strukturelt.»
+Bygd i `src/mlb/trekk.ts`. `byggTrekk(visning, kontekst)` tar `SpillerVisning`,
+aldri `GameState`, så de skjulte kortene FINNES ikke i det funksjonen ser.
+
+### Layouten, som er det som skal låses
+
+| blokk | lengde | hva |
+|---|---|---|
+| MIKRO | **273** | `e1SpillTrekk` på 273 — de samme tallene dagens utrullede nett leser |
+| TRO | **261** | 52 usett-flagg + 52 × 4 fra trohodet + 1 «er troen koblet på» |
+| HUKOMMELSE | **144** | `hukommelse.ts` uendret: 3 motstandere × `LEDD_NAVN` (48) |
+| MESO | **186** | budrunden per sete, kontrakten, rollene, vraket, trumf, etterlysning, stikkregnskap |
+| MAKRO | **23** | alle fires poeng, leder, gap, framdrift, `racepress`, runde — og `målPoeng` i to skalaer |
+| KONVENSJON | **71** | 17 fyrer-flagg + 52 «hvor mange regler peker hit» + enighet + andel |
+| LOVLIG | **74** | `handling.maske` (68) + delsteg (5) + antall lovlige |
+| **TREKK_LENGDE** | **1 032** | |
+
+Hvert trekk har et navn (`TREKK_NAVN`), navnene er unike, og
+`test/mlb-trekk.test.ts` krever at lengdekonstanten, navnearrayet og det
+byggeren faktisk skriver er samme tall. En vektor der navnene har glidd én
+plass er den verste feilen i en slik fil: alt kjører, alt er grønt, og hver
+analyse etterpå er feil.
+
+### Gjenbrukt, ikke skrevet om
+
+`e1SpillTrekk` (MIKRO), `vaktKort` × 17 regler (KONVENSJON), `racepress`
+(MAKRO), `Hukommelse.vektor` (HUKOMMELSE), `troTrekk` + trohodet (TRO) og
+`handling.maske` (LOVLIG) kalles slik de står. Nytt er MESO, MAKRO og broen.
+
+Broen er `visningTilState`: en redigert `GameState` bygd av visningen alene,
+der de andre hendene er **tomme**. Det er ikke slurv, det er prøven — en
+konsument som forsøker å lese skjult informasjon får et åpenbart annet svar,
+og identitetsprøven mot den ekte staten fanger det samme sekund.
+
+### Hva som var galt, og det er tre ting
+
+**1. «Informasjonsdisiplin» var prosa, ikke en måling.** `konvensjonsvakt.ts`
+påstår i toppkommentaren at vakten «ser bare det setet selv kan se». Nå er det
+målt: 17 regler × hvert lovlig kort over fire kamper — over 5 000 oppslag —
+gir **bit-identisk kortvalg** på den ekte staten og på en der bare setets egen
+hånd er fylt. Påstanden holdt. Men den var utestet i en fil som har vært
+utrullet i ukevis, og den kunne like gjerne ikke holdt.
+
+**2. `spillerVisning` mister den hemmelige makkerens egen kunnskap.** Visningen
+setter `makker: null` til kortet er avslørt — også for den som SITTER med det
+etterlyste kortet og altså vet at hun er makker. `spillTrekk` bruker den
+kunnskapen (trekk 216), og en naiv visningsbasert innpakning ville derfor mistet
+den uten å krasje. Den rekonstrueres av egen hånd, og ekvivalensen «holder det
+etterlyste kortet ⟺ er makkeren» er prøvd med en kontrollarm som fjerner
+rekonstruksjonen og blir tatt.
+
+**3. Første utkast hadde TO lovlighetsregler.** LOVLIG-blokken var 173 egne
+trekk som kodet lovligheten på nytt, fase for fase, ved siden av
+`handling.maske`. Det er nøyaktig feilklassen `neat/trekk.ts` advarer mot der
+`INNGANG` eksporteres: «kodingen ville fortsatt kjørt, bare med feil sensorer
+koblet.» Blokken er nå masken selv, 68 plasser, pluss hvilket delsteg den
+gjelder for. Vektoren krympet fra 1 131 til 1 032.
+
+### K2, og at prøven denne gangen dekker alle fasene
+
+`test/mlb-k2-trekk.test.ts` bytter ut BARE de skjulte hendene (`trekkVerdener`
++ `medVerden`) og krever bit-identisk vektor. Den går lenger enn
+`mlb-k2-tro.test.ts` på tre punkter, og alle tre er svar på ærlige risikoer i
+`docs/mlb.md` §6:
+
+- **alle fire faser** — BUDRUNDE, VRAK, VELG og SPILL, med krav om at hver av
+  dem fikk stillinger. Talonglekkasjen bet i vrakfasen, der prøven som fantes
+  aldri var.
+- **alle fem delsteg** — også halvferdig vrak og valgt trumf, som bare finnes
+  når `delvalg` er satt.
+- **hukommelsen og trohodet PÅSLÅTT**. Trofordeleren i prøven er en sum over
+  hele `troTrekk`-vektoren, så én endret inngang endrer alle 208 utgangene. Et
+  ekte hode kunne skjult en lekkasje bak sin egen ufølsomhet.
+
+Kontrollarmen lekker ett bit — «holder relativt sete 1 spar ess?» — og blir
+tatt.
+
+**Hukommelsen ser bare ferdigspilte runder**, og det er prøvd på selve
+trekkvektoren: blokken er bit-identisk for hver beslutning innenfor samme runde
+for samme sete, og beveger seg mellom runder. Uten den siste halvdelen ville
+prøven vært grønn på en blokk som aldri fylles.
+
+### Kostnaden, målt (`analyse/mlb-trekk-maal.txt`, `-tro.txt`)
+
+| | ms/beslutning |
+|---|---|
+| hele vektoren, uten trohodet | **0,067** |
+| — derav MIKRO (de 273) | 0,008 |
+| — derav konvensjonssveipen (17 × lovlige `vaktKort`-oppslag) | 0,024 |
+| — derav resten | 0,035 |
+| **hele vektoren, MED trohodet** | **0,516** |
+
+**Trohodet alene er 0,45 ms — sju ganger alt annet til sammen, og det spiser
+hele §5b-budsjettet på ~0,5 ms per beslutning på egen hånd.** En kamp til 30
+koster 0,016 s trekkbygging uten troen og 0,155 s med. Det er ikke en sperre
+— 5 000 kamper på 20 skard blir minutter — men det er verdt å si nå og ikke
+etterpå: skal troen være et trekk i hver beslutning, er det trohodets størrelse
+som setter epoketiden, ikke resten av vektoren.
+
+Konvensjonssveipen var den mistenkte og ble frikjent: 0,024 ms for 17 regler
+× opptil 12 lovlige kort.
+
+### Hvorfor `målPoeng` er et trekk, og hvorfor det er prøvd
+
+§8 sier at vi trener på løp til 30 og dømmer på 100. Er løpslengden ikke en
+inngang, kan nettet ikke lære at presset er RELATIVT — det lærer «20 poeng bak
+er kritisk», som er sant ved 30 og feil ved 100, og avviket ville sett ut som at
+makroatferden ikke overførte seg. `makro.målPoeng.per100` og
+`makro.målPoeng.trettiDelt` gir begge regimer uten at nettet må invertere noe,
+og en egen prøve krever at to ellers identiske stillinger med ulikt mål gir
+ulike vektorer.
+
+### Status
+
+`npm test`: **554 grønne, 0 røde** (531 før fase 0.1 og 0.3). Typecheck ren.
+Fase 0.1 er dermed ferdig, og fase 0.4 kan bygge nettet på en låst layout.
