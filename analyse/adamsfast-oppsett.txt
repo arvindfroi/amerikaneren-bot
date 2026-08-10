@@ -1,0 +1,101 @@
+ER «ADAMS FAST» BEDRE ENN DEN UTRULLEDE BOTEN?  — gate 2, 10. august 2026
+=========================================================================
+
+SPØRSMÅLET
+  Arvind: «du kan legge til adams fast hvis den er bedre enn modellen som er
+  der nå.» Merk HVIS. Dette er målingen.
+
+MILJØET = DET SOM FAKTISK ER RULLET UT I NETTAPPEN
+  Lest ut av web/app.ts (VRAKFLAGG telrd, BUDMODELL bud-menneske.json,
+  BUDTERSKEL -3.0, VAKTFLAGG abmp, KORTVEKTER adams-kort.b64,
+  VRAKRANGERER adams-vrak.b64) og web/worker.ts (søk {sik, 24 verdener,
+  sigma 0,5}, økt av). Skrevet som spek:
+
+    vr:e1-modell/vrakrang.bin:telrd:sik:foerer:0.5:24:
+    budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+
+  VERIFISERT FØR MÅLING (sha256, ikke antatt):
+    web/dist/adams-kort.b64  ==  e1-modell/d7alle.bin     IDENTISK
+    web/dist/adams-vrak.b64  ==  e1-modell/vrakrang.bin   IDENTISK
+  Formen sik:foerer:0.5:24 gir samme Sikkerorakel-parametre som byggUtrullet
+  (verdenKandidater 3, verdenKombi snitt, spillvekt av) — jf.
+  test/utrullet-lik-spek.test.ts som binder de to sammen med verdener=8.
+
+KANDIDATENE
+  K-fast   examples/matrise.ts «rask», ordrett («adams fast»):
+    vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:
+    vakt:abmpf:e1:e1-modell/d7alle.bin
+
+  K-utensok  appens egen stakk MED SØKET FJERNET (min tilføyelse, for å
+  skille «hva søket gjør» fra «hva f-flagget og budtabellen gjør»):
+    vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:
+    vakt:abmp:e1:e1-modell/d7alle.bin
+
+  FORSKJELLENE JEG MÅTTE TA STILLING TIL:
+    – matrise.ts bruker vakt:abmpf, app.ts vakt:abmp. `f` er målt (+0,031)
+      og adoptert, men IKKE utrullet. K-fast har derfor `f`, miljøet ikke.
+    – matrise.ts bruker bud-vant.json, app.ts bud-menneske.json. Begge
+      finnes i e1-modell/. Miljøet måles med appens fil (bud-menneske),
+      K-fast med matrisens (bud-vant). K-utensok isolerer de to leddene.
+
+KONTROLLARM
+  Miljøspekken lagt inn som EKSTRA --kandidat, altså miljøet mot seg selv i
+  samme sete. Målte +0,0000 ± 0,0000 i BEGGE frøbånd og i alle tre roller.
+  Oppsettet er ikke skjevt; tallene kan leses.
+
+DESIGN
+  examples/gate2.ts, parret på (giv, sete): hver giv spilles om igjen med
+  samme frø for hver arm, bare kandidatsetet byttes. To DISJUNKTE frøbånd:
+  133 000 000-133 000 149 og 147 000 000-147 000 149. 150 giver x 4 seter x
+  2 bånd = 1200 rader, ingen giv forkastet. Fire skard per bånd, kjørt i
+  bakgrunnen ved siden av NEAT-treningen.
+
+RESULTAT (poeng per runde for kandidatsetet, parret mot kontrollen)
+
+  arm            bånd 133          bånd 147          samlet (n=1200)
+  ------------------------------------------------------------------------
+  KONTROLL       +0,0000 ± 0,0000  +0,0000 ± 0,0000  +0,0000 ± 0,0000
+  K-fast         -0,3517 ± 0,3218  -0,5389 ± 0,3060  -0,4453 ± 0,2219 (-2,0 SE)
+  K-utensok      -0,3983 ± 0,2898  -0,4717 ± 0,2618  -0,4350 ± 0,1952 (-2,2 SE)
+
+  Tegntest samlet (bare rader der armene faktisk valgte ulikt):
+    K-fast     84 av 185 positive, p = 0,239
+    K-utensok  37 av 101 positive, p = 0,009
+
+  Per rolle, samlet:
+    K-fast     foerer  n=300  -1,7067 ± 0,7780 (-2,2 SE)  43/108  p=0,043
+               makker  n=300  -0,3589 ± 0,2403 (-1,5 SE)   8/18   p=0,815
+               forsvar n=600  +0,1422 ± 0,1727 (+0,8 SE)  33/59   p=0,435
+    K-utensok  foerer  n=300  -1,7400 ± 0,7768 (-2,2 SE)  37/101  p=0,009
+               makker  n=300  +0,0000 ± 0,0000 (eksakt null)
+               forsvar n=600  +0,0000 ± 0,0000 (eksakt null)
+
+MEKANISMEN STEMMER, OG DET ER EN INTERN KONTROLL
+  K-utensok er miljøet minus søket, og søket er begrenset til førersetet.
+  Da MÅ makker- og forsvarsradene være bit-identiske med kontrollen — og de
+  er eksakt 0,0000 over 900 rader. Hele tapet ligger der søket virker:
+  -1,74 i førersetet. Det er samme størrelsesorden som utrullingslistas
+  +1,78/+1,68 for sik sigma=0,5, bare med motsatt fortegn fordi kandidaten
+  er den som mangler søket.
+
+  K-fast og K-utensok er ikke til å skille fra hverandre (-0,445 mot
+  -0,435). Verken `f` eller bud-vant kompenserer for det tapte søket.
+
+DOMMEN
+  «Adams fast» er IKKE bedre enn den utrullede boten. Den er ~0,45 poeng per
+  runde DÅRLIGERE, 2,0-2,2 SE i minus, med samme fortegn i begge disjunkte
+  frøbånd. Porten krever +2 SE for adopsjon; kandidaten ligger på motsatt
+  side av null. Den skal ikke inn i nettappen.
+
+  Forbeholdet som må stå: dette er et bord med fire bots. Appen sitter med
+  ett menneske og to bots, og førersøket er det leddet som er mest
+  avhengig av at motstanderne spiller som rolloutene antar. Fortegnet er
+  likevel så entydig, og mekanismen så direkte (fører-radene alene bærer
+  hele forskjellen), at det ikke er noen målt grunn til å bytte.
+
+FILER
+  analyse/adamsfast-b133-s{0..3}.jsonl   rådata, bånd 133 (600 rader)
+  analyse/adamsfast-b147-s{0..3}.jsonl   rådata, bånd 147 (600 rader)
+  analyse/adamsfast-b133-s.txt           gate2-rapport, bånd 133
+  analyse/adamsfast-b147-s.txt           gate2-rapport, bånd 147
+  analyse/adamsfast-b.txt                gate2-rapport, samlet
