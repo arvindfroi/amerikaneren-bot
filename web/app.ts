@@ -53,7 +53,7 @@ const MENNESKE = 0;
  *
  * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
  */
-const BUNDELVERSJON = "v6-2026-08-10";
+const BUNDELVERSJON = "v7-2026-08-10";
 (globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
@@ -554,7 +554,23 @@ function broSpeil(h: Handling, hendelser: readonly Hendelse[]): void {
  * allerede gitt: familien vet at de tre andre er boter, og «Du» skiller det
  * ene setet som er et menneske. Formen sier det, ordet trengs ikke.
  */
-const NAVN = ["Du", "Vest", "Nord", "Øst"];
+/**
+ * ============ OG NÅ HETER DE FRANKLIN, LINCOLN OG TRUMP =================
+ *
+ * ARVIND, om konseptkunsten: «man ser de 3 motstanderene sitte overfor bordet
+ * (franklin, lincon, trump)».
+ *
+ * «Vest», «Nord» og «Øst» er bridgens himmelretninger, og de beskriver et
+ * bord sett rett ovenfra. Det er ikke bordet lenger: de tre sitter PÅ RAD
+ * overfor deg, og en himmelretning kan ikke få et fjes. Et navn kan.
+ *
+ * Rekkefølgen er sete 1, 2, 3 fra venstre — samme rekkefølge som fjesene i
+ * `FJES` under, og som medaljongene i stikksøyla. De tre listene MÅ følge
+ * hverandre; gjør de ikke det, får Lincoln Trumps stikk.
+ */
+const NAVN = ["Du", "Franklin", "Lincoln", "Trump"];
+/** Karikaturen som hører til hvert sete. Se `<defs>` i `index.html`. */
+const FJES = ["", "fjes-franklin", "fjes-lincoln", "fjes-trump"];
 /**
  * Styrkenivåer for PIMC. Kortvalg (SPILL) er tidsstyrt; bud/vrak/trumf er
  * verdenstyrt med nodetak, så «øvrig» holder seg innenfor rimelig ventetid.
@@ -864,6 +880,17 @@ const FARGE_NAVN: Record<Farge, string> = { S: "spar", H: "hjerter", R: "ruter",
  * det er plass. Fargen er en snarvei, aldri den eneste bæreren.
  */
 const fargeKlasse = (f: Farge): string => `f-${f}`;
+/**
+ * KORTFARGEN SOM MYK FIGUR — den store, konturløse formen fra appikonet.
+ *
+ * Brukes bare der figuren er STOR: midt på kortflaten og i trumfvelgeren.
+ * Hjørneindeksen og `fargeMerke` beholder skriftglyffen, og det er ikke en
+ * forglemmelse: en uskarp gradient på tolv piksler blir grøt, og det er
+ * nettopp hjørnet som bærer lesbarheten når hånden ligger i vifte. Airbrushen
+ * skal koste null kontrast, og da må den holde seg der den er stor.
+ */
+const fargefigur = (f: Farge): string =>
+  `<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#kf-${f}"></use></svg>`;
 /** Farge som fylt merke — den ENE måten en farge vises på mørk flate. */
 const fargeMerke = (f: Farge, medNavn = true): string =>
   `<span class="fargemerke ${fargeKlasse(f)}"><span class="sym" aria-hidden="true">${FARGE_TEGN[f]}</span>${
@@ -934,10 +961,6 @@ let travelt = false;
  */
 /** Poengsum per spiller ved forrige tegning — for tellerslaget. */
 let sistPoeng: number[] = [];
-/** Stikk per spiller ved forrige tegning — for brikkeslaget. */
-let sistStikk: number[] = [];
-/** Antall fylte hakk i lagbaren ved forrige tegning — for hakk-animasjonen. */
-let sistFylte = 0;
 
 /**
  * ============ PYNT SOM BARE SKAL ANIMERES NÅR DEN ER NY =================
@@ -1040,6 +1063,22 @@ const kortTale = (k: Kort): string => `${FARGE_NAVN[k.farge]} ${VERDI_ORD(k.verd
  */
 const stjerne = (klasse = ""): string =>
   `<svg class="stjerne${klasse ? ` ${klasse}` : ""}" viewBox="0 0 100 100" aria-hidden="true"><use href="#stjernemerke"></use></svg>`;
+
+/**
+ * FJESMEDALJONGEN — karikaturen i sin hvite ring, slik Arvind tegnet den.
+ *
+ * Ditt eget sete har ikke noe fjes i tegningen (du sitter jo bak skjermen),
+ * så det får stjerna på korall i stedet — samme merking som din egen rute i
+ * poengbrettet allerede bruker.
+ *
+ * `aria-hidden`: navnet står ALLTID skrevet ved siden av eller i sonens
+ * `aria-label`. Medaljongen er en gjenkjennelsesflate, ikke en opplysning
+ * som bare finnes som bilde.
+ */
+const medaljong = (sete: number, klasse = ""): string =>
+  sete === MENNESKE
+    ? `<span class="medaljong deg${klasse}" aria-hidden="true">${stjerne("fjes")}</span>`
+    : `<span class="medaljong${klasse}" aria-hidden="true"><svg class="fjes" viewBox="0 0 100 100"><use href="#${FJES[sete]}"></use></svg></span>`;
 
 /**
  * Ventetilstand med framdrift. Erstatter den nakne overskriften: en skjerm som
@@ -1236,7 +1275,7 @@ function samleStikketTilVinneren(vinner: number): void {
         `translate(${Math.round(dx + skyv)}px, ${Math.round(dy + senk)}px) rotate(${vri}deg) scale(.94)`;
     }
     setTimeout(() => bord.classList.add("landet"), LANDING - SAMLE_START);
-    setTimeout(() => flyStikkmerke(mål), MERKE_FLYR - SAMLE_START);
+    setTimeout(() => flyStikkmerke(mål, vinner), MERKE_FLYR - SAMLE_START);
   }, SAMLE_START);
 }
 
@@ -1253,10 +1292,12 @@ function samleStikketTilVinneren(vinner: number): void {
  * `innerHTML`, og selv om det ikke skjer under frysingen er det ingen grunn
  * til å la animasjonen henge i noe som blir revet.
  */
-function flyStikkmerke(fra: HTMLElement): void {
-  const bar = rot.querySelector<HTMLElement>(".lagbar");
-  const brikke = rot.querySelector<HTMLElement>(".lagfelt .brikke.fører");
-  const til = bar ?? brikke;
+function flyStikkmerke(fra: HTMLElement, vinner: number): void {
+  // Merket skal fly til den SONEN som fikk stikket, ikke til søyla som
+  // helhet. Det er hele koblingen: man ser hvem stikket ble framdrift for.
+  const til =
+    rot.querySelector<HTMLElement>(`.sone[data-seter~="${vinner}"]`) ??
+    rot.querySelector<HTMLElement>(".stikksoyle .sone");
   if (til === null) return;
   const a = fra.getBoundingClientRect();
   const b = til.getBoundingClientRect();
@@ -1295,8 +1336,7 @@ function håndterHendelser(hendelser: readonly Hendelse[]): void {
       // ingen makker å vente på, og baren står fra første stikk.
       lagmodus = h.etterlyst === null ? "lag" : "individuell";
       smeltetVist = h.etterlyst === null;
-      sistStikk = [];
-      sistFylte = 0;
+      sistTatt = new Map();
     } else if (h.type === "MAKKER_AVSLØRT") {
       si(`${NAVN[h.spiller]} er makkeren!`);
       // SAMMENSLÅINGEN. Fra nå av er det lagets stikk som teller, og bandet
@@ -1312,8 +1352,7 @@ function håndterHendelser(hendelser: readonly Hendelse[]): void {
     } else if (h.type === "NY_RUNDE") {
       lagmodus = "ingen";
       smeltetVist = false;
-      sistStikk = [];
-      sistFylte = 0;
+      sistTatt = new Map();
     } else if (h.type === "STIKK_FERDIG") {
       si(`${NAVN[h.vinner]} vant stikket.`);
     } else if (h.type === "RUNDE_SLUTT") {
@@ -1488,7 +1527,7 @@ const kortRygg = (): string =>
 
 function kortKnapp(
   k: Kort,
-  opts: { valgbar?: boolean; valgt?: boolean; liten?: boolean; ny?: boolean },
+  opts: { valgbar?: boolean; valgt?: boolean; liten?: boolean; ny?: boolean; stil?: string },
 ): string {
   const id = `kort-${k.farge}${k.verdi}`;
   const sym = FARGE_TEGN[k.farge];
@@ -1499,10 +1538,11 @@ function kortKnapp(
   const hjorne = (ned: boolean): string =>
     `<span class="hjorne${ned ? " ned" : ""}" aria-hidden="true">${v}<span class="sym">${sym}</span></span>`;
   return `<button id="${id}" class="kort ${fargeKlasse(k.farge)}${opts.liten ? " liten" : ""}${opts.valgt ? " valgt" : ""}${opts.ny ? " ny" : ""}"
+    ${opts.stil ? `style="${opts.stil}"` : ""}
     ${opts.valgbar ? "" : "disabled"}
     aria-label="${kortTale(k)}${opts.valgt ? ", valgt" : ""}" data-farge="${k.farge}" data-verdi="${k.verdi}">
     ${hjorne(false)}
-    <span class="midt" aria-hidden="true">${sym}</span>
+    <span class="midt" aria-hidden="true">${fargefigur(k.farge)}</span>
     ${hjorne(true)}
   </button>`;
 }
@@ -1580,96 +1620,142 @@ function målStikk(): number {
 }
 
 /**
- * ============ LAGFELTET =================================================
+ * ============ STIKKSØYLA ================================================
  *
- * Se `Lagmodus` over for hvorfor dette finnes. Her er formen:
+ * ARVIND, om konseptkunsten: «hvert stikk fyller opp en bar for alle 4
+ * spillere. budvinner og makker skal fylle den blå med stjerner opp til
+ * budnivået og forsvarere skal ta stikk. forsvar spiller 1 er rød og
+ * forsvarspiller 2 er hvit fordi de deler ikke poeng.»
  *
- *   individuell   fire brikker med hver sin stikkteller. Budvinneren er
- *                 merket, fordi det er hans kontrakt som står på spill, og
- *                 måltallet står i hans brikke.
- *   smelter       begge lagbrikkene glir mot midten og forsvinner mens baren
- *                 vokser fram bak dem. Bevegelsen er hele poenget: man skal SE
- *                 at to tellere ble til én, ikke oppdage at tallet er et annet.
- *   lag           én bar med ett hakk per stikk kontrakten krever, og en
- *                 dempet motstandsteller ved siden av.
+ * ============ HVA DETTE ERSTATTER, OG HVORFOR DET ER BEDRE =============
  *
- * Hakkene fylles ETTER HVERT, og bare det nye hakket animeres — `sistFylte`
- * husker hvor mange som var fylt sist. Uten det ville alle hakkene spratt på
- * nytt hver gang noe annet på skjermen endret seg.
+ * Den forrige lagstikk-baren viste laget mot budet og la de tre andre inn i
+ * ett tall: «mot 3». Det var greit så langt det rakk, og det rakk ikke langt
+ * nok — for i Amerikaneren DELER IKKE forsvarerne poeng. Hver av dem fører sin
+ * egen konto, og en samlebar sier det motsatte av regelen. Arvind så det i
+ * tegningen før noen sa det med ord.
+ *
+ * ============ HVORFOR SONENE HAR AKKURAT DE HØYDENE ====================
+ *
+ * Søyla er HELE RUNDEN, delt slik kontrakten deler den:
+ *
+ *   den blå sonen   ett hakk per stikk kontrakten krever (`mål`)
+ *   hver forsvarer  ett hakk per stikk som blir til overs om kontrakten går
+ *                   inn på akkurat (`antallStikk − mål`, minst 1)
+ *
+ * Budnivåstreken er derfor ikke et tall tegnet oppå en bar — den ER der den
+ * blå sonen slutter. Går laget over, står overskuddet som «+n» ved tallet;
+ * går en forsvarer over sin sone, likeså. Tallet er alltid eksakt, uansett
+ * hva formen viser.
+ *
+ * ============ FARGENE, OG AT DE ALDRI BÆRER ALENE ======================
+ *
+ * Rød, hvit, stål og blå — men hver sone har OGSÅ fjeset til den den gjelder,
+ * navnet i `aria-label` og tallet i klartekst. Fargen er en snarvei for øyet,
+ * slik `fargemerke` er det for kortfargene, og den er aldri det eneste
+ * skillet.
+ *
+ * Stålfargen finnes fordi det finnes TRE forsvarere i to tilfeller: før
+ * makkeren er avslørt, og ved solo/amerikaner uten etterlysning der det aldri
+ * blir noen makker. Tegningen viser bare to; koden må tåle begge.
  */
-function lagfelt(): string {
-  const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
-  if (!iSpill || lagmodus === "ingen" || state.budvinner === null) {
-    sistStikk = [];
-    sistFylte = 0;
-    return `<div class="lagfelt"></div>`;
-  }
+type Sonefarge = "rod" | "hvit" | "staal" | "blaa";
+interface SoneData {
+  seter: number[];
+  farge: Sonefarge;
+  hakk: number;
+  tatt: number;
+}
 
+const FORSVARSFARGER: Sonefarge[] = ["rod", "hvit", "staal"];
+
+function soneListe(): SoneData[] {
   const lag = budlaget();
   const mål = målStikk();
+  // Stikk som blir til overs om kontrakten går inn på akkurat. Ved solo og
+  // amerikaner er det null, og da får forsvarerne ett hakk hver — de skal
+  // fortsatt ha en synlig konto å ta stikk i.
+  const rest = Math.max(1, state.giving.antallStikk - mål);
   const stikk = state.stikkVunnet;
-  const brikke = (i: number, klasser = "", stil = "", visMål = false): string => {
-    const slag = sistStikk.length > 0 && sistStikk[i] !== stikk[i];
-    return `<div class="brikke${klasser}${slag ? " slag" : ""}" data-sete="${i}"${stil}
-      aria-label="${NAVN[i]}: ${stikk[i]} stikk${visMål ? ` av ${mål}` : ""}">
-      <span class="navn">${NAVN[i]}</span><b>${stikk[i]}</b>${visMål ? `<span class="mot">/ ${mål}</span>` : ""}
-    </div>`;
-  };
+  const forsvar = state.totalPoeng
+    .map((_, i) => i)
+    .filter((i) => !lag.includes(i));
+  const ut: SoneData[] = forsvar.map((i, n) => ({
+    seter: [i],
+    farge: FORSVARSFARGER[n] ?? "staal",
+    hakk: rest,
+    tatt: stikk[i] ?? 0,
+  }));
+  ut.push({
+    seter: lag,
+    farge: "blaa",
+    hakk: Math.max(1, mål),
+    tatt: lag.reduce((s, i) => s + (stikk[i] ?? 0), 0),
+  });
+  return ut;
+}
 
-  let ut: string;
-  let smelterNå = false;
-  if (lagmodus === "individuell") {
-    // Måltallet henger på budvinnerens brikke: det er hans kontrakt, og fram
-    // til makkeren er funnet er det bare hans stikk som teller mot den.
-    ut = `<div class="brikker">${state.totalPoeng
-      .map((_, i) =>
-        i === state.budvinner ? brikke(i, " fører", "", true) : brikke(i),
-      )
-      .join("")}</div>`;
-  } else {
-    const lagStikk = lag.reduce((s, i) => s + (stikk[i] ?? 0), 0);
-    const motstand = state.totalPoeng.reduce(
-      (s, _, i) => (lag.includes(i) ? s : s + (stikk[i] ?? 0)),
-      0,
-    );
-    const fylte = Math.min(lagStikk, mål);
-    const hakk = Array.from({ length: mål }, (_, i) => {
-      const erFylt = i < fylte;
-      const erNy = erFylt && i >= sistFylte;
-      return `<span class="hakk${erFylt ? " fylt" : ""}${erNy ? " ny" : ""}"></span>`;
-    }).join("");
-    // Baren og motstandstelleren er ÉN visning, ikke to søsken. Under
-    // sammenslåingen stables de gamle brikkene og den nye visningen i samme
-    // rutenettcelle; var de to elementer, la motstandstelleren seg oppå baren.
-    const bar = `<div class="lagvis"><div class="lagbar${lagStikk >= mål ? " klart" : ""}"
-        role="progressbar" aria-valuemin="0" aria-valuemax="${mål}" aria-valuenow="${lagStikk}"
-        aria-label="Stikk for ${lag.map((i) => NAVN[i]).join(" og ")}">
-      <span class="lagnavn">${stjerne()}${lag.map((i) => NAVN[i]).join(" + ")}</span>
-      <span class="spor" aria-hidden="true">${hakk}</span>
-      <span class="tall">${lagStikk}<span class="mot"> / ${mål}</span></span>
-    </div>
-    <div class="motstand">mot <b>${motstand}</b></div></div>`;
+/**
+ * Hvor mange stikk hver sone hadde ved forrige tegning — nøkkelen er setene.
+ *
+ * Samme mekanikk som `sistFylte` gjorde for hakkene i lagbaren, og av samme
+ * grunn: `tegn()` bygger alt på nytt, så uten et minne ville hvert eneste
+ * fylte hakk spratt på nytt hver gang noe som helst annet endret seg.
+ */
+let sistTatt = new Map<string, number>();
 
-    if (lagmodus === "smelter" && !smeltetVist) {
-      smeltetVist = true;
-      smelterNå = true;
-      // Begge former står samtidig: brikkene glir sammen, baren vokser fram.
-      // `--fra` gir hver lagbrikke retningen den kom fra, slik at de møtes.
-      const smelt = state.totalPoeng
-        .map((_, i) =>
-          lag.includes(i)
-            ? brikke(i, " smelt-inn", ` style="--fra:${i === lag[0] ? "-46%" : "46%"}"`)
-            : brikke(i, " ut"),
-        )
-        .join("");
-      ut = `<div class="brikker">${smelt}</div>${bar}`;
-    } else {
-      ut = bar;
-    }
-    sistFylte = fylte;
+function stikksoyle(): string {
+  const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
+  if (!iSpill || lagmodus === "ingen" || state.budvinner === null) {
+    sistTatt = new Map();
+    return `<div class="stikksoyle tom" aria-hidden="true"></div>`;
   }
-  sistStikk = stikk.slice();
-  return `<div class="lagfelt${smelterNå ? " smelter" : ""}">${ut}</div>`;
+  const mål = målStikk();
+  // Sammenslåingen spilles ÉN gang. Uten flagget ville den startet på nytt
+  // ved hver tegning i de 900 millisekundene den varer, og det skjer minst én
+  // tegning i det vinduet.
+  const smelterNå = lagmodus === "smelter" && !smeltetVist;
+  if (smelterNå) smeltetVist = true;
+
+  const nyTatt = new Map<string, number>();
+  const soner = soneListe()
+    .map((s) => {
+      const nøkkel = s.seter.join("+");
+      const før = sistTatt.get(nøkkel) ?? 0;
+      nyTatt.set(nøkkel, s.tatt);
+      const fylte = Math.min(s.tatt, s.hakk);
+      const over = s.tatt - s.hakk;
+      const erBlå = s.farge === "blaa";
+      // Hakkene bygges NEDENFRA — sonen er `column-reverse`, så første hakk i
+      // rekkefølgen er det nederste.
+      const hakk = Array.from({ length: s.hakk }, (_, i) => {
+        const fylt = i < fylte;
+        const ny = fylt && i >= Math.min(før, s.hakk);
+        return `<span class="celle${fylt ? " fylt" : ""}${ny ? " ny" : ""}">${erBlå ? stjerne() : ""}</span>`;
+      }).join("");
+      const navn = s.seter.map((i) => NAVN[i]).join(" og ");
+      const tekst = erBlå
+        ? `${navn}: ${s.tatt} av ${mål} stikk`
+        : `${navn}: ${s.tatt} stikk`;
+      // Medaljongene: den som kom sist (makkeren) faller ned i sonen.
+      const fjes = s.seter
+        .map((i, n) => medaljong(i, smelterNå && erBlå && n > 0 ? " kommer" : ""))
+        .join("");
+      const klart = erBlå && s.tatt >= mål;
+      return `<div class="sone ${s.farge}${klart ? " klart" : ""}${smelterNå && erBlå ? " svelger" : ""}"
+        data-seter="${s.seter.join(" ")}"
+        ${erBlå ? `role="progressbar" aria-valuemin="0" aria-valuemax="${mål}" aria-valuenow="${s.tatt}"` : `role="img"`}
+        aria-label="${tekst}"
+        style="flex: ${s.hakk} 1 0">
+        ${erBlå ? `<div class="budstrek" aria-hidden="true"></div><div class="budmerke" aria-hidden="true">${mål}</div>` : ""}
+        <div class="medaljongstabel">${fjes}</div>
+        ${hakk}
+        <span class="tall${s.tatt !== før ? " slag" : ""}" aria-hidden="true">${s.tatt}${over > 0 ? `<span class="mot">+${over}</span>` : ""}</span>
+      </div>`;
+    })
+    .join("");
+  sistTatt = nyTatt;
+  return `<div class="stikksoyle" role="group" aria-label="Stikk så langt">${soner}</div>`;
 }
 
 /**
@@ -1684,14 +1770,12 @@ function lagfelt(): string {
 let forrigeBordkort = new Set<string>();
 
 function bordet(): string {
-  // bord[i] plasseres etter sete: 0 nederst, 1 venstre, 2 øverst, 3 høyre.
-  const plass = ["bunn", "venstre", "topp", "høyre"];
   // Fryst stikk: alle fire kortene blir stående med vinnermarkering.
   const påBordet = frystStikk !== null ? frystStikk.kort : state.bord;
   const nå = new Set(påBordet.map((b) => `${b.spiller}${kortId(b.kort)}`));
   const erNy = (b: { spiller: number; kort: Kort }): boolean =>
     !forrigeBordkort.has(`${b.spiller}${kortId(b.kort)}`);
-  const lagt = new Set(påBordet.map((b) => b.spiller));
+  const lagtAv = new Map(påBordet.map((b) => [b.spiller, b]));
   /**
    * ============ STIKKVINNEREN SKAL IKKE KUNNE OVERSES =====================
    *
@@ -1717,16 +1801,24 @@ function bordet(): string {
    * Deretter LANDER kortene hos vinneren i full dekkevne (se
    * `samleStikketTilVinneren`), og et stikkmerke flyr derfra inn i lagbaren.
    */
-  const kort = påBordet
-    .map((b) => {
-      const vant = frystStikk !== null && b.spiller === frystStikk.vinner;
-      return `<div class="bordkort ${plass[b.spiller]}${vant ? " vant" : ""}">
+  /**
+   * Kortplassen til ett sete: kortet han la, eller en antydet tom flate.
+   *
+   * VINNERNAVNET STÅR BARE PÅ VINNEREN. Før sto navnet over hvert eneste
+   * bordkort, og med fjesene på plass ville det vært det samme ordet to
+   * ganger rett over hverandre. Vinnerbåndet er noe annet — det er en
+   * beskjed, ikke en etikett — og det skal fortsatt sprette fram.
+   */
+  const kortplass = (sete: number): string => {
+    const b = lagtAv.get(sete);
+    if (b === undefined) return `<div class="tomplass" aria-hidden="true"></div>`;
+    const vant = frystStikk !== null && sete === frystStikk.vinner;
+    return `<div class="bordkort${vant ? " vant" : ""}">
       ${vant ? `<div class="seteglans" aria-hidden="true"></div>` : ""}
-      <div class="hvem">${
-        vant ? `<span class="vinnerband">${stjerne()}${NAVN[b.spiller]}</span>` : NAVN[b.spiller]
-      }</div>${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}</div>`;
-    })
-    .join("");
+      ${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}
+      ${vant ? `<div class="hvem"><span class="vinnerband">${stjerne()}${NAVN[sete]}</span></div>` : ""}
+    </div>`;
+  };
   forrigeBordkort = nå;
 
   // «TENKER»-BOBLA GJALDT BARE KORTSPILLET. Botene bruker like lang tid på
@@ -1736,43 +1828,47 @@ function bordet(): string {
     frystStikk === null && !venterPåMenneske && travelt && state.fase !== "RUNDE_SLUTT" && state.fase !== "FERDIG"
       ? (state.fase === "VRAK" || state.fase === "VELG" ? state.budvinner : state.iTur)
       : null;
-  /** «tenker …» med tellende sekunder — brukes både i bunken og alene. */
+  /** «tenker …» med tellende sekunder — brukes både ved fjeset og alene. */
   const tenkeboble = `tenker<span id="tenker-tid"></span><span class="prikker" aria-hidden="true"><i></i><i></i><i></i></span>`;
 
   /**
-   * MOTSTANDERNES BUNKER. Et bord uten kort på hendene ser ut som en tom
-   * flate med noen knapper på — og på telefon sto to tredeler av skjermen
-   * ubrukt. Tre kortrygger og et tall gjør det til et kortbord, og sier
-   * samtidig hvor langt ut i runden man er.
+   * ============ DE TRE OVERFOR BORDET ==================================
    *
-   * Bunken og «tenker»-bobla DELER RUTE, og det er derfor de er slått sammen
-   * her i stedet for å være to elementer: begge hører til det setet som ennå
-   * ikke har lagt, altså nøyaktig samme celle i rutenettet. To absolutt
-   * plasserte ting i samme celle ville lagt seg oppå hverandre — det var
-   * akkurat den feilen bordkortene hadde mot trumfskiltet på liggende
-   * telefon.
+   * Hvert sete er én søyle: fjeset øverst, navnet under, og kortet han la
+   * foran seg i perspektiv. Vridningen er FAST PER SETE og ikke tilfeldig —
+   * en ny vinkel ved hver tegning ville fått kortene til å riste, siden
+   * `tegn()` går flere ganger i sekundet mens botene spiller.
+   *
+   * Kortryggene som lå her før er borte. De sa «han har fortsatt kort», og
+   * det sier tallet ved fjeset like presist uten å ta halve bordet.
    */
-  const bunker =
-    state.fase === "SPILL"
-      ? [1, 2, 3]
-          .filter((s) => !lagt.has(s) && (state.hender[s]?.length ?? 0) > 0)
-          .map(
-            (s) => `<div class="bordkort ${plass[s]}"><div class="bunke">
-              <div class="vifte">${kortRygg()}${kortRygg()}${kortRygg()}</div>
-              <div class="antall">${
-                s === tenkeSete ? `${NAVN[s]} ${tenkeboble}` : `${NAVN[s]} · ${state.hender[s]!.length}`
-              }</div>
-            </div></div>`,
-          )
-          .join("")
-      : "";
+  const VRI = ["0", "-7", "4", "9"];
+  const motstandere = [1, 2, 3]
+    .map((s) => {
+      const igjen = state.hender[s]?.length ?? 0;
+      const tenker = s === tenkeSete;
+      return `<div class="motspiller" style="--vri:${VRI[s]}deg">
+        <div class="hode">
+          ${medaljong(s)}
+          <div class="navn">${NAVN[s]}</div>
+          ${
+            tenker
+              ? `<div class="tenker">${tenkeboble}</div>`
+              : state.fase === "SPILL"
+                ? `<div class="igjen">${igjen} kort</div>`
+                : `<div class="igjen"></div>`
+          }
+        </div>
+        <div class="kortplass">${kortplass(s)}</div>
+      </div>`;
+    })
+    .join("");
 
-  // I SPILLFASEN bæres «tenker» av bunken over, siden bunken og bobla hører
-  // til samme sete og dermed samme rute. Utenfor spillfasen finnes ingen
-  // bunker, og da står bobla for seg selv.
+  // Utenfor spillfasen (bud, vrak, trumfvalg) hører bobla ikke til noe kort
+  // på bordet, og da står den midt på i stedet — se `.midtfelt .tenker`.
   const tenker =
     tenkeSete !== null && tenkeSete !== MENNESKE && state.fase !== "SPILL"
-      ? `<div class="tenker ${plass[tenkeSete]}">${NAVN[tenkeSete]} ${tenkeboble}</div>`
+      ? `<div class="tenker">${NAVN[tenkeSete]} ${tenkeboble}</div>`
       : "";
 
   // TRUMFEN SKAL ALLTID VÆRE SYNLIG. Den lå som ett lite tegn i kontraktlinja
@@ -1800,7 +1896,9 @@ function bordet(): string {
       ? `<div class="dintur${pynt("dintur")}">Din tur</div>`
       : "";
   const midt =
-    trumfskilt || info || dinTur ? `<div class="midtfelt">${trumfskilt}${info}${dinTur}</div>` : "";
+    trumfskilt || info || dinTur || tenker
+      ? `<div class="midtfelt">${trumfskilt}${info}${tenker}${dinTur}</div>`
+      : "";
 
   // Forrige stikk: alltid synlig i hjørnet mens neste stikk spilles.
   const forrige =
@@ -1813,7 +1911,12 @@ function bordet(): string {
         </div>`
       : "";
   // `avgjort` skrur på tilbaketrekkingen av de tre som tapte stikket.
-  return `<div class="bord${frystStikk !== null ? " avgjort" : ""}" aria-label="Bordet">${kort}${bunker}${midt}${tenker}${forrige}</div>`;
+  return `<div class="bord${frystStikk !== null ? " avgjort" : ""}" aria-label="Bordet">
+    <div class="motstandere">${motstandere}</div>
+    ${midt}
+    <div class="dinplass"><div class="kortplass">${kortplass(MENNESKE)}</div></div>
+    ${forrige}
+  </div>`;
 }
 
 /**
@@ -1850,43 +1953,464 @@ function bordet(): string {
  * Liggende telefon er den formfaktoren som pleier å bli glemt, og det er
  * nøyaktig den som taper på en regel som bare ser på bredden.
  */
-const MÅLBREDDE = 76; // px inkludert luft — under dette blir kortet for smått
-/** Andel av skjermhøyden hånden får lov å bruke, uansett antall rader. */
-const HÅNDHØYDE = 0.42;
-function håndmål(antall: number): { n: number; maks: number } {
+/**
+ * KORTBREDDEN. Ett tall, ikke et rutenett — hjulet trenger ingen rader.
+ *
+ * To tak, og begge er nødvendige:
+ *   HØYDEN   hånden får 34 % av skjermen. Et kort er 1/0,714 så høyt som det
+ *            er bredt, så høydetaket er den bindende grensen på liggende
+ *            telefon (844×390), der 30 % av bredden ville gitt et kort som
+ *            dekket to tredeler av skjermen.
+ *   BREDDEN  ett enkelt kort skal aldri ta mer enn 30 % av bredden. Uten det
+ *            ville et smalt, høyt vindu gitt ett gigantisk kort og ingen
+ *            følelse av en hånd.
+ */
+function kortBredde(): number {
   const b = window.innerWidth || 1024;
   const h = window.innerHeight || 768;
-  if (antall <= 1) return { n: 1, maks: 132 };
-  const takRader = h < 500 ? 1 : h < 700 ? 2 : 3;
-  const passerPerRad = Math.max(1, Math.floor(b / MÅLBREDDE));
-  const rader = Math.min(takRader, Math.max(1, Math.ceil(antall / passerPerRad)));
-  // Taket er en HØYDEGRENSE, ikke en smaksdom: `rader` kort à `bredde/0,7` i
-  // høyden skal ikke spise mer enn 42 % av skjermen, ellers forsvinner bordet.
-  const maks = Math.min(132, Math.max(46, Math.floor((HÅNDHØYDE * h * 0.7) / rader)));
-  return { n: Math.ceil(antall / rader), maks };
+  return Math.round(Math.max(60, Math.min(160, h * 0.3 * 0.714, b * 0.3)));
 }
 
-function håndPanel(): string {
+/**
+ * ============ HÅNDEN SOM HJUL ==========================================
+ *
+ * ARVIND: «kortene ser mer synlig, men at man kan bla i de som et hjul (eller
+ * trykke på pilene) også kan man holde på et kort og kaste det ut på bordet
+ * (eller trykke på det). det er viktig at gesturene er bra kodet slik at det
+ * ikke blir feil når man navigerer og at det føles smooth.»
+ *
+ * `hjulSenter` er en FLYTTALLSINDEKS: 3,5 betyr «midt mellom fjerde og femte
+ * kort». Den holdes her ute fordi `tegn()` bygger `#app` på nytt ved hver
+ * tilstandsendring — lå den i DOM-en, ville hjulet hoppet tilbake til start
+ * hver gang en bot la et kort.
+ */
+let hjulSenter = 0;
+/** Antall kort ved forrige tegning — for å kjenne igjen en NY hånd. */
+let sistHåndAntall = -1;
+
+function håndrad(): string {
   const lov = lovligeHandlinger(state);
   const hånd = sorterHånd(state.hender[MENNESKE] ?? []);
   const spillbare =
     venterPåMenneske && lov.fase === "SPILL"
       ? new Set(lov.kort.map((k) => `${k.farge}${k.verdi}`))
       : null;
-  const mål = håndmål(hånd.length);
   // «passiv» = kortene er ikke valgbare fordi et panel har ordet, ikke fordi
-  // de er ulovlige. Da skal de være fullt lesbare — se `.hånd.passiv` i CSS.
+  // de er ulovlige. Da skal de være fullt lesbare — se `.hjul.passiv` i CSS.
   const passiv = spillbare === null;
-  return `<div class="hånd${passiv ? " passiv" : ""}" role="group" aria-label="Kortene dine" style="--n:${mål.n};--kmaks:${mål.maks}px">
-    ${hånd
-      .map((k) =>
-        kortKnapp(k, {
-          valgbar: spillbare !== null && spillbare.has(`${k.farge}${k.verdi}`),
-          valgt: vrakValg.some((v) => v.farge === k.farge && v.verdi === k.verdi),
-        }),
-      )
-      .join("")}
+  // NY HÅND: hjulet stilles til midten. Blir hånden bare kortere fordi et
+  // kort ble spilt, skal senteret bli stående der spilleren forlot det.
+  if (hånd.length > sistHåndAntall) hjulSenter = (hånd.length - 1) / 2;
+  sistHåndAntall = hånd.length;
+  hjulSenter = Math.max(0, Math.min(hånd.length - 1, hjulSenter));
+
+  const kb = kortBredde();
+  /**
+   * ============ VIFTA MÅ STÅ RIKTIG ALLEREDE I FØRSTE BILDE ==============
+   *
+   * Her sto bare `--kb`, og alt det andre — `--senter`, `--i`, `--steg` —
+   * ble satt av `oppdaterHjul()` ETTER at DOM-en var bygget. Følgen var at
+   * hvert eneste kort begynte på `--senter: 0`, altså med hele vifta skjøvet
+   * seks plasser til høyre, og så gled på plass over 340 ms. Med en `tegn()`
+   * flere ganger i sekundet mens botene spiller sto hånden og skled fram og
+   * tilbake uten stans.
+   *
+   * FUNNET I NETTLESEREN, IKKE I KODEN. Gestprøven var ustabil: «trykk
+   * spiller kortet» var rød når den kom rett etter en tegning og grønn når
+   * det lå noen titalls millisekunder foran. Årsaken var at kortet fingeren
+   * siktet på fortsatt var underveis — som er nøyaktig det Arvind advarte
+   * mot, bare i den formen som rammer et trykk i stedet for et sveip.
+   *
+   * Nå skrives de sist MÅLTE verdiene inn i selve HTML-en. `oppdaterHjul()`
+   * måler like etterpå og setter dem på nytt; er de like — og det er de i
+   * alle tegninger som ikke endrer hverken skjermstørrelse eller kortantall
+   * — utløses ingen overgang i det hele tatt.
+   */
+  const kort = hånd
+    .map((k, i) =>
+      kortKnapp(k, {
+        valgbar: spillbare !== null && spillbare.has(`${k.farge}${k.verdi}`),
+        valgt: vrakValg.some((v) => v.farge === k.farge && v.verdi === k.verdi),
+        stil: `--i:${i}`,
+      }),
+    )
+    .join("");
+  const pil = (retning: "venstre" | "hoyre", merke: string): string =>
+    `<button class="blapil ${retning}" id="bla-${retning}" aria-label="${merke}" disabled>
+      <svg class="pil" viewBox="0 0 100 100" aria-hidden="true"><use href="#pilmerke"></use></svg>
+    </button>`;
+  return `<div class="handrad">
+    ${pil("venstre", "Bla til kortene til venstre")}
+    <div class="hjul${passiv ? " passiv" : ""}" role="group" aria-label="Kortene dine"
+         style="--kb:${kb}px;--senter:${hjulSenter.toFixed(3)};${hjulMål}">${kort}</div>
+    ${pil("hoyre", "Bla til kortene til høyre")}
   </div>`;
+}
+
+/**
+ * ============ HJULETS MÅL, MÅLT OG IKKE GJETTET ========================
+ *
+ * Steget mellom to kort kan ikke skrives i CSS, for det avhenger av hvor
+ * bredt hjulet FAKTISK ble — og det vet ingen før søyla, pilene og
+ * sikkerhetssonene har tatt sitt. Derfor måles det her, etter tegningen.
+ *
+ * Steget er klemt mellom to grenser med hver sin grunn:
+ *   0,34 × kortbredden er der VALØREN I HJØRNET så vidt fortsatt er synlig.
+ *                      Tettere, og hånden blir en stripe uten opplysninger.
+ *   0,94 × kortbredden er der kortene nesten ikke overlapper. Videre enn det
+ *                      ser det ikke ut som en hånd lenger.
+ * Mellom dem sprer kortene seg så mye plassen tillater, slik at hele hånden
+ * står synlig på iPad mens telefonen får et hjul som faktisk må blas.
+ */
+const HJUL_MIN_STEG = 0.34;
+const HJUL_MAKS_STEG = 0.94;
+/** Hvor skrått ytterkortet i vifta står. Bindes til fotavtrykket under. */
+const YTTERVINKEL = 11;
+/** Sant når alle kortene får plass; da er pilene av og senteret låst. */
+let hjulLåst = true;
+/** Piksler per indekssteg, målt sist. Gestene regner om fra denne. */
+let hjulSteg = 60;
+/** Største avstand fra senter som får plass innenfor hjulet. */
+let hjulSpenn = 0;
+/**
+ * De sist MÅLTE viftemålene, som en ferdig stilstreng.
+ *
+ * Grunnen til at den finnes står i `håndrad()`: uten den begynner hver
+ * tegning med udefinerte mål, og vifta glir på plass i stedet for å stå der.
+ */
+let hjulMål = "";
+
+function oppdaterHjul(): void {
+  const hjul = rot.querySelector<HTMLElement>(".hjul");
+  if (hjul === null) return;
+  const kort = [...hjul.querySelectorAll<HTMLElement>(".kort")];
+  const n = kort.length;
+  if (n === 0) return;
+  const kb = kort[0]!.getBoundingClientRect().width || kortBredde();
+  const bredde = hjul.clientWidth || window.innerWidth;
+  /**
+   * DET YTTERSTE KORTET STÅR PÅ SKRÅ, og et skrått kort er BREDERE enn et
+   * rett. Her sto `kb` alene, og resultatet var målbart galt: tolv kort ble
+   * regnet til å få plass på en iPad, hjulet låste seg, pilene skrudde seg
+   * av — og så ble ytterkortet likevel klippet på langs av `overflow:hidden`,
+   * fordi 14 graders vipping legger på 62 px i bredden for et kort som er
+   * 255 px høyt.
+   *
+   * Fotavtrykket er derfor det ROTERTE kortets bredde: b·cos v + h·sin v,
+   * med v = `YTTERVINKEL`, den største vinkelen `oppdaterHjul` deler ut.
+   */
+  const ytterRad = (YTTERVINKEL * Math.PI) / 180;
+  const fotavtrykk = kb * Math.cos(ytterRad) + (kb / 0.714) * Math.sin(ytterRad);
+  const ønsket = n > 1 ? (bredde - fotavtrykk) / (n - 1) : kb;
+  hjulSteg = Math.max(kb * HJUL_MIN_STEG, Math.min(kb * HJUL_MAKS_STEG, ønsket));
+  hjulSpenn = Math.max(0, (bredde - fotavtrykk) / (2 * hjulSteg));
+  hjulLåst = (n - 1) / 2 <= hjulSpenn + 0.001;
+  /**
+   * BØYEN REGNES BAKLENGS FRA HVOR MYE PLASS DEN FÅR LOV Å TA.
+   *
+   * Her sto `--boy` som en andel av steget. Det var galt på nøyaktig én måte,
+   * og den kostet: bøyen vokser med KVADRATET av avstanden fra midten, så
+   * ytterkortene falt 60 px under beholderen og ble klippet på tvers. Vifta
+   * så ut som en rad kort med bunnen skåret av.
+   *
+   * Nå bestemmes UTSLAGET først — høyst 9 % av kortets høyde, og aldri mer
+   * enn 26 px — og koeffisienten følger av det. Da kan ytterkortet per
+   * definisjon ikke falle utenfor, uansett hvor mange kort hånden har.
+   */
+  const kortHøyde = kb / 0.714;
+  const maksD = Math.max(0.5, hjulLåst ? (n - 1) / 2 : hjulSpenn);
+  const bue = Math.min(22, kortHøyde * 0.07);
+  // Vinkelen på samme vis: ytterkortet skal stå rundt 11° på skrå, uansett om
+  // hånden har fire kort eller tretten.
+  const vinkel = Math.min(3.2, YTTERVINKEL / maksD);
+  /**
+   * ET SKRÅTT KORT ER OGSÅ HØYERE, og det ble glemt én gang til — i høyden
+   * denne gangen. Målt i nettleseren: ytterkortet lå 16 px under beholderen
+   * på iPad selv etter at bøyen fikk sin plass, fordi hjørnene på et 14 graders
+   * kort stikker ut både over og under.
+   *
+   * Utslaget er halve forskjellen mellom det roterte og det rette kortets
+   * høyde, og det legges til luften i bunnen sammen med bøyen.
+   */
+  const rad = ((vinkel * maksD) * Math.PI) / 180;
+  const overheng = Math.max(0, (kortHøyde * Math.cos(rad) + kb * Math.sin(rad) - kortHøyde) / 2);
+  // Skrives som ÉN streng, slik at neste tegning kan legge nøyaktig de samme
+  // verdiene rett i HTML-en og dermed ikke utløse noen overgang.
+  hjulMål =
+    `--steg:${hjulSteg.toFixed(2)}px;--boy:${(bue / (maksD * maksD)).toFixed(4)}px;` +
+    `--boymaks:${bue.toFixed(1)}px;--vinkel:${vinkel.toFixed(2)}deg;` +
+    `--bue:${(bue + overheng).toFixed(1)}px`;
+  for (const [navn, verdi] of hjulMål.split(";").map((d) => d.split(":") as [string, string])) {
+    hjul.style.setProperty(navn, verdi);
+  }
+  settSenter(hjulSenter);
+}
+
+/** Skriver senteret til DOM-en: viftens plass, lagrekkefølgen og pilene. */
+function settSenter(v: number): void {
+  const hjul = rot.querySelector<HTMLElement>(".hjul");
+  if (hjul === null) return;
+  const kort = [...hjul.querySelectorAll<HTMLElement>(".kort")];
+  const n = kort.length;
+  if (n === 0) return;
+  hjulSenter = hjulLåst
+    ? (n - 1) / 2
+    : Math.max(hjulSpenn, Math.min(n - 1 - hjulSpenn, v));
+  hjul.style.setProperty("--senter", hjulSenter.toFixed(3));
+  // Lagrekkefølgen følger avstanden fra midten, ellers ville det ytterste
+  // kortet ligget øverst og dekket de andre når vifta er tett.
+  for (let i = 0; i < n; i++) {
+    const d = Math.abs(i - hjulSenter);
+    kort[i]!.style.zIndex = String(Math.max(1, Math.round(40 - d * 2)));
+  }
+  const v1 = document.getElementById("bla-venstre") as HTMLButtonElement | null;
+  const h1 = document.getElementById("bla-hoyre") as HTMLButtonElement | null;
+  if (v1) v1.disabled = hjulLåst || hjulSenter <= hjulSpenn + 0.02;
+  if (h1) h1.disabled = hjulLåst || hjulSenter >= n - 1 - hjulSpenn - 0.02;
+}
+
+/**
+ * ============ GESTENE ==================================================
+ *
+ * ARVIND: «det er viktig at gesturene er bra kodet slik at det ikke blir feil
+ * når man navigerer og at det føles smooth.»
+ *
+ * Feilen han beskriver har ett navn: et SVEIP som blir tolket som et KAST.
+ * Den oppstår når man bestemmer hva gesten er ved første piksel, eller når
+ * touch- og musehåndterere ligger side om side og begge svarer. Her er
+ * reglene som holder den ute:
+ *
+ * 1. ÉN HENDELSESFAMILIE. Pointer Events, ikke `touchstart` + `mousedown`.
+ *    To familier betyr to sannheter om samme finger, og på en iPad sender
+ *    nettleseren begge.
+ *
+ * 2. `touch-action: none` PÅ HJULET OG PÅ KORTENE. Uten det panorerer
+ *    nettleseren siden, tar pekeren fra oss midt i bevegelsen og sender
+ *    `pointercancel` — som ser ut som at fingeren ble løftet.
+ *
+ * 3. INGEN AVGJØRELSE FØR TERSKELEN. Under 11 px er gesten UBESTEMT, og
+ *    ingenting skjer. Det er dette som gjør at en tommel som skjelver ved
+ *    trykket ikke blar hånden.
+ *
+ * 4. RETNING MED MARGIN. Over terskelen kreves det at den ene aksen er
+ *    minst 1,25 ganger den andre. En diagonal bevegelse er verken blaing
+ *    eller kast før den bestemmer seg — og hvis den aldri gjør det, tvinges
+ *    valget først ved tre terskler, der tvilen ikke lenger er ekte.
+ *
+ * 5. `setPointerCapture` PÅ HJULET, ikke på kortet. Fingeren skal kunne
+ *    forlate kortet — den skal jo dra det bort fra der det lå — og en
+ *    fangst på et element som blir fjernet er en fangst som forsvinner.
+ *
+ * 6. TRYKK SENDES IKKE HERFRA. Et trykk (under terskelen hele veien) gjør
+ *    INGENTING i `pointerup`; da får nettleseren sende sin egen `click`, og
+ *    den ene kodeveien betjener både finger, mus og tastatur. Var det derimot
+ *    en ekte gest, undertrykkes den etterfølgende `click` — ellers ville et
+ *    kast spilt kortet én gang og klikket det én gang til.
+ *
+ * 7. AVBRUDD HÅNDTERES. `pointercancel` og `lostpointercapture` fører kortet
+ *    tilbake nøyaktig som en for kort dragning gjør.
+ */
+interface Gest {
+  id: number;
+  kort: HTMLElement | null;
+  spillbart: boolean;
+  x0: number;
+  y0: number;
+  senter0: number;
+  modus: null | "bla" | "kast";
+  sisteX: number;
+  sisteT: number;
+  fart: number;
+}
+let gest: Gest | null = null;
+/**
+ * ============ KLIKKSPERREN MÅ KUNNE UTLØPE =============================
+ *
+ * Her sto et rent `boolean`, satt ved slutten av hver ekte gest og slettet
+ * av den `click`-en som fulgte. Feilen er at det IKKE ALLTID KOMMER EN KLIKK:
+ * etter et sveip sender nettleseren ingen, og etter et kast tegnes DOM-en om
+ * før klikket rekker fram. Flagget ble stående sant, og da svelget appen det
+ * NESTE trykket — altså det første trykket etter hvert eneste sveip.
+ *
+ * Prøvd i nettleseren med simulerte pekerhendelser, og det var nøyaktig det
+ * som skjedde: «trykk spiller kortet» var rød rett etter en sveipeprøve og
+ * grønn alene. Det er den verste sorten feil i et grensesnitt — den viser seg
+ * bare når man gjør to ting etter hverandre, altså bare når noen spiller.
+ *
+ * Nå er sperren et TIDSPUNKT. Den gjelder bare klikk som kommer rett etter
+ * gesten (nettleseren sender dem innen få millisekunder), og den fjernes
+ * dessuten når en ny peker settes ned. Uteblir klikket, utløper sperren av
+ * seg selv, og tastaturet blir aldri stående låst.
+ */
+let gestSluttet = 0;
+const KLIKKSPERRE_MS = 400;
+const GEST_TERSKEL = 11; // px før noe i det hele tatt regnes som en gest
+const GEST_MARGIN = 1.25; // hvor mye den ene aksen må slå den andre
+
+function kastegrense(): number {
+  // Kortet må dras opp forbi rundt en tredel av sin egen høyde. Målt i
+  // kortets mål og ikke i piksler: 70 px er et lite napp på en PC og en
+  // umulig strekning på en liggende telefon.
+  return Math.max(46, (kortBredde() / 0.714) * 0.34);
+}
+
+function avbrytGest(): void {
+  if (gest === null) return;
+  const g = gest;
+  gest = null;
+  const hjul = rot.querySelector<HTMLElement>(".hjul");
+  hjul?.classList.remove("drar");
+  hjul?.classList.remove("tar");
+  rot.querySelector(".bord")?.classList.remove("tarimot");
+  if (g.kort !== null) {
+    g.kort.style.removeProperty("--dx");
+    g.kort.style.removeProperty("--dy");
+    g.kort.classList.remove("griper", "kaster");
+  }
+  if (g.modus !== null) settSenter(Math.round(hjulSenter));
+}
+
+function koblHjul(): void {
+  const hjul = rot.querySelector<HTMLElement>(".hjul");
+  if (hjul === null) return;
+  const lov = lovligeHandlinger(state);
+  const kanSpille = venterPåMenneske && lov.fase === "SPILL";
+
+  hjul.onpointerdown = (e: PointerEvent) => {
+    // Bare den FØRSTE pekeren. En andrefinger midt i en dragning er ikke en
+    // ny gest; den er en hånd som holder nettbrettet.
+    if (gest !== null || (e.pointerType === "mouse" && e.button !== 0)) return;
+    gestSluttet = 0; // en ny gest starter alltid med blanke ark
+    const kort = (e.target as HTMLElement | null)?.closest<HTMLElement>(".kort") ?? null;
+    gest = {
+      id: e.pointerId,
+      kort,
+      spillbart: kanSpille && kort !== null && !(kort as HTMLButtonElement).disabled,
+      x0: e.clientX,
+      y0: e.clientY,
+      senter0: hjulSenter,
+      modus: null,
+      sisteX: e.clientX,
+      sisteT: e.timeStamp,
+      fart: 0,
+    };
+    try { hjul.setPointerCapture(e.pointerId); } catch { /* pekeren er alt borte */ }
+  };
+
+  hjul.onpointermove = (e: PointerEvent) => {
+    const g = gest;
+    if (g === null || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x0;
+    const dy = e.clientY - g.y0;
+    if (g.modus === null) {
+      const lengde = Math.hypot(dx, dy);
+      if (lengde < GEST_TERSKEL) return;
+      const opp = dy < 0 && Math.abs(dy) > Math.abs(dx) * GEST_MARGIN;
+      const sidelengs = Math.abs(dx) > Math.abs(dy) * GEST_MARGIN;
+      if (opp && g.spillbart) g.modus = "kast";
+      else if (sidelengs) g.modus = "bla";
+      // TVILEN VARER IKKE EVIG. Har fingeren gått tre terskler uten å ha
+      // bestemt seg, er den ikke i tvil lenger — den er bare skrå. Da
+      // avgjør den største komponenten, og et oppdrag som ikke kan kastes
+      // (ulovlig kort, eller ingen tur) blir alltid blaing.
+      else if (lengde > GEST_TERSKEL * 3) {
+        g.modus = Math.abs(dy) > Math.abs(dx) && dy < 0 && g.spillbart ? "kast" : "bla";
+      } else return;
+      if (g.modus === "bla") {
+        hjul.classList.add("drar");
+      } else if (g.kort !== null) {
+        hjul.classList.add("drar", "tar");
+        g.kort.classList.add("griper");
+      }
+    }
+    if (g.modus === "bla") {
+      const nå = e.timeStamp;
+      const dt = Math.max(1, nå - g.sisteT);
+      g.fart = (e.clientX - g.sisteX) / dt; // px per ms
+      g.sisteX = e.clientX;
+      g.sisteT = nå;
+      settSenter(g.senter0 - dx / hjulSteg);
+    } else if (g.modus === "kast" && g.kort !== null) {
+      g.kort.style.setProperty("--dx", `${Math.round(dx)}px`);
+      g.kort.style.setProperty("--dy", `${Math.round(dy)}px`);
+      const over = dy <= -kastegrense();
+      g.kort.classList.toggle("kaster", over);
+      rot.querySelector(".bord")?.classList.toggle("tarimot", over);
+    }
+  };
+
+  const slipp = (e: PointerEvent): void => {
+    const g = gest;
+    if (g === null || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x0;
+    const dy = e.clientY - g.y0;
+    const kastet = g.modus === "kast" && dy <= -kastegrense() && g.spillbart && g.kort !== null;
+    /**
+     * ============ TRYKKET SENDES HERFRA, IKKE AV `click` =================
+     *
+     * Her sto det at et trykk skulle gjøre INGENTING, og heller la
+     * nettleseren sende sin egen `click`. Tanken var god — én kodevei for
+     * finger, mus og tastatur — men den hviler på at nettleseren treffer
+     * samme kort som fingeren gikk ned på, og det gjør den ikke alltid:
+     * `:hover` løfter kortet 1 vh og skalerer det 1,05 i det musa kommer inn,
+     * altså MELLOM `mousemove` og `mousedown`. Målt i nettleseren var
+     * museklikket den ene prøven som ble stående rød gjennom hele runden,
+     * mens musedrag og fingertrykk begge var grønne.
+     *
+     * Nå avgjør vi det selv: gikk pekeren ned på et spillbart kort og opp
+     * igjen innenfor terskelen, er det et trykk — uansett hva som har flyttet
+     * seg under den i mellomtiden. Klikket som følger undertrykkes.
+     *
+     * Tastaturet er urørt: `Enter` på en knapp sender `click` UTEN noen
+     * `pointerdown` foran, og da er sperren ikke satt.
+     */
+    const trykket =
+      g.modus === null && g.spillbart && g.kort !== null &&
+      Math.hypot(dx, dy) < GEST_TERSKEL;
+    // Sperren settes FØR vi handler: `menneskeSpill` tegner på nytt, og
+    // klikket kommer etter tegningen.
+    if (g.modus !== null || trykket) gestSluttet = performance.now();
+    const blaFart = g.modus === "bla" ? g.fart : 0;
+    const kort = g.kort;
+    avbrytGest();
+    if ((kastet || trykket) && kort !== null) {
+      const k: Kort = {
+        farge: kort.dataset["farge"] as Farge,
+        verdi: Number(kort.dataset["verdi"]) as Kort["verdi"],
+      };
+      menneskeSpill(k);
+      return;
+    }
+    if (blaFart !== 0) {
+      // Fart gir etterglid, men bare et par plasser — et hjul som spinner
+      // forbi hele hånden er morsomt én gang og i veien resten av runden.
+      const kast = Math.max(-2.5, Math.min(2.5, (-blaFart * 1000) / hjulSteg * 0.16));
+      settSenter(Math.round(hjulSenter + kast));
+    }
+  };
+  hjul.onpointerup = slipp;
+  hjul.onpointercancel = () => avbrytGest();
+  hjul.onlostpointercapture = () => avbrytGest();
+  // Langtrykk på en iPad åpner ellers «Kopier / Del» midt i et kast.
+  hjul.oncontextmenu = (e) => { e.preventDefault(); };
+  // Et kort som får fokus med tastaturet skal komme til syne. `focusin`
+  // finnes ikke som `on…`-egenskap, og `hjul` er uansett et nytt element ved
+  // hver tegning — så lytteren kan ikke hope seg opp.
+  hjul.addEventListener("focusin", (e: FocusEvent) => {
+    const kort = (e.target as HTMLElement | null)?.closest<HTMLElement>(".kort");
+    if (kort === null || kort === undefined) return;
+    const i = [...hjul.querySelectorAll(".kort")].indexOf(kort);
+    if (i >= 0) settSenter(i);
+  });
+  hjul.onkeydown = (e: KeyboardEvent) => {
+    if (e.key === "ArrowLeft") { settSenter(Math.round(hjulSenter) - 1); e.preventDefault(); }
+    else if (e.key === "ArrowRight") { settSenter(Math.round(hjulSenter) + 1); e.preventDefault(); }
+  };
+
+  for (const [id, steg] of [["bla-venstre", -1], ["bla-hoyre", 1]] as const) {
+    const b = document.getElementById(id);
+    if (b) b.onclick = () => settSenter(Math.round(hjulSenter) + steg);
+  }
 }
 
 function budPanel(): string {
@@ -1942,7 +2466,7 @@ function velgPanel(): string {
         .map(
           (f) => `<button class="trumfkort ${fargeKlasse(f)}" data-trumf="${f}" aria-label="${FARGE_NAVN[f]}">
             <span class="stripe" aria-hidden="true"></span>
-            <span class="tsym" aria-hidden="true">${FARGE_TEGN[f]}</span>
+            <span class="tsym">${fargefigur(f)}</span>
             <span class="tnavn">${FARGE_NAVN[f]}</span>
           </button>`,
         )
@@ -2043,10 +2567,16 @@ let sistPanel = "";
 
 function tegn(): void {
   if (!state) return;
+  // EN PÅGÅENDE GEST OVERLEVER IKKE EN NY DOM. `innerHTML` bytter ut kortet
+  // fingeren holder i, og en pekerfangst på et element som er borte er en
+  // fangst ingen får meldinger fra. Å avbryte her er samme håndtering som
+  // `pointercancel`: kortet legger seg tilbake, og ingenting blir hengende
+  // halvveis kastet.
+  avbrytGest();
   nåPynt = new Set<string>();
   rot.innerHTML =
-    topplinje() + lagfelt() + bordet() +
-    budPanel() + vrakPanel() + velgPanel() + rundeSluttPanel() + ferdigPanel() + håndPanel();
+    topplinje() + stikksoyle() + bordet() +
+    budPanel() + vrakPanel() + velgPanel() + rundeSluttPanel() + ferdigPanel() + håndrad();
   sistPynt = nåPynt;
   /**
    * «fersk» = panelet er et ANNET enn forrige gang, og bare da skal det
@@ -2063,6 +2593,9 @@ function tegn(): void {
   if (panel !== null && nøkkel !== sistPanel) panel.parentElement!.classList.add("fersk");
   sistPanel = nøkkel;
   koble();
+  // MÅLES ETTER at DOM-en står. Hjulets steg avhenger av hvor bredt hjulet
+  // faktisk ble, og det vet ingen før søyla og pilene har tatt sitt.
+  oppdaterHjul();
 }
 
 // --- Hendelseskobling (event delegation per tegning) ------------------------
@@ -2093,6 +2626,11 @@ function koble(): void {
   }
   for (const b of rot.querySelectorAll<HTMLButtonElement>(".kort:not([disabled])")) {
     b.onclick = () => {
+      // TRYKKET GÅR HERFRA, OG BARE HERFRA. Var det egentlig et sveip eller
+      // et kast, har `pointerup` alt gjort jobben og satt dette flagget —
+      // uten det ville et kast spilt kortet, og klikket nettleseren sender
+      // etterpå ville forsøkt å spille det én gang til.
+      if (performance.now() - gestSluttet < KLIKKSPERRE_MS) { gestSluttet = 0; return; }
       const kort: Kort = { farge: b.dataset["farge"] as Farge, verdi: Number(b.dataset["verdi"]) as Kort["verdi"] };
       if (lov.fase === "VRAK" && venterPåMenneske) {
         const i = vrakValg.findIndex((v) => v.farge === kort.farge && v.verdi === kort.verdi);
@@ -2129,6 +2667,7 @@ function koble(): void {
     nytt.focus();
     nytt.onclick = () => startskjerm();
   }
+  koblHjul();
 }
 
 // --- Startskjerm ------------------------------------------------------------
@@ -2194,9 +2733,11 @@ function startskjerm(): void {
 let sistLayout = "";
 addEventListener("resize", () => {
   if (!state) return;
-  const m = håndmål((state.hender[MENNESKE] ?? []).length);
-  const nøkkel = `${m.n}:${m.maks}`;
-  if (nøkkel === sistLayout) return;
+  // Kortbredden er det ene tallet som ikke kan regnes ut i CSS, så det er
+  // også det ene som krever en ny tegning. Endres den ikke, holder det å
+  // måle hjulet på nytt — og da beholder knappen brukeren står på fokuset.
+  const nøkkel = String(kortBredde());
+  if (nøkkel === sistLayout) { oppdaterHjul(); return; }
   sistLayout = nøkkel;
   tegn();
 });

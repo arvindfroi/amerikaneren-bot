@@ -3849,7 +3849,7 @@ var Budagent = class {
 // web/app.ts
 var DATA_URL = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
 var MENNESKE = 0;
-var BUNDELVERSJON = "v6-2026-08-10";
+var BUNDELVERSJON = "v7-2026-08-10";
 globalThis["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 var LOKAL = location.protocol === "http:";
 var MESTER_URL = `${location.origin}/mester`;
@@ -4045,7 +4045,8 @@ function broSpeil(h, hendelser) {
   if (h.type !== "NESTE") void broPost({ type: "handling", handling: handlingTilAdapter(h) });
   for (const e of hendelser) if (e.type === "NY_RUNDE") void broPost(broRundeStart());
 }
-var NAVN = ["Du", "Vest", "Nord", "Øst"];
+var NAVN = ["Du", "Franklin", "Lincoln", "Trump"];
+var FJES = ["", "fjes-franklin", "fjes-lincoln", "fjes-trump"];
 var STYRKER = {
   RASK: {
     navn: "Rask (~1 s per trekk)",
@@ -4193,6 +4194,7 @@ var nettAgenter = null;
 var FARGE_TEGN = { S: "♠", H: "♥", R: "♦", K: "♣" };
 var FARGE_NAVN = { S: "spar", H: "hjerter", R: "ruter", K: "kløver" };
 var fargeKlasse = (f) => `f-${f}`;
+var fargefigur = (f) => `<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#kf-${f}"></use></svg>`;
 var fargeMerke = (f, medNavn = true) => `<span class="fargemerke ${fargeKlasse(f)}"><span class="sym" aria-hidden="true">${FARGE_TEGN[f]}</span>${medNavn ? FARGE_NAVN[f] : `<span class="skjult">${FARGE_NAVN[f]}</span>`}</span>`;
 var VERDI_TEKST = (v) => v === 14 ? "A" : v === 13 ? "K" : v === 12 ? "Q" : v === 11 ? "J" : String(v);
 var VERDI_ORD = (v) => v === 14 ? "ess" : v === 13 ? "konge" : v === 12 ? "dame" : v === 11 ? "knekt" : String(v);
@@ -4206,8 +4208,6 @@ var velgTrumfValg = null;
 var velgEtterlysValg = null;
 var travelt = false;
 var sistPoeng = [];
-var sistStikk = [];
-var sistFylte = 0;
 var sistPynt = /* @__PURE__ */ new Set();
 var nåPynt = /* @__PURE__ */ new Set();
 function pynt(nøkkel2) {
@@ -4246,6 +4246,7 @@ function logg(type, data) {
 }
 var kortTale = (k) => `${FARGE_NAVN[k.farge]} ${VERDI_ORD(k.verdi)}`;
 var stjerne = (klasse = "") => `<svg class="stjerne${klasse ? ` ${klasse}` : ""}" viewBox="0 0 100 100" aria-hidden="true"><use href="#stjernemerke"></use></svg>`;
+var medaljong = (sete, klasse = "") => sete === MENNESKE ? `<span class="medaljong deg${klasse}" aria-hidden="true">${stjerne("fjes")}</span>` : `<span class="medaljong${klasse}" aria-hidden="true"><svg class="fjes" viewBox="0 0 100 100"><use href="#${FJES[sete]}"></use></svg></span>`;
 var laster = (tittel, undertekst = "") => `<div class="overlegg"><div class="panel start"><div class="laster">
     <h2>${tittel}</h2>
     <div class="stjerner" role="progressbar" aria-label="${tittel}">${stjerne()}${stjerne()}${stjerne()}</div>
@@ -4358,13 +4359,11 @@ function samleStikketTilVinneren(vinner) {
       el.style.transform = `translate(${Math.round(dx + skyv)}px, ${Math.round(dy + senk)}px) rotate(${vri}deg) scale(.94)`;
     }
     setTimeout(() => bord.classList.add("landet"), LANDING - SAMLE_START);
-    setTimeout(() => flyStikkmerke(mål), MERKE_FLYR - SAMLE_START);
+    setTimeout(() => flyStikkmerke(mål, vinner), MERKE_FLYR - SAMLE_START);
   }, SAMLE_START);
 }
-function flyStikkmerke(fra) {
-  const bar = rot.querySelector(".lagbar");
-  const brikke = rot.querySelector(".lagfelt .brikke.fører");
-  const til = bar ?? brikke;
+function flyStikkmerke(fra, vinner) {
+  const til = rot.querySelector(`.sone[data-seter~="${vinner}"]`) ?? rot.querySelector(".stikksoyle .sone");
   if (til === null) return;
   const a = fra.getBoundingClientRect();
   const b = til.getBoundingClientRect();
@@ -4400,8 +4399,7 @@ function håndterHendelser(hendelser) {
       si(`Trumf er ${FARGE_NAVN[h.trumf]}${h.etterlyst ? `, etterlyst ${kortTale(h.etterlyst)}` : ""}.`);
       lagmodus = h.etterlyst === null ? "lag" : "individuell";
       smeltetVist = h.etterlyst === null;
-      sistStikk = [];
-      sistFylte = 0;
+      sistTatt = /* @__PURE__ */ new Map();
     } else if (h.type === "MAKKER_AVSLØRT") {
       si(`${NAVN[h.spiller]} er makkeren!`);
       lagmodus = "smelter";
@@ -4413,8 +4411,7 @@ function håndterHendelser(hendelser) {
     } else if (h.type === "NY_RUNDE") {
       lagmodus = "ingen";
       smeltetVist = false;
-      sistStikk = [];
-      sistFylte = 0;
+      sistTatt = /* @__PURE__ */ new Map();
     } else if (h.type === "STIKK_FERDIG") {
       si(`${NAVN[h.vinner]} vant stikket.`);
     } else if (h.type === "RUNDE_SLUTT") {
@@ -4557,10 +4554,11 @@ function kortKnapp(k, opts) {
   const v = VERDI_TEKST(k.verdi);
   const hjorne = (ned) => `<span class="hjorne${ned ? " ned" : ""}" aria-hidden="true">${v}<span class="sym">${sym}</span></span>`;
   return `<button id="${id}" class="kort ${fargeKlasse(k.farge)}${opts.liten ? " liten" : ""}${opts.valgt ? " valgt" : ""}${opts.ny ? " ny" : ""}"
+    ${opts.stil ? `style="${opts.stil}"` : ""}
     ${opts.valgbar ? "" : "disabled"}
     aria-label="${kortTale(k)}${opts.valgt ? ", valgt" : ""}" data-farge="${k.farge}" data-verdi="${k.verdi}">
     ${hjorne(false)}
-    <span class="midt" aria-hidden="true">${sym}</span>
+    <span class="midt" aria-hidden="true">${fargefigur(k.farge)}</span>
     ${hjorne(true)}
   </button>`;
 }
@@ -4597,123 +4595,334 @@ function målStikk() {
   if (m === null) return 0;
   return m.type === "tall" ? m.bud : state.giving.antallStikk;
 }
-function lagfelt() {
-  const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
-  if (!iSpill || lagmodus === "ingen" || state.budvinner === null) {
-    sistStikk = [];
-    sistFylte = 0;
-    return `<div class="lagfelt"></div>`;
-  }
+var FORSVARSFARGER = ["rod", "hvit", "staal"];
+function soneListe() {
   const lag = budlaget();
   const mål = målStikk();
+  const rest = Math.max(1, state.giving.antallStikk - mål);
   const stikk = state.stikkVunnet;
-  const brikke = (i, klasser = "", stil = "", visMål = false) => {
-    const slag = sistStikk.length > 0 && sistStikk[i] !== stikk[i];
-    return `<div class="brikke${klasser}${slag ? " slag" : ""}" data-sete="${i}"${stil}
-      aria-label="${NAVN[i]}: ${stikk[i]} stikk${visMål ? ` av ${mål}` : ""}">
-      <span class="navn">${NAVN[i]}</span><b>${stikk[i]}</b>${visMål ? `<span class="mot">/ ${mål}</span>` : ""}
-    </div>`;
-  };
-  let ut;
-  let smelterNå = false;
-  if (lagmodus === "individuell") {
-    ut = `<div class="brikker">${state.totalPoeng.map(
-      (_, i) => i === state.budvinner ? brikke(i, " fører", "", true) : brikke(i)
-    ).join("")}</div>`;
-  } else {
-    const lagStikk = lag.reduce((s, i) => s + (stikk[i] ?? 0), 0);
-    const motstand = state.totalPoeng.reduce(
-      (s, _, i) => lag.includes(i) ? s : s + (stikk[i] ?? 0),
-      0
-    );
-    const fylte = Math.min(lagStikk, mål);
-    const hakk = Array.from({ length: mål }, (_, i) => {
-      const erFylt = i < fylte;
-      const erNy = erFylt && i >= sistFylte;
-      return `<span class="hakk${erFylt ? " fylt" : ""}${erNy ? " ny" : ""}"></span>`;
-    }).join("");
-    const bar = `<div class="lagvis"><div class="lagbar${lagStikk >= mål ? " klart" : ""}"
-        role="progressbar" aria-valuemin="0" aria-valuemax="${mål}" aria-valuenow="${lagStikk}"
-        aria-label="Stikk for ${lag.map((i) => NAVN[i]).join(" og ")}">
-      <span class="lagnavn">${stjerne()}${lag.map((i) => NAVN[i]).join(" + ")}</span>
-      <span class="spor" aria-hidden="true">${hakk}</span>
-      <span class="tall">${lagStikk}<span class="mot"> / ${mål}</span></span>
-    </div>
-    <div class="motstand">mot <b>${motstand}</b></div></div>`;
-    if (lagmodus === "smelter" && !smeltetVist) {
-      smeltetVist = true;
-      smelterNå = true;
-      const smelt = state.totalPoeng.map(
-        (_, i) => lag.includes(i) ? brikke(i, " smelt-inn", ` style="--fra:${i === lag[0] ? "-46%" : "46%"}"`) : brikke(i, " ut")
-      ).join("");
-      ut = `<div class="brikker">${smelt}</div>${bar}`;
-    } else {
-      ut = bar;
-    }
-    sistFylte = fylte;
+  const forsvar = state.totalPoeng.map((_, i) => i).filter((i) => !lag.includes(i));
+  const ut = forsvar.map((i, n) => ({
+    seter: [i],
+    farge: FORSVARSFARGER[n] ?? "staal",
+    hakk: rest,
+    tatt: stikk[i] ?? 0
+  }));
+  ut.push({
+    seter: lag,
+    farge: "blaa",
+    hakk: Math.max(1, mål),
+    tatt: lag.reduce((s, i) => s + (stikk[i] ?? 0), 0)
+  });
+  return ut;
+}
+var sistTatt = /* @__PURE__ */ new Map();
+function stikksoyle() {
+  const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
+  if (!iSpill || lagmodus === "ingen" || state.budvinner === null) {
+    sistTatt = /* @__PURE__ */ new Map();
+    return `<div class="stikksoyle tom" aria-hidden="true"></div>`;
   }
-  sistStikk = stikk.slice();
-  return `<div class="lagfelt${smelterNå ? " smelter" : ""}">${ut}</div>`;
+  const mål = målStikk();
+  const smelterNå = lagmodus === "smelter" && !smeltetVist;
+  if (smelterNå) smeltetVist = true;
+  const nyTatt = /* @__PURE__ */ new Map();
+  const soner = soneListe().map((s) => {
+    const nøkkel2 = s.seter.join("+");
+    const før = sistTatt.get(nøkkel2) ?? 0;
+    nyTatt.set(nøkkel2, s.tatt);
+    const fylte = Math.min(s.tatt, s.hakk);
+    const over = s.tatt - s.hakk;
+    const erBlå = s.farge === "blaa";
+    const hakk = Array.from({ length: s.hakk }, (_, i) => {
+      const fylt = i < fylte;
+      const ny = fylt && i >= Math.min(før, s.hakk);
+      return `<span class="celle${fylt ? " fylt" : ""}${ny ? " ny" : ""}">${erBlå ? stjerne() : ""}</span>`;
+    }).join("");
+    const navn = s.seter.map((i) => NAVN[i]).join(" og ");
+    const tekst = erBlå ? `${navn}: ${s.tatt} av ${mål} stikk` : `${navn}: ${s.tatt} stikk`;
+    const fjes = s.seter.map((i, n) => medaljong(i, smelterNå && erBlå && n > 0 ? " kommer" : "")).join("");
+    const klart = erBlå && s.tatt >= mål;
+    return `<div class="sone ${s.farge}${klart ? " klart" : ""}${smelterNå && erBlå ? " svelger" : ""}"
+        data-seter="${s.seter.join(" ")}"
+        ${erBlå ? `role="progressbar" aria-valuemin="0" aria-valuemax="${mål}" aria-valuenow="${s.tatt}"` : `role="img"`}
+        aria-label="${tekst}"
+        style="flex: ${s.hakk} 1 0">
+        ${erBlå ? `<div class="budstrek" aria-hidden="true"></div><div class="budmerke" aria-hidden="true">${mål}</div>` : ""}
+        <div class="medaljongstabel">${fjes}</div>
+        ${hakk}
+        <span class="tall${s.tatt !== før ? " slag" : ""}" aria-hidden="true">${s.tatt}${over > 0 ? `<span class="mot">+${over}</span>` : ""}</span>
+      </div>`;
+  }).join("");
+  sistTatt = nyTatt;
+  return `<div class="stikksoyle" role="group" aria-label="Stikk så langt">${soner}</div>`;
 }
 var forrigeBordkort = /* @__PURE__ */ new Set();
 function bordet() {
-  const plass = ["bunn", "venstre", "topp", "høyre"];
   const påBordet = frystStikk !== null ? frystStikk.kort : state.bord;
   const nå = new Set(påBordet.map((b) => `${b.spiller}${kortId(b.kort)}`));
   const erNy = (b) => !forrigeBordkort.has(`${b.spiller}${kortId(b.kort)}`);
-  const lagt = new Set(påBordet.map((b) => b.spiller));
-  const kort = påBordet.map((b) => {
-    const vant = frystStikk !== null && b.spiller === frystStikk.vinner;
-    return `<div class="bordkort ${plass[b.spiller]}${vant ? " vant" : ""}">
+  const lagtAv = new Map(påBordet.map((b) => [b.spiller, b]));
+  const kortplass = (sete) => {
+    const b = lagtAv.get(sete);
+    if (b === void 0) return `<div class="tomplass" aria-hidden="true"></div>`;
+    const vant = frystStikk !== null && sete === frystStikk.vinner;
+    return `<div class="bordkort${vant ? " vant" : ""}">
       ${vant ? `<div class="seteglans" aria-hidden="true"></div>` : ""}
-      <div class="hvem">${vant ? `<span class="vinnerband">${stjerne()}${NAVN[b.spiller]}</span>` : NAVN[b.spiller]}</div>${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}</div>`;
-  }).join("");
+      ${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}
+      ${vant ? `<div class="hvem"><span class="vinnerband">${stjerne()}${NAVN[sete]}</span></div>` : ""}
+    </div>`;
+  };
   forrigeBordkort = nå;
   const tenkeSete = frystStikk === null && !venterPåMenneske && travelt && state.fase !== "RUNDE_SLUTT" && state.fase !== "FERDIG" ? state.fase === "VRAK" || state.fase === "VELG" ? state.budvinner : state.iTur : null;
   const tenkeboble = `tenker<span id="tenker-tid"></span><span class="prikker" aria-hidden="true"><i></i><i></i><i></i></span>`;
-  const bunker = state.fase === "SPILL" ? [1, 2, 3].filter((s) => !lagt.has(s) && (state.hender[s]?.length ?? 0) > 0).map(
-    (s) => `<div class="bordkort ${plass[s]}"><div class="bunke">
-              <div class="vifte">${kortRygg()}${kortRygg()}${kortRygg()}</div>
-              <div class="antall">${s === tenkeSete ? `${NAVN[s]} ${tenkeboble}` : `${NAVN[s]} · ${state.hender[s].length}`}</div>
-            </div></div>`
-  ).join("") : "";
-  const tenker = tenkeSete !== null && tenkeSete !== MENNESKE && state.fase !== "SPILL" ? `<div class="tenker ${plass[tenkeSete]}">${NAVN[tenkeSete]} ${tenkeboble}</div>` : "";
+  const VRI = ["0", "-7", "4", "9"];
+  const motstandere = [1, 2, 3].map((s) => {
+    const igjen = state.hender[s]?.length ?? 0;
+    const tenker2 = s === tenkeSete;
+    return `<div class="motspiller" style="--vri:${VRI[s]}deg">
+        <div class="hode">
+          ${medaljong(s)}
+          <div class="navn">${NAVN[s]}</div>
+          ${tenker2 ? `<div class="tenker">${tenkeboble}</div>` : state.fase === "SPILL" ? `<div class="igjen">${igjen} kort</div>` : `<div class="igjen"></div>`}
+        </div>
+        <div class="kortplass">${kortplass(s)}</div>
+      </div>`;
+  }).join("");
+  const tenker = tenkeSete !== null && tenkeSete !== MENNESKE && state.fase !== "SPILL" ? `<div class="tenker">${NAVN[tenkeSete]} ${tenkeboble}</div>` : "";
   const trumfskilt = state.trumf !== null && (state.fase === "SPILL" || frystStikk !== null) ? `<div class="trumfskilt${pynt(`trumf:${state.trumf}`)}">${stjerne()}<span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>` : "";
   const info = state.etterlyst ? `<div class="etterlyst${pynt(`etterlyst:${kortId(state.etterlyst)}:${state.makkerAvslørt ? state.makker : "?"}`)}"><span class="merkelapp">Etterlyst</span>${fargeMerke(state.etterlyst.farge, false)} <b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? ` · ${NAVN[state.makker]}` : ""}</div>` : "";
   const dinTur = venterPåMenneske && state.fase === "SPILL" && frystStikk === null ? `<div class="dintur${pynt("dintur")}">Din tur</div>` : "";
-  const midt = trumfskilt || info || dinTur ? `<div class="midtfelt">${trumfskilt}${info}${dinTur}</div>` : "";
+  const midt = trumfskilt || info || dinTur || tenker ? `<div class="midtfelt">${trumfskilt}${info}${tenker}${dinTur}</div>` : "";
   const forrige = frystStikk === null && state.fase === "SPILL" && state.forrigeStikk !== null ? `<div class="forrige${pynt(`forrige:${state.stikkSpilt}`)}" aria-label="Forrige stikk">
           <div class="tittel">Forrige · <b>${NAVN[state.forrigeStikk.vinner]}</b></div>
           <div class="rad">${state.forrigeStikk.kort.map((b) => `<div><div class="navn">${NAVN[b.spiller].split(" ")[0]}</div>${kortKnapp(b.kort, {})}</div>`).join("")}</div>
         </div>` : "";
-  return `<div class="bord${frystStikk !== null ? " avgjort" : ""}" aria-label="Bordet">${kort}${bunker}${midt}${tenker}${forrige}</div>`;
+  return `<div class="bord${frystStikk !== null ? " avgjort" : ""}" aria-label="Bordet">
+    <div class="motstandere">${motstandere}</div>
+    ${midt}
+    <div class="dinplass"><div class="kortplass">${kortplass(MENNESKE)}</div></div>
+    ${forrige}
+  </div>`;
 }
-var MÅLBREDDE = 76;
-var HÅNDHØYDE = 0.42;
-function håndmål(antall) {
+function kortBredde() {
   const b = window.innerWidth || 1024;
   const h = window.innerHeight || 768;
-  if (antall <= 1) return { n: 1, maks: 132 };
-  const takRader = h < 500 ? 1 : h < 700 ? 2 : 3;
-  const passerPerRad = Math.max(1, Math.floor(b / MÅLBREDDE));
-  const rader = Math.min(takRader, Math.max(1, Math.ceil(antall / passerPerRad)));
-  const maks = Math.min(132, Math.max(46, Math.floor(HÅNDHØYDE * h * 0.7 / rader)));
-  return { n: Math.ceil(antall / rader), maks };
+  return Math.round(Math.max(60, Math.min(160, h * 0.3 * 0.714, b * 0.3)));
 }
-function håndPanel() {
+var hjulSenter = 0;
+var sistHåndAntall = -1;
+function håndrad() {
   const lov = lovligeHandlinger(state);
   const hånd = sorterHånd(state.hender[MENNESKE] ?? []);
   const spillbare = venterPåMenneske && lov.fase === "SPILL" ? new Set(lov.kort.map((k) => `${k.farge}${k.verdi}`)) : null;
-  const mål = håndmål(hånd.length);
   const passiv = spillbare === null;
-  return `<div class="hånd${passiv ? " passiv" : ""}" role="group" aria-label="Kortene dine" style="--n:${mål.n};--kmaks:${mål.maks}px">
-    ${hånd.map(
-    (k) => kortKnapp(k, {
+  if (hånd.length > sistHåndAntall) hjulSenter = (hånd.length - 1) / 2;
+  sistHåndAntall = hånd.length;
+  hjulSenter = Math.max(0, Math.min(hånd.length - 1, hjulSenter));
+  const kb = kortBredde();
+  const kort = hånd.map(
+    (k, i) => kortKnapp(k, {
       valgbar: spillbare !== null && spillbare.has(`${k.farge}${k.verdi}`),
-      valgt: vrakValg.some((v) => v.farge === k.farge && v.verdi === k.verdi)
+      valgt: vrakValg.some((v) => v.farge === k.farge && v.verdi === k.verdi),
+      stil: `--i:${i}`
     })
-  ).join("")}
+  ).join("");
+  const pil = (retning, merke) => `<button class="blapil ${retning}" id="bla-${retning}" aria-label="${merke}" disabled>
+      <svg class="pil" viewBox="0 0 100 100" aria-hidden="true"><use href="#pilmerke"></use></svg>
+    </button>`;
+  return `<div class="handrad">
+    ${pil("venstre", "Bla til kortene til venstre")}
+    <div class="hjul${passiv ? " passiv" : ""}" role="group" aria-label="Kortene dine"
+         style="--kb:${kb}px;--senter:${hjulSenter.toFixed(3)};${hjulMål}">${kort}</div>
+    ${pil("hoyre", "Bla til kortene til høyre")}
   </div>`;
+}
+var HJUL_MIN_STEG = 0.34;
+var HJUL_MAKS_STEG = 0.94;
+var YTTERVINKEL = 11;
+var hjulLåst = true;
+var hjulSteg = 60;
+var hjulSpenn = 0;
+var hjulMål = "";
+function oppdaterHjul() {
+  const hjul = rot.querySelector(".hjul");
+  if (hjul === null) return;
+  const kort = [...hjul.querySelectorAll(".kort")];
+  const n = kort.length;
+  if (n === 0) return;
+  const kb = kort[0].getBoundingClientRect().width || kortBredde();
+  const bredde = hjul.clientWidth || window.innerWidth;
+  const ytterRad = YTTERVINKEL * Math.PI / 180;
+  const fotavtrykk = kb * Math.cos(ytterRad) + kb / 0.714 * Math.sin(ytterRad);
+  const ønsket = n > 1 ? (bredde - fotavtrykk) / (n - 1) : kb;
+  hjulSteg = Math.max(kb * HJUL_MIN_STEG, Math.min(kb * HJUL_MAKS_STEG, ønsket));
+  hjulSpenn = Math.max(0, (bredde - fotavtrykk) / (2 * hjulSteg));
+  hjulLåst = (n - 1) / 2 <= hjulSpenn + 1e-3;
+  const kortHøyde = kb / 0.714;
+  const maksD = Math.max(0.5, hjulLåst ? (n - 1) / 2 : hjulSpenn);
+  const bue = Math.min(22, kortHøyde * 0.07);
+  const vinkel = Math.min(3.2, YTTERVINKEL / maksD);
+  const rad = vinkel * maksD * Math.PI / 180;
+  const overheng = Math.max(0, (kortHøyde * Math.cos(rad) + kb * Math.sin(rad) - kortHøyde) / 2);
+  hjulMål = `--steg:${hjulSteg.toFixed(2)}px;--boy:${(bue / (maksD * maksD)).toFixed(4)}px;--boymaks:${bue.toFixed(1)}px;--vinkel:${vinkel.toFixed(2)}deg;--bue:${(bue + overheng).toFixed(1)}px`;
+  for (const [navn, verdi] of hjulMål.split(";").map((d) => d.split(":"))) {
+    hjul.style.setProperty(navn, verdi);
+  }
+  settSenter(hjulSenter);
+}
+function settSenter(v) {
+  const hjul = rot.querySelector(".hjul");
+  if (hjul === null) return;
+  const kort = [...hjul.querySelectorAll(".kort")];
+  const n = kort.length;
+  if (n === 0) return;
+  hjulSenter = hjulLåst ? (n - 1) / 2 : Math.max(hjulSpenn, Math.min(n - 1 - hjulSpenn, v));
+  hjul.style.setProperty("--senter", hjulSenter.toFixed(3));
+  for (let i = 0; i < n; i++) {
+    const d = Math.abs(i - hjulSenter);
+    kort[i].style.zIndex = String(Math.max(1, Math.round(40 - d * 2)));
+  }
+  const v1 = document.getElementById("bla-venstre");
+  const h1 = document.getElementById("bla-hoyre");
+  if (v1) v1.disabled = hjulLåst || hjulSenter <= hjulSpenn + 0.02;
+  if (h1) h1.disabled = hjulLåst || hjulSenter >= n - 1 - hjulSpenn - 0.02;
+}
+var gest = null;
+var gestSluttet = 0;
+var KLIKKSPERRE_MS = 400;
+var GEST_TERSKEL = 11;
+var GEST_MARGIN = 1.25;
+function kastegrense() {
+  return Math.max(46, kortBredde() / 0.714 * 0.34);
+}
+function avbrytGest() {
+  if (gest === null) return;
+  const g = gest;
+  gest = null;
+  const hjul = rot.querySelector(".hjul");
+  hjul?.classList.remove("drar");
+  hjul?.classList.remove("tar");
+  rot.querySelector(".bord")?.classList.remove("tarimot");
+  if (g.kort !== null) {
+    g.kort.style.removeProperty("--dx");
+    g.kort.style.removeProperty("--dy");
+    g.kort.classList.remove("griper", "kaster");
+  }
+  if (g.modus !== null) settSenter(Math.round(hjulSenter));
+}
+function koblHjul() {
+  const hjul = rot.querySelector(".hjul");
+  if (hjul === null) return;
+  const lov = lovligeHandlinger(state);
+  const kanSpille = venterPåMenneske && lov.fase === "SPILL";
+  hjul.onpointerdown = (e) => {
+    if (gest !== null || e.pointerType === "mouse" && e.button !== 0) return;
+    gestSluttet = 0;
+    const kort = e.target?.closest(".kort") ?? null;
+    gest = {
+      id: e.pointerId,
+      kort,
+      spillbart: kanSpille && kort !== null && !kort.disabled,
+      x0: e.clientX,
+      y0: e.clientY,
+      senter0: hjulSenter,
+      modus: null,
+      sisteX: e.clientX,
+      sisteT: e.timeStamp,
+      fart: 0
+    };
+    try {
+      hjul.setPointerCapture(e.pointerId);
+    } catch {
+    }
+  };
+  hjul.onpointermove = (e) => {
+    const g = gest;
+    if (g === null || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x0;
+    const dy = e.clientY - g.y0;
+    if (g.modus === null) {
+      const lengde = Math.hypot(dx, dy);
+      if (lengde < GEST_TERSKEL) return;
+      const opp = dy < 0 && Math.abs(dy) > Math.abs(dx) * GEST_MARGIN;
+      const sidelengs = Math.abs(dx) > Math.abs(dy) * GEST_MARGIN;
+      if (opp && g.spillbart) g.modus = "kast";
+      else if (sidelengs) g.modus = "bla";
+      else if (lengde > GEST_TERSKEL * 3) {
+        g.modus = Math.abs(dy) > Math.abs(dx) && dy < 0 && g.spillbart ? "kast" : "bla";
+      } else return;
+      if (g.modus === "bla") {
+        hjul.classList.add("drar");
+      } else if (g.kort !== null) {
+        hjul.classList.add("drar", "tar");
+        g.kort.classList.add("griper");
+      }
+    }
+    if (g.modus === "bla") {
+      const nå = e.timeStamp;
+      const dt = Math.max(1, nå - g.sisteT);
+      g.fart = (e.clientX - g.sisteX) / dt;
+      g.sisteX = e.clientX;
+      g.sisteT = nå;
+      settSenter(g.senter0 - dx / hjulSteg);
+    } else if (g.modus === "kast" && g.kort !== null) {
+      g.kort.style.setProperty("--dx", `${Math.round(dx)}px`);
+      g.kort.style.setProperty("--dy", `${Math.round(dy)}px`);
+      const over = dy <= -kastegrense();
+      g.kort.classList.toggle("kaster", over);
+      rot.querySelector(".bord")?.classList.toggle("tarimot", over);
+    }
+  };
+  const slipp = (e) => {
+    const g = gest;
+    if (g === null || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x0;
+    const dy = e.clientY - g.y0;
+    const kastet = g.modus === "kast" && dy <= -kastegrense() && g.spillbart && g.kort !== null;
+    const trykket = g.modus === null && g.spillbart && g.kort !== null && Math.hypot(dx, dy) < GEST_TERSKEL;
+    if (g.modus !== null || trykket) gestSluttet = performance.now();
+    const blaFart = g.modus === "bla" ? g.fart : 0;
+    const kort = g.kort;
+    avbrytGest();
+    if ((kastet || trykket) && kort !== null) {
+      const k = {
+        farge: kort.dataset["farge"],
+        verdi: Number(kort.dataset["verdi"])
+      };
+      menneskeSpill(k);
+      return;
+    }
+    if (blaFart !== 0) {
+      const kast = Math.max(-2.5, Math.min(2.5, -blaFart * 1e3 / hjulSteg * 0.16));
+      settSenter(Math.round(hjulSenter + kast));
+    }
+  };
+  hjul.onpointerup = slipp;
+  hjul.onpointercancel = () => avbrytGest();
+  hjul.onlostpointercapture = () => avbrytGest();
+  hjul.oncontextmenu = (e) => {
+    e.preventDefault();
+  };
+  hjul.addEventListener("focusin", (e) => {
+    const kort = e.target?.closest(".kort");
+    if (kort === null || kort === void 0) return;
+    const i = [...hjul.querySelectorAll(".kort")].indexOf(kort);
+    if (i >= 0) settSenter(i);
+  });
+  hjul.onkeydown = (e) => {
+    if (e.key === "ArrowLeft") {
+      settSenter(Math.round(hjulSenter) - 1);
+      e.preventDefault();
+    } else if (e.key === "ArrowRight") {
+      settSenter(Math.round(hjulSenter) + 1);
+      e.preventDefault();
+    }
+  };
+  for (const [id, steg] of [["bla-venstre", -1], ["bla-hoyre", 1]]) {
+    const b = document.getElementById(id);
+    if (b) b.onclick = () => settSenter(Math.round(hjulSenter) + steg);
+  }
 }
 function budPanel() {
   const lov = lovligeHandlinger(state);
@@ -4749,7 +4958,7 @@ function velgPanel() {
       <div class="trumfvalg">${["S", "K", "H", "R"].map(
       (f) => `<button class="trumfkort ${fargeKlasse(f)}" data-trumf="${f}" aria-label="${FARGE_NAVN[f]}">
             <span class="stripe" aria-hidden="true"></span>
-            <span class="tsym" aria-hidden="true">${FARGE_TEGN[f]}</span>
+            <span class="tsym">${fargefigur(f)}</span>
             <span class="tnavn">${FARGE_NAVN[f]}</span>
           </button>`
     ).join("")}</div>
@@ -4808,14 +5017,16 @@ function ferdigPanel() {
 var sistPanel = "";
 function tegn() {
   if (!state) return;
+  avbrytGest();
   nåPynt = /* @__PURE__ */ new Set();
-  rot.innerHTML = topplinje() + lagfelt() + bordet() + budPanel() + vrakPanel() + velgPanel() + rundeSluttPanel() + ferdigPanel() + håndPanel();
+  rot.innerHTML = topplinje() + stikksoyle() + bordet() + budPanel() + vrakPanel() + velgPanel() + rundeSluttPanel() + ferdigPanel() + håndrad();
   sistPynt = nåPynt;
   const panel = rot.querySelector(".overlegg > .panel");
   const nøkkel2 = panel?.getAttribute("aria-label") ?? "";
   if (panel !== null && nøkkel2 !== sistPanel) panel.parentElement.classList.add("fersk");
   sistPanel = nøkkel2;
   koble();
+  oppdaterHjul();
 }
 function koble() {
   const lov = lovligeHandlinger(state);
@@ -4843,6 +5054,10 @@ function koble() {
   }
   for (const b of rot.querySelectorAll(".kort:not([disabled])")) {
     b.onclick = () => {
+      if (performance.now() - gestSluttet < KLIKKSPERRE_MS) {
+        gestSluttet = 0;
+        return;
+      }
       const kort = { farge: b.dataset["farge"], verdi: Number(b.dataset["verdi"]) };
       if (lov.fase === "VRAK" && venterPåMenneske) {
         const i = vrakValg.findIndex((v) => v.farge === kort.farge && v.verdi === kort.verdi);
@@ -4882,6 +5097,7 @@ function koble() {
     nytt.focus();
     nytt.onclick = () => startskjerm();
   }
+  koblHjul();
 }
 function startskjerm() {
   const broModus = new URLSearchParams(location.search).get("mester") === "1";
@@ -4906,9 +5122,11 @@ function startskjerm() {
 var sistLayout = "";
 addEventListener("resize", () => {
   if (!state) return;
-  const m = håndmål((state.hender[MENNESKE] ?? []).length);
-  const nøkkel2 = `${m.n}:${m.maks}`;
-  if (nøkkel2 === sistLayout) return;
+  const nøkkel2 = String(kortBredde());
+  if (nøkkel2 === sistLayout) {
+    oppdaterHjul();
+    return;
+  }
   sistLayout = nøkkel2;
   tegn();
 });
