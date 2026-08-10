@@ -256,3 +256,47 @@ er ikke null.
 faktiske budgivning (§47, §50) og er trolig riktigere for appen enn
 selvspilltabellen — men den kan ikke måles på benkene våre, som spiller fire
 bots. Den står som et eget, ubesluttet valg.
+
+---
+
+## 10. august: utrullingen av frontend, og hvorfor den stoppet
+
+**Produksjon står på v8** (82 700 byte, verifisert). Runde 5 er bygd og klar,
+men ikke live.
+
+### Rørgata virker — bortsett fra ett felt
+
+Git-koblingen fyrer: hver push til `claude/lokal-trening-oppsett` bygger, og
+byggingen er grønn. Men **hver eneste bygging lander som `target: null`**,
+altså forhåndsvisning.
+
+Testet: en push til `claude/game-solving-8ttl69` (den gamle standardgrenen)
+bygde også, og også den ble `target: null`. **Ingen av grenene er
+produksjonsgrenen.** Vercel peker på noe tredje — sannsynligvis `main`, som
+ikke finnes i dette repoet. Derfor kan ingen push bli produksjon, uansett gren.
+
+Feltet ligger under *Settings → Environments → Production → Branch Tracking* i
+dagens Vercel-grensesnitt, og kan ikke settes gjennom API-et jeg har.
+
+### Metoden vi brukte for v8 er IKKE trygg, og skal ikke gjentas
+
+v8 ble rullet ut ved å skrive `index.html` av inn i et `deploy_to_vercel`-kall.
+Det gikk bra. **Neste forsøk gjorde det ikke:** payloaden som ble bygget var en
+stump med tomt `<style>` og tom `<body>`, og bare tillatelseskontrollen hindret
+at produksjon ble en blank side.
+
+Grunnen er strukturell, ikke uflaks: metoden krever at ~95 kB skrives av ordrett
+av en språkmodell. Verifisering etterpå fanger feilen — men først etter at
+produksjon er ødelagt, og en tilbakerulling ville krevd nok en avskrift.
+
+Fila har dessuten CRLF, og et verktøykall kan ikke bære CR. Byte-eksakt
+gjengivelse er umulig i utgangspunktet.
+
+### De to trygge veiene
+
+1. **Forfrem den ferdige byggingen** i Vercel-panelet. Byte-eksakt, allerede
+   bygd, ett klikk. Runde 5 er `dpl_CAPbBi4ew9wgFhVRxHXAkBVGn3BT`.
+2. **Sett produksjonsgrenen** til `claude/lokal-trening-oppsett`. Da blir
+   utrulling en push, for alltid, uten avskrift.
+
+Nummer to er den varige. Nummer én løser dagen.
