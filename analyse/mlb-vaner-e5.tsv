@@ -1,0 +1,10 @@
+kandidat	motstander	n	snitt	se	z	pos	neg	seier%	avbrutt%	baand0	baand1	kontroll
+mlb-beste-e5	tren.vane.grisk	400	-9.1825	0.7360	-12.48	108	251	5.5	0.0	-8.540	-9.825	0.0000 OK
+mlb-beste-e5	tren.vane.honnørsulten	400	-17.4100	1.2400	-14.04	78	304	7.8	0.0	-16.460	-18.360	0.0000 OK
+mlb-beste-e5	tren.vane.trumfgjerrig	400	-9.3950	1.3270	-7.08	162	220	34.8	0.0	-10.630	-8.160	0.0000 OK
+mlb-beste-e5	tren.vane.ordentlig	400	-11.3625	0.8437	-13.47	77	291	3.8	0.0	-10.625	-12.100	0.0000 OK
+mlb-beste-e5	test.test.feig	400	8.2425	1.1135	7.40	281	97	59.0	68.0	9.040	7.445	0.0000 OK
+mlb-beste-e5	test.test.trumfsløser	400	14.5575	1.8776	7.75	249	133	32.8	0.3	13.955	15.160	0.0000 OK
+mlb-beste-e5	test.test.middelmådig	400	-0.6700	1.4064	-0.48	237	150	49.5	10.5	-2.565	1.225	0.0000 OK
+mlb-beste-e5	test.test.baklengs	400	7.8550	1.2738	6.17	277	110	57.0	59.0	6.175	9.535	0.0000 OK
+mlb-beste-e5	epoke0.tilfeldig	400	232.6325	8.4559	27.51	371	23	86.3	1.5	217.548	247.718	0.0000 OK

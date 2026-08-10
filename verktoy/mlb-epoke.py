@@ -165,6 +165,7 @@ class Driver:
             "--sjanse", str(self.a.sjanse),
             "--maksrunder", str(self.a.maksrunder),
             "--lambda", str(self.a.lam),
+            "--gamma", str(self.a.gamma),
             "--rapport", f"{self.a.logkatalog}/e{e}-erfaring.txt",
         ]
         return self.kjor("ERFARING", cmd, f"{self.a.logkatalog}/e{e}-erfaring-kjor.txt")[0], ut
@@ -176,6 +177,9 @@ class Driver:
             f"--inn '{erf}-s*.bin' --vekter {arbeid} --ut {kandidat} "
             f"--epoke {e} --lr {self.a.lr} --pass {self.a.gjennomlop} "
             f"--entropi {self.a.entropi} --batch {self.a.batch} "
+            f"--vekt-policy {self.a.vekt_policy} "
+            # BARE FOERSTE EPOKE. Nullstilles hodet hver epoke, laerer det aldri.
+            f"{'--nullstill-verdi ' if (self.a.nullstill_verdi and e == 1) else ''}"
             f"--opt-tilstand {self.a.optimalisator} "
             f"--logg {self.a.gradientlogg} --rapport {self.a.gradientrapport}"
         )
@@ -230,7 +234,13 @@ class Driver:
             for f in (a.optimalisator,):
                 if os.path.exists(f):
                     os.remove(f)
-            self.si(f"START {time.strftime('%Y-%m-%d %H:%M')}  arbeid={a.arbeid} -> beste={a.beste}")
+            # LAMBDA OG GAMMA I HODET PAA DEN VARIGE FILA. To loep med ulik
+            # gamma gir tall som ikke er sammenliknbare, og uten dem her er de
+            # heller ikke gjenkjennelige som ulike naar noen leser fila senere.
+            self.si(
+                f"START {time.strftime('%Y-%m-%d %H:%M')}  arbeid={a.arbeid} -> beste={a.beste}"
+                f"  lambda={a.lam} gamma={a.gamma} lr={a.lr} kamper={a.kamper}"
+            )
 
         t_start = time.time()
         for i in range(a.epoker):
@@ -300,9 +310,20 @@ class Driver:
             )
             if gradrad:
                 g = gradrad["etter"]
+                # FORKLART VARIANS TO GANGER, OG DET ER IKKE PYNT.
+                #
+                # `foer` er maalt paa vekter som aldri har sett disse radene —
+                # det er grunnlinjen slik den FAKTISK var da fordelene ble
+                # regnet. `etter` er maalt i utvalget modellen nettopp trente
+                # paa. §124: epoke 10 sto paa +0,1286 i utvalget og +0,0751 paa
+                # holdout-kamper. Ti epoker ble lest med det optimistiske
+                # tallet, og «verdihodet forklarer 13 %» var derfor for hoeyt.
+                f_ = gradrad.get("foer", {})
                 self.si(
                     f"   tap: policy {g['pol']:.4f}  tro {g['tro']:.4f} (treff {g['treff'] * 100:.1f} %)  "
-                    f"verdi-RMSE {g['rmse']:.3f} (forklart {g['forklart']:+.4f})  "
+                    f"verdi-RMSE {g['rmse']:.3f} (forklart "
+                    f"{tallstr(f_.get('forklart'), '+.4f')} utenfor utvalget / "
+                    f"{g['forklart']:+.4f} i utvalget)  "
                     f"entropi {g['ent']:.4f}  KL={gradrad['kl']:.5f}"
                 )
             if a.timer > 0 and (time.time() - t_start) / 3600 > a.timer:
@@ -326,9 +347,41 @@ def main():
     # fra et verdihode som forklarte -0,97 av variansen, og andelen
     # amerikaner/solo STEG fra 46,6 % til 58,0 % paa en epoke.
     p.add_argument("--lambda", dest="lam", type=float, default=1.0)
+    # DISKONTERINGEN PER RUNDE (§124). 1 er noeyaktig §123s form.
+    #
+    # Maalt paa epoke 10s egne 371 652 rader: med gamma = 1 ligger 99,68 % av
+    # Var(A) MELLOM runder og bare 0,32 % innenfor, og 96,5 % av rundene gir
+    # IDENTISK fortegn paa fordelen til alle sine ~15 valg. Kredittilordningen
+    # var altsaa borte. sd paa rundens poeng er 9,9, sd paa resten av kampen
+    # 61,5 — og en regularisert ridge paa de SAMME trekkene forklarer bare
+    # +0,19 av den halen, saa den kan ikke baselines bort.
+    #
+    # Med gamma = 0,5 blir signal/stoey 1,76 i stedet for 0,16, og
+    # makrotrekkene beholder gradient (neste runde 0,5, den etter 0,25). Aa
+    # gjoere RUNDEN til episoden ville gitt dem null, og K5 kunne aldri blitt
+    # laert — `docs/mlb.md` §2.
+    #
+    # SAMME STANDARD SOM `examples/mlb-erfaring.ts`. Ett tall, ett sted.
+    p.add_argument("--gamma", type=float, default=0.5)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--pass", dest="gjennomlop", type=int, default=1)
     p.add_argument("--entropi", type=float, default=0.01)
+    # VEKTEN PAA POLICYTAPET. 0 gir en VARMEEPOKE: bare verdi og tro trenes.
+    #
+    # Den finnes fordi gamma FLYTTER VERDIMAALET. Med gamma = 1 hadde `G` snitt
+    # -50 og spredning 63; med 0,5 er den -5,6 og 12. Et verdihode som er trent
+    # paa den gamle skalaen spaar da systematisk feil, og fordelen `G^y - V`
+    # ville vaert dominert av hodets egen skalafeil i den foerste epoken —
+    # policyen ville tatt et fullt steg paa stoey foer grunnlinjen rakk aa
+    # flytte seg. En varmeepoke koster en epoke og fjerner hele den risikoen.
+    p.add_argument("--vekt-policy", type=float, default=1.0)
+    # NULLSTILL VERDIHODET I FOERSTE EPOKE (§124). Se `mlb-gradient.py`.
+    #
+    # Trengs naar `--gamma` endres, fordi maalets SKALA da flytter seg og
+    # korreksjonen ellers gaar gjennom den DELTE stammen og river policyen med
+    # seg. Foerste forsoek brukte `--vekt-policy 0` i stedet, og det gjorde
+    # nettopp det: styrken falt fra +16 til -760 poeng paa en epoke.
+    p.add_argument("--nullstill-verdi", action="store_true")
     p.add_argument("--batch", type=int, default=1024)
     # ===================== FROEBAANDENE, AVSATT FOER FOERSTE KAMP =========
     #

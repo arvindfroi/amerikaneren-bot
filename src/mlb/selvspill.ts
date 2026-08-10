@@ -327,12 +327,63 @@ export function tdFordel(
  * for å velge én gang for alle.
  *
  * `test/mlb-epoke.test.ts` krever at de to endepunktene stemmer eksakt.
+ *
+ * ===================== OG SÅ MÅLTE §124 HVA λ = 1 KOSTET ===============
+ *
+ * λ = 1 gjør fordelen til `A_t = G_t − V(s_t)`, og `G_t = sluttpoeng[sete] −
+ * poengFør` er **bit-identisk for hver eneste beslutning i samme runde** —
+ * `poengFør` endrer seg jo bare ved rundeslutt. Forskjellen i fordel mellom to
+ * kortvalg i samme runde er derfor NØYAKTIG `V(s_2) − V(s_1)` og ingenting
+ * annet.
+ *
+ * Målt på epoke 10s egne 371 652 rader (`analyse/mlb-fordel-diagnose.txt`):
+ *
+ *   99,68 % av Var(A) ligger MELLOM runder, 0,32 % innenfor
+ *   96,5 % av rundene gir IDENTISK fortegn på fordelen til alle sine valg
+ *   sd(rundens poeng) = 9,9  mot  sd(resten av kampen) = 61,5
+ *
+ * Altså: λ = 1 tok kredittilordningen ut igjen. `docs/mlb.md` §2 kalte det
+ * «kredittproblemet, som utkastet gikk rett forbi» og løste det med TD; §123
+ * satte λ = 1 for å redde budrunden fra et verdihode som forklarte −0,97, og
+ * fikk problemet tilbake uten at noe feilet.
+ *
+ * ===================== γ: DEMP HALEN, IKKE KUTT DEN ====================
+ *
+ *     δ_t = r_t + γ_t · V(s_{t+1}) − V(s_t)
+ *     A_t = δ_t + γ_t · λ · A_{t+1}
+ *
+ * `γ_t` er `gamma` NÅR OG BARE NÅR steget krysser et rundeskille, ellers 1.
+ * Poeng faller bare ved rundeslutt, så runden er den naturlige enheten — en
+ * diskontering per BESLUTNING ville straffet et sent kortvalg i runden mot et
+ * tidlig, og det er ikke en forskjell vi mener noe om.
+ *
+ * Hvorfor ikke bare et bedre verdihode? Fordi taket er målt: en regularisert
+ * ridge på de SAMME 1 032 trekkene forklarer **+0,19** av resten av kampen på
+ * holdout. Fire femtedeler av halen er altså ikke grunnlinjebar bort — den er
+ * uforutsigbar, og den eneste veien ut er å veie den ned.
+ *
+ * Hvorfor ikke gjøre RUNDEN til episoden? Fordi da får makrotrekkene eksakt
+ * null gradient, og K5 kunne aldri blitt lært — `docs/mlb.md` §2, og den
+ * revisjonen var alvorlig. Med γ = 0,5 veier neste runde 0,5, den etter 0,25:
+ * makro beholder gradient, den er bare ikke lenger 6× større enn signalet.
+ *
+ * Målt på de samme radene, for verdimålet `G^γ`:
+ *
+ *   | γ | sd(halen) | signal/støy | ridge R² på målet |
+ *   |---|---|---|---|
+ *   | 1,0 | 61,5 | 0,16 | +0,19 |
+ *   | 0,7 |  9,5 | 1,04 | +0,36 |
+ *   | 0,5 |  5,6 | 1,76 | +0,48 |
+ *   | 0,3 |  3,1 | 3,24 | +0,56 |
+ *
+ * `gamma = 1` er identiteten, og hele §123s tallgrunnlag er reproduserbart.
  */
 export function gaeFordel(
   rader: readonly Beslutningsrad[],
   fasit: Kampfasit,
   verdi: (rad: Beslutningsrad) => number,
   lambda: number,
+  gamma = 1,
 ): Float64Array {
   const ut = new Float64Array(rader.length);
   // BAKLENGS, fordi `A_t` avhenger av `A_{t+1}`. Rekkefølgen i `rader` er
@@ -345,9 +396,54 @@ export function gaeFordel(
     const poengEtter =
       neste !== null ? neste.poengFør : (fasit.sluttpoeng[rad.sete] ?? rad.poengFør);
     const r = poengEtter - rad.poengFør;
+    const γ = γSteg(rad, neste, gamma);
     const vNeste = neste !== null ? verdi(neste) : 0;
-    const δ = r + vNeste - verdi(rad);
-    ut[i] = δ + lambda * (j >= 0 ? (ut[j] ?? 0) : 0);
+    const δ = r + γ * vNeste - verdi(rad);
+    ut[i] = δ + γ * lambda * (j >= 0 ? (ut[j] ?? 0) : 0);
+  }
+  return ut;
+}
+
+/**
+ * Diskonteringen for ETT steg: `gamma` bare når steget krysser et rundeskille.
+ *
+ * Skillet leses av `rundeNr`, ikke av «falt det poeng her» — en runde kan gi
+ * null poeng, og da hadde en `r !== 0`-test stille latt halen gå udiskontert
+ * gjennom nettopp de rundene som var jevnest.
+ */
+const γSteg = (
+  rad: Beslutningsrad,
+  neste: Beslutningsrad | null,
+  gamma: number,
+): number => (neste !== null && neste.rundeNr > rad.rundeNr ? gamma : 1);
+
+/**
+ * VERDIMÅLET, med samme diskontering som fordelen.
+ *
+ *     G_t = r_t + γ_t · G_{t+1}
+ *
+ * Den MÅ regnes her og ikke i kalleren: er de to uenige om γ, er `A = G − V`
+ * ikke lenger et TD-residual til noe konsistent mål, og fordelen får en
+ * systematisk skjevhet uten at noe feiler. Det er nøyaktig feilen §123 punkt 1
+ * beskriver, bare med γ i stedet for `r`.
+ *
+ * Med `gamma = 1` gir den EKSAKT `sluttpoeng[sete] − poengFør`, som er det
+ * `examples/mlb-erfaring.ts` regnet i hånden før §124. Testen krever det.
+ */
+export function diskontertRetur(
+  rader: readonly Beslutningsrad[],
+  fasit: Kampfasit,
+  gamma: number,
+): Float64Array {
+  const ut = new Float64Array(rader.length);
+  for (let i = rader.length - 1; i >= 0; i--) {
+    const rad = rader[i]!;
+    const j = rad.nesteISete;
+    const neste = j >= 0 ? rader[j]! : null;
+    const poengEtter =
+      neste !== null ? neste.poengFør : (fasit.sluttpoeng[rad.sete] ?? rad.poengFør);
+    const r = poengEtter - rad.poengFør;
+    ut[i] = r + γSteg(rad, neste, gamma) * (j >= 0 ? (ut[j] ?? 0) : 0);
   }
   return ut;
 }

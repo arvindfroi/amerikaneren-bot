@@ -38,6 +38,18 @@
  * sluttpoeng som etikett hadde `r` blitt talt to ganger, og fordelen ville hatt
  * en systematisk skjevhet på nøyaktig rundens poeng. Se §123.
  *
+ * ===================== §124: OG «RESTEN» ER FOR MYE ====================
+ *
+ * `sluttpoeng[sete] − poengFør` er BIT-IDENTISK for hver beslutning i samme
+ * runde. Med `--lambda 1` er fordelen `G − V`, og da bærer 99,68 % av
+ * variansen ingen informasjon om hvilket KORT som var bra — den dytter hele
+ * runden i samme retning. 96,5 % av rundene får identisk fortegn på alle sine
+ * valg. Se `analyse/mlb-fordel-diagnose.txt` og `gaeFordel`.
+ *
+ * `--gamma` demper halen. Både fordelen og verdimålet regnes nå med samme γ,
+ * og de regnes av SAMME funksjonspar i `selvspill.ts` — to steder med hver sin
+ * γ ville gitt en skjevhet som ikke feiler noe sted.
+ *
  * ===================== ANDELEN, OG HVORFOR DEN ER NØDVENDIG =============
  *
  * 5 000 kamper gir ~2,0 M kandidatrader. Som trekkvektorer i float32 er det
@@ -58,6 +70,7 @@ import { Sandkassenett } from "../src/mlb/nett.ts";
 import { HANDLING_LENGDE } from "../src/mlb/handling.ts";
 import { TREKK_LENGDE } from "../src/mlb/trekk.ts";
 import {
+  diskontertRetur,
   gaeFordel,
   gjenspill,
   kamploggFraLinje,
@@ -88,6 +101,20 @@ let rapportfil = "analyse/mlb-erfaring.txt";
  * verdihodet forklarer noe.
  */
 let lambda = 1.0;
+/**
+ * DISKONTERINGEN PER RUNDE. 1 = §123s form, hele resten av kampen udempet.
+ *
+ * Standarden er 0,5 fordi §124 målte at 1 tar kredittilordningen ut: sd på
+ * rundens poeng er 9,9, sd på resten av kampen 61,5, og en regularisert ridge
+ * på de samme trekkene forklarer bare +0,19 av den halen. Den kan altså ikke
+ * baselines bort — den må veies ned. Med γ = 0,5 blir signal/støy 1,76 i
+ * stedet for 0,16, og makrotrekkene beholder gradient (neste runde 0,5, den
+ * etter 0,25), så K5 overlever.
+ *
+ * SAMME STANDARD HER OG I `verktoy/mlb-epoke.py`. To standarder for samme tall
+ * er hvordan «det målte og det utrullede var ikke samme ting» oppstår.
+ */
+let gamma = 0.5;
 
 const tall = (v: string | undefined, navn: string): number => {
   const x = Number(v);
@@ -106,6 +133,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--maksrunder") maksRunder = tall(v, "--maksrunder");
   else if (a === "--rapport") rapportfil = v ?? rapportfil;
   else if (a === "--lambda") lambda = tall(v, "--lambda");
+  else if (a === "--gamma") gamma = tall(v, "--gamma");
   else if (a === "--skard") {
     const d = (v ?? "0/1").split("/");
     skardI = tall(d[0], "--skard i");
@@ -129,8 +157,9 @@ if (nettsti === null) throw new Error("--nett er påkrevd: fordelen trenger nett
  *   lovlige    i16    < 2 betyr at raden ikke bærer noen policygradient
  *   fase       i16    0 bud, 1 vrak, 2 velg, 3 spill
  *   sete       i16
- *   fordel     f32    A = r + V(s') − V(s)
- *   verdimål   f32    sluttpoeng[sete] − poengFør  (resten av kampen)
+ *   fordel     f32    A = r + γ·V(s') − V(s), akkumulert med λ (og γ)
+ *   verdimål   f32    G^γ = r + γ·G^γ(neste). Med γ = 1 er det eksakt
+ *                     `sluttpoeng[sete] − poengFør`, altså §123s form.
  *   vFør       f32    nettets eget V(s) da raden ble laget — for diagnostikk
  */
 const MASKE_LENGDE = HANDLING_LENGDE;
@@ -251,7 +280,9 @@ function kjørSkard(i: number, n: number): void {
       const rader = erfaring.rader;
       s.kamper++;
       s.rader += rader.length;
-      const fordeler = gaeFordel(rader, erfaring.fasit, (x) => x.verdi ?? 0, lambda);
+      const fordeler = gaeFordel(rader, erfaring.fasit, (x) => x.verdi ?? 0, lambda, gamma);
+      // MÅLET REGNES AV SAMME γ SOM FORDELEN, i samme fil, i samme kall.
+      const mål = diskontertRetur(rader, erfaring.fasit, gamma);
 
       // Utvalget er deterministisk av kampens frø — to kjøringer gir samme fil.
       const rng = lagRng((logg.frø ^ 0x51ed_270b) >>> 0);
@@ -259,14 +290,14 @@ function kjørSkard(i: number, n: number): void {
         const rad: Beslutningsrad = rader[r]!;
         const v = rad.verdi ?? 0;
         const fordel = fordeler[r]!;
-        const mål = (erfaring.fasit.sluttpoeng[rad.sete] ?? 0) - rad.poengFør;
+        const m = mål[r]!;
 
         s.sumFordel += fordel;
         s.sumAbsFordel += Math.abs(fordel);
-        s.sumMål += mål;
+        s.sumMål += m;
         s.sumV += v;
-        s.sumKvadMål += mål * mål;
-        s.sumKvadFeil += (mål - v) * (mål - v);
+        s.sumKvadMål += m * m;
+        s.sumKvadFeil += (m - v) * (m - v);
         if (rad.lovlige > 1) s.medValg++;
 
         if (rng() > sjanse) continue;
@@ -289,7 +320,7 @@ function kjørSkard(i: number, n: number): void {
         buf.writeInt16LE(rad.sete, o + 6);
         o += 8;
         buf.writeFloatLE(fordel, o);
-        buf.writeFloatLE(mål, o + 4);
+        buf.writeFloatLE(m, o + 4);
         buf.writeFloatLE(v, o + 8);
 
         iKlump++;
@@ -316,7 +347,11 @@ if (skardI >= 0) {
   writeFileSync(
     rapportfil,
     `mlb-erfaring startet ${new Date().toISOString()}\n` +
-      `inn=${innMønster} nett=${nettsti} ut=${ut} sjanse=${sjanse} kjerner=${kjerner}\n`,
+      `inn=${innMønster} nett=${nettsti} ut=${ut} sjanse=${sjanse} kjerner=${kjerner}\n` +
+      // λ og γ MÅ stå i den varige fila. To epoker med ulik γ gir tall som
+      // ikke er sammenliknbare, og uten dem i loggen er de heller ikke
+      // gjenkjennelige som ulike.
+      `lambda=${lambda} gamma=${gamma} maksrunder=${maksRunder}\n`,
   );
   const t0 = Date.now();
   const deler: Sammendrag[] = [];

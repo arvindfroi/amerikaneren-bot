@@ -25,6 +25,7 @@ import { HANDLING_LENGDE } from "../src/mlb/handling.ts";
 import { Sandkassenett } from "../src/mlb/nett.ts";
 import { TREKK_LENGDE } from "../src/mlb/trekk.ts";
 import {
+  diskontertRetur,
   gjenspill,
   kamploggFraLinje,
   kamploggTilLinje,
@@ -112,6 +113,111 @@ test("GAE-endepunktene: lambda 0 er TD, lambda 1 er faktisk minus ventet", () =>
     );
   }
   assert.ok(e.rader.length > 20, "for få rader");
+});
+
+// ===========================================================================
+// 1b. DISKONTERINGEN (§124) — γ = 1 må være identiteten, og γ < 1 må dempe
+// ===========================================================================
+
+test("gamma = 1 gir eksakt sluttpoeng minus poengFoer", () => {
+  const frø = 5_650_007;
+  const e = spillKamp({ frø, seter: bord(frø, 1), målPoeng: MÅL, maksRunder: MAKS_RUNDER });
+  const g = diskontertRetur(e.rader, e.fasit, 1);
+  let verste = 0;
+  for (let i = 0; i < e.rader.length; i++) {
+    const rad = e.rader[i]!;
+    const fasit = (e.fasit.sluttpoeng[rad.sete] ?? 0) - rad.poengFør;
+    verste = Math.max(verste, Math.abs(g[i]! - fasit));
+  }
+  assert.ok(e.rader.length > 20, "for få rader");
+  // Er denne ikke 0, er hele §123s tallgrunnlag ikke lenger reproduserbart.
+  assert.ok(verste < 1e-9, `gamma=1 avvek ${verste} fra «resten av kampen»`);
+});
+
+test("identiteten A = G^gamma - V holder for lambda = 1, ogsaa naar gamma < 1", () => {
+  const frø = 5_650_019;
+  const e = spillKamp({ frø, seter: bord(frø, 2), målPoeng: MÅL, maksRunder: MAKS_RUNDER });
+  const rng = lagRng(90_210);
+  const v = new Map<Beslutningsrad, number>(e.rader.map((r) => [r, (rng() - 0.5) * 40]));
+  const V = (r: Beslutningsrad): number => v.get(r) ?? 0;
+
+  for (const gamma of [1, 0.7, 0.5, 0.3, 0]) {
+    const a = gaeFordel(e.rader, e.fasit, V, 1, gamma);
+    const g = diskontertRetur(e.rader, e.fasit, gamma);
+    for (let i = 0; i < e.rader.length; i++) {
+      const venta = g[i]! - V(e.rader[i]!);
+      assert.ok(
+        Math.abs(a[i]! - venta) < 1e-9,
+        `gamma ${gamma}, rad ${i}: A = ${a[i]}, G^γ − V = ${venta}`,
+      );
+    }
+  }
+  assert.ok(e.rader.length > 20, "for få rader");
+});
+
+/**
+ * γ SKAPER IKKE KREDITT INNAD I RUNDEN — DEN SKRUMPER STØYEN RUNDT DEN.
+ *
+ * Første utkast av denne prøven brukte `V ≡ 0` og krevde at γ < 1 flyttet
+ * varians inn i runden. Den ble rød, og den hadde rett: med `V ≡ 0` er
+ * `A = G^γ`, og `G^γ` er KONSTANT innenfor en runde uansett γ. Forskjellen
+ * mellom to valg i samme runde er `V(s_2) − V(s_1)` og ingenting annet — for
+ * enhver γ.
+ *
+ * Det γ gjør er å krympe det som ligger MELLOM runder, altså nevneren.
+ * Kreditten innad i runden er uendret i absolutte tall, men den drukner ikke
+ * lenger — og etter standardiseringen i `mlb-gradient.py` (`A` deles på sin
+ * egen spredning) er det nøyaktig forholdet som avgjør hvor mye av steget som
+ * peker på KORTET i stedet for på RUNDEN.
+ *
+ * Prøven bruker derfor en `V` som varierer innenfor runden, og krever at
+ * andelen stiger uten at telleren rører seg.
+ */
+test("gamma < 1 krymper stoeyen rundt kredittilordningen, ikke kreditten", () => {
+  const frø = 5_650_031;
+  const e = spillKamp({ frø, seter: bord(frø, 0), målPoeng: MÅL, maksRunder: MAKS_RUNDER });
+  // Et verdianslag som FAKTISK varierer gjennom runden, slik et virksomt
+  // verdihode ville gjort: «hvor langt er runden kommet».
+  const V = (r: Beslutningsrad): number => r.stikkSpilt * 3;
+
+  const oppdeling = (a: Float64Array): { innen: number; mellom: number } => {
+    const grupper = new Map<string, number[]>();
+    for (let i = 0; i < e.rader.length; i++) {
+      const r = e.rader[i]!;
+      const nøkkel = `${r.sete}:${r.rundeNr}`;
+      let v = grupper.get(nøkkel);
+      if (v === undefined) grupper.set(nøkkel, (v = []));
+      v.push(a[i]!);
+    }
+    const alle = [...a];
+    const snitt = alle.reduce((x, y) => x + y, 0) / alle.length;
+    const tot = alle.reduce((x, y) => x + (y - snitt) ** 2, 0) / alle.length;
+    let innen = 0;
+    for (const v of grupper.values()) {
+      const s = v.reduce((x, y) => x + y, 0) / v.length;
+      for (const x of v) innen += (x - s) ** 2;
+    }
+    innen /= alle.length;
+    return { innen, mellom: tot - innen };
+  };
+
+  const helt = oppdeling(gaeFordel(e.rader, e.fasit, V, 1, 1));
+  const dempet = oppdeling(gaeFordel(e.rader, e.fasit, V, 1, 0.5));
+
+  // TELLEREN RØRER SEG IKKE. Kreditten innad i runden er `V`-differansen, og
+  // den er den samme for begge γ.
+  assert.ok(
+    Math.abs(helt.innen - dempet.innen) < 1e-9,
+    `innenfor-variansen endret seg: ${helt.innen} mot ${dempet.innen}`,
+  );
+  // NEVNEREN KRYMPER. Det er hele virkningen, og den er stor.
+  assert.ok(
+    dempet.mellom < helt.mellom * 0.5,
+    `gamma=0,5 krympet ikke stoeyen mellom runder (${dempet.mellom} mot ${helt.mellom})`,
+  );
+  const før = helt.innen / (helt.innen + helt.mellom);
+  const etter = dempet.innen / (dempet.innen + dempet.mellom);
+  assert.ok(etter > før * 1.5, `andelen innenfor steg ikke nok: ${før} -> ${etter}`);
 });
 
 test("summen av r over ett sete er setets kamppoeng", () => {

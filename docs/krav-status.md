@@ -231,3 +231,40 @@ som koster poeng i sluttspillet.
 4. **K3 til slutt**, med budet inne i samme nett. Etter Arvinds rekkefølge.
 
 **K2 skal holde gjennom hvert eneste steg**, ikke sjekkes til slutt.
+
+---
+
+## MLB mot `rask` — avgjort, og det sto der allerede (§124)
+
+`rask` i `examples/matrise.ts` og `ADAMS_MAALT` i `src/moe2/agentspek.ts` er
+**samme streng, tegn for tegn**. Stigens `adams`-rad ER altså `rask`-raden, og
+avbruddskriteriets punkt 2 var avgjort før §123 ble skrevet.
+
+| vekter | mot `rask` | mot `nevro` | mot tilfeldig |
+|---|---|---|---|
+| start (tilfeldige vekter) | −90,88 ± 1,55 | −45,98 ± 1,96 | −59,21 ± 2,67 |
+| epoke 5 | −3,63 ± 0,49 | −3,76 ± 0,50 | +8,88 ± 1,38 |
+| epoke 9 | **−3,59 ± 0,50** | −3,84 ± 0,48 | +8,59 ± 1,38 |
+| γ = 0,5, 7 epoker fra epoke 5 | −3,43 ± 0,48 | −3,09 ± 0,50 | +10,22 ± 1,36 |
+
+**MLB slår ikke `rask`.** Den taper 3,6 poeng per giv, parret, med
+kontrollarmen på 0,0000. 96 % av gapet fra tilfeldige vekter ble lukket på fem
+epoker; de siste 4 % har ikke rørt seg på ni.
+
+MLB er likevel **ikke** falt på avbruddskriteriet: punkt 1 (≥ 30 epoker eller
+48 timer) og punkt 3 (flat kurve de siste ti) er ikke innfridd.
+
+### Og porten måler mot den svake halvparten
+
+`VANER_TRENING` spiller HØYT, `VANER_TEST` spiller LAVT, og å spille høyt er
+klart sterkere. Porten og `STYRKE` dømmer begge på `VANER_TEST`. Samme vekter,
+epoke 10 (`analyse/mlb-motalle-del1.tsv`, 600 giv per motstander):
+
+| | tall |
+|---|---|
+| STYRKE mot `VANER_TEST` | +22,8 poeng, seier **43,0 %** |
+| mot `VANER_TRENING`, hver for seg | −7,5 / −7,2 / −5,4 / +3,3, seier **0,5–51,8 %** |
+
+Den disjunktheten K6 krever ble samtidig en styrkesplitt, uten at det var
+tilsiktet. Det påvirker ikke K6-tallene i seg selv, men det betyr at **ingen av
+de interne kurvene i §123 kan leses som framgang mot noe som er verdt å slå.**

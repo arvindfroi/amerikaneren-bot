@@ -9496,3 +9496,479 @@ mot. Avbruddskriteriets punkt 2 — «beste epoke slår ikke `rask` parret, over
 Adams-stakken i et sete utenfor herkomstgrensen. Det er det ene tallet som
 avgjør om MLB er på vei mot noe; de ti epokene her sier bare at den er på vei
 bort fra ingenting.
+
+---
+
+## §124 — MLB-kurven flatet ut: kredittilordningen var borte, og «rask» var alt målt
+
+§123 endte med to setninger som begge var feil, og den ene av dem hadde stått
+feil i en dag: «`rask` er fortsatt ikke målt mot», og «verdihodet forklarer
+13 %». Denne økta målte hvorfor kurven sto stille fra epoke 5 til 10, og begge
+setningene falt underveis.
+
+### Utgangspunktet: framgangen var ekte, og den stoppet
+
+Mot det faste ytre panelet i `examples/mlb-stigen.ts` — gate 2, kontrollarm
+0,0000 i hver rad:
+
+| vekter | mot tilfeldig | mot nevro | mot `ADAMS_MAALT` |
+|---|---|---|---|
+| start | −59,21 | −45,98 | −90,88 |
+| epoke 5 | +8,88 | −3,76 | **−3,63** |
+| epoke 9 | +8,59 | −3,84 | **−3,59** |
+
+96 % av gapet lukket på fem epoker, og så ingenting på fire. Internt strammet
+det til samtidig: portens z falt fra +8,45 til +0,77, entropien fra 1,2480 til
+1,2197, KL fra 0,0073 til 0,0061.
+
+### FUNN 0: `rask` OG `ADAMS_MAALT` ER SAMME STRENG, TEGN FOR TEGN
+
+`examples/matrise.ts:100` bygger `rask` av `${VR}:${BUD}:${NETT}`. Satt sammen
+er det
+
+```
+vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+```
+
+og det er ordrett `ADAMS_MAALT` i `src/moe2/agentspek.ts:107`. Stigens
+`adams`-rad ER altså `rask`-raden.
+
+**Avbruddskriteriets punkt 2 var dermed avgjort før §123 ble skrevet.** Beste
+epoke slår ikke `rask`: den taper **3,59 ± 0,50 poeng per giv (z = −7,15)**,
+parret på kortene, med kontrollarmen på 0,0000. Punkt 1 (≥ 30 epoker eller
+48 timer) og punkt 3 (flat kurve de siste ti) er ikke innfridd, så MLB er
+**ikke** falt på kriteriet — men det tallet som «avgjør om MLB er på vei mot
+noe» lå i `analyse/mlb-stigen-ekte.tsv` hele tiden, under et annet navn.
+
+Femtende forekomst av prosjektets mest gjentatte feilklasse, med et nytt
+ansikt: ikke «det målte var ikke det jeg mente å måle», men **det jeg mente å
+måle var allerede målt, under et annet navn.**
+
+### FUNN 1: λ = 1 TOK KREDITTILORDNINGEN UT, OG INGENTING SA FRA
+
+`docs/mlb.md` §2 kaller det «kredittproblemet, som utkastet gikk rett forbi»:
+en runde har ~12 kortvalg og ett utfall, og gir man alle valgene samme `A`,
+lærer nettet korrelasjon, ikke årsak. AVGJØRELSE 3 løste det med TD.
+
+§123 satte λ = 1 for å redde budrunden fra et verdihode som forklarte −0,97 —
+og **gjenopprettet dermed nøyaktig det problemet AVGJØRELSE 3 var til for.**
+Regnestykket er en identitet, ikke en hypotese:
+
+```
+λ = 1   ⇒   A_t = G_t − V(s_t)
+G_t = sluttpoeng[sete] − poengFør(t)
+poengFør endrer seg BARE ved rundeslutt
+⇒ G_t er BIT-IDENTISK for hver beslutning i samme runde
+⇒ A_2 − A_1 = V(s_1) − V(s_2), og ingenting annet
+```
+
+Målt på epoke 10s egne 371 652 rader (`verktoy/mlb-fordel-diagnose.py`,
+`analyse/mlb-fordel-diagnose.txt`), med `max |A − (G − V)| = 0,0000` som prøve
+på at λ faktisk var 1:
+
+| | |
+|---|---|
+| Var(A) **mellom** runder | **99,68 %** |
+| Var(A) **innenfor** runder | **0,32 %** |
+| runder der alle valg får identisk fortegn på A | **96,5 %** |
+| sd(rundens poeng) | **9,9** |
+| sd(resten av kampen) | **61,5** |
+
+Nettet kunne altså lære «denne runden gikk bra» — nok til å slutte med
+`amerikaner` og `solo`, som er nøyaktig det som skjedde i epoke 1–5 — men det
+kunne aldri lære «dette kortet var det gode». Kurven flatet ut da rundenivået
+var lært, fordi det ikke fantes noe annet nivå i gradienten.
+
+### FUNN 2: «FORKLART VARIANS» VAR MÅLT I UTVALGET DEN NETTOPP TRENTE PÅ
+
+`mlb-gradient.py` måler `etter` på `kl_idx`, som trekkes fra de samme radene
+steget ble tatt på. Epoketabellen i §123 leste det tallet.
+
+| epoke 10, samme vekter | forklart |
+|---|---|
+| i utvalget (`etter`, det §123 rapporterte) | **+0,1286** |
+| utenfor utvalget (`foer` — vekter som aldri så radene) | **+0,0876** |
+| på holdout-KAMPER | **+0,0751** |
+
+Grunnlinjen var altså svakere enn ti epoker med rapporter sa. Begge tall står
+nå i rapportlinja, hver med sitt navn.
+
+### FUNN 3: HODET KAN IKKE BLI «MYE BEDRE» — TAKET ER MÅLT
+
+Den billigste testen var å spørre hvor mye av resten av kampen som i det hele
+tatt LAR seg forutsi fra de 1 032 trekkene. En regularisert ridge på nøyaktig
+de samme inngangene, med holdout splittet på KAMP og ikke på rad:
+
+| mål | sd | ridge R² | MLP R² | verdihodet |
+|---|---|---|---|---|
+| **G — resten av kampen** | 62,70 | **+0,1915** | +0,0758 | +0,0751 |
+| G klippet på ±2 sd | 49,35 | +0,1995 | +0,0526 | — |
+| **r — rundens poeng** | 10,67 | **+0,6014** | +0,6551 | — |
+| resten ETTER runden | 61,47 | +0,1746 | +0,0183 | — |
+
+Tre kandidatfikser dør her, og de dør på tall:
+
+- **Klipping kjøper 0,008.** Halen er ikke et utliggerproblem.
+- **Separate hoder for kontrakt og forsvar kjøper ingenting.** sd(G) er 62,30
+  mot 60,29, og et eget hode gir +0,1763 / +0,1779 mot et felles +0,1844 /
+  +0,1764 — det egne hodet er *dårligere* for kontraktsiden, som har minst
+  data. De to rollene har ikke ulike utfallsfordelinger.
+- **«Hodet kan sannsynligvis bli mye bedre» holder ikke.** Det kan omtrent
+  dobles, fra 0,075 til taket på 0,19. Fire femtedeler av resten av kampen er
+  ikke forutsigbar fra lovlig informasjon, og kan derfor **ikke baselines
+  bort.**
+
+Men rundens poeng er **tre ganger** så forutsigbart som resten av kampen. Det
+er ikke hodet som er for svakt. **Det er målet som er for langt.**
+
+### FIKSEN: γ — DEMP HALEN, IKKE KUTT DEN
+
+```
+δ_t = r_t + γ_t · V(s_{t+1}) − V(s_t)
+A_t = δ_t + γ_t · λ · A_{t+1}
+G_t = r_t + γ_t · G_{t+1}
+```
+
+`γ_t` er `gamma` **når og bare når steget krysser et rundeskille**, ellers 1.
+Poeng faller bare ved rundeslutt, så runden er den naturlige enheten; en
+diskontering per beslutning ville straffet et sent kortvalg mot et tidlig, og
+det er ikke en forskjell vi mener noe om.
+
+Målt på de samme radene:
+
+| γ | sd(halen) | signal/støy | ridge R² på målet |
+|---|---|---|---|
+| 1,0 | 61,5 | 0,16 | +0,19 |
+| 0,9 | 20,3 | 0,49 | +0,21 |
+| 0,7 | 9,5 | 1,04 | +0,36 |
+| **0,5** | **5,6** | **1,76** | **+0,48** |
+| 0,3 | 3,1 | 3,24 | +0,56 |
+| 0,0 | 0,0 | — | +0,60 |
+
+**Hvorfor ikke bare gjøre RUNDEN til episoden?** Fordi makrotrekkene da får
+eksakt null gradient og K5 aldri kunne blitt lært — `docs/mlb.md` §2, og den
+revisjonen var alvorlig. Med γ = 0,5 veier neste runde 0,5 og den etter 0,25:
+makro beholder gradient, den er bare ikke lenger seks ganger større enn
+signalet.
+
+**Og en presisering prøven tvang fram.** Første utkast av
+`test/mlb-epoke.test.ts` krevde at γ < 1 flyttet varians INN i runden. Den ble
+rød, og den hadde rett: med `V ≡ 0` er `A = G^γ`, som er konstant innenfor
+runden for enhver γ. **γ skaper ikke kreditt innad i runden — den krymper
+nevneren.** Kreditten er og blir `V`-differansen; γ gjør at den ikke drukner,
+og — viktigere — at `V` får et mål den kan lære (0,48 mot 0,19), slik at
+differansen faktisk betyr noe. Prøven krever nå begge deler: at telleren står
+stille og at nevneren halveres.
+
+Valget er ikke gratis. γ endrer målet: boten maksimerer ikke lenger kampens
+utfall eksakt, men en geometrisk vektet utgave. Det er en reell kostnad, og
+den skal dømmes på stigen — ikke på om målet er pent.
+
+Kode: `gaeFordel` fikk `gamma`, og `diskontertRetur` er ny og regner
+verdimålet med SAMME γ i samme fil (`src/mlb/selvspill.ts`). To steder med hver
+sin γ ville gitt fordelen en skjevhet som ikke feiler noe sted — §123 punkt 1,
+bare med γ i stedet for `r`. `--gamma` går gjennom `examples/mlb-erfaring.ts`
+og `verktoy/mlb-epoke.py`, og står i hodet på begge de varige filene.
+`gamma = 1` er identiteten, og hele §123s tallgrunnlag er reproduserbart.
+
+### FUNN 4: HYPOTESE B VAR IKKE BARE FEIL — DEN VAR SNUDD
+
+Hypotesen var at befolkningen er METTET: nettet slår alle, og da finnes det
+ikke mer signal. `examples/mlb-motalle.ts` setter kandidaten i ett sete og TRE
+kopier av én motstander i de andre, parret på givene, i to disjunkte frøbånd,
+med motstanderen mot seg selv som kontrollarm. Kontrollen traff **0,0000 på
+hver eneste rad**.
+
+Epoke 10, 600 giv per motstander (`analyse/mlb-motalle-del1.tsv`):
+
+| motstander | poeng | z | seier % |
+|---|---|---|---|
+| **`tren.vane.grisk`** | **−7,54 ± 0,42** | −17,9 | **0,5 %** |
+| **`tren.vane.ordentlig`** | **−7,20 ± 0,44** | −16,3 | **0,5 %** |
+| **`tren.vane.honnørsulten`** | **−5,41 ± 0,50** | −10,8 | **12,7 %** |
+| `tren.vane.trumfgjerrig` | +3,35 ± 0,52 | +6,4 | 51,8 % |
+| `test.test.middelmådig` | +15,21 ± 0,43 | +35,2 | 91,3 % |
+| `test.test.trumfsløser` | +21,38 ± 1,35 | +15,9 | 35,3 % |
+| `test.test.feig` | +27,79 ± 0,24 | +117,4 | 96,2 % |
+| `test.test.baklengs` | +28,83 ± 0,18 | +156,1 | 94,8 % |
+| epoke 0 (tilfeldig) | +233,5 ± 6,7 | +34,9 | 87,2 % |
+| epoke 1 / 3 / 4 | +136,6 / +141,3 / +149,2 | > +23 | > 72 % |
+| startvektene | +337,2 ± 4,0 | +85,3 | 96,3 % |
+
+**Nettet taper mot tre av de fire vanene det trener mot, og vinner 0,5 % av
+kampene mot to av dem.** Ligaen er alt annet enn tom for utfordring.
+
+Og så står det ved siden av: mot alle fire TESTvanene vinner det med +15 til
++29. Forskjellen er ikke tilfeldig, den er bygd inn i `src/mlb/liga.ts`:
+
+```
+// ---- de fire som spiller HØYT (treningssettet) ----
+høyest, honnørFørst, sparTrumf, fargeordenHøy
+// ---- de fire som spiller LAVT (testsettet) ----
+lavest, trumfSløseri, midt, fargeordenLav
+```
+
+**Splitten mellom trening og test er sammenfallende med splitten mellom sterk
+og svak.** Å spille høyt er en langt bedre strategi enn å spille lavt, og det
+disjunkte settet K6 krever ble derfor også et SVAKERE sett.
+
+### OG DET ER DEN ANDRE BINDENDE SKRANKEN: PORTEN DØMMER PÅ DET SVAKE HALVE
+
+`examples/mlb-port.ts` dømmer på `VANER_TEST`, og `STYRKE` i epoketabellen er
+poeng mot de samme fire. Begge tallene måler altså mot nøyaktig den halvparten
+nettet allerede har mettet.
+
+| samme vekter, samme epoke | tallet |
+|---|---|
+| STYRKE mot `VANER_TEST` (epoketabellen) | **+22,8 poeng, seier 43,0 %** |
+| mot `VANER_TRENING`, hver for seg | **−7,5 / −7,2 / −5,4 / +3,3**, seier 0,5–51,8 % |
+
+«Seier 43,0 %, og fair share er 25 %» leses som overlegenhet. Den er
+overlegenhet **over den svakeste halvparten av vanerommet**. Mot den halvparten
+boten faktisk trener mot, vinner den 0,5 % av kampene.
+
+Valget av referanse var godt begrunnet — §123 flyttet porten bort fra
+ligabordet fordi det dømte motstandernes selvdestruksjon, og `VANER_TEST` er
+den ene motstanden som aldri er i treningsligaen, så tallet ikke er
+gjenkjenning. **Begrunnelsen holder fortsatt. Det som manglet var å måle om
+referansen var METTET**, og det tok én kjøring å finne ut.
+
+### DE TO FUNNENE ER ETT FUNN
+
+Vanene som slår nettet spiller HØYT — de vinner stikk. Vanene nettet slår
+spiller LAVT. Å slå den første gruppen er en KORTFERDIGHET, og kortferdighet er
+nøyaktig det gradienten ikke kunne lære: 99,68 % av fordelen dyttet hele runden
+i samme retning.
+
+Nettet lærte det rundenivået kunne lære — slutt å by `amerikaner` og `solo`,
+ikke gå på grovt overbud — og det er nok til å knuse fire vaner som kaster bort
+stikkene sine. Så stoppet det, fordi neste steg krever å vite hvilket KORT som
+var bra, og den informasjonen fantes ikke i gradienten.
+
+**Det er derfor kurven flatet ut ved epoke 5, og det er derfor den flatet ut
+mot `rask` samtidig som porten fortsatte å si godkjent.**
+
+### FUNN 5: STAMMEN ER DELT, OG DET GJØR EN «TRYGG» VARMEEPOKE FARLIG
+
+γ flytter verdimålets SKALA: fra snitt −50 / sd 63 til −13 / sd 15. Verdihodet
+måtte altså korrigere en RMSE på 87 ned til 13, og den korreksjonen måtte skje
+et sted.
+
+Første forsøk var en varmeepoke som så maksimalt forsiktig ut:
+`--vekt-policy 0 --entropi 0`. La verdi og tro trene, la policyen stå.
+
+| | før | etter varmeepoken |
+|---|---|---|
+| verdi-RMSE | 86,8 | **13,4** |
+| entropi | 1,3508 | **1,4149** |
+| KL mot atferdspolicyen | — | **0,187** (bremsen står på 0,03) |
+| `amerikaner`/`solo` | 0,00 % | **10,75 %** |
+| STYRKE mot `VANER_TEST` | +16,1 | **−759,6** |
+| avbrutt | 12,5 % | **58,5 %** |
+
+**Verdihodet fikk det den skulle, og policyen ble revet i stykker.** Stammen er
+delt — `mlb-tren.py`s `Sandkassenett` har ett underlag og tre hoder — så hele
+skalakorreksjonen gikk gjennom den, og policyen fulgte med. Å slå av
+policytapet beskyttet ingenting; det fjernet bare det ene leddet som hadde en
+mening om hvor policyen skulle være.
+
+To rettelser:
+
+- **`--nullstill-verdi`:** `W = 0`, `b = snitt(G^γ)`. Da er
+  `∂(verditap)/∂(stamme)` **eksakt null ved første steg** — hodet må lære sine
+  egne vekter før det kan dytte stammen i det hele tatt. Skalaskiftet blir
+  hodets problem, ikke policyens.
+- **KL-bremsen målte hvert 16. batch, og det var for grovt.** Den stoppet på
+  batch 15 med KL alt på 0,187 — seks ganger terskelen. En brems som først
+  måler etter at skaden har skjedd er en logg, ikke en brems. Intervallet er nå
+  4. GPU-en er 1 % av epoketiden (§123), så det koster ingenting vi merker.
+
+Merk hva som IKKE fanget dette: porten avviste epoken (z = −29,41), men
+**arbeidsvektene flyttes uansett** — det er §123s bevisste skille mellom
+`arbeid` og `beste`. Skillet er fortsatt riktig, men det betyr at en ødelagt
+epoke koster en epoke, og at porten ikke er en angrefrist.
+
+### FUNN 6: EPOKE 5 → 10 VAR EKTE FRAMGANG — DEN OVERFØRTE BARE IKKE
+
+Samme måling på epoke 5 og epoke 9 (`analyse/mlb-vaner-e5.tsv`,
+`-e9.tsv`, 400 giv per motstander, kontroll 0,0000 i hver eneste rad):
+
+| motstander | epoke 5 | epoke 9 | epoke 10 | e5 → e9 |
+|---|---|---|---|---|
+| `tren.grisk` | −9,18 | −7,06 | −7,54 | +2,1 |
+| `tren.honnørsulten` | −17,41 | −4,46 | −5,41 | **+13,0** |
+| `tren.trumfgjerrig` | −9,40 | +2,64 | +3,35 | **+12,0** |
+| `tren.ordentlig` | −11,36 | −7,06 | −7,20 | +4,3 |
+| `test.middelmådig` | −0,67 | +15,28 | +15,21 | **+15,9** |
+| `test.feig` | +8,24 | +25,80 | +27,79 | +17,6 |
+| `test.baklengs` | +7,86 | +28,42 | +28,83 | +20,6 |
+| `test.trumfsløser` | +14,56 | +20,27 | +21,38 | +5,7 |
+| epoke 0 (tilfeldig) | +232,6 | +233,9 | +233,5 | ±0 |
+
+**Epoke 9 er bedre enn epoke 5 mot hver eneste motstander i befolkningen**, med
+2,1 til 20,6 poeng. Og i nøyaktig samme intervall står stigen bom stille:
+**−3,63 → −3,59 mot `rask`**, −3,76 → −3,84 mot `nevro`, +8,88 → +8,59 mot
+tilfeldig.
+
+**Opptil tjue poeng mot befolkningen. Null mot `rask`.**
+
+Legg dessuten merke til `avbrutt`: epoke 5 nådde rundetaket i **68 %** av
+kampene mot `test.feig` og **59 %** mot `test.baklengs`; epoke 10 i 5,7 % og
+5,0 %. En stor del av «framgangen» mot testvanene er at kampene i det hele tatt
+tar slutt.
+
+Dette er selvspillets klassiske signatur, målt: **fem epoker med ekte, replikert
+framgang MOT BEFOLKNINGEN, og null overføring til noe utenfor den.** Det er
+nøyaktig det `examples/mlb-stigen.ts` ble bygd for å kunne se, og setningen i
+den fila viser seg å være hele diagnosen:
+
+> «En stigende INTERN kurve med flat YTRE kurve er ikke en skuffelse — det er en
+> diagnose, og det er den mest sannsynlige feilen vi kan få.»
+
+### DET TODELTE VERDIHODET: RIKTIG IDÉ, MEN IKKE SOM SUM
+
+Under økta ble det foreslått å dele hodet:
+
+```
+V(s) = V_runde(s) + γ · V_kamp(s)
+```
+
+Resonnementet er riktig og det er nettopp §124s: ett skalartall skal i dag bære
+to helt ulike varianskilder, og den ene av dem er uforutsigbar. Men **splitten
+alene gir ingenting**, og det er målt.
+
+**Grunnen: summen er det eneste som veiledes.** Trenes `V_runde + V_kamp` mot
+`G`, er delingen uidentifiserbar — nettet kan legge alt i den ene. Skal den
+bety noe, må hver del ha SITT EGET mål, og begge finnes i dataene. Med holdout
+på kamp:
+
+| deltarget | ridge R² | MLP R² |
+|---|---|---|
+| `r` — det som gjenstår av DENNE runden | **+0,6014** | **+0,6551** |
+| `Rest` — resten av kampen ETTER runden | +0,1746 | +0,0183 |
+
+Variansveid blir et todelt hode med γ = 1 altså
+`(0,60·114 + 0,17·3779)/3893 ≈ **0,18**` — praktisk talt nøyaktig det ene
+felles hodet allerede får (+0,19). **Splitten flytter ingen varians så lenge
+halen veier 97 % av målet.**
+
+Og det er akkurat det γ gjør noe med:
+
+| | rundens andel av Var(verdimålet) |
+|---|---|
+| γ = 1 | **2,9 %** |
+| γ = 0,5 | **79 %** |
+
+γ og det todelte hodet er derfor ikke alternativer. **γ er det som gjør
+splitten verdt å ha:** først når runden er hoveddelen av målet, betaler det seg
+å gi den sitt eget hode. Rekkefølgen er γ → separat rundemål → λ ned.
+
+Merknaden om at V er dårligst der handlingen betyr mest for runden stemmer i
+retning, men er svakere enn den ser ut: vrak +0,071 og velg +0,060 mot spill
++0,094, med sd(G) på 63,75 / 63,71 / 62,47 — altså på nesten samme skala, og
+med 9 841 velg-rader mot 340 732 spill-rader.
+
+### HVA STIGEN SIER ETTERPÅ — OG DEN SIER IKKE «LØST»
+
+Sju epoker kjørt om igjen fra **epoke 5-vektene**, med γ = 0,5, λ = 1,
+`--nullstill-verdi` i første epoke, ellers nøyaktig §123s oppsett. K2 grønn før
+og etter hver epoke. Loggen er `analyse/mlb-epoker-g05.txt`.
+
+Internt beveger den seg raskere enn §123 gjorde:
+
+| | epoke 5 (start) | §123 etter 10 epoker | γ etter 7 epoker |
+|---|---|---|---|
+| STYRKE mot `VANER_TEST` | +16,1 | +22,8 | **+27,4** |
+| seiersandel | 30,8 % | 43,0 % | **63,7 %** |
+| avbrutt | 12,5 % | 1,3 % | **0,0 %** |
+
+Men det tallet er nettopp det FUNN 4 sier vi ikke skal lese. **Stigen er
+måltallet.** Parret på giv mot epoke 9, samme panel, samme frø, kontrollarm
+0,0000 i hver eneste rad:
+
+| | mot tilfeldig | mot `nevro` | mot **`rask`** |
+|---|---|---|---|
+| ligaens beste | +1,63 ± 0,42 (z=+3,88), **tegn z=+0,65** | +0,76 ± 0,28 (z=+2,71), tegn z=+2,64 | +0,17 ± 0,26 (z=+0,64), tegn z=0,00 |
+| arbeidsvektene e7 | +1,59 ± 0,43 (z=+3,71), **tegn z=−0,30** | +0,26 ± 0,26 (z=+0,98), tegn z=+0,57 | +0,38 ± 0,26 (z=+1,47), tegn z=+0,34 |
+
+**Dommen etter prosjektets egen regel: ikke etablert.**
+
+- Mot `tilfeldig` er snittet klart over 2 SE, men **tegntesten er null**. Et
+  snitt uten tegnet bak seg er båret av noen få kamper — §65, §109, og porten.
+- Mot `nevro` passerer ligaens beste både snitt og tegntest (+0,76, z = +2,71,
+  tegn z = +2,64). **Men den andre kontrollpunktet replikerer den ikke**
+  (+0,26, z = +0,98). To vektsett fra samme løp som er uenige er ikke to enige
+  bånd.
+- Mot **`rask`, som er det tallet som teller**: +0,17 og +0,38, begge under
+  2 SE, begge med tegntest på null. **Ingen bevegelse.**
+
+Det ærlige svaret er altså: γ ødela ingenting, flyttet det interne raskere enn
+§123, og **flyttet ikke stigen målbart på sju epoker**.
+
+### HVORFOR SJU EPOKER IKKE VAR NOK, OG DET ER MÅLT
+
+En ny skranke dukket opp under kjøringen, og den er skarp:
+
+| epoke | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|
+| gjennomløpet stoppet på batch | 3 | 3 | 15 | 7 | 3 | 3 | 7 |
+| av batcher tilgjengelig | 228 | 160 | 139 | 79 | 76 | 80 | 80 |
+| KL | 0,259 | 0,079 | 0,039 | 0,048 | 0,081 | 0,056 | 0,037 |
+| entropi | 1,071 | 0,907 | 0,766 | 0,681 | 0,593 | 0,542 | 0,554 |
+| verdihodets forklarte varians, utenfor utvalget | −0,00 | −1,46 | −2,00 | −1,24 | −0,10 | −0,05 | −0,10 |
+
+**KL-nødbremsen fyrte i HVER eneste epoke, etter 4–16 batcher av 76–228.** Sju
+epoker ga altså rundt førti gradientsteg til sammen. Og verdihodet — som var
+hele poenget med γ — **forklarte aldri noe**, fordi det ble nullstilt i epoke 1
+og deretter aldri fikk nok steg til å lære seg noe igjen.
+
+Det er en INTERAKSJON ingen av delene har alene:
+
+> Bremsen finnes for å beskytte POLICYEN. Den stopper HELE gjennomløpet. Verdi-
+> og trohodet har perfekte, faste etiketter og ingen grunn til å stoppe — men de
+> stopper likevel, fordi de deler løkke med policyen.
+
+Og det er verdt å se hvorfor bremsen fyrer nå og ikke i §123: der startet
+løpet fra tilfeldige vekter med entropi 1,40, her fra en TRENT policy. En
+spiss fordeling flytter KL mye mer for samme forskyvning i logitene. §123s
+`--kl-maal 0,03` ble kalibrert på et nett som knapt hadde en mening.
+
+**Neste steg er derfor gitt, og det er ikke flere epoker med samme rigg:** når
+KL passerer målet, skal **stammen fryses og bare verdi- og trohodet trenes
+videre** i resten av gjennomløpet. Da kan policyen ikke flytte seg ett hakk til
+— frosset stamme betyr null gradient inn i policyhodets inngang — mens
+grunnlinjen får de hundrevis av stegene den trenger. Det er den samme
+innsikten som FUNN 5, brukt motsatt vei: det er STAMMEN som kobler dem, så det
+er stammen som må gi etter.
+
+### STATUS ETTER §124
+
+`npm test`: **620 grønne, 0 røde** (617 før). Typecheck ren.
+`test/mlb-herkomst.test.ts` **uendret og grønn** — ingen mester, intet orakel,
+ingen dobbeltdummy, ingen ekspertimitasjon. `--gamma` og `--nullstill-verdi`
+rører ikke herkomsten: de endrer hvordan utfallet vektes, ikke hvor det kommer
+fra.
+
+Nye filer: `verktoy/mlb-fordel-diagnose.py`, `examples/mlb-motalle.ts`,
+`examples/mlb-motalle-dom.ts`. Endret: `src/mlb/selvspill.ts` (γ og
+`diskontertRetur`), `examples/mlb-erfaring.ts`, `verktoy/mlb-gradient.py`,
+`verktoy/mlb-epoke.py`, `test/mlb-epoke.test.ts` (tre nye prøver).
+
+Målinger: `analyse/mlb-fordel-diagnose.txt`, `analyse/mlb-motalle-del1.tsv`,
+`analyse/mlb-vaner-e5.tsv`, `analyse/mlb-vaner-e9.tsv`,
+`analyse/mlb-stigen-g05.tsv`, `analyse/mlb-epoker-g05.{txt,jsonl}`,
+`analyse/mlb-gradient-g05.{txt,jsonl}`.
+
+**Det som er avgjort:**
+
+1. `rask` ER `ADAMS_MAALT`. Beste epoke taper 3,59 ± 0,50 mot den. Punkt 2 i
+   avbruddskriteriet er avgjort — punkt 1 og 3 er ikke, så MLB er ikke falt.
+2. Kredittilordningen var borte (99,68 % av fordelen mellom runder), og det er
+   grunnen til at kurven flatet ut.
+3. Verdihodet kan ikke reddes med klipping eller to hoder. Taket på det gamle
+   målet er +0,19, målt.
+4. Ligaen er ikke mettet. Nettet taper mot tre av fire treningsvaner og vinner
+   0,5 % av kampene mot to av dem.
+5. Porten og STYRKE måler mot den svake halvparten av vanerommet.
+6. γ virker som konstruert internt, men **stigen har ikke bekreftet noe**, og
+   KL-bremsen forklarer hvorfor sju epoker ikke rakk det.

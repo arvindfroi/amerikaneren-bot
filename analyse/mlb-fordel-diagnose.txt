@@ -1,0 +1,76 @@
+MLB FORDELSDIAGNOSE  2026-08-10 14:58  enhet=cuda
+inn=mlb-epoke-data/erf-s*.bin
+
+20 filer, 371652 rader, 1032 trekk
+
+=== 1. VERDIHODET ===
+G:  snitt  -50.584  sd   62.699  min -384.5  maks +89.0
+V:  snitt  -60.146  sd   21.763
+RMSE 59.648   forklart varians +0.0950
+korr(V, G) = +0.3438
+korr(A, G) = +0.9378
+
+per fase:
+  vrak   n=   21079  sd(G)=   63.75  RMSE=   61.44  forklart=+0.0710
+  velg   n=    9841  sd(G)=   63.71  RMSE=   61.76  forklart=+0.0604
+  spill  n=  340732  sd(G)=   62.47  RMSE=   59.47  forklart=+0.0938
+
+=== 2. IDENTITETEN A = G - V (proeve paa at lambda var 1) ===
+maks |A - (G - V)| = 0.0000   snitt = 0.000000
+Er den ~0, baerer fordelen INGEN kredittilordning utover V-differansen.
+
+=== 3. VARIANSOPPDELINGEN AV FORDELEN ===
+4599 kamper, 123944 (kamp,runde,sete)-grupper, 3.00 rader per gruppe  (0s)
+Var(A) totalt          3466.444
+  MELLOM runder        3455.296    99.68 %
+  INNENFOR runder        11.148     0.32 %
+
+Andelen INNENFOR er all kreditt som skiller ett kortvalg fra et annet i
+samme runde. Resten dytter hele runden i samme retning.
+
+bare rader med >1 lovlig valg (n=290551):
+  INNENFOR runder   0.33 %   MELLOM  99.67 %
+
+=== 3b. KAN TEGNET I FORDELEN SKILLE TO VALG I SAMME RUNDE? ===
+tegn(A) = tegn(G - snitt G) paa  89.55 % av radene
+grupper med mer enn en rad: 103605
+  ... der ikke alle radene har SAMME fortegn paa A: 3601  (3.48 %)
+Er den andelen naer null, faar hvert eneste valg i runden samme dytt, og
+gradienten kan ikke skille kortet som avgjorde kontrakten fra de elleve
+likegyldige. Det er kredittproblemet i `docs/mlb.md` §2, tilbake.
+
+=== 4. HVOR MYE ER I DET HELE TATT FORUTSIGBART? ===
+Proben ser NOEYAKTIG de samme 1 032 trekkene som verdihodet. Holdout er
+splittet paa KAMP, ikke paa rad.
+tren 298660 rader (3679 kamper), holdout 72992 rader (920 kamper)
+XtX regnet paa 2 s (en gang, delt av alle maal)
+
+maal                              sd   ridge R2    MLP R2  V-hodet R2
+G  (resten av kampen)          62.70    +0.1915   +0.0758     +0.0751
+G klippet paa +-2 sd           49.35    +0.1995   +0.0526           -
+r  (rundens poeng)             10.67    +0.6014   +0.6551           -
+resten ETTER runden            61.47    +0.1746   +0.0183           -
+
+=== 5b. KONTRAKT MOT FORSVAR: ville to hoder hjulpet? ===
+  kontrakt  n_tren=  76317 n_test= 18525  sd(G)=  62.30  felles ridge R2=+0.1844  eget hode R2=+0.1763
+  forsvar   n_tren= 222343 n_test= 54467  sd(G)=  60.29  felles ridge R2=+0.1764  eget hode R2=+0.1779
+
+=== 6. DISKONTERINGEN: hvor mye hale taaler signalet? ===
+ gamma   sd(r_k)   sd(hale)  signal/stoey  innenfor %   ridge R2
+  1.00      9.88      61.45          0.16           -    +0.1915
+  0.90      9.88      20.26          0.49           -    +0.2051
+  0.80      9.88      13.01          0.76           -    +0.2804
+  0.70      9.88       9.54          1.04           -    +0.3569
+  0.50      9.88       5.61          1.76           -    +0.4784
+  0.30      9.88       3.05          3.24           -    +0.5574
+  0.00      9.88       0.00 9876910393.31           -    +0.6014
+
+`signal/stoey` er sd(rundens poeng) delt paa sd(den diskonterte halen).
+Ved gamma = 1 er halen alt som skiller kredittene fra hverandre — og den
+er den SAMME for hver beslutning i runden.
+
+LES DEN SLIK: slaar en ridge-regresjon paa de samme trekkene verdihodets
+egne 13 %, er hodet UNDERTRENT og ikke ved taket. Er rundens poeng mye
+mer forutsigbart enn resten av kampen, ligger fiksen i MAALET.
+
+ferdig paa 167 s

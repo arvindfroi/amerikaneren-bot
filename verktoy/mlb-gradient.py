@@ -171,6 +171,25 @@ def main():
     ap.add_argument("--logg", default="analyse/mlb-gradient.jsonl")
     ap.add_argument("--rapport", default="analyse/mlb-gradient.txt")
     ap.add_argument("--kl-rader", type=int, default=8192)
+    # NULLSTILLER VERDIHODET: W = 0, b = snittet av maalet.
+    #
+    # ============ DET SOM VAR GALT, OG DET KOSTET EN EPOKE ==============
+    #
+    # Da gamma (§124) endret verdimaalet fra snitt -50 / sd 63 til -13 / sd 15,
+    # matte hodet korrigere en RMSE paa 87 ned til 13. Foerste forsoek var en
+    # VARMEEPOKE med `--vekt-policy 0 --entropi 0`: la verdi og tro trene, la
+    # policyen staa. Den gjorde det motsatte av aa beskytte policyen.
+    #
+    # STAMMEN ER DELT. Verdihodets korreksjon gikk rett gjennom den, og
+    # policyen fulgte med: entropien STEG 1,3508 -> 1,4149, KL naadde 0,187
+    # (seks ganger bremsen), grovbudandelen gikk fra 0,00 % til 10,75 %, og
+    # styrken fra +16 til -760 poeng. Porten avviste den, men arbeidsvektene
+    # flyttes uansett — en epoke tapt.
+    #
+    # Med W = 0 er `d(tap_verdi)/d(stamme)` EKSAKT null ved foerste steg: hodet
+    # maa laere sine egne vekter foer det kan dytte stammen i det hele tatt.
+    # Skalaskiftet blir da hodets problem og ikke policyens.
+    ap.add_argument("--nullstill-verdi", action="store_true")
     ap.add_argument("--maks-logit", type=float, default=1e4)
     args = ap.parse_args()
 
@@ -223,6 +242,15 @@ def main():
 
     modell = Sandkassenett(dim, skjult).to(enhet)
     les_vekter(args.vekter, modell)
+    if args.nullstill_verdi:
+        with torch.no_grad():
+            modell.verdi.weight.zero_()
+            modell.verdi.bias.fill_(float(G.mean()))
+        print(
+            f"VERDIHODET NULLSTILT: W = 0, b = {float(G.mean()):+.3f}. "
+            f"Gradienten inn i stammen fra verdileddet er null ved foerste steg.",
+            flush=True,
+        )
     par = sum(p.numel() for p in modell.parameters())
     opt = torch.optim.AdamW(modell.parameters(), lr=args.lr)
     lastet_opt = False
@@ -397,7 +425,13 @@ def main():
 
             # NOEDBREMSEN. Maales sjelden nok til aa vaere gratis, ofte nok til
             # aa ta en eksplosjon FOER epoken er over.
-            if args.kl_maal > 0 and (i // args.batch) % 16 == 15:
+            #
+            # INTERVALLET VAR 16, OG DET VAR FOR GROVT. §124: en epoke stoppet
+            # paa bremsen ved batch 15 med KL alt paa 0,187 — seks ganger
+            # `--kl-maal`. En brems som foerst maaler etter at skaden har
+            # skjedd er en logg, ikke en brems. GPU-en er 1 % av epoketiden, saa
+            # fire ganger hyppigere maaling koster ingenting vi merker.
+            if args.kl_maal > 0 and (i // args.batch) % 4 == 3:
                 with torch.no_grad():
                     _, lp_na = maal(kl_idx)
                     pg0 = lp_foer.exp()
@@ -443,12 +477,24 @@ def main():
         os.makedirs(os.path.dirname(args.opt_tilstand) or ".", exist_ok=True)
         torch.save(opt.state_dict(), args.opt_tilstand)
 
+    # =============== «FORKLART» ETTER STEGET ER MAALT I UTVALGET ==========
+    #
+    # `etter` maales paa `kl_idx`, som er trukket fra de SAMME radene modellen
+    # nettopp trente paa. Det er et I-UTVALGET-tall, og §124 fant at det er
+    # optimistisk: epoke 10 rapporterte forklart +0,1286, mens de samme vektene
+    # paa HOLDOUT-KAMPER maalte +0,0751.
+    #
+    # `foer` er derimot maalt paa vekter som ALDRI har sett disse radene — det
+    # er nettopp vektene som spilte kampene og regnet fordelene. Det er det
+    # aerlige tallet for «hvor god var grunnlinjen da gradienten ble tatt», og
+    # det er derfor med i resultatlinja og ikke bare i aapningslinja.
     rad_ut = {
         "epoke": args.epoke,
         "sek": round(time.time() - t0, 1),
         "kl": round(kl, 6),
         "logitskala": round(logitskala, 2),
         "stoppet_paa_kl": stoppet_paa_kl,
+        "foer": {k: round(v, 5) for k, v in foer.items()},
         "etter": {k: round(v, 5) for k, v in etter.items()},
         "d_pol": round(etter["pol"] - foer["pol"], 5),
         "d_tro": round(etter["tro"] - foer["tro"], 5),
@@ -469,7 +515,8 @@ def main():
             f"| tro {foer['tro']:.4f} -> {etter['tro']:.4f} "
             f"(treff {etter['treff'] * 100:.1f} %) "
             f"| verdi-RMSE {foer['rmse']:.3f} -> {etter['rmse']:.3f} "
-            f"(forklart {etter['forklart']:+.4f}) | KL={kl:.5f} "
+            f"(forklart {foer['forklart']:+.4f} utenfor utvalget "
+            f"-> {etter['forklart']:+.4f} i utvalget) | KL={kl:.5f} "
             f"| {time.time() - t0:.0f}s\n"
         )
     print(json.dumps(rad_ut), flush=True)
