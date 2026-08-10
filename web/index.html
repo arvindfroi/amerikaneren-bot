@@ -17,32 +17,50 @@
      fylt med røde og hvite striper, og de fire kortfargene rundt den i blank
      3D. Americana — flagg-rødt, hvitt og blått.
 
-     Det er ikke et temavalg blant mange. Spillet heter Amerikaneren, og
-     identiteten skriver seg selv. Tre ting bærer den overalt:
-
          KOBOLT      grunnfargen. Radialen er MØRKEST I MIDTEN og lysner
                      utover, slik ikonet er — motsatt av den vanlige vignetten,
                      og derfor gjenkjennelig som nettopp dette spillet.
          KORALL      den ENE aksenten. Alt som skal ropes sier det i korall.
-         STJERNA     motivet som går igjen: bakgrunnsvannmerke, kortbaksiden,
-                     trumfskiltet, stikkvinneren, lasteindikatoren, faviconen.
+         STJERNA     motivet som går igjen: kortbaksiden, trumfskiltet,
+                     stikkvinneren, lasteindikatoren, faviconen.
 
-     ==================== HVA SOM BLE VRAKET, OG HVORFOR ===================
+     ==================== HVA DENNE RUNDEN ENDRET ==========================
 
-     Forrige runde var filtgrønn med gull. Tilbakemeldingen var at siden så
-     «AI-generert» ut, og den kritikken traff: grønn filt er standardvalget for
-     ethvert kortspill, gull er standardaksenten, systemfonten er
-     standardfonten, og ingenting av det pekte på DETTE spillet. En side kan
-     være pen og likevel anonym.
+     ARVIND: «jeg er ikke helt fornøyd med viben … soft shading, den gradient
+     bakgrunnen og animasjoner som minner om et mer polert spill … boksene ser
+     veldig basic ut … jeg vil ikke at det skal se ut som et bord, men litt
+     mer abstrakt … det bør være et bedre visuelt hierarki gjennom hele
+     appen.»
+
+     Fire ting fulgte av det, og de henger sammen:
+
+     1. FLATER MED FORM. Hver boks var `background` + `2px solid` — altså
+        standard-UI. Nå har alle flater samme oppskrift: gradient med lys på
+        oversiden, hårfin lysstripe langs toppkanten, myk slagskygge, ingen
+        hard ramme. Det er den blanke 3D-en fra ikonet, gjort om til en regel
+        som gjelder paneler, knapper, skilt og brikker likt.
+
+     2. ET ROM, IKKE ET BORD. Bakgrunnen var radialen alene med et 62vh stort
+        stjernevannmerke midt på — flaten leste som en logo med kort oppå. Nå
+        er det tre lag: lys som faller inn ovenfra, en myk bunnglød der
+        kortene lander, og stjerna liten og svak. Ingen av lagene har en kant,
+        og uten kant kan det ikke leses som en bordplate.
+
+     3. HIERARKI. Fem like bokser på topplinja konkurrerte om samme
+        oppmerksomhet. Poengene er nå ETT brett med tynne skiller og din egen
+        rute merket i korall; kontrakten står alene; «din tur» er det eneste
+        som lyser når det gjelder. I hånden er forskjellen på spillbar og ikke
+        HØYDE og LYS, ikke utbleking — så hierarkiet koster ikke lesbarhet.
+
+     4. LAGSTIKK-BAREN. Regelen gjort synlig: fram til makkeren er avslørt
+        teller den enkeltes stikk, etterpå er det lagets. Se `.lagfelt`.
 
      ==================== FIREFARGESTOKKEN BEHOLDES ========================
 
      Ikonet bruker to farger: koks for spar og kløver, korall for hjerter og
-     ruter. Kortene gjør IKKE det, og det er et bevisst avvik. Hele forrige
-     runde handlet om at spar var vanskelig å skille — å slå spar og kløver
-     sammen i én farge ville gjeninnført nøyaktig det problemet.
-
-     Løsningen er at tre av de fire fargene likevel kommer rett fra ikonet:
+     ruter. Kortene gjør IKKE det, og det er et bevisst avvik. Hele runde 1
+     handlet om at spar var vanskelig å skille — å slå spar og kløver sammen i
+     én farge ville gjeninnført nøyaktig det problemet.
 
          spar     koks       ikonets mørke
          hjerter  korall     ikonets røde
@@ -54,8 +72,8 @@
      `--f` er blekk på hvit kortflate, `--fd` er flateverdi på mørk bakgrunn.
      På mørk flate vises en farge ALDRI som farget tekst, bare som fylt merke
      med nesten svart symbol oppå. Den regelen tok etterlysningsknappene fra
-     1,09:1 til 17,40:1 forrige runde, og den nye paletten er valgt slik at
-     tallene holder. Målt på nytt etterpå, ikke antatt.
+     1,09:1 til 17,40:1, og den er urørt her. Målt på nytt etter ombyggingen,
+     ikke antatt.
      ====================================================================== */
 
   /* ---- Fontene, bakt inn ------------------------------------------------
@@ -96,15 +114,38 @@
     --tekst: #eef3fc;
     --tekst-2: #b2c6e6;
     --tekst-3: #7f99c4;
-    --flate: #071a41;
-    --flate-2: #0d2454;
-    --kant: #1c407f;
-    --kant-lys: #2d5da8;
 
     --ok: #4ad07f;
     --minus: #ff8a76;
-    --rad: 12px;
-    --skygge: 0 2px 5px rgba(2,8,24,.5), 0 10px 28px rgba(2,8,24,.55);
+
+    /* ================= FLATER: MYK SKYGGE, IKKE KANT ======================
+       Hver flate er en gradient med lys på oversiden og mørke under, pluss en
+       hårfin lysstripe langs toppkanten. Det er den samme «blanke 3D-en» som
+       kortfargene i ikonet har: lys ovenfra, ingen hard kantlinje. Alle
+       paneler, knapper, skilt og brikker deler oppskriften, så flatene hører
+       hjemme i samme rom i stedet for å være hver sin boks. */
+    --flate: linear-gradient(180deg, rgba(126,172,246,.155) 0%, rgba(7,22,56,.50) 100%);
+    --flate-hev: linear-gradient(180deg, rgba(152,194,255,.26) 0%, rgba(9,28,70,.58) 100%);
+    --flate-dyp: linear-gradient(180deg, rgba(96,140,215,.13) 0%, rgba(4,14,38,.62) 100%);
+    --hinne: rgba(132,178,248,.20);
+    --hinne-lys: rgba(160,200,255,.34);
+    --topplys: inset 0 1px 0 rgba(206,229,255,.26);
+    --innskygge: inset 0 -1px 0 rgba(2,8,24,.42);
+
+    --loft-1: 0 1px 2px rgba(2,8,24,.40), 0 4px 12px rgba(2,8,24,.30);
+    --loft-2: 0 2px 5px rgba(2,8,24,.48), 0 12px 32px rgba(2,8,24,.44);
+    --loft-3: 0 4px 14px rgba(1,5,18,.55), 0 28px 76px rgba(1,5,18,.70);
+    --glo-korall: 0 0 0 1px rgba(255,138,118,.55), 0 0 22px rgba(232,80,63,.45), 0 0 48px rgba(232,80,63,.22);
+
+    --rad: 14px;
+    --rad-s: 10px;
+    --rad-l: 20px;
+
+    /* Easing med karakter. `--sprett` skyter litt over og faller tilbake —
+       det er forskjellen på «et element flyttet seg» og «noe landet». */
+    --myk: cubic-bezier(.22, .82, .28, 1);
+    --sprett: cubic-bezier(.34, 1.56, .58, 1);
+    --ut-inn: cubic-bezier(.5, 0, .2, 1);
 
     --kortflate: #f9f7f0;
 
@@ -116,7 +157,7 @@
     --k-blekk: #256b3a;
 
     /* FARGENE PÅ MØRK FLATE — brukes som BAKGRUNN i `.fargemerke`,
-       med nesten svart symbol oppå. 9–16:1 for alle fire. */
+       med nesten svart symbol oppå. 9–17:1 for alle fire. */
     --s-mork: #edf2fb;
     --h-mork: #ff8a76;
     --r-mork: #86b6ff;
@@ -129,13 +170,12 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body {
-    /* MØRKEST I MIDTEN, lysere utover — ikonets egen radial. Den stopper
-       godt før hvitt: kortene er kremhvite, og en lys kant ville tatt
-       kontrasten deres akkurat der de ligger oftest. */
+    /* IKONETS EGEN RADIAL: mørkest i midten, lysner utover. Motsatt av den
+       vanlige vignetten, og derfor gjenkjennelig som nettopp dette spillet. */
     background:
-      radial-gradient(ellipse 110% 85% at 50% 46%,
-        var(--kobolt-950) 0%, var(--kobolt-900) 34%,
-        var(--kobolt-800) 62%, var(--kobolt-700) 84%, #1c50a6 100%);
+      radial-gradient(ellipse 124% 92% at 50% 45%,
+        var(--kobolt-950) 0%, var(--kobolt-900) 33%,
+        var(--kobolt-800) 61%, var(--kobolt-700) 84%, #1e56ae 100%);
     color: var(--tekst);
     font: clamp(15px, 1.05vh + 0.7vw, 26px)/1.45 var(--sans);
     font-variant-numeric: tabular-nums;
@@ -145,7 +185,7 @@
   }
   #app {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
     height: 100%; height: 100dvh;
     gap: clamp(4px, 0.8vh, 12px);
     padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
@@ -162,29 +202,55 @@
      der inne ville forsvunnet under føttene på hver `<use>`. */
   .symboler { position: absolute; width: 0; height: 0; overflow: hidden; }
 
+  /* ================== ROMMET, IKKE BORDET ================================
+     ARVIND: «jeg vil ikke at det skal se ut som et bord, men litt mer
+     abstrakt.»
+
+     Så det er ikke et møbel. Ingen filt, ingen treramme, ingen oval kant. Det
+     er et ROM med lys ovenfra: en bred lysflate som faller inn fra toppen, og
+     en myk bunnglød der kortene lander. Kortene ligger i et lyspunkt, ikke på
+     en plate — og siden hverken lyset eller gløden har en kant, kan de ikke
+     leses som en bordflate.
+
+     Stjerna er fortsatt der som identitet, men liten og svak. Før var den
+     62vh og dominerte hele flaten; den så ut som en logo lagt bak spillet,
+     ikke som et sted spillet foregår. */
+  .rom { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .rom .skinn {
+    position: absolute; left: 50%; top: -22%; transform: translateX(-50%);
+    width: min(150vh, 128vw); height: 96%;
+    background: radial-gradient(ellipse 52% 58% at 50% 0%,
+      rgba(126,172,246,.20) 0%, rgba(120,165,240,.06) 44%, rgba(120,165,240,0) 72%);
+    animation: pust 19s ease-in-out infinite;
+  }
+  .rom .grunn {
+    position: absolute; left: 50%; top: 54%; transform: translate(-50%, -50%);
+    width: min(128vh, 94vw); height: min(66vh, 60vw);
+    background: radial-gradient(ellipse at 50% 50%,
+      rgba(104,152,236,.15) 0%, rgba(96,146,232,.05) 44%, rgba(96,146,232,0) 71%);
+    filter: blur(3px);
+  }
+  .rom .stjerne {
+    position: absolute; left: 50%; top: 50%;
+    width: min(31vh, 31vw); height: min(31vh, 31vw);
+    transform: translate(-50%, -50%);
+    opacity: .055; filter: blur(.5px);
+  }
+  @keyframes pust { 0%, 100% { opacity: .82; } 50% { opacity: 1; } }
+
   /* ---- Stjerna ----------------------------------------------------------- */
   .stjerne { display: block; width: 1em; height: 1em; }
-  /* Vannmerket midt på bordet. Svakt nok til å ikke slåss med kortene, sterkt
-     nok til at bordet har et midtpunkt i stedet for å være en tom flate. */
-  .vannmerke {
-    position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    display: grid; place-items: center; overflow: hidden;
-  }
-  .vannmerke .stjerne {
-    width: min(62vh, 62vw); height: min(62vh, 62vw);
-    /* Stripene lager vannrett banding hvis merket blir for sterkt. .04 er
-       nok til at bordet har et midtpunkt, lavt nok til at et kort som ligger
-       oppå det fortsatt leses uten anstrengelse. */
-    opacity: .04; filter: blur(.6px);
-  }
-  @media (max-height: 500px) { .vannmerke .stjerne { width: 46vh; height: 46vh; } }
 
-  /* ---- Fargemerket: den ene måten en farge vises på mørk flate ----------- */
+  /* ---- Fargemerket: den ene måten en farge vises på mørk flate -----------
+     BEHOLDT UENDRET FRA RUNDE 1. Det var denne regelen som tok
+     etterlysningsknappene fra 1,09:1 til 17,40:1, og den skal ikke ofres for
+     penere flater. Målt på nytt etter denne runden også. */
   .fargemerke {
     display: inline-flex; align-items: center; gap: .3em;
     background: var(--fd); color: #0a0f18;
     border-radius: 999px; padding: .06em .55em .12em;
     font-weight: 800; line-height: 1.25; white-space: nowrap;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 1px 3px rgba(2,8,24,.5);
   }
   .fargemerke .sym { font-size: 1.15em; }
   .f-S { --f: var(--s-blekk); --fd: var(--s-mork); }
@@ -192,34 +258,183 @@
   .f-R { --f: var(--r-blekk); --fd: var(--r-mork); }
   .f-K { --f: var(--k-blekk); --fd: var(--k-mork); }
 
-  /* ---- Topplinje --------------------------------------------------------- */
+  /* ================== TOPPLINJA: ETT BRETT, IKKE FIRE BOKSER =============
+     Før var dette fem like bokser med lik ramme og lik vekt — fire poeng og
+     én kontrakt — og ingen av dem sa hva som var viktigst. Nå er poengene ETT
+     brett med tynne skiller, din egen rute er merket i korall, og kontrakten
+     står for seg selv som den ene opplysningen som gjelder hele runden.
+
+     Rutenettet er FAST (auto 1fr auto). Før var det `flex-wrap`, og linja
+     brøt om til to rader når kontraktteksten vokste — layouten mistet formen
+     sin midt i en runde. */
   header {
-    display: flex; align-items: center; gap: clamp(6px, 1vw, 18px);
-    flex-wrap: wrap; row-gap: 6px;
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center; gap: clamp(6px, 1.4vw, 18px);
   }
-  .poeng { display: flex; gap: clamp(4px, .6vw, 12px); flex-wrap: wrap; min-width: 0; }
-  .poeng .spiller {
-    background: rgba(4, 14, 38, .55); border: 2px solid var(--kant); border-radius: 10px;
-    padding: .18em .6em; display: flex; gap: .5em; align-items: baseline;
-    font-size: .82em; line-height: 1.3; transition: border-color .18s, box-shadow .18s;
+  .tavle {
+    display: flex; align-items: stretch; border-radius: var(--rad);
+    background: var(--flate); box-shadow: var(--topplys), var(--loft-1);
+    border: 1px solid var(--hinne); overflow: hidden; min-width: 0;
   }
-  .poeng .spiller .navn { color: var(--tekst-2); }
-  .poeng .spiller.deg { border-color: var(--korall); }
-  .poeng .spiller.deg .navn { color: var(--tekst); }
-  .poeng .spiller.itur { border-color: var(--korall); box-shadow: 0 0 0 2px rgba(232,80,63,.34); }
-  .poeng b { font-size: 1.5em; color: var(--kritt); font-weight: 800; }
-  .poeng .stikk { color: var(--kobolt-200); font-weight: 700; }
+  .tavle .spiller {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: .22em .62em .28em; min-width: 3.4em; position: relative;
+    transition: background .28s var(--myk);
+  }
+  .tavle .spiller + .spiller::before {
+    content: ""; position: absolute; left: 0; top: 20%; bottom: 20%;
+    width: 1px; background: rgba(150,190,250,.16);
+  }
+  .tavle .navn {
+    font-size: .56em; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--tekst-3); font-weight: 700; line-height: 1.2;
+  }
+  .tavle .verdi { display: flex; align-items: baseline; gap: .32em; line-height: 1.15; }
+  .tavle b { font-size: 1.02em; font-weight: 800; color: var(--kritt); }
+  .tavle .stikk { font-size: .62em; font-weight: 700; color: var(--kobolt-200); }
+  .tavle .deg { background: linear-gradient(180deg, rgba(232,80,63,.26) 0%, rgba(232,80,63,.05) 100%); }
+  .tavle .deg .navn { color: var(--korall-lys); }
+  /* Hvem sin tur det er: en korallstripe langs bunnen av ruta. Rolig når det
+     er en bot, og den samme formen uansett hvem — ingen ny boks. */
+  .tavle .itur::after {
+    content: ""; position: absolute; left: 12%; right: 12%; bottom: 0; height: 3px;
+    border-radius: 3px 3px 0 0; background: var(--korall);
+    box-shadow: 0 0 12px rgba(232,80,63,.8);
+    animation: stripe-inn .34s var(--sprett) both;
+  }
+  @keyframes stripe-inn { from { transform: scaleX(0); opacity: 0; } }
+  /* Poengtallet som nettopp endret seg. */
+  .tavle b.endret { animation: tellerslag .62s var(--sprett); }
+  @keyframes tellerslag {
+    0% { transform: scale(1); }
+    36% { transform: scale(1.34); color: var(--korall-lys); }
+    100% { transform: scale(1); }
+  }
 
   .kontrakt {
-    display: flex; align-items: center; gap: .45em; flex-wrap: wrap;
-    font-size: .95em; font-weight: 700;
-    background: rgba(4, 14, 38, .55); border: 2px solid var(--kant);
-    border-radius: 10px; padding: .18em .7em;
+    display: flex; align-items: center; justify-content: center; gap: .45em;
+    font-size: .92em; font-weight: 700; min-width: 0;
+    background: var(--flate); border: 1px solid var(--hinne);
+    box-shadow: var(--topplys), var(--loft-1);
+    border-radius: 999px; padding: .2em .85em; justify-self: center;
   }
+  /* `.inn` settes bare når stykket er NYTT — se `pynt()` i app.ts. Uten den
+     ville hvert skilt spilt inngangen sin på nytt flere ganger i sekundet. */
+  .kontrakt.inn { animation: kontrakt-inn .4s var(--sprett) both; }
+  @keyframes kontrakt-inn { from { opacity: 0; transform: translateY(-6px) scale(.94); } }
   .kontrakt .hvem { color: var(--tekst-2); font-weight: 600; }
-  .runde { margin-left: auto; color: var(--tekst-3); font-size: .8em; text-align: right; }
+  .kontrakt .bud { font-size: 1.12em; color: var(--kritt); font-weight: 800; }
+  .runde { color: var(--tekst-3); font-size: .72em; text-align: right; line-height: 1.25; white-space: nowrap; }
 
-  /* ---- Bordet: RUTENETT, ikke absolutt plassering ------------------------ */
+  /* ================== LAGSTIKK-BAREN =====================================
+     ARVIND: «når det etterlyste kortet kommer frem og laget dannes så burde
+     deres stikk gå til et felles lagstikk progress bar.»
+
+     Det er ikke pynt, det er regelen gjort synlig. I Amerikaneren teller den
+     enkeltes stikk fram til makkeren er avslørt; fra det øyeblikket er det
+     LAGETS stikk som avgjør kontrakten. Grensesnittet viste det aldri, og
+     spilleren måtte holde to tall i hodet og legge dem sammen selv.
+
+     Nå gjør bandet det:
+        FØR avsløringen   fire brikker med hver sin stikkteller
+        I DET DEN SKJER   budvinnerens og makkerens brikke glir sammen, og
+                          baren vokser fram under dem
+        ETTER             én bar mot budet, og én dempet motstandsteller
+
+     Høyden er LÅST (min-height) slik at bordet ikke hopper når bandet skifter
+     form midt i en runde. */
+  .lagfelt {
+    display: flex; align-items: center; justify-content: center;
+    min-height: clamp(40px, 6.6vh, 62px); position: relative;
+  }
+  .lagfelt .brikker { display: flex; gap: clamp(4px, .8vw, 12px); align-items: center; }
+  .brikke {
+    display: flex; align-items: center; gap: .45em;
+    background: var(--flate); border: 1px solid var(--hinne);
+    box-shadow: var(--topplys), var(--loft-1);
+    border-radius: 999px; padding: .22em .8em; font-size: .74em;
+    transition: transform .3s var(--myk), opacity .3s var(--myk);
+  }
+  .brikke .navn { color: var(--tekst-3); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; font-size: .86em; }
+  .brikke b { color: var(--kritt); font-weight: 800; font-size: 1.15em; }
+  .brikke .mot { color: var(--tekst-3); font-weight: 700; font-size: .92em; margin-left: -.12em; }
+  .brikke.fører { background: var(--flate-hev); border-color: var(--hinne-lys); }
+  .brikke.fører .navn { color: var(--korall-lys); }
+  .brikke.slag b { animation: tellerslag .62s var(--sprett); }
+
+  .lagvis { display: flex; align-items: center; gap: clamp(5px, 1vw, 12px); min-width: 0; }
+  .lagbar {
+    display: flex; align-items: center; gap: clamp(6px, 1.2vw, 16px);
+    background: var(--flate-hev); border: 1px solid var(--hinne-lys);
+    box-shadow: var(--topplys), var(--loft-2);
+    border-radius: 999px; padding: .26em .5em .26em .9em;
+    max-width: min(96vw, 780px);
+  }
+  .lagbar .lagnavn {
+    display: flex; align-items: center; gap: .4em; white-space: nowrap;
+    font-size: .72em; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--korall-lys);
+  }
+  .lagbar .lagnavn .stjerne { width: 1em; height: 1em; }
+  /* Sporet: ett hakk per stikk kontrakten krever. Formen sier hvor langt det
+     er igjen uten at man leser tallet — og tallet står der likevel, for den
+     som vil ha det eksakt. */
+  .spor { display: flex; gap: 3px; align-items: center; min-width: 0; flex-wrap: nowrap; }
+  .hakk {
+    width: clamp(9px, 1.5vw, 20px); height: clamp(13px, 2.1vh, 22px);
+    border-radius: 3px; flex: 0 1 auto;
+    background: linear-gradient(180deg, rgba(6,18,46,.75), rgba(6,18,46,.5));
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.5);
+    transition: background .34s var(--myk), box-shadow .34s var(--myk);
+  }
+  .hakk.fylt {
+    background: linear-gradient(180deg, var(--korall-lys) 0%, var(--korall) 62%, var(--korall-dyp) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 0 10px rgba(232,80,63,.55);
+  }
+  .hakk.ny { animation: hakk-inn .5s var(--sprett) both; }
+  @keyframes hakk-inn {
+    0% { transform: scaleY(.3) scaleX(.6); }
+    60% { transform: scaleY(1.3) scaleX(1.1); }
+    100% { transform: scale(1); }
+  }
+  .lagbar .tall {
+    font-size: .84em; font-weight: 800; color: var(--kritt); white-space: nowrap;
+    background: rgba(4,14,38,.5); border-radius: 999px; padding: .1em .6em;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.4);
+  }
+  .lagbar .tall .mot { color: var(--tekst-3); font-weight: 700; }
+  .lagbar.klart { border-color: rgba(74,208,127,.6); box-shadow: var(--topplys), 0 0 26px rgba(74,208,127,.4), var(--loft-2); }
+  .lagbar.klart .lagnavn { color: var(--ok); }
+  .motstand {
+    display: flex; align-items: center; gap: .4em; font-size: .68em;
+    color: var(--tekst-3); font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    background: var(--flate-dyp); border: 1px solid rgba(132,178,248,.13);
+    border-radius: 999px; padding: .22em .7em;
+  }
+  .motstand b { color: var(--tekst-2); font-size: 1.2em; }
+
+  /* SAMMENSLÅINGEN. De to lagbrikkene glir mot midten og forsvinner mens
+     baren vokser fram bak dem. Det er hele poenget med animasjonen: man skal
+     SE at to tellere ble til én, ikke oppdage at tallet plutselig er et
+     annet. */
+  .lagfelt.smelter { display: grid; place-items: center; }
+  .lagfelt.smelter > * { grid-area: 1 / 1; }
+  .lagfelt.smelter .brikke.smelt-inn { animation: smelt .82s var(--ut-inn) both; }
+  .lagfelt.smelter .brikke.ut { animation: falm .34s ease both; }
+  .lagfelt.smelter .lagvis { animation: bar-fram .82s var(--sprett) both; }
+  @keyframes smelt {
+    0% { transform: translateX(var(--fra, 0)) scale(1); opacity: 1; }
+    55% { transform: translateX(0) scale(1.06); opacity: 1; }
+    100% { transform: translateX(0) scale(.7); opacity: 0; }
+  }
+  @keyframes falm { to { opacity: 0; transform: scale(.9); } }
+  @keyframes bar-fram {
+    0% { transform: scale(.6); opacity: 0; }
+    50% { opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ================== BORDET ============================================= */
   .bord {
     position: relative; min-height: 0; min-width: 0;
     display: grid;
@@ -228,43 +443,52 @@
     place-items: center;
     gap: clamp(2px, .8vh, 10px);
   }
-  .bordkort { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+  .bordkort { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; position: relative; }
   .bordkort .hvem {
-    font-weight: 700; font-size: .72em; text-shadow: 0 2px 4px rgba(0,0,0,.7);
-    white-space: nowrap; color: var(--tekst-2);
-    display: inline-flex; align-items: center; gap: .3em;
+    font-weight: 700; font-size: .68em; letter-spacing: .06em; text-transform: uppercase;
+    white-space: nowrap; color: var(--tekst-3);
+    transition: color .28s var(--myk), opacity .28s var(--myk);
   }
-  .bordkort .vant { color: var(--korall-lys); display: inline-flex; align-items: center; gap: .25em; }
-  .bordkort .vant .stjerne { width: .9em; height: .9em; }
   .bordkort.topp    { grid-area: 1 / 2; align-self: start; }
   .bordkort.venstre { grid-area: 2 / 1; }
   .bordkort.høyre   { grid-area: 2 / 3; }
   .bordkort.bunn    { grid-area: 3 / 2; align-self: end; }
-  .midtfelt { grid-area: 2 / 2; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .midtfelt { grid-area: 2 / 2; display: flex; flex-direction: column; align-items: center; gap: 7px; }
 
-  .trumfskilt {
-    display: flex; align-items: center; gap: .5em;
-    background: rgba(4, 14, 38, .72); border: 2px solid var(--kant-lys);
-    border-radius: 999px; padding: .2em .8em .2em .55em; font-size: .82em; font-weight: 700;
+  .trumfskilt, .etterlyst {
+    display: flex; align-items: center; gap: .5em; flex-wrap: wrap; justify-content: center;
+    background: var(--flate); border: 1px solid var(--hinne);
+    box-shadow: var(--topplys), var(--loft-1);
+    border-radius: 999px; padding: .2em .8em .24em .6em; font-size: .8em; font-weight: 700;
   }
+  .trumfskilt.inn, .etterlyst.inn { animation: skilt-inn .38s var(--sprett) both; }
+  @keyframes skilt-inn { from { opacity: 0; transform: translateY(6px) scale(.92); } }
   .trumfskilt .stjerne { width: 1.15em; height: 1.15em; }
-  .trumfskilt .merkelapp { color: var(--tekst-3); font-weight: 600; letter-spacing: .06em; font-size: .9em; }
-  .etterlyst {
-    display: flex; align-items: center; gap: .4em; flex-wrap: wrap; justify-content: center;
-    background: rgba(4, 14, 38, .72); border: 2px solid var(--kant);
-    border-radius: 999px; padding: .18em .75em; font-size: .78em;
-  }
-  .etterlyst .merkelapp { color: var(--tekst-3); }
+  .merkelapp { color: var(--tekst-3); font-weight: 700; letter-spacing: .1em; font-size: .82em; text-transform: uppercase; }
+  .etterlyst { font-size: .76em; }
+
+  /* DIN TUR. Det høyeste punktet i hierarkiet når det gjelder — ingenting
+     annet på skjermen skal rope like høyt. Pulsen er lav og treg; den skal
+     kunne stå i tjue sekunder uten å bli irriterende. */
   .dintur {
-    background: var(--korall); color: #fff; font-weight: 800;
-    border-radius: 999px; padding: .25em 1em; font-size: .8em;
-    box-shadow: 0 3px 16px rgba(232,80,63,.4);
+    background: linear-gradient(180deg, var(--korall-lys) 0%, var(--korall) 55%, var(--korall-dyp) 100%);
+    color: #fff; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    border-radius: 999px; padding: .3em 1.15em; font-size: .78em;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.42), 0 4px 18px rgba(232,80,63,.5);
+    animation: dintur-puls 2.6s ease-in-out 1s infinite;
+  }
+  .dintur.inn { animation: dintur-inn .42s var(--sprett) both, dintur-puls 2.6s ease-in-out 1s infinite; }
+  @keyframes dintur-inn { from { opacity: 0; transform: scale(.8); } }
+  @keyframes dintur-puls {
+    0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.42), 0 4px 18px rgba(232,80,63,.5); }
+    50% { box-shadow: inset 0 1px 0 rgba(255,255,255,.42), 0 4px 26px rgba(232,80,63,.85); }
   }
 
   .tenker {
     display: inline-flex; align-items: center; gap: .5em;
-    background: rgba(4, 14, 38, .82); border: 2px solid var(--kant-lys);
-    border-radius: 999px; padding: .25em .9em; font-size: .8em; font-weight: 600;
+    background: var(--flate); border: 1px solid var(--hinne);
+    box-shadow: var(--topplys), var(--loft-1);
+    border-radius: 999px; padding: .25em .9em; font-size: .78em; font-weight: 600;
   }
   .tenker.topp { grid-area: 1 / 2; align-self: end; }
   .tenker.venstre { grid-area: 2 / 1; }
@@ -280,28 +504,33 @@
 
   .forrige {
     position: absolute; right: 0; top: 0; z-index: 2;
-    background: rgba(4, 14, 38, .74); border: 2px solid var(--kant);
-    border-radius: 10px; padding: .3em .5em; text-align: center;
-    font-size: .62em; max-width: 42%;
+    background: var(--flate-dyp); border: 1px solid rgba(132,178,248,.14);
+    box-shadow: var(--loft-1);
+    border-radius: var(--rad-s); padding: .35em .5em; text-align: center;
+    font-size: .6em; max-width: 42%;
   }
-  .forrige .tittel { color: var(--tekst-3); margin-bottom: 2px; white-space: nowrap; }
+  .forrige.inn { animation: forrige-inn .34s var(--myk) both; }
+  @keyframes forrige-inn { from { opacity: 0; transform: translateX(10px); } }
+  .forrige .tittel { color: var(--tekst-3); margin-bottom: 3px; white-space: nowrap;
+                     letter-spacing: .08em; text-transform: uppercase; font-size: .92em; }
   .forrige .tittel b { color: var(--korall-lys); }
   .forrige .rad { display: flex; gap: 3px; justify-content: center; }
-  .forrige .navn { color: var(--tekst-3); font-size: .9em; }
+  .forrige .navn { color: var(--tekst-3); font-size: .88em; }
 
-  /* ---- Kort --------------------------------------------------------------
-     EKTE KORTPROPORSJONER: 2,5 × 3,5 tommer, altså 0,714. Sto på 0,7 før —
-     nær nok til å se riktig ut, ikke nær nok til å VÆRE riktig. */
+  /* ================== KORT ===============================================
+     EKTE KORTPROPORSJONER: 2,5 × 3,5 tommer, altså 0,714. */
   .kort {
     width: var(--kb, var(--kort-maks));
     aspect-ratio: 2.5 / 3.5;
     background:
-      linear-gradient(160deg, #fffefb 0%, var(--kortflate) 46%, #efece2 100%);
+      linear-gradient(157deg, #fffefb 0%, var(--kortflate) 44%, #eeeade 100%);
     color: var(--f, var(--s-blekk));
-    border: 1px solid rgba(23,27,34,.28); border-radius: clamp(5px, .8vh, 10px);
+    border: 1px solid rgba(23,27,34,.24); border-radius: clamp(6px, .9vh, 12px);
     position: relative; cursor: pointer; padding: 0; flex: 0 0 auto;
-    font: inherit; box-shadow: var(--skygge);
-    transition: transform .14s ease, box-shadow .14s ease, filter .14s ease;
+    font: inherit;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), var(--loft-2);
+    transition: transform .2s var(--sprett), box-shadow .2s var(--myk),
+                filter .2s var(--myk), opacity .2s var(--myk);
     touch-action: manipulation; user-select: none; -webkit-user-select: none;
     -webkit-touch-callout: none;
     overflow: hidden;
@@ -321,50 +550,51 @@
   }
   @media (max-width: 430px) { .kort .hjorne.ned { display: none; } }
 
-  .kort:not([disabled]):hover { transform: translateY(-.9vh) scale(1.04); box-shadow: 0 12px 30px rgba(2,8,24,.65); }
+  .kort:not([disabled]):hover { transform: translateY(-1vh) scale(1.05); box-shadow: inset 0 1px 0 rgba(255,255,255,.95), var(--loft-3); }
   .kort:not([disabled]):active { transform: translateY(-.3vh) scale(.99); }
   .kort:focus-visible { outline: 4px solid var(--korall-lys); outline-offset: 3px; z-index: 3; }
-  .kort:not([disabled]):focus-visible { transform: translateY(-.9vh) scale(1.04); }
-  .kort[disabled] { opacity: .42; filter: saturate(.35); cursor: default; }
-  .hånd.passiv .kort[disabled] { opacity: .92; filter: none; }
-  .bordkort .kort[disabled], .forrige .kort[disabled], .rygg.kort { opacity: 1; filter: none; }
+  .kort:not([disabled]):focus-visible { transform: translateY(-1vh) scale(1.05); }
   .kort.valgt { outline: 4px solid var(--korall-lys); outline-offset: 2px; transform: translateY(-1.4vh); z-index: 2; }
   .kort.liten { --kb: clamp(44px, 4.6vw + 3.2vh, 96px); }
   .forrige .kort { --kb: clamp(26px, 3.4vh, 44px); border-width: 1px; box-shadow: none; }
+  .bordkort .kort[disabled], .forrige .kort[disabled], .rygg.kort { opacity: 1; filter: none; cursor: default; }
 
   /* KORTBAKSIDEN. Stjerna på kobolt, med en tynn kremramme slik ekte
-     kortrygger har. Brukes til motstandernes bunker og på startskjermen. */
+     kortrygger har. */
   .kort.rygg {
     background:
-      radial-gradient(ellipse at 50% 45%, var(--kobolt-700) 0%, var(--kobolt-900) 72%, var(--kobolt-950) 100%);
-    border-color: rgba(247,244,236,.5); cursor: default;
+      radial-gradient(ellipse at 50% 42%, var(--kobolt-700) 0%, var(--kobolt-900) 70%, var(--kobolt-950) 100%);
+    border-color: rgba(247,244,236,.45); cursor: default;
     display: grid; place-items: center;
   }
   .kort.rygg::before {
     content: ""; position: absolute; inset: 7%;
-    border: 1px solid rgba(247,244,236,.34); border-radius: 3px;
+    border: 1px solid rgba(247,244,236,.3); border-radius: 3px;
   }
   .kort.rygg .stjerne { width: 54%; height: 54%; opacity: .95; }
 
-  /* Motstandernes bunker: bordet er en kortbord, ikke en tom flate. */
-  .bunke { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  /* Motstandernes bunker. */
+  .bunke { display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .bunke .vifte { display: flex; }
   .bunke .vifte .kort { --kb: clamp(20px, 2.4vw + 1.6vh, 44px); margin-left: -42%; box-shadow: 0 2px 6px rgba(2,8,24,.6); }
   .bunke .vifte .kort:first-child { margin-left: 0; }
   .bunke .antall {
-    font-size: .62em; color: var(--tekst-3); font-weight: 700; white-space: nowrap;
+    font-size: .6em; color: var(--tekst-3); font-weight: 700; white-space: nowrap;
+    letter-spacing: .06em; text-transform: uppercase;
     display: inline-flex; align-items: center; gap: .4em;
   }
-  /* Når det er dette setets tur, bytter tallet plass med «tenker …». Samme
-     linje, samme sted — bunken og bobla hører til samme spiller. */
-  .bunke .antall .prikker i { background: var(--korall-lys); }
 
-  /* ---- Hånden ------------------------------------------------------------ */
+  /* ================== HÅNDEN =============================================
+     HIERARKI VED HØYDE, IKKE VED Å BLEKE UT. Før lå de ulovlige kortene på
+     `opacity:.42; saturate(.35)` — de ble grå klosser man måtte anstrenge
+     seg for å lese, og kontrasten falt med dem. Nå er forskjellen HØYDE og
+     LYS: de spillbare står løftet med en varm kant, de andre ligger senket og
+     litt mattere. Formen bærer beskjeden, ikke fraværet av farge. */
   :root { --kort-maks: clamp(56px, 7.2vw + 3.6vh, 132px); --kort-min: 46px; --kort-luft: 4px; }
   .hånd {
     display: flex; justify-content: center; align-items: flex-end;
     flex-wrap: wrap; gap: var(--kort-luft);
-    padding: 2px 0 4px; min-height: 0;
+    padding: 8px 0 4px; min-height: 0;
   }
   .hånd .kort {
     --kb: clamp(
@@ -373,17 +603,35 @@
       var(--kmaks, var(--kort-maks))
     );
   }
+  /* .94 og ikke lavere: forskjellen skal bæres av HØYDEN og skyggen, ikke av
+     at kortet blekner. Blir det for svakt, faller lesbarheten med det — og
+     det var nettopp den feilen runde 1 rettet. */
+  .hånd .kort[disabled] { transform: translateY(10px); opacity: .94; box-shadow: var(--loft-1); }
+  .hånd .kort:not([disabled]) {
+    transform: translateY(-4px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 0 0 1px rgba(255,138,118,.45),
+                0 6px 20px rgba(2,8,24,.5), 0 0 20px rgba(232,80,63,.20);
+  }
+  /* «passiv» = kortene er ikke valgbare fordi et panel har ordet, ikke fordi
+     de er ulovlige. Da skal de stå rolig og fullt lesbare. */
+  .hånd.passiv .kort[disabled] { transform: none; opacity: 1; box-shadow: inset 0 1px 0 rgba(255,255,255,.95), var(--loft-2); }
 
-  /* ---- ANIMASJONER -------------------------------------------------------
-     ARVIND: «det kan gå litt for raskt når vi spiller og vi får ikke med oss
-     ting.» Dette er derfor en LESBARHETSFIKS, ikke pynt, og den er tidsatt
-     etter det: et kort skal kunne følges med øynene fra den som la det, og et
-     stikk skal kunne ses gå til den som vant det.
+  /* ================== ANIMASJONER =======================================
+     ARVIND: «de animasjonene for utspill er også ikke polert, og det viser
+     aldri hvem som får stikket med en animasjon.»
 
-     Kortet glir inn FRA sin egen kant av bordet, så retningen forteller hvem
-     som la det. `prefers-reduced-motion` slår alt av — da står kortene bare
-     der, og frysepausen alene gjør jobben. */
-  .bordkort .kort.ny { animation: legges .42s cubic-bezier(.22,.9,.3,1) both; }
+     Det første er tempo og easing. Det andre var en ekte feil, og den er
+     verdt å skrive ned: kortene GLED til vinneren, men de landet OPPÅ
+     hverandre under vinnerens eget kort og falmet til 0,5 — så det som
+     faktisk ble sett var at kortene forsvant, ikke at de gikk et sted. En
+     måling som sa «408 px flyttet» var sann og svarte likevel ikke på om noen
+     så det.
+
+     Nå LANDER de: bunken legger seg i vifte rundt vinnerens kort, i full
+     dekkevne, med en liten støt-effekt når den treffer. Og etterpå spretter
+     et stikkmerke ut av bunken og flyr inn i lagbaren, slik at man ser stikket
+     bli til framdrift mot kontrakten. */
+  .bordkort .kort.ny { animation: legges .44s var(--sprett) both; }
   .bordkort.topp    .kort.ny { animation-name: fra-topp; }
   .bordkort.bunn    .kort.ny { animation-name: fra-bunn; }
   .bordkort.venstre .kort.ny { animation-name: fra-venstre; }
@@ -394,42 +642,113 @@
   @keyframes fra-venstre { from { opacity: 0; transform: translateX(-210%) rotate(-9deg) scale(.9); } }
   @keyframes fra-hoyre   { from { opacity: 0; transform: translateX(210%)  rotate(9deg)  scale(.9); } }
 
-  .bordkort.vant .kort { outline: 3px solid var(--korall-lys); outline-offset: 2px; }
-  /* Innsamlingen til vinneren. Flyttingen settes som inline `transform` fra
-     app.ts, som måler de faktiske posisjonene — 16 kombinasjoner av vinner og
-     plass ville ellers måttet skrives ut for hånd, og de ville vært gjetninger
-     om et rutenett som endrer seg med skjermstørrelsen. */
+  /* Stikket er avgjort: vinnerkortet løftes og lyser, taperne trekker seg
+     tilbake. Forskjellen skal kunne ses fra sofaen, ikke leses. */
+  .bord.avgjort .bordkort:not(.vant) .kort { transform: scale(.9); filter: brightness(.68) saturate(.7); }
+  .bord.avgjort .bordkort:not(.vant) .hvem { opacity: .35; }
+  .bordkort.vant .kort {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), var(--glo-korall), var(--loft-3);
+    animation: vinnerslag .62s var(--sprett) both;
+    z-index: 4;
+  }
+  @keyframes vinnerslag {
+    0% { transform: scale(1); }
+    42% { transform: scale(1.16) translateY(-4%); }
+    100% { transform: scale(1.08) translateY(-2%); }
+  }
+  /* Setet lyser opp der stikket havner. */
+  .seteglans {
+    position: absolute; left: 50%; top: 50%; width: 260%; height: 260%;
+    transform: translate(-50%, -50%); pointer-events: none; z-index: -1;
+    background: radial-gradient(circle at 50% 50%,
+      rgba(232,80,63,.42) 0%, rgba(232,80,63,.16) 34%, rgba(232,80,63,0) 66%);
+    animation: glans .95s var(--myk) both;
+  }
+  @keyframes glans {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); }
+    45% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    100% { opacity: .55; transform: translate(-50%, -50%) scale(1); }
+  }
+  /* Vinnerskiltet står OVER kortet, ikke bak det. Før vokste kortet opp i sin
+     egen etikett og dekket halve ordet. */
+  .vinnerband {
+    display: inline-flex; align-items: center; gap: .35em;
+    background: linear-gradient(180deg, var(--korall-lys) 0%, var(--korall) 60%, var(--korall-dyp) 100%);
+    color: #fff; font-weight: 800; font-size: .92em; letter-spacing: .06em; text-transform: uppercase;
+    border-radius: 999px; padding: .16em .7em .2em;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 3px 16px rgba(232,80,63,.6);
+    animation: band-inn .5s var(--sprett) both;
+    position: relative; z-index: 5;
+  }
+  .vinnerband .stjerne { width: .95em; height: .95em; }
+  @keyframes band-inn { from { opacity: 0; transform: translateY(6px) scale(.6); } }
+
+  /* Innsamlingen. Flyttingen settes som inline `transform` fra app.ts, som
+     måler de faktiske posisjonene — seksten kombinasjoner av vinner og plass
+     ville ellers vært gjetninger om et rutenett som endrer seg med skjermen. */
   .bord.samler .bordkort .kort {
-    transition: transform .62s cubic-bezier(.4,0,.2,1), opacity .62s ease;
+    transition: transform .52s var(--ut-inn), opacity .3s ease .5s;
   }
   .bord.samler .bordkort .hvem { transition: opacity .3s; opacity: 0; }
   .bord.samler .bordkort.vant .hvem { opacity: 1; }
-
-  @media (prefers-reduced-motion: reduce) {
-    .overlegg.fersk, .overlegg.fersk .panel, .bordkort .kort.ny { animation: none; }
-    .bord.samler .bordkort .kort { transition: none; }
-    .prikker i { animation: none; opacity: .8; }
-    .kort { transition: none; }
-    .laster .stjerne { animation: none !important; }
+  .bord.samler .bordkort.vant .kort { animation: none; }
+  /* Støtet når bunken lander. */
+  .bord.landet .bordkort.vant .kort { animation: nedslag .38s var(--sprett) both; }
+  @keyframes nedslag {
+    0% { transform: scale(1.08) translateY(-2%); }
+    40% { transform: scale(1.18) translateY(-1%); }
+    100% { transform: scale(1.06) translateY(-2%); }
   }
 
-  /* ---- Paneler ----------------------------------------------------------- */
+  /* Stikkmerket som flyr fra bunken inn i lagbaren. */
+  .flygemerke {
+    position: fixed; z-index: 40; pointer-events: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 2em; height: 2em; padding: 0 .5em;
+    border-radius: 999px; font: 800 clamp(14px, 2vh, 22px)/1 var(--sans);
+    background: linear-gradient(180deg, var(--korall-lys) 0%, var(--korall) 60%, var(--korall-dyp) 100%);
+    color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 6px 24px rgba(232,80,63,.7);
+  }
+  .lagbar.treff, .brikke.treff { animation: treffslag .5s var(--sprett); }
+  @keyframes treffslag {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.06); }
+    100% { transform: scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .overlegg.fersk, .overlegg.fersk .panel, .bordkort .kort.ny,
+    .kontrakt.inn, .trumfskilt.inn, .etterlyst.inn, .dintur, .dintur.inn,
+    .forrige.inn, .vinnerband,
+    .seteglans, .hakk.ny, .tavle .itur::after, .tavle b.endret,
+    .lagfelt.smelter .brikke.smelt-inn, .lagfelt.smelter .brikke.ut,
+    .lagfelt.smelter .lagvis, .bordkort.vant .kort, .bord.landet .bordkort.vant .kort,
+    .rom .skinn, .laster .stjerne, .prikker i, .lagbar.treff, .brikke.treff {
+      animation: none !important;
+    }
+    .bord.samler .bordkort .kort { transition: none; }
+    .kort, .brikke, .hakk, .bordkort .hvem { transition: none; }
+    .seteglans { opacity: .55; }
+  }
+
+  /* ================== PANELER ============================================ */
   .overlegg {
     position: fixed; inset: 0; z-index: 10;
     display: grid; place-items: center; padding: 12px;
-    background: rgba(2, 8, 24, .42);
+    background: radial-gradient(ellipse at 50% 50%, rgba(2,8,24,.42) 0%, rgba(1,5,18,.72) 100%);
+    backdrop-filter: blur(3px);
   }
-  .overlegg.fersk { animation: tone .16s ease-out; }
-  .overlegg.fersk .panel { animation: opp .18s ease-out; }
+  .overlegg.fersk { animation: tone .2s ease-out; }
+  .overlegg.fersk .panel { animation: opp .34s var(--sprett); }
   @keyframes tone { from { opacity: 0; } }
-  @keyframes opp { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+  @keyframes opp { from { opacity: 0; transform: translateY(16px) scale(.94); } }
   .panel {
-    background: linear-gradient(180deg, var(--flate-2) 0%, var(--flate) 100%);
-    border: 2px solid var(--kant-lys); border-radius: 18px;
-    padding: clamp(14px, 2.4vh, 30px) clamp(16px, 2.6vw, 36px);
+    background: linear-gradient(180deg, rgba(28,64,132,.96) 0%, rgba(7,22,58,.97) 100%);
+    border: 1px solid var(--hinne-lys); border-radius: var(--rad-l);
+    padding: clamp(16px, 2.8vh, 32px) clamp(18px, 2.8vw, 40px);
     width: fit-content; min-width: min(280px, 92vw);
     max-width: min(96vw, 900px); max-height: min(94vh, 94dvh); overflow: auto;
-    box-shadow: 0 20px 64px rgba(2,8,24,.8); text-align: center;
+    box-shadow: var(--topplys), var(--loft-3); text-align: center;
     position: relative;
   }
   /* Korallstripe langs toppen — flaggets røde, og et sted for aksenten som
@@ -437,44 +756,47 @@
   .panel::before {
     content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px;
     background: linear-gradient(90deg, var(--korall-dyp), var(--korall), var(--korall-lys));
-    border-radius: 18px 18px 0 0;
+    border-radius: var(--rad-l) var(--rad-l) 0 0;
   }
   .panel h1 { font-family: var(--slab); font-weight: 400; font-size: clamp(1.5em, 3.4vh, 2.3em);
               margin: 0 0 .3em; letter-spacing: .01em; line-height: 1.05; }
   .panel h2 { font-size: clamp(1.05em, 2vh, 1.4em); margin: 0 0 .7em; line-height: 1.3; font-weight: 800; }
-  .knapper { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .knapper { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 
   button.stor {
     font: inherit; font-size: clamp(.95em, 1.7vh, 1.25em); font-weight: 800;
     min-width: 3.4em; min-height: 48px; padding: .45em .95em;
-    border-radius: var(--rad); border: 2px solid var(--kant-lys); cursor: pointer;
-    background: var(--kobolt-700); color: #fff; touch-action: manipulation;
-    transition: background .14s, transform .1s, box-shadow .14s;
+    border-radius: var(--rad); border: 1px solid var(--hinne-lys); cursor: pointer;
+    background: linear-gradient(180deg, var(--kobolt-600) 0%, var(--kobolt-800) 100%);
+    color: #fff; touch-action: manipulation;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.24), var(--loft-1);
+    transition: transform .14s var(--sprett), box-shadow .18s var(--myk), filter .18s var(--myk);
   }
-  button.stor:hover { background: var(--kobolt-600); }
-  button.stor:active { transform: translateY(1px) scale(.985); }
+  button.stor:hover { filter: brightness(1.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.28), var(--loft-2); transform: translateY(-2px); }
+  button.stor:active { transform: translateY(1px) scale(.985); box-shadow: inset 0 2px 5px rgba(0,0,0,.4); }
   button.stor:focus-visible { outline: 4px solid var(--korall-lys); outline-offset: 2px; }
-  button.stor[disabled] { opacity: .38; cursor: default; }
-  button.stor[disabled]:hover { background: var(--kobolt-700); }
-  button.pass { background: #4a2320; border-color: #8a4a42; }
-  button.pass:hover { background: #6a322c; }
-  button.spesial { background: var(--korall-dyp); border-color: var(--korall); }
-  button.spesial:hover { background: var(--korall); }
-  button.bekreft { background: var(--korall); border-color: var(--korall-lys);
-                   font-size: clamp(1.05em, 2vh, 1.45em); }
-  button.bekreft:hover { background: var(--korall-lys); color: #2a0d08; }
+  button.stor[disabled] { opacity: .4; cursor: default; }
+  button.stor[disabled]:hover { filter: none; transform: none; }
+  button.pass { background: linear-gradient(180deg, #6a332c 0%, #3d1d19 100%); border-color: rgba(180,110,95,.4); }
+  button.spesial { background: linear-gradient(180deg, var(--korall-dyp) 0%, #6e1f14 100%); border-color: rgba(255,138,118,.45); }
+  button.bekreft {
+    background: linear-gradient(180deg, var(--korall-lys) 0%, var(--korall) 52%, var(--korall-dyp) 100%);
+    border-color: rgba(255,180,168,.6);
+    font-size: clamp(1.05em, 2vh, 1.45em);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 4px 20px rgba(232,80,63,.45);
+  }
 
   /* ---- Trumfvelgeren: fire KORT ------------------------------------------ */
   .trumfvalg { display: flex; flex-wrap: wrap; gap: clamp(8px, 1.6vw, 18px); justify-content: center; }
   button.trumfkort {
     font: inherit; cursor: pointer; touch-action: manipulation;
-    background: linear-gradient(160deg, #fffefb 0%, var(--kortflate) 100%); color: var(--f);
-    border: 2px solid rgba(247,244,236,.35); border-radius: var(--rad);
+    background: linear-gradient(157deg, #fffefb 0%, var(--kortflate) 100%); color: var(--f);
+    border: 1px solid rgba(23,27,34,.24); border-radius: var(--rad);
     padding: 0; overflow: hidden;
     width: clamp(84px, 17vw, 150px); min-height: 96px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1em;
-    box-shadow: var(--skygge);
-    transition: transform .14s, box-shadow .14s, border-color .14s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), var(--loft-2);
+    transition: transform .18s var(--sprett), box-shadow .18s var(--myk);
   }
   button.trumfkort .stripe { display: block; width: 100%; height: 10px; background: var(--f); }
   button.trumfkort .tsym {
@@ -482,7 +804,7 @@
     filter: drop-shadow(0 1px 0 rgba(255,255,255,.9)) drop-shadow(0 2px 3px rgba(23,27,34,.3));
   }
   button.trumfkort .tnavn { font-size: clamp(13px, 1.7vh, 19px); font-weight: 800; color: #3a3f46; margin-bottom: .45em; }
-  button.trumfkort:hover { transform: translateY(-4px); box-shadow: 0 14px 32px rgba(2,8,24,.7); border-color: var(--korall-lys); }
+  button.trumfkort:hover { transform: translateY(-6px) scale(1.03); box-shadow: inset 0 1px 0 rgba(255,255,255,.95), var(--loft-3), 0 0 0 1px rgba(255,138,118,.5); }
   button.trumfkort:active { transform: translateY(-1px) scale(.99); }
   button.trumfkort:focus-visible { outline: 4px solid var(--korall-lys); outline-offset: 3px; }
 
@@ -490,36 +812,51 @@
   .etterlysrad { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: .6em 0 1em; }
   button.minikort {
     font: inherit; cursor: pointer; touch-action: manipulation;
-    background: linear-gradient(160deg, #fffefb 0%, var(--kortflate) 100%); color: var(--f);
-    border: 1px solid rgba(23,27,34,.28); border-radius: 8px;
+    background: linear-gradient(157deg, #fffefb 0%, var(--kortflate) 100%); color: var(--f);
+    border: 1px solid rgba(23,27,34,.24); border-radius: 9px;
     min-width: 48px; min-height: 60px; padding: .2em .3em;
     display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05;
-    font-weight: 800; box-shadow: 0 2px 7px rgba(2,8,24,.5);
-    transition: transform .12s, box-shadow .12s, border-color .12s;
+    font-weight: 800; box-shadow: inset 0 1px 0 rgba(255,255,255,.9), var(--loft-1);
+    transition: transform .16s var(--sprett), box-shadow .16s var(--myk);
   }
   button.minikort .v { font-size: clamp(17px, 2.3vh, 24px); }
   button.minikort .sym { font-size: clamp(15px, 2vh, 22px); }
-  button.minikort:hover { transform: translateY(-3px); border-color: var(--korall); box-shadow: 0 9px 20px rgba(2,8,24,.6); }
+  button.minikort:hover { transform: translateY(-5px) scale(1.04); box-shadow: inset 0 1px 0 rgba(255,255,255,.9), var(--loft-2), 0 0 0 1px rgba(255,138,118,.55); }
   button.minikort:active { transform: translateY(0) scale(.98); }
   button.minikort:focus-visible { outline: 4px solid var(--korall-lys); outline-offset: 2px; }
 
   .vrakhånd { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 1em; }
   .vrakhånd .kort { --kb: clamp(48px, 4.6vw + 3.4vh, 104px); }
 
-  .bekreftlinje { font-size: clamp(1em, 2vh, 1.3em); margin: .5em 0 .2em; line-height: 1.6; }
-  .bekreftsmatt { opacity: .78; font-size: .82em; margin: 0 0 1em; color: var(--tekst-2); font-weight: 400; }
+  .bekreftlinje { font-size: clamp(1em, 2vh, 1.3em); margin: .5em 0 .9em; line-height: 1.6; }
+  .bekreftsmatt { opacity: .8; font-size: .82em; color: var(--tekst-2); font-weight: 400; }
+  h2 .bekreftsmatt { display: block; margin-top: .25em; }
+
+  /* Utfallet av runden: form og farge, ikke et emoji. */
+  .utfall {
+    display: inline-flex; align-items: center; gap: .4em;
+    border-radius: 999px; padding: .12em .8em .16em; font-size: .78em;
+    font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.4), var(--loft-1);
+  }
+  .utfall.ja { background: linear-gradient(180deg, #63e39a 0%, #2f9c5f 100%); color: #04240f; }
+  .utfall.nei { background: linear-gradient(180deg, var(--korall-lys) 0%, var(--korall-dyp) 100%); color: #fff; }
 
   .resultat h2 { font-size: clamp(1.05em, 2.2vh, 1.5em); }
+  .resultat h2 .stjerne { display: inline-block; width: .9em; height: .9em; vertical-align: -.06em; margin: 0 .3em; }
+  .resultat h2 .utfall { vertical-align: .1em; }
   .delta { display: flex; gap: clamp(8px, 2vw, 24px); justify-content: center;
-           font-size: clamp(.9em, 1.8vh, 1.2em); margin-bottom: 1.2em; flex-wrap: wrap; }
-  .delta .pluss { color: var(--ok); } .delta .minus { color: var(--minus); }
+           font-size: clamp(.9em, 1.8vh, 1.2em); margin: 1em 0 1.2em; flex-wrap: wrap; }
+  .delta span { display: inline-flex; gap: .4em; align-items: baseline; }
+  .delta .pluss b { color: var(--ok); } .delta .minus b { color: var(--minus); }
+  .delta .navn { color: var(--tekst-3); font-size: .84em; }
   .lite { font-size: .72em; color: var(--tekst-3); } .lite a { color: var(--kobolt-200); }
 
   /* ---- Startskjermen ----------------------------------------------------- */
   .start .ordmerke {
     font-family: var(--slab); font-weight: 400;
     font-size: clamp(28px, 6.4vh, 58px); line-height: 1; letter-spacing: .005em;
-    color: var(--krem); margin: 0;
+    color: var(--krem); margin: 0 0 .7em;
     text-shadow: 0 2px 0 var(--korall-dyp), 0 4px 18px rgba(2,8,24,.7);
   }
   .start .ordmerke .demo {
@@ -527,21 +864,22 @@
     font-size: .3em; letter-spacing: .32em; text-transform: uppercase;
     color: var(--korall-lys); text-shadow: none; margin-top: .5em;
   }
-  /* Tre kortrygger i vifte over ordmerket — motivet som hero, og eneste
-     stedet baksiden vises stort. */
   .kortvifte { display: flex; justify-content: center; margin-bottom: .7em; }
   .kortvifte .kort { --kb: clamp(46px, 9vh, 78px); margin-left: -18%; }
   .kortvifte .kort:first-child { margin-left: 0; transform: rotate(-13deg); }
   .kortvifte .kort:last-child { transform: rotate(13deg); }
   .start input {
-    font: inherit; font-size: 1.05em; padding: .5em .8em; border-radius: 10px;
-    border: 2px solid var(--kant-lys); background: rgba(2,8,24,.55); color: #fff;
-    margin: .5em 0 1.1em; width: 14em; max-width: 100%; min-height: 48px; text-align: center;
+    font: inherit; font-size: 1.05em; padding: .5em .8em; border-radius: var(--rad-s);
+    border: 1px solid var(--hinne-lys);
+    background: linear-gradient(180deg, rgba(2,8,24,.66) 0%, rgba(2,8,24,.42) 100%);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.45);
+    color: #fff;
+    margin: 0 0 1.1em; width: 13em; max-width: 100%; min-height: 52px; text-align: center;
+    transition: box-shadow .2s var(--myk), border-color .2s var(--myk);
   }
   .start input::placeholder { color: var(--tekst-3); }
-  .start input:focus-visible { outline: 3px solid var(--korall-lys); outline-offset: 2px; border-color: var(--korall); }
-  .start label { display: block; color: var(--tekst-2); font-size: .85em; }
-  .start p { color: var(--tekst-2); font-size: .9em; margin: .2em 0 1em; }
+  .start input:focus-visible { outline: none; border-color: var(--korall);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.4), 0 0 0 3px rgba(232,80,63,.45); }
 
   /* Lasteindikatoren: tre stjerner som slår, ikke en generisk stripe. */
   .laster { display: flex; flex-direction: column; align-items: center; gap: .9em; }
@@ -552,9 +890,13 @@
   @keyframes blink { 0%, 65%, 100% { opacity: .22; transform: scale(.86); }
                      32% { opacity: 1; transform: scale(1.04); } }
 
-  ul.regler { text-align: left; margin: 0 auto 1em; padding-left: 1.1em; max-width: 34em;
-              color: var(--tekst-2); font-size: .82em; }
-  ul.regler li { margin-bottom: .3em; }
+  /* Utrullingsvarselet. Se `<script>` nederst i fila. */
+  #versjonsvarsel {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+    background: linear-gradient(180deg, var(--korall) 0%, var(--korall-dyp) 100%);
+    color: #fff; font: 600 14px/1.4 var(--sans); text-align: center;
+    padding: 10px 14px; box-shadow: 0 -4px 20px rgba(0,0,0,.5);
+  }
 
   /* ================= LAV SKJERM = LIGGENDE TELEFON =======================
      Står SIST i fila med vilje: regler som skal overstyre må komme etter det
@@ -567,12 +909,25 @@
     .midtfelt { gap: 3px; }
     .forrige { display: none; }
     .bunke { display: none; }
+    .lagfelt { min-height: clamp(30px, 5vh, 40px); }
+    .lagbar { padding: .16em .4em .16em .7em; gap: 8px; }
+    .lagbar .lagnavn { font-size: .62em; }
+    .hakk { height: clamp(10px, 1.6vh, 16px); }
+    .rom .stjerne { width: 22vh; height: 22vh; }
   }
-  @media (max-width: 560px) { .forrige { font-size: .55em; max-width: 54%; } }
+  @media (max-width: 560px) {
+    .forrige { font-size: .54em; max-width: 54%; }
+    .runde { display: none; }
+    .tavle .spiller { padding: .2em .45em .24em; min-width: 2.9em; }
+  }
 </style>
 </head>
 <body>
-  <div class="vannmerke" aria-hidden="true">
+  <!-- ROMMET. Tre lag som til sammen gir dybde uten å bli et møbel: lyset
+       ovenfra, bunngløden der kortene lander, og stjerna som identitet. -->
+  <div class="rom" aria-hidden="true">
+    <div class="skinn"></div>
+    <div class="grunn"></div>
     <svg class="stjerne" viewBox="0 0 100 100"><use href="#stjernemerke"></use></svg>
   </div>
   <div id="app"></div>
@@ -593,6 +948,82 @@
     </defs>
   </svg>
 
-  <script src="https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/app.js"></script>
+<script>
+/* ======================= UTRULLINGSLÅSEN ==================================
+
+   HVA SOM VAR GALT, OG HVORFOR INGEN SÅ DET
+
+   Her sto én linje: en `script`-tagg med `src` hardkodet til
+   `https://arvindfroi--…web.val.run/app.js`.
+
+   Den gjorde at siden ALDRI kjørte koden i `web/dist/app.js`. Uansett hvor
+   `index.html` ble åpnet fra — også rett fra disk under utvikling — hentet
+   den spillkoden fra basen. Stilarket står inne i denne fila og var derfor
+   alltid ferskt, mens spillkoden kunne være vilkårlig gammel.
+
+   Det gir én helt bestemt feilform: NY DESIGN, GAMMEL LOGIKK. Og nøyaktig det
+   ble rapportert — den blå Americana-identiteten var på plass, mens dama
+   fortsatt sto som «D» og stikkvinneren ikke ble vist. Begge deler VAR rettet
+   i kilden, og begge rettelsene lå i en bundel siden aldri lastet.
+
+   Ingenting sa fra. Bundelen svarer dessuten `Cache-Control: max-age=300`
+   uten `ETag`, så en fane som står åpen henter den ikke på nytt i det hele
+   tatt.
+
+   HVA SOM GJØRES NÅ
+
+   1. Det LOKALE bygget prøves først. Da ser man faktisk det man nettopp
+      bygde, og «virker det?» er et spørsmål man kan svare på lokalt.
+   2. Feiler det, hentes den utrullede bundelen — med versjonen i URL-en, slik
+      at en ny utrulling faktisk når fram gjennom hurtigbufferen.
+   3. Uansett utfall SAMMENLIGNES versjonen siden venter med den bundelen
+      melder. Er de ulike, står det på skjermen. En stille uoverensstemmelse
+      mellom to artefakter er den feilklassen dette prosjektet har blitt tatt
+      av flest ganger; her får den en høyttaler.
+
+   Val Town svarer 200 med HTML på filer som ikke finnes, så «lastet» er ikke
+   det samme som «kjørte». Derfor er testen at bundelen faktisk MELDER en
+   versjon — ikke at `onload` fyrte.                                       */
+
+(function () {
+  "use strict";
+  /* Bumpes sammen med `BUNDELVERSJON` i `web/app.ts`. Står de ulikt, sier
+     siden fra i stedet for å vise en halvgammel utgave i stillhet. */
+  var VENTET = "v6-2026-08-10";
+  var BASE = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
+
+  function varsle(tekst) {
+    var d = document.createElement("div");
+    d.id = "versjonsvarsel";
+    d.setAttribute("role", "alert");
+    d.textContent = tekst;
+    document.body.appendChild(d);
+  }
+
+  function last(url, reserve) {
+    var s = document.createElement("script");
+    s.src = url;
+    s.onload = function () { etterpå(url, reserve); };
+    s.onerror = function () { etterpå(url, reserve); };
+    document.head.appendChild(s);
+  }
+
+  function etterpå(url, reserve) {
+    var fikk = window.AMERIKANEREN_VERSJON;
+    if (fikk === VENTET) return;                     // alt stemmer
+    if (fikk === undefined && reserve) { reserve(); return; }
+    /* Kjørte noe, men feil utgave. Da lastes IKKE en til — to bundler i samme
+       side ville startet spillet to ganger. */
+    varsle(
+      fikk === undefined
+        ? "Spillkoden ble ikke lastet (" + url + "). Siden kan ikke starte."
+        : "Du ser en gammel utgave: siden venter " + VENTET + ", bundelen melder " +
+          fikk + ". Last siden på nytt (Ctrl/Cmd + Shift + R).",
+    );
+  }
+
+  last("dist/app.js", function () { last(BASE + "app.js?v=" + encodeURIComponent(VENTET), null); });
+})();
+</script>
 </body>
 </html>

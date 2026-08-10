@@ -35,6 +35,27 @@ import { AMERIKANER, PASS, SOLO, type Bud } from "../src/regler.ts";
 const DATA_URL = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
 const MENNESKE = 0;
 
+/**
+ * ============ VERSJONSHÅNDTAKET MOT `index.html` ========================
+ *
+ * `index.html` bærer den samme strengen og sammenligner den med denne etter
+ * at bundelen er kjørt. Er de ulike, skriver siden det på skjermen.
+ *
+ * HVORFOR DET TRENGS. Fram til nå lastet `index.html` spillkoden fra en
+ * hardkodet adresse hos basen, uansett hvor sida selv ble åpnet fra. Stilarket
+ * ligger inne i HTML-fila og var derfor alltid ferskt, mens bundelen kunne
+ * være vilkårlig gammel — og det gir én bestemt feilform: NY DESIGN, GAMMEL
+ * LOGIKK, uten at noe sier fra.
+ *
+ * Det er nøyaktig det som ble rapportert denne runden: identiteten fra runde 2
+ * var på plass, mens dama fortsatt sto som «D» og stikkvinneren ikke ble vist.
+ * Begge var rettet i kilden. Ingen av rettelsene var i bundelen sida kjørte.
+ *
+ * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
+ */
+const BUNDELVERSJON = "v6-2026-08-10";
+(globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
+
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
 // Farmor spiller mot appens EKTE MesterAI når hele spillet serveres fra
 // laptopens bro (arena/mesterai-bro.ts) over HTTP. Da er /mester samme opphav
@@ -520,7 +541,20 @@ function broSpeil(h: Handling, hendelser: readonly Hendelse[]): void {
   if (h.type !== "NESTE") void broPost({ type: "handling", handling: handlingTilAdapter(h) });
   for (const e of hendelser) if (e.type === "NY_RUNDE") void broPost(broRundeStart());
 }
-const NAVN = ["Du", "Vest 🤖", "Nord 🤖", "Øst 🤖"];
+/**
+ * SETENE. Ingen robot-emoji.
+ *
+ * ARVIND: «trenger vi emojer?» — retorisk, og svaret er nei. 🤖 sto etter hvert
+ * eneste botnavn og dermed fire til seks ganger på skjermen samtidig: i
+ * poengbrettet, i kontraktlinja, over hvert bordkort, i bunkene, i
+ * etterlysningsskiltet og i rundeoppgjøret. Det er også et av de tydeligste
+ * AI-generert-tegnene et grensesnitt kan bære.
+ *
+ * Opplysningen den skulle gi — «dette er ikke et menneske» — er dessuten
+ * allerede gitt: familien vet at de tre andre er boter, og «Du» skiller det
+ * ene setet som er et menneske. Formen sier det, ordet trengs ikke.
+ */
+const NAVN = ["Du", "Vest", "Nord", "Øst"];
 /**
  * Styrkenivåer for PIMC. Kortvalg (SPILL) er tidsstyrt; bud/vrak/trumf er
  * verdenstyrt med nodetak, så «øvrig» holder seg innenfor rimelig ventetid.
@@ -887,6 +921,79 @@ let velgTrumfValg: Farge | null = null;
 let velgEtterlysValg: Kort | null = null;
 let travelt = false;
 
+/**
+ * ============ HVA SOM SKAL ANIMERES, HUSKET MELLOM TEGNINGER ============
+ *
+ * `tegn()` bygger hele `#app` på nytt med `innerHTML`. Da er hvert element
+ * nytt hver gang, og en CSS-`transition` har ingenting å gå ut fra — den er
+ * grunnen til at ingenting overgikk og alt bare hoppet.
+ *
+ * Løsningen er ikke en DOM-differ. Den er å HUSKE den forrige verdien her, og
+ * la tegningen sette en klasse bare på det som faktisk endret seg. Da spilles
+ * animasjonen én gang, på riktig element, uten at resten blinker med.
+ */
+/** Poengsum per spiller ved forrige tegning — for tellerslaget. */
+let sistPoeng: number[] = [];
+/** Stikk per spiller ved forrige tegning — for brikkeslaget. */
+let sistStikk: number[] = [];
+/** Antall fylte hakk i lagbaren ved forrige tegning — for hakk-animasjonen. */
+let sistFylte = 0;
+
+/**
+ * ============ PYNT SOM BARE SKAL ANIMERES NÅR DEN ER NY =================
+ *
+ * Skiltene på bordet — trumf, etterlysning, «din tur», kontraktlinja, forrige
+ * stikk — har hver sin lille inngangsanimasjon. Siden `tegn()` bygger alt på
+ * nytt, ville de spilt av HVER gang noe som helst endret seg: flere ganger i
+ * sekundet mens botene spiller. Skiltene ville stått og blinket.
+ *
+ * Det er den samme fellen `forrigeBordkort` allerede løser for kortene og
+ * `sistPanel` for panelene. Her er den generelle utgaven: hvert pyntestykke
+ * har en NØKKEL som beskriver innholdet sitt, og animasjonsklassen settes bare
+ * når nøkkelen ikke sto der ved forrige tegning. Endrer innholdet seg — ny
+ * trumf, ny etterlysning — endrer nøkkelen seg, og da SKAL den animeres.
+ */
+let sistPynt = new Set<string>();
+let nåPynt = new Set<string>();
+/** Returnerer klassen « inn» hvis dette pyntestykket er nytt siden sist. */
+function pynt(nøkkel: string): string {
+  nåPynt.add(nøkkel);
+  return sistPynt.has(nøkkel) ? "" : " inn";
+}
+
+/**
+ * ============ LAGSTIKK-BAREN: HVILKEN FORM DEN HAR NÅ ===================
+ *
+ * ARVIND: «når det etterlyste kortet kommer frem og laget dannes så burde
+ * deres stikk gå til et felles lagstikk progress bar.»
+ *
+ * Det er regelen i Amerikaneren gjort synlig. Fram til det etterlyste kortet
+ * dukker opp teller den enkeltes stikk; fra det øyeblikket er det LAGETS
+ * samlede stikk som avgjør kontrakten. Grensesnittet viste aldri skiftet, så
+ * spilleren måtte holde to tall i hodet og legge dem sammen selv.
+ *
+ *   "ingen"        ingen kontrakt ennå (budrunde, vrak, trumfvalg)
+ *   "individuell"  kontrakt satt, makkeren ikke funnet — fire tellere
+ *   "smelter"      makkeren nettopp avslørt — de to glir sammen (0,9 s)
+ *   "lag"          én bar mot budet, og en dempet motstandsteller
+ *
+ * Ved solo og ved amerikaner uten etterlysning finnes ingen makker å vente
+ * på, og da står baren fra første stikk.
+ */
+type Lagmodus = "ingen" | "individuell" | "smelter" | "lag";
+let lagmodus: Lagmodus = "ingen";
+/** Hvor lenge sammenslåingen varer. Må stemme med `smelt`/`bar-fram` i CSS. */
+const SMELTETID = 900;
+/**
+ * Sammenslåingen skal spilles ÉN gang.
+ *
+ * Uten dette flagget ville den startet på nytt ved hver eneste tegning i de
+ * 900 millisekundene den varer — og det skjer minst én tegning i det vinduet,
+ * siden neste spiller legger et kort. Resultatet ville vært en animasjon som
+ * hakket i stedet for å gå.
+ */
+let smeltetVist = false;
+
 const rot = document.getElementById("app")!;
 const oppleser = document.getElementById("oppleser")!;
 
@@ -949,7 +1056,7 @@ const laster = (tittel: string, undertekst = ""): string =>
 /** Feiltilstand som sier hva som gikk galt OG gir en vei videre. */
 const feilrute = (tittel: string, hva: string): string =>
   `<div class="overlegg"><div class="panel start">
-    <h2>${tittel} 😕</h2>
+    <h2>${tittel}</h2>
     <p class="bekreftsmatt">${hva}</p>
     <button class="stor bekreft" id="tilbake">Tilbake</button>
   </div></div>`;
@@ -1053,8 +1160,39 @@ function gjør(h: Handling): void {
  * under frysingen, så elementene vi måler er de samme som fortsatt henger
  * der når flyttingen skal skje.
  */
-const STIKKPAUSE = 3000;
-const SAMLE_START = 1450; // hvor lenge stikket står stille før det samles
+/**
+ * ============ HVA SOM VAR GALT MED DEN FORRIGE UTGAVEN ==================
+ *
+ * Tallene stemte: kortene ble målt til å flytte seg 408 px, og de gjorde det.
+ * Men de fire endte i NØYAKTIG SAMME PUNKT — sentrum av vinnerens kort — på
+ * `opacity:.5` og `scale(.8)`, altså under et ugjennomsiktig kort. Det et
+ * menneske så var derfor ikke en overføring, men en forsvinning. Og etterpå
+ * sto bordet tomt i over ett sekund før neste stikk begynte.
+ *
+ * Det er samme feilklasse som har tatt dette prosjektet seksten ganger, bare i
+ * visuell form: målingen svarte på «flyttet elementet seg», ikke på «ser en
+ * spiller at stikket gikk til Øst».
+ *
+ * ============ HVA DEN GJØR NÅ ==========================================
+ *
+ *   0 ms     stikket er avgjort. Vinnerkortet løftes og lyser, setet gløder,
+ *            de tre andre mørkner og trekker seg tilbake, skiltet spretter opp.
+ *   900 ms   de tre reiser til vinneren og LANDER — i vifte rundt hans kort,
+ *            med hver sin lille rotasjon og forskyvning, i FULL dekkevne. En
+ *            bunke man ser ligge der, ikke fire kort som ble borte.
+ *   1280 ms  bunken får et lite nedslag når den treffer.
+ *   1500 ms  et stikkmerke spretter ut av bunken og flyr inn i lagbaren, som
+ *            slår til. Da har stikket en synlig konsekvens: det ble framdrift
+ *            mot kontrakten.
+ *   2600 ms  neste stikk.
+ *
+ * Under `prefers-reduced-motion` gjøres ingenting av dette; da står kortene
+ * stille med vinnermarkeringen, og pausen alene gjør jobben.
+ */
+const STIKKPAUSE = 2600;
+const SAMLE_START = 900; // hvor lenge stikket står stille før det samles
+const LANDING = 1280; // når bunken har landet og får nedslaget
+const MERKE_FLYR = 1500; // når stikkmerket forlater bunken
 function samleStikketTilVinneren(vinner: number): void {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   setTimeout(() => {
@@ -1078,16 +1216,72 @@ function samleStikketTilVinneren(vinner: number): void {
     //    og kortene hopper i stedet for å gli.
     bord.classList.add("samler");
     void bord.offsetHeight;
-    // 3. Så flytter vi. Vinnerens eget kort blir liggende og løftes litt;
-    //    de andre reiser dit.
+    // 3. Så flytter vi. Kortene legger seg i VIFTE rundt vinnerens, ikke oppå
+    //    det: hver taper får sin egen lille forskyvning og vinkel, og blir
+    //    liggende synlig. Det er forskjellen på en bunke og en forsvinning.
+    // Vifta måles i ANDELER AV KORTBREDDEN, ikke i piksler. Et fast tall som
+    // sprer tydelig på en PC blir usynlig på et 44 px kort på telefon — og da
+    // er man tilbake til en bunke som ser ut som ett tykt kort.
+    const b = m.width;
+    let nr = 0;
     for (const { el, dx, dy } of flytt) {
       const sammeSted = Math.abs(dx) < 1 && Math.abs(dy) < 1;
-      el.style.transform = sammeSted
-        ? "scale(1.08)"
-        : `translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(.8)`;
-      if (!sammeSted) el.style.opacity = "0.5";
+      if (sammeSted) continue; // vinnerens eget kort: `vinnerslag` eier det
+      const vri = [-14, 11, -6][nr % 3] ?? 0;
+      const skyv = ([-0.34, 0.36, 0.08][nr % 3] ?? 0) * b;
+      const senk = ([0.2, -0.16, 0.3][nr % 3] ?? 0) * b;
+      nr++;
+      el.style.zIndex = String(nr);
+      el.style.transform =
+        `translate(${Math.round(dx + skyv)}px, ${Math.round(dy + senk)}px) rotate(${vri}deg) scale(.94)`;
     }
+    setTimeout(() => bord.classList.add("landet"), LANDING - SAMLE_START);
+    setTimeout(() => flyStikkmerke(mål), MERKE_FLYR - SAMLE_START);
   }, SAMLE_START);
+}
+
+/**
+ * STIKKET BLIR TIL FRAMDRIFT. Et merke spretter ut av bunken og flyr inn i
+ * lagbaren (eller i vinnerens brikke, før laget er dannet), som slår til når
+ * det treffer.
+ *
+ * Dette er koblingen Arvind ba om: «deres stikk gå til et felles lagstikk
+ * progress bar». Uten flyvningen er baren bare et tall som endrer seg mens man
+ * ser en annen vei; med den ser man stikket bli til framdrift.
+ *
+ * Elementet legges i `document.body`, ikke i `#app`. `tegn()` river `#app` med
+ * `innerHTML`, og selv om det ikke skjer under frysingen er det ingen grunn
+ * til å la animasjonen henge i noe som blir revet.
+ */
+function flyStikkmerke(fra: HTMLElement): void {
+  const bar = rot.querySelector<HTMLElement>(".lagbar");
+  const brikke = rot.querySelector<HTMLElement>(".lagfelt .brikke.fører");
+  const til = bar ?? brikke;
+  if (til === null) return;
+  const a = fra.getBoundingClientRect();
+  const b = til.getBoundingClientRect();
+  const merke = document.createElement("div");
+  merke.className = "flygemerke";
+  merke.setAttribute("aria-hidden", "true");
+  merke.textContent = "+1";
+  merke.style.left = `${a.left + a.width / 2}px`;
+  merke.style.top = `${a.top + a.height / 2}px`;
+  document.body.appendChild(merke);
+  const dx = b.left + b.width / 2 - (a.left + a.width / 2);
+  const dy = b.top + b.height / 2 - (a.top + a.height / 2);
+  const flukt = merke.animate(
+    [
+      { transform: "translate(-50%, -50%) scale(.4)", opacity: 0, offset: 0 },
+      { transform: "translate(-50%, -50%) scale(1.15)", opacity: 1, offset: 0.18 },
+      { transform: `translate(calc(-50% + ${dx * 0.5}px), calc(-50% + ${dy * 0.5 - 26}px)) scale(1)`, opacity: 1, offset: 0.62 },
+      { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.5)`, opacity: 0, offset: 1 },
+    ],
+    { duration: 720, easing: "cubic-bezier(.4,0,.2,1)" },
+  );
+  flukt.onfinish = () => {
+    merke.remove();
+    til.classList.add("treff");
+  };
 }
 
 function håndterHendelser(hendelser: readonly Hendelse[]): void {
@@ -1097,8 +1291,29 @@ function håndterHendelser(hendelser: readonly Hendelse[]): void {
       logg("budvinner", { spiller: h.spiller, bud: h.bud, rundeNr: state.rundeNr });
     } else if (h.type === "TRUMF_VALGT") {
       si(`Trumf er ${FARGE_NAVN[h.trumf]}${h.etterlyst ? `, etterlyst ${kortTale(h.etterlyst)}` : ""}.`);
+      // Uten etterlysning (solo, og amerikaner som ikke etterlyser) finnes
+      // ingen makker å vente på, og baren står fra første stikk.
+      lagmodus = h.etterlyst === null ? "lag" : "individuell";
+      smeltetVist = h.etterlyst === null;
+      sistStikk = [];
+      sistFylte = 0;
     } else if (h.type === "MAKKER_AVSLØRT") {
       si(`${NAVN[h.spiller]} er makkeren!`);
+      // SAMMENSLÅINGEN. Fra nå av er det lagets stikk som teller, og bandet
+      // skal vise det skje — ikke bare vise et annet tall neste gang.
+      lagmodus = "smelter";
+      smeltetVist = false;
+      setTimeout(() => {
+        lagmodus = "lag";
+        // Er stikket fryst, står DOM-en stille med vilje; da overtar den
+        // tegningen som uansett kommer når frysingen slipper.
+        if (frystStikk === null && !travelt) tegn();
+      }, SMELTETID);
+    } else if (h.type === "NY_RUNDE") {
+      lagmodus = "ingen";
+      smeltetVist = false;
+      sistStikk = [];
+      sistFylte = 0;
     } else if (h.type === "STIKK_FERDIG") {
       si(`${NAVN[h.vinner]} vant stikket.`);
     } else if (h.type === "RUNDE_SLUTT") {
@@ -1299,32 +1514,162 @@ function sorterHånd(hånd: readonly Kort[]): Kort[] {
   );
 }
 
+/**
+ * ============ TOPPLINJA: ETT BRETT, IKKE FEM LIKE BOKSER ================
+ *
+ * ARVIND: «jeg synes boksene ser veldig basic ut … det bør være et bedre
+ * visuelt hierarki gjennom hele appen.»
+ *
+ * Her lå fire poengbokser og én kontraktboks side om side med samme ramme,
+ * samme flate og samme vekt. Ingenting av det sa hva som var viktigst, og
+ * øyet måtte lese alle fem for å finne den ene opplysningen det lette etter.
+ *
+ * Nå er poengene ETT brett med hårfine skiller — fire ruter som hører sammen,
+ * fordi de ER én tabell — med din egen rute merket i korall. Kontrakten står
+ * for seg selv, siden den gjelder hele runden og ikke er en poengsum. Og
+ * rutenettet er FAST: `auto 1fr auto` i stedet for `flex-wrap`, som brøt om
+ * til to rader så snart kontraktteksten vokste.
+ *
+ * STIKKTELLERNE ER FLYTTET UT. De hørte aldri hjemme ved siden av poengsummen
+ * — det er to helt ulike tall med hver sin levetid, og de sto i samme rute med
+ * samme vekt. Nå bor de i lagfeltet under, der de kan slås sammen når laget
+ * dannes.
+ */
 function topplinje(): string {
   const m = state.melding;
   const kontrakt =
     state.budvinner !== null && m !== null
-      ? `<span class="hvem">${NAVN[state.budvinner]}</span> meldte <b>${m.type === "tall" ? m.bud : m.type}</b>${state.trumf ? ` i ${fargeMerke(state.trumf)}` : ""}`
+      ? `<span class="hvem">${NAVN[state.budvinner]}</span> <span class="bud">${m.type === "tall" ? m.bud : m.type === "solo" ? "Solo" : "Amerikaner"}</span>${state.trumf ? fargeMerke(state.trumf) : ""}`
       : state.fase === "BUDRUNDE"
-        ? "Budrunde"
+        ? `<span class="hvem">Budrunde</span>`
         : "";
-  // Stikkteller vises så snart runden spilles (også mens stikket er fryst).
-  const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
   // HVEM SIN TUR DET ER sto ikke noe sted. Boblen «… tenker» dekket botene,
   // men ingenting sa «det er din tur» — og i en firemannsrunde med to sekunders
   // pauser er det nettopp det man mister oversikten over.
   const iTur = frystStikk !== null ? null : (state.iTur ?? null);
+  const brett = state.totalPoeng
+    .map((p, i) => {
+      const endret = sistPoeng.length > 0 && sistPoeng[i] !== p;
+      return `<div class="spiller${i === MENNESKE ? " deg" : ""}${i === iTur ? " itur" : ""}">
+        <span class="navn">${NAVN[i]}</span>
+        <span class="verdi"><b${endret ? ` class="endret"` : ""}>${p}</b></span>
+      </div>`;
+    })
+    .join("");
+  sistPoeng = state.totalPoeng.slice();
   return `<header>
-    <div class="poeng" role="group" aria-label="Poengstilling og stikk">
-      ${state.totalPoeng
-        .map(
-          (p, i) =>
-            `<div class="spiller${i === MENNESKE ? " deg" : ""}${i === iTur ? " itur" : ""}"><span class="navn">${NAVN[i]}</span><b>${p}</b>${iSpill ? `<span class="stikk" aria-label="stikk denne runden">${state.stikkVunnet[i]} stikk</span>` : ""}</div>`,
-        )
-        .join("")}
-    </div>
-    ${kontrakt ? `<div class="kontrakt">${kontrakt}</div>` : ""}
-    <div class="runde">Runde ${state.rundeNr + 1}<br>først til ${state.regler.målPoeng}</div>
+    <div class="tavle" role="group" aria-label="Poengstilling">${brett}</div>
+    ${kontrakt ? `<div class="kontrakt${pynt(`kontrakt:${state.budvinner}:${m === null ? "" : m.bud}:${state.trumf ?? ""}`)}">${kontrakt}</div>` : `<div></div>`}
+    <div class="runde">Runde ${state.rundeNr + 1}<br>til ${state.regler.målPoeng}</div>
   </header>`;
+}
+
+/** Setene som spiller på kontrakten, slik stillingen står nå. */
+function budlaget(): number[] {
+  if (state.budvinner === null) return [];
+  return state.makkerAvslørt && state.makker !== null
+    ? [state.budvinner, state.makker]
+    : [state.budvinner];
+}
+
+/** Hvor mange stikk kontrakten krever. */
+function målStikk(): number {
+  const m = state.melding;
+  if (m === null) return 0;
+  return m.type === "tall" ? m.bud : state.giving.antallStikk;
+}
+
+/**
+ * ============ LAGFELTET =================================================
+ *
+ * Se `Lagmodus` over for hvorfor dette finnes. Her er formen:
+ *
+ *   individuell   fire brikker med hver sin stikkteller. Budvinneren er
+ *                 merket, fordi det er hans kontrakt som står på spill, og
+ *                 måltallet står i hans brikke.
+ *   smelter       begge lagbrikkene glir mot midten og forsvinner mens baren
+ *                 vokser fram bak dem. Bevegelsen er hele poenget: man skal SE
+ *                 at to tellere ble til én, ikke oppdage at tallet er et annet.
+ *   lag           én bar med ett hakk per stikk kontrakten krever, og en
+ *                 dempet motstandsteller ved siden av.
+ *
+ * Hakkene fylles ETTER HVERT, og bare det nye hakket animeres — `sistFylte`
+ * husker hvor mange som var fylt sist. Uten det ville alle hakkene spratt på
+ * nytt hver gang noe annet på skjermen endret seg.
+ */
+function lagfelt(): string {
+  const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
+  if (!iSpill || lagmodus === "ingen" || state.budvinner === null) {
+    sistStikk = [];
+    sistFylte = 0;
+    return `<div class="lagfelt"></div>`;
+  }
+
+  const lag = budlaget();
+  const mål = målStikk();
+  const stikk = state.stikkVunnet;
+  const brikke = (i: number, klasser = "", stil = "", visMål = false): string => {
+    const slag = sistStikk.length > 0 && sistStikk[i] !== stikk[i];
+    return `<div class="brikke${klasser}${slag ? " slag" : ""}" data-sete="${i}"${stil}
+      aria-label="${NAVN[i]}: ${stikk[i]} stikk${visMål ? ` av ${mål}` : ""}">
+      <span class="navn">${NAVN[i]}</span><b>${stikk[i]}</b>${visMål ? `<span class="mot">/ ${mål}</span>` : ""}
+    </div>`;
+  };
+
+  let ut: string;
+  let smelterNå = false;
+  if (lagmodus === "individuell") {
+    // Måltallet henger på budvinnerens brikke: det er hans kontrakt, og fram
+    // til makkeren er funnet er det bare hans stikk som teller mot den.
+    ut = `<div class="brikker">${state.totalPoeng
+      .map((_, i) =>
+        i === state.budvinner ? brikke(i, " fører", "", true) : brikke(i),
+      )
+      .join("")}</div>`;
+  } else {
+    const lagStikk = lag.reduce((s, i) => s + (stikk[i] ?? 0), 0);
+    const motstand = state.totalPoeng.reduce(
+      (s, _, i) => (lag.includes(i) ? s : s + (stikk[i] ?? 0)),
+      0,
+    );
+    const fylte = Math.min(lagStikk, mål);
+    const hakk = Array.from({ length: mål }, (_, i) => {
+      const erFylt = i < fylte;
+      const erNy = erFylt && i >= sistFylte;
+      return `<span class="hakk${erFylt ? " fylt" : ""}${erNy ? " ny" : ""}"></span>`;
+    }).join("");
+    // Baren og motstandstelleren er ÉN visning, ikke to søsken. Under
+    // sammenslåingen stables de gamle brikkene og den nye visningen i samme
+    // rutenettcelle; var de to elementer, la motstandstelleren seg oppå baren.
+    const bar = `<div class="lagvis"><div class="lagbar${lagStikk >= mål ? " klart" : ""}"
+        role="progressbar" aria-valuemin="0" aria-valuemax="${mål}" aria-valuenow="${lagStikk}"
+        aria-label="Stikk for ${lag.map((i) => NAVN[i]).join(" og ")}">
+      <span class="lagnavn">${stjerne()}${lag.map((i) => NAVN[i]).join(" + ")}</span>
+      <span class="spor" aria-hidden="true">${hakk}</span>
+      <span class="tall">${lagStikk}<span class="mot"> / ${mål}</span></span>
+    </div>
+    <div class="motstand">mot <b>${motstand}</b></div></div>`;
+
+    if (lagmodus === "smelter" && !smeltetVist) {
+      smeltetVist = true;
+      smelterNå = true;
+      // Begge former står samtidig: brikkene glir sammen, baren vokser fram.
+      // `--fra` gir hver lagbrikke retningen den kom fra, slik at de møtes.
+      const smelt = state.totalPoeng
+        .map((_, i) =>
+          lag.includes(i)
+            ? brikke(i, " smelt-inn", ` style="--fra:${i === lag[0] ? "-46%" : "46%"}"`)
+            : brikke(i, " ut"),
+        )
+        .join("");
+      ut = `<div class="brikker">${smelt}</div>${bar}`;
+    } else {
+      ut = bar;
+    }
+    sistFylte = fylte;
+  }
+  sistStikk = stikk.slice();
+  return `<div class="lagfelt${smelterNå ? " smelter" : ""}">${ut}</div>`;
 }
 
 /**
@@ -1347,11 +1692,39 @@ function bordet(): string {
   const erNy = (b: { spiller: number; kort: Kort }): boolean =>
     !forrigeBordkort.has(`${b.spiller}${kortId(b.kort)}`);
   const lagt = new Set(påBordet.map((b) => b.spiller));
+  /**
+   * ============ STIKKVINNEREN SKAL IKKE KUNNE OVERSES =====================
+   *
+   * ARVIND: «det viser aldri hvem som får stikket med en animasjon.»
+   *
+   * Det var ikke at animasjonen manglet — den fantes, og den var målt til å
+   * flytte kortene 408 px. Feilen var HVOR de ble flyttet: alle fire endte
+   * oppå hverandre under vinnerens eget kort, på `opacity:.5`. Det som
+   * faktisk ble sett var derfor at kortene FORSVANT, ikke at de gikk et sted.
+   * Målingen var sann og svarte likevel ikke på spørsmålet.
+   *
+   * Og markeringen var en liten koralltekst ved siden av navnet — som
+   * vinnerkortet så vokste opp i og dekket halve, siden det skalerte 1,08 rett
+   * inn i sin egen etikett.
+   *
+   * Nå bærer fire ting beskjeden samtidig, og ingen av dem er tekst man må
+   * lete etter:
+   *   – vinnerkortet løftes og får en korallglød (`vinnerslag`)
+   *   – setet lyser opp bak det (`seteglans`)
+   *   – de tre andre trekker seg tilbake og mørkner (`.bord.avgjort`)
+   *   – et korallskilt med navnet spretter fram OVER kortet, ikke bak det
+   *
+   * Deretter LANDER kortene hos vinneren i full dekkevne (se
+   * `samleStikketTilVinneren`), og et stikkmerke flyr derfra inn i lagbaren.
+   */
   const kort = påBordet
     .map((b) => {
       const vant = frystStikk !== null && b.spiller === frystStikk.vinner;
       return `<div class="bordkort ${plass[b.spiller]}${vant ? " vant" : ""}">
-      <div class="hvem">${NAVN[b.spiller]}${vant ? `<span class="vant">${stjerne()} vant stikket</span>` : ""}</div>${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}</div>`;
+      ${vant ? `<div class="seteglans" aria-hidden="true"></div>` : ""}
+      <div class="hvem">${
+        vant ? `<span class="vinnerband">${stjerne()}${NAVN[b.spiller]}</span>` : NAVN[b.spiller]
+      }</div>${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}</div>`;
     })
     .join("");
   forrigeBordkort = nå;
@@ -1387,7 +1760,7 @@ function bordet(): string {
             (s) => `<div class="bordkort ${plass[s]}"><div class="bunke">
               <div class="vifte">${kortRygg()}${kortRygg()}${kortRygg()}</div>
               <div class="antall">${
-                s === tenkeSete ? `${NAVN[s]} ${tenkeboble}` : `${NAVN[s]} · ${state.hender[s]!.length} kort`
+                s === tenkeSete ? `${NAVN[s]} ${tenkeboble}` : `${NAVN[s]} · ${state.hender[s]!.length}`
               }</div>
             </div></div>`,
           )
@@ -1407,17 +1780,24 @@ function bordet(): string {
   // oftest, og den skal ikke måtte letes fram.
   const trumfskilt =
     state.trumf !== null && (state.fase === "SPILL" || frystStikk !== null)
-      ? `<div class="trumfskilt">${stjerne()}<span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>`
+      ? `<div class="trumfskilt${pynt(`trumf:${state.trumf}`)}">${stjerne()}<span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>`
       : "";
+  // ETTERLYSNINGEN. «· skjult makker» sto her før, og det var en forklaring på
+  // noe skjermen allerede sier: står det ikke et navn, er makkeren ikke funnet.
+  // Lagfeltet over viser dessuten nøyaktig det samme, i form.
   const info = state.etterlyst
-    ? `<div class="etterlyst"><span class="merkelapp">Etterlyst</span>${fargeMerke(state.etterlyst.farge, false)} <b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? ` · ${NAVN[state.makker]}` : " · skjult makker"}</div>`
+    ? `<div class="etterlyst${pynt(`etterlyst:${kortId(state.etterlyst)}:${state.makkerAvslørt ? state.makker : "?"}`)}"><span class="merkelapp">Etterlyst</span>${fargeMerke(state.etterlyst.farge, false)} <b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? ` · ${NAVN[state.makker]}` : ""}</div>`
     : "";
   // «DIN TUR» sto ingen steder. Botene fikk en boble, mennesket fikk
   // ingenting — og med to sekunders pauser mellom hvert stikk er det lett å
   // sitte og vente på en skjerm som venter på deg.
+  //
+  // «— spill et kort» er strøket: kortene på hånden står allerede løftet og
+  // lyst opp når de er spillbare, og en som har spilt Amerikaneren ved
+  // kjøkkenbordet i tjue år trenger ikke få vite hva man gjør i sin tur.
   const dinTur =
     venterPåMenneske && state.fase === "SPILL" && frystStikk === null
-      ? `<div class="dintur">Din tur — spill et kort</div>`
+      ? `<div class="dintur${pynt("dintur")}">Din tur</div>`
       : "";
   const midt =
     trumfskilt || info || dinTur ? `<div class="midtfelt">${trumfskilt}${info}${dinTur}</div>` : "";
@@ -1425,14 +1805,15 @@ function bordet(): string {
   // Forrige stikk: alltid synlig i hjørnet mens neste stikk spilles.
   const forrige =
     frystStikk === null && state.fase === "SPILL" && state.forrigeStikk !== null
-      ? `<div class="forrige" aria-label="Forrige stikk">
-          <div class="tittel">Forrige · <b>${NAVN[state.forrigeStikk.vinner]}</b> vant</div>
+      ? `<div class="forrige${pynt(`forrige:${state.stikkSpilt}`)}" aria-label="Forrige stikk">
+          <div class="tittel">Forrige · <b>${NAVN[state.forrigeStikk.vinner]}</b></div>
           <div class="rad">${state.forrigeStikk.kort
             .map((b) => `<div><div class="navn">${NAVN[b.spiller].split(" ")[0]}</div>${kortKnapp(b.kort, {})}</div>`)
             .join("")}</div>
         </div>`
       : "";
-  return `<div class="bord" aria-label="Bordet">${kort}${bunker}${midt}${tenker}${forrige}</div>`;
+  // `avgjort` skrur på tilbaketrekkingen av de tre som tapte stikket.
+  return `<div class="bord${frystStikk !== null ? " avgjort" : ""}" aria-label="Bordet">${kort}${bunker}${midt}${tenker}${forrige}</div>`;
 }
 
 /**
@@ -1514,7 +1895,7 @@ function budPanel(): string {
   const tall = lov.bud.filter((b): b is number => typeof b === "number");
   const høyeste = state.budrunde.høyeste;
   return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Ditt bud">
-    <h2>Ditt bud${høyeste ? ` <span class="bekreftsmatt">— høyeste er ${budTekst(høyeste.bud)} fra ${NAVN[høyeste.spiller]}</span>` : ""}</h2>
+    <h2>Ditt bud${høyeste ? `<span class="bekreftsmatt">Høyeste: ${budTekst(høyeste.bud)} · ${NAVN[høyeste.spiller]}</span>` : ""}</h2>
     <div class="knapper">
       <button class="stor pass" data-bud="PASS">Pass</button>
       ${tall.map((b) => `<button class="stor tallbud" data-bud="${b}">${b}</button>`).join("")}
@@ -1528,8 +1909,8 @@ function vrakPanel(): string {
   const lov = lovligeHandlinger(state);
   if (!venterPåMenneske || lov.fase !== "VRAK") return "";
   return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Vrak kort">
-    <h2>Du vant budet! Velg ${lov.antall} kort å legge bort
-      <span class="bekreftsmatt">(${vrakValg.length} av ${lov.antall} valgt)</span></h2>
+    <h2>Legg bort ${lov.antall} kort
+      <span class="bekreftsmatt">${vrakValg.length} av ${lov.antall} valgt</span></h2>
     <div class="vrakhånd">${sorterHånd(lov.hånd)
       .map((k) => kortKnapp(k, { valgbar: true, valgt: vrakValg.some((v) => v.farge === k.farge && v.verdi === k.verdi) }))
       .join("")}</div>
@@ -1578,9 +1959,8 @@ function velgPanel(): string {
     const e = velgEtterlysValg;
     return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Bekreft valget">
       <h2>Bekreft</h2>
-      <p class="bekreftlinje">Trumf blir ${fargeMerke(trumf)}
-         — du etterlyser ${fargeMerke(trumf, false)} <b>${VERDI_TEKST(e.verdi)}</b>.</p>
-      <p class="bekreftsmatt">Den som har kortet blir din hemmelige makker.</p>
+      <p class="bekreftlinje">Trumf ${fargeMerke(trumf)}
+         — etterlyser ${fargeMerke(trumf, false)} <b>${VERDI_TEKST(e.verdi)}</b></p>
       <div class="knapper">
         <button class="stor bekreft" id="velg-ok">Bekreft</button>
         <button class="stor" id="velg-angre">Angre</button>
@@ -1609,8 +1989,7 @@ function velgPanel(): string {
    * et fylt merke, ikke som farget tekst.
    */
   return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Etterlys et kort">
-    <h2>Trumf blir ${fargeMerke(trumf)} — hvilket kort etterlyser du?</h2>
-    <p class="bekreftsmatt">Eieren blir din hemmelige makker. Kortet må være trumf.</p>
+    <h2>Etterlys et ${fargeMerke(trumf)}</h2>
     <div class="etterlysrad">${lovlige
       .slice()
       .sort((a, b) => b.verdi - a.verdi)
@@ -1629,10 +2008,18 @@ function rundeSluttPanel(): string {
   const r = state.sisteRunde;
   const m = r.melding;
   const hva = m.type === "tall" ? `${m.bud}` : m.type;
+  // ✅/❌ er byttet mot et merke med form og farge. Emojiene var dessuten de
+  // eneste to stedene utfallet ble sagt, og et grønt hake-emoji gjengis
+  // forskjellig på hver plattform — på en TV kunne det bli en tom firkant.
   return `<div class="overlegg"><div class="panel resultat" role="dialog" aria-label="Rundens resultat">
-    <h2>${NAVN[r.budvinner]} meldte ${hva} og ${r.klart ? "KLARTE det! ✅" : "falt ❌"}<br>
-      <span class="bekreftsmatt">${r.lagStikk} stikk${r.makker !== null ? ` sammen med ${NAVN[r.makker]}` : ""}</span></h2>
-    <div class="delta">${r.delta.map((d, i) => `<span class="${d >= 0 ? "pluss" : "minus"}">${NAVN[i]}: ${d >= 0 ? "+" : ""}${d}</span>`).join("")}</div>
+    <h2>${NAVN[r.budvinner]} meldte ${hva} — <span class="utfall ${r.klart ? "ja" : "nei"}">${r.klart ? "klart" : "falt"}</span>
+      <span class="bekreftsmatt">${r.lagStikk} stikk${r.makker !== null ? ` med ${NAVN[r.makker]}` : ""}</span></h2>
+    <div class="delta">${r.delta
+      .map(
+        (d, i) =>
+          `<span class="${d >= 0 ? "pluss" : "minus"}"><span class="navn">${NAVN[i]}</span><b>${d >= 0 ? "+" : ""}${d}</b></span>`,
+      )
+      .join("")}</div>
     <button class="stor bekreft" id="neste">Neste runde</button>
   </div></div>`;
 }
@@ -1640,9 +2027,12 @@ function rundeSluttPanel(): string {
 function ferdigPanel(): string {
   if (state.fase !== "FERDIG") return "";
   const vantDu = state.vinner === MENNESKE;
+  // 🎉 er byttet mot stjerna — motivet spillet allerede eier.
   return `<div class="overlegg"><div class="panel resultat" role="dialog" aria-label="Kampen er ferdig">
-    <h2>${vantDu ? "🎉 DU VANT! 🎉" : `${NAVN[state.vinner!]} vant kampen`}</h2>
-    <div class="delta">${state.totalPoeng.map((p, i) => `<span>${NAVN[i]}: ${p}</span>`).join("")}</div>
+    <h2>${vantDu ? `${stjerne()}Du vant!${stjerne()}` : `${NAVN[state.vinner!]} vant`}</h2>
+    <div class="delta">${state.totalPoeng
+      .map((p, i) => `<span><span class="navn">${NAVN[i]}</span><b>${p}</b></span>`)
+      .join("")}</div>
     <button class="stor bekreft" id="nytt-spill">Nytt spill</button>
     <p class="lite">Resultatene er lagret. <a href="${DATA_URL}" target="_blank" rel="noopener">Se innsamlede data</a></p>
   </div></div>`;
@@ -1653,7 +2043,11 @@ let sistPanel = "";
 
 function tegn(): void {
   if (!state) return;
-  rot.innerHTML = topplinje() + bordet() + budPanel() + vrakPanel() + velgPanel() + rundeSluttPanel() + ferdigPanel() + håndPanel();
+  nåPynt = new Set<string>();
+  rot.innerHTML =
+    topplinje() + lagfelt() + bordet() +
+    budPanel() + vrakPanel() + velgPanel() + rundeSluttPanel() + ferdigPanel() + håndPanel();
+  sistPynt = nåPynt;
   /**
    * «fersk» = panelet er et ANNET enn forrige gang, og bare da skal det
    * animeres inn.
@@ -1760,16 +2154,24 @@ function koble(): void {
 function startskjerm(): void {
   const broModus = new URLSearchParams(location.search).get("mester") === "1";
   motstander = broModus && LOKAL ? "MesterAI" : "Vaar";
+  // NAVN, KNAPP, SPILL.
+  //
+  // ARVIND: «trenger vi tekst over alt? … minimalt hassle maksimalt gøy!»
+  //
+  // Her sto tre setninger til: «Tre boter mot deg. Store kort, laget for TV,
+  // iPad og telefon.» — som er en beskrivelse av produktet, ikke noe spilleren
+  // trenger for å komme i gang — og «Brukes bare til å merke rundene i
+  // statistikken.», som svarer på et spørsmål ingen stilte og som reiser ett
+  // nytt. Overskriften «Hva heter du?» sier alt feltet trenger, og den står nå
+  // bare for skjermleseren siden plassholderen sier det samme på skjermen.
   rot.innerHTML = `<div class="overlegg"><div class="panel start" role="dialog" aria-label="Start">
     <div class="kortvifte" aria-hidden="true">${kortRygg()}${kortRygg()}${kortRygg()}</div>
     <h1 class="ordmerke">Amerikaneren<span class="demo">demo</span></h1>
-    <p>Tre boter mot deg. Store kort, laget for TV, iPad og telefon.</p>
     ${motstander === "MesterAI" ? `<p class="bekreftsmatt">Bromodus: du møter MesterAI fra laptopen.</p>` : ""}
-    <label for="navn">Hva heter du?</label>
-    <input id="navn" type="text" placeholder="skriv navnet ditt" autocomplete="off"
-           enterkeyhint="go" maxlength="24" aria-describedby="navn-hjelp">
-    <p id="navn-hjelp" class="bekreftsmatt">Brukes bare til å merke rundene i statistikken.</p>
-    <button class="stor bekreft" id="start-knapp">Start spillet</button>
+    <label class="skjult" for="navn">Hva heter du?</label>
+    <input id="navn" type="text" placeholder="Hva heter du?" autocomplete="off"
+           enterkeyhint="go" maxlength="24">
+    <button class="stor bekreft" id="start-knapp">Spill</button>
   </div></div>`;
   const knapp = document.getElementById("start-knapp") as HTMLButtonElement;
   const felt = document.getElementById("navn") as HTMLInputElement;

@@ -3849,6 +3849,8 @@ var Budagent = class {
 // web/app.ts
 var DATA_URL = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
 var MENNESKE = 0;
+var BUNDELVERSJON = "v6-2026-08-10";
+globalThis["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 var LOKAL = location.protocol === "http:";
 var MESTER_URL = `${location.origin}/mester`;
 var MESTER_SETER = [1, 2, 3];
@@ -4043,7 +4045,7 @@ function broSpeil(h, hendelser) {
   if (h.type !== "NESTE") void broPost({ type: "handling", handling: handlingTilAdapter(h) });
   for (const e of hendelser) if (e.type === "NY_RUNDE") void broPost(broRundeStart());
 }
-var NAVN = ["Du", "Vest 🤖", "Nord 🤖", "Øst 🤖"];
+var NAVN = ["Du", "Vest", "Nord", "Øst"];
 var STYRKER = {
   RASK: {
     navn: "Rask (~1 s per trekk)",
@@ -4203,6 +4205,18 @@ var vrakValg = [];
 var velgTrumfValg = null;
 var velgEtterlysValg = null;
 var travelt = false;
+var sistPoeng = [];
+var sistStikk = [];
+var sistFylte = 0;
+var sistPynt = /* @__PURE__ */ new Set();
+var nåPynt = /* @__PURE__ */ new Set();
+function pynt(nøkkel2) {
+  nåPynt.add(nøkkel2);
+  return sistPynt.has(nøkkel2) ? "" : " inn";
+}
+var lagmodus = "ingen";
+var SMELTETID = 900;
+var smeltetVist = false;
 var rot = document.getElementById("app");
 var oppleser = document.getElementById("oppleser");
 function si(tekst) {
@@ -4238,7 +4252,7 @@ var laster = (tittel, undertekst = "") => `<div class="overlegg"><div class="pan
     ${undertekst ? `<p class="bekreftsmatt">${undertekst}</p>` : ""}
   </div></div></div>`;
 var feilrute = (tittel, hva) => `<div class="overlegg"><div class="panel start">
-    <h2>${tittel} 😕</h2>
+    <h2>${tittel}</h2>
     <p class="bekreftsmatt">${hva}</p>
     <button class="stor bekreft" id="tilbake">Tilbake</button>
   </div></div>`;
@@ -4309,8 +4323,10 @@ function gjør(h) {
   }
   fortsett();
 }
-var STIKKPAUSE = 3e3;
-var SAMLE_START = 1450;
+var STIKKPAUSE = 2600;
+var SAMLE_START = 900;
+var LANDING = 1280;
+var MERKE_FLYR = 1500;
 function samleStikketTilVinneren(vinner) {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   setTimeout(() => {
@@ -4329,12 +4345,51 @@ function samleStikketTilVinneren(vinner) {
     }
     bord.classList.add("samler");
     void bord.offsetHeight;
+    const b = m.width;
+    let nr = 0;
     for (const { el, dx, dy } of flytt) {
       const sammeSted = Math.abs(dx) < 1 && Math.abs(dy) < 1;
-      el.style.transform = sammeSted ? "scale(1.08)" : `translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(.8)`;
-      if (!sammeSted) el.style.opacity = "0.5";
+      if (sammeSted) continue;
+      const vri = [-14, 11, -6][nr % 3] ?? 0;
+      const skyv = ([-0.34, 0.36, 0.08][nr % 3] ?? 0) * b;
+      const senk = ([0.2, -0.16, 0.3][nr % 3] ?? 0) * b;
+      nr++;
+      el.style.zIndex = String(nr);
+      el.style.transform = `translate(${Math.round(dx + skyv)}px, ${Math.round(dy + senk)}px) rotate(${vri}deg) scale(.94)`;
     }
+    setTimeout(() => bord.classList.add("landet"), LANDING - SAMLE_START);
+    setTimeout(() => flyStikkmerke(mål), MERKE_FLYR - SAMLE_START);
   }, SAMLE_START);
+}
+function flyStikkmerke(fra) {
+  const bar = rot.querySelector(".lagbar");
+  const brikke = rot.querySelector(".lagfelt .brikke.fører");
+  const til = bar ?? brikke;
+  if (til === null) return;
+  const a = fra.getBoundingClientRect();
+  const b = til.getBoundingClientRect();
+  const merke = document.createElement("div");
+  merke.className = "flygemerke";
+  merke.setAttribute("aria-hidden", "true");
+  merke.textContent = "+1";
+  merke.style.left = `${a.left + a.width / 2}px`;
+  merke.style.top = `${a.top + a.height / 2}px`;
+  document.body.appendChild(merke);
+  const dx = b.left + b.width / 2 - (a.left + a.width / 2);
+  const dy = b.top + b.height / 2 - (a.top + a.height / 2);
+  const flukt = merke.animate(
+    [
+      { transform: "translate(-50%, -50%) scale(.4)", opacity: 0, offset: 0 },
+      { transform: "translate(-50%, -50%) scale(1.15)", opacity: 1, offset: 0.18 },
+      { transform: `translate(calc(-50% + ${dx * 0.5}px), calc(-50% + ${dy * 0.5 - 26}px)) scale(1)`, opacity: 1, offset: 0.62 },
+      { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.5)`, opacity: 0, offset: 1 }
+    ],
+    { duration: 720, easing: "cubic-bezier(.4,0,.2,1)" }
+  );
+  flukt.onfinish = () => {
+    merke.remove();
+    til.classList.add("treff");
+  };
 }
 function håndterHendelser(hendelser) {
   for (const h of hendelser) {
@@ -4343,8 +4398,23 @@ function håndterHendelser(hendelser) {
       logg("budvinner", { spiller: h.spiller, bud: h.bud, rundeNr: state.rundeNr });
     } else if (h.type === "TRUMF_VALGT") {
       si(`Trumf er ${FARGE_NAVN[h.trumf]}${h.etterlyst ? `, etterlyst ${kortTale(h.etterlyst)}` : ""}.`);
+      lagmodus = h.etterlyst === null ? "lag" : "individuell";
+      smeltetVist = h.etterlyst === null;
+      sistStikk = [];
+      sistFylte = 0;
     } else if (h.type === "MAKKER_AVSLØRT") {
       si(`${NAVN[h.spiller]} er makkeren!`);
+      lagmodus = "smelter";
+      smeltetVist = false;
+      setTimeout(() => {
+        lagmodus = "lag";
+        if (frystStikk === null && !travelt) tegn();
+      }, SMELTETID);
+    } else if (h.type === "NY_RUNDE") {
+      lagmodus = "ingen";
+      smeltetVist = false;
+      sistStikk = [];
+      sistFylte = 0;
     } else if (h.type === "STIKK_FERDIG") {
       si(`${NAVN[h.vinner]} vant stikket.`);
     } else if (h.type === "RUNDE_SLUTT") {
@@ -4502,18 +4572,88 @@ function sorterHånd(hånd) {
 }
 function topplinje() {
   const m = state.melding;
-  const kontrakt = state.budvinner !== null && m !== null ? `<span class="hvem">${NAVN[state.budvinner]}</span> meldte <b>${m.type === "tall" ? m.bud : m.type}</b>${state.trumf ? ` i ${fargeMerke(state.trumf)}` : ""}` : state.fase === "BUDRUNDE" ? "Budrunde" : "";
-  const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
+  const kontrakt = state.budvinner !== null && m !== null ? `<span class="hvem">${NAVN[state.budvinner]}</span> <span class="bud">${m.type === "tall" ? m.bud : m.type === "solo" ? "Solo" : "Amerikaner"}</span>${state.trumf ? fargeMerke(state.trumf) : ""}` : state.fase === "BUDRUNDE" ? `<span class="hvem">Budrunde</span>` : "";
   const iTur = frystStikk !== null ? null : state.iTur ?? null;
+  const brett = state.totalPoeng.map((p, i) => {
+    const endret = sistPoeng.length > 0 && sistPoeng[i] !== p;
+    return `<div class="spiller${i === MENNESKE ? " deg" : ""}${i === iTur ? " itur" : ""}">
+        <span class="navn">${NAVN[i]}</span>
+        <span class="verdi"><b${endret ? ` class="endret"` : ""}>${p}</b></span>
+      </div>`;
+  }).join("");
+  sistPoeng = state.totalPoeng.slice();
   return `<header>
-    <div class="poeng" role="group" aria-label="Poengstilling og stikk">
-      ${state.totalPoeng.map(
-    (p, i) => `<div class="spiller${i === MENNESKE ? " deg" : ""}${i === iTur ? " itur" : ""}"><span class="navn">${NAVN[i]}</span><b>${p}</b>${iSpill ? `<span class="stikk" aria-label="stikk denne runden">${state.stikkVunnet[i]} stikk</span>` : ""}</div>`
-  ).join("")}
-    </div>
-    ${kontrakt ? `<div class="kontrakt">${kontrakt}</div>` : ""}
-    <div class="runde">Runde ${state.rundeNr + 1}<br>først til ${state.regler.målPoeng}</div>
+    <div class="tavle" role="group" aria-label="Poengstilling">${brett}</div>
+    ${kontrakt ? `<div class="kontrakt${pynt(`kontrakt:${state.budvinner}:${m === null ? "" : m.bud}:${state.trumf ?? ""}`)}">${kontrakt}</div>` : `<div></div>`}
+    <div class="runde">Runde ${state.rundeNr + 1}<br>til ${state.regler.målPoeng}</div>
   </header>`;
+}
+function budlaget() {
+  if (state.budvinner === null) return [];
+  return state.makkerAvslørt && state.makker !== null ? [state.budvinner, state.makker] : [state.budvinner];
+}
+function målStikk() {
+  const m = state.melding;
+  if (m === null) return 0;
+  return m.type === "tall" ? m.bud : state.giving.antallStikk;
+}
+function lagfelt() {
+  const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
+  if (!iSpill || lagmodus === "ingen" || state.budvinner === null) {
+    sistStikk = [];
+    sistFylte = 0;
+    return `<div class="lagfelt"></div>`;
+  }
+  const lag = budlaget();
+  const mål = målStikk();
+  const stikk = state.stikkVunnet;
+  const brikke = (i, klasser = "", stil = "", visMål = false) => {
+    const slag = sistStikk.length > 0 && sistStikk[i] !== stikk[i];
+    return `<div class="brikke${klasser}${slag ? " slag" : ""}" data-sete="${i}"${stil}
+      aria-label="${NAVN[i]}: ${stikk[i]} stikk${visMål ? ` av ${mål}` : ""}">
+      <span class="navn">${NAVN[i]}</span><b>${stikk[i]}</b>${visMål ? `<span class="mot">/ ${mål}</span>` : ""}
+    </div>`;
+  };
+  let ut;
+  let smelterNå = false;
+  if (lagmodus === "individuell") {
+    ut = `<div class="brikker">${state.totalPoeng.map(
+      (_, i) => i === state.budvinner ? brikke(i, " fører", "", true) : brikke(i)
+    ).join("")}</div>`;
+  } else {
+    const lagStikk = lag.reduce((s, i) => s + (stikk[i] ?? 0), 0);
+    const motstand = state.totalPoeng.reduce(
+      (s, _, i) => lag.includes(i) ? s : s + (stikk[i] ?? 0),
+      0
+    );
+    const fylte = Math.min(lagStikk, mål);
+    const hakk = Array.from({ length: mål }, (_, i) => {
+      const erFylt = i < fylte;
+      const erNy = erFylt && i >= sistFylte;
+      return `<span class="hakk${erFylt ? " fylt" : ""}${erNy ? " ny" : ""}"></span>`;
+    }).join("");
+    const bar = `<div class="lagvis"><div class="lagbar${lagStikk >= mål ? " klart" : ""}"
+        role="progressbar" aria-valuemin="0" aria-valuemax="${mål}" aria-valuenow="${lagStikk}"
+        aria-label="Stikk for ${lag.map((i) => NAVN[i]).join(" og ")}">
+      <span class="lagnavn">${stjerne()}${lag.map((i) => NAVN[i]).join(" + ")}</span>
+      <span class="spor" aria-hidden="true">${hakk}</span>
+      <span class="tall">${lagStikk}<span class="mot"> / ${mål}</span></span>
+    </div>
+    <div class="motstand">mot <b>${motstand}</b></div></div>`;
+    if (lagmodus === "smelter" && !smeltetVist) {
+      smeltetVist = true;
+      smelterNå = true;
+      const smelt = state.totalPoeng.map(
+        (_, i) => lag.includes(i) ? brikke(i, " smelt-inn", ` style="--fra:${i === lag[0] ? "-46%" : "46%"}"`) : brikke(i, " ut")
+      ).join("");
+      ut = `<div class="brikker">${smelt}</div>${bar}`;
+    } else {
+      ut = bar;
+    }
+    sistFylte = fylte;
+  }
+  sistStikk = stikk.slice();
+  return `<div class="lagfelt${smelterNå ? " smelter" : ""}">${ut}</div>`;
 }
 var forrigeBordkort = /* @__PURE__ */ new Set();
 function bordet() {
@@ -4525,7 +4665,8 @@ function bordet() {
   const kort = påBordet.map((b) => {
     const vant = frystStikk !== null && b.spiller === frystStikk.vinner;
     return `<div class="bordkort ${plass[b.spiller]}${vant ? " vant" : ""}">
-      <div class="hvem">${NAVN[b.spiller]}${vant ? `<span class="vant">${stjerne()} vant stikket</span>` : ""}</div>${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}</div>`;
+      ${vant ? `<div class="seteglans" aria-hidden="true"></div>` : ""}
+      <div class="hvem">${vant ? `<span class="vinnerband">${stjerne()}${NAVN[b.spiller]}</span>` : NAVN[b.spiller]}</div>${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}</div>`;
   }).join("");
   forrigeBordkort = nå;
   const tenkeSete = frystStikk === null && !venterPåMenneske && travelt && state.fase !== "RUNDE_SLUTT" && state.fase !== "FERDIG" ? state.fase === "VRAK" || state.fase === "VELG" ? state.budvinner : state.iTur : null;
@@ -4533,19 +4674,19 @@ function bordet() {
   const bunker = state.fase === "SPILL" ? [1, 2, 3].filter((s) => !lagt.has(s) && (state.hender[s]?.length ?? 0) > 0).map(
     (s) => `<div class="bordkort ${plass[s]}"><div class="bunke">
               <div class="vifte">${kortRygg()}${kortRygg()}${kortRygg()}</div>
-              <div class="antall">${s === tenkeSete ? `${NAVN[s]} ${tenkeboble}` : `${NAVN[s]} · ${state.hender[s].length} kort`}</div>
+              <div class="antall">${s === tenkeSete ? `${NAVN[s]} ${tenkeboble}` : `${NAVN[s]} · ${state.hender[s].length}`}</div>
             </div></div>`
   ).join("") : "";
   const tenker = tenkeSete !== null && tenkeSete !== MENNESKE && state.fase !== "SPILL" ? `<div class="tenker ${plass[tenkeSete]}">${NAVN[tenkeSete]} ${tenkeboble}</div>` : "";
-  const trumfskilt = state.trumf !== null && (state.fase === "SPILL" || frystStikk !== null) ? `<div class="trumfskilt">${stjerne()}<span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>` : "";
-  const info = state.etterlyst ? `<div class="etterlyst"><span class="merkelapp">Etterlyst</span>${fargeMerke(state.etterlyst.farge, false)} <b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? ` · ${NAVN[state.makker]}` : " · skjult makker"}</div>` : "";
-  const dinTur = venterPåMenneske && state.fase === "SPILL" && frystStikk === null ? `<div class="dintur">Din tur — spill et kort</div>` : "";
+  const trumfskilt = state.trumf !== null && (state.fase === "SPILL" || frystStikk !== null) ? `<div class="trumfskilt${pynt(`trumf:${state.trumf}`)}">${stjerne()}<span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>` : "";
+  const info = state.etterlyst ? `<div class="etterlyst${pynt(`etterlyst:${kortId(state.etterlyst)}:${state.makkerAvslørt ? state.makker : "?"}`)}"><span class="merkelapp">Etterlyst</span>${fargeMerke(state.etterlyst.farge, false)} <b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? ` · ${NAVN[state.makker]}` : ""}</div>` : "";
+  const dinTur = venterPåMenneske && state.fase === "SPILL" && frystStikk === null ? `<div class="dintur${pynt("dintur")}">Din tur</div>` : "";
   const midt = trumfskilt || info || dinTur ? `<div class="midtfelt">${trumfskilt}${info}${dinTur}</div>` : "";
-  const forrige = frystStikk === null && state.fase === "SPILL" && state.forrigeStikk !== null ? `<div class="forrige" aria-label="Forrige stikk">
-          <div class="tittel">Forrige · <b>${NAVN[state.forrigeStikk.vinner]}</b> vant</div>
+  const forrige = frystStikk === null && state.fase === "SPILL" && state.forrigeStikk !== null ? `<div class="forrige${pynt(`forrige:${state.stikkSpilt}`)}" aria-label="Forrige stikk">
+          <div class="tittel">Forrige · <b>${NAVN[state.forrigeStikk.vinner]}</b></div>
           <div class="rad">${state.forrigeStikk.kort.map((b) => `<div><div class="navn">${NAVN[b.spiller].split(" ")[0]}</div>${kortKnapp(b.kort, {})}</div>`).join("")}</div>
         </div>` : "";
-  return `<div class="bord" aria-label="Bordet">${kort}${bunker}${midt}${tenker}${forrige}</div>`;
+  return `<div class="bord${frystStikk !== null ? " avgjort" : ""}" aria-label="Bordet">${kort}${bunker}${midt}${tenker}${forrige}</div>`;
 }
 var MÅLBREDDE = 76;
 var HÅNDHØYDE = 0.42;
@@ -4580,7 +4721,7 @@ function budPanel() {
   const tall = lov.bud.filter((b) => typeof b === "number");
   const høyeste = state.budrunde.høyeste;
   return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Ditt bud">
-    <h2>Ditt bud${høyeste ? ` <span class="bekreftsmatt">— høyeste er ${budTekst(høyeste.bud)} fra ${NAVN[høyeste.spiller]}</span>` : ""}</h2>
+    <h2>Ditt bud${høyeste ? `<span class="bekreftsmatt">Høyeste: ${budTekst(høyeste.bud)} · ${NAVN[høyeste.spiller]}</span>` : ""}</h2>
     <div class="knapper">
       <button class="stor pass" data-bud="PASS">Pass</button>
       ${tall.map((b) => `<button class="stor tallbud" data-bud="${b}">${b}</button>`).join("")}
@@ -4593,8 +4734,8 @@ function vrakPanel() {
   const lov = lovligeHandlinger(state);
   if (!venterPåMenneske || lov.fase !== "VRAK") return "";
   return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Vrak kort">
-    <h2>Du vant budet! Velg ${lov.antall} kort å legge bort
-      <span class="bekreftsmatt">(${vrakValg.length} av ${lov.antall} valgt)</span></h2>
+    <h2>Legg bort ${lov.antall} kort
+      <span class="bekreftsmatt">${vrakValg.length} av ${lov.antall} valgt</span></h2>
     <div class="vrakhånd">${sorterHånd(lov.hånd).map((k) => kortKnapp(k, { valgbar: true, valgt: vrakValg.some((v) => v.farge === k.farge && v.verdi === k.verdi) })).join("")}</div>
     <button class="stor bekreft" id="vrak-ok" ${vrakValg.length === lov.antall ? "" : "disabled"}>Legg bort valgte</button>
   </div></div>`;
@@ -4621,9 +4762,8 @@ function velgPanel() {
     const e = velgEtterlysValg;
     return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Bekreft valget">
       <h2>Bekreft</h2>
-      <p class="bekreftlinje">Trumf blir ${fargeMerke(trumf)}
-         — du etterlyser ${fargeMerke(trumf, false)} <b>${VERDI_TEKST(e.verdi)}</b>.</p>
-      <p class="bekreftsmatt">Den som har kortet blir din hemmelige makker.</p>
+      <p class="bekreftlinje">Trumf ${fargeMerke(trumf)}
+         — etterlyser ${fargeMerke(trumf, false)} <b>${VERDI_TEKST(e.verdi)}</b></p>
       <div class="knapper">
         <button class="stor bekreft" id="velg-ok">Bekreft</button>
         <button class="stor" id="velg-angre">Angre</button>
@@ -4632,8 +4772,7 @@ function velgPanel() {
   }
   const lovlige = lovligeEtterlys(state, trumf);
   return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Etterlys et kort">
-    <h2>Trumf blir ${fargeMerke(trumf)} — hvilket kort etterlyser du?</h2>
-    <p class="bekreftsmatt">Eieren blir din hemmelige makker. Kortet må være trumf.</p>
+    <h2>Etterlys et ${fargeMerke(trumf)}</h2>
     <div class="etterlysrad">${lovlige.slice().sort((a, b) => b.verdi - a.verdi).map(
     (k) => `<button class="minikort ${fargeKlasse(trumf)}" data-ev="${k.verdi}" aria-label="${kortTale(k)}">
           <span class="v">${VERDI_TEKST(k.verdi)}</span><span class="sym" aria-hidden="true">${symbol}</span>
@@ -4648,9 +4787,11 @@ function rundeSluttPanel() {
   const m = r.melding;
   const hva = m.type === "tall" ? `${m.bud}` : m.type;
   return `<div class="overlegg"><div class="panel resultat" role="dialog" aria-label="Rundens resultat">
-    <h2>${NAVN[r.budvinner]} meldte ${hva} og ${r.klart ? "KLARTE det! ✅" : "falt ❌"}<br>
-      <span class="bekreftsmatt">${r.lagStikk} stikk${r.makker !== null ? ` sammen med ${NAVN[r.makker]}` : ""}</span></h2>
-    <div class="delta">${r.delta.map((d, i) => `<span class="${d >= 0 ? "pluss" : "minus"}">${NAVN[i]}: ${d >= 0 ? "+" : ""}${d}</span>`).join("")}</div>
+    <h2>${NAVN[r.budvinner]} meldte ${hva} — <span class="utfall ${r.klart ? "ja" : "nei"}">${r.klart ? "klart" : "falt"}</span>
+      <span class="bekreftsmatt">${r.lagStikk} stikk${r.makker !== null ? ` med ${NAVN[r.makker]}` : ""}</span></h2>
+    <div class="delta">${r.delta.map(
+    (d, i) => `<span class="${d >= 0 ? "pluss" : "minus"}"><span class="navn">${NAVN[i]}</span><b>${d >= 0 ? "+" : ""}${d}</b></span>`
+  ).join("")}</div>
     <button class="stor bekreft" id="neste">Neste runde</button>
   </div></div>`;
 }
@@ -4658,8 +4799,8 @@ function ferdigPanel() {
   if (state.fase !== "FERDIG") return "";
   const vantDu = state.vinner === MENNESKE;
   return `<div class="overlegg"><div class="panel resultat" role="dialog" aria-label="Kampen er ferdig">
-    <h2>${vantDu ? "🎉 DU VANT! 🎉" : `${NAVN[state.vinner]} vant kampen`}</h2>
-    <div class="delta">${state.totalPoeng.map((p, i) => `<span>${NAVN[i]}: ${p}</span>`).join("")}</div>
+    <h2>${vantDu ? `${stjerne()}Du vant!${stjerne()}` : `${NAVN[state.vinner]} vant`}</h2>
+    <div class="delta">${state.totalPoeng.map((p, i) => `<span><span class="navn">${NAVN[i]}</span><b>${p}</b></span>`).join("")}</div>
     <button class="stor bekreft" id="nytt-spill">Nytt spill</button>
     <p class="lite">Resultatene er lagret. <a href="${DATA_URL}" target="_blank" rel="noopener">Se innsamlede data</a></p>
   </div></div>`;
@@ -4667,7 +4808,9 @@ function ferdigPanel() {
 var sistPanel = "";
 function tegn() {
   if (!state) return;
-  rot.innerHTML = topplinje() + bordet() + budPanel() + vrakPanel() + velgPanel() + rundeSluttPanel() + ferdigPanel() + håndPanel();
+  nåPynt = /* @__PURE__ */ new Set();
+  rot.innerHTML = topplinje() + lagfelt() + bordet() + budPanel() + vrakPanel() + velgPanel() + rundeSluttPanel() + ferdigPanel() + håndPanel();
+  sistPynt = nåPynt;
   const panel = rot.querySelector(".overlegg > .panel");
   const nøkkel2 = panel?.getAttribute("aria-label") ?? "";
   if (panel !== null && nøkkel2 !== sistPanel) panel.parentElement.classList.add("fersk");
@@ -4746,13 +4889,11 @@ function startskjerm() {
   rot.innerHTML = `<div class="overlegg"><div class="panel start" role="dialog" aria-label="Start">
     <div class="kortvifte" aria-hidden="true">${kortRygg()}${kortRygg()}${kortRygg()}</div>
     <h1 class="ordmerke">Amerikaneren<span class="demo">demo</span></h1>
-    <p>Tre boter mot deg. Store kort, laget for TV, iPad og telefon.</p>
     ${motstander === "MesterAI" ? `<p class="bekreftsmatt">Bromodus: du møter MesterAI fra laptopen.</p>` : ""}
-    <label for="navn">Hva heter du?</label>
-    <input id="navn" type="text" placeholder="skriv navnet ditt" autocomplete="off"
-           enterkeyhint="go" maxlength="24" aria-describedby="navn-hjelp">
-    <p id="navn-hjelp" class="bekreftsmatt">Brukes bare til å merke rundene i statistikken.</p>
-    <button class="stor bekreft" id="start-knapp">Start spillet</button>
+    <label class="skjult" for="navn">Hva heter du?</label>
+    <input id="navn" type="text" placeholder="Hva heter du?" autocomplete="off"
+           enterkeyhint="go" maxlength="24">
+    <button class="stor bekreft" id="start-knapp">Spill</button>
   </div></div>`;
   const knapp = document.getElementById("start-knapp");
   const felt = document.getElementById("navn");
