@@ -228,7 +228,28 @@ const VRAKFLAGG = "telrd";
  * koster 4,6 MB nedlasting og innfører en ny feilmodus for en gevinst vi ikke
  * kan vise.
  *
- * Sett til "tro.b64" (og last opp fila) hvis den senere replikeres.
+ * SLIK SLÅS DEN PÅ IGJEN: sett TROFIL til navnet på trosfila og last den opp.
+ * `null` her betyr at `besteBot()` hopper over hentingen helt — det gjøres av
+ * `TROFIL === null ? Promise.resolve(null) : hentB64(TROFIL)` lenger nede, så
+ * det går ikke ett eneste nettverkskall til trosnettet i dag.
+ *
+ * FILNAVNET STÅR MED VILJE IKKE I HERMETEGN HER. `verktoy/sjekk-utrulling.ts`
+ * utleder lista over filer appen henter ved å regex-e ALLE strengliteraler i
+ * denne fila som ser ut som filnavn — også de som står inne i kommentarer.
+ * Da ble trosfila rapportert som «hentes ved hver sidelasting, 209 KB
+ * HTML-feilside», og den slutningen er feil: verktøyet målte «strenger som
+ * ligner filnavn i kilden», ikke «filer nettleseren ber om».
+ *
+ * Målt i stedet for antatt — over alle sidelastingene i nettlesertestene ba
+ * appen om nøyaktig seks filer: adams-kort.b64, adams-vrak.b64,
+ * bud-menneske.json, bud-vant.json, bud-gbt.json og worker.js. Trosfila var
+ * ikke blant dem, og kan heller ikke lastes opp: lokalt finnes bare
+ * `e1-modell/tro.bin`, ikke en b64-utgave.
+ *
+ * Den EKTE nedlastingskostnaden ligger et annet sted: bud-menneske.json og
+ * bud-vant.json er ikke lastet opp, svarer 209 KB HTML hver, og hentes begge
+ * ved hver sidelasting — 418 KB søppel før kjeden når fram til bud-gbt.json.
+ * Det forsvinner i det de to blir lastet opp; begge finnes i `e1-modell/`.
  */
 const TROFIL: string | null = null;
 
@@ -726,10 +747,6 @@ async function pimcHandling(s: GameState): Promise<Handling> {
  * over HTTP fra laptopen) – den kan ikke kjøre i nettleseren.
  */
 type Motstander = "Vaar" | "MesterAI";
-const MOTSTANDER_INFO: Record<Motstander, string> = {
-  Vaar: "Adams – budmodell + vakt + finjustert nett 🤖",
-  MesterAI: "MesterAI – appens mester 🏆",
-};
 
 /**
  * BOT-ID-EN SOM LOGGES, og hvorfor den ikke er den samme som nøkkelen.
@@ -758,9 +775,14 @@ const BOT_ID: Record<Motstander, string> = {
   Vaar: "Adams-v5",
   MesterAI: "MesterAI",
 };
-/** MesterAI vises kun i bro-modus (spillet servert lokalt over HTTP). */
-const MOTSTANDERE = (): Motstander[] =>
-  LOKAL ? ["Vaar", "MesterAI"] : ["Vaar"];
+/**
+ * Motstanderen er alltid vår beste bot. `MOTSTANDER_INFO` og `MOTSTANDERE()`
+ * er borte sammen med velgeren de fylte: brukeren velger ikke modell, og en
+ * knapp som beskriver «budmodell + vakt + finjustert nett» spurte om noe
+ * ingen i familien har grunnlag for å svare på.
+ *
+ * MesterAI settes fra `?mester=1` i bro-modus – se `startskjerm()`.
+ */
 let motstander: Motstander = "Vaar";
 
 /**
@@ -813,8 +835,29 @@ const fargeMerke = (f: Farge, medNavn = true): string =>
   `<span class="fargemerke ${fargeKlasse(f)}"><span class="sym" aria-hidden="true">${FARGE_TEGN[f]}</span>${
     medNavn ? FARGE_NAVN[f] : `<span class="skjult">${FARGE_NAVN[f]}</span>`
   }</span>`;
+/**
+ * VALØRENE PÅ KORTET: A, K, Q, J — den engelske notasjonen.
+ *
+ * Her sto «D» for dame. Det var den ENESTE «D»-en i hele prosjektet: motorens
+ * egen `kortId` i `src/kort.ts` har brukt `12: "Q"` hele veien, og alle
+ * kort-id-er i loggen, i treningsdataene og i analysefilene er skrevet med Q.
+ * Nettappen viste altså en annen notasjon enn den datamaskinen skrev ned, og
+ * en annen enn den familien kjenner fra en vanlig kortstokk.
+ *
+ * A og K var allerede riktige, J likeså. Bare dama var oversatt.
+ */
 const VERDI_TEKST = (v: number): string =>
-  v === 14 ? "A" : v === 13 ? "K" : v === 12 ? "D" : v === 11 ? "J" : String(v);
+  v === 14 ? "A" : v === 13 ? "K" : v === 12 ? "Q" : v === 11 ? "J" : String(v);
+/**
+ * ... men skjermleseren skal si ORDET.
+ *
+ * `aria-label` og opplesningen gikk gjennom samme funksjon som kortflaten, så
+ * en skjermleser fikk «spar Q» — bokstaven, ikke kortet. Norsk tale skal si
+ * «spar dame». Kortet viser Q, stemmen sier dame; begge er riktige for sin
+ * kanal.
+ */
+const VERDI_ORD = (v: number): string =>
+  v === 14 ? "ess" : v === 13 ? "konge" : v === 12 ? "dame" : v === 11 ? "knekt" : String(v);
 
 // --- Tilstand ---------------------------------------------------------------
 let state: GameState;
@@ -877,7 +920,19 @@ function logg(type: string, data: unknown): void {
 // den ble brukt (etterlysningsskiltet på bordet) viser nå fargemerket i
 // stedet. Symbol uten flate var akkurat den formen som ikke tålte mørk
 // bakgrunn.
-const kortTale = (k: Kort): string => `${FARGE_NAVN[k.farge]} ${VERDI_TEKST(k.verdi)}`;
+const kortTale = (k: Kort): string => `${FARGE_NAVN[k.farge]} ${VERDI_ORD(k.verdi)}`;
+
+/**
+ * STJERNA — motivet fra appikonet, gjenbrukt overalt.
+ *
+ * Selve figuren er definert ÉN gang i `index.html`, utenfor `#app`. Det er
+ * ikke en detalj: `tegn()` bygger `#app` på nytt med `innerHTML` ved hver
+ * tilstandsendring, så en `<defs>` som lå der inne ville blitt revet vekk
+ * under føttene på hver `<use>` som pekte på den — og stjernene ville
+ * forsvunnet ved neste tegning uten at noe feilet.
+ */
+const stjerne = (klasse = ""): string =>
+  `<svg class="stjerne${klasse ? ` ${klasse}` : ""}" viewBox="0 0 100 100" aria-hidden="true"><use href="#stjernemerke"></use></svg>`;
 
 /**
  * Ventetilstand med framdrift. Erstatter den nakne overskriften: en skjerm som
@@ -887,7 +942,7 @@ const kortTale = (k: Kort): string => `${FARGE_NAVN[k.farge]} ${VERDI_TEKST(k.ve
 const laster = (tittel: string, undertekst = ""): string =>
   `<div class="overlegg"><div class="panel start"><div class="laster">
     <h2>${tittel}</h2>
-    <div class="stripe" role="progressbar" aria-label="${tittel}"><i></i></div>
+    <div class="stjerner" role="progressbar" aria-label="${tittel}">${stjerne()}${stjerne()}${stjerne()}</div>
     ${undertekst ? `<p class="bekreftsmatt">${undertekst}</p>` : ""}
   </div></div></div>`;
 
@@ -959,23 +1014,80 @@ function gjør(h: Handling): void {
   state = res.state;
   håndterHendelser(res.hendelser);
   broSpeil(h, res.hendelser);
-  // Fullført stikk: frys det på bordet i 2,6 s slik at alle rekker å se
-  // alle fire kortene og hvem som vant, før spillet går videre.
   const stikk = res.hendelser.find((x) => x.type === "STIKK_FERDIG");
   if (stikk !== undefined && stikk.type === "STIKK_FERDIG") {
     frystStikk = { kort: stikk.stikk, vinner: stikk.vinner };
     travelt = true;
     tegn();
-    // Neste stikkleder (vinneren) pondrer gjennom hele frysingen.
-    ponder(state, 2450);
+    ponder(state, STIKKPAUSE - 150);
+    samleStikketTilVinneren(stikk.vinner);
     setTimeout(() => {
       frystStikk = null;
       travelt = false;
       fortsett();
-    }, 2600);
+    }, STIKKPAUSE);
     return;
   }
   fortsett();
+}
+
+/**
+ * ============ STIKKET SKAL SES GÅ TIL DEN SOM VANT DET ==================
+ *
+ * ARVIND: «det kan gå litt for raskt når vi spiller og vi får ikke med oss
+ * ting.»
+ *
+ * Før lå de fire kortene stille i 2,6 sekunder med en stjerne ved vinnerens
+ * navn, og så var de borte. Man måtte LESE seg til hvem som tok stikket. Nå
+ * gjør bordet det i stedet: kortene blir stående mens man rekker å se dem,
+ * og glir så samlet bort til vinnerens plass.
+ *
+ * ============ HVORFOR FLYTTINGEN MÅLES OG IKKE SKRIVES I CSS ============
+ *
+ * Fire plasser × fire mulige vinnere er seksten retninger, og de er ikke
+ * faste: bordet er et rutenett som endrer form med skjermen, så en avstand
+ * skrevet i CSS ville vært en gjetning som stemte på én skjermstørrelse.
+ * `getBoundingClientRect` vet det eksakt, og det er fire elementer å måle.
+ *
+ * DOM-EN STÅR STILLE HER, og det er forutsetningen. `tegn()` kalles ikke
+ * under frysingen, så elementene vi måler er de samme som fortsatt henger
+ * der når flyttingen skal skje.
+ */
+const STIKKPAUSE = 3000;
+const SAMLE_START = 1450; // hvor lenge stikket står stille før det samles
+function samleStikketTilVinneren(vinner: number): void {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  setTimeout(() => {
+    const bord = rot.querySelector<HTMLElement>(".bord");
+    const mål = rot.querySelector<HTMLElement>(".bordkort.vant .kort");
+    if (bord === null || mål === null) return;
+    // 1. MÅL FØRST, mens ingenting er endret.
+    const m = mål.getBoundingClientRect();
+    const flytt: { el: HTMLElement; dx: number; dy: number }[] = [];
+    for (const el of rot.querySelectorAll<HTMLElement>(".bordkort .kort")) {
+      const r = el.getBoundingClientRect();
+      flytt.push({
+        el,
+        dx: m.left + m.width / 2 - (r.left + r.width / 2),
+        dy: m.top + m.height / 2 - (r.top + r.height / 2),
+      });
+    }
+    // 2. Slå på den lange overgangen, og tving fram en omregning så
+    //    nettleseren har sett tilstanden UTEN flyttingen med overgangen på.
+    //    Uten dette steget settes overgang og sluttposisjon i samme omgang,
+    //    og kortene hopper i stedet for å gli.
+    bord.classList.add("samler");
+    void bord.offsetHeight;
+    // 3. Så flytter vi. Vinnerens eget kort blir liggende og løftes litt;
+    //    de andre reiser dit.
+    for (const { el, dx, dy } of flytt) {
+      const sammeSted = Math.abs(dx) < 1 && Math.abs(dy) < 1;
+      el.style.transform = sammeSted
+        ? "scale(1.08)"
+        : `translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(.8)`;
+      if (!sammeSted) el.style.opacity = "0.5";
+    }
+  }, SAMLE_START);
 }
 
 function håndterHendelser(hendelser: readonly Hendelse[]): void {
@@ -1152,6 +1264,13 @@ function menneskeSpill(kort: Kort): void {
 const budTekst = (b: Bud): string =>
   b === PASS ? "Pass" : b === AMERIKANER ? "Amerikaner!" : b === SOLO ? "Solo!" : String(b);
 
+/**
+ * KORTBAKSIDEN. Stjerna på kobolt, med kremramme slik ekte kortrygger har.
+ * Brukes til motstandernes bunker på bordet og til viften på startskjermen.
+ */
+const kortRygg = (): string =>
+  `<div class="kort rygg" aria-hidden="true">${stjerne()}</div>`;
+
 function kortKnapp(
   k: Kort,
   opts: { valgbar?: boolean; valgt?: boolean; liten?: boolean; ny?: boolean },
@@ -1227,11 +1346,12 @@ function bordet(): string {
   const nå = new Set(påBordet.map((b) => `${b.spiller}${kortId(b.kort)}`));
   const erNy = (b: { spiller: number; kort: Kort }): boolean =>
     !forrigeBordkort.has(`${b.spiller}${kortId(b.kort)}`);
+  const lagt = new Set(påBordet.map((b) => b.spiller));
   const kort = påBordet
     .map((b) => {
       const vant = frystStikk !== null && b.spiller === frystStikk.vinner;
       return `<div class="bordkort ${plass[b.spiller]}${vant ? " vant" : ""}">
-      <div class="hvem">${NAVN[b.spiller]}${vant ? ' <span class="vant">★ vant stikket</span>' : ""}</div>${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}</div>`;
+      <div class="hvem">${NAVN[b.spiller]}${vant ? `<span class="vant">${stjerne()} vant stikket</span>` : ""}</div>${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}</div>`;
     })
     .join("");
   forrigeBordkort = nå;
@@ -1243,9 +1363,43 @@ function bordet(): string {
     frystStikk === null && !venterPåMenneske && travelt && state.fase !== "RUNDE_SLUTT" && state.fase !== "FERDIG"
       ? (state.fase === "VRAK" || state.fase === "VELG" ? state.budvinner : state.iTur)
       : null;
+  /** «tenker …» med tellende sekunder — brukes både i bunken og alene. */
+  const tenkeboble = `tenker<span id="tenker-tid"></span><span class="prikker" aria-hidden="true"><i></i><i></i><i></i></span>`;
+
+  /**
+   * MOTSTANDERNES BUNKER. Et bord uten kort på hendene ser ut som en tom
+   * flate med noen knapper på — og på telefon sto to tredeler av skjermen
+   * ubrukt. Tre kortrygger og et tall gjør det til et kortbord, og sier
+   * samtidig hvor langt ut i runden man er.
+   *
+   * Bunken og «tenker»-bobla DELER RUTE, og det er derfor de er slått sammen
+   * her i stedet for å være to elementer: begge hører til det setet som ennå
+   * ikke har lagt, altså nøyaktig samme celle i rutenettet. To absolutt
+   * plasserte ting i samme celle ville lagt seg oppå hverandre — det var
+   * akkurat den feilen bordkortene hadde mot trumfskiltet på liggende
+   * telefon.
+   */
+  const bunker =
+    state.fase === "SPILL"
+      ? [1, 2, 3]
+          .filter((s) => !lagt.has(s) && (state.hender[s]?.length ?? 0) > 0)
+          .map(
+            (s) => `<div class="bordkort ${plass[s]}"><div class="bunke">
+              <div class="vifte">${kortRygg()}${kortRygg()}${kortRygg()}</div>
+              <div class="antall">${
+                s === tenkeSete ? `${NAVN[s]} ${tenkeboble}` : `${NAVN[s]} · ${state.hender[s]!.length} kort`
+              }</div>
+            </div></div>`,
+          )
+          .join("")
+      : "";
+
+  // I SPILLFASEN bæres «tenker» av bunken over, siden bunken og bobla hører
+  // til samme sete og dermed samme rute. Utenfor spillfasen finnes ingen
+  // bunker, og da står bobla for seg selv.
   const tenker =
-    tenkeSete !== null && tenkeSete !== MENNESKE
-      ? `<div class="tenker ${plass[tenkeSete]}"><span class="prikker" aria-hidden="true"><i></i><i></i><i></i></span>${NAVN[tenkeSete]} tenker<span id="tenker-tid"></span></div>`
+    tenkeSete !== null && tenkeSete !== MENNESKE && state.fase !== "SPILL"
+      ? `<div class="tenker ${plass[tenkeSete]}">${NAVN[tenkeSete]} ${tenkeboble}</div>`
       : "";
 
   // TRUMFEN SKAL ALLTID VÆRE SYNLIG. Den lå som ett lite tegn i kontraktlinja
@@ -1253,7 +1407,7 @@ function bordet(): string {
   // oftest, og den skal ikke måtte letes fram.
   const trumfskilt =
     state.trumf !== null && (state.fase === "SPILL" || frystStikk !== null)
-      ? `<div class="trumfskilt"><span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>`
+      ? `<div class="trumfskilt">${stjerne()}<span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>`
       : "";
   const info = state.etterlyst
     ? `<div class="etterlyst"><span class="merkelapp">Etterlyst</span>${fargeMerke(state.etterlyst.farge, false)} <b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? ` · ${NAVN[state.makker]}` : " · skjult makker"}</div>`
@@ -1278,7 +1432,7 @@ function bordet(): string {
             .join("")}</div>
         </div>`
       : "";
-  return `<div class="bord" aria-label="Bordet">${kort}${midt}${tenker}${forrige}</div>`;
+  return `<div class="bord" aria-label="Bordet">${kort}${bunker}${midt}${tenker}${forrige}</div>`;
 }
 
 /**
@@ -1584,39 +1738,44 @@ function koble(): void {
 }
 
 // --- Startskjerm ------------------------------------------------------------
+/**
+ * ETT FELT, ÉN KNAPP.
+ *
+ * ARVIND, om modellvalget: brukeren velger ikke modell — så det skal ikke stå
+ * der. Det var to knapper som het noe bare vi forstår («Adams – budmodell +
+ * vakt + finjustert nett», «MesterAI – appens mester»), og de spurte om noe
+ * ingen i familien har grunnlag for å svare på. En startskjerm skal spørre om
+ * det brukeren VET: hva de heter.
+ *
+ * MESTERAI ER IKKE FJERNET, bare tatt ut av veien. Den er et utviklerverktøy
+ * som krever at broen kjører på laptopen, og den nås nå med `?mester=1` i
+ * adressen. Å slette den ville vært å kaste bort en fungerende målevei for å
+ * rydde en skjerm.
+ *
+ * NAVNET LAGRES IKKE MELLOM ØKTER. Feltet er tomt hver gang, og ingenting her
+ * skriver det til `localStorage`. (Merk at hendelsesloggen — som alltid har
+ * gjort det — fortsatt tar med navnet i sine egne rader; det er
+ * datainnsamlingen, og den er en annen sak enn å huske navnet i skjemaet.)
+ */
 function startskjerm(): void {
+  const broModus = new URLSearchParams(location.search).get("mester") === "1";
+  motstander = broModus && LOKAL ? "MesterAI" : "Vaar";
   rot.innerHTML = `<div class="overlegg"><div class="panel start" role="dialog" aria-label="Start">
-    <h1>🃏 Amerikaneren mot botene</h1>
-    <p>Store kort, laget for TV, iPad og telefon. Velg motstander:</p>
-    <div class="knapper motstandere" role="radiogroup" aria-label="Motstander">
-      ${MOTSTANDERE()
-        .map((m) => `<button class="stor motstander${m === motstander ? " aktiv" : ""}" data-mot="${m}"
-          role="radio" aria-checked="${m === motstander}">${MOTSTANDER_INFO[m]}</button>`)
-        .join("")}
-    </div>
-    <!-- Styrkevalget hoerte til PIMC, som er fjernet. Nevronettet bruker
-         mikrosekunder per trekk, saa det finnes ingen tidsbudsjett aa velge. -->
-    <label for="navn">Hvem spiller? (for dataloggen)</label>
-    <input id="navn" type="text" placeholder="f.eks. kallenavn" autocomplete="off" enterkeyhint="go">
+    <div class="kortvifte" aria-hidden="true">${kortRygg()}${kortRygg()}${kortRygg()}</div>
+    <h1 class="ordmerke">Amerikaneren<span class="demo">demo</span></h1>
+    <p>Tre boter mot deg. Store kort, laget for TV, iPad og telefon.</p>
+    ${motstander === "MesterAI" ? `<p class="bekreftsmatt">Bromodus: du møter MesterAI fra laptopen.</p>` : ""}
+    <label for="navn">Hva heter du?</label>
+    <input id="navn" type="text" placeholder="skriv navnet ditt" autocomplete="off"
+           enterkeyhint="go" maxlength="24" aria-describedby="navn-hjelp">
+    <p id="navn-hjelp" class="bekreftsmatt">Brukes bare til å merke rundene i statistikken.</p>
     <button class="stor bekreft" id="start-knapp">Start spillet</button>
   </div></div>`;
-  for (const b of rot.querySelectorAll<HTMLButtonElement>("[data-mot]")) {
-    b.onclick = () => {
-      motstander = b.dataset["mot"] as Motstander;
-      startskjerm();
-    };
-  }
-  for (const b of rot.querySelectorAll<HTMLButtonElement>("[data-styrke]")) {
-    b.onclick = () => {
-      styrke = b.dataset["styrke"] as Styrke;
-      startskjerm();
-    };
-  }
-  const knapp = document.getElementById("start-knapp")!;
+  const knapp = document.getElementById("start-knapp") as HTMLButtonElement;
   const felt = document.getElementById("navn") as HTMLInputElement;
   knapp.onclick = () => void start(felt.value.trim());
   felt.onkeydown = (e) => { if (e.key === "Enter") void start(felt.value.trim()); };
-  (knapp as HTMLButtonElement).focus();
+  felt.focus();
 }
 
 /**

@@ -4174,10 +4174,6 @@ async function pimcHandling(s) {
     return velgHandling(s, { ...STYRKER.RASK.spill, frø: Math.random() * 1e9 >>> 0 });
   }
 }
-var MOTSTANDER_INFO = {
-  Vaar: "Adams – budmodell + vakt + finjustert nett 🤖",
-  MesterAI: "MesterAI – appens mester 🏆"
-};
 var BOT_ID = {
   // Adams-v2, 4. august: kortvektene destillert fra 544 573 rader merket med
   // 24-verdeners framoverblikk og korrekt rollout-policy. Gate 2 over TO
@@ -4190,14 +4186,14 @@ var BOT_ID = {
   Vaar: "Adams-v5",
   MesterAI: "MesterAI"
 };
-var MOTSTANDERE = () => LOKAL ? ["Vaar", "MesterAI"] : ["Vaar"];
 var motstander = "Vaar";
 var nettAgenter = null;
 var FARGE_TEGN = { S: "♠", H: "♥", R: "♦", K: "♣" };
 var FARGE_NAVN = { S: "spar", H: "hjerter", R: "ruter", K: "kløver" };
 var fargeKlasse = (f) => `f-${f}`;
 var fargeMerke = (f, medNavn = true) => `<span class="fargemerke ${fargeKlasse(f)}"><span class="sym" aria-hidden="true">${FARGE_TEGN[f]}</span>${medNavn ? FARGE_NAVN[f] : `<span class="skjult">${FARGE_NAVN[f]}</span>`}</span>`;
-var VERDI_TEKST = (v) => v === 14 ? "A" : v === 13 ? "K" : v === 12 ? "D" : v === 11 ? "J" : String(v);
+var VERDI_TEKST = (v) => v === 14 ? "A" : v === 13 ? "K" : v === 12 ? "Q" : v === 11 ? "J" : String(v);
+var VERDI_ORD = (v) => v === 14 ? "ess" : v === 13 ? "konge" : v === 12 ? "dame" : v === 11 ? "knekt" : String(v);
 var state;
 var spillId = "";
 var spillerNavn = "";
@@ -4234,10 +4230,11 @@ function logg(type, data) {
   }).catch(() => {
   });
 }
-var kortTale = (k) => `${FARGE_NAVN[k.farge]} ${VERDI_TEKST(k.verdi)}`;
+var kortTale = (k) => `${FARGE_NAVN[k.farge]} ${VERDI_ORD(k.verdi)}`;
+var stjerne = (klasse = "") => `<svg class="stjerne${klasse ? ` ${klasse}` : ""}" viewBox="0 0 100 100" aria-hidden="true"><use href="#stjernemerke"></use></svg>`;
 var laster = (tittel, undertekst = "") => `<div class="overlegg"><div class="panel start"><div class="laster">
     <h2>${tittel}</h2>
-    <div class="stripe" role="progressbar" aria-label="${tittel}"><i></i></div>
+    <div class="stjerner" role="progressbar" aria-label="${tittel}">${stjerne()}${stjerne()}${stjerne()}</div>
     ${undertekst ? `<p class="bekreftsmatt">${undertekst}</p>` : ""}
   </div></div></div>`;
 var feilrute = (tittel, hva) => `<div class="overlegg"><div class="panel start">
@@ -4301,15 +4298,43 @@ function gjør(h) {
     frystStikk = { kort: stikk.stikk, vinner: stikk.vinner };
     travelt = true;
     tegn();
-    ponder(state, 2450);
+    ponder(state, STIKKPAUSE - 150);
+    samleStikketTilVinneren(stikk.vinner);
     setTimeout(() => {
       frystStikk = null;
       travelt = false;
       fortsett();
-    }, 2600);
+    }, STIKKPAUSE);
     return;
   }
   fortsett();
+}
+var STIKKPAUSE = 3e3;
+var SAMLE_START = 1450;
+function samleStikketTilVinneren(vinner) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  setTimeout(() => {
+    const bord = rot.querySelector(".bord");
+    const mål = rot.querySelector(".bordkort.vant .kort");
+    if (bord === null || mål === null) return;
+    const m = mål.getBoundingClientRect();
+    const flytt = [];
+    for (const el of rot.querySelectorAll(".bordkort .kort")) {
+      const r = el.getBoundingClientRect();
+      flytt.push({
+        el,
+        dx: m.left + m.width / 2 - (r.left + r.width / 2),
+        dy: m.top + m.height / 2 - (r.top + r.height / 2)
+      });
+    }
+    bord.classList.add("samler");
+    void bord.offsetHeight;
+    for (const { el, dx, dy } of flytt) {
+      const sammeSted = Math.abs(dx) < 1 && Math.abs(dy) < 1;
+      el.style.transform = sammeSted ? "scale(1.08)" : `translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(.8)`;
+      if (!sammeSted) el.style.opacity = "0.5";
+    }
+  }, SAMLE_START);
 }
 function håndterHendelser(hendelser) {
   for (const h of hendelser) {
@@ -4455,6 +4480,7 @@ function menneskeSpill(kort) {
   gjør({ type: "SPILL", spiller: MENNESKE, kort });
 }
 var budTekst = (b) => b === PASS ? "Pass" : b === AMERIKANER ? "Amerikaner!" : b === SOLO ? "Solo!" : String(b);
+var kortRygg = () => `<div class="kort rygg" aria-hidden="true">${stjerne()}</div>`;
 function kortKnapp(k, opts) {
   const id = `kort-${k.farge}${k.verdi}`;
   const sym = FARGE_TEGN[k.farge];
@@ -4495,15 +4521,23 @@ function bordet() {
   const påBordet = frystStikk !== null ? frystStikk.kort : state.bord;
   const nå = new Set(påBordet.map((b) => `${b.spiller}${kortId(b.kort)}`));
   const erNy = (b) => !forrigeBordkort.has(`${b.spiller}${kortId(b.kort)}`);
+  const lagt = new Set(påBordet.map((b) => b.spiller));
   const kort = påBordet.map((b) => {
     const vant = frystStikk !== null && b.spiller === frystStikk.vinner;
     return `<div class="bordkort ${plass[b.spiller]}${vant ? " vant" : ""}">
-      <div class="hvem">${NAVN[b.spiller]}${vant ? ' <span class="vant">★ vant stikket</span>' : ""}</div>${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}</div>`;
+      <div class="hvem">${NAVN[b.spiller]}${vant ? `<span class="vant">${stjerne()} vant stikket</span>` : ""}</div>${kortKnapp(b.kort, { liten: true, ny: erNy(b) })}</div>`;
   }).join("");
   forrigeBordkort = nå;
   const tenkeSete = frystStikk === null && !venterPåMenneske && travelt && state.fase !== "RUNDE_SLUTT" && state.fase !== "FERDIG" ? state.fase === "VRAK" || state.fase === "VELG" ? state.budvinner : state.iTur : null;
-  const tenker = tenkeSete !== null && tenkeSete !== MENNESKE ? `<div class="tenker ${plass[tenkeSete]}"><span class="prikker" aria-hidden="true"><i></i><i></i><i></i></span>${NAVN[tenkeSete]} tenker<span id="tenker-tid"></span></div>` : "";
-  const trumfskilt = state.trumf !== null && (state.fase === "SPILL" || frystStikk !== null) ? `<div class="trumfskilt"><span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>` : "";
+  const tenkeboble = `tenker<span id="tenker-tid"></span><span class="prikker" aria-hidden="true"><i></i><i></i><i></i></span>`;
+  const bunker = state.fase === "SPILL" ? [1, 2, 3].filter((s) => !lagt.has(s) && (state.hender[s]?.length ?? 0) > 0).map(
+    (s) => `<div class="bordkort ${plass[s]}"><div class="bunke">
+              <div class="vifte">${kortRygg()}${kortRygg()}${kortRygg()}</div>
+              <div class="antall">${s === tenkeSete ? `${NAVN[s]} ${tenkeboble}` : `${NAVN[s]} · ${state.hender[s].length} kort`}</div>
+            </div></div>`
+  ).join("") : "";
+  const tenker = tenkeSete !== null && tenkeSete !== MENNESKE && state.fase !== "SPILL" ? `<div class="tenker ${plass[tenkeSete]}">${NAVN[tenkeSete]} ${tenkeboble}</div>` : "";
+  const trumfskilt = state.trumf !== null && (state.fase === "SPILL" || frystStikk !== null) ? `<div class="trumfskilt">${stjerne()}<span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>` : "";
   const info = state.etterlyst ? `<div class="etterlyst"><span class="merkelapp">Etterlyst</span>${fargeMerke(state.etterlyst.farge, false)} <b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? ` · ${NAVN[state.makker]}` : " · skjult makker"}</div>` : "";
   const dinTur = venterPåMenneske && state.fase === "SPILL" && frystStikk === null ? `<div class="dintur">Din tur — spill et kort</div>` : "";
   const midt = trumfskilt || info || dinTur ? `<div class="midtfelt">${trumfskilt}${info}${dinTur}</div>` : "";
@@ -4511,7 +4545,7 @@ function bordet() {
           <div class="tittel">Forrige · <b>${NAVN[state.forrigeStikk.vinner]}</b> vant</div>
           <div class="rad">${state.forrigeStikk.kort.map((b) => `<div><div class="navn">${NAVN[b.spiller].split(" ")[0]}</div>${kortKnapp(b.kort, {})}</div>`).join("")}</div>
         </div>` : "";
-  return `<div class="bord" aria-label="Bordet">${kort}${midt}${tenker}${forrige}</div>`;
+  return `<div class="bord" aria-label="Bordet">${kort}${bunker}${midt}${tenker}${forrige}</div>`;
 }
 var MÅLBREDDE = 76;
 var HÅNDHØYDE = 0.42;
@@ -4707,38 +4741,26 @@ function koble() {
   }
 }
 function startskjerm() {
+  const broModus = new URLSearchParams(location.search).get("mester") === "1";
+  motstander = broModus && LOKAL ? "MesterAI" : "Vaar";
   rot.innerHTML = `<div class="overlegg"><div class="panel start" role="dialog" aria-label="Start">
-    <h1>🃏 Amerikaneren mot botene</h1>
-    <p>Store kort, laget for TV, iPad og telefon. Velg motstander:</p>
-    <div class="knapper motstandere" role="radiogroup" aria-label="Motstander">
-      ${MOTSTANDERE().map((m) => `<button class="stor motstander${m === motstander ? " aktiv" : ""}" data-mot="${m}"
-          role="radio" aria-checked="${m === motstander}">${MOTSTANDER_INFO[m]}</button>`).join("")}
-    </div>
-    <!-- Styrkevalget hoerte til PIMC, som er fjernet. Nevronettet bruker
-         mikrosekunder per trekk, saa det finnes ingen tidsbudsjett aa velge. -->
-    <label for="navn">Hvem spiller? (for dataloggen)</label>
-    <input id="navn" type="text" placeholder="f.eks. kallenavn" autocomplete="off" enterkeyhint="go">
+    <div class="kortvifte" aria-hidden="true">${kortRygg()}${kortRygg()}${kortRygg()}</div>
+    <h1 class="ordmerke">Amerikaneren<span class="demo">demo</span></h1>
+    <p>Tre boter mot deg. Store kort, laget for TV, iPad og telefon.</p>
+    ${motstander === "MesterAI" ? `<p class="bekreftsmatt">Bromodus: du møter MesterAI fra laptopen.</p>` : ""}
+    <label for="navn">Hva heter du?</label>
+    <input id="navn" type="text" placeholder="skriv navnet ditt" autocomplete="off"
+           enterkeyhint="go" maxlength="24" aria-describedby="navn-hjelp">
+    <p id="navn-hjelp" class="bekreftsmatt">Brukes bare til å merke rundene i statistikken.</p>
     <button class="stor bekreft" id="start-knapp">Start spillet</button>
   </div></div>`;
-  for (const b of rot.querySelectorAll("[data-mot]")) {
-    b.onclick = () => {
-      motstander = b.dataset["mot"];
-      startskjerm();
-    };
-  }
-  for (const b of rot.querySelectorAll("[data-styrke]")) {
-    b.onclick = () => {
-      styrke = b.dataset["styrke"];
-      startskjerm();
-    };
-  }
   const knapp = document.getElementById("start-knapp");
   const felt = document.getElementById("navn");
   knapp.onclick = () => void start(felt.value.trim());
   felt.onkeydown = (e) => {
     if (e.key === "Enter") void start(felt.value.trim());
   };
-  knapp.focus();
+  felt.focus();
 }
 var sistLayout = "";
 addEventListener("resize", () => {
