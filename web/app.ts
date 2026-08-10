@@ -53,7 +53,7 @@ const MENNESKE = 0;
  *
  * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
  */
-const BUNDELVERSJON = "v9-2026-08-10";
+const BUNDELVERSJON = "v10-2026-08-10";
 (globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
@@ -1672,19 +1672,53 @@ interface LopData {
   forsvar: number[];
   budTatt: number;
   forsvarTatt: number;
+  /**
+   * Hvem som tok hvert av forsvarets stikk, i den rekkefølgen de ble tatt.
+   * Ett tall per fylt hakk ovenfra og ned. Se `stikksoyle()`.
+   */
+  forsvarEiere: number[];
 }
 
 function lopData(): LopData {
   const lag = budlaget();
   const stikk = state.stikkVunnet;
   const forsvar = state.totalPoeng.map((_, i) => i).filter((i) => !lag.includes(i));
+  const forsvarTatt = forsvar.reduce((s, i) => s + (stikk[i] ?? 0), 0);
+  /**
+   * ============ HVEM TOK HVILKET HAKK ==================================
+   *
+   * ARVIND, punkt 1: «forsvarssiden er bare rød. den skal skille de to
+   * forsvarerne: én forsvarer rød, den andre hvit. tar den hvite to stikk,
+   * fylles to hvite hakk.»
+   *
+   * Rekkefølgen leses av `state.historikk`, som er de fullførte stikkene
+   * denne runden med vinner. Ingenting nytt lagres: eierskapet REGNES UT på
+   * nytt ved hver tegning, mot laget slik det ser ut NÅ.
+   *
+   * Det er ikke en detalj. Når makkeren avsløres, flytter et stikk han tok
+   * mens han var skjult seg fra forsvarets side til budlagets — og fordi
+   * lista bygges mot dagens `lag`, faller hakket ut av seg selv i samme
+   * tegning som fyllene glir til sin nye høyde. Et lagret eierskap måtte
+   * vært ryddet manuelt, og ville før eller siden løyet.
+   */
+  const forsvarEiere = state.historikk
+    .map((s) => s.vinner)
+    .filter((v) => !lag.includes(v));
+  /**
+   * HISTORIKKEN KAN LIGGE ETT STIKK BAK TELLEREN i det øyeblikket et stikk
+   * er ferdig men ennå ikke lagt bort. Da fylles resten med −1, som tegnes
+   * som et nøytralt hakk — heller et hakk uten eier i et halvt sekund enn en
+   * farge som peker på feil person.
+   */
+  while (forsvarEiere.length < forsvarTatt) forsvarEiere.push(-1);
   return {
     hakk: Math.max(1, state.giving.antallStikk),
     mål: Math.max(1, målStikk()),
     lag,
     forsvar,
     budTatt: lag.reduce((s, i) => s + (stikk[i] ?? 0), 0),
-    forsvarTatt: forsvar.reduce((s, i) => s + (stikk[i] ?? 0), 0),
+    forsvarTatt,
+    forsvarEiere: forsvarEiere.slice(0, forsvarTatt),
   };
 }
 
@@ -1719,7 +1753,15 @@ function stikksoyle(): string {
   if (smelterNå) smeltetVist = true;
 
   const budNavn = d.lag.map((i) => NAVN[i]).join(" og ");
-  const forsvarNavn = d.forsvar.map((i) => NAVN[i]).join(", ");
+  /**
+   * FARGEKODEN MÅ OGSÅ FINNES FOR DEN SOM IKKE SER DEN. Hakkene sier hvem som
+   * tok hva med rødt og hvitt; her står det samme i klartekst, per forsvarer.
+   * Ellers ville punkt 1 gjort søylen RINGERE for en skjermleser enn den var
+   * med én rød flate, siden opplysningen bare fantes som farge.
+   */
+  const forsvarFordelt = d.forsvar
+    .map((i) => `${NAVN[i]} ${state.stikkVunnet[i] ?? 0}`)
+    .join(", ");
   // Hvor mange stikk forsvaret trenger for å felle kontrakten.
   const felleKrav = d.hakk - d.mål + 1;
 
@@ -1750,8 +1792,56 @@ function stikksoyle(): string {
     gjennombruddVenter = utfall;
   }
 
-  const fjes = (seter: number[], sisteErNy: boolean): string =>
-    seter.map((i, n) => medaljong(i, sisteErNy && n === seter.length - 1 ? " kommer" : "")).join("");
+  /**
+   * ============ FARGEKODEN FOR FORSVARERNE =============================
+   *
+   * Rød og hvit, som Arvind sier — og et tredje, nøytralt lyst hakk for det
+   * tilfellet han ikke beskriver: FØR makkeren er avslørt teller den skjulte
+   * makkerens stikk med i forsvaret, og da er det tre «forsvarere», ikke to.
+   * Da må det finnes en tredje farge, ellers ville to av dem delt en.
+   *
+   * Rekkefølgen er stigende setenummer, altså den SAMME rekkefølgen
+   * medaljongene står i over søylen. Det er hele nøkkelen: fargen på et hakk
+   * kan bare leses fordi ringen rundt fjeset har den samme fargen. Uten den
+   * koblingen ville rødt og hvitt vært to farger uten mening.
+   */
+  // Klassenavnene er ASCII med vilje: de skal kunne leses like trygt av en
+  // CSS-minifiserer, et søk i loggen og et blikk i utviklerverktøyet.
+  const HAKKFARGE = ["rod", "hvit", "graa"];
+  const fargeAv = (sete: number): string => {
+    const i = d.forsvar.indexOf(sete);
+    return i < 0 ? "ukjent" : (HAKKFARGE[i] ?? "ukjent");
+  };
+  const fjes = (seter: number[], sisteErNy: boolean, medFarge = false): string =>
+    seter
+      .map((i, n) =>
+        medaljong(
+          i,
+          (sisteErNy && n === seter.length - 1 ? " kommer" : "") +
+            (medFarge ? ` ring-${fargeAv(i)}` : ""),
+        ),
+      )
+      .join("");
+
+  /**
+   * HAKKENE. Ett element per stikk forsvaret har tatt, plassert på sin faste
+   * plass i løpet ovenfra og ned. De ligger i ETT lag som klippes av
+   * `clip-path` til nøyaktig samme høyde som den røde flaten under — så
+   * fyllingen kommer fortsatt ovenfra og ned som ÉN felles side mot
+   * markøren, og kappløpet er uendret. Det er bare fargen på hvert hakk som
+   * sier hvem som tok det.
+   *
+   * KLIPPINGEN OG IKKE HØYDEN er det som animeres, og grunnen er den samme
+   * som at hakkene har fast plass: et hakk som allerede ligger der skal ikke
+   * flytte seg når det neste kommer. Med en beholder som VOKSER ville alle
+   * hakkene blitt skalert på nytt ved hvert eneste stikk.
+   */
+  const hakkene = d.forsvarEiere
+    .map((eier, k) => {
+      const f = eier < 0 ? "ukjent" : fargeAv(eier);
+      return `<span class="hakk h-${f}" style="--k:${k}"></span>`;
+    })
+    .join("");
 
   const budSlag = sistBudTatt >= 0 && d.budTatt !== sistBudTatt;
   const forsvarSlag = sistForsvarTatt >= 0 && d.forsvarTatt !== sistForsvarTatt;
@@ -1763,16 +1853,18 @@ function stikksoyle(): string {
       <div class="fyll forsvar" data-seter="${d.forsvar.join(" ")}"
            style="height:${pst(Math.min(d.forsvarTatt, d.hakk))}"
            role="progressbar" aria-valuemin="0" aria-valuemax="${felleKrav}" aria-valuenow="${d.forsvarTatt}"
-           aria-label="Forsvaret (${forsvarNavn}): ${d.forsvarTatt} stikk, trenger ${felleKrav} for å felle kontrakten"></div>
+           aria-label="Forsvaret: ${d.forsvarTatt} stikk, trenger ${felleKrav} for å felle kontrakten. ${forsvarFordelt}"></div>
       <div class="fyll bud" data-seter="${d.lag.join(" ")}"
            style="height:${pst(Math.min(d.budTatt, d.hakk))}"
            role="progressbar" aria-valuemin="0" aria-valuemax="${d.mål}" aria-valuenow="${d.budTatt}"
            aria-label="${budNavn}: ${d.budTatt} av ${d.mål} stikk"></div>
+      <div class="hakkene" aria-hidden="true"
+           style="--rest:${pst(Math.max(0, d.hakk - Math.min(d.forsvarTatt, d.hakk)))}">${hakkene}</div>
     </div>
     <div class="kontraktmerke" style="bottom:${pst(d.mål)}" aria-hidden="true">
       <span class="strek"></span><span class="budmerke">${d.mål}</span>
     </div>
-    <div class="medaljongstabel topp" aria-hidden="true">${fjes(d.forsvar, false)}</div>
+    <div class="medaljongstabel topp" aria-hidden="true">${fjes(d.forsvar, false, true)}</div>
     <div class="medaljongstabel bunn" aria-hidden="true">${fjes(d.lag, smelterNå)}</div>
     <span class="tall topp${forsvarSlag ? " slag" : ""}" aria-hidden="true">${d.forsvarTatt}</span>
     <span class="tall bunn${budSlag ? " slag" : ""}" aria-hidden="true">${d.budTatt}</span>
@@ -1832,6 +1924,60 @@ function visGjennombrudd(utfall: "klart" | "falt"): void {
  */
 let forrigeBordkort = new Set<string>();
 
+/**
+ * ============ BUDTAVLA ==================================================
+ *
+ * ARVIND, punkt 6: «under budrunden er det ikke tydelig hva alle har budt, og
+ * teksten om hvem som har budt høyere er altfor liten. budrunden er halve
+ * spillet — den fortjener sin egen lesbare visning av hvem som bød hva.»
+ *
+ * Alt den viser er offentlig og fantes fra før: `budrunde.sisteBud` er hver
+ * spillers høyeste meldte bud, `budrunde.passet` hvem som er ute. Motoren er
+ * ikke rørt — opplysningen har hele tiden ligget der uten å bli vist.
+ *
+ * FIRE RADER, IKKE FIRE KOLONNER. Et bud er et TALL man sammenlikner med de
+ * andre tallene, og tall sammenliknes loddrett. En vannrett stripe med fire
+ * små celler er nettopp det topplinja allerede er, og den var ikke lesbar
+ * nok — det var hele meldingen.
+ *
+ * TRE TILSTANDER, hver med sin form og ikke bare sin farge:
+ *   LEDER   korallflate med hvitt tall. Det er ett bud i runden som gjelder,
+ *           og det skal kunne ses på en armlengdes avstand.
+ *   MELDT   lys flate med mørkt tall.
+ *   PASSET  dempet, med teksten «pass». Han kan ikke komme tilbake, og da
+ *           skal raden hans slutte å konkurrere om oppmerksomheten.
+ * Den som ikke har sagt noe ennå står tom, som han er.
+ */
+function budtavle(): string {
+  if (state.fase !== "BUDRUNDE") return "";
+  const b = state.budrunde;
+  const leder = b.høyeste;
+  const rader = state.totalPoeng
+    .map((_, i) => {
+      const passet = b.passet[i] === true;
+      const bud = b.sisteBud[i] ?? null;
+      const erLeder = leder !== null && leder.spiller === i;
+      const iTur = state.iTur === i;
+      const verdi = passet && bud === null
+        ? `<span class="pass">pass</span>`
+        : bud === null
+          ? `<span class="intet" aria-hidden="true">·</span>`
+          : `<span class="bud">${budTekst(bud)}</span>`;
+      return `<div class="budrad${erLeder ? " leder" : ""}${passet ? " ute" : ""}${iTur ? " itur" : ""}">
+        <span class="navn">${NAVN[i]}</span>
+        ${verdi}
+      </div>`;
+    })
+    .join("");
+  const tale = state.totalPoeng
+    .map((_, i) => {
+      const bud = b.sisteBud[i] ?? null;
+      return `${NAVN[i]}: ${bud === null ? (b.passet[i] === true ? "pass" : "ikke meldt") : budTekst(bud)}`;
+    })
+    .join(". ");
+  return `<div class="budtavle" role="group" aria-label="Budrunden. ${tale}">${rader}</div>`;
+}
+
 function bordet(): string {
   // Fryst stikk: alle fire kortene blir stående med vinnermarkering.
   const påBordet = frystStikk !== null ? frystStikk.kort : state.bord;
@@ -1872,9 +2018,25 @@ function bordet(): string {
    * ganger rett over hverandre. Vinnerbåndet er noe annet — det er en
    * beskjed, ikke en etikett — og det skal fortsatt sprette fram.
    */
+  /**
+   * FIRE TOMME KORTFLATER MENS INGEN HAR SPILT ENNÅ.
+   *
+   * Plassholderen finnes for at raden ikke skal HOPPE i det et kort legges —
+   * den grunnen står ved `.tomplass` i CSS. Men i budrunden, vraket og
+   * trumfvalget har ingen lagt noe, og da lå det fire skrå, tomme
+   * spøkelsesflater midt på bordet under budtavla. Med vidvinkelen ble de
+   * enda mer påfallende: de er de eneste flatene på bordet uten innhold.
+   *
+   * `usynlig` er `visibility: hidden` og ikke `display: none`: boksen tar
+   * fortsatt sin plass, så raden står nøyaktig like høyt før og etter — altså
+   * beholdes hele grunnen til at plassholderen finnes.
+   */
+  const iSpillNå = state.fase === "SPILL" || frystStikk !== null;
   const kortplass = (sete: number): string => {
     const b = lagtAv.get(sete);
-    if (b === undefined) return `<div class="tomplass" aria-hidden="true"></div>`;
+    if (b === undefined) {
+      return `<div class="tomplass${iSpillNå ? "" : " usynlig"}" aria-hidden="true"></div>`;
+    }
     const vant = frystStikk !== null && sete === frystStikk.vinner;
     return `<div class="bordkort${vant ? " vant" : ""}">
       ${vant ? `<div class="seteglans" aria-hidden="true"></div>` : ""}
@@ -1906,11 +2068,39 @@ function bordet(): string {
    * det sier tallet ved fjeset like presist uten å ta halve bordet.
    */
   const VRI = ["0", "-7", "4", "9"];
+  /**
+   * ============ HVOR LANGT UNNA HVERT SETE SITTER =======================
+   *
+   * ARVIND: «pov med litt distorted vidvinkel … man ser liksom kanten av
+   * bordet», og «spillerne kan sitte tettere sammen».
+   *
+   * `--naer` er 0 for setet rett overfor deg og 1 for det som sitter nærmest
+   * din egen kant. Rundt et bord er det midtsetet som er lengst unna, og de
+   * to på sidene som er nærmere — så Lincoln (sete 2) står lengst bak, mens
+   * Franklin og Trump kommer fram mot deg.
+   *
+   * TALLENE ER IKKE SYMMETRISKE, og det er med vilje. Er de to sidesetene
+   * nøyaktig like langt fram, leses raden som speilet — altså som et
+   * diagram. Skissen er tegnet for hånd og sitter litt skjevt, og det er
+   * nettopp den skjevheten som gjør at man tror på rommet.
+   *
+   * `--vend` er sideblikket: setene i kanten vender ansiktet inn mot linsa,
+   * slik folk ytterst i et vidvinkelbilde gjør. Fortegnet følger siden.
+   */
+  const NAER = ["0", "0.72", "0", "1"];
+  /**
+   * VINKELEN ER KLEMT NED FRA 13/−15 TIL 8/−9, og det er en målt rettelse.
+   * Ved 15 grader sto «TRUMP» så skrått at pilleformen rundt navnet leste som
+   * en feil i stedet for som perspektiv — bokstavene ble ujevnt høye og
+   * kanten på flaten fikk en knekk. Vidvinkelen skal være gøyal, ikke i veien
+   * for det ene ordet som sier hvem det er.
+   */
+  const VEND = ["0", "8", "0", "-9"];
   const motstandere = [1, 2, 3]
     .map((s) => {
       const igjen = state.hender[s]?.length ?? 0;
       const tenker = s === tenkeSete;
-      return `<div class="motspiller" style="--vri:${VRI[s]}deg">
+      return `<div class="motspiller" style="--vri:${VRI[s]}deg;--naer:${NAER[s]};--vend:${VEND[s]}">
         <div class="hode">
           ${medaljong(s)}
           <div class="navn">${NAVN[s]}</div>
@@ -1918,7 +2108,7 @@ function bordet(): string {
             tenker
               ? `<div class="tenker">${tenkeboble}</div>`
               : state.fase === "SPILL"
-                ? `<div class="igjen">${igjen} kort</div>`
+                ? `<div class="igjen">${igjen}</div>`
                 : `<div class="igjen"></div>`
           }
         </div>
@@ -1927,12 +2117,26 @@ function bordet(): string {
     })
     .join("");
 
-  // Utenfor spillfasen (bud, vrak, trumfvalg) hører bobla ikke til noe kort
-  // på bordet, og da står den midt på i stedet — se `.midtfelt .tenker`.
-  const tenker =
-    tenkeSete !== null && tenkeSete !== MENNESKE && state.fase !== "SPILL"
-      ? `<div class="tenker">${NAVN[tenkeSete]} ${tenkeboble}</div>`
-      : "";
+  /**
+   * ============ BOBLA STO TO STEDER SAMTIDIG ===========================
+   *
+   * ARVIND, punkt 9: «unødvendig skrift er ikke vits.»
+   *
+   * Her sto en «Lincoln tenker …»-boble midt på bordet UTENFOR spillfasen —
+   * i tillegg til den som allerede sto ved Lincolns eget fjes, siden
+   * `.motspiller` tegner sin egen boble for det samme setet. Altså to bobler
+   * med samme beskjed på skjermen samtidig, den ene med navnet skrevet ut
+   * fordi den ikke sto ved noen.
+   *
+   * Den kunne ikke være annet enn dobbel: `tenkeSete` er `iTur` i budrunden
+   * og `budvinner` under vrak og trumfvalg, og i begge tilfeller er det enten
+   * en av de tre motstanderne — som har sin egen søyle med sin egen boble —
+   * eller deg selv, og da venter appen på DEG og ingen tenker i det hele
+   * tatt. Midtbobla hadde derfor aldri et tilfelle den var alene om.
+   *
+   * Boblen ved fjeset er dessuten den bedre av de to: den PEKER på den det
+   * gjelder, og trenger derfor ikke skrive navnet.
+   */
 
   // TRUMFEN SKAL ALLTID VÆRE SYNLIG. Den lå som ett lite tegn i kontraktlinja
   // øverst; midt i en runde er det nøyaktig den ene opplysningen man ser etter
@@ -1958,9 +2162,10 @@ function bordet(): string {
     venterPåMenneske && state.fase === "SPILL" && frystStikk === null
       ? `<div class="dintur${pynt("dintur")}">Din tur</div>`
       : "";
+  const tavle = budtavle();
   const midt =
-    trumfskilt || info || dinTur || tenker
-      ? `<div class="midtfelt">${trumfskilt}${info}${tenker}${dinTur}</div>`
+    trumfskilt || info || dinTur || tavle
+      ? `<div class="midtfelt">${tavle}${trumfskilt}${info}${dinTur}</div>`
       : "";
 
   // Forrige stikk: alltid synlig i hjørnet mens neste stikk spilles.
@@ -2031,7 +2236,11 @@ function bordet(): string {
 function kortBredde(): number {
   const b = window.innerWidth || 1024;
   const h = window.innerHeight || 768;
-  return Math.round(Math.max(60, Math.min(160, h * 0.3 * 0.714, b * 0.3)));
+  // Litt større enn før (0,30 → 0,33 av høyden, 0,30 → 0,32 av bredden).
+  // I skissen er hånden det STØRSTE på skjermen, og den var her det minste
+  // av de tre feltene. Taket på 160 px står — over det blir et enkelt kort
+  // så bredt at vifta ikke lenger får plass til fem av dem.
+  return Math.round(Math.max(60, Math.min(160, h * 0.33 * 0.714, b * 0.32)));
 }
 
 /**
@@ -2245,6 +2454,29 @@ function håndrad(): string {
  */
 const HJUL_MIN_STEG = 0.34;
 const HJUL_MAKS_STEG = 0.94;
+/**
+ * ============ HÅNDEN SKAL ALDRI VISES HEL ==============================
+ *
+ * ARVIND, punkt 2: «man skal ikke se hele hånden på én gang — man skal måtte
+ * bla», og punkt 7: «når man trekker inn potten ser man hele hånden sin. det
+ * bryter med punkt 2 og skal være likt overalt.»
+ *
+ * DE TO ER SAMME FEIL. Steget ble regnet ut som «så tett at ALLE n kortene
+ * får plass», med `HJUL_MIN_STEG` som eneste gulv. På en iPad med tolv kort
+ * ga det 76 px steg — alt fikk plass, `hjulLåst` ble sann, pilene skrudde seg
+ * av, og hånden lå der som en åpen vifte. På telefon var den samme regelen
+ * bindende bare fordi skjermen var for smal, altså av en tilfeldighet.
+ *
+ * Derfor er ANTALL SYNLIGE KORT nå det som styrer, ikke antall kort i hånden.
+ * Steget får et gulv som holder vinduet på `MAKS_SYNLIG` kort uansett skjerm,
+ * uansett håndstørrelse og uansett fase. Da er den lik overalt per
+ * konstruksjon, ikke fordi hver enkelt situasjon er rettet for seg.
+ *
+ * 5,4 er lest av skissen: seks kort spenner bredden der, det ytterste bare
+ * halvveis inne. Et halvt kort i hver kant er dessuten det som SIER at det er
+ * mer å bla til — en vifte som slutter pent i begge ender ser ferdig ut.
+ */
+const MAKS_SYNLIG = 5.4;
 /** Hvor skrått ytterkortet i vifta står. Bindes til fotavtrykket under. */
 const YTTERVINKEL = 11;
 /** Sant når alle kortene får plass; da er pilene av og senteret låst. */
@@ -2283,9 +2515,35 @@ function oppdaterHjul(): void {
   const ytterRad = (YTTERVINKEL * Math.PI) / 180;
   const fotavtrykk = kb * Math.cos(ytterRad) + (kb / 0.714) * Math.sin(ytterRad);
   const ønsket = n > 1 ? (bredde - fotavtrykk) / (n - 1) : kb;
-  hjulSteg = Math.max(kb * HJUL_MIN_STEG, Math.min(kb * HJUL_MAKS_STEG, ønsket));
+  /**
+   * GULVET SOM HOLDER VINDUET PÅ `MAKS_SYNLIG` KORT. Se konstanten for
+   * hvorfor den finnes. Steget kan aldri bli SÅ tett at flere enn så mange
+   * kort står i vinduet samtidig — heller ikke når skjermen har plass.
+   */
+  const gulv = Math.max(kb * HJUL_MIN_STEG, (bredde - fotavtrykk) / (MAKS_SYNLIG - 1));
+  /**
+   * TAKET VINNER OVER GULVET, og rekkefølgen er ikke likegyldig.
+   *
+   * På en iPad blir gulvet 190 px mens kortet er 160 px bredt. Et steg som
+   * er STØRRE enn kortbredden gir LUFT mellom kortene — altså en rad med
+   * mellomrom, ikke en hånd. Målt på 1180×820 før taket kom på: seks kort
+   * med 30 px glipe mellom hvert.
+   *
+   * `HJUL_MAKS_STEG` (0,94) er nettopp grensen der kortene så vidt fortsatt
+   * overlapper. Den er derfor det ytterste ordet: `MAKS_SYNLIG` er et mål,
+   * mens «det skal se ut som en hånd» er et krav. På iPad gir det 6,6 kort i
+   * vinduet i stedet for 5,4 — fortsatt godt under tolv, så det må fortsatt
+   * blas, som er hele poenget med punkt 2.
+   */
+  hjulSteg = Math.min(kb * HJUL_MAKS_STEG, Math.max(gulv, ønsket));
   hjulSpenn = Math.max(0, (bredde - fotavtrykk) / (2 * hjulSteg));
-  hjulLåst = (n - 1) / 2 <= hjulSpenn + 0.001;
+  /**
+   * LÅSEN GJELDER BARE EN HÅND SOM ER MINDRE ENN VINDUET. Er den større, skal
+   * det blas — også på iPad, også midt i en innsamling. Uten `Math.min` her
+   * ville et bredt vindu låst hånden igjen, og punkt 2 og 7 vært tilbake på
+   * nøyaktig de skjermene de ble meldt fra.
+   */
+  hjulLåst = n <= MAKS_SYNLIG && (n - 1) / 2 <= hjulSpenn + 0.001;
   /**
    * BØYEN REGNES BAKLENGS FRA HVOR MYE PLASS DEN FÅR LOV Å TA.
    *
@@ -2323,6 +2581,29 @@ function oppdaterHjul(): void {
     `--bue:${(bue + overheng).toFixed(1)}px`;
   for (const [navn, verdi] of hjulMål.split(";").map((d) => d.split(":") as [string, string])) {
     hjul.style.setProperty(navn, verdi);
+  }
+  /**
+   * ============ HVOR HØY HÅNDEN FAKTISK BLE ==============================
+   *
+   * ARVIND, punkt 8: «popup-boblene dekker andre spillere og kort. "ditt bud"
+   * dekker Lincoln. ingen boble skal legge seg over en motstander eller over
+   * kortene.»
+   *
+   * Budpanelet lå festet til TOPPEN av skjermen, altså nøyaktig der de tre
+   * motstanderne sitter. Det skal i stedet stå i den tomme bordflaten mellom
+   * kortene på bordet og din egen hånd — og da må noe VITE hvor hånden
+   * slutter. Høyden kan ikke skrives i CSS: den avhenger av kortbredden,
+   * bøyens utslag og overhenget, som alle regnes ut her.
+   *
+   * Skrives på `documentElement` og ikke på `#app`, fordi overleggene ligger
+   * `position: fixed` utenfor rutenettet.
+   */
+  const håndrada = rot.querySelector<HTMLElement>(".handrad");
+  if (håndrada !== null) {
+    document.documentElement.style.setProperty(
+      "--handhoyde",
+      `${Math.round(håndrada.getBoundingClientRect().height)}px`,
+    );
   }
   settSenter(hjulSenter);
 }
@@ -2455,7 +2736,96 @@ function kastegrense(): number {
   return Math.max(46, (kortBredde() / 0.714) * 0.34);
 }
 
-function avbrytGest(): void {
+/**
+ * ============ ETTERGLIDET ==============================================
+ *
+ * ARVIND, punkt 5: kortene skal oppleves som 3D-objekter, «med momentum når
+ * man blar. i dag stopper vifta brått.»
+ *
+ * Her sto ett hopp: `settSenter(Math.round(hjulSenter + kast))` med en
+ * CSS-overgang på 340 ms. Det er ikke momentum — det er en teleportering med
+ * en glidende etterslep, og forskjellen KJENNES: farten forsvinner i det
+ * fingeren slipper, og så flytter vifta seg et fast antall plasser uansett
+ * hvor hardt man dro.
+ *
+ * Nå integreres bevegelsen bilde for bilde med eksponentiell friksjon, slik
+ * en vekt på et lager oppfører seg. Farten fingeren faktisk hadde er
+ * startverdien, så et lite dytt gir en plass og et hardt kast gir fem.
+ *
+ * ============ HVORFOR DETTE IKKE KAN BLI ET KAST =======================
+ *
+ * Momentum er lett å forveksle med et kast, og det er nettopp den feilen
+ * gestreglene er bygget for å holde ute. Den blir det ikke her, av én grunn
+ * som er verdt å skrive ned: ETTERGLIDET LEVER ETTER `pointerup`.
+ *
+ * Valget mellom «bla» og «kast» tas i `pointermove`, på retning og margin, og
+ * er allerede tatt før fingeren slipper. Etterglidet leser bare `g.fart` fra
+ * en gest som ALLEREDE er avgjort til å være blaing (`g.modus === "bla"`), og
+ * det rører hverken `gest`, kortvalget eller klikksperren. Et raskt sveip kan
+ * derfor ikke bli et kort som spilles — det kan bare bli en vifte som
+ * fortsetter å rulle.
+ *
+ * TAKET ER MÅLT, IKKE GJETTET. Med friksjon 0,008 per ms er strekningen
+ * `fart / friksjon`, så et tak på fem plasser er en startfart på 0,04
+ * indekssteg per ms. Uten det taket sender et hardt sveip på en telefon vifta
+ * ni plasser — altså nesten en hel omdreining — og da har man mistet
+ * oversikten over hvor i hånden man er.
+ */
+const GLID_FRIKSJON = 0.008; // per ms
+const GLID_MAKS_FART = 0.04; // indekssteg per ms ⇒ høyst fem plasser
+const GLID_STOPP = 0.0004;   // under dette er bevegelsen ikke synlig lenger
+let glidId = 0;
+
+function stoppGlid(): void {
+  if (glidId === 0) return;
+  cancelAnimationFrame(glidId);
+  glidId = 0;
+  rot.querySelector<HTMLElement>(".hjul")?.classList.remove("drar");
+}
+
+/** Sant når brukeren har bedt om mindre bevegelse. */
+function redusertBevegelse(): boolean {
+  return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function startGlid(fart0: number): void {
+  stoppGlid();
+  const hjul = rot.querySelector<HTMLElement>(".hjul");
+  // REDUSERT BEVEGELSE: ingen etterglid i det hele tatt. Vifta går til
+  // nærmeste kort og blir stående — det er den samme handlingen, uten svevet.
+  if (hjul === null || redusertBevegelse()) { settSenter(Math.round(hjulSenter)); return; }
+  let fart = Math.max(-GLID_MAKS_FART, Math.min(GLID_MAKS_FART, fart0));
+  if (Math.abs(fart) < GLID_STOPP) { settSenter(Math.round(hjulSenter)); return; }
+  // Overgangene AV mens vi selv driver bevegelsen: en CSS-transition oppå en
+  // rAF-løkke gir dobbelt etterslep, altså sirup.
+  hjul.classList.add("drar");
+  let sist = performance.now();
+  const steg = (nå: number): void => {
+    // Et bilde som kommer sent (fanen var i bakgrunnen) skal ikke flytte
+    // vifta et halvt kvartal. 48 ms er tre bilder på 60 Hz.
+    const dt = Math.min(48, Math.max(1, nå - sist));
+    sist = nå;
+    settSenter(hjulSenter + fart * dt);
+    fart *= Math.exp(-GLID_FRIKSJON * dt);
+    if (Math.abs(fart) > GLID_STOPP) {
+      glidId = requestAnimationFrame(steg);
+      return;
+    }
+    // LANDINGEN. Overgangen slås på igjen FØR siste `settSenter`, slik at de
+    // siste pikselene inn til nærmeste kort glir i stedet for å hoppe.
+    glidId = 0;
+    hjul.classList.remove("drar");
+    settSenter(Math.round(hjulSenter));
+  };
+  glidId = requestAnimationFrame(steg);
+}
+
+/**
+ * `snapp: false` lar den som kaller ta hånd om senteret selv — se
+ * `startGlid`. Uten den ville etterglidet begynt med et hopp til nærmeste
+ * kort, altså med nøyaktig det bråstoppet det skal erstatte.
+ */
+function avbrytGest(snapp = true): void {
   if (gest === null) return;
   const g = gest;
   gest = null;
@@ -2468,7 +2838,7 @@ function avbrytGest(): void {
     g.kort.style.removeProperty("--dy");
     g.kort.classList.remove("griper", "kaster");
   }
-  if (g.modus !== null) settSenter(Math.round(hjulSenter));
+  if (snapp && g.modus !== null) settSenter(Math.round(hjulSenter));
 }
 
 function koblHjul(): void {
@@ -2481,6 +2851,10 @@ function koblHjul(): void {
     // Bare den FØRSTE pekeren. En andrefinger midt i en dragning er ikke en
     // ny gest; den er en hånd som holder nettbrettet.
     if (gest !== null || (e.pointerType === "mouse" && e.button !== 0)) return;
+    // EN FINGER PÅ VIFTA STOPPER ETTERGLIDET. Det er slik en fysisk skive
+    // oppfører seg, og uten det ville det neste sveipet lagt seg oppå en
+    // bevegelse som fortsatt pågikk.
+    stoppGlid();
     gestSluttet = 0; // en ny gest starter alltid med blanke ark
     const kort = (e.target as HTMLElement | null)?.closest<HTMLElement>(".kort") ?? null;
     gest = {
@@ -2573,7 +2947,8 @@ function koblHjul(): void {
     if (g.modus !== null || trykket) gestSluttet = performance.now();
     const blaFart = g.modus === "bla" ? g.fart : 0;
     const kort = g.kort;
-    avbrytGest();
+    // Skal det glis videre, må senteret IKKE snappes her — se `avbrytGest`.
+    avbrytGest(blaFart === 0);
     if ((kastet || trykket) && kort !== null) {
       const k: Kort = {
         farge: kort.dataset["farge"] as Farge,
@@ -2583,10 +2958,10 @@ function koblHjul(): void {
       return;
     }
     if (blaFart !== 0) {
-      // Fart gir etterglid, men bare et par plasser — et hjul som spinner
-      // forbi hele hånden er morsomt én gang og i veien resten av runden.
-      const kast = Math.max(-2.5, Math.min(2.5, (-blaFart * 1000) / hjulSteg * 0.16));
-      settSenter(Math.round(hjulSenter + kast));
+      // `g.fart` er piksler per ms, og fortegnet er speilvendt: å dra mot
+      // HØYRE senker senteret (`senter0 − dx / steg`). Omregningen til
+      // indekssteg per ms er derfor delt på steget og snudd.
+      startGlid(-blaFart / hjulSteg);
     }
   };
   hjul.onpointerup = slipp;
@@ -2604,13 +2979,13 @@ function koblHjul(): void {
     if (i >= 0) settSenter(i);
   });
   hjul.onkeydown = (e: KeyboardEvent) => {
-    if (e.key === "ArrowLeft") { settSenter(Math.round(hjulSenter) - 1); e.preventDefault(); }
-    else if (e.key === "ArrowRight") { settSenter(Math.round(hjulSenter) + 1); e.preventDefault(); }
+    if (e.key === "ArrowLeft") { stoppGlid(); settSenter(Math.round(hjulSenter) - 1); e.preventDefault(); }
+    else if (e.key === "ArrowRight") { stoppGlid(); settSenter(Math.round(hjulSenter) + 1); e.preventDefault(); }
   };
 
   for (const [id, steg] of [["bla-venstre", -1], ["bla-hoyre", 1]] as const) {
     const b = document.getElementById(id);
-    if (b) b.onclick = () => settSenter(Math.round(hjulSenter) + steg);
+    if (b) b.onclick = () => { stoppGlid(); settSenter(Math.round(hjulSenter) + steg); };
   }
 }
 
@@ -2635,9 +3010,22 @@ function budPanel(): string {
   const lov = lovligeHandlinger(state);
   if (!venterPåMenneske || lov.fase !== "BUDRUNDE") return "";
   const tall = lov.bud.filter((b): b is number => typeof b === "number");
-  const høyeste = state.budrunde.høyeste;
+  /**
+   * «Høyeste: 7 · Trump» STO HER, i 0,82 em dempet tekst, og er strøket.
+   *
+   * ARVIND, punkt 6: «under budrunden er det ikke tydelig hva alle har budt,
+   * og teksten om hvem som har budt høyere er altfor liten. budrunden er
+   * halve spillet — den fortjener sin egen lesbare visning av hvem som bød
+   * hva.»
+   *
+   * Den er nå en TAVLE på bordet (`budtavle()`), ikke en bisetning i en
+   * overskrift. Og den står der gjennom HELE budrunden — også mens botene
+   * byr — i stedet for bare i det halve sekundet ditt eget panel er oppe.
+   * Det var den egentlige mangelen: opplysningen fantes bare når du selv
+   * skulle handle på den, altså for sent til å tenke med.
+   */
   return `<div class="overlegg apen"><div class="panel" role="dialog" aria-label="Ditt bud">
-    <h2>Ditt bud${høyeste ? `<span class="bekreftsmatt">Høyeste: ${budTekst(høyeste.bud)} · ${NAVN[høyeste.spiller]}</span>` : ""}</h2>
+    <h2>Ditt bud</h2>
     <div class="knapper">
       <button class="stor pass" data-bud="PASS">Pass</button>
       ${tall.map((b) => `<button class="stor tallbud" data-bud="${b}">${b}</button>`).join("")}
@@ -2679,7 +3067,7 @@ function velgPanel(): string {
      * og ord — så ingen av dem trenger å bære valget alene.
      */
     return `<div class="overlegg apen"><div class="panel" role="dialog" aria-label="Velg trumf">
-      <h2>Velg trumffarge</h2>
+      <h2>Trumf</h2>
       <div class="trumfvalg">${(["S", "K", "H", "R"] as Farge[])
         .map(
           (f) => `<button class="trumfkort ${fargeKlasse(f)}" data-trumf="${f}" aria-label="${FARGE_NAVN[f]}">
@@ -2700,7 +3088,6 @@ function velgPanel(): string {
   if (velgEtterlysValg !== null) {
     const e = velgEtterlysValg;
     return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Bekreft valget">
-      <h2>Bekreft</h2>
       <p class="bekreftlinje">Trumf ${fargeMerke(trumf)}
          — etterlyser ${fargeMerke(trumf, false)} <b>${VERDI_TEKST(e.verdi)}</b></p>
       <div class="knapper">
@@ -2741,7 +3128,7 @@ function velgPanel(): string {
         </button>`,
       )
       .join("")}</div>
-    <div class="knapper"><button class="stor" id="velg-tilbake">Bytt trumffarge</button></div>
+    <div class="knapper"><button class="stor" id="velg-tilbake">Bytt trumf</button></div>
   </div></div>`;
 }
 
@@ -2776,7 +3163,7 @@ function ferdigPanel(): string {
       .map((p, i) => `<span><span class="navn">${NAVN[i]}</span><b>${p}</b></span>`)
       .join("")}</div>
     <button class="stor bekreft" id="nytt-spill">Nytt spill</button>
-    <p class="lite">Resultatene er lagret. <a href="${DATA_URL}" target="_blank" rel="noopener">Se innsamlede data</a></p>
+    <p class="lite"><a href="${DATA_URL}" target="_blank" rel="noopener">Se innsamlede data</a></p>
   </div></div>`;
 }
 
@@ -2785,12 +3172,18 @@ let sistPanel = "";
 
 function tegn(): void {
   if (!state) return;
+  // Startskjermen er forlatt i det spillet tegner seg — se `startskjerm()`.
+  document.body.classList.remove("paa-start");
   // EN PÅGÅENDE GEST OVERLEVER IKKE EN NY DOM. `innerHTML` bytter ut kortet
   // fingeren holder i, og en pekerfangst på et element som er borte er en
   // fangst ingen får meldinger fra. Å avbryte her er samme håndtering som
   // `pointercancel`: kortet legger seg tilbake, og ingenting blir hengende
   // halvveis kastet.
   avbrytGest();
+  // OG HELLER IKKE ET ETTERGLID. `settSenter` slår opp `.hjul` på nytt for
+  // hvert bilde, så en løkke som overlevde tegningen ville fortsatt å dra i
+  // den NYE vifta — med en fart som hørte til den gamle hånden.
+  stoppGlid();
   nåPynt = new Set<string>();
   rot.innerHTML =
     topplinje() + stikksoyle() + bordet() +
@@ -2928,15 +3321,55 @@ function startskjerm(): void {
   // statistikken.», som svarer på et spørsmål ingen stilte og som reiser ett
   // nytt. Overskriften «Hva heter du?» sier alt feltet trenger, og den står nå
   // bare for skjermleseren siden plassholderen sier det samme på skjermen.
-  rot.innerHTML = `<div class="overlegg"><div class="panel start" role="dialog" aria-label="Start">
-    <div class="kortvifte" aria-hidden="true">${kortRygg()}${kortRygg()}${kortRygg()}</div>
-    <h1 class="ordmerke">Amerikaneren<span class="demo">demo</span></h1>
-    ${motstander === "MesterAI" ? `<p class="bekreftsmatt">Bromodus: du møter MesterAI fra laptopen.</p>` : ""}
-    <label class="skjult" for="navn">Hva heter du?</label>
-    <input id="navn" type="text" placeholder="Hva heter du?" autocomplete="off"
-           enterkeyhint="go" maxlength="24">
-    <button class="stor bekreft" id="start-knapp">Spill</button>
-  </div></div>`;
+  /**
+   * ============ STARTSKJERMEN ER APPIKONET ==============================
+   *
+   * ARVIND, punkt 10: «gjenskap appikonet i fullskjerm, animert bittelitt,
+   * med teksten "Amerikaneren demo". `web/konsept/appikon.png` er fasiten —
+   * myke airbrush-gradienter, ingen harde kanter, bakgrunn som lysner mot
+   * kantene.»
+   *
+   * Her sto en boks: en `.panel`-flate med tre kortrygger i vifte oppå
+   * romgradienten. Den var pen og den var en DIALOG, altså det motsatte av
+   * et ikon — et ikon har ingen ramme, det ER flaten.
+   *
+   * Nå er de fem formene fra ikonet lagt ut over hele skjermen i ikonets egne
+   * posisjoner: kløver oppe til venstre, ruter oppe til høyre, stjerna i
+   * midten, hjerter nede til venstre, spar nede til høyre. Ingen boks,
+   * ingen kant. Bakgrunnen er `--rom-fall`, som ER ikonets omvendte vignett
+   * og allerede ligger på `body`.
+   *
+   * FORMENE ER DE SAMME som spillet bruker (`#kf-S` og de tre andre), med
+   * airbrushfilteret og gradientene fra runde 4. Å tegne dem på nytt her
+   * ville gitt to sannheter om hvordan en kløver ser ut.
+   */
+  /**
+   * BORDET SKAL IKKE ANES BAK IKONET. `.rom` ligger utenfor `#app` og
+   * overlever derfor enhver `innerHTML` — også denne. Bordkanten som buer
+   * seg tvers over skjermen hører til spillet, og på startskjermen leste den
+   * som en strek gjennom ikonet.
+   *
+   * En klasse på `body` og ikke `:has()` i CSS: dette må virke likt på hver
+   * eneste nettleser familien bruker, og en klasse gjør det i alle.
+   */
+  document.body.classList.add("paa-start");
+  rot.innerHTML = `<div class="overlegg ikonstart">
+    <div class="ikonlag" aria-hidden="true">
+      <svg class="fig kloever" viewBox="0 0 100 100"><use href="#kf-K-koks"></use></svg>
+      <svg class="fig ruter" viewBox="0 0 100 100"><use href="#kf-R-korall"></use></svg>
+      <svg class="fig stjerna" viewBox="0 0 100 100"><use href="#stjernemerke"></use></svg>
+      <svg class="fig hjerter" viewBox="0 0 100 100"><use href="#kf-H"></use></svg>
+      <svg class="fig spar" viewBox="0 0 100 100"><use href="#kf-S"></use></svg>
+    </div>
+    <div class="startinnhold" role="dialog" aria-label="Start">
+      <h1 class="ordmerke">Amerikaneren<span class="demo">demo</span></h1>
+      ${motstander === "MesterAI" ? `<p class="bromelding">Bromodus: du møter MesterAI fra laptopen.</p>` : ""}
+      <label class="skjult" for="navn">Hva heter du?</label>
+      <input id="navn" type="text" placeholder="Hva heter du?" autocomplete="off"
+             enterkeyhint="go" maxlength="24">
+      <button class="stor bekreft" id="start-knapp">Spill</button>
+    </div>
+  </div>`;
   const knapp = document.getElementById("start-knapp") as HTMLButtonElement;
   const felt = document.getElementById("navn") as HTMLInputElement;
   knapp.onclick = () => void start(felt.value.trim());

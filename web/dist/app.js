@@ -3849,7 +3849,7 @@ var Budagent = class {
 // web/app.ts
 var DATA_URL = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
 var MENNESKE = 0;
-var BUNDELVERSJON = "v9-2026-08-10";
+var BUNDELVERSJON = "v10-2026-08-10";
 globalThis["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 var LOKAL = location.protocol === "http:";
 var MESTER_URL = `${location.origin}/mester`;
@@ -4551,7 +4551,6 @@ function menneskeSpill(kort) {
   gjør({ type: "SPILL", spiller: MENNESKE, kort });
 }
 var budTekst = (b) => b === PASS ? "Pass" : b === AMERIKANER ? "Amerikaner!" : b === SOLO ? "Solo!" : String(b);
-var kortRygg = () => `<div class="kort rygg" aria-hidden="true">${stjerne()}</div>`;
 function kortKnapp(k, opts) {
   const id = `kort-${k.farge}${k.verdi}`;
   const sym = FARGE_TEGN[k.farge];
@@ -4603,13 +4602,17 @@ function lopData() {
   const lag = budlaget();
   const stikk = state.stikkVunnet;
   const forsvar = state.totalPoeng.map((_, i) => i).filter((i) => !lag.includes(i));
+  const forsvarTatt = forsvar.reduce((s, i) => s + (stikk[i] ?? 0), 0);
+  const forsvarEiere = state.historikk.map((s) => s.vinner).filter((v) => !lag.includes(v));
+  while (forsvarEiere.length < forsvarTatt) forsvarEiere.push(-1);
   return {
     hakk: Math.max(1, state.giving.antallStikk),
     mål: Math.max(1, målStikk()),
     lag,
     forsvar,
     budTatt: lag.reduce((s, i) => s + (stikk[i] ?? 0), 0),
-    forsvarTatt: forsvar.reduce((s, i) => s + (stikk[i] ?? 0), 0)
+    forsvarTatt,
+    forsvarEiere: forsvarEiere.slice(0, forsvarTatt)
   };
 }
 var sistBudTatt = -1;
@@ -4627,7 +4630,7 @@ function stikksoyle() {
   const smelterNå = lagmodus === "smelter" && !smeltetVist;
   if (smelterNå) smeltetVist = true;
   const budNavn = d.lag.map((i) => NAVN[i]).join(" og ");
-  const forsvarNavn = d.forsvar.map((i) => NAVN[i]).join(", ");
+  const forsvarFordelt = d.forsvar.map((i) => `${NAVN[i]} ${state.stikkVunnet[i] ?? 0}`).join(", ");
   const felleKrav = d.hakk - d.mål + 1;
   const utfall = d.budTatt >= d.mål ? "klart" : d.forsvarTatt >= felleKrav && lagmodus === "lag" ? "falt" : "";
   if (utfall !== "" && avgjortVist === "") {
@@ -4635,7 +4638,21 @@ function stikksoyle() {
     si(utfall === "klart" ? "Kontrakten er i havn." : "Kontrakten falt.");
     gjennombruddVenter = utfall;
   }
-  const fjes = (seter, sisteErNy) => seter.map((i, n) => medaljong(i, sisteErNy && n === seter.length - 1 ? " kommer" : "")).join("");
+  const HAKKFARGE = ["rod", "hvit", "graa"];
+  const fargeAv2 = (sete) => {
+    const i = d.forsvar.indexOf(sete);
+    return i < 0 ? "ukjent" : HAKKFARGE[i] ?? "ukjent";
+  };
+  const fjes = (seter, sisteErNy, medFarge = false) => seter.map(
+    (i, n) => medaljong(
+      i,
+      (sisteErNy && n === seter.length - 1 ? " kommer" : "") + (medFarge ? ` ring-${fargeAv2(i)}` : "")
+    )
+  ).join("");
+  const hakkene = d.forsvarEiere.map((eier, k) => {
+    const f = eier < 0 ? "ukjent" : fargeAv2(eier);
+    return `<span class="hakk h-${f}" style="--k:${k}"></span>`;
+  }).join("");
   const budSlag = sistBudTatt >= 0 && d.budTatt !== sistBudTatt;
   const forsvarSlag = sistForsvarTatt >= 0 && d.forsvarTatt !== sistForsvarTatt;
   sistBudTatt = d.budTatt;
@@ -4645,16 +4662,18 @@ function stikksoyle() {
       <div class="fyll forsvar" data-seter="${d.forsvar.join(" ")}"
            style="height:${pst(Math.min(d.forsvarTatt, d.hakk))}"
            role="progressbar" aria-valuemin="0" aria-valuemax="${felleKrav}" aria-valuenow="${d.forsvarTatt}"
-           aria-label="Forsvaret (${forsvarNavn}): ${d.forsvarTatt} stikk, trenger ${felleKrav} for å felle kontrakten"></div>
+           aria-label="Forsvaret: ${d.forsvarTatt} stikk, trenger ${felleKrav} for å felle kontrakten. ${forsvarFordelt}"></div>
       <div class="fyll bud" data-seter="${d.lag.join(" ")}"
            style="height:${pst(Math.min(d.budTatt, d.hakk))}"
            role="progressbar" aria-valuemin="0" aria-valuemax="${d.mål}" aria-valuenow="${d.budTatt}"
            aria-label="${budNavn}: ${d.budTatt} av ${d.mål} stikk"></div>
+      <div class="hakkene" aria-hidden="true"
+           style="--rest:${pst(Math.max(0, d.hakk - Math.min(d.forsvarTatt, d.hakk)))}">${hakkene}</div>
     </div>
     <div class="kontraktmerke" style="bottom:${pst(d.mål)}" aria-hidden="true">
       <span class="strek"></span><span class="budmerke">${d.mål}</span>
     </div>
-    <div class="medaljongstabel topp" aria-hidden="true">${fjes(d.forsvar, false)}</div>
+    <div class="medaljongstabel topp" aria-hidden="true">${fjes(d.forsvar, false, true)}</div>
     <div class="medaljongstabel bunn" aria-hidden="true">${fjes(d.lag, smelterNå)}</div>
     <span class="tall topp${forsvarSlag ? " slag" : ""}" aria-hidden="true">${d.forsvarTatt}</span>
     <span class="tall bunn${budSlag ? " slag" : ""}" aria-hidden="true">${d.budTatt}</span>
@@ -4679,14 +4698,38 @@ function visGjennombrudd(utfall) {
   setTimeout(() => el.remove(), GJENNOMBRUDD_MS);
 }
 var forrigeBordkort = /* @__PURE__ */ new Set();
+function budtavle() {
+  if (state.fase !== "BUDRUNDE") return "";
+  const b = state.budrunde;
+  const leder = b.høyeste;
+  const rader = state.totalPoeng.map((_, i) => {
+    const passet = b.passet[i] === true;
+    const bud = b.sisteBud[i] ?? null;
+    const erLeder = leder !== null && leder.spiller === i;
+    const iTur = state.iTur === i;
+    const verdi = passet && bud === null ? `<span class="pass">pass</span>` : bud === null ? `<span class="intet" aria-hidden="true">·</span>` : `<span class="bud">${budTekst(bud)}</span>`;
+    return `<div class="budrad${erLeder ? " leder" : ""}${passet ? " ute" : ""}${iTur ? " itur" : ""}">
+        <span class="navn">${NAVN[i]}</span>
+        ${verdi}
+      </div>`;
+  }).join("");
+  const tale = state.totalPoeng.map((_, i) => {
+    const bud = b.sisteBud[i] ?? null;
+    return `${NAVN[i]}: ${bud === null ? b.passet[i] === true ? "pass" : "ikke meldt" : budTekst(bud)}`;
+  }).join(". ");
+  return `<div class="budtavle" role="group" aria-label="Budrunden. ${tale}">${rader}</div>`;
+}
 function bordet() {
   const påBordet = frystStikk !== null ? frystStikk.kort : state.bord;
   const nå = new Set(påBordet.map((b) => `${b.spiller}${kortId(b.kort)}`));
   const erNy = (b) => !forrigeBordkort.has(`${b.spiller}${kortId(b.kort)}`);
   const lagtAv = new Map(påBordet.map((b) => [b.spiller, b]));
+  const iSpillNå = state.fase === "SPILL" || frystStikk !== null;
   const kortplass = (sete) => {
     const b = lagtAv.get(sete);
-    if (b === void 0) return `<div class="tomplass" aria-hidden="true"></div>`;
+    if (b === void 0) {
+      return `<div class="tomplass${iSpillNå ? "" : " usynlig"}" aria-hidden="true"></div>`;
+    }
     const vant = frystStikk !== null && sete === frystStikk.vinner;
     return `<div class="bordkort${vant ? " vant" : ""}">
       ${vant ? `<div class="seteglans" aria-hidden="true"></div>` : ""}
@@ -4698,23 +4741,25 @@ function bordet() {
   const tenkeSete = frystStikk === null && !venterPåMenneske && travelt && state.fase !== "RUNDE_SLUTT" && state.fase !== "FERDIG" ? state.fase === "VRAK" || state.fase === "VELG" ? state.budvinner : state.iTur : null;
   const tenkeboble = `tenker<span id="tenker-tid"></span><span class="prikker" aria-hidden="true"><i></i><i></i><i></i></span>`;
   const VRI = ["0", "-7", "4", "9"];
+  const NAER = ["0", "0.72", "0", "1"];
+  const VEND = ["0", "8", "0", "-9"];
   const motstandere = [1, 2, 3].map((s) => {
     const igjen = state.hender[s]?.length ?? 0;
-    const tenker2 = s === tenkeSete;
-    return `<div class="motspiller" style="--vri:${VRI[s]}deg">
+    const tenker = s === tenkeSete;
+    return `<div class="motspiller" style="--vri:${VRI[s]}deg;--naer:${NAER[s]};--vend:${VEND[s]}">
         <div class="hode">
           ${medaljong(s)}
           <div class="navn">${NAVN[s]}</div>
-          ${tenker2 ? `<div class="tenker">${tenkeboble}</div>` : state.fase === "SPILL" ? `<div class="igjen">${igjen} kort</div>` : `<div class="igjen"></div>`}
+          ${tenker ? `<div class="tenker">${tenkeboble}</div>` : state.fase === "SPILL" ? `<div class="igjen">${igjen}</div>` : `<div class="igjen"></div>`}
         </div>
         <div class="kortplass">${kortplass(s)}</div>
       </div>`;
   }).join("");
-  const tenker = tenkeSete !== null && tenkeSete !== MENNESKE && state.fase !== "SPILL" ? `<div class="tenker">${NAVN[tenkeSete]} ${tenkeboble}</div>` : "";
   const trumfskilt = state.trumf !== null && (state.fase === "SPILL" || frystStikk !== null) ? `<div class="trumfskilt${pynt(`trumf:${state.trumf}`)}">${stjerne()}<span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>` : "";
   const info = state.etterlyst ? `<div class="etterlyst${pynt(`etterlyst:${kortId(state.etterlyst)}:${state.makkerAvslørt ? state.makker : "?"}`)}"><span class="merkelapp">Etterlyst</span>${fargeMerke(state.etterlyst.farge, false)} <b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? ` · ${NAVN[state.makker]}` : ""}</div>` : "";
   const dinTur = venterPåMenneske && state.fase === "SPILL" && frystStikk === null ? `<div class="dintur${pynt("dintur")}">Din tur</div>` : "";
-  const midt = trumfskilt || info || dinTur || tenker ? `<div class="midtfelt">${trumfskilt}${info}${tenker}${dinTur}</div>` : "";
+  const tavle = budtavle();
+  const midt = trumfskilt || info || dinTur || tavle ? `<div class="midtfelt">${tavle}${trumfskilt}${info}${dinTur}</div>` : "";
   const forrige = frystStikk === null && state.fase === "SPILL" && state.forrigeStikk !== null ? `<div class="forrige${pynt(`forrige:${state.stikkSpilt}`)}" aria-label="Forrige stikk">
           <div class="tittel">Forrige · <b>${NAVN[state.forrigeStikk.vinner]}</b></div>
           <div class="rad">${state.forrigeStikk.kort.map((b) => `<div><div class="navn">${NAVN[b.spiller].split(" ")[0]}</div>${kortKnapp(b.kort, {})}</div>`).join("")}</div>
@@ -4729,7 +4774,7 @@ function bordet() {
 function kortBredde() {
   const b = window.innerWidth || 1024;
   const h = window.innerHeight || 768;
-  return Math.round(Math.max(60, Math.min(160, h * 0.3 * 0.714, b * 0.3)));
+  return Math.round(Math.max(60, Math.min(160, h * 0.33 * 0.714, b * 0.32)));
 }
 var hjulSenter = 0;
 var sistHåndAntall = -1;
@@ -4793,6 +4838,7 @@ function håndrad() {
 }
 var HJUL_MIN_STEG = 0.34;
 var HJUL_MAKS_STEG = 0.94;
+var MAKS_SYNLIG = 5.4;
 var YTTERVINKEL = 11;
 var hjulLåst = true;
 var hjulSteg = 60;
@@ -4809,9 +4855,10 @@ function oppdaterHjul() {
   const ytterRad = YTTERVINKEL * Math.PI / 180;
   const fotavtrykk = kb * Math.cos(ytterRad) + kb / 0.714 * Math.sin(ytterRad);
   const ønsket = n > 1 ? (bredde - fotavtrykk) / (n - 1) : kb;
-  hjulSteg = Math.max(kb * HJUL_MIN_STEG, Math.min(kb * HJUL_MAKS_STEG, ønsket));
+  const gulv = Math.max(kb * HJUL_MIN_STEG, (bredde - fotavtrykk) / (MAKS_SYNLIG - 1));
+  hjulSteg = Math.min(kb * HJUL_MAKS_STEG, Math.max(gulv, ønsket));
   hjulSpenn = Math.max(0, (bredde - fotavtrykk) / (2 * hjulSteg));
-  hjulLåst = (n - 1) / 2 <= hjulSpenn + 1e-3;
+  hjulLåst = n <= MAKS_SYNLIG && (n - 1) / 2 <= hjulSpenn + 1e-3;
   const kortHøyde = kb / 0.714;
   const maksD = Math.max(0.5, hjulLåst ? (n - 1) / 2 : hjulSpenn);
   const bue = Math.min(22, kortHøyde * 0.07);
@@ -4821,6 +4868,13 @@ function oppdaterHjul() {
   hjulMål = `--steg:${hjulSteg.toFixed(2)}px;--boy:${(bue / (maksD * maksD)).toFixed(4)}px;--boymaks:${bue.toFixed(1)}px;--vinkel:${vinkel.toFixed(2)}deg;--bue:${(bue + overheng).toFixed(1)}px`;
   for (const [navn, verdi] of hjulMål.split(";").map((d) => d.split(":"))) {
     hjul.style.setProperty(navn, verdi);
+  }
+  const håndrada = rot.querySelector(".handrad");
+  if (håndrada !== null) {
+    document.documentElement.style.setProperty(
+      "--handhoyde",
+      `${Math.round(håndrada.getBoundingClientRect().height)}px`
+    );
   }
   settSenter(hjulSenter);
 }
@@ -4863,7 +4917,49 @@ var GEST_MARGIN = 1.25;
 function kastegrense() {
   return Math.max(46, kortBredde() / 0.714 * 0.34);
 }
-function avbrytGest() {
+var GLID_FRIKSJON = 8e-3;
+var GLID_MAKS_FART = 0.04;
+var GLID_STOPP = 4e-4;
+var glidId = 0;
+function stoppGlid() {
+  if (glidId === 0) return;
+  cancelAnimationFrame(glidId);
+  glidId = 0;
+  rot.querySelector(".hjul")?.classList.remove("drar");
+}
+function redusertBevegelse() {
+  return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+function startGlid(fart0) {
+  stoppGlid();
+  const hjul = rot.querySelector(".hjul");
+  if (hjul === null || redusertBevegelse()) {
+    settSenter(Math.round(hjulSenter));
+    return;
+  }
+  let fart = Math.max(-GLID_MAKS_FART, Math.min(GLID_MAKS_FART, fart0));
+  if (Math.abs(fart) < GLID_STOPP) {
+    settSenter(Math.round(hjulSenter));
+    return;
+  }
+  hjul.classList.add("drar");
+  let sist = performance.now();
+  const steg = (nå) => {
+    const dt = Math.min(48, Math.max(1, nå - sist));
+    sist = nå;
+    settSenter(hjulSenter + fart * dt);
+    fart *= Math.exp(-GLID_FRIKSJON * dt);
+    if (Math.abs(fart) > GLID_STOPP) {
+      glidId = requestAnimationFrame(steg);
+      return;
+    }
+    glidId = 0;
+    hjul.classList.remove("drar");
+    settSenter(Math.round(hjulSenter));
+  };
+  glidId = requestAnimationFrame(steg);
+}
+function avbrytGest(snapp = true) {
   if (gest === null) return;
   const g = gest;
   gest = null;
@@ -4876,7 +4972,7 @@ function avbrytGest() {
     g.kort.style.removeProperty("--dy");
     g.kort.classList.remove("griper", "kaster");
   }
-  if (g.modus !== null) settSenter(Math.round(hjulSenter));
+  if (snapp && g.modus !== null) settSenter(Math.round(hjulSenter));
 }
 function koblHjul() {
   const hjul = rot.querySelector(".hjul");
@@ -4885,6 +4981,7 @@ function koblHjul() {
   const kanSpille = venterPåMenneske && lov.fase === "SPILL";
   hjul.onpointerdown = (e) => {
     if (gest !== null || e.pointerType === "mouse" && e.button !== 0) return;
+    stoppGlid();
     gestSluttet = 0;
     const kort = e.target?.closest(".kort") ?? null;
     gest = {
@@ -4951,7 +5048,7 @@ function koblHjul() {
     if (g.modus !== null || trykket) gestSluttet = performance.now();
     const blaFart = g.modus === "bla" ? g.fart : 0;
     const kort = g.kort;
-    avbrytGest();
+    avbrytGest(blaFart === 0);
     if ((kastet || trykket) && kort !== null) {
       const k = {
         farge: kort.dataset["farge"],
@@ -4961,8 +5058,7 @@ function koblHjul() {
       return;
     }
     if (blaFart !== 0) {
-      const kast = Math.max(-2.5, Math.min(2.5, -blaFart * 1e3 / hjulSteg * 0.16));
-      settSenter(Math.round(hjulSenter + kast));
+      startGlid(-blaFart / hjulSteg);
     }
   };
   hjul.onpointerup = slipp;
@@ -4979,25 +5075,29 @@ function koblHjul() {
   });
   hjul.onkeydown = (e) => {
     if (e.key === "ArrowLeft") {
+      stoppGlid();
       settSenter(Math.round(hjulSenter) - 1);
       e.preventDefault();
     } else if (e.key === "ArrowRight") {
+      stoppGlid();
       settSenter(Math.round(hjulSenter) + 1);
       e.preventDefault();
     }
   };
   for (const [id, steg] of [["bla-venstre", -1], ["bla-hoyre", 1]]) {
     const b = document.getElementById(id);
-    if (b) b.onclick = () => settSenter(Math.round(hjulSenter) + steg);
+    if (b) b.onclick = () => {
+      stoppGlid();
+      settSenter(Math.round(hjulSenter) + steg);
+    };
   }
 }
 function budPanel() {
   const lov = lovligeHandlinger(state);
   if (!venterPåMenneske || lov.fase !== "BUDRUNDE") return "";
   const tall = lov.bud.filter((b) => typeof b === "number");
-  const høyeste = state.budrunde.høyeste;
   return `<div class="overlegg apen"><div class="panel" role="dialog" aria-label="Ditt bud">
-    <h2>Ditt bud${høyeste ? `<span class="bekreftsmatt">Høyeste: ${budTekst(høyeste.bud)} · ${NAVN[høyeste.spiller]}</span>` : ""}</h2>
+    <h2>Ditt bud</h2>
     <div class="knapper">
       <button class="stor pass" data-bud="PASS">Pass</button>
       ${tall.map((b) => `<button class="stor tallbud" data-bud="${b}">${b}</button>`).join("")}
@@ -5021,7 +5121,7 @@ function velgPanel() {
   if (!venterPåMenneske || lov.fase !== "VELG") return "";
   if (velgTrumfValg === null) {
     return `<div class="overlegg apen"><div class="panel" role="dialog" aria-label="Velg trumf">
-      <h2>Velg trumffarge</h2>
+      <h2>Trumf</h2>
       <div class="trumfvalg">${["S", "K", "H", "R"].map(
       (f) => `<button class="trumfkort ${fargeKlasse(f)}" data-trumf="${f}" aria-label="${FARGE_NAVN[f]}">
             <span class="stripe" aria-hidden="true"></span>
@@ -5037,7 +5137,6 @@ function velgPanel() {
   if (velgEtterlysValg !== null) {
     const e = velgEtterlysValg;
     return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Bekreft valget">
-      <h2>Bekreft</h2>
       <p class="bekreftlinje">Trumf ${fargeMerke(trumf)}
          — etterlyser ${fargeMerke(trumf, false)} <b>${VERDI_TEKST(e.verdi)}</b></p>
       <div class="knapper">
@@ -5054,7 +5153,7 @@ function velgPanel() {
           <span class="v">${VERDI_TEKST(k.verdi)}</span><span class="sym" aria-hidden="true">${symbol}</span>
         </button>`
   ).join("")}</div>
-    <div class="knapper"><button class="stor" id="velg-tilbake">Bytt trumffarge</button></div>
+    <div class="knapper"><button class="stor" id="velg-tilbake">Bytt trumf</button></div>
   </div></div>`;
 }
 function rundeSluttPanel() {
@@ -5078,13 +5177,15 @@ function ferdigPanel() {
     <h2>${vantDu ? `${stjerne()}Du vant!${stjerne()}` : `${NAVN[state.vinner]} vant`}</h2>
     <div class="delta">${state.totalPoeng.map((p, i) => `<span><span class="navn">${NAVN[i]}</span><b>${p}</b></span>`).join("")}</div>
     <button class="stor bekreft" id="nytt-spill">Nytt spill</button>
-    <p class="lite">Resultatene er lagret. <a href="${DATA_URL}" target="_blank" rel="noopener">Se innsamlede data</a></p>
+    <p class="lite"><a href="${DATA_URL}" target="_blank" rel="noopener">Se innsamlede data</a></p>
   </div></div>`;
 }
 var sistPanel = "";
 function tegn() {
   if (!state) return;
+  document.body.classList.remove("paa-start");
   avbrytGest();
+  stoppGlid();
   nåPynt = /* @__PURE__ */ new Set();
   rot.innerHTML = topplinje() + stikksoyle() + bordet() + budPanel() + vrakPanel() + velgPanel() + rundeSluttPanel() + ferdigPanel() + håndrad();
   sistPynt = nåPynt;
@@ -5174,15 +5275,24 @@ function koble() {
 function startskjerm() {
   const broModus = new URLSearchParams(location.search).get("mester") === "1";
   motstander = broModus && LOKAL ? "MesterAI" : "Vaar";
-  rot.innerHTML = `<div class="overlegg"><div class="panel start" role="dialog" aria-label="Start">
-    <div class="kortvifte" aria-hidden="true">${kortRygg()}${kortRygg()}${kortRygg()}</div>
-    <h1 class="ordmerke">Amerikaneren<span class="demo">demo</span></h1>
-    ${motstander === "MesterAI" ? `<p class="bekreftsmatt">Bromodus: du møter MesterAI fra laptopen.</p>` : ""}
-    <label class="skjult" for="navn">Hva heter du?</label>
-    <input id="navn" type="text" placeholder="Hva heter du?" autocomplete="off"
-           enterkeyhint="go" maxlength="24">
-    <button class="stor bekreft" id="start-knapp">Spill</button>
-  </div></div>`;
+  document.body.classList.add("paa-start");
+  rot.innerHTML = `<div class="overlegg ikonstart">
+    <div class="ikonlag" aria-hidden="true">
+      <svg class="fig kloever" viewBox="0 0 100 100"><use href="#kf-K-koks"></use></svg>
+      <svg class="fig ruter" viewBox="0 0 100 100"><use href="#kf-R-korall"></use></svg>
+      <svg class="fig stjerna" viewBox="0 0 100 100"><use href="#stjernemerke"></use></svg>
+      <svg class="fig hjerter" viewBox="0 0 100 100"><use href="#kf-H"></use></svg>
+      <svg class="fig spar" viewBox="0 0 100 100"><use href="#kf-S"></use></svg>
+    </div>
+    <div class="startinnhold" role="dialog" aria-label="Start">
+      <h1 class="ordmerke">Amerikaneren<span class="demo">demo</span></h1>
+      ${motstander === "MesterAI" ? `<p class="bromelding">Bromodus: du møter MesterAI fra laptopen.</p>` : ""}
+      <label class="skjult" for="navn">Hva heter du?</label>
+      <input id="navn" type="text" placeholder="Hva heter du?" autocomplete="off"
+             enterkeyhint="go" maxlength="24">
+      <button class="stor bekreft" id="start-knapp">Spill</button>
+    </div>
+  </div>`;
   const knapp = document.getElementById("start-knapp");
   const felt = document.getElementById("navn");
   knapp.onclick = () => void start(felt.value.trim());
