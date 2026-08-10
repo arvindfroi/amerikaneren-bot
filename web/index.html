@@ -301,6 +301,18 @@
   #app > .bord    { grid-column: 1; grid-row: 2; }
   #app > .stikksoyle { grid-column: 2; grid-row: 2; }
   #app > .handrad { grid-column: 1 / -1; grid-row: 3; }
+  /* ============ SØYLA LIGGER OVER HÅNDEN ==============================
+     Håndraden spenner BEGGE spaltene, fordi vifta trenger hele bredden på en
+     telefon — der er søyla med margin 96 px av 390, altså en fjerdedel av
+     hånden hvis den ble holdt utenfor.
+
+     Følgen er at vifta i teorien kan nå inn under søyla. Målt på iPad
+     stående: 141 px² av det ytterste synlige kortet, og siden `.handrad` har
+     `z-index: 6` lå kortet OPPÅ løpet.
+
+     `z-index: 7` snur det. Søyla er en flate som står hele runden; kanten av
+     vifta er noe som glir forbi. Kastet går OPPOVER og rører ikke søyla. */
+  #app > .stikksoyle { z-index: 7; }
 
   #oppleser, .skjult {
     position: absolute; width: 1px; height: 1px; overflow: hidden;
@@ -355,17 +367,42 @@
      Kanten selv er en tynn lys rand, ikke en strek: en `box-shadow` med lys
      inn fra oversiden av flaten. Ingen `border` noe sted, som ellers i hele
      designet. */
+  /* ============ RUNDE 7: KANTEN SKAL SE POLERT UT ======================
+     ARVIND: «jobb med hvordan kanten av bordet ser ut, på mockupen ser det
+     mer polert ut.»
+
+     Kanten var ÉN hårfin lys strek og en bred, nesten usynlig glød. Målt på
+     det rendrede bildet gikk den knapt å skille fra bakgrunnen på 390 px.
+
+     I skissen er kanten tre ting oppå hverandre, og det er nettopp det som
+     gjør at den ser polert ut i stedet for tegnet:
+
+       1. EN LYS RAND langs selve kanten — bredere og sterkere enn før, og
+          med en tynn kjerne inni så den har en form og ikke bare en glød.
+       2. ET FALL RETT UNDER RANDEN. En kant leses ikke av lyset på den, men
+          av at flaten under er mørkere enn flaten over. Uten fallet er en
+          lys strek bare en strek.
+       3. EN MYK GLØD UTENFOR, som lyset som siver over kanten fra den andre
+          siden av bordet.
+
+     Fortsatt ingen `border` og ingen hard kant noe sted: alle tre er
+     gradienter og skygger som toner ut. */
   .rom .bordkant {
     position: absolute; left: 50%; top: var(--kant-topp, 26%);
     transform: translateX(-50%);
     width: var(--kant-bredde, 320vw); height: 300vh;
     border-radius: 50% 50% 0 0 / 22% 22% 0 0;
-    background: radial-gradient(ellipse 60% 44% at 50% 0%,
-      rgba(60,110,235,.30) 0%, rgba(48,92,225,.16) 42%, rgba(40,80,215,0) 72%);
+    background:
+      radial-gradient(ellipse 62% 30% at 50% 0%,
+        rgba(12,30,140,.30) 0%, rgba(20,44,170,.15) 40%, rgba(30,60,190,0) 72%),
+      radial-gradient(ellipse 60% 44% at 50% 0%,
+        rgba(60,110,235,.26) 0%, rgba(48,92,225,.13) 46%, rgba(40,80,215,0) 74%);
     box-shadow:
-      inset 0 3px 0 rgba(255,255,255,.30),
-      inset 0 14px 26px rgba(255,255,255,.13),
-      0 -2px 22px rgba(150,190,255,.22);
+      inset 0 1.5px 0 rgba(255,255,255,.72),
+      inset 0 5px 5px -3px rgba(255,255,255,.45),
+      inset 0 16px 30px -6px rgba(9,22,110,.30),
+      0 -1px 4px rgba(210,230,255,.55),
+      0 -6px 30px rgba(150,190,255,.30);
   }
   /* Bunngløden: der kortene lander, siver det lys opp fra flaten. */
   .rom .grunn {
@@ -406,20 +443,37 @@
   /* ================== TOPPLINJA: ETT BRETT, IKKE FIRE BOKSER =============
      Før var dette fem like bokser med lik ramme og lik vekt — fire poeng og
      én kontrakt — og ingen av dem sa hva som var viktigst. Nå er poengene ETT
-     brett med tynne skiller, din egen rute er merket i korall, og kontrakten
-     står for seg selv som den ene opplysningen som gjelder hele runden.
+     brett med tynne skiller, og din egen rute er merket i korall.
 
-     Rutenettet er FAST (auto 1fr auto). Før var det `flex-wrap`, og linja
-     brøt om til to rader når kontraktteksten vokste — layouten mistet formen
-     sin midt i en runde. */
-  header {
-    display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center; gap: clamp(6px, 1.4vw, 18px);
+     RADEN KAN IKKE BREKKE. Før runde 6 var dette `flex-wrap`, og linja brøt
+     om til to rader når kontraktteksten vokste — layouten mistet formen sin
+     midt i en runde. Kravet står; `.tavle` er en flex-rad uten `wrap`, og
+     `.kontraktlinje` er en egen etasje som får lov å brekke for seg. */
+  /* ============ ÉN SENTRERT ENHET, IKKE TRE SPREDTE ====================
+     ARVIND, runde 7: «hvor det står hvem som har budd hva og trumf er ikke
+     sentrert og kunne konsolidert seg med poengsummen.»
+
+     Her sto `auto 1fr auto`: poengbrettet klistret til venstre kant,
+     kontrakten sentrert i det som ble til overs, rundetelleren til høyre — og
+     budene i en fjerde tavle midt på bordet. Fire flater som alle svarer på
+     «hvor står runden?».
+
+     Nå er det ETT brett med to etasjer, sentrert som en enhet:
+       øverst   én celle per spiller: navn, poeng og — mens det bys — budet
+       nederst  kontrakten, trumfen, det etterlyste kortet og rundetelleren
+
+     `justify-content: center` på en flex-header og ikke et rutenett med
+     sidespalter: en spalte til venstre og en til høyre som er ULIKE brede
+     skyver midten ut av midten, og det var nettopp det Arvind så. */
+  header { display: flex; justify-content: center; min-width: 0; }
+  .statustavle {
+    display: flex; flex-direction: column; min-width: 0; max-width: 100%;
+    border-radius: var(--rad); overflow: hidden;
+    background: var(--flate); box-shadow: var(--topplys), var(--loft-1);
+    border: 1px solid var(--hinne);
   }
   .tavle {
-    display: flex; align-items: stretch; border-radius: var(--rad);
-    background: var(--flate); box-shadow: var(--topplys), var(--loft-1);
-    border: 1px solid var(--hinne); overflow: hidden; min-width: 0;
+    display: flex; align-items: stretch; min-width: 0;
   }
   .tavle .spiller {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -461,28 +515,74 @@
     100% { transform: scale(1); }
   }
 
-  .kontrakt {
-    display: flex; align-items: center; justify-content: center; gap: .45em;
-    font-size: .92em; font-weight: 700; min-width: 0;
-    background: var(--flate); border: 1px solid var(--hinne);
-    box-shadow: var(--topplys), var(--loft-1);
-    border-radius: 999px; padding: .2em .85em; justify-self: center;
+  /* ============ BUDET STÅR I SPILLERENS EGEN CELLE =====================
+     ARVIND, runde 7: «det viktigste er at byinga havner under mine kort så jeg
+     ser ikke hva andre har bydd.»
+
+     Budtavla lå i bordflaten, altså i den halvdelen av skjermen hånden vokser
+     opp i. Her kan den ikke havne under noe: cellen står i topplinja, som er
+     rad 1 i `#app`-rutenettet, og hånden er rad 3.
+
+     Navnet skrives ÉN gang. Tavla hadde navnet, budtavla hadde det samme
+     navnet rett under, og de sto med hver sin skrifttykkelse. */
+  .tavle .budtall {
+    font-size: .66em; font-weight: 800; line-height: 1.25; margin-top: .1em;
+    color: var(--paa); letter-spacing: .02em;
+  }
+  .tavle .budtall.pass, .tavle .budtall.intet {
+    font-size: .58em; color: var(--paa-3); text-transform: uppercase; letter-spacing: .07em;
+  }
+  .tavle .budtall.intet { opacity: .55; }
+  /* LEDEREN. Ett bud i runden gjelder, og det skal ses på en armlengde.
+     GRADIENTEN ER DEN SAMME MÅLTE `#d63018 → #a81e10` som `.budrad.leder`
+     hadde: hvit tekst på #e8402b målte 4,43:1, seks hundredeler under gulvet,
+     og på #d63018 måler den 4,89:1. Flaten flyttet; målingen gjelder. */
+  .tavle .spiller.leder { background: linear-gradient(var(--lysfall), #d63018 0%, #a81e10 100%); }
+  .tavle .spiller.leder .navn,
+  .tavle .spiller.leder b,
+  .tavle .spiller.leder .budtall { color: #fff; }
+  /* PASSET: cellen slutter å konkurrere. Dempingen ligger på FLATEN og ikke
+     som `opacity` på teksten — en halvgjennomsiktig bokstav er utydelig, mens
+     en celle som er tonet ned fortsatt er skarp å lese. */
+  .tavle .spiller.ute { background: rgba(62,94,164,.09); }
+  .tavle .spiller.ute .navn { text-decoration: line-through; text-decoration-thickness: 1px; }
+
+  /* NEDERSTE ETASJE: kontrakten, trumfen, etterlysningen og rundetelleren.
+     Ett skille, ingen ny flate — de hører til det samme brettet. */
+  .kontraktlinje {
+    display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+    gap: .1em .5em; padding: .16em .8em .22em; min-width: 0;
+    font-size: .82em; font-weight: 700;
+    background: rgba(62,94,164,.07);
+    box-shadow: inset 0 1px 0 rgba(62,94,164,.2);
   }
   /* `.inn` settes bare når stykket er NYTT — se `pynt()` i app.ts. Uten den
      ville hvert skilt spilt inngangen sin på nytt flere ganger i sekundet. */
-  .kontrakt.inn { animation: kontrakt-inn .4s var(--sprett) both; }
+  .kontraktlinje.inn { animation: kontrakt-inn .4s var(--sprett) both; }
   @keyframes kontrakt-inn { from { opacity: 0; transform: translateY(-6px) scale(.94); } }
-  .kontrakt .hvem { color: var(--paa-2); font-weight: 600; }
-  .kontrakt .bud { font-size: 1.12em; color: var(--paa); font-weight: 800; }
-  /* Rundetelleren sto som dempet tekst rett på flaten. Det gikk da flaten
-     var mørk overalt; nå lysner rommet mot kantene, og øvre høyre hjørne er
-     nettopp der den er lysest. Målt: teksten forsvant helt. Den har fått
-     samme mørke flate som resten av topplinja. */
-  .runde {
-    color: var(--paa-2); font-size: .68em; text-align: right; line-height: 1.2;
-    white-space: nowrap; background: var(--flate); border-radius: var(--rad-s);
-    padding: .24em .6em; box-shadow: var(--topplys), var(--fall-1);
+  .kontraktlinje .hvem { color: var(--paa-2); font-weight: 600; }
+  .kontraktlinje .bud { font-size: 1.12em; color: var(--paa); font-weight: 800; }
+  /* ETTERLYSNINGEN, KRYMPET TIL ET MERKE. Se `topplinje()` i app.ts for
+     hvorfor den ikke lenger står på bordet. Fargen bæres av `.fargemerke`,
+     som er den ene måten en farge vises på — regelen fra runde 1 står. */
+  .etterlystmerke { display: inline-flex; align-items: center; gap: .28em; }
+  .etterlystmerke::before {
+    content: ""; width: 1px; height: 1em; background: rgba(62,94,164,.3); margin-right: .3em;
   }
+  .etterlystmerke b { color: var(--paa); font-weight: 800; }
+  .etterlystmerke i { font-style: normal; color: var(--paa-2); font-weight: 600; font-size: .9em; }
+  /* Rundetelleren sto i sitt eget hjørne øverst til høyre og var den tredje
+     flaten som fortalte hvor runden står. Den er nå den minste opplysningen i
+     den ENE enheten, ikke en boks for seg. */
+  .runde {
+    color: var(--paa-3); font-size: .78em; font-weight: 700; white-space: nowrap;
+    letter-spacing: .04em;
+  }
+  .kontraktlinje .runde::before {
+    content: ""; display: inline-block; width: 1px; height: .9em;
+    background: rgba(62,94,164,.3); margin-right: .5em; vertical-align: -.1em;
+  }
+  .kontraktlinje > .runde:first-child::before { display: none; }
 
   /* ================== STIKKSØYLEN: ET KAPPLØP ============================
      ARVIND: «progress baren skal være helt tom fra alle sider og fylles det
@@ -518,10 +618,25 @@
      STJERNENE ER TEKSTUR, IKKE IKONER. I skissen er de en del av det blå
      feltet, slik stjernene er en del av flagget. Her er de derfor et
      bakgrunnsmønster på selve fyllet — ikke et `<svg>` per hakk lagt oppå. */
+  /* ============ SØYLA ER ET HOVEDELEMENT, IKKE EN PYNTELISTE ===========
+     ARVIND, runde 7: «i mockupen har jeg satt av mye mer plass til progress
+     baren.»
+
+     Målt før endringen: `5.4vw` ga 46 px på en 390 px telefon OG 46 px på en
+     820 px iPad — begge traff gulvet i `clamp`, altså var bredden i praksis
+     en konstant på nesten hver skjerm familien bruker. I skissen er søyla det
+     nest største elementet etter hånden.
+
+     Formelen tar nå både bredde og høyde, slik at en høy og smal skjerm også
+     får en søyle man ser:
+
+         telefon 390×844    46 → 62 px
+         iPad 820×1180      46 → 97 px
+         iPad liggende      92 → 110 px  */
   .stikksoyle {
     position: relative;
     display: flex; align-items: stretch;
-    width: clamp(46px, 5.4vw, 92px); min-height: 0; height: 100%;
+    width: clamp(62px, 7vw + 3.4vh, 132px); min-height: 0; height: 100%;
     margin-left: clamp(34px, 3.6vw, 58px); /* plass til medaljongene utenfor */
     transition: width .4s var(--myk), margin-left .4s var(--myk);
   }
@@ -531,14 +646,31 @@
   /* LØPET SELV: en LYS, tom strimmel — som i skissen, der midtpartiet er
      hvitt og bare toppen og bunnen har farge. Hakkene er hårfine streker, én
      per stikk, slik at man kan telle uten å måtte lese tallet. */
+  /* ============ DEN TOMME DELEN SKAL VÆRE GJENNOMSIKTIG ================
+     ARVIND, runde 7: «den er gjennomsiktig og ikke hvit (vanskelig å se
+     forskjell med den hvite forsvareren sine stikk).»
+
+     Det er en ekte lesbarhetsfeil og ikke en smakssak: `.hakk.h-hvit` er
+     `#ffffff`, og løpet under var `#ffffff → #eef3fd`. To hvite flater med
+     under 2 % forskjell — den hvite forsvarerens stikk kunne ikke skilles fra
+     tom bane i det hele tatt, og da bærer fargekoden bare to av tre
+     forsvarere.
+
+     Nå er banen ROMMET selv, med et hint hvitt i seg for at hakkene skal
+     kunne telles. Den hvite forsvarerens hakk måles mot den; se rapporten.
+     Konturen står igjen som en lys rand, ellers ville søyla ikke hatt noen
+     form før første stikk. */
   .lop {
     position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden;
     border-radius: clamp(7px, 1vh, 12px);
     background:
       repeating-linear-gradient(180deg,
-        rgba(18,38,120,.22) 0 1px, rgba(18,38,120,0) 1px calc(100% / var(--n, 13))),
-      linear-gradient(var(--lysfall), #ffffff 0%, #eef3fd 44%, #ccd9f3 100%);
-    box-shadow: 0 0 0 2px rgba(255,255,255,.92), 0 0 24px rgba(196,219,255,.62), var(--fall-2);
+        rgba(255,255,255,.34) 0 1px, rgba(255,255,255,0) 1px calc(100% / var(--n, 13))),
+      linear-gradient(var(--lysfall), rgba(255,255,255,.16) 0%, rgba(233,241,255,.09) 52%, rgba(190,214,255,.06) 100%);
+    box-shadow:
+      inset 0 0 0 1.5px rgba(255,255,255,.55),
+      0 0 0 1px rgba(16,32,86,.10),
+      0 0 26px rgba(196,219,255,.35);
   }
 
   /* STJERNEFELTET. Tre stjerner i en flis som gjentas oppover, festet til
@@ -714,32 +846,72 @@
   }
   .stikksoyle .medaljongstabel.topp { top: 0; }
   .stikksoyle .medaljongstabel.bunn { bottom: 0; }
-  /* MEDALJONGEN slik den er i skissen: en blå skive i samme familie som
-     rommet, en TYKK hvit ring, og en myk hvit glød utenfor det igjen. Ikke
-     en kremhvit knapp — den var min oppfinnelse, ikke hans. */
+  /* ============ DEN HVITE SIRKELEN ER HODET ============================
+     ARVIND, runde 7: «karakterene skal ikke være profil-ikoner, men flytende
+     hoder. den hvite sirkelen er liksom hodet, også er det svarte gester og
+     detaljene.»
+
+     Det er en annen lesning av skissen enn runde 6 gjorde. Der var den hvite
+     sirkelen en RAMME rundt et ikonfelt, og feltet inni var blått — altså
+     nøyaktig et profilbilde. I skissen finnes ikke det blå feltet: sirkelen
+     er hvit HELE VEIEN, og den svarte tusjstreken er ansiktstrekk tegnet
+     OPPÅ den. Hodet flyter i rommet uten boks og uten plate.
+
+     Skyggingen er en KULE og ikke en flat sirkel: lyset kommer fra oppe til
+     venstre, som overalt ellers, så nedre høyre kant er svakt gråblå. Uten
+     den skyggingen ville et hvitt hode lest som et hull i bakgrunnen. */
   .medaljong {
     --mstr: clamp(26px, 3.1vw, 50px);
     /* RINGEN ER FARGEKODEN. Se `.hakk` over: fargen på et hakk i søylen kan
        bare LESES fordi ringen rundt det fjeset har nøyaktig samme farge.
        Derfor er den en variabel og ikke en fast hvit — den settes fra
-       `ring-*`-klassene `stikksoyle()` deler ut. */
-    --ring: #fff;
+       `ring-*`-klassene `stikksoyle()` deler ut.
+
+       Den GJELDER BARE SØYLENS medaljonger. De tre karakterene ved bordet
+       har ingen fargekode å bære og har derfor heller ingen ring; se
+       `.motspiller .medaljong` lenger nede. */
+    --ring: transparent;
+    --ringkant: transparent;
+    /* RINGBREDDEN ER EN VARIABEL, ikke en verdi i hver enkelt regel. Det er
+       ikke pynt: `.medaljong.ring-rod` er mer spesifikk enn en `.medaljong`
+       inne i en media query, så en smal skjerm som prøvde å krympe ringen
+       ville tapt mot fargekoden og fått den store ringen tilbake. Med én
+       variabel er det ingen spesifisitetskamp å tape. */
+    --ringbredde: clamp(2.5px, .45vh, 6px);
     width: var(--mstr); height: var(--mstr); flex: 0 0 auto;
-    border-radius: 50%; padding: 4%;
-    background: radial-gradient(circle at 42% 30%, #e2ecff 0%, #b3cbfb 52%, #7f9fe8 100%);
+    border-radius: 50%; padding: 0;
+    background: radial-gradient(circle at 36% 28%, #ffffff 0%, #fbfcff 46%, #e4ebf8 78%, #c9d6ee 100%);
     box-shadow:
-      0 0 0 clamp(2.5px, .45vh, 6px) var(--ring),
-      0 0 0 calc(clamp(2.5px, .45vh, 6px) + 1px) rgba(16,32,86,.30),
-      0 0 18px rgba(255,255,255,.7), 0 0 46px rgba(170,205,255,.55);
+      0 0 0 var(--ringbredde) var(--ring),
+      0 0 0 calc(var(--ringbredde) + 1px) var(--ringkant),
+      0 0 18px rgba(255,255,255,.75), 0 0 46px rgba(170,205,255,.5),
+      0 6px 14px rgba(8,20,90,.22);
   }
   /* De tre kodene, i samme rekkefølge som `HAKKFARGE` i app.ts. Den hårfine
-     mørke randen utenfor ringen står også her: uten den forsvinner en HVIT
-     ring mot det lyse rommet ved kanten av skjermen. */
-  .medaljong.ring-rod { --ring: #f2382c; }
-  .medaljong.ring-hvit { --ring: #ffffff; }
-  .medaljong.ring-graa { --ring: #b7c5dd; }
-  .medaljong .fjes { display: block; width: 100%; height: 100%; }
-  .medaljong.deg { background: radial-gradient(circle at 42% 30%, #ffd9d2 0%, #ff9d8d 55%, #f2382c 100%); }
+     mørke randen utenfor ringen settes sammen med fargen og ikke på
+     `.medaljong` selv: uten randen forsvinner en HVIT ring mot det lyse
+     rommet ved kanten av skjermen, og karakterene ved bordet har ingen ring
+     å ramme inn. */
+  .medaljong.ring-rod { --ring: #f2382c; --ringkant: rgba(16,32,86,.30); }
+  .medaljong.ring-hvit { --ring: #ffffff; --ringkant: rgba(16,32,86,.30); }
+  .medaljong.ring-graa { --ring: #b7c5dd; --ringkant: rgba(16,32,86,.30); }
+  /* ============ TUSJEN GÅR UTENFOR HODET ==============================
+     I skissen stikker Lincolns flosshatt og Trumps sveip UT AV den hvite
+     sirkelen. Det er nettopp det som gjør at sirkelen leses som et hode og
+     ikke som et ikonfelt: detaljene hører til figuren, ikke til flaten.
+
+     `overflow: visible` fordi et `<svg>`-element klipper til sin egen
+     viewBox som standard, og skaleringen fordi karikaturene er tegnet for å
+     fylle en 100×100-rute med luft rundt — den luften var ringen i runde 6,
+     og uten den ville hodet blitt en liten tegning midt på en hvit skive.
+
+     Stjerna på ditt eget sete skaleres IKKE: den er et merke og skal ligge
+     inne i flaten, ikke flyte utenfor den. */
+  .medaljong .fjes { display: block; width: 100%; height: 100%; overflow: visible; }
+  .medaljong:not(.deg) .fjes { transform: scale(1.3); }
+  /* DITT EGET HODE er fortsatt merket i korall, men som en TONE i kula og
+     ikke som en farget skive: hodet skal leses som et hode først. */
+  .medaljong.deg { background: radial-gradient(circle at 36% 28%, #ffffff 0%, #ffeae5 44%, #ffc7bc 78%, #f7a294 100%); }
   .medaljong.kommer { animation: medalje-inn .8s var(--sprett) both; }
   @keyframes medalje-inn {
     0% { opacity: 0; transform: translateY(-160%) scale(.4) rotate(-24deg); }
@@ -831,7 +1003,16 @@
       scale(calc(.88 + var(--naer, 0) * .2));
   }
   .motspiller .hode { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-  .motspiller .medaljong { --mstr: clamp(40px, 5.6vw, 96px); }
+  /* KARAKTERENE FLYTER. Ingen ring, ingen ramme, ingen bakgrunnsplate — bare
+     et hvitt hode med en myk glød rundt seg og en skygge under, slik at det
+     leses som et hode i rommet og ikke som et ikon i et felt. */
+  .motspiller .medaljong {
+    --mstr: clamp(40px, 5.6vw, 96px);
+    --ringbredde: 0px;
+    box-shadow:
+      0 0 20px rgba(255,255,255,.6), 0 0 54px rgba(180,210,255,.45),
+      0 10px 20px rgba(8,20,90,.26);
+  }
   /**
    * NAVNET LIGGER PÅ EN FLATE, IKKE PÅ ROMMET.
    *
@@ -886,15 +1067,26 @@
     transform: rotateX(29deg) rotateY(calc(var(--vend, 0) * .7deg)) rotate(var(--vri, 0deg));
     transform-origin: 50% 0%;
   }
-  .dinplass { grid-row: 3; display: grid; place-items: center; }
-  .dinplass .kortplass { transform: rotateX(20deg) rotate(-3deg); transform-origin: 50% 100%; }
+  /* ============ DITT EGET KORT SKAL ALDRI KOMME UNDER HÅNDEN ==========
+     ARVIND, runde 7: «kortet jeg spiller også gjemmer seg delvis.»
+
+     Kortet ligger i rad 3 av bordet, altså rett over håndraden — og hånden
+     vokser OPPOVER ut av sin egen rad: det lovlige kortet står `-2vh` og
+     under pekeren `-3.4vh`. Rutenettet garanterer bare at BOKSENE ikke
+     overlapper, ikke at innholdet holder seg innenfor dem.
+
+     Klaringen er derfor satt til mer enn det største løftet hånden kan gjøre,
+     og den er skrevet i samme enhet (`vh`) som løftet — ellers ville de to
+     tallene sklidd fra hverandre på neste skjermstørrelse. */
+  .dinplass { grid-row: 3; display: grid; place-items: center; margin-bottom: clamp(6px, 4.4vh, 34px); }
+  .dinplass .kortplass { transform: rotateX(20deg) rotate(var(--vri, -2deg)); transform-origin: 50% 100%; }
   /* Tom plass: en antydet kortflate, slik at ingenting hopper når kortet
      kommer. Uten den flyttet hele raden seg hver gang noen la et kort. */
   .tomplass {
     /* SAMME MÅL SOM `.kort.liten`. Er de ulike, hopper raden i det øyeblikket
        kortet legges — og et bord som hopper hvert eneste stikk er verre enn
        et bord uten plassholder i det hele tatt. */
-    width: var(--tomb, clamp(44px, 4.6vw + 3.2vh, 96px));
+    width: var(--tomb, clamp(46px, 4.8vw + 3.8vh, 92px));
     aspect-ratio: 2.5 / 3.5;
     border-radius: clamp(6px, .9vh, 12px);
 border: 0;
@@ -904,6 +1096,38 @@ border: 0;
   /* Se `kortplass()` i app.ts: boksen beholder plassen, flaten males ikke. */
   .tomplass.usynlig { visibility: hidden; }
   .bordkort { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; position: relative; }
+  /* ============ SKYGGE OG LYS PÅ BORDKORTENE ==========================
+     ARVIND, runde 7: «de ser mye bedre ut pga skygge og lighting.»
+
+     To skygger og ett lys, alle med den samme lyskilden som resten av
+     designet — oppe til venstre:
+
+       KONTAKTSKYGGEN  kort og mørk, rett ned til høyre. Den sier at kortet
+                       ligger PÅ noe. Uten den svever det.
+       KASTSKYGGEN     lang og myk, samme retning. Den sier hvor høyt lyset
+                       henger.
+       LYSET           en svak mørkning ned mot nedre høyre hjørne av
+                       flaten, altså der lyset ikke når. Den ligger UNNA
+                       valøren i øvre venstre hjørne med vilje: en tone over
+                       blekket ville kostet kontrast der den er dyrest.
+
+     Skyggene er `box-shadow` på kortet og ikke et filter på plassen, og det
+     er ikke likegyldig: kortet ligger i et plan som er vippet 29°, og en
+     `box-shadow` vippes med det. Da faller skyggen i BORDFLATEN, som er den
+     eneste flaten den kan falle i. */
+  .bordkort .kort {
+    box-shadow:
+      inset 1px 1px 0 rgba(255,255,255,.9),
+      var(--korttykk),
+      2px 3px 4px rgba(6,16,70,.26),
+      10px 15px 20px rgba(6,16,70,.28);
+  }
+  .bordkort .kort::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(148deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 34%,
+                                        rgba(20,40,110,0) 62%, rgba(20,40,110,.11) 100%);
+  }
   .bordkort .hvem {
     font-weight: 700; font-size: .68em; letter-spacing: .06em; text-transform: uppercase;
     white-space: nowrap; color: var(--tekst-3);
@@ -918,75 +1142,17 @@ border: 0;
     align-items: center; gap: 7px; padding-top: clamp(4px, 1.6vh, 18px);
   }
 
-  .trumfskilt, .etterlyst {
-    display: flex; align-items: center; gap: .5em; flex-wrap: wrap; justify-content: center;
-    background: var(--flate); border: 1px solid var(--hinne); color: var(--paa);
-    box-shadow: var(--topplys), var(--innskygge), var(--loft-1);
-    border-radius: 999px; padding: .2em .8em .24em .6em; font-size: .8em; font-weight: 700;
-  }
-  .trumfskilt.inn, .etterlyst.inn { animation: skilt-inn .38s var(--sprett) both; }
+  /* `.trumfskilt`, `.etterlyst` OG `.budtavle` STO HER og er strøket.
+
+     ARVIND, runde 7: «info om hva trumf er og hva som er etterlyst gjemmer
+     seg også under mine kort», og «byinga havner under mine kort».
+
+     Alle tre lå i bordflaten — den halvdelen av skjermen hånden vokser opp i
+     — og det var derfor hånden kunne dekke dem. De står nå i den ene
+     sentrerte statusenheten øverst; se `.statustavle` og `topplinje()`.
+
+     `skilt-inn` står igjen: den brukes fortsatt av kontraktlinja. */
   @keyframes skilt-inn { from { opacity: 0; transform: translateY(6px) scale(.92); } }
-  .trumfskilt .stjerne { width: 1.15em; height: 1.15em; }
-  .merkelapp { color: var(--paa-3); font-weight: 700; letter-spacing: .1em; font-size: .82em; text-transform: uppercase; }
-  .etterlyst { font-size: .76em; }
-
-  /* ================== BUDTAVLA ==========================================
-     ARVIND, punkt 6: «budrunden er halve spillet — den fortjener sin egen
-     lesbare visning av hvem som bød hva.»
-
-     Fire rader på en lys flate. Navnet til venstre, budet til høyre, og
-     tallet i den vekten et bud fortjener: like stort som poengene i tavla
-     over. Se `budtavle()` i app.ts for hvorfor det er rader og ikke
-     kolonner. */
-  .budtavle {
-    display: flex; flex-direction: column; min-width: min(74vw, 15em);
-    background: var(--flate); border-radius: var(--rad);
-    box-shadow: var(--topplys), var(--innskygge), var(--loft-2);
-    overflow: hidden; animation: skilt-inn .38s var(--sprett) both;
-  }
-  .budrad {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 1em; padding: .3em .8em .34em; position: relative;
-    transition: background .3s var(--myk);
-  }
-  .budrad + .budrad::before {
-    content: ""; position: absolute; left: .7em; right: .7em; top: 0;
-    height: 1px; background: rgba(62,94,164,.18);
-  }
-  .budrad .navn {
-    font-size: .68em; font-weight: 800; letter-spacing: .07em;
-    text-transform: uppercase; color: var(--paa-3);
-  }
-  .budrad .bud { font-size: 1.02em; font-weight: 800; color: var(--paa); line-height: 1.2; }
-  .budrad .pass {
-    font-size: .68em; font-weight: 700; letter-spacing: .06em;
-    text-transform: uppercase; color: var(--paa-3);
-  }
-  .budrad .intet { color: var(--paa-3); opacity: .5; font-weight: 800; }
-  /* PASSET: raden slutter å konkurrere. Dempingen ligger på FLATEN og ikke
-     som `opacity` på teksten — en halvgjennomsiktig bokstav er utydelig,
-     mens en rad som er tonet ned fortsatt er skarp å lese. */
-  .budrad.ute { background: rgba(62,94,164,.07); }
-  .budrad.ute .navn { text-decoration: line-through; text-decoration-thickness: 1px; }
-  /* LEDEREN. Ett bud i runden gjelder, og det skal ses på en armlengde. */
-  /* TOPPEN AV GRADIENTEN ER DYPERE ENN PÅ KNAPPENE (#d63018 mot #e8402b), og
-     grunnen er målt: lederens navn står i 0,68 em sperrede versaler oppe til
-     venstre, altså nettopp der gradienten er lysest. Hvit på #e8402b ga
-     4,43:1 — seks hundredeler under gulvet. På #d63018 måler den 4,89:1.
-     De store knappene har ikke problemet og beholder sin lysere topp. */
-  .budrad.leder { background: linear-gradient(var(--lysfall), #d63018 0%, #a81e10 100%); }
-  /* MÅLT: #ffd9d2 på den røde lederflaten ga 3,60:1 — under gulvet for en
-     etikett i 0,68 em. Hvit måler 6,29:1. Skillet mellom etikett og verdi
-     bæres av størrelse, sperring og versaler, ikke av fargen. */
-  .budrad.leder .navn { color: #fff; }
-  .budrad.leder .bud { color: #fff; }
-  /* Hvem som tenker nå: samme korallstripe som i poengbrettet, samme form. */
-  .budrad.itur::after {
-    content: ""; position: absolute; left: 0; top: 12%; bottom: 12%; width: 3px;
-    border-radius: 0 3px 3px 0; background: var(--korall);
-    animation: stripe-inn .34s var(--sprett) both;
-  }
-  .budrad.leder.itur::after { background: #fff; }
 
   /* DIN TUR. Det høyeste punktet i hierarkiet når det gjelder — ingenting
      annet på skjermen skal rope like høyt. Pulsen er lav og treg; den skal
@@ -1028,25 +1194,43 @@ border: 0;
      boks — fjeset, navnet og korttellingen hans. Den sto `right:0; top:0`,
      altså nøyaktig der den tredje motstanderen sitter.
 
-     Nederste venstre hjørne av bordet er den eneste flaten i rutenettet som
-     ikke er tildelt noen: motstanderne har topplinja, ditt eget kort ligger
-     MIDT nederst, midtfeltet står sentrert, og stikksøyla er en egen kolonne
-     til høyre. Bredden er derfor også begrenset, slik at ruta ikke kan nå
-     bort til ditt eget kort på en smal skjerm. */
+     ============ RUNDE 7: DEN STÅR LODDRETT LANGS VENSTRE SIDE ==========
+
+     ARVIND: «forrige stikk kan stå loddrett langs venstre side i stedet for
+     vannrett.»
+
+     Den lå i nederste venstre HJØRNE, altså i den samme bunnstripa hånden
+     vokser opp i. Målt på iPad før flyttingen: 4 710 px² overlapp mot
+     kortene i hånden — ruta lå bokstavelig talt under dem.
+
+     Loddrett langs venstre kant løser to ting med samme grep: den kommer ut
+     av bunnstripa, og fire kort på høykant er mye smalere enn fire kort på
+     rekke, så den tar mindre av bordflaten enn før. Den er sentrert
+     loddrett, der bordflaten er tom uansett hvor mange kort som er lagt. */
   .forrige {
-    position: absolute; left: 0; bottom: 0; z-index: 2;
+    position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 2;
     background: var(--flate-dyp); border: 0; color: var(--paa);
     box-shadow: var(--topplys), var(--innskygge), var(--loft-1);
-    border-radius: var(--rad-s); padding: .35em .5em; text-align: center;
-    font-size: .6em; max-width: 34%;
+    border-radius: var(--rad-s); padding: .35em .4em .4em; text-align: center;
+    font-size: .6em; max-width: 22%;
   }
   .forrige.inn { animation: forrige-inn .34s var(--myk) both; }
-  @keyframes forrige-inn { from { opacity: 0; transform: translateX(-10px); } }
-  .forrige .tittel { color: var(--paa-3); margin-bottom: 3px; white-space: nowrap;
-                     letter-spacing: .08em; text-transform: uppercase; font-size: .92em; }
-  .forrige .tittel b { color: var(--korall-dyp); }
-  .forrige .rad { display: flex; gap: 3px; justify-content: center; }
-  .forrige .navn { color: var(--paa-3); font-size: .88em; }
+  @keyframes forrige-inn { from { opacity: 0; transform: translate(-10px, -50%); } }
+  .forrige .tittel { color: var(--paa-3); margin-bottom: 4px;
+                     letter-spacing: .06em; text-transform: uppercase; font-size: .88em;
+                     line-height: 1.2; }
+  /* MÅLT PÅ DET RENDREDE BILDET: `--korall-dyp` (#cf2b20) på den lyse
+     `--flate-dyp` ga 4,60:1. Over gulvet, men dårligere enn runde 6 kom fra
+     (4,66:1), og for et navn i 0,53 em er det for knapt. #9c1d12 er den
+     samme mørke korallen `.tavle .deg .navn` bruker og av samme grunn; den
+     måler 8,03:1 her. */
+  .forrige .tittel b { color: #9c1d12; display: block; }
+  /* LODDRETT STABEL. Navnet står ved siden av kortet og ikke over det: en
+     kolonne med fire etiketter over fire kort blir dobbelt så høy som den
+     trenger, og høyden er den knappe ressursen når noe står langs en kant. */
+  .forrige .rad { display: flex; flex-direction: column; gap: 3px; align-items: stretch; }
+  .forrige .rad > div { display: flex; align-items: center; gap: .4em; }
+  .forrige .navn { color: var(--paa-3); font-size: .88em; flex: 1 1 auto; text-align: left; }
 
   /* ================== KORT ===============================================
      EKTE KORTPROPORSJONER: 2,5 × 3,5 tommer, altså 0,714. */
@@ -1110,7 +1294,11 @@ border: 0;
   .kort:focus-visible { outline: 4px solid var(--korall); outline-offset: 3px; z-index: 3; }
   .kort:not([disabled]):focus-visible { transform: translateY(-1vh) scale(1.05); }
   .kort.valgt { outline: 4px solid var(--korall); outline-offset: 2px; transform: translateY(-1.4vh); z-index: 2; }
-  .kort.liten { --kb: clamp(44px, 4.6vw + 3.2vh, 96px); }
+  /* RUNDE 7: bordkortene fulgte med ned da håndkortene ble mindre, men ikke
+     like langt. Med 44 px mot en hånd på 98 så det utspilte kortet ut som et
+     minikort i stedet for som det samme kortet lagt ned på bordet — målt
+     forhold 0,45. Nå ligger det på 0,75–0,79 av håndkortet på hver skjerm. */
+  .kort.liten { --kb: clamp(46px, 4.8vw + 3.8vh, 92px); }
   .forrige .kort { --kb: clamp(26px, 3.4vh, 44px); border-width: 1px; box-shadow: none; }
   .bordkort .kort[disabled], .forrige .kort[disabled], .rygg.kort { opacity: 1; filter: none; cursor: default; }
 
@@ -1241,9 +1429,47 @@ border: 0;
       calc(min(var(--boymaks, 20px), var(--d) * var(--d) * var(--boy, 1.6px)) + var(--dy, 0px))
       calc(0px - min(var(--zmaks, 62px), var(--d) * var(--d) * var(--zdyp, 7px)));
     rotate: calc(var(--d) * var(--vinkel, 3deg));
+    /* ============ STØRST PÅ MIDTEN, MINDRE MOT SIDENE ==================
+       ARVIND, runde 7: «kortene er større på midten og blir mindre på
+       sidene.»
+
+       Her sto ingenting: alle kortene var like store, og vifta leste som en
+       rad kort på skrå. Samme form som bøyen — `d²` og et tak — og av samme
+       to grunner: eldre iPad-Safari mangler `abs()`, og kvadratet gir den
+       runde nedtrappingen en vifte har.
+
+       `scale` er en EGEN egenskap, ikke `transform`. Det er ikke en
+       smakssak: `transform` bærer allerede løftet, hoveren, kastet og
+       `.griper`, og skriver to regler til den samme egenskapen, taper den
+       ene alltid. Nettleseren ganger `scale` og `transform` sammen, så
+       viftas taper og løftet på det lovlige kortet lever side om side. */
+    scale: calc(1 - min(var(--krympmaks, .18), var(--d) * var(--d) * var(--krymp, 0)));
+    /* ============ INGEN HARD AVKUTTING FØR PILENE ======================
+       ARVIND: «kortene har en stygg avkutting rett før pilene.»
+
+       `clip-path` på `.hjul` klipper vifta mot sine egne kanter, og en
+       loddrett strek tvers over en kortflate er den ene harde kanten som var
+       igjen i hele designet.
+
+       Kortet toner derfor ut FØR det når klippet. `--ton` settes i
+       `oppdaterHjul()` slik at dekkevnen er full inn til 0,69 av spennet og
+       nøyaktig null ved kanten, uansett håndstørrelse og skjerm. Tallet 3,6
+       her og `TONEHOYDE` i app.ts er den SAMME konstanten og må endres
+       sammen — den ene setter kurven, den andre nullpunktet.
+
+       DETTE MOTSIER IKKE «ingen av kortene er gjennomsiktige lenger» lenger
+       nede. Den regelen handler om LOVLIGHET — et kort man har lov å spille
+       skal ikke skilles fra et man ikke har lov å spille med dekkevne, for da
+       ser kortflaten ut som en feil. Her er dekkevnen ikke en opplysning om
+       kortet, men kanten av synsfeltet: kortene i vinduet er alle helt
+       ugjennomsiktige, og det som toner ut er på vei ut av bildet.
+
+       `--ton: 0` når hånden er låst — da finnes det ingen kant å tone mot. */
+    opacity: clamp(0, calc(3.6 - var(--d) * var(--d) * var(--ton, 0)), 1);
     transition: translate .34s var(--myk), rotate .34s var(--myk),
+                scale .34s var(--myk), opacity .34s var(--myk),
                 transform .2s var(--sprett), box-shadow .2s var(--myk),
-                opacity .2s var(--myk), filter .2s var(--myk);
+                filter .2s var(--myk);
   }
   /* Under fingeren: ingen etterslep, ellers føles kortet som om det henger
      fast i sirup. Snappen slås på igjen når fingeren slipper. */
@@ -1478,16 +1704,17 @@ border: 0;
 
   @media (prefers-reduced-motion: reduce) {
     .overlegg.fersk, .overlegg.fersk .panel, .bordkort .kort.ny,
-    .kontrakt.inn, .trumfskilt.inn, .etterlyst.inn, .dintur, .dintur.inn,
+    .kontraktlinje.inn, .dintur, .dintur.inn,
     .forrige.inn, .vinnerband,
     .seteglans, .tavle .itur::after, .tavle b.endret,
     .medaljong.kommer, .stikksoyle .tall.slag,
     .gjennombrudd .bolge, .gjennombrudd .lyn, .gjennombrudd .rop,
     .bordkort.vant .kort, .bord.landet .bordkort.vant .kort,
     .rom .skinn, .laster .stjerne, .prikker i, .stikksoyle .treff, .fyll.treff,
-    /* Runde 6: startskjermens svevende ikonformer, budtavla som glir inn, og
-       stripa som viser hvem som byr nå. */
-    .ikonlag .fig, .budtavle, .budrad.itur::after {
+    /* Runde 6: startskjermens svevende ikonformer. Budtavla og budstripa
+       står ikke lenger i lista — begge klassene forsvant da budene flyttet
+       inn i spillernes egne celler i topplinja. */
+    .ikonlag .fig {
       animation: none !important;
     }
     .bord.samler .bordkort .kort { transition: none; }
@@ -1807,23 +2034,98 @@ border: 0;
   /* ================= LAV SKJERM = LIGGENDE TELEFON =======================
      Står SIST i fila med vilje: regler som skal overstyre må komme etter det
      de overstyrer, ellers taper de på lik spesifisitet. */
+  /* =====================================================================
+     ============ LIGGENDE TELEFON ER EN EGEN KOMPOSISJON ================
+     =====================================================================
+
+     ARVIND, runde 7: liggende telefon er «skikkelig dårlig».
+
+     Runde 4 flagget formatet og gikk videre. Siden har fire runder lagt på
+     perspektiv, større søyle og et kamera bygget for 390×844 STÅENDE, og alt
+     sammen har gjort 844×390 trangere. En layout som bare skaleres ned fra
+     stående kan ikke virke her, for de to formatene har MOTSATT knapphet:
+
+         stående 390×844    høyde i overflod, bredde er dyrt
+         liggende 844×390   bredde i overflod, høyde er dyrt
+
+     Alt i denne blokken følger av den ene setningen. Regelen er: det som er
+     stablet i høyden skal stå ved siden av hverandre, og det som får stå i
+     bredden skal få lov til å bruke den.
+
+     MÅLT PÅ 844×390 FØR OMLEGGINGEN:
+        topplinja           62 px = 16 % av høyden, i to etasjer
+        stikksøyla        160 px høy — bare bordraden — 12,3 px per hakk
+        motstanderne      560 av 718 px brede, altså klumpet i midten
+        bordkortene        35 px, mot 75 px på hånden
+        forrige stikk     skjult
+
+     ---- 1. TOPPLINJA LEGGER SEG PÅ TVERS ------------------------------
+     Poengbrettet og kontraktlinja er to etasjer i stående, fordi bredden er
+     knapp der. Her er den ikke: de står ved siden av hverandre, og enheten er
+     fortsatt ÉN sentrert flate. 62 px → 34 px. */
   @media (max-height: 500px) {
-    /* ============ LIGGENDE TELEFON HAR IKKE RÅD TIL BORDFLATEN =========
-       Målt på 844×390: hånden tar 42 % av høyden, og med de utspilte kortene
-       skjøvet 7 vh ned havnet midtfeltet UNDER dem — «Din tur» lå bak
-       kortene. Nedskyvingen finnes for å fylle en tom bordflate, og her
-       finnes ingen tom bordflate å fylle. */
+    .statustavle { flex-direction: row; align-items: stretch; }
+    /* Skillet må bytte kant når retningen bytter — ellers står streken tvers
+       over der de to nå møtes side om side. */
+    .kontraktlinje {
+      box-shadow: inset 1px 0 0 rgba(62,94,164,.2);
+      padding: .1em .7em; font-size: .74em;
+    }
+    .tavle .spiller { padding: .1em .5em .14em; min-width: 2.7em; }
+    .tavle .navn { font-size: .5em; }
+
+    /* ---- 2. SØYLA FÅR HELE HØYDEN, IKKE BARE BORDRADEN ---------------
+       I stående er bordraden nesten hele skjermen, så det spilte ingen rolle
+       at søyla bare dekket den. Her var den 160 px av 390, og hvert hakk ble
+       12,3 px — under det man kan telle. Nå spenner den rad 2 OG rad 3, altså
+       forbi hånden, og hånden gir fra seg den bredden den ikke trenger. */
+    #app > .stikksoyle { grid-row: 2 / 4; }
+    #app > .handrad { grid-column: 1; }
+    .stikksoyle { width: clamp(58px, 8vw, 96px); margin-left: clamp(26px, 3vw, 44px); }
+
+    /* ---- 3. SETENE SITTER BREDT --------------------------------------
+       78 % av bordet er riktig i stående: der klumper de tre seg sammen på
+       den andre siden av bordet, som i skissen. Her er bredden det man har
+       mest av, og tre hoder i midten av en 844 px skjerm etterlater to store
+       tomme flater i hjørnene. */
+    .motstandere { width: min(100%, 96%); gap: clamp(0px, 1.4vw, 22px); }
     .motspiller .kortplass { margin-top: clamp(2px, 1.2vh, 10px); }
-    .midtfelt { padding-top: 0; }
-    .kort.liten { --kb: clamp(34px, 9vh, 60px); }
-    .bordkort .hvem { font-size: .58em; }
-    .trumfskilt { display: none; }
-    .etterlyst, .dintur { font-size: .66em; }
-    .midtfelt { gap: 3px; }
-    .forrige { display: none; }
-    .motspiller .medaljong { --mstr: clamp(30px, 8.4vh, 52px); }
+    .motspiller .medaljong { --mstr: clamp(26px, 7.6vh, 46px); }
     .motspiller .igjen { display: none; }
-    .tomplass { --tomb: clamp(30px, 8vh, 52px); }
+
+    /* ---- 4. KORTENE PÅ BORDET STO IKKE I FORHOLD ---------------------
+       35 px mot 75 px på hånden er 0,47 — det utspilte kortet leste som et
+       ikon. Her er de 47 px, altså 0,63 av håndkortet.
+
+       TAKET ER REGNET, IKKE VALGT. Bordraden må romme hodet, navnet,
+       motstandernes kort OG ditt eget kort under dem, og den er 195 px høy i
+       dette formatet. Med 13vh ble summen 200 px, og ditt eget kort rant ned
+       i håndraden — målt 1 325 px² overlapp mot kortene på hånden, altså
+       nøyaktig blokkeringen denne runden begynte med, i det ene formatet den
+       ikke var meldt fra. 12vh gir 189 px og et gulv på 6 px. */
+    .kort.liten { --kb: clamp(34px, 11vh, 56px); }
+    .tomplass { --tomb: clamp(34px, 11vh, 56px); }
+    .bordkort .hvem { font-size: .58em; }
+    .dinplass { margin-bottom: clamp(3px, 1vh, 8px); }
+    /* SETERADEN MÅ GI FRA SEG DE SISTE PIKSLENE. Målt: seteraden ble 142 px
+       og ditt eget kort 66 px av en bordflate på 195 — summen gikk 13 px
+       over, og kortet rant ned i håndraden. Navnet, mellomrommene og
+       nedskyvingen av bordkortene er de tre stedene det finnes luft å hente
+       uten å gjøre noe mindre lesbart. */
+    .motspiller { gap: 0; }
+    .motspiller .navn { font-size: clamp(9px, .5em, 15px); padding: .1em .55em .12em; }
+    .motspiller .kortplass { margin-top: 0; }
+
+    .midtfelt { padding-top: 0; gap: 3px; }
+    .dintur { font-size: .66em; }
+
+    /* ---- 5. FORRIGE STIKK BLIR STÅENDE BORTE -------------------------
+       Og det er et VALG med et tall bak: loddrett langs venstre kant er den
+       190 px høy, altså halve skjermen; vannrett er den 190 px bred, altså
+       den plassen søyla og setene nettopp fikk. På en skjerm der høyden er
+       den knappe ressursen er forrige stikk den ene opplysningen man kan
+       klare seg uten — den sier hva som ALT er skjedd. */
+    .forrige { display: none; }
     .rom .stjerne { width: 22vh; height: 22vh; }
   }
   /* ============ NÅR SØYLEN IKKE HAR PLASS TIL MEDALJONGENE UTENFOR =======
@@ -1845,8 +2147,9 @@ border: 0;
     .stikksoyle .medaljongstabel.bunn { bottom: clamp(22px, 4.4vw, 30px); }
     .stikksoyle .medaljongstabel { gap: 0; }
     .stikksoyle .medaljongstabel .medaljong + .medaljong { margin-left: -6px; }
-    .medaljong { --mstr: clamp(14px, 3.8vw, 22px);
-      box-shadow: 0 0 0 2px var(--ring), 0 0 0 3px rgba(16,32,86,.34), 0 2px 8px rgba(2,8,24,.8); }
+    /* Bare målene, ingen ny `box-shadow`: ringbredden er en variabel nettopp
+       for at denne regelen skal kunne krympe den uten å skrive skyggen om. */
+    .medaljong { --mstr: clamp(14px, 3.8vw, 22px); --ringbredde: 2px; }
     .stikksoyle .tall { font-size: clamp(11px, 3vw, 15px); }
     .gjennombrudd .rop { font-size: clamp(11px, 3vw, 15px); padding: .2em .7em .26em; }
   }
@@ -2126,7 +2429,7 @@ border: 0;
   "use strict";
   /* Bumpes sammen med `BUNDELVERSJON` i `web/app.ts`. Står de ulikt, sier
      siden fra i stedet for å vise en halvgammel utgave i stillhet. */
-  var VENTET = "v10-2026-08-10";
+  var VENTET = "v11-2026-08-10";
   var BASE = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
 
   function varsle(tekst) {

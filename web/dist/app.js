@@ -3849,7 +3849,7 @@ var Budagent = class {
 // web/app.ts
 var DATA_URL = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
 var MENNESKE = 0;
-var BUNDELVERSJON = "v10-2026-08-10";
+var BUNDELVERSJON = "v11-2026-08-10";
 globalThis["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 var LOKAL = location.protocol === "http:";
 var MESTER_URL = `${location.origin}/mester`;
@@ -4573,20 +4573,35 @@ function sorterHånd(hånd) {
 }
 function topplinje() {
   const m = state.melding;
-  const kontrakt = state.budvinner !== null && m !== null ? `<span class="hvem">${NAVN[state.budvinner]}</span> <span class="bud">${m.type === "tall" ? m.bud : m.type === "solo" ? "Solo" : "Amerikaner"}</span>${state.trumf ? fargeMerke(state.trumf) : ""}` : state.fase === "BUDRUNDE" ? `<span class="hvem">Budrunde</span>` : "";
+  const b = state.budrunde;
+  const bys = state.fase === "BUDRUNDE";
+  const leder = bys ? b.høyeste : null;
+  const kontrakt = state.budvinner !== null && m !== null ? `<span class="hvem">${NAVN[state.budvinner]}</span> <span class="bud">${m.type === "tall" ? m.bud : m.type === "solo" ? "Solo" : "Amerikaner"}</span>${state.trumf ? fargeMerke(state.trumf) : ""}` : bys ? `<span class="hvem">Budrunde</span>` : "";
+  const etterlyst = state.etterlyst !== null && (state.fase === "SPILL" || frystStikk !== null) ? `<span class="etterlystmerke">${fargeMerke(state.etterlyst.farge, false)}<b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? `<i>${NAVN[state.makker]}</i>` : ""}</span>` : "";
   const iTur = frystStikk !== null ? null : state.iTur ?? null;
   const brett = state.totalPoeng.map((p, i) => {
     const endret = sistPoeng.length > 0 && sistPoeng[i] !== p;
-    return `<div class="spiller${i === MENNESKE ? " deg" : ""}${i === iTur ? " itur" : ""}">
+    const bud = bys ? b.sisteBud[i] ?? null : null;
+    const passet = bys && b.passet[i] === true;
+    const erLeder = leder !== null && leder.spiller === i;
+    const budrad = !bys ? "" : bud !== null ? `<span class="budtall">${budTekst(bud)}</span>` : passet ? `<span class="budtall pass">pass</span>` : `<span class="budtall intet" aria-hidden="true">·</span>`;
+    const tale = !bys ? "" : ` aria-label="${NAVN[i]}: ${p} poeng, ${bud === null ? passet ? "pass" : "ikke meldt" : budTekst(bud)}"`;
+    return `<div class="spiller${i === MENNESKE ? " deg" : ""}${i === iTur ? " itur" : ""}${erLeder ? " leder" : ""}${passet ? " ute" : ""}"${tale}>
         <span class="navn">${NAVN[i]}</span>
         <span class="verdi"><b${endret ? ` class="endret"` : ""}>${p}</b></span>
+        ${budrad}
       </div>`;
   }).join("");
   sistPoeng = state.totalPoeng.slice();
+  const status = kontrakt || etterlyst ? `<div class="kontraktlinje${pynt(`kontrakt:${state.budvinner}:${m === null ? "" : m.bud}:${state.trumf ?? ""}`)}">
+        ${kontrakt}${etterlyst}
+        <span class="runde">R${state.rundeNr + 1} · ${state.regler.målPoeng}</span>
+      </div>` : `<div class="kontraktlinje"><span class="runde">R${state.rundeNr + 1} · ${state.regler.målPoeng}</span></div>`;
   return `<header>
-    <div class="tavle" role="group" aria-label="Poengstilling">${brett}</div>
-    ${kontrakt ? `<div class="kontrakt${pynt(`kontrakt:${state.budvinner}:${m === null ? "" : m.bud}:${state.trumf ?? ""}`)}">${kontrakt}</div>` : `<div></div>`}
-    <div class="runde">Runde ${state.rundeNr + 1}<br>til ${state.regler.målPoeng}</div>
+    <div class="statustavle" role="group" aria-label="Stillingen i runden">
+      <div class="tavle">${brett}</div>
+      ${status}
+    </div>
   </header>`;
 }
 function budlaget() {
@@ -4698,27 +4713,6 @@ function visGjennombrudd(utfall) {
   setTimeout(() => el.remove(), GJENNOMBRUDD_MS);
 }
 var forrigeBordkort = /* @__PURE__ */ new Set();
-function budtavle() {
-  if (state.fase !== "BUDRUNDE") return "";
-  const b = state.budrunde;
-  const leder = b.høyeste;
-  const rader = state.totalPoeng.map((_, i) => {
-    const passet = b.passet[i] === true;
-    const bud = b.sisteBud[i] ?? null;
-    const erLeder = leder !== null && leder.spiller === i;
-    const iTur = state.iTur === i;
-    const verdi = passet && bud === null ? `<span class="pass">pass</span>` : bud === null ? `<span class="intet" aria-hidden="true">·</span>` : `<span class="bud">${budTekst(bud)}</span>`;
-    return `<div class="budrad${erLeder ? " leder" : ""}${passet ? " ute" : ""}${iTur ? " itur" : ""}">
-        <span class="navn">${NAVN[i]}</span>
-        ${verdi}
-      </div>`;
-  }).join("");
-  const tale = state.totalPoeng.map((_, i) => {
-    const bud = b.sisteBud[i] ?? null;
-    return `${NAVN[i]}: ${bud === null ? b.passet[i] === true ? "pass" : "ikke meldt" : budTekst(bud)}`;
-  }).join(". ");
-  return `<div class="budtavle" role="group" aria-label="Budrunden. ${tale}">${rader}</div>`;
-}
 function bordet() {
   const påBordet = frystStikk !== null ? frystStikk.kort : state.bord;
   const nå = new Set(påBordet.map((b) => `${b.spiller}${kortId(b.kort)}`));
@@ -4740,7 +4734,7 @@ function bordet() {
   forrigeBordkort = nå;
   const tenkeSete = frystStikk === null && !venterPåMenneske && travelt && state.fase !== "RUNDE_SLUTT" && state.fase !== "FERDIG" ? state.fase === "VRAK" || state.fase === "VELG" ? state.budvinner : state.iTur : null;
   const tenkeboble = `tenker<span id="tenker-tid"></span><span class="prikker" aria-hidden="true"><i></i><i></i><i></i></span>`;
-  const VRI = ["0", "-7", "4", "9"];
+  const VRI = ["-2", "-17", "3", "16"];
   const NAER = ["0", "0.72", "0", "1"];
   const VEND = ["0", "8", "0", "-9"];
   const motstandere = [1, 2, 3].map((s) => {
@@ -4755,11 +4749,8 @@ function bordet() {
         <div class="kortplass">${kortplass(s)}</div>
       </div>`;
   }).join("");
-  const trumfskilt = state.trumf !== null && (state.fase === "SPILL" || frystStikk !== null) ? `<div class="trumfskilt${pynt(`trumf:${state.trumf}`)}">${stjerne()}<span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>` : "";
-  const info = state.etterlyst ? `<div class="etterlyst${pynt(`etterlyst:${kortId(state.etterlyst)}:${state.makkerAvslørt ? state.makker : "?"}`)}"><span class="merkelapp">Etterlyst</span>${fargeMerke(state.etterlyst.farge, false)} <b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? ` · ${NAVN[state.makker]}` : ""}</div>` : "";
   const dinTur = venterPåMenneske && state.fase === "SPILL" && frystStikk === null ? `<div class="dintur${pynt("dintur")}">Din tur</div>` : "";
-  const tavle = budtavle();
-  const midt = trumfskilt || info || dinTur || tavle ? `<div class="midtfelt">${tavle}${trumfskilt}${info}${dinTur}</div>` : "";
+  const midt = dinTur ? `<div class="midtfelt">${dinTur}</div>` : "";
   const forrige = frystStikk === null && state.fase === "SPILL" && state.forrigeStikk !== null ? `<div class="forrige${pynt(`forrige:${state.stikkSpilt}`)}" aria-label="Forrige stikk">
           <div class="tittel">Forrige · <b>${NAVN[state.forrigeStikk.vinner]}</b></div>
           <div class="rad">${state.forrigeStikk.kort.map((b) => `<div><div class="navn">${NAVN[b.spiller].split(" ")[0]}</div>${kortKnapp(b.kort, {})}</div>`).join("")}</div>
@@ -4774,7 +4765,7 @@ function bordet() {
 function kortBredde() {
   const b = window.innerWidth || 1024;
   const h = window.innerHeight || 768;
-  return Math.round(Math.max(60, Math.min(160, h * 0.33 * 0.714, b * 0.32)));
+  return Math.round(Math.max(56, Math.min(112, h * 0.27 * 0.714, b * 0.25)));
 }
 var hjulSenter = 0;
 var sistHåndAntall = -1;
@@ -4838,8 +4829,12 @@ function håndrad() {
 }
 var HJUL_MIN_STEG = 0.34;
 var HJUL_MAKS_STEG = 0.94;
-var MAKS_SYNLIG = 5.4;
-var YTTERVINKEL = 11;
+var MAKS_SYNLIG = 6.6;
+var YTTERVINKEL = 20;
+var BUEANDEL = 0.34;
+var BUEKNEKK = 0.72;
+var TAPER = 0.18;
+var TONEHOYDE = 3.6;
 var hjulLåst = true;
 var hjulSteg = 60;
 var hjulSpenn = 0;
@@ -4850,9 +4845,11 @@ function oppdaterHjul() {
   const kort = [...hjul.querySelectorAll(".kort")];
   const n = kort.length;
   if (n === 0) return;
-  const kb = kort[0].getBoundingClientRect().width || kortBredde();
+  const kb = kort[0].offsetWidth || kortBredde();
   const bredde = hjul.clientWidth || window.innerWidth;
-  const ytterRad = YTTERVINKEL * Math.PI / 180;
+  const flathet = Math.min(1, Math.max(0.45, (window.innerHeight || 768) / 700));
+  const ytter = YTTERVINKEL * (0.55 + 0.45 * flathet);
+  const ytterRad = ytter * Math.PI / 180;
   const fotavtrykk = kb * Math.cos(ytterRad) + kb / 0.714 * Math.sin(ytterRad);
   const ønsket = n > 1 ? (bredde - fotavtrykk) / (n - 1) : kb;
   const gulv = Math.max(kb * HJUL_MIN_STEG, (bredde - fotavtrykk) / (MAKS_SYNLIG - 1));
@@ -4861,11 +4858,14 @@ function oppdaterHjul() {
   hjulLåst = n <= MAKS_SYNLIG && (n - 1) / 2 <= hjulSpenn + 1e-3;
   const kortHøyde = kb / 0.714;
   const maksD = Math.max(0.5, hjulLåst ? (n - 1) / 2 : hjulSpenn);
-  const bue = Math.min(22, kortHøyde * 0.07);
-  const vinkel = Math.min(3.2, YTTERVINKEL / maksD);
+  const bue = Math.min(58, kortHøyde * BUEANDEL * flathet);
+  const vinkel = Math.min(10, ytter / maksD);
   const rad = vinkel * maksD * Math.PI / 180;
   const overheng = Math.max(0, (kortHøyde * Math.cos(rad) + kb * Math.sin(rad) - kortHøyde) / 2);
-  hjulMål = `--steg:${hjulSteg.toFixed(2)}px;--boy:${(bue / (maksD * maksD)).toFixed(4)}px;--boymaks:${bue.toFixed(1)}px;--vinkel:${vinkel.toFixed(2)}deg;--bue:${(bue + overheng).toFixed(1)}px`;
+  const skalning = TAPER / (maksD * maksD);
+  const toning = hjulLåst ? 0 : TONEHOYDE / (maksD * maksD);
+  const knekkD = Math.max(0.5, maksD * BUEKNEKK);
+  hjulMål = `--steg:${hjulSteg.toFixed(2)}px;--boy:${(bue / (knekkD * knekkD)).toFixed(4)}px;--boymaks:${bue.toFixed(1)}px;--vinkel:${vinkel.toFixed(2)}deg;--krymp:${skalning.toFixed(5)};--krympmaks:${TAPER.toFixed(3)};--ton:${toning.toFixed(5)};--bue:${(bue + overheng).toFixed(1)}px`;
   for (const [navn, verdi] of hjulMål.split(";").map((d) => d.split(":"))) {
     hjul.style.setProperty(navn, verdi);
   }

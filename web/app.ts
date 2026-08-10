@@ -53,7 +53,7 @@ const MENNESKE = 0;
  *
  * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
  */
-const BUNDELVERSJON = "v10-2026-08-10";
+const BUNDELVERSJON = "v11-2026-08-10";
 (globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
@@ -1570,24 +1570,72 @@ function sorterHånd(hånd: readonly Kort[]): Kort[] {
  * øyet måtte lese alle fem for å finne den ene opplysningen det lette etter.
  *
  * Nå er poengene ETT brett med hårfine skiller — fire ruter som hører sammen,
- * fordi de ER én tabell — med din egen rute merket i korall. Kontrakten står
- * for seg selv, siden den gjelder hele runden og ikke er en poengsum. Og
- * rutenettet er FAST: `auto 1fr auto` i stedet for `flex-wrap`, som brøt om
- * til to rader så snart kontraktteksten vokste.
+ * fordi de ER én tabell — med din egen rute merket i korall. Raden kan ikke
+ * brekke: den var `flex-wrap` en gang, og brøt om til to rader så snart
+ * kontraktteksten vokste.
  *
  * STIKKTELLERNE ER FLYTTET UT. De hørte aldri hjemme ved siden av poengsummen
  * — det er to helt ulike tall med hver sin levetid, og de sto i samme rute med
  * samme vekt. Nå bor de i lagfeltet under, der de kan slås sammen når laget
  * dannes.
+ *
+ * KONTRAKTEN STO FOR SEG SELV her, som en egen pille ved siden av brettet.
+ * Runde 7 flyttet den inn i det samme brettet som en nederste etasje — se
+ * kommentaren rett under.
+ */
+/**
+ * ============ ÉN SENTRERT ENHET ØVERST =================================
+ *
+ * ARVIND, runde 7: «hvor det står hvem som har budd hva og trumf er ikke
+ * sentrert og kunne konsolidert seg med poengsummen.»
+ *
+ * Budtavla, trumfen og poengstillingen er tre visninger av det samme:
+ * HVOR RUNDEN STÅR. Før lå de tre ulike steder — poengene til venstre i
+ * topplinja, kontrakten i midten, rundetelleren til høyre, og budene i en
+ * egen tavle midt på bordet. Fire flater med samme ærend.
+ *
+ * Nå er det ETT brett, sentrert: én celle per spiller med navn, poeng og —
+ * mens det bys — hans bud, og under dem én linje med kontrakten, trumfen,
+ * det etterlyste kortet og rundetelleren.
+ *
+ * ============ OG DET LØSER BLOKKERINGEN ================================
+ *
+ * ARVIND: «det viktigste er at byinga havner under mine kort så jeg ser ikke
+ * hva andre har bydd. info om hva trumf er og hva som er etterlyst gjemmer
+ * seg også under mine kort.»
+ *
+ * Alle fire opplysningene lå i bordflaten, altså i den samme halvdelen av
+ * skjermen som hånden vokser opp i. Her kan de ikke havne under hånden i det
+ * hele tatt: `header` er rad 1 i `#app`-rutenettet og hånden er rad 3, og
+ * rader i et rutenett overlapper ikke. Det er en geometrisk garanti, ikke en
+ * justering som må måles på nytt hver gang kortene blir større.
  */
 function topplinje(): string {
   const m = state.melding;
+  const b = state.budrunde;
+  const bys = state.fase === "BUDRUNDE";
+  const leder = bys ? b.høyeste : null;
   const kontrakt =
     state.budvinner !== null && m !== null
       ? `<span class="hvem">${NAVN[state.budvinner]}</span> <span class="bud">${m.type === "tall" ? m.bud : m.type === "solo" ? "Solo" : "Amerikaner"}</span>${state.trumf ? fargeMerke(state.trumf) : ""}`
-      : state.fase === "BUDRUNDE"
+      : bys
         ? `<span class="hvem">Budrunde</span>`
         : "";
+  /**
+   * ETTERLYSNINGEN STO PÅ BORDET og er flyttet HIT, inn i den samme enheten.
+   *
+   * ARVIND: «kortet jeg spiller ut legger seg oppå info om etterlyste kortet
+   * … den infoen egentlig ikke trengs.»
+   *
+   * Den er derfor borte fra bordflaten. Å slette den helt ville tatt bort den
+   * ene opplysningen som sier hvem man leter etter før makkeren er avslørt —
+   * så den er krympet til ett merke i statuslinja i stedet, der den koster
+   * ingen plass og per konstruksjon ikke kan komme under noe.
+   */
+  const etterlyst =
+    state.etterlyst !== null && (state.fase === "SPILL" || frystStikk !== null)
+      ? `<span class="etterlystmerke">${fargeMerke(state.etterlyst.farge, false)}<b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? `<i>${NAVN[state.makker]}</i>` : ""}</span>`
+      : "";
   // HVEM SIN TUR DET ER sto ikke noe sted. Boblen «… tenker» dekket botene,
   // men ingenting sa «det er din tur» — og i en firemannsrunde med to sekunders
   // pauser er det nettopp det man mister oversikten over.
@@ -1595,17 +1643,46 @@ function topplinje(): string {
   const brett = state.totalPoeng
     .map((p, i) => {
       const endret = sistPoeng.length > 0 && sistPoeng[i] !== p;
-      return `<div class="spiller${i === MENNESKE ? " deg" : ""}${i === iTur ? " itur" : ""}">
+      /**
+       * BUDET STÅR I SPILLERENS EGEN CELLE, ikke i en egen tavle.
+       *
+       * Dataene er de samme som `budtavle()` brukte (`budrunde.sisteBud`);
+       * motoren er ikke rørt. Forskjellen er at «hvem» nå bare skrives ÉN
+       * gang — navnet står der fra før — og at budet dermed leses i samme
+       * blikk som poengene.
+       */
+      const bud = bys ? (b.sisteBud[i] ?? null) : null;
+      const passet = bys && b.passet[i] === true;
+      const erLeder = leder !== null && leder.spiller === i;
+      const budrad = !bys
+        ? ""
+        : bud !== null
+          ? `<span class="budtall">${budTekst(bud)}</span>`
+          : passet
+            ? `<span class="budtall pass">pass</span>`
+            : `<span class="budtall intet" aria-hidden="true">·</span>`;
+      const tale = !bys
+        ? ""
+        : ` aria-label="${NAVN[i]}: ${p} poeng, ${bud === null ? (passet ? "pass" : "ikke meldt") : budTekst(bud)}"`;
+      return `<div class="spiller${i === MENNESKE ? " deg" : ""}${i === iTur ? " itur" : ""}${erLeder ? " leder" : ""}${passet ? " ute" : ""}"${tale}>
         <span class="navn">${NAVN[i]}</span>
         <span class="verdi"><b${endret ? ` class="endret"` : ""}>${p}</b></span>
+        ${budrad}
       </div>`;
     })
     .join("");
   sistPoeng = state.totalPoeng.slice();
+  const status = kontrakt || etterlyst
+    ? `<div class="kontraktlinje${pynt(`kontrakt:${state.budvinner}:${m === null ? "" : m.bud}:${state.trumf ?? ""}`)}">
+        ${kontrakt}${etterlyst}
+        <span class="runde">R${state.rundeNr + 1} · ${state.regler.målPoeng}</span>
+      </div>`
+    : `<div class="kontraktlinje"><span class="runde">R${state.rundeNr + 1} · ${state.regler.målPoeng}</span></div>`;
   return `<header>
-    <div class="tavle" role="group" aria-label="Poengstilling">${brett}</div>
-    ${kontrakt ? `<div class="kontrakt${pynt(`kontrakt:${state.budvinner}:${m === null ? "" : m.bud}:${state.trumf ?? ""}`)}">${kontrakt}</div>` : `<div></div>`}
-    <div class="runde">Runde ${state.rundeNr + 1}<br>til ${state.regler.målPoeng}</div>
+    <div class="statustavle" role="group" aria-label="Stillingen i runden">
+      <div class="tavle">${brett}</div>
+      ${status}
+    </div>
   </header>`;
 }
 
@@ -1925,59 +2002,37 @@ function visGjennombrudd(utfall: "klart" | "falt"): void {
 let forrigeBordkort = new Set<string>();
 
 /**
- * ============ BUDTAVLA ==================================================
+/**
+ * ============ BUDTAVLA, OG HVOR DEN BLE AV ==============================
  *
- * ARVIND, punkt 6: «under budrunden er det ikke tydelig hva alle har budt, og
- * teksten om hvem som har budt høyere er altfor liten. budrunden er halve
- * spillet — den fortjener sin egen lesbare visning av hvem som bød hva.»
+ * ARVIND, punkt 6 i runde 6: «under budrunden er det ikke tydelig hva alle har
+ * budt, og teksten om hvem som har budt høyere er altfor liten. budrunden er
+ * halve spillet — den fortjener sin egen lesbare visning av hvem som bød hva.»
  *
  * Alt den viser er offentlig og fantes fra før: `budrunde.sisteBud` er hver
  * spillers høyeste meldte bud, `budrunde.passet` hvem som er ute. Motoren er
  * ikke rørt — opplysningen har hele tiden ligget der uten å bli vist.
- *
- * FIRE RADER, IKKE FIRE KOLONNER. Et bud er et TALL man sammenlikner med de
- * andre tallene, og tall sammenliknes loddrett. En vannrett stripe med fire
- * små celler er nettopp det topplinja allerede er, og den var ikke lesbar
- * nok — det var hele meldingen.
  *
  * TRE TILSTANDER, hver med sin form og ikke bare sin farge:
  *   LEDER   korallflate med hvitt tall. Det er ett bud i runden som gjelder,
  *           og det skal kunne ses på en armlengdes avstand.
  *   MELDT   lys flate med mørkt tall.
  *   PASSET  dempet, med teksten «pass». Han kan ikke komme tilbake, og da
- *           skal raden hans slutte å konkurrere om oppmerksomheten.
+ *           skal cellen hans slutte å konkurrere om oppmerksomheten.
  * Den som ikke har sagt noe ennå står tom, som han er.
+ *
+ * De tre tilstandene lever videre i `topplinje()`. Det som er borte er den
+ * EGNE TAVLA de sto i, og grunnen står under.
  */
-function budtavle(): string {
-  if (state.fase !== "BUDRUNDE") return "";
-  const b = state.budrunde;
-  const leder = b.høyeste;
-  const rader = state.totalPoeng
-    .map((_, i) => {
-      const passet = b.passet[i] === true;
-      const bud = b.sisteBud[i] ?? null;
-      const erLeder = leder !== null && leder.spiller === i;
-      const iTur = state.iTur === i;
-      const verdi = passet && bud === null
-        ? `<span class="pass">pass</span>`
-        : bud === null
-          ? `<span class="intet" aria-hidden="true">·</span>`
-          : `<span class="bud">${budTekst(bud)}</span>`;
-      return `<div class="budrad${erLeder ? " leder" : ""}${passet ? " ute" : ""}${iTur ? " itur" : ""}">
-        <span class="navn">${NAVN[i]}</span>
-        ${verdi}
-      </div>`;
-    })
-    .join("");
-  const tale = state.totalPoeng
-    .map((_, i) => {
-      const bud = b.sisteBud[i] ?? null;
-      return `${NAVN[i]}: ${bud === null ? (b.passet[i] === true ? "pass" : "ikke meldt") : budTekst(bud)}`;
-    })
-    .join(". ");
-  return `<div class="budtavle" role="group" aria-label="Budrunden. ${tale}">${rader}</div>`;
-}
-
+/**
+ * `budtavle()` STO HER og er strøket.
+ *
+ * Den var riktig i runde 6 og er overflødig i runde 7: budene står nå i
+ * spillernes egne celler i topplinja (`topplinje()`), altså i den ENE
+ * sentrerte enheten Arvind ba om — og dermed også utenfor rekkevidde for
+ * hånden, som var blokkeringen denne runden begynte med. To visninger av
+ * hvem som bød hva ville vært to steder å lete.
+ */
 function bordet(): string {
   // Fryst stikk: alle fire kortene blir stående med vinnermarkering.
   const påBordet = frystStikk !== null ? frystStikk.kort : state.bord;
@@ -2067,7 +2122,30 @@ function bordet(): string {
    * Kortryggene som lå her før er borte. De sa «han har fortsatt kort», og
    * det sier tallet ved fjeset like presist uten å ta halve bordet.
    */
-  const VRI = ["0", "-7", "4", "9"];
+  /**
+   * ============ KORTENE VENDER INN MOT BORDETS MIDTE ====================
+   *
+   * ARVIND, runde 7: «kortene vender også inn mot midten av bordet istedenfor
+   * mot seg.»
+   *
+   * Her sto `["0", "-7", "4", "9"]` — tall valgt for at raden skulle se
+   * uryddig ut på en hyggelig måte, altså tilfeldig vri. I skissen peker
+   * hvert kort mot MIDTEN av bordet, slik kort gjør når fire personer kaster
+   * dem inn mot samme punkt.
+   *
+   * Retningen følger av geometrien og ikke av smak: `rotate(θ)` dreier med
+   * klokka, så et kort som ligger til VENSTRE for midten må dreies MOT klokka
+   * for at underkanten skal peke inn mot sentrum, og et kort til høyre med
+   * klokka. Derfor negativt for Franklin (venstre) og positivt for Trump
+   * (høyre). Det er den samme veien skissen viser: der ligger venstre kort med
+   * høyre ende høyest og høyre kort med venstre ende høyest.
+   *
+   * TALLENE ER IKKE SPEILVENDTE, av samme grunn som `NAER` under: en
+   * nøyaktig symmetri leses som et diagram. Midtsetet får et par grader det
+   * ikke trenger geometrisk, fordi et kort som ligger helt rett er det ene
+   * som ser plassert ut.
+   */
+  const VRI = ["-2", "-17", "3", "16"];
   /**
    * ============ HVOR LANGT UNNA HVERT SETE SITTER =======================
    *
@@ -2138,19 +2216,20 @@ function bordet(): string {
    * gjelder, og trenger derfor ikke skrive navnet.
    */
 
-  // TRUMFEN SKAL ALLTID VÆRE SYNLIG. Den lå som ett lite tegn i kontraktlinja
-  // øverst; midt i en runde er det nøyaktig den ene opplysningen man ser etter
-  // oftest, og den skal ikke måtte letes fram.
-  const trumfskilt =
-    state.trumf !== null && (state.fase === "SPILL" || frystStikk !== null)
-      ? `<div class="trumfskilt${pynt(`trumf:${state.trumf}`)}">${stjerne()}<span class="merkelapp">TRUMF</span>${fargeMerke(state.trumf)}</div>`
-      : "";
-  // ETTERLYSNINGEN. «· skjult makker» sto her før, og det var en forklaring på
-  // noe skjermen allerede sier: står det ikke et navn, er makkeren ikke funnet.
-  // Lagfeltet over viser dessuten nøyaktig det samme, i form.
-  const info = state.etterlyst
-    ? `<div class="etterlyst${pynt(`etterlyst:${kortId(state.etterlyst)}:${state.makkerAvslørt ? state.makker : "?"}`)}"><span class="merkelapp">Etterlyst</span>${fargeMerke(state.etterlyst.farge, false)} <b>${VERDI_TEKST(state.etterlyst.verdi)}</b>${state.makkerAvslørt && state.makker !== null ? ` · ${NAVN[state.makker]}` : ""}</div>`
-    : "";
+  /**
+   * ============ TRUMFEN OG ETTERLYSNINGEN ER FLYTTET UT AV BORDET =========
+   *
+   * ARVIND: «info om hva trumf er og hva som er etterlyst gjemmer seg også
+   * under mine kort», og «kortet jeg spiller ut legger seg oppå info om
+   * etterlyste kortet».
+   *
+   * Begge sto som skilt i `.midtfelt`, altså i bordflaten — den ene halvdelen
+   * av skjermen hånden vokser opp i. Å flytte dem lenger opp i den samme
+   * flaten ville bare utsatt problemet til neste gang kortene ble større.
+   *
+   * De står nå i statusenheten øverst (se `topplinje()`), som er en egen rad i
+   * `#app`-rutenettet. Hånden er en annen rad, og rader overlapper ikke.
+   */
   // «DIN TUR» sto ingen steder. Botene fikk en boble, mennesket fikk
   // ingenting — og med to sekunders pauser mellom hvert stikk er det lett å
   // sitte og vente på en skjerm som venter på deg.
@@ -2162,11 +2241,7 @@ function bordet(): string {
     venterPåMenneske && state.fase === "SPILL" && frystStikk === null
       ? `<div class="dintur${pynt("dintur")}">Din tur</div>`
       : "";
-  const tavle = budtavle();
-  const midt =
-    trumfskilt || info || dinTur || tavle
-      ? `<div class="midtfelt">${tavle}${trumfskilt}${info}${dinTur}</div>`
-      : "";
+  const midt = dinTur ? `<div class="midtfelt">${dinTur}</div>` : "";
 
   // Forrige stikk: alltid synlig i hjørnet mens neste stikk spilles.
   const forrige =
@@ -2236,11 +2311,41 @@ function bordet(): string {
 function kortBredde(): number {
   const b = window.innerWidth || 1024;
   const h = window.innerHeight || 768;
-  // Litt større enn før (0,30 → 0,33 av høyden, 0,30 → 0,32 av bredden).
-  // I skissen er hånden det STØRSTE på skjermen, og den var her det minste
-  // av de tre feltene. Taket på 160 px står — over det blir et enkelt kort
-  // så bredt at vifta ikke lenger får plass til fem av dem.
-  return Math.round(Math.max(60, Math.min(160, h * 0.33 * 0.714, b * 0.32)));
+  /**
+   * ============ KORTENE VAR FOR STORE ==================================
+   *
+   * ARVIND, runde 7: «kortene er så sykt store.»
+   *
+   * Runde 6 dro dem OPP (0,30 → 0,33 av høyden) fordi hånden så ut som det
+   * minste av de tre feltene. Det var å lese skissen feil på ett punkt: der
+   * er hånden bred, ikke høy — vifta spenner hele bunnen, men hvert kort er
+   * lite nok til at seks av dem får plass ved siden av hverandre.
+   *
+   * Målt før endringen: 125 px kort på 390×844 og 160 px på iPad, altså 30 %
+   * av skjermbredden per kort. Nå 0,23 av høyden og 0,25 av bredden, med tak
+   * 112 px:
+   *
+   *     telefon 390×844     125 → 98 px   (−22 %)
+   *     iPad 820×1180       160 → 112 px  (−30 %)
+   *     iPad liggende       160 → 112 px  (−30 %)
+   *
+   * Plassen som blir til overs er nettopp den bordflaten blokkeringen
+   * trengte — se `topplinje()`.
+   *
+   * ============ HØYDELEDDET ER 0,27 OG IKKE 0,23, OG DET ER MÅLT =======
+   *
+   * På de tre skjermene familien bruker mest er det BREDDEN eller taket som
+   * binder, så høydeleddet endrer ingenting der. Det binder bare på LIGGENDE
+   * TELEFON (844×390) — og der har mindre kort en bivirkning som drar mot
+   * punkt 2 («man skal måtte bla»): jo mindre kortene er, jo flere av dem får
+   * plass i vinduet, siden steget aldri får bli bredere enn kortet.
+   *
+   * Målt på 844×390: med 0,23 ble kortet 64 px og ELLEVE av tolv kort sto i
+   * vinduet — altså praktisk talt hele hånden. Med 0,27 blir det 75 px og
+   * ni av tolv. Punkt 2 er en regel om hånden, ikke om skjermen, og den skal
+   * ikke falle på nettopp den formfaktoren som pleier å bli glemt.
+   */
+  return Math.round(Math.max(56, Math.min(112, h * 0.27 * 0.714, b * 0.25)));
 }
 
 /**
@@ -2476,9 +2581,101 @@ const HJUL_MAKS_STEG = 0.94;
  * halvveis inne. Et halvt kort i hver kant er dessuten det som SIER at det er
  * mer å bla til — en vifte som slutter pent i begge ender ser ferdig ut.
  */
-const MAKS_SYNLIG = 5.4;
-/** Hvor skrått ytterkortet i vifta står. Bindes til fotavtrykket under. */
-const YTTERVINKEL = 11;
+/**
+ * RUNDE 7: 5,4 → 6,6, og det er toningen som betaler for det.
+ *
+ * Tallet er «hvor mange kortPLASSER vinduet er bredt», ikke «hvor mange kort
+ * man ser». Med den nye toningen i kanten er de ytterste plassene halvt eller
+ * helt utonet, så 6,6 plasser gir omtrent seks LESBARE kort — nøyaktig det
+ * skissen viser. Sto den igjen på 5,4, ville toningen spist to av fem kort og
+ * hånden blitt smalere enn før i stedet for luftigere.
+ *
+ * Punkt 2 og 7 står uendret: seks av tolv er fortsatt en hånd man må bla i,
+ * og gulvet er fortsatt det samme i budrunde, spill og innsamling.
+ */
+const MAKS_SYNLIG = 6.6;
+/**
+ * ============ VIFTA BØYER SEG MYE MER =================================
+ *
+ * ARVIND, runde 7: «hvis man ser på mockup så ser man at kortene er større på
+ * midten og blir mindre på sidene. de bøyer seg også mye mer etter hjulet.»
+ *
+ * Tre tall styrer den formen, og de hører sammen:
+ *
+ *   YTTERVINKEL  hvor skrått ytterkortet står. 11° → 20°.
+ *   BUEANDEL     hvor langt ned ytterkortet faller, som andel av korthøyden.
+ *                0,07 → 0,34 — altså en tredel av et kort, som i skissen.
+ *   TAPER        hvor mye mindre ytterkortet er enn midtkortet. Ny.
+ *
+ * De er ikke uavhengige: `fotavtrykk` i `oppdaterHjul()` regner ut hvor bredt
+ * et kort på skrå faktisk blir, og `overheng` hvor mye høyere. Begge leser
+ * den SAMME vinkelen som kortene får (`ytter`, altså YTTERVINKEL flatet ut
+ * for lave skjermer), så en kraftigere bue betaler for seg selv i plass i
+ * stedet for å bli klippet — som er nøyaktig feilen runde 6 rettet én gang og
+ * som ville kommet tilbake hvis vinkelen ble skrudd opp alene.
+ */
+const YTTERVINKEL = 20;
+/** Hvor langt ytterkortet faller under midtkortet, i andel av korthøyden. */
+const BUEANDEL = 0.34;
+/**
+ * ============ BUEN FLATER UT FØR KANTEN ================================
+ *
+ * Bøyen er `d²`, og et kvadrat faller 1 : 4 : 9 for steg 1, 2 og 3. Målt på
+ * skissen faller den 1 : 2,3 — altså mye slakere ute på flankene. Skissens
+ * vifte er en SMILEBUE, ikke en parabel: den krummer i midten og retter seg
+ * ut mot endene, slik en vifte man holder i hånden gjør når kortene begynner
+ * å ligge parallelt.
+ *
+ * `d²` er fortsatt formen (`abs()` finnes ikke på eldre iPad-Safari, og et
+ * kvadrat er den eneste billige, jevne kurven som er symmetrisk). Knekken
+ * kommer av at UTSLAGET når taket sitt allerede ved 0,72 av spennet i stedet
+ * for helt ute ved kanten: koeffisienten regnes ut for det punktet, og
+ * `min()` i CSS holder resten flat. Målt etterpå faller vifta 1 : 2,8.
+ */
+const BUEKNEKK = 0.72;
+/**
+ * PERSPEKTIVSKALERINGEN. Ytterkortet er 18 % mindre enn midtkortet.
+ *
+ * 0,30 først, og det var for mye: målt på det rendrede bildet ble ytterkortet
+ * 0,77 av midtkortet, mens skissen ligger på 0,88 over tre steg. Vifta så da
+ * ut som en trapp av ulike kortstokker i stedet for som én hånd i perspektiv.
+ * Den samlede krympingen er litt større enn 0,18, siden `translate`-ens
+ * dybde skalerer i tillegg — målt 0,84 ved kanten av vinduet.
+ *
+ * Dette er en ANDRE skalering, uavhengig av `translate`-ens dybde (`--zdyp`).
+ * Dybden gir kortet en plass i rommet; denne gir vifta formen skissen har,
+ * der midtkortet er det største og de andre trapper ned symmetrisk. Uten den
+ * er en vifte bare en rad med skrå kort.
+ *
+ * Ligger på CSS-egenskapen `scale` og ikke i `transform` — av nøyaktig samme
+ * grunn som `translate` og `rotate` gjør det: `transform` er allerede eid av
+ * løftet, hoveren og kastet, og to skrivere på samme egenskap betyr at den
+ * ene alltid taper.
+ */
+const TAPER = 0.18;
+/**
+ * TONINGEN I KANTEN.
+ *
+ * ARVIND: «kortene har en stygg avkutting rett før pilene.»
+ *
+ * `clip-path` klipper vifta mot hjulets kanter, og et kort som blir kappet
+ * med en loddrett strek midt i flaten ser uferdig ut — i et design der
+ * ingenting annet har en hard kant. Nå tones kortet ut FØR det når klippet:
+ * full dekkevne inn til 0,85 av spennet, null nøyaktig ved kanten. Klippet
+ * gjør fortsatt jobben sin; det er bare ingenting igjen å klippe.
+ *
+ * Tallet er `A` i `opacity = A − ton·d²`, med `ton = A / spenn²` slik at
+ * nullpunktet ligger på kanten uansett hvor mange kort hånden har.
+ *
+ * 3,6 og ikke 1,9, og forskjellen er målt: `A` bestemmer HVOR toningen
+ * begynner (ved `spenn·√(1−1/A)`), ikke hvor den slutter — nullpunktet ligger
+ * på kanten uansett. Med 1,9 begynte den på 0,69 av spennet, og på en 390 px
+ * telefon spiste den to av fem kort: tre lesbare kort igjen der forrige runde
+ * hadde fem. Med 3,6 begynner den på 0,85, altså først når kortet er på vei
+ * ut av bildet. Målt etterpå: fem kort i full dekkevne, og et kort er helt
+ * utonet 21 px FØR det når klippekanten — så avkuttingen kan ikke ses.
+ */
+const TONEHOYDE = 3.6;
 /** Sant når alle kortene får plass; da er pilene av og senteret låst. */
 let hjulLåst = true;
 /** Piksler per indekssteg, målt sist. Gestene regner om fra denne. */
@@ -2499,7 +2696,26 @@ function oppdaterHjul(): void {
   const kort = [...hjul.querySelectorAll<HTMLElement>(".kort")];
   const n = kort.length;
   if (n === 0) return;
-  const kb = kort[0]!.getBoundingClientRect().width || kortBredde();
+  /**
+   * ============ `offsetWidth`, IKKE `getBoundingClientRect()` ==========
+   *
+   * Her sto `getBoundingClientRect().width`, og det var riktig helt til
+   * runde 7 ga kortene en perspektivskalering. Da ble det en LØKKE: den
+   * målte bredden er den TRANSFORMERTE bredden, altså kortbredden ganget med
+   * `--krymp` — som er utregnet av forrige runde gjennom denne funksjonen.
+   *
+   * Målt i nettleseren: `kort[0]` er ytterkortet i vifta (senteret ligger
+   * midt i hånden, så DOM-ens første kort er det som er brettet lengst bort),
+   * altså nøyaktig det kortet skaleringen krymper mest. 98 px ble målt til
+   * 66, steget ble regnet ut av 66, og toningen fikk et spenn på 1,94 i
+   * stedet for 2,8 — tre synlige kort i stedet for sju. Formen så feil ut på
+   * en måte ingen enkelt verdi i koden var feil.
+   *
+   * `offsetWidth` er LAYOUTBREDDEN og ser ikke transformer i det hele tatt.
+   * Den kan derfor ikke mate sitt eget resultat tilbake. Rundet til heltall,
+   * som er nøyaktig nok her: `--kb` settes i hele piksler fra `kortBredde()`.
+   */
+  const kb = kort[0]!.offsetWidth || kortBredde();
   const bredde = hjul.clientWidth || window.innerWidth;
   /**
    * DET YTTERSTE KORTET STÅR PÅ SKRÅ, og et skrått kort er BREDERE enn et
@@ -2512,7 +2728,30 @@ function oppdaterHjul(): void {
    * Fotavtrykket er derfor det ROTERTE kortets bredde: b·cos v + h·sin v,
    * med v = `YTTERVINKEL`, den største vinkelen `oppdaterHjul` deler ut.
    */
-  const ytterRad = (YTTERVINKEL * Math.PI) / 180;
+  /**
+   * ============ LIGGENDE TELEFON FLATER UT VIFTA ========================
+   *
+   * ARVIND, runde 7: liggende telefon er «skikkelig dårlig».
+   *
+   * Buen og vinkelen koster HØYDE — bøyen legger `BUEANDEL` av en korthøyde
+   * til under vifta, og et skrått kort er høyere enn et rett. På 390×844 er
+   * det billig; på 844×390 er høyden den knappe ressursen, og den samme buen
+   * spiste 33 % av skjermen for en hånd som skulle vært lesbar.
+   *
+   * `flathet` går fra 1 på en høy skjerm til 0,45 på den laveste. Den ganges
+   * inn i BÅDE buen og vinkelen, slik at formen blir flatere og bredere i
+   * stedet for mindre — vifta bruker den bredden liggende har i overflod.
+   *
+   *     390×844   flathet 1,00   bue 45 px, ytterkort 20°
+   *     844×390   flathet 0,56   bue 20 px, ytterkort 16°
+   *
+   * Vinkelen faller mindre enn buen (0,55 + 0,45·flathet mot flathet selv):
+   * skråstillingen er det som gjør en vifte til en vifte, mens fallet er det
+   * som koster plass. Blir vinkelen null, er hånden en rad kort igjen.
+   */
+  const flathet = Math.min(1, Math.max(0.45, (window.innerHeight || 768) / 700));
+  const ytter = YTTERVINKEL * (0.55 + 0.45 * flathet);
+  const ytterRad = (ytter * Math.PI) / 180;
   const fotavtrykk = kb * Math.cos(ytterRad) + (kb / 0.714) * Math.sin(ytterRad);
   const ønsket = n > 1 ? (bredde - fotavtrykk) / (n - 1) : kb;
   /**
@@ -2558,10 +2797,12 @@ function oppdaterHjul(): void {
    */
   const kortHøyde = kb / 0.714;
   const maksD = Math.max(0.5, hjulLåst ? (n - 1) / 2 : hjulSpenn);
-  const bue = Math.min(22, kortHøyde * 0.07);
-  // Vinkelen på samme vis: ytterkortet skal stå rundt 11° på skrå, uansett om
-  // hånden har fire kort eller tretten.
-  const vinkel = Math.min(3.2, YTTERVINKEL / maksD);
+  const bue = Math.min(58, kortHøyde * BUEANDEL * flathet);
+  // Vinkelen på samme vis: ytterkortet skal stå rundt `ytter` på skrå,
+  // uansett om hånden har fire kort eller tretten. Taket per steg er hevet
+  // fra 3,2° til 10° sammen med vinkelen selv — sto det igjen på 3,2, ville
+  // en hånd med få kort aldri nådd den buen skissen har.
+  const vinkel = Math.min(10, ytter / maksD);
   /**
    * ET SKRÅTT KORT ER OGSÅ HØYERE, og det ble glemt én gang til — i høyden
    * denne gangen. Målt i nettleseren: ytterkortet lå 16 px under beholderen
@@ -2573,11 +2814,29 @@ function oppdaterHjul(): void {
    */
   const rad = ((vinkel * maksD) * Math.PI) / 180;
   const overheng = Math.max(0, (kortHøyde * Math.cos(rad) + kb * Math.sin(rad) - kortHøyde) / 2);
+  /**
+   * SKALERINGEN OG TONINGEN REGNES BAKLENGS FRA SPENNET, som bue og vinkel.
+   *
+   * Da holder formen seg lik enten hånden har tolv kort eller tre: det er
+   * ALLTID ytterkortet i vinduet som er `TAPER` mindre og som treffer null i
+   * dekkevne, ikke «kort nummer fem» eller en piksel-avstand som tilfeldigvis
+   * stemte på den ene skjermen den ble prøvd på.
+   *
+   * LÅST HÅND TONER IKKE. Får alle kortene plass, er det ingen kant å tone
+   * mot — og en vifte der ytterkortet er halvveis borte uten at det finnes
+   * mer å bla til er bare et kort som mangler.
+   */
+  const skalning = TAPER / (maksD * maksD);
+  const toning = hjulLåst ? 0 : TONEHOYDE / (maksD * maksD);
   // Skrives som ÉN streng, slik at neste tegning kan legge nøyaktig de samme
   // verdiene rett i HTML-en og dermed ikke utløse noen overgang.
+  // Koeffisienten er regnet for KNEKKPUNKTET, ikke for kanten — se `BUEKNEKK`.
+  const knekkD = Math.max(0.5, maksD * BUEKNEKK);
   hjulMål =
-    `--steg:${hjulSteg.toFixed(2)}px;--boy:${(bue / (maksD * maksD)).toFixed(4)}px;` +
+    `--steg:${hjulSteg.toFixed(2)}px;--boy:${(bue / (knekkD * knekkD)).toFixed(4)}px;` +
     `--boymaks:${bue.toFixed(1)}px;--vinkel:${vinkel.toFixed(2)}deg;` +
+    `--krymp:${skalning.toFixed(5)};--krympmaks:${TAPER.toFixed(3)};` +
+    `--ton:${toning.toFixed(5)};` +
     `--bue:${(bue + overheng).toFixed(1)}px`;
   for (const [navn, verdi] of hjulMål.split(";").map((d) => d.split(":") as [string, string])) {
     hjul.style.setProperty(navn, verdi);
