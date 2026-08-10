@@ -3849,7 +3849,7 @@ var Budagent = class {
 // web/app.ts
 var DATA_URL = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
 var MENNESKE = 0;
-var BUNDELVERSJON = "v8-2026-08-10";
+var BUNDELVERSJON = "v9-2026-08-10";
 globalThis["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 var LOKAL = location.protocol === "http:";
 var MESTER_URL = `${location.origin}/mester`;
@@ -4363,7 +4363,7 @@ function samleStikketTilVinneren(vinner) {
   }, SAMLE_START);
 }
 function flyStikkmerke(fra, vinner) {
-  const til = rot.querySelector(`.sone[data-seter~="${vinner}"]`) ?? rot.querySelector(".stikksoyle .sone");
+  const til = rot.querySelector(`.fyll[data-seter~="${vinner}"]`) ?? rot.querySelector(".stikksoyle .lop");
   if (til === null) return;
   const a = fra.getBoundingClientRect();
   const b = til.getBoundingClientRect();
@@ -4399,7 +4399,9 @@ function håndterHendelser(hendelser) {
       si(`Trumf er ${FARGE_NAVN[h.trumf]}${h.etterlyst ? `, etterlyst ${kortTale(h.etterlyst)}` : ""}.`);
       lagmodus = h.etterlyst === null ? "lag" : "individuell";
       smeltetVist = h.etterlyst === null;
-      sistTatt = /* @__PURE__ */ new Map();
+      sistBudTatt = -1;
+      sistForsvarTatt = -1;
+      avgjortVist = "";
     } else if (h.type === "MAKKER_AVSLØRT") {
       si(`${NAVN[h.spiller]} er makkeren!`);
       lagmodus = "smelter";
@@ -4411,7 +4413,9 @@ function håndterHendelser(hendelser) {
     } else if (h.type === "NY_RUNDE") {
       lagmodus = "ingen";
       smeltetVist = false;
-      sistTatt = /* @__PURE__ */ new Map();
+      sistBudTatt = -1;
+      sistForsvarTatt = -1;
+      avgjortVist = "";
     } else if (h.type === "STIKK_FERDIG") {
       si(`${NAVN[h.vinner]} vant stikket.`);
     } else if (h.type === "RUNDE_SLUTT") {
@@ -4595,67 +4599,84 @@ function målStikk() {
   if (m === null) return 0;
   return m.type === "tall" ? m.bud : state.giving.antallStikk;
 }
-var FORSVARSFARGER = ["rod", "hvit", "staal"];
-function soneListe() {
+function lopData() {
   const lag = budlaget();
-  const mål = målStikk();
-  const rest = Math.max(1, state.giving.antallStikk - mål);
   const stikk = state.stikkVunnet;
   const forsvar = state.totalPoeng.map((_, i) => i).filter((i) => !lag.includes(i));
-  const ut = forsvar.map((i, n) => ({
-    seter: [i],
-    farge: FORSVARSFARGER[n] ?? "staal",
-    hakk: rest,
-    tatt: stikk[i] ?? 0
-  }));
-  ut.push({
-    seter: lag,
-    farge: "blaa",
-    hakk: Math.max(1, mål),
-    tatt: lag.reduce((s, i) => s + (stikk[i] ?? 0), 0)
-  });
-  return ut;
+  return {
+    hakk: Math.max(1, state.giving.antallStikk),
+    mål: Math.max(1, målStikk()),
+    lag,
+    forsvar,
+    budTatt: lag.reduce((s, i) => s + (stikk[i] ?? 0), 0),
+    forsvarTatt: forsvar.reduce((s, i) => s + (stikk[i] ?? 0), 0)
+  };
 }
-var sistTatt = /* @__PURE__ */ new Map();
+var sistBudTatt = -1;
+var sistForsvarTatt = -1;
+var avgjortVist = "";
 function stikksoyle() {
   const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
   if (!iSpill || lagmodus === "ingen" || state.budvinner === null) {
-    sistTatt = /* @__PURE__ */ new Map();
+    sistBudTatt = -1;
+    sistForsvarTatt = -1;
     return `<div class="stikksoyle tom" aria-hidden="true"></div>`;
   }
-  const mål = målStikk();
+  const d = lopData();
+  const pst = (n) => `${(n / d.hakk * 100).toFixed(4)}%`;
   const smelterNå = lagmodus === "smelter" && !smeltetVist;
   if (smelterNå) smeltetVist = true;
-  const nyTatt = /* @__PURE__ */ new Map();
-  const soner = soneListe().map((s) => {
-    const nøkkel2 = s.seter.join("+");
-    const før = sistTatt.get(nøkkel2) ?? 0;
-    nyTatt.set(nøkkel2, s.tatt);
-    const fylte = Math.min(s.tatt, s.hakk);
-    const over = s.tatt - s.hakk;
-    const erBlå = s.farge === "blaa";
-    const hakk = Array.from({ length: s.hakk }, (_, i) => {
-      const fylt = i < fylte;
-      const ny = fylt && i >= Math.min(før, s.hakk);
-      return `<span class="celle${fylt ? " fylt" : ""}${ny ? " ny" : ""}">${erBlå ? stjerne() : ""}</span>`;
-    }).join("");
-    const navn = s.seter.map((i) => NAVN[i]).join(" og ");
-    const tekst = erBlå ? `${navn}: ${s.tatt} av ${mål} stikk` : `${navn}: ${s.tatt} stikk`;
-    const fjes = s.seter.map((i, n) => medaljong(i, smelterNå && erBlå && n > 0 ? " kommer" : "")).join("");
-    const klart = erBlå && s.tatt >= mål;
-    return `<div class="sone ${s.farge}${klart ? " klart" : ""}${smelterNå && erBlå ? " svelger" : ""}"
-        data-seter="${s.seter.join(" ")}"
-        ${erBlå ? `role="progressbar" aria-valuemin="0" aria-valuemax="${mål}" aria-valuenow="${s.tatt}"` : `role="img"`}
-        aria-label="${tekst}"
-        style="flex: ${s.hakk} 1 0">
-        ${erBlå ? `<div class="budstrek" aria-hidden="true"></div><div class="budmerke" aria-hidden="true">${mål}</div>` : ""}
-        <div class="medaljongstabel">${fjes}</div>
-        ${hakk}
-        <span class="tall${s.tatt !== før ? " slag" : ""}" aria-hidden="true">${s.tatt}${over > 0 ? `<span class="mot">+${over}</span>` : ""}</span>
-      </div>`;
-  }).join("");
-  sistTatt = nyTatt;
-  return `<div class="stikksoyle" role="group" aria-label="Stikk så langt">${soner}</div>`;
+  const budNavn = d.lag.map((i) => NAVN[i]).join(" og ");
+  const forsvarNavn = d.forsvar.map((i) => NAVN[i]).join(", ");
+  const felleKrav = d.hakk - d.mål + 1;
+  const utfall = d.budTatt >= d.mål ? "klart" : d.forsvarTatt >= felleKrav && lagmodus === "lag" ? "falt" : "";
+  if (utfall !== "" && avgjortVist === "") {
+    avgjortVist = utfall;
+    si(utfall === "klart" ? "Kontrakten er i havn." : "Kontrakten falt.");
+    gjennombruddVenter = utfall;
+  }
+  const fjes = (seter, sisteErNy) => seter.map((i, n) => medaljong(i, sisteErNy && n === seter.length - 1 ? " kommer" : "")).join("");
+  const budSlag = sistBudTatt >= 0 && d.budTatt !== sistBudTatt;
+  const forsvarSlag = sistForsvarTatt >= 0 && d.forsvarTatt !== sistForsvarTatt;
+  sistBudTatt = d.budTatt;
+  sistForsvarTatt = d.forsvarTatt;
+  return `<div class="stikksoyle" role="group" aria-label="Kappløpet om kontrakten">
+    <div class="lop" style="--n:${d.hakk}">
+      <div class="fyll forsvar" data-seter="${d.forsvar.join(" ")}"
+           style="height:${pst(Math.min(d.forsvarTatt, d.hakk))}"
+           role="progressbar" aria-valuemin="0" aria-valuemax="${felleKrav}" aria-valuenow="${d.forsvarTatt}"
+           aria-label="Forsvaret (${forsvarNavn}): ${d.forsvarTatt} stikk, trenger ${felleKrav} for å felle kontrakten"></div>
+      <div class="fyll bud" data-seter="${d.lag.join(" ")}"
+           style="height:${pst(Math.min(d.budTatt, d.hakk))}"
+           role="progressbar" aria-valuemin="0" aria-valuemax="${d.mål}" aria-valuenow="${d.budTatt}"
+           aria-label="${budNavn}: ${d.budTatt} av ${d.mål} stikk"></div>
+    </div>
+    <div class="kontraktmerke" style="bottom:${pst(d.mål)}" aria-hidden="true">
+      <span class="strek"></span><span class="budmerke">${d.mål}</span>
+    </div>
+    <div class="medaljongstabel topp" aria-hidden="true">${fjes(d.forsvar, false)}</div>
+    <div class="medaljongstabel bunn" aria-hidden="true">${fjes(d.lag, smelterNå)}</div>
+    <span class="tall topp${forsvarSlag ? " slag" : ""}" aria-hidden="true">${d.forsvarTatt}</span>
+    <span class="tall bunn${budSlag ? " slag" : ""}" aria-hidden="true">${d.budTatt}</span>
+  </div>`;
+}
+var gjennombruddVenter = "";
+var GJENNOMBRUDD_MS = 1300;
+function visGjennombrudd(utfall) {
+  const merke = rot.querySelector(".stikksoyle .kontraktmerke");
+  const søyle = rot.querySelector(".stikksoyle .lop");
+  if (merke === null || søyle === null) return;
+  const m = merke.getBoundingClientRect();
+  const s = søyle.getBoundingClientRect();
+  const el = document.createElement("div");
+  el.className = `gjennombrudd ${utfall}`;
+  el.setAttribute("aria-hidden", "true");
+  el.style.left = `${s.left}px`;
+  el.style.top = `${m.top}px`;
+  el.style.width = `${s.width}px`;
+  el.innerHTML = `<span class="lyn"></span><span class="bolge"></span><span class="rop">${utfall === "klart" ? "I havn" : "Kontrakten falt"}</span>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), GJENNOMBRUDD_MS);
 }
 var forrigeBordkort = /* @__PURE__ */ new Set();
 function bordet() {
@@ -4712,22 +4733,54 @@ function kortBredde() {
 }
 var hjulSenter = 0;
 var sistHåndAntall = -1;
+var sistSpillTur = "";
+function wrapD(d, n) {
+  if (n <= 0) return d;
+  const halv = n / 2;
+  let x = d;
+  while (x > halv) x -= n;
+  while (x <= -halv) x += n;
+  return x;
+}
+function wrapSenter(v, n) {
+  if (n <= 0) return 0;
+  return (v % n + n) % n;
+}
+var sistD = [];
+function zAv(d) {
+  return Math.max(1, Math.round(30 + d * 2));
+}
 function håndrad() {
   const lov = lovligeHandlinger(state);
   const hånd = sorterHånd(state.hender[MENNESKE] ?? []);
   const spillbare = venterPåMenneske && lov.fase === "SPILL" ? new Set(lov.kort.map((k) => `${k.farge}${k.verdi}`)) : null;
   const passiv = spillbare === null;
-  if (hånd.length > sistHåndAntall) hjulSenter = (hånd.length - 1) / 2;
+  if (hånd.length > sistHåndAntall) hjulSenter = Math.round((hånd.length - 1) / 2);
   sistHåndAntall = hånd.length;
-  hjulSenter = Math.max(0, Math.min(hånd.length - 1, hjulSenter));
+  hjulSenter = wrapSenter(hjulSenter, hånd.length);
+  const turNøkkel = spillbare === null ? "" : `${state.stikkSpilt}:${hånd.length}`;
+  if (spillbare !== null && turNøkkel !== sistSpillTur) {
+    sistSpillTur = turNøkkel;
+    const lovlige = hånd.map((k, i) => spillbare.has(`${k.farge}${k.verdi}`) ? i : -1).filter((i) => i >= 0);
+    const synlig = lovlige.some(
+      (i) => Math.abs(wrapD(i - hjulSenter, hånd.length)) <= hjulSpenn + 0.5
+    );
+    if (lovlige.length > 0 && !synlig) {
+      hjulSenter = lovlige[Math.floor((lovlige.length - 1) / 2)];
+    }
+  } else if (turNøkkel === "") {
+    sistSpillTur = "";
+  }
   const kb = kortBredde();
-  const kort = hånd.map(
-    (k, i) => kortKnapp(k, {
+  const låstNå = hjulLåst;
+  const kort = hånd.map((k, i) => {
+    const d = låstNå ? i - hjulSenter : wrapD(i - hjulSenter, hånd.length);
+    return kortKnapp(k, {
       valgbar: spillbare !== null && spillbare.has(`${k.farge}${k.verdi}`),
       valgt: vrakValg.some((v) => v.farge === k.farge && v.verdi === k.verdi),
-      stil: `--i:${i}`
-    })
-  ).join("");
+      stil: `--i:${i};--d:${d.toFixed(3)};z-index:${zAv(d)}`
+    });
+  }).join("");
   const pil = (retning, merke) => `<button class="blapil ${retning}" id="bla-${retning}" aria-label="${merke}" disabled>
       <svg class="pil" viewBox="0 0 100 100" aria-hidden="true"><use href="#pilmerke"></use></svg>
     </button>`;
@@ -4777,16 +4830,30 @@ function settSenter(v) {
   const kort = [...hjul.querySelectorAll(".kort")];
   const n = kort.length;
   if (n === 0) return;
-  hjulSenter = hjulLåst ? (n - 1) / 2 : Math.max(hjulSpenn, Math.min(n - 1 - hjulSpenn, v));
+  if (sistD.length !== n) sistD = [];
+  hjulSenter = hjulLåst ? (n - 1) / 2 : wrapSenter(v, n);
   hjul.style.setProperty("--senter", hjulSenter.toFixed(3));
+  const nyD = [];
   for (let i = 0; i < n; i++) {
-    const d = Math.abs(i - hjulSenter);
-    kort[i].style.zIndex = String(Math.max(1, Math.round(40 - d * 2)));
+    const d = hjulLåst ? i - hjulSenter : wrapD(i - hjulSenter, n);
+    nyD.push(d);
+    const el = kort[i];
+    const før = sistD[i];
+    if (før !== void 0 && Math.abs(d - før) > n / 2) {
+      el.style.transition = "none";
+      el.style.setProperty("--d", d.toFixed(3));
+      void el.offsetWidth;
+      el.style.transition = "";
+    } else {
+      el.style.setProperty("--d", d.toFixed(3));
+    }
+    el.style.zIndex = String(zAv(d));
   }
+  sistD = nyD;
   const v1 = document.getElementById("bla-venstre");
   const h1 = document.getElementById("bla-hoyre");
-  if (v1) v1.disabled = hjulLåst || hjulSenter <= hjulSpenn + 0.02;
-  if (h1) h1.disabled = hjulLåst || hjulSenter >= n - 1 - hjulSpenn - 0.02;
+  if (v1) v1.disabled = hjulLåst;
+  if (h1) h1.disabled = hjulLåst;
 }
 var gest = null;
 var gestSluttet = 0;
@@ -4929,7 +4996,7 @@ function budPanel() {
   if (!venterPåMenneske || lov.fase !== "BUDRUNDE") return "";
   const tall = lov.bud.filter((b) => typeof b === "number");
   const høyeste = state.budrunde.høyeste;
-  return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Ditt bud">
+  return `<div class="overlegg apen"><div class="panel" role="dialog" aria-label="Ditt bud">
     <h2>Ditt bud${høyeste ? `<span class="bekreftsmatt">Høyeste: ${budTekst(høyeste.bud)} · ${NAVN[høyeste.spiller]}</span>` : ""}</h2>
     <div class="knapper">
       <button class="stor pass" data-bud="PASS">Pass</button>
@@ -4953,7 +5020,7 @@ function velgPanel() {
   const lov = lovligeHandlinger(state);
   if (!venterPåMenneske || lov.fase !== "VELG") return "";
   if (velgTrumfValg === null) {
-    return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Velg trumf">
+    return `<div class="overlegg apen"><div class="panel" role="dialog" aria-label="Velg trumf">
       <h2>Velg trumffarge</h2>
       <div class="trumfvalg">${["S", "K", "H", "R"].map(
       (f) => `<button class="trumfkort ${fargeKlasse(f)}" data-trumf="${f}" aria-label="${FARGE_NAVN[f]}">
@@ -4980,7 +5047,7 @@ function velgPanel() {
     </div></div>`;
   }
   const lovlige = lovligeEtterlys(state, trumf);
-  return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Etterlys et kort">
+  return `<div class="overlegg apen"><div class="panel" role="dialog" aria-label="Etterlys et kort">
     <h2>Etterlys et ${fargeMerke(trumf)}</h2>
     <div class="etterlysrad">${lovlige.slice().sort((a, b) => b.verdi - a.verdi).map(
     (k) => `<button class="minikort ${fargeKlasse(trumf)}" data-ev="${k.verdi}" aria-label="${kortTale(k)}">
@@ -5027,6 +5094,11 @@ function tegn() {
   sistPanel = nøkkel2;
   koble();
   oppdaterHjul();
+  if (gjennombruddVenter !== "") {
+    const u = gjennombruddVenter;
+    gjennombruddVenter = "";
+    visGjennombrudd(u);
+  }
 }
 function koble() {
   const lov = lovligeHandlinger(state);

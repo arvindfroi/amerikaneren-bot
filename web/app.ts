@@ -53,7 +53,7 @@ const MENNESKE = 0;
  *
  * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
  */
-const BUNDELVERSJON = "v8-2026-08-10";
+const BUNDELVERSJON = "v9-2026-08-10";
 (globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
@@ -1220,9 +1220,9 @@ function gjør(h: Handling): void {
  *            med hver sin lille rotasjon og forskyvning, i FULL dekkevne. En
  *            bunke man ser ligge der, ikke fire kort som ble borte.
  *   1280 ms  bunken får et lite nedslag når den treffer.
- *   1500 ms  et stikkmerke spretter ut av bunken og flyr inn i lagbaren, som
- *            slår til. Da har stikket en synlig konsekvens: det ble framdrift
- *            mot kontrakten.
+ *   1500 ms  et stikkmerke spretter ut av bunken og flyr inn i den siden av
+ *            stikksøyla som fikk stikket, og den slår til. Da har stikket en
+ *            synlig konsekvens: det ble framdrift i kappløpet.
  *   2600 ms  neste stikk.
  *
  * Under `prefers-reduced-motion` gjøres ingenting av dette; da står kortene
@@ -1280,9 +1280,9 @@ function samleStikketTilVinneren(vinner: number): void {
 }
 
 /**
- * STIKKET BLIR TIL FRAMDRIFT. Et merke spretter ut av bunken og flyr inn i
- * lagbaren (eller i vinnerens brikke, før laget er dannet), som slår til når
- * det treffer.
+ * STIKKET BLIR TIL FRAMDRIFT. Et merke spretter ut av bunken og flyr inn i den
+ * siden av stikksøyla som fikk stikket — den blå nedenfra eller den røde
+ * ovenfra — og den flaten slår til når det treffer.
  *
  * Dette er koblingen Arvind ba om: «deres stikk gå til et felles lagstikk
  * progress bar». Uten flyvningen er baren bare et tall som endrer seg mens man
@@ -1293,11 +1293,12 @@ function samleStikketTilVinneren(vinner: number): void {
  * til å la animasjonen henge i noe som blir revet.
  */
 function flyStikkmerke(fra: HTMLElement, vinner: number): void {
-  // Merket skal fly til den SONEN som fikk stikket, ikke til søyla som
-  // helhet. Det er hele koblingen: man ser hvem stikket ble framdrift for.
+  // Merket skal fly til den SIDEN av løpet som fikk stikket, ikke til søyla
+  // som helhet. Det er hele koblingen: man ser hvem stikket ble framdrift
+  // for, og hvilken vei den siden vokser.
   const til =
-    rot.querySelector<HTMLElement>(`.sone[data-seter~="${vinner}"]`) ??
-    rot.querySelector<HTMLElement>(".stikksoyle .sone");
+    rot.querySelector<HTMLElement>(`.fyll[data-seter~="${vinner}"]`) ??
+    rot.querySelector<HTMLElement>(".stikksoyle .lop");
   if (til === null) return;
   const a = fra.getBoundingClientRect();
   const b = til.getBoundingClientRect();
@@ -1336,7 +1337,9 @@ function håndterHendelser(hendelser: readonly Hendelse[]): void {
       // ingen makker å vente på, og baren står fra første stikk.
       lagmodus = h.etterlyst === null ? "lag" : "individuell";
       smeltetVist = h.etterlyst === null;
-      sistTatt = new Map();
+      sistBudTatt = -1;
+      sistForsvarTatt = -1;
+      avgjortVist = "";
     } else if (h.type === "MAKKER_AVSLØRT") {
       si(`${NAVN[h.spiller]} er makkeren!`);
       // SAMMENSLÅINGEN. Fra nå av er det lagets stikk som teller, og bandet
@@ -1352,7 +1355,9 @@ function håndterHendelser(hendelser: readonly Hendelse[]): void {
     } else if (h.type === "NY_RUNDE") {
       lagmodus = "ingen";
       smeltetVist = false;
-      sistTatt = new Map();
+      sistBudTatt = -1;
+      sistForsvarTatt = -1;
+      avgjortVist = "";
     } else if (h.type === "STIKK_FERDIG") {
       si(`${NAVN[h.vinner]} vant stikket.`);
     } else if (h.type === "RUNDE_SLUTT") {
@@ -1620,142 +1625,200 @@ function målStikk(): number {
 }
 
 /**
- * ============ STIKKSØYLA ================================================
+ * ============ STIKKSØYLA SOM KAPPLØP ====================================
  *
- * ARVIND, om konseptkunsten: «hvert stikk fyller opp en bar for alle 4
- * spillere. budvinner og makker skal fylle den blå med stjerner opp til
- * budnivået og forsvarere skal ta stikk. forsvar spiller 1 er rød og
- * forsvarspiller 2 er hvit fordi de deler ikke poeng.»
+ * ARVIND: «progress baren skal være helt tom fra alle sider og fylles det opp
+ * nedenfra når budparet får stikk og så fylles det fra toppen når forsvaret
+ * får stikk. også er det en markør på hvor kontrakten ligger og begge lag
+ * prøver å passere den først liksom.»
  *
- * ============ HVA DETTE ERSTATTER, OG HVORFOR DET ER BEDRE =============
+ * ============ HVORFOR DETTE ER RIKTIGERE ENN FIRE SONER ================
  *
- * Den forrige lagstikk-baren viste laget mot budet og la de tre andre inn i
- * ett tall: «mot 3». Det var greit så langt det rakk, og det rakk ikke langt
- * nok — for i Amerikaneren DELER IKKE forsvarerne poeng. Hver av dem fører sin
- * egen konto, og en samlebar sier det motsatte av regelen. Arvind så det i
- * tegningen før noen sa det med ord.
+ * Forrige runde ga hver konto sin egen sone og fylte dem hver for seg. Den var
+ * lesbar, og den fortalte likevel feil historie: runden så ut som fire
+ * uavhengige tellere, mens den er ETT kappløp mot én strek.
  *
- * ============ HVORFOR SONENE HAR AKKURAT DE HØYDENE ====================
+ * ============ GEOMETRIEN GJØR REGELEN SANN AV SEG SELV =================
  *
- * Søyla er HELE RUNDEN, delt slik kontrakten deler den:
+ * Løpet har ett hakk per stikk i runden (`antallStikk`), og markøren står
+ * `mål` hakk over bunnen. Da gjelder:
  *
- *   den blå sonen   ett hakk per stikk kontrakten krever (`mål`)
- *   hver forsvarer  ett hakk per stikk som blir til overs om kontrakten går
- *                   inn på akkurat (`antallStikk − mål`, minst 1)
+ *   budlaget klarer seg  ⟺  budstikk ≥ mål        ⟺  den blå NÅR streken
+ *   forsvaret feller     ⟺  forsvarsstikk > n−mål ⟺  den røde KRYSSER den
  *
- * Budnivåstreken er derfor ikke et tall tegnet oppå en bar — den ER der den
- * blå sonen slutter. Går laget over, står overskuddet som «+n» ved tallet;
- * går en forsvarer over sin sone, likeså. Tallet er alltid eksakt, uansett
- * hva formen viser.
+ * Summen av alle stikk er nøyaktig antall hakk, så de to kan aldri skje
+ * samtidig og det finnes ingen tredje utgang. Formen kan derfor ikke vise et
+ * utfall spillet ikke har.
  *
- * ============ FARGENE, OG AT DE ALDRI BÆRER ALENE ======================
+ * ============ FORSVARET ER ÉN FLATE ====================================
  *
- * Rød, hvit, stål og blå — men hver sone har OGSÅ fjeset til den den gjelder,
- * navnet i `aria-label` og tallet i klartekst. Fargen er en snarvei for øyet,
- * slik `fargemerke` er det for kortfargene, og den er aldri det eneste
- * skillet.
+ * Forsvarerne deler ikke poeng — det var hele grunnen til at de fikk hver sin
+ * sone sist — men de VINNER SAMMEN: ett stikk over streken feller kontrakten
+ * uansett hvem av dem som tok det. Kappløpet handler om den grensen, og da er
+ * én rød flate sannere enn tre stabler. Hvem som tok hva står fortsatt i
+ * poengbrettet øverst.
  *
- * Stålfargen finnes fordi det finnes TRE forsvarere i to tilfeller: før
- * makkeren er avslørt, og ved solo/amerikaner uten etterlysning der det aldri
- * blir noen makker. Tegningen viser bare to; koden må tåle begge.
+ * FØR MAKKEREN ER AVSLØRT teller den skjulte makkerens stikk med i den røde.
+ * Det er ikke en unøyaktighet, det er det spillerne faktisk vet: ingen ved
+ * bordet kan skille dem ennå. I det han avsløres flytter stikkene seg over av
+ * seg selv, siden begge fyllene glir mot sin nye høyde.
  */
-type Sonefarge = "rod" | "hvit" | "staal" | "blaa";
-interface SoneData {
-  seter: number[];
-  farge: Sonefarge;
+interface LopData {
+  /** Hakk i alt — ett per stikk i runden. */
   hakk: number;
-  tatt: number;
+  /** Hvor mange stikk kontrakten krever; markøren står her. */
+  mål: number;
+  lag: number[];
+  forsvar: number[];
+  budTatt: number;
+  forsvarTatt: number;
 }
 
-const FORSVARSFARGER: Sonefarge[] = ["rod", "hvit", "staal"];
-
-function soneListe(): SoneData[] {
+function lopData(): LopData {
   const lag = budlaget();
-  const mål = målStikk();
-  // Stikk som blir til overs om kontrakten går inn på akkurat. Ved solo og
-  // amerikaner er det null, og da får forsvarerne ett hakk hver — de skal
-  // fortsatt ha en synlig konto å ta stikk i.
-  const rest = Math.max(1, state.giving.antallStikk - mål);
   const stikk = state.stikkVunnet;
-  const forsvar = state.totalPoeng
-    .map((_, i) => i)
-    .filter((i) => !lag.includes(i));
-  const ut: SoneData[] = forsvar.map((i, n) => ({
-    seter: [i],
-    farge: FORSVARSFARGER[n] ?? "staal",
-    hakk: rest,
-    tatt: stikk[i] ?? 0,
-  }));
-  ut.push({
-    seter: lag,
-    farge: "blaa",
-    hakk: Math.max(1, mål),
-    tatt: lag.reduce((s, i) => s + (stikk[i] ?? 0), 0),
-  });
-  return ut;
+  const forsvar = state.totalPoeng.map((_, i) => i).filter((i) => !lag.includes(i));
+  return {
+    hakk: Math.max(1, state.giving.antallStikk),
+    mål: Math.max(1, målStikk()),
+    lag,
+    forsvar,
+    budTatt: lag.reduce((s, i) => s + (stikk[i] ?? 0), 0),
+    forsvarTatt: forsvar.reduce((s, i) => s + (stikk[i] ?? 0), 0),
+  };
 }
 
 /**
- * Hvor mange stikk hver sone hadde ved forrige tegning — nøkkelen er setene.
+ * Stikktallene ved forrige tegning.
  *
- * Samme mekanikk som `sistFylte` gjorde for hakkene i lagbaren, og av samme
- * grunn: `tegn()` bygger alt på nytt, så uten et minne ville hvert eneste
- * fylte hakk spratt på nytt hver gang noe som helst annet endret seg.
+ * `tegn()` bygger alt på nytt, så uten et minne ville tellerslaget spilt av på
+ * nytt hver gang noe som helst annet endret seg.
  */
-let sistTatt = new Map<string, number>();
+let sistBudTatt = -1;
+let sistForsvarTatt = -1;
+/**
+ * Er avgjørelsen alt spilt i denne runden? Settes til «klart» eller «falt».
+ *
+ * Uten flagget ville gjennombruddsanimasjonen startet på nytt ved hver eneste
+ * tegning etter at streken ble passert — altså flere ganger i sekundet resten
+ * av runden.
+ */
+let avgjortVist: "" | "klart" | "falt" = "";
 
 function stikksoyle(): string {
   const iSpill = state.fase === "SPILL" || frystStikk !== null || state.fase === "RUNDE_SLUTT";
   if (!iSpill || lagmodus === "ingen" || state.budvinner === null) {
-    sistTatt = new Map();
+    sistBudTatt = -1;
+    sistForsvarTatt = -1;
     return `<div class="stikksoyle tom" aria-hidden="true"></div>`;
   }
-  const mål = målStikk();
-  // Sammenslåingen spilles ÉN gang. Uten flagget ville den startet på nytt
-  // ved hver tegning i de 900 millisekundene den varer, og det skjer minst én
-  // tegning i det vinduet.
+  const d = lopData();
+  const pst = (n: number): string => `${((n / d.hakk) * 100).toFixed(4)}%`;
+  // Sammenslåingen spilles ÉN gang — se `smeltetVist`.
   const smelterNå = lagmodus === "smelter" && !smeltetVist;
   if (smelterNå) smeltetVist = true;
 
-  const nyTatt = new Map<string, number>();
-  const soner = soneListe()
-    .map((s) => {
-      const nøkkel = s.seter.join("+");
-      const før = sistTatt.get(nøkkel) ?? 0;
-      nyTatt.set(nøkkel, s.tatt);
-      const fylte = Math.min(s.tatt, s.hakk);
-      const over = s.tatt - s.hakk;
-      const erBlå = s.farge === "blaa";
-      // Hakkene bygges NEDENFRA — sonen er `column-reverse`, så første hakk i
-      // rekkefølgen er det nederste.
-      const hakk = Array.from({ length: s.hakk }, (_, i) => {
-        const fylt = i < fylte;
-        const ny = fylt && i >= Math.min(før, s.hakk);
-        return `<span class="celle${fylt ? " fylt" : ""}${ny ? " ny" : ""}">${erBlå ? stjerne() : ""}</span>`;
-      }).join("");
-      const navn = s.seter.map((i) => NAVN[i]).join(" og ");
-      const tekst = erBlå
-        ? `${navn}: ${s.tatt} av ${mål} stikk`
-        : `${navn}: ${s.tatt} stikk`;
-      // Medaljongene: den som kom sist (makkeren) faller ned i sonen.
-      const fjes = s.seter
-        .map((i, n) => medaljong(i, smelterNå && erBlå && n > 0 ? " kommer" : ""))
-        .join("");
-      const klart = erBlå && s.tatt >= mål;
-      return `<div class="sone ${s.farge}${klart ? " klart" : ""}${smelterNå && erBlå ? " svelger" : ""}"
-        data-seter="${s.seter.join(" ")}"
-        ${erBlå ? `role="progressbar" aria-valuemin="0" aria-valuemax="${mål}" aria-valuenow="${s.tatt}"` : `role="img"`}
-        aria-label="${tekst}"
-        style="flex: ${s.hakk} 1 0">
-        ${erBlå ? `<div class="budstrek" aria-hidden="true"></div><div class="budmerke" aria-hidden="true">${mål}</div>` : ""}
-        <div class="medaljongstabel">${fjes}</div>
-        ${hakk}
-        <span class="tall${s.tatt !== før ? " slag" : ""}" aria-hidden="true">${s.tatt}${over > 0 ? `<span class="mot">+${over}</span>` : ""}</span>
-      </div>`;
-    })
-    .join("");
-  sistTatt = nyTatt;
-  return `<div class="stikksoyle" role="group" aria-label="Stikk så langt">${soner}</div>`;
+  const budNavn = d.lag.map((i) => NAVN[i]).join(" og ");
+  const forsvarNavn = d.forsvar.map((i) => NAVN[i]).join(", ");
+  // Hvor mange stikk forsvaret trenger for å felle kontrakten.
+  const felleKrav = d.hakk - d.mål + 1;
+
+  /**
+   * ============ ØYEBLIKKET KONTRAKTEN AVGJØRES ==========================
+   *
+   * ARVIND: «liten animasjon når stikket feller kontrakten.»
+   *
+   * FALLET SPILLES BARE NÅR DET ER SANT. Er makkeren fortsatt skjult, ligger
+   * hans stikk i den røde flaten, og den kan derfor krysse streken uten at
+   * kontrakten faktisk er felt. Da ville animasjonen løyet. Derfor kreves
+   * `lagmodus === "lag"` — altså at makkeren er kjent, eller at det aldri blir
+   * noen (solo og amerikaner uten etterlysning).
+   *
+   * «Klart» har ikke det problemet: budlagets tall kan bare vokse når noen
+   * flyttes INN i laget, aldri ut.
+   */
+  const utfall: "" | "klart" | "falt" =
+    d.budTatt >= d.mål ? "klart" : d.forsvarTatt >= felleKrav && lagmodus === "lag" ? "falt" : "";
+  if (utfall !== "" && avgjortVist === "") {
+    avgjortVist = utfall;
+    // Bivirkning i en tegnefunksjon, med vilje og bare denne ene gangen:
+    // beskjeden hører til øyeblikket, ikke til tilstanden, og `#oppleser`
+    // ligger utenfor `#app` og overlever tegningen.
+    si(utfall === "klart" ? "Kontrakten er i havn." : "Kontrakten falt.");
+    // Selve sprellet settes opp av `tegn()`, når søyla står i DOM-en og kan
+    // måles. Se `visGjennombrudd` for hvorfor det ikke bygges her.
+    gjennombruddVenter = utfall;
+  }
+
+  const fjes = (seter: number[], sisteErNy: boolean): string =>
+    seter.map((i, n) => medaljong(i, sisteErNy && n === seter.length - 1 ? " kommer" : "")).join("");
+
+  const budSlag = sistBudTatt >= 0 && d.budTatt !== sistBudTatt;
+  const forsvarSlag = sistForsvarTatt >= 0 && d.forsvarTatt !== sistForsvarTatt;
+  sistBudTatt = d.budTatt;
+  sistForsvarTatt = d.forsvarTatt;
+
+  return `<div class="stikksoyle" role="group" aria-label="Kappløpet om kontrakten">
+    <div class="lop" style="--n:${d.hakk}">
+      <div class="fyll forsvar" data-seter="${d.forsvar.join(" ")}"
+           style="height:${pst(Math.min(d.forsvarTatt, d.hakk))}"
+           role="progressbar" aria-valuemin="0" aria-valuemax="${felleKrav}" aria-valuenow="${d.forsvarTatt}"
+           aria-label="Forsvaret (${forsvarNavn}): ${d.forsvarTatt} stikk, trenger ${felleKrav} for å felle kontrakten"></div>
+      <div class="fyll bud" data-seter="${d.lag.join(" ")}"
+           style="height:${pst(Math.min(d.budTatt, d.hakk))}"
+           role="progressbar" aria-valuemin="0" aria-valuemax="${d.mål}" aria-valuenow="${d.budTatt}"
+           aria-label="${budNavn}: ${d.budTatt} av ${d.mål} stikk"></div>
+    </div>
+    <div class="kontraktmerke" style="bottom:${pst(d.mål)}" aria-hidden="true">
+      <span class="strek"></span><span class="budmerke">${d.mål}</span>
+    </div>
+    <div class="medaljongstabel topp" aria-hidden="true">${fjes(d.forsvar, false)}</div>
+    <div class="medaljongstabel bunn" aria-hidden="true">${fjes(d.lag, smelterNå)}</div>
+    <span class="tall topp${forsvarSlag ? " slag" : ""}" aria-hidden="true">${d.forsvarTatt}</span>
+    <span class="tall bunn${budSlag ? " slag" : ""}" aria-hidden="true">${d.budTatt}</span>
+  </div>`;
+}
+
+/**
+ * ============ SPRELLET KAN IKKE BO I `#app` ============================
+ *
+ * ARVIND: «liten animasjon når stikket feller kontrakten.»
+ *
+ * FØRSTE FORSØK BLE ALDRI SETT, og grunnen er verdt å skrive ned fordi den er
+ * usynlig i koden: elementet ble lagt inn i strengen `stikksoyle()` returnerer,
+ * altså i den DOM-en `tegn()` bygger med `innerHTML`. Og `fortsett()` kaller
+ * `tegn()` TO GANGER etter hverandre når det blir menneskets tur — først på
+ * toppen, så igjen etter at `venterPåMenneske` er satt. Sprellet ble bygget i
+ * den første tegningen og revet ut i den andre, mikrosekunder senere.
+ *
+ * Målt i nettleseren gjennom en hel runde: kontrakten falt, `avgjortVist` ble
+ * satt, og elementet fantes aldri i noen av de 200 avlesningene. En animasjon
+ * som er riktig kodet og aldri kan ses er nøyaktig den feilen forrige runde
+ * ble tatt av — bare på et annet sted.
+ *
+ * Nå ligger sprellet i `document.body`, måles inn over søyla, og rydder opp
+ * etter seg selv. Samme løsning som `flyStikkmerke` bruker, og av samme grunn.
+ */
+let gjennombruddVenter: "" | "klart" | "falt" = "";
+const GJENNOMBRUDD_MS = 1300;
+
+function visGjennombrudd(utfall: "klart" | "falt"): void {
+  const merke = rot.querySelector<HTMLElement>(".stikksoyle .kontraktmerke");
+  const søyle = rot.querySelector<HTMLElement>(".stikksoyle .lop");
+  if (merke === null || søyle === null) return;
+  const m = merke.getBoundingClientRect();
+  const s = søyle.getBoundingClientRect();
+  const el = document.createElement("div");
+  el.className = `gjennombrudd ${utfall}`;
+  el.setAttribute("aria-hidden", "true");
+  el.style.left = `${s.left}px`;
+  el.style.top = `${m.top}px`;
+  el.style.width = `${s.width}px`;
+  el.innerHTML =
+    `<span class="lyn"></span><span class="bolge"></span>` +
+    `<span class="rop">${utfall === "klart" ? "I havn" : "Kontrakten falt"}</span>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), GJENNOMBRUDD_MS);
 }
 
 /**
@@ -1799,7 +1862,7 @@ function bordet(): string {
    *   – et korallskilt med navnet spretter fram OVER kortet, ikke bak det
    *
    * Deretter LANDER kortene hos vinneren i full dekkevne (se
-   * `samleStikketTilVinneren`), og et stikkmerke flyr derfra inn i lagbaren.
+   * `samleStikketTilVinneren`), og et stikkmerke flyr derfra inn i stikksøyla.
    */
   /**
    * Kortplassen til ett sete: kortet han la, eller en antydet tom flate.
@@ -1987,6 +2050,69 @@ function kortBredde(): number {
 let hjulSenter = 0;
 /** Antall kort ved forrige tegning — for å kjenne igjen en NY hånd. */
 let sistHåndAntall = -1;
+/** Hvilken beslutning hjulet sist ble stilt for — se `håndrad()`. */
+let sistSpillTur = "";
+
+/**
+ * ============ VIFTA GÅR RUNDT ==========================================
+ *
+ * ARVIND: «hånden skal kunne blas i LOOP — fra siste kort videre til det
+ * første, uten stopp.»
+ *
+ * Kortets plass i vifta bestemmes av `d`: avstanden i kortplasser fra
+ * senteret. `wrapD` bretter den inn i [−n/2, n/2⟩, slik at kortet som går ut
+ * av vinduet til høyre kommer inn igjen til venstre. Hjulet har ingen ender
+ * lenger — bare én omdreining.
+ *
+ * BRETTEN ER USYNLIG fordi den skjer UTENFOR vinduet: `|d| = n/2` er den
+ * plassen som ligger lengst fra midten, og den er klippet bort av hjulets
+ * `clip-path` i enhver hånd som er stor nok til å måtte blas i. Er hånden så
+ * liten at alt får plass, låses senteret som før og `wrapD` er identiteten.
+ */
+function wrapD(d: number, n: number): number {
+  if (n <= 0) return d;
+  const halv = n / 2;
+  let x = d;
+  while (x > halv) x -= n;
+  while (x <= -halv) x += n;
+  return x;
+}
+
+/** Senteret brettet inn i [0, n⟩ — ellers vokser tallet uten grense. */
+function wrapSenter(v: number, n: number): number {
+  if (n <= 0) return 0;
+  return ((v % n) + n) % n;
+}
+
+/**
+ * `d` for hvert kort ved forrige `settSenter`.
+ *
+ * Uten den ville et kort som nettopp brettet rundt GLIDD tvers over hele
+ * vifta i stedet for å dukke opp på den andre siden — 340 ms med et kort som
+ * flyr forbi alle de andre, hver gang man blar forbi skjøten.
+ */
+let sistD: number[] = [];
+
+/**
+ * ============ LAGREKKEFØLGEN GÅR VENSTRE MOT HØYRE =====================
+ *
+ * ARVIND: «de ytterste kortene i vifta er vanskelige å se på mobil.»
+ *
+ * Her lå halve forklaringen, og den var ikke en plassfeil. Rekkefølgen fulgte
+ * AVSTANDEN FRA MIDTEN — `40 − |d| · 2` — slik at midtkortet lå øverst og
+ * vifta lukket seg symmetrisk. Følgen var at hvert kort til HØYRE for midten
+ * fikk sitt eget øvre venstre hjørne dekket av naboen til venstre, altså
+ * nøyaktig der valøren står. Halve hånden kunne ikke leses i det hele tatt,
+ * og verst der kortene overlapper mest: på telefon.
+ *
+ * En hånd man holder i vifte ligger ikke slik. Den ligger med hvert kort over
+ * det til venstre for seg, og det er derfor kortstokker i hele verden har
+ * indeksen i ØVRE VENSTRE hjørne. Rekkefølgen er nå monoton i `d`, og da
+ * viser hvert eneste kort sitt eget hjørne.
+ */
+function zAv(d: number): number {
+  return Math.max(1, Math.round(30 + d * 2));
+}
 
 function håndrad(): string {
   const lov = lovligeHandlinger(state);
@@ -1998,11 +2124,55 @@ function håndrad(): string {
   // «passiv» = kortene er ikke valgbare fordi et panel har ordet, ikke fordi
   // de er ulovlige. Da skal de være fullt lesbare — se `.hjul.passiv` i CSS.
   const passiv = spillbare === null;
-  // NY HÅND: hjulet stilles til midten. Blir hånden bare kortere fordi et
-  // kort ble spilt, skal senteret bli stående der spilleren forlot det.
-  if (hånd.length > sistHåndAntall) hjulSenter = (hånd.length - 1) / 2;
+  /**
+   * NY HÅND: hjulet stilles til midten. Blir hånden bare kortere fordi et
+   * kort ble spilt, skal senteret bli stående der spilleren forlot det.
+   *
+   * SENTERET RUNDES AV, og det er ikke kosmetikk. Med et halvtalls senter
+   * («midt mellom kort 5 og 6», som `(n−1)/2` gir for et partall) står HVERT
+   * kort en halv plass forskjøvet, og da treffer klippekanten midt på et
+   * kort i stedet for mellom to. Målt på en 390 px skjerm: 24 px av et kort
+   * sto igjen i venstre kant som en blank hvit flis. Alle andre veier inn i
+   * `settSenter` runder allerede av; denne ene gjorde det ikke.
+   */
+  if (hånd.length > sistHåndAntall) hjulSenter = Math.round((hånd.length - 1) / 2);
   sistHåndAntall = hånd.length;
-  hjulSenter = Math.max(0, Math.min(hånd.length - 1, hjulSenter));
+  // Brettes, ikke klemmes: senteret kan stå hvor som helst på omdreiningen.
+  hjulSenter = wrapSenter(hjulSenter, hånd.length);
+
+  /**
+   * ============ DE LOVLIGE KORTENE MÅ VÆRE I VINDUET =====================
+   *
+   * ARVIND: «marker de lovlige kortene man har lov til å spille — i dag må
+   * man gjette.»
+   *
+   * Merkingen i CSS er halve svaret. Den andre halvparten fant jeg først i
+   * nettleseren: med tolv kort på en telefon står bare fem av dem i vinduet,
+   * og hånden er sortert etter farge. Blir det spilt ut i en farge du har
+   * langt ute på flanken, er HVER ENESTE synlige kort ulovlig — og da hjelper
+   * ingen merking, for det er ingenting å merke.
+   *
+   * Derfor stilles hjulet på de lovlige kortene når turen din begynner, og
+   * BARE da: er ett av dem allerede i vinduet, står vifta der du forlot den.
+   * Nøkkelen er stikknummer + håndstørrelse, altså «en ny beslutning», ikke
+   * «en ny tegning» — ellers ville vifta rykket tilbake hver gang en bot
+   * gjorde noe som helst.
+   */
+  const turNøkkel = spillbare === null ? "" : `${state.stikkSpilt}:${hånd.length}`;
+  if (spillbare !== null && turNøkkel !== sistSpillTur) {
+    sistSpillTur = turNøkkel;
+    const lovlige = hånd
+      .map((k, i) => (spillbare.has(`${k.farge}${k.verdi}`) ? i : -1))
+      .filter((i) => i >= 0);
+    const synlig = lovlige.some(
+      (i) => Math.abs(wrapD(i - hjulSenter, hånd.length)) <= hjulSpenn + 0.5,
+    );
+    if (lovlige.length > 0 && !synlig) {
+      hjulSenter = lovlige[Math.floor((lovlige.length - 1) / 2)]!;
+    }
+  } else if (turNøkkel === "") {
+    sistSpillTur = "";
+  }
 
   const kb = kortBredde();
   /**
@@ -2026,14 +2196,25 @@ function håndrad(): string {
    * alle tegninger som ikke endrer hverken skjermstørrelse eller kortantall
    * — utløses ingen overgang i det hele tatt.
    */
+  /**
+   * `--d` SKRIVES INN HER OGSÅ, ikke bare i `settSenter`.
+   *
+   * Med loopen kan ikke CSS lenger regne `--d` selv: `calc(--i − --senter)`
+   * kjenner ikke omdreiningen, og kortet som er brettet rundt ville stått på
+   * feil side i det første bildet og så glidd tvers over vifta. Verdien her er
+   * den samme `settSenter` regner ut like etterpå, så en tegning som ikke
+   * endrer hverken hånd eller skjerm utløser ingen overgang i det hele tatt.
+   */
+  const låstNå = hjulLåst;
   const kort = hånd
-    .map((k, i) =>
-      kortKnapp(k, {
+    .map((k, i) => {
+      const d = låstNå ? i - hjulSenter : wrapD(i - hjulSenter, hånd.length);
+      return kortKnapp(k, {
         valgbar: spillbare !== null && spillbare.has(`${k.farge}${k.verdi}`),
         valgt: vrakValg.some((v) => v.farge === k.farge && v.verdi === k.verdi),
-        stil: `--i:${i}`,
-      }),
-    )
+        stil: `--i:${i};--d:${d.toFixed(3)};z-index:${zAv(d)}`,
+      });
+    })
     .join("");
   const pil = (retning: "venstre" | "hoyre", merke: string): string =>
     `<button class="blapil ${retning}" id="bla-${retning}" aria-label="${merke}" disabled>
@@ -2153,20 +2334,40 @@ function settSenter(v: number): void {
   const kort = [...hjul.querySelectorAll<HTMLElement>(".kort")];
   const n = kort.length;
   if (n === 0) return;
-  hjulSenter = hjulLåst
-    ? (n - 1) / 2
-    : Math.max(hjulSpenn, Math.min(n - 1 - hjulSpenn, v));
+  // Ny håndstørrelse: minnet om forrige `d` gjelder andre kort enn disse.
+  if (sistD.length !== n) sistD = [];
+  // LÅST hånd: alt får plass, og da står vifta midtstilt uansett hva som
+  // sendes inn. ULÅST: senteret brettes rundt i stedet for å stoppe ved
+  // endene — det er loopen.
+  hjulSenter = hjulLåst ? (n - 1) / 2 : wrapSenter(v, n);
   hjul.style.setProperty("--senter", hjulSenter.toFixed(3));
-  // Lagrekkefølgen følger avstanden fra midten, ellers ville det ytterste
-  // kortet ligget øverst og dekket de andre når vifta er tett.
+  const nyD: number[] = [];
   for (let i = 0; i < n; i++) {
-    const d = Math.abs(i - hjulSenter);
-    kort[i]!.style.zIndex = String(Math.max(1, Math.round(40 - d * 2)));
+    const d = hjulLåst ? i - hjulSenter : wrapD(i - hjulSenter, n);
+    nyD.push(d);
+    const el = kort[i]!;
+    const før = sistD[i];
+    // BRETTET RUNDT? Da skal kortet dukke opp på den andre siden, ikke fly
+    // dit. Overgangen slås av mens sprangets verdi settes, og på igjen
+    // etterpå — en tvunget omregning imellom er det som skiller «satt» fra
+    // «animert».
+    if (før !== undefined && Math.abs(d - før) > n / 2) {
+      el.style.transition = "none";
+      el.style.setProperty("--d", d.toFixed(3));
+      void el.offsetWidth;
+      el.style.transition = "";
+    } else {
+      el.style.setProperty("--d", d.toFixed(3));
+    }
+    el.style.zIndex = String(zAv(d));
   }
+  sistD = nyD;
+  // MED LOOP HAR HJULET INGEN ENDER, så pilene kan aldri gå tomme. De er bare
+  // av når hele hånden får plass og det ikke finnes noe å bla til.
   const v1 = document.getElementById("bla-venstre") as HTMLButtonElement | null;
   const h1 = document.getElementById("bla-hoyre") as HTMLButtonElement | null;
-  if (v1) v1.disabled = hjulLåst || hjulSenter <= hjulSpenn + 0.02;
-  if (h1) h1.disabled = hjulLåst || hjulSenter >= n - 1 - hjulSpenn - 0.02;
+  if (v1) v1.disabled = hjulLåst;
+  if (h1) h1.disabled = hjulLåst;
 }
 
 /**
@@ -2413,12 +2614,29 @@ function koblHjul(): void {
   }
 }
 
+/**
+ * ============ HÅNDEN SKAL LESES FØR MAN BYR ============================
+ *
+ * ARVIND: «man ser ikke kortene sine ordentlig før man byr.»
+ *
+ * Det var ikke pynt: budet ER en vurdering av hånden, og panelet lå oppå den
+ * bak et sløret heldekkende lag. Man måtte altså huske kortene sine for å
+ * kunne by på dem.
+ *
+ * `apen` gjør overlegget til et TOPPANEL: det dekker bare sin egen høyde, har
+ * ingen bakgrunn og slipper alt under seg fram. Hånden står der den står,
+ * fullt lesbar, og kan blas i mens man tenker. Se `.overlegg.apen` i CSS.
+ *
+ * TRUMFVALGET FÅR DET SAMME, og av nøyaktig samme grunn: hvilken farge man
+ * gjør til trumf leses av hånden, ikke av hukommelsen. Vrakpanelet trenger
+ * det ikke — det VISER hånden, siden man plukker fra den.
+ */
 function budPanel(): string {
   const lov = lovligeHandlinger(state);
   if (!venterPåMenneske || lov.fase !== "BUDRUNDE") return "";
   const tall = lov.bud.filter((b): b is number => typeof b === "number");
   const høyeste = state.budrunde.høyeste;
-  return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Ditt bud">
+  return `<div class="overlegg apen"><div class="panel" role="dialog" aria-label="Ditt bud">
     <h2>Ditt bud${høyeste ? `<span class="bekreftsmatt">Høyeste: ${budTekst(høyeste.bud)} · ${NAVN[høyeste.spiller]}</span>` : ""}</h2>
     <div class="knapper">
       <button class="stor pass" data-bud="PASS">Pass</button>
@@ -2460,7 +2678,7 @@ function velgPanel(): string {
      * flate, og navnet skrevet under. Tre uavhengige kjennetegn — form, farge
      * og ord — så ingen av dem trenger å bære valget alene.
      */
-    return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Velg trumf">
+    return `<div class="overlegg apen"><div class="panel" role="dialog" aria-label="Velg trumf">
       <h2>Velg trumffarge</h2>
       <div class="trumfvalg">${(["S", "K", "H", "R"] as Farge[])
         .map(
@@ -2512,7 +2730,7 @@ function velgPanel(): string {
    * kortene på hånden, og de er minst 48×60 px. Overskriften bærer fargen som
    * et fylt merke, ikke som farget tekst.
    */
-  return `<div class="overlegg"><div class="panel" role="dialog" aria-label="Etterlys et kort">
+  return `<div class="overlegg apen"><div class="panel" role="dialog" aria-label="Etterlys et kort">
     <h2>Etterlys et ${fargeMerke(trumf)}</h2>
     <div class="etterlysrad">${lovlige
       .slice()
@@ -2596,6 +2814,13 @@ function tegn(): void {
   // MÅLES ETTER at DOM-en står. Hjulets steg avhenger av hvor bredt hjulet
   // faktisk ble, og det vet ingen før søyla og pilene har tatt sitt.
   oppdaterHjul();
+  // Og sprellet når kontrakten avgjøres — også etter at DOM-en står, siden
+  // det måles inn over søyla. Se `visGjennombrudd`.
+  if (gjennombruddVenter !== "") {
+    const u = gjennombruddVenter;
+    gjennombruddVenter = "";
+    visGjennombrudd(u);
+  }
 }
 
 // --- Hendelseskobling (event delegation per tegning) ------------------------
