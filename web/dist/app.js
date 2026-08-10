@@ -3849,7 +3849,7 @@ var Budagent = class {
 // web/app.ts
 var DATA_URL = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
 var MENNESKE = 0;
-var BUNDELVERSJON = "v7-2026-08-10";
+var BUNDELVERSJON = "v8-2026-08-10";
 globalThis["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 var LOKAL = location.protocol === "http:";
 var MESTER_URL = `${location.origin}/mester`;
