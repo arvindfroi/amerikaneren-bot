@@ -103,3 +103,5 @@ mlb-epoke-data/
 # analyse/mlb-epoke/e*-port-rapport.txt og -dom.jsonl.
 analyse/mlb-epoke/*-port-par-*.jsonl
 analyse/mlb-epoke/*-port-liga-*.jsonl
+
+verktoy/__pycache__/
