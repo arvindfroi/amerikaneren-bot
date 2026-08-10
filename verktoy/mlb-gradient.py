@@ -484,6 +484,23 @@ def main():
         raise SystemExit(
             "--entropi-gulv uten --entropi-fase: gulvet har ingen koeffisient aa henge paa"
         )
+    # ============ `--entropi` ER INERT NAAR `--entropi-fase` ER SATT =======
+    #
+    # Og det MAA sies hoeyt. En leser som ser «--entropi 0.01» i kommandolinja
+    # og i loggen konkluderer med at entropikoeffisienten er 0,01 - mens den
+    # faktisk brukte er 0,5 per fase, altsaa femti ganger mer. Det skjedde:
+    # en ekstern gjennomgang leste flagget og foreslo aa femdoble «0,01».
+    #
+    # Dette er prosjektets mest gjentatte feilklasse i en ny drakt - ikke «det
+    # maalte var ikke det jeg mente», men **det leste var ikke det som virket**.
+    if ENT_C is not None and args.entropi != 0:
+        print(
+            f"MERK: --entropi {args.entropi} er INERT. Med --entropi-fase satt regnes "
+            f"entropileddet BARE per fase (koeffisienter {[float(x) for x in ENT_C]}"
+            + (f", gulv {[float(x) for x in ENT_GULV]}" if ENT_GULV is not None else "")
+            + "). Det gamle snittleddet er ikke lagt til.",
+            flush=True,
+        )
 
     def entropitapet(ent_rad, norm_rad, valg, fase):
         """Entropileddet slik det LEGGES TIL tapet — altsaa med fortegnet inne.

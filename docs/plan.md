@@ -10206,3 +10206,114 @@ python verktoy/mlb-epoke.py --fortsett --vekt-stikk 0 --vekt-verdi-kvantil 0 \
 Merk at erfaringsfilene i `mlb-epoke-data-126/` er format v2 og mangler
 stikkfasiten. Treneren sier fra og slår stikkleddet av selv, i stedet for å
 trene mot et felt som ikke finnes.
+
+### EN EKSTERN GJENNOMGANG, OG ETT AV FEM TALL VAR OM EN ANNEN KONFIGURASJON
+
+Midt i økta kom en gjennomgang mot to eksterne kilder — et kontrollert
+PPO-selvspillstudium i Big 2 (firespiller, skjult informasjon) og
+**SchafkopfRL**, som har **nøyaktig vår makkermekanikk**: du etterlyser et kort,
+og den som har det blir makkeren, ukjent for alle til kortet dukker opp.
+
+Fire av punktene traff. Ett gjorde ikke, og det er verdt et eget avsnitt.
+
+#### FEILEN: «entropikoeffisienten er 0,01» — flagget er INERT
+
+Gjennomgangen leste `--entropi 0.01` fra kommandolinja og foreslo å femdoble
+den til 0,05. Men `entropitapet()` i `verktoy/mlb-gradient.py` bruker
+`args.entropi` **bare** i grenen `ENT_C is None`. Er `--entropi-fase` satt —
+og det er den i hvert eneste løp siden §126 — regnes leddet utelukkende per
+fase, og `--entropi` legges ikke til i det hele tatt.
+
+Den faktiske konfigurasjonen er
+
+```
+--entropi-fase 0.5,0.5,0.5,0.5,0.5      koeffisient 0,5 PER FASE
+--entropi-gulv 0.75,0.55,0.85,0.65,0.55 hengsel på NORMALISERT entropi
+```
+
+altså **femti ganger** det som ble foreslått, i en annen form: et lineært ledd
+er ubundet og priser en frisk fase for alltid, mens hengselen `relu(gulv − H/lnL)`
+slutter å dytte i det øyeblikket fasen er over gulvet.
+
+Og den virker, målt på v127 epoke 1 (normalisert entropi, 1 = uniform):
+
+| fase | målt | gulv |
+|---|---|---|
+| BUD | 0,786 | 0,75 |
+| VRAK | 0,836 | 0,55 |
+| **TRUMF** | **0,882** | 0,85 |
+| ETTERLYS | 0,837 | 0,65 |
+| SPILL | 0,779 | 0,55 |
+
+Trumfvalget står **over** gulvet sitt, så hengselen dytter ikke engang. Det er
+ingen kollaps ved epoke 1 — den kom i §125-løpet først etter ~fjorten epoker,
+og hele §126 handlet om at snittleddet ikke kunne se den.
+
+**Feilklassen er ny og verdt et navn.** Prosjektets faste feil er «det målte var
+ikke det jeg mente». Denne er **det leste var ikke det som virket**: et flagg
+som står i kommandolinja, i loggen og i rapporten uten å ha noen effekt. To
+rettelser er lagt inn: treneren skriver `MERK: --entropi X er INERT` når
+`--entropi-fase` er satt, og epokedriverens startlinje skriver den FAKTISKE
+entropikonfigurasjonen i stedet for flagget.
+
+Det som står igjen som ekte er at **gulvverdiene aldri er sveipet**. Det er en
+knott å måle, ikke en koeffisient å senke.
+
+#### DE FIRE SOM TRAFF
+
+**λ = 1 er vårt valg, ikke standarden.** Begge kildene bruker < 1 (0,95).
+§124 skrev selv rekkefølgen «γ → separat rundemål → λ ned», og de to første er
+gjort. Verdihodet forklarer nå +0,71 av rundens gjenstående på holdout-kamper —
+det er ikke lenger −0,97, som var grunnen til at λ ble satt til 1. **Endret til
+0,95** i kontrollarmen.
+
+**40-prosenten råtnet.** `TRENINGSVEKTER` er beste 0,4 / tidligere 0,3 / vaner
+0,3, og `mlb-spill.ts` setter kandidaten i beste-sporet når `beste == arbeid`.
+Men `beste` flyttes BARE av porten, mens `arbeid` trenes hver epoke — og porten
+avviste epoke 1 i både v126 og v127. **I epoke 2 trente kandidaten altså i 40 %
+av setene mot epoke 0, altså mot tilfeldige vekter.** Ny bryter `--motstander
+naa|beste`: `naa` fyller sporet med kandidaten, altså en bevegelig læreplan.
+Vanene står urørt på 30 % — K6 krever dem. **Porten er ikke rørt**; den dømmer
+fortsatt mot ligaens beste.
+
+**Budfasen er KJENT vanskelig.** SchafkopfRL klarte ikke å lære spillvalget med
+RL og formet det for hånd: «If cards are really good then solo is selected».
+Vi skal ikke kopiere den løsningen — en håndkodet regel bryter sandkassens
+premiss — men det er uavhengig bekreftelse på at fasen fortjener egne knotter og
+ikke felles, som er nøyaktig det §126 gjorde og det stikkhodet gjør fra en annen
+kant.
+
+**Tidsskalaen vår er feil, og avbruddskriteriet ble satt uten dette tallet.**
+SchafkopfRL: «After 15 days of continuous training the agent is still (slowly)
+improving.» Vårt avbruddskriterium punkt 1 er «≥ 30 epoker eller 48 timer».
+**48 timer er en tjuedel av det nærmeste sammenlignbare prosjektet brukte.**
+Det er ikke en unnskyldning — det er at en plan bygd på feil tidsskala tar gale
+beslutninger, og punkt 1 må skrives om før det brukes til å felle MLB.
+
+#### OG EN ENHETSFEIL Å PASSE PÅ I SAMMENLIKNINGEN
+
+Gjennomgangen skrev at vi er «10–20× under» på kamper per gradientrunde: de
+kjører 50 000–100 000, vi 5 000. Men en Schafkopf-«kamp» er **én giv**, mens vår
+er en hel kamp på ~38 runder. Målt på v127 epoke 1: 1 200 kamper ga **37,87
+runder per kamp** og 736 195 beslutningsrader. Per giv er vi altså på ~45 500,
+ikke 1 200 — samme størrelsesorden som kildene, ikke en tjuedel.
+
+**Men det ligger en ekte 5× rett ved siden av, og den er gratis:** `--sjanse 0.2`
+kaster 80 % av radene FØR gradienten. 736 195 rader ble til 147 427. Det er en
+diskplassavgjørelse, ikke en statistisk en, og å heve den koster ingen ekstra
+selvspilltid — bare disk og GPU-minne. **Kontrollarmen kjører med `--sjanse
+0.5`**, altså 2,5× flere gradientrader for nøyaktig samme spilletid. Å gå til
+1,0 er 3,1 GB per epoke og 3,0 GB på GPU-en; 0,5 er 1,5 GB og trygt.
+
+#### KONTROLLARMEN SOM KJØRER
+
+`analyse/mlb-epoker-127b*`, fra epoke 0, med §127-hodene **AV** slik at 1–3 kan
+måles alene:
+
+```
+--lambda 0.95 --motstander naa --sjanse 0.5
+--vekt-stikk 0 --vekt-verdi-kvantil 0
+```
+
+Med begge bryterne på 0 er gradienten §126 bit for bit bortsett fra de tre
+endringene, og det er nettopp det ablasjonsbryterne ble bygd for.

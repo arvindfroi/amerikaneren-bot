@@ -220,6 +220,28 @@ som koster poeng i sluttspillet.
 
 ---
 
+## §127 — to hjelpetap til, og et søk som står av
+
+Ingen av kravene flytter seg av dette alene. Det som er nytt er hvilke
+GRADIENTER som finnes, og de treffer K3 og K7 fra hver sin kant.
+
+| | hva som er bygd | hvilket krav det peker på |
+|---|---|---|
+| **stikkhodet** | 13 klasser: stikk laget mitt tar i RESTEN av runden. Perfekt fasit, tett signal | **K3** — ved `stikkSpilt = 0` er etiketten hele rundens lagstikk, altså nøyaktig det et BUD skal spå |
+| **fordelingsverdien** | 32 kvantiler over rundens gjenstående poeng | **K3/K5** — ridge-taket +0,19 gjaldt gjennomsnittet, og binder ikke en fordeling |
+| **søkegrensesnittet** | verdener trukket fra trohodet, AV som standard | **K7** — §117: gapet er informasjon, ikke dybde. Kan ikke måles før kollapsen er brutt |
+
+Formen på stikkhodet er MÅLT: «fordeling over totalen» har **0 %** av
+etikettens varians innenfor runden (en identitet — laget tar like mange stikk
+uansett hvilken beslutning man spør ved), mens «resten» har **57,27 %**, med
+`Var_innenfor(Gr) = 0,0000` som kontrollarm. Se §127.
+
+**K2 er urørt og prøvd på nytt:** verdenstrekkingen ser `SpillerVisning` og
+trohodets gjetning, og `test/mlb-sok.test.ts` bytter ut de skjulte hendene og
+krever bit-identiske verdener.
+
+---
+
 ## Hva som må skje, i rekkefølge
 
 1. **K8 videre** — trohodet blir et HODE på sandkassenettet, trent på

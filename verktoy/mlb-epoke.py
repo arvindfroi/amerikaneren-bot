@@ -148,7 +148,34 @@ class Driver:
             "--froe", str(self.a.froe_spill + e * 20_000_000),
             "--uten-k2",
         ]
-        if beste != arbeid:
+        # ===================== HVEM ER 40-PROSENTEN? (§127) ==================
+        #
+        # `TRENINGSVEKTER` i src/mlb/liga.ts er beste 0,4 / tidligere 0,3 /
+        # vaner 0,3, og `examples/mlb-spill.ts` setter KANDIDATEN i beste-sporet
+        # naar `beste == arbeid` - altsaa i epoke 0 og etter hver godkjent epoke.
+        #
+        # ============ MEN NAAR PORTEN AVVISER, RAATNER SPORET ==============
+        #
+        # `beste` flyttes BARE av porten, mens `arbeid` trenes hver epoke. Avviser
+        # porten to ganger paa rad, trener kandidaten i 40 % av setene mot vekter
+        # som er to epoker gamle - og i et loep der porten aldri godkjenner, mot
+        # EPOKE 0, altsaa mot tilfeldige vekter.
+        #
+        # Det er ikke en teoretisk risiko: v127 epoke 1 og v126 epoke 1 ble begge
+        # avvist, saa i epoke 2 var 40 % av motstanderne det tilfeldige nettet.
+        #
+        #   `beste`  dagens oppfoersel: befolkningen er ligaens beste
+        #   `naa`    beste-sporet fylles av KANDIDATEN, altsaa naavaerende policy
+        #
+        # `naa` er en BEVEGELIG laereplan; `beste` er et fast snitt av spilltreet.
+        # Vanene staar uroert i begge (30 %) - K6 krever dem, og selvspill mot seg
+        # selv gir per definisjon ingen vane aa utnytte.
+        #
+        # PORTEN ER IKKE ROERT. Den doemmer fortsatt kandidat mot ligaens beste;
+        # dette gjelder bare hvem det TRENES mot.
+        if self.a.motstander == "naa":
+            pass
+        elif beste != arbeid:
             cmd += ["--beste", beste]
         if tidligere:
             cmd += ["--tidligere", ",".join(tidligere)]
@@ -254,6 +281,19 @@ class Driver:
                 f"START {time.strftime('%Y-%m-%d %H:%M')}  arbeid={a.arbeid} -> beste={a.beste}"
                 f"  lambda={a.lam} gamma={a.gamma} lr={a.lr} kamper={a.kamper}"
                 f"  vekt-stikk={a.vekt_stikk} vekt-verdi-kvantil={a.vekt_verdi_kvantil}"
+                f"  motstander={a.motstander}"
+                # ENTROPIEN SLIK DEN FAKTISK VIRKER. `--entropi` er INERT naar
+                # `--entropi-fase` er satt, og et flagg som staar i loggen uten
+                # aa virke er verre enn ingen logg: en ekstern gjennomgang leste
+                # «0,01» og foreslo aa femdoble det, mens den faktiske
+                # koeffisienten var 0,5 per fase.
+                + (
+                    f"  entropi=PER FASE {a.entropi_fase}"
+                    + (f" gulv {a.entropi_gulv}" if a.entropi_gulv else "")
+                    + f" (--entropi {a.entropi} er INERT)"
+                    if a.entropi_fase
+                    else f"  entropi={a.entropi} (ett snitt over alle rader)"
+                )
             )
 
         t_start = time.time()
@@ -484,6 +524,8 @@ def main():
     # SAMME STANDARD SOM `verktoy/mlb-gradient.py`. Ett tall, ett sted.
     p.add_argument("--vekt-stikk", type=float, default=1.0)
     p.add_argument("--vekt-verdi-kvantil", type=float, default=1.0)
+    # HVEM 40-PROSENTEN ER. Se `spill()` over. `beste` er dagens oppfoersel.
+    p.add_argument("--motstander", choices=("beste", "naa"), default="beste")
     p.add_argument("--batch", type=int, default=1024)
     # ===================== FROEBAANDENE, AVSATT FOER FOERSTE KAMP =========
     #
