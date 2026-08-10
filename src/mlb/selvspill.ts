@@ -84,6 +84,7 @@ import {
 import { Hukommelse } from "./hukommelse.ts";
 import { byggTrekk, fasenavn, type Beslutning, type Trofordeler } from "./trekk.ts";
 import { POLICY_UT, TRO_UT, velgKode, type Framover } from "./nett.ts";
+import type { Søk } from "./sok.ts";
 
 // ===========================================================================
 // 1. Kontrakten mot nettet — SMAL MED VILJE
@@ -189,6 +190,20 @@ export interface Beslutningsrad {
   readonly poengFør: number;
   /** Indeks til neste rad for SAMME sete, eller −1 om dette var den siste. */
   nesteISete: number;
+  /**
+   * ETIKETTEN TIL STIKKHODET (§127): hvor mange stikk tar setets LAG i resten
+   * av denne runden, inkludert stikket som eventuelt er i gang.
+   *
+   * `−1` betyr UKJENT, og det er ikke det samme som 0. En runde som aldri ble
+   * ferdigspilt — kampen ble avbrutt på rundetaket, eller `maksSteg` slo inn —
+   * har ingen fasit, og de radene skal maskeres bort i tapet på samme måte som
+   * `troFasit`s nullklasse. Et 0 der ville lært nettet at laget tar null stikk
+   * i nettopp de rundene ingen fikk spilt ferdig.
+   *
+   * Fylles av `fyllStikkIgjen` når runden er over — laget er ikke kjent før
+   * det, fordi makkeren er den som har det etterlyste kortet.
+   */
+  stikkIgjen: number;
 }
 
 /** Kampens utfall — verdihodets etikett, og fasiten for alle radene. */
@@ -534,6 +549,81 @@ export function delteRetur(
   return { runde, hale };
 }
 
+/**
+ * STIKKETIKETTEN — §127, og hvorfor formen er «resten» og ikke «totalen».
+ *
+ * ===================== HVA HODET ER TIL FOR ============================
+ *
+ * Verdien spår POENG, og poeng faller først ved rundeslutt. Kontrakten avgjøres
+ * av STIKK, og stikk faller hele tiden. §124 målte hva det koster: 99,68 % av
+ * fordelens varians ligger MELLOM runder, 0,32 % innenfor, og 96,5 % av rundene
+ * gir identisk fortegn på fordelen til alle sine valg. Gradienten kan derfor
+ * lære «denne runden gikk bra», men ikke «dette kortet var det gode».
+ *
+ * Stikkhodet fikser ikke fordelen. Det gir stammen en GRUNN til å skille to
+ * stillinger som fordelen ikke skiller — samme grep som trohodet, rettet mot
+ * hvor stikkene går i stedet for hvor kortene ligger.
+ *
+ * ===================== OG FORMEN ER MÅLT, IKKE VALGT ===================
+ *
+ * Tre former ble vurdert (oppdragets egne): antall stikk igjen, sannsynlighet
+ * per stikk, og fordeling over TOTALEN. Totalen faller på nøyaktig den samme
+ * regningen som λ = 1:
+ *
+ *     total(runde, lag) er en KONSTANT innenfor runden
+ *     ⇒ 0 % av etikettens varians ligger innenfor runden
+ *
+ * Det er ikke et anslag, det er en identitet — laget tar like mange stikk
+ * uansett hvilken beslutning i runden man spør ved. Et hode mot den etiketten
+ * ser tolv kortvalg med samme fasit, og lærer nettopp det som ikke skiller dem.
+ *
+ * «Resten» har derimot en fasit som endrer seg for hvert stikk, og differansen
+ * mellom to påfølgende beslutninger er nøyaktig «gikk dette stikket til oss».
+ * Det målte tallet står i §127: andelen av `Var(stikkIgjen)` som ligger
+ * INNENFOR runden.
+ *
+ * «Sannsynlighet per stikk» ble forkastet av samme grunn som totalen: vektoren
+ * «hvilke stikk vant laget» er også konstant gjennom runden, og de tolv
+ * plassene er dessuten dominert av allerede spilte stikk, som er avlesbare rett
+ * fra inngangen.
+ *
+ * ===================== LAGET ER KJENT FØRST VED RUNDESLUTT ==============
+ *
+ * Makkeren er den som har det etterlyste kortet, og hun er skjult til hun
+ * legger det. Etiketten kan derfor ikke fylles ved beslutningen — den fylles
+ * her, når runden er over, og det er nøyaktig det som gjør den gratis: fasit om
+ * fortiden, ikke en dom fra en sterkere spiller (`docs/mlb.md` §0).
+ *
+ * At etiketten er ukjent for spilleren i øyeblikket er hele poenget. Det er den
+ * samme konstruksjonen som trohodet: nettet lærer å GJETTE noe det aldri får se
+ * når det spiller.
+ */
+export function fyllStikkIgjen(state: GameState, rader: readonly Beslutningsrad[]): void {
+  const runde = state.sisteRunde;
+  if (runde === null || rader.length === 0) return;
+  const stikk = state.historikk;
+  /**
+   * EN UFERDIG RUNDE HAR INGEN FASIT. `historikk` skal ha nøyaktig
+   * `giving.antallStikk` stikk her; er den kortere, ble runden avbrutt, og da
+   * blir `stikkIgjen` stående på −1 og radene maskeres bort i tapet.
+   */
+  if (stikk.length !== state.giving.antallStikk) return;
+
+  const erBudlag = (p: number): boolean => p === runde.budvinner || p === runde.makker;
+  for (const rad of rader) {
+    const mitt = erBudlag(rad.sete);
+    let igjen = 0;
+    // Stikket med indeks `stikkSpilt` er det som var I GANG (eller det neste),
+    // så det teller med. For BUD/VRAK/VELG er `stikkSpilt` 0, og da er
+    // etiketten hele rundens lagstikk — som det skal være: budet skal nettopp
+    // spå hvor mange stikk laget kommer til å ta.
+    for (let j = rad.stikkSpilt; j < stikk.length; j++) {
+      if (erBudlag(stikk[j]!.vinner) === mitt) igjen++;
+    }
+    rad.stikkIgjen = igjen;
+  }
+}
+
 // ===========================================================================
 // 3. Løkka
 // ===========================================================================
@@ -571,6 +661,19 @@ export interface Sete {
   readonly egen?: Beslutter;
   /** Skal radene fra dette setet samles? Vaner gir sjelden nyttig gradient. */
   readonly samle?: boolean;
+  /**
+   * SØKET VED SPILLETID — §127, og det står AV.
+   *
+   * `undefined` i hver eneste driver i repoet, og det er hele poenget:
+   * `docs/mlb.md` AVGJØRELSE 5 forbyr søk i GRADIENTEN, og
+   * `examples/mlb-erfaring.ts` setter feltet aldri. Se `src/mlb/sok.ts` for
+   * tabellen som skriver ut skillet mellom de to.
+   *
+   * Er det satt, spørres søket FØRST. Svarer det `null`, tas valget av
+   * policyen nøyaktig som før — og et søk som alltid svarer `null` gir
+   * bit-identiske koder mot et bord uten søk (`test/mlb-sok.test.ts`).
+   */
+  readonly søk?: Søk | null;
 }
 
 export interface Kampopsjoner {
@@ -667,6 +770,8 @@ function kjørKamp(
    */
   const tronett = opts.tronett ?? null;
   const bok = new Hukommelse();
+  /** Radene fra runden som spilles nå — se `fyllStikkIgjen`. */
+  const rundensRader: Beslutningsrad[] = [];
 
   let s: GameState = opprettSpill(regler, opts.frø);
   let vakt = 0;
@@ -724,7 +829,7 @@ function kjørKamp(
       koder.push(kode);
 
       if (påRad !== null && oppsett.samle !== false) {
-        påRad({
+        const rad: Beslutningsrad = {
           sete,
           rundeNr: s.rundeNr,
           stikkSpilt: s.stikkSpilt,
@@ -743,7 +848,14 @@ function kjørKamp(
           troFasit: troFasit(s, sete),
           poengFør: s.totalPoeng[sete] ?? 0,
           nesteISete: -1,
-        });
+          // UKJENT til runden er over — se `fyllStikkIgjen`.
+          stikkIgjen: -1,
+        };
+        // SAMME OBJEKT begge steder. `fyllStikkIgjen` skriver etiketten inn i
+        // raden etter at kalleren har fått den, og det virker bare fordi det er
+        // én referanse og ikke to kopier.
+        rundensRader.push(rad);
+        påRad(rad);
       }
 
       const steg = ta(visning, givingKort, delvalg, kode);
@@ -763,6 +875,22 @@ function kjørKamp(
     }
     if (handling === null) throw new Error("Delvalgsløkka ble aldri ferdig");
     s = utfør(s, handling).state;
+
+    /**
+     * STIKKETIKETTEN FYLLES HER, og den må fanges på BEGGE utgangene av en
+     * runde. Motoren går til `RUNDE_SLUTT` når kampen fortsetter, men rett til
+     * `FERDIG` når rundens poeng avgjorde kampen (`motor.ts` ~620). En sjekk
+     * bare på `RUNDE_SLUTT` ville derfor stille latt SISTE runde i hver eneste
+     * kamp stå uten fasit — og det er den runden som avgjorde utfallet.
+     */
+    if (
+      rundensRader.length > 0 &&
+      s.sisteRunde !== null &&
+      (s.fase === "RUNDE_SLUTT" || s.fase === "FERDIG")
+    ) {
+      fyllStikkIgjen(s, rundensRader);
+      rundensRader.length = 0;
+    }
   }
 
   if (!avbrutt && (s.fase !== "FERDIG" || s.vinner === null)) {
@@ -825,8 +953,24 @@ export function spillKamp(opts: Kampopsjoner): Erfaring {
       }
       return egen;
     }
+    const søk = sete.søk ?? null;
     return (punkt) => {
       if (punkt.framover === null) throw new Error("Nettet ga ikke noe framoverpass");
+      if (søk !== null) {
+        const kode = søk.velg(punkt);
+        if (kode !== null) {
+          // KONTRAKTEN ER HARD. `handling.ta` kaster på en ulovlig kode, og et
+          // søk som gir en slik skal stoppe kampen med en melding som peker på
+          // søket — ikke tolv steg senere på et delvalg som ikke går opp.
+          if (punkt.maske[kode] !== 1) {
+            throw new Error(
+              `Søket «${søk.navn}» ga kode ${kode} i ${punkt.delsteg}, og den er ULOVLIG. ` +
+                `Et søk skal returnere null når det ikke har en lovlig mening.`,
+            );
+          }
+          return kode;
+        }
+      }
       return velger(punkt.framover.policy, punkt.maske, sete.temperatur, rng);
     };
   });
@@ -885,6 +1029,27 @@ export function gjenspill(
     egen: lesFraLogg,
     samle: true,
   }));
+
+  /**
+   * ===================== AVGJØRELSE 5, HÅNDHEVET (§127) ==================
+   *
+   * Gjenspillingen er der GRADIENTEN bygges. Et søk her ville betydd at
+   * fordelen ble regnet på en annen beslutningsvei enn den som spilte kampen —
+   * eller, om det sto på begge steder, at én epoke kostet ~268 kjernetimer
+   * (`docs/mlb.md` §5b).
+   *
+   * Strukturelt kan det ikke skje: hver beslutter er `lesFraLogg`. Men
+   * `opts.seter` går inn i `kjørKamp` og bærer feltet, og en fremtidig kaller
+   * som setter det ville trodd at det virket. Derfor sies det fra.
+   */
+  for (const s of opts.seter ?? []) {
+    if (s.søk != null) {
+      throw new Error(
+        `Setet «${s.navn}» har et søk (${s.søk.navn}) i en GJENSPILLING. ` +
+          `docs/mlb.md AVGJØRELSE 5: søket er ikke et treningstrekk — se src/mlb/sok.ts.`,
+      );
+    }
+  }
 
   const rader: Beslutningsrad[] = [];
   const { fasit, koder } = kjørKamp(

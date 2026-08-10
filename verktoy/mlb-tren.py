@@ -64,6 +64,11 @@ KLASSER = 4
 POLICY_UT = 68
 TRO_UT = KORT * KLASSER  # 208
 VERDI_UT = 1
+# §127. Speiler `STIKK_UT` og `KVANTIL_UT` i `src/mlb/nett.ts` - to definisjoner
+# av samme bredde er feilklassen §122 punkt 6 kaller «stillaset ble en andre
+# sannhet», og `test/mlb-nett.test.ts` haandhever at de er enige.
+STIKK_UT = 13  # 0...12 stikk laget tar i RESTEN av runden
+KVANTIL_UT = 32  # tau_i = (i + 0,5)/32
 HODE = 12  # "MLBS" + versjon + dim
 
 # Verdihodet spaar RAA rundepoeng. Skalaen brukes BARE i tapet, saa gradientene
@@ -172,9 +177,26 @@ class Sandkassenett(nn.Module):
         # et hode med tilfeldige vekter dytter den DELTE stammen fra foerste
         # steg, og §124 FUNN 5 maalte hva det koster (styrke +16 -> -760).
         self.verdi_hale = nn.Linear(b, VERDI_UT)
+        # ============ STIKKHODET OG KVANTILHODET (§127) =====================
+        #
+        # BEGGE STARTER PAA NULL, av samme grunn som halehodet: da er hver utgang
+        # bit-identisk med nettet foer §127 (`snitt(kvantiler) = 0`), og en
+        # vektfil med fem deler kan leses videre uten at noe flytter seg.
+        #
+        # Og det er en beskyttelse til, den samme som `--nullstill-verdi`:
+        # med W = 0 er `d(tap)/d(stamme)` EKSAKT null ved foerste steg for begge
+        # hodene. Et hjelpehode med tilfeldige vekter ville dyttet den DELTE
+        # stammen fra foerste batch, og §124 FUNN 5 maalte hva det koster
+        # (styrke +16 -> -760 poeng paa en epoke).
+        self.stikk = nn.Linear(b, STIKK_UT)
+        self.verdi_kvantil = nn.Linear(b, KVANTIL_UT)
         with torch.no_grad():
             self.verdi_hale.weight.zero_()
             self.verdi_hale.bias.zero_()
+            self.stikk.weight.zero_()
+            self.stikk.bias.zero_()
+            self.verdi_kvantil.weight.zero_()
+            self.verdi_kvantil.bias.zero_()
 
     def underlag(self, x):
         # ReLU etter HVERT lag, ogsaa det siste: stammen mater alle hodene, den
@@ -184,11 +206,52 @@ class Sandkassenett(nn.Module):
         return x
 
     def alle_hoder(self, x):
-        """policy, V_TOTAL, tro, V_runde, V_hale."""
+        """policy, V_TOTAL, tro, V_runde, V_hale.
+
+        `V_runde` er SKALAREN PLUSS KVANTILSNITTET (§127):
+
+            V_runde = verdi(h) + snitt(verdi_kvantil(h))
+
+        Med tau_i = (i + 0,5)/K er `(1/K)·sum theta_i` midtpunktsregelen for
+        `integral F^-1(tau) dtau`, som ER forventningen. Det er derfor ikke en
+        tilnaerming til fordelingens snitt - det er snittet.
+
+        Er kvantilhodet null (fil foer §127, eller ablasjonen `--vekt-verdi-
+        kvantil 0`), er leddet eksakt 0 og `V_runde` er skalaren alene. Identiteten
+        `A = G^y - V` er dermed urort i begge modus.
+        """
         h = self.underlag(x)
-        vr = self.verdi(h).squeeze(-1)
+        kv = self.verdi_kvantil(h)
+        vr = self.verdi(h).squeeze(-1) + kv.mean(dim=1)
         vh = self.verdi_hale(h).squeeze(-1)
         return self.policy(h), vr + vh, self.tro(h).view(-1, KORT, KLASSER), vr, vh
+
+    def hjelpehoder(self, x):
+        """stikk-logits (N x 13) og kvantilene (N x 32), for §127s to nye tap."""
+        h = self.underlag(x)
+        return self.stikk(h), self.verdi_kvantil(h)
+
+    def alt(self, x):
+        """ALLE hodene fra EN passering: policy, V, tro, V_runde, V_hale, stikk, kvantil.
+
+        Finnes fordi `alle_hoder` + `hjelpehoder` ville kjoert stammen TO ganger
+        per batch, og stammen er ~99 % av regnearbeidet. To passeringer ville
+        dessuten vaert to ulike dropout-/eval-tilstander hvis en slik noen gang
+        legges inn - to kall som skal gi samme underlag er en feil som venter.
+        """
+        h = self.underlag(x)
+        kv = self.verdi_kvantil(h)
+        vr = self.verdi(h).squeeze(-1) + kv.mean(dim=1)
+        vh = self.verdi_hale(h).squeeze(-1)
+        return (
+            self.policy(h),
+            vr + vh,
+            self.tro(h).view(-1, KORT, KLASSER),
+            vr,
+            vh,
+            self.stikk(h),
+            kv,
+        )
 
     def forward(self, x):
         """policy, V_TOTAL, tro — og den midterste er SUMMEN, ikke rundedelen.
@@ -216,6 +279,8 @@ def _deler(modell):
         [modell.verdi],
         [modell.tro],
         [modell.verdi_hale],
+        [modell.stikk],
+        [modell.verdi_kvantil],
     ]
 
 
@@ -249,28 +314,32 @@ def les_vekter(sti, modell):
     with open(sti, "rb") as f:
         (antall,) = struct.unpack("<i", f.read(4))
         deler = _deler(modell)
-        # ============ FIRE ELLER FEM DELER, OG INGENTING IMELLOM ==========
+        # ============ FIRE TIL SJU DELER, OG INGENTING UTENFOR ============
         #
-        # Fire er formatet FOER §125. Da leses de fire foerste, og halehodet
-        # blir staaende paa null slik `__init__` satte det — `V = V_runde + 0`
-        # er da bit-identisk med det gamle nettets `V`, og ti epokers vekter kan
-        # brukes videre uten at en eneste utgang flytter seg.
-        if antall == len(deler) - 1:
-            deler = deler[:-1]
+        # Fire er formatet FOER §125, fem foer §127, sju etter. Nye hoder legges
+        # ALLTID BAKERST, saa en gammel fil leses av de foerste delene og resten
+        # blir staaende paa NULL - og null er den noeytrale verdien for hvert av
+        # dem: `V_hale = 0`, `snitt(kvantiler) = 0`, stikkhodet uniformt og
+        # ulest. Hver utgang er da bit-identisk med nettet fila ble skrevet av.
+        HALEHODER = ["verdi_hale", "stikk", "verdi_kvantil"]
+        if 4 <= antall < len(deler):
+            mangler = deler[antall:]
+            deler = deler[:antall]
             # NULLSTILLES EKSPLISITT og ikke bare «den er vel null fra
             # `__init__`». Leses vektene inn i en modell som alt har trent, er
-            # den ikke det, og da hadde en gammel fil faatt en hale fra et annet
+            # den ikke det, og da hadde en gammel fil faatt et hode fra et annet
             # loep uten at noe sa fra.
             with torch.no_grad():
-                modell.verdi_hale.weight.zero_()
-                modell.verdi_hale.bias.zero_()
+                for navn in HALEHODER[antall - 4 :]:
+                    getattr(modell, navn).weight.zero_()
+                    getattr(modell, navn).bias.zero_()
             print(
-                f"{sti}: fire deler (foer §125) - halehodet staar paa null, "
-                f"V = V_runde er uendret",
+                f"{sti}: {antall} deler - {len(mangler)} halehode(r) "
+                f"({', '.join(HALEHODER[antall - 4:])}) staar paa NULL, utgangene er uendret",
                 flush=True,
             )
         elif antall != len(deler):
-            raise SystemExit(f"{sti}: {antall} nett, ventet {len(deler)} (eller {len(deler) - 1})")
+            raise SystemExit(f"{sti}: {antall} nett, ventet 4-{len(deler)}")
         for lag in deler:
             (n,) = struct.unpack("<i", f.read(4))
             if n != len(lag):

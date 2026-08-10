@@ -185,6 +185,11 @@ class Driver:
             f"{f'--entropi-fase {self.a.entropi_fase} ' if self.a.entropi_fase else ''}"
             f"{f'--entropi-gulv {self.a.entropi_gulv} ' if self.a.entropi_gulv else ''}"
             f"--vekt-policy {self.a.vekt_policy} "
+            # §127s TO BRYTERE. Sendes ALLTID eksplisitt, ogsaa naar de er 0:
+            # en bryter som bare staar i treneren er en bryter man maa gjette
+            # verdien paa naar man leser epokeloggen et halvt aar senere.
+            f"--vekt-stikk {self.a.vekt_stikk} "
+            f"--vekt-verdi-kvantil {self.a.vekt_verdi_kvantil} "
             # BARE FOERSTE EPOKE. Nullstilles hodet hver epoke, laerer det aldri.
             f"{'--nullstill-verdi ' if (self.a.nullstill_verdi and e == 1) else ''}"
             f"--opt-tilstand {self.a.optimalisator} "
@@ -248,6 +253,7 @@ class Driver:
             self.si(
                 f"START {time.strftime('%Y-%m-%d %H:%M')}  arbeid={a.arbeid} -> beste={a.beste}"
                 f"  lambda={a.lam} gamma={a.gamma} lr={a.lr} kamper={a.kamper}"
+                f"  vekt-stikk={a.vekt_stikk} vekt-verdi-kvantil={a.vekt_verdi_kvantil}"
             )
 
         t_start = time.time()
@@ -342,7 +348,12 @@ class Driver:
                     f"   HOLDOUT (kamper): verdi sum {tallstr(h.get('forklart'), '+.4f')}  "
                     f"runde {tallstr(h.get('forklart_runde'), '+.4f')}  "
                     f"hale {tallstr(h.get('forklart_hale'), '+.4f')}  "
-                    f"tro {tallstr(h.get('tro'), '.4f')}"
+                    f"tro {tallstr(h.get('tro'), '.4f')}  "
+                    # STIKKHODET PAA HOLDOUT (§127) — ved siden av verdiens, med
+                    # samme regnestykke og hver sin nevner. Det er de to tallene
+                    # oppdraget ber om, og de skal leses i samme linje.
+                    f"STIKK {tallstr(h.get('st_forklart'), '+.4f')} "
+                    f"(treff {tallstr((h.get('st_treff') or 0) * 100, '.1f')} %)"
                 )
             if a.timer > 0 and (time.time() - t_start) / 3600 > a.timer:
                 self.si(f"TIDSTAKET paa {a.timer} timer er naadd — stopper etter epoke {e}")
@@ -462,6 +473,17 @@ def main():
     # seg. Foerste forsoek brukte `--vekt-policy 0` i stedet, og det gjorde
     # nettopp det: styrken falt fra +16 til -760 poeng paa en epoke.
     p.add_argument("--nullstill-verdi", action="store_true")
+    # ===================== §127s TO BRYTERE ==============================
+    #
+    # STIKKHODET og FORDELINGSVERDIEN bygges og trenes SAMMEN fra epoke 0 - hver
+    # for seg koster timer - men de skal kunne SKILLES etterpaa uten aa gjette.
+    # Derfor en bryter hver, og begge er EKSAKTE i null: hodene staar paa W = 0
+    # fra `__init__`, saa uten gradient kan de heller ikke dytte den delte
+    # stammen. `--vekt-stikk 0 --vekt-verdi-kvantil 0` er §126 bit for bit.
+    #
+    # SAMME STANDARD SOM `verktoy/mlb-gradient.py`. Ett tall, ett sted.
+    p.add_argument("--vekt-stikk", type=float, default=1.0)
+    p.add_argument("--vekt-verdi-kvantil", type=float, default=1.0)
     p.add_argument("--batch", type=int, default=1024)
     # ===================== FROEBAANDENE, AVSATT FOER FOERSTE KAMP =========
     #

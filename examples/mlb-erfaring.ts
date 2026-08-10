@@ -194,10 +194,22 @@ if (nettsti === null) throw new Error("--nett er påkrevd: fordelen trenger nett
  * holdout-KAMPER — og ti epokers rapporter leste det optimistiske tallet. Uten
  * kampens frø i raden kan treneren bare splitte på RAD, og rader fra samme kamp
  * deler både kortene og halen. En radsplitt måler hukommelse.
+ *
+ * ===================== VERSJON 3 (§127) ================================
+ *
+ *   stikkIgjen i2    hvor mange stikk setets LAG tar i resten av runden.
+ *                    **−1 = UKJENT**, og det er ikke 0: en runde som aldri ble
+ *                    ferdigspilt har ingen fasit, og de radene maskeres bort i
+ *                    tapet på samme måte som `troFasit`s nullklasse.
+ *
+ * Se `fyllStikkIgjen` i `src/mlb/selvspill.ts` for hvorfor formen er «resten»
+ * og ikke «totalen»: totalen er per konstruksjon bit-identisk for hver
+ * beslutning i samme runde, altså 0 % av variansen innenfor runden — nøyaktig
+ * den sykdommen §124 fant i λ = 1.
  */
 const MASKE_LENGDE = HANDLING_LENGDE;
-const FORMATVERSJON = 2;
-const POST = TREKK_LENGDE * 4 + MASKE_LENGDE + 52 + 2 * 4 + 4 * 3 + 4 * 2 + 4;
+const FORMATVERSJON = 3;
+const POST = TREKK_LENGDE * 4 + MASKE_LENGDE + 52 + 2 * 4 + 4 * 3 + 4 * 2 + 4 + 2;
 
 /**
  * ===================== NØKKELEN VAR FEIL, OG `?? 3` SKJULTE DET (§126) ====
@@ -251,6 +263,34 @@ interface Sammendrag extends Record<string, number> {
   sumKvadRunde: number;
   sumHale: number;
   sumKvadHale: number;
+  /**
+   * ===================== STIKKETIKETTENS VARIANSOPPDELING (§127) =========
+   *
+   * Tallet som avgjorde FORMEN på stikkhodet, og det er målt og ikke antatt.
+   *
+   * §124 fant at λ = 1 gjorde fordelen bit-identisk innenfor runden — 99,68 %
+   * av variansen mellom runder, 0,32 % innenfor — og at kurven flatet ut fordi
+   * det ikke fantes noe annet nivå i gradienten. En etikett som er konstant
+   * innenfor runden har nøyaktig den samme sykdommen, og «antall stikk laget
+   * tar TOTALT» er en slik etikett per konstruksjon.
+   *
+   * Her måles «resten» i stedet, med en oppdeling på gruppene (runde, sete):
+   *
+   *   Var_mellom = Σ_g n_g · (snitt_g − snitt)² / N
+   *   Var_innenfor = Var_total − Var_mellom
+   *
+   * `gr…`-feltene er KONTROLLARMEN, og de er ikke pynt. `Gr` — rundens
+   * gjenstående poeng — er per konstruksjon konstant innenfor samme (runde,
+   * sete), så `Var_innenfor(Gr)` MÅ være eksakt 0. Er den ikke det, er
+   * oppdelingen gal og stikktallet betyr ingenting.
+   */
+  stikkKjent: number;
+  sumStikk: number;
+  sumKvadStikk: number;
+  mellomStikk: number;
+  sumGrK: number;
+  sumKvadGrK: number;
+  mellomGrK: number;
 }
 
 function kjørSkard(i: number, n: number): void {
@@ -307,6 +347,13 @@ function kjørSkard(i: number, n: number): void {
     sumKvadRunde: 0,
     sumHale: 0,
     sumKvadHale: 0,
+    stikkKjent: 0,
+    sumStikk: 0,
+    sumKvadStikk: 0,
+    mellomStikk: 0,
+    sumGrK: 0,
+    sumKvadGrK: 0,
+    mellomGrK: 0,
   };
   const t0 = Date.now();
 
@@ -356,6 +403,39 @@ function kjørSkard(i: number, n: number): void {
       // ... og DELINGEN av det samme målet, av samme γ, i samme kall. Tre
       // steder med hver sin γ ville gitt en skjevhet som ikke feiler noe sted.
       const delt = delteRetur(rader, erfaring.fasit, gamma);
+
+      /**
+       * VARIANSOPPDELINGEN, gruppert på (runde, sete) INNENFOR denne kampen.
+       * Gruppene kan ikke krysse kamper: to kamper har ulike kort, og «samme
+       * runde 3» i to kamper er ikke samme gruppe.
+       */
+      {
+        const grupper = new Map<number, { n: number; s: number; g: number }>();
+        for (let r = 0; r < rader.length; r++) {
+          const rad = rader[r]!;
+          if (rad.stikkIgjen < 0) continue;
+          const nøkkel = rad.rundeNr * 8 + rad.sete;
+          let g = grupper.get(nøkkel);
+          if (g === undefined) {
+            g = { n: 0, s: 0, g: 0 };
+            grupper.set(nøkkel, g);
+          }
+          g.n++;
+          g.s += rad.stikkIgjen;
+          g.g += delt.runde[r]!;
+          s.stikkKjent++;
+          s.sumStikk += rad.stikkIgjen;
+          s.sumKvadStikk += rad.stikkIgjen * rad.stikkIgjen;
+          s.sumGrK += delt.runde[r]!;
+          s.sumKvadGrK += delt.runde[r]! * delt.runde[r]!;
+        }
+        // Σ n_g · snitt_g² — resten av `Var_mellom` er grand-snittet, og det
+        // kan først trekkes fra når alle skard er slått sammen.
+        for (const g of grupper.values()) {
+          s.mellomStikk += (g.s * g.s) / g.n;
+          s.mellomGrK += (g.g * g.g) / g.n;
+        }
+      }
 
       // Utvalget er deterministisk av kampens frø — to kjøringer gir samme fil.
       const rng = lagRng((logg.frø ^ 0x51ed_270b) >>> 0);
@@ -407,6 +487,9 @@ function kjørSkard(i: number, n: number): void {
         // skard som ble brukt, og da hadde holdouten flyttet seg mellom to
         // kjøringer over de samme kampene.
         buf.writeInt32LE(logg.frø | 0, o + 20);
+        // STIKKETIKETTEN (§127). −1 slipper gjennom med vilje: den betyr
+        // «runden ble aldri ferdigspilt», og treneren maskerer den bort.
+        buf.writeInt16LE(rad.stikkIgjen, o + 24);
 
         iKlump++;
         s.skrevet++;
@@ -472,6 +555,38 @@ if (skardI >= 0) {
     sumX2 / Math.max(rader, 1) - (sumX / Math.max(rader, 1)) ** 2;
   const varRunde = varDel(sum((s) => s.sumRunde), sum((s) => s.sumKvadRunde));
   const varHale = varDel(sum((s) => s.sumHale), sum((s) => s.sumKvadHale));
+
+  /**
+   * STIKKETIKETTENS VARIANSOPPDELING, slått sammen over skardene.
+   *
+   * `Var_mellom = Σ n_g·snitt_g²/N − snitt²`, og `Var_innenfor` er resten.
+   * Andelen INNENFOR er tallet som begrunner formen: totalen ville gitt 0,0 %
+   * per konstruksjon, og en etikett med 0 % innenfor runden kan ikke skille to
+   * kortvalg i samme runde — det er §124s diagnose, med en ny etikett.
+   */
+  const kjent = Math.max(1, sum((s) => s.stikkKjent));
+  const oppdeling = (
+    sumX: number,
+    sumX2: number,
+    mellomRå: number,
+  ): { total: number; innenfor: number; andel: number } => {
+    const snitt = sumX / kjent;
+    const total = sumX2 / kjent - snitt * snitt;
+    const mellom = mellomRå / kjent - snitt * snitt;
+    const innenfor = total - mellom;
+    return { total, innenfor, andel: innenfor / Math.max(total, 1e-12) };
+  };
+  const oStikk = oppdeling(
+    sum((s) => s.sumStikk),
+    sum((s) => s.sumKvadStikk),
+    sum((s) => s.mellomStikk),
+  );
+  const oGr = oppdeling(
+    sum((s) => s.sumGrK),
+    sum((s) => s.sumKvadGrK),
+    sum((s) => s.mellomGrK),
+  );
+
   const linjer = [
     `FERDIG ${new Date().toISOString()}  veggtid=${sek.toFixed(1)} s`,
     `kamper=${sum((s) => s.kamper)} rader=${rader} skrevet=${skrevet} ` +
@@ -482,6 +597,16 @@ if (skardI >= 0) {
       `MSE(V)=${mseV.toFixed(3)} forklart=${(1 - mseV / Math.max(varMål, 1e-9)).toFixed(4)}`,
     `delt maal: var(runde)=${varRunde.toFixed(3)} var(hale)=${varHale.toFixed(3)} ` +
       `rundens andel=${((varRunde / Math.max(varRunde + varHale, 1e-9)) * 100).toFixed(1)} %`,
+    `stikkfasit: kjent=${sum((s) => s.stikkKjent)} av ${rader} ` +
+      `(${((sum((s) => s.stikkKjent) / Math.max(rader, 1)) * 100).toFixed(1)} %) ` +
+      `snitt=${(sum((s) => s.sumStikk) / kjent).toFixed(3)}`,
+    `stikkfasit varians: total=${oStikk.total.toFixed(4)} innenfor runden=${oStikk.innenfor.toFixed(4)} ` +
+      `ANDEL INNENFOR=${(oStikk.andel * 100).toFixed(2)} %`,
+    // KONTROLLARM: `Gr` er konstant innenfor (runde, sete) per konstruksjon, saa
+    // denne MAA vaere 0,00 %. Er den ikke det, er oppdelingen gal og tallet
+    // over betyr ingenting. Samme rader, samme kode, kjent svar.
+    `KONTROLL Gr varians: total=${oGr.total.toFixed(4)} innenfor runden=${oGr.innenfor.toFixed(4)} ` +
+      `ANDEL INNENFOR=${(oGr.andel * 100).toFixed(2)} % (skal vaere 0,00 %)`,
     `paa disk=${((skrevet * POST) / 1e6).toFixed(1)} MB (${POST} bytes/rad)`,
     "",
   ];

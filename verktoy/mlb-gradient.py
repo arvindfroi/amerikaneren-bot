@@ -80,6 +80,8 @@ les_vekter = MLBT.les_vekter
 VERDI_SKALA = MLBT.VERDI_SKALA
 KORT = MLBT.KORT
 KLASSER = MLBT.KLASSER
+STIKK_UT = MLBT.STIKK_UT
+KVANTIL_UT = MLBT.KVANTIL_UT
 
 
 def post_dtype(dim, mdim, versjon):
@@ -112,6 +114,11 @@ def post_dtype(dim, mdim, versjon):
     ]
     if versjon >= 2:
         felt += [("Gr", "<f4"), ("Gh", "<f4"), ("kamp", "<i4")]
+    if versjon >= 3:
+        # STIKKETIKETTEN (§127): hvor mange stikk setets LAG tar i RESTEN av
+        # runden. -1 = UKJENT (runden ble aldri ferdigspilt), og den skal
+        # maskeres bort - ikke leses som «null stikk».
+        felt += [("stikk", "<i2")]
     return numpy.dtype(felt)
 
 
@@ -133,7 +140,7 @@ def les_erfaring(monster, maks=None):
             (d,) = struct.unpack("<i", fh.read(4))
             (md,) = struct.unpack("<i", fh.read(4))
             (post,) = struct.unpack("<i", fh.read(4))
-            if versjon not in (1, 2):
+            if versjon not in (1, 2, 3):
                 raise SystemExit(f"{sti}: ukjent versjon {versjon}")
             # BREDDEN MAA VAERE EN. Blandes to bredder, hoppes halve korpuset
             # over i stillhet - samme felle som i sd-tren og mlb-tren.
@@ -303,6 +310,37 @@ def main():
     # halen, saa en radsplitt maaler hukommelse. 0 = ingen holdout.
     ap.add_argument("--holdout-del", type=int, default=10, help="1 av N KAMPER holdes utenfor")
     ap.add_argument("--vekt-verdi-hale", type=float, default=1.0)
+    # ============ §127s TO BRYTERE, HVER FOR SEG ========================
+    #
+    # De to endringene bygges og trenes SAMMEN fra epoke 0 - hver for seg koster
+    # timer - men de skal kunne SKILLES etterpaa uten aa gjette. Derfor en bryter
+    # hver, og begge er eksakte i null:
+    #
+    #   --vekt-stikk 0          stikkhodet faar ingen gradient. Det staar paa
+    #                           W = 0 fra `__init__`, saa det kan heller ikke
+    #                           dytte stammen. Ablasjonen er en IDENTITET, ikke
+    #                           en tilnaermelse.
+    #   --vekt-verdi-kvantil 0  kvantilhodet faar ingen gradient, snittet er
+    #                           eksakt 0, og `V_runde` er skalaren alene - altsaa
+    #                           §125/§126 bit for bit.
+    ap.add_argument(
+        "--vekt-stikk",
+        type=float,
+        default=1.0,
+        help="STIKKHODET (§127). 0 = ablasjon, og den er eksakt.",
+    )
+    ap.add_argument(
+        "--vekt-verdi-kvantil",
+        type=float,
+        default=1.0,
+        help="FORDELINGSVERDIEN (§127). 0 = skalaren alene, bit-identisk med §126.",
+    )
+    ap.add_argument(
+        "--kvantil-huber",
+        type=float,
+        default=1.0,
+        help="kappa i kvantil-Huber, i enheter av --verdi-skala",
+    )
     args = ap.parse_args()
 
     t0 = time.time()
@@ -342,6 +380,44 @@ def main():
     else:
         GR = GH = None
         kamp = None
+
+    # ===================== STIKKETIKETTEN (§127) =========================
+    #
+    # -1 betyr UKJENT: runden ble aldri ferdigspilt, saa laget er ikke kjent.
+    # Den maskeres bort noeyaktig som `troFasit`s nullklasse. Et 0 der ville
+    # laert nettet at laget tar null stikk i nettopp de rundene ingen fikk
+    # spilt ferdig - og de rundene er systematisk de lengste.
+    har_stikk = versjon >= 3
+    if har_stikk:
+        ST = torch.from_numpy(numpy.ascontiguousarray(rad["stikk"])).to(enhet).long()
+        ST_KJENT = ST >= 0
+        # ETIKETTEN MAA VAERE INNENFOR HODET. Et sete som tok 13 stikk finnes
+        # ikke ved fire spillere; skulle det dukke opp, er enten motoren eller
+        # `fyllStikkIgjen` uenig med `STIKK_UT`, og et `cross_entropy` med en
+        # klasse utenfor rekkevidde gir udefinert oppfoersel og ikke en feil.
+        maks_st = int(ST.max()) if len(ST) else 0
+        if maks_st >= STIKK_UT:
+            raise SystemExit(
+                f"stikkfasit {maks_st} >= STIKK_UT {STIKK_UT}. Hodet har ikke en plass "
+                f"til etiketten - se STIKK_UT i src/mlb/nett.ts og verktoy/mlb-tren.py."
+            )
+        andel_stikk = float(ST_KJENT.float().mean())
+        print(
+            f"STIKKFASIT: {int(ST_KJENT.sum())} av {n} rader kjent ({andel_stikk * 100:.1f} %), "
+            f"snitt {float(ST[ST_KJENT].float().mean()):.3f} stikk igjen",
+            flush=True,
+        )
+    else:
+        ST = ST_KJENT = None
+        andel_stikk = 0.0
+        if args.vekt_stikk > 0:
+            print(
+                f"ADVARSEL: erfaringsfilene er versjon {versjon} og har ingen stikkfasit. "
+                f"--vekt-stikk {args.vekt_stikk} slaas AV. Spill epoken om igjen med "
+                f"examples/mlb-erfaring.ts fra §127 hvis stikkhodet skal trenes.",
+                flush=True,
+            )
+            args.vekt_stikk = 0.0
     del rad
 
     # FORDELEN STANDARDISERES OVER HELE EPOKEN, ikke per batch.
@@ -477,19 +553,74 @@ def main():
 
     modell = Sandkassenett(dim, skjult).to(enhet)
     les_vekter(args.vekter, modell)
+
+    # ===================== FORDELINGSVERDIEN (§127) ======================
+    #
+    # ============ IDENTITETEN `A = G - V` SKAL IKKE ROERES ==============
+    #
+    # `V_runde = verdi(skalar) + snitt(kvantiler)`. Med kvantilhodet PAA vil vi
+    # at fordelingens forventning skal VAERE `V_runde`, ikke et tillegg til en
+    # skalar som ogsaa trenes mot det samme maalet - da ville de to delt paa
+    # etiketten uidentifiserbart, akkurat som §124 fant for det todelte
+    # verdihodet trent mot summen alene.
+    #
+    # Derfor: skalaren settes til NULL og fryses. `V_runde` er da EKSAKT
+    # fordelingens forventning, og `A = G^y - V` er urort i formen.
+    #
+    # Og motsatt vei er ablasjonen eksakt: med `--vekt-verdi-kvantil 0` faar
+    # kvantilhodet ingen gradient, det staar paa W = 0 fra `__init__`, snittet er
+    # eksakt 0, og `V_runde` er skalaren alene - §125/§126 bit for bit.
+    KVANTIL_PAA = args.vekt_verdi_kvantil > 0
+    TAU = ((torch.arange(KVANTIL_UT, device=enhet).float() + 0.5) / KVANTIL_UT).view(1, -1)
+    if KVANTIL_PAA:
+        with torch.no_grad():
+            modell.verdi.weight.zero_()
+            modell.verdi.bias.zero_()
+        for p_ in modell.verdi.parameters():
+            p_.requires_grad_(False)
+        if args.vekt_verdi > 0:
+            print(
+                f"--vekt-verdi {args.vekt_verdi} settes til 0: med kvantilhodet paa ER "
+                f"V_runde fordelingens forventning, og to hoder mot samme etikett er "
+                f"uidentifiserbart (§124).",
+                flush=True,
+            )
+            args.vekt_verdi = 0.0
+
     if args.nullstill_verdi:
         # BEGGE verdihodene, hvert med SITT snitt. Nullstilles bare det ene, er
         # summen `V` feil med snittet av det andre fra foerste steg, og
         # fordelen `G^y - V` faar en skjevhet paa nettopp den differansen.
+        mal_runde = GR if delt else G
         with torch.no_grad():
-            modell.verdi.weight.zero_()
-            modell.verdi.bias.fill_(float(GR.mean()) if delt else float(G.mean()))
             modell.verdi_hale.weight.zero_()
             modell.verdi_hale.bias.fill_(float(GH.mean()) if delt else 0.0)
+            if KVANTIL_PAA:
+                # ============ KVANTILHODET NULLSTILLES MED KVANTILENE ========
+                #
+                # W = 0 og b_i = den EMPIRISKE tau_i-kvantilen av maalet. Da er
+                # `d(kvantiltap)/d(stamme)` eksakt null ved foerste steg - hodet
+                # maa laere sine egne vekter foer det kan dytte den DELTE stammen
+                # - og forventningen starter paa maalets snitt i stedet for paa 0.
+                #
+                # Med `b_i = 0` for alle i ville hodet spaadd en degenerert
+                # fordeling i punktet 0, og hele skalaskiftet ville gaatt gjennom
+                # stammen. Det er noeyaktig §124 FUNN 5, med et nytt hode.
+                kv = torch.quantile(mal_runde.float(), TAU.view(-1).clamp(1e-6, 1 - 1e-6))
+                modell.verdi_kvantil.weight.zero_()
+                modell.verdi_kvantil.bias.copy_(kv)
+            else:
+                modell.verdi.weight.zero_()
+                modell.verdi.bias.fill_(float(mal_runde.mean()))
         print(
-            f"VERDIHODENE NULLSTILT: W = 0, b(runde) = "
-            f"{float(GR.mean()) if delt else float(G.mean()):+.3f}, "
-            f"b(hale) = {float(GH.mean()) if delt else 0.0:+.3f}. "
+            f"VERDIHODENE NULLSTILT: W = 0, "
+            + (
+                f"kvantilene b = [{float(kv[0]):+.2f} … {float(kv[-1]):+.2f}] "
+                f"(forventning {float(kv.mean()):+.3f})"
+                if KVANTIL_PAA
+                else f"b(runde) = {float(mal_runde.mean()):+.3f}"
+            )
+            + f", b(hale) = {float(GH.mean()) if delt else 0.0:+.3f}. "
             f"Gradienten inn i stammen fra verdileddene er null ved foerste steg.",
             flush=True,
         )
@@ -506,7 +637,16 @@ def main():
     # FROSNE stammen naadde rundehodet +0,011 forklart i utvalget, mens en
     # regularisert ridge paa de SAMME 512 utgangene naadde +0,090. Taket laa
     # altsaa aatte ganger hoeyere enn det optimeringen fant.
-    verdipar = list(modell.verdi.parameters()) + list(modell.verdi_hale.parameters())
+    #
+    # KVANTILHODET HOERER TIL I VERDIGRUPPEN. Det er et verdihode i alt som
+    # betyr noe for skrittlengden: lineaert over stammens 512 ReLU-utganger, med
+    # optimale vekter av stoerrelsesorden 1e-3. Stikkhodet staar derimot paa
+    # `--lr`, som trohodet — begge er kryssentropi over logits paa skala 1.
+    verdipar = [
+        p
+        for m in (modell.verdi, modell.verdi_hale, modell.verdi_kvantil)
+        for p in m.parameters()
+    ]
     verdi_id = {id(p) for p in verdipar}
     opt = torch.optim.AdamW(
         [
@@ -538,9 +678,25 @@ def main():
         modell.eval()
         s = {
             k: 0.0
-            for k in ("pol", "ent", "tro", "treff", "kvad", "kvadG", "kvadR", "kvadH")
+            for k in (
+                "pol",
+                "ent",
+                "tro",
+                "treff",
+                "kvad",
+                "kvadG",
+                "kvadR",
+                "kvadH",
+                # §127: stikkhodets kryssentropi, treffandel og KVADRATFEIL paa
+                # forventningen. Den siste er den som kan leses ved siden av
+                # verdihodets «forklart» - samme form, samme nevner-regel.
+                "st_ce",
+                "st_treff",
+                "st_kvad",
+                "st_sum",
+            )
         }
-        nt = np_ = nv = 0
+        nt = np_ = nv = ns = 0
         lp_alle = []
         # ============ DIAGNOSTIKKEN SOM MANGLET (§126) ======================
         #
@@ -560,7 +716,7 @@ def main():
         f_kode = [torch.zeros(mdim, device=enhet, dtype=torch.long) for _ in range(5)]
         for i in range(0, len(idx), args.batch):
             j = idx[i : i + args.batch]
-            p, v, t, vr, vh = modell.alle_hoder(X[j].float())
+            p, v, t, vr, vh, sl_, _kv = modell.alt(X[j].float())
             lg = F.log_softmax(maskerte_logits(p, M[j]), dim=1)
             lp_alle.append(lg)
             valg = MED_VALG[j]
@@ -594,6 +750,25 @@ def main():
                 s["tro"] += float(F.cross_entropy(t[mk], m3[mk], reduction="sum"))
                 s["treff"] += float(((t.argmax(dim=2) == m3) & mk).sum())
                 nt += int(mk.sum())
+            # ============ STIKKHODET (§127) ==============================
+            #
+            # `st_kvad` er kvadratfeilen paa FORVENTNINGEN `E[stikk] = sum k·p_k`,
+            # og ikke paa argmaksen. Det er den formen som kan leses ved siden av
+            # verdihodets «forklart varians»: samme regnestykke, samme nevner.
+            # Argmaksen ville gitt et heltall og en kunstig daarlig RMSE for et
+            # hode som spaar en fordeling helt riktig.
+            if ST_KJENT is not None:
+                mst = ST_KJENT[j]
+                if mst.any():
+                    y = ST[j][mst]
+                    lo = sl_[mst]
+                    s["st_ce"] += float(F.cross_entropy(lo, y, reduction="sum"))
+                    s["st_treff"] += float((lo.argmax(dim=1) == y).sum())
+                    kl_ = torch.arange(STIKK_UT, device=enhet).float()
+                    e = (F.softmax(lo, dim=1) * kl_).sum(1)
+                    s["st_kvad"] += float(((e - y.float()) ** 2).sum())
+                    s["st_sum"] += float(e.sum())
+                    ns += int(mst.sum())
         modell.train()
 
         def forklart(kvad, maal_):
@@ -623,6 +798,20 @@ def main():
             # delen kunstig god ut bare fordi den er den store.
             ut["forklart_runde"] = forklart(s["kvadR"], GR)
             ut["forklart_hale"] = forklart(s["kvadH"], GH)
+        if ns > 0:
+            # ============ STIKKHODETS FORKLARTE VARIANS ==================
+            #
+            # Nevneren er variansen til stikketiketten PAA DE SAMME RADENE, og
+            # bare de kjente. Regnes den mot variansen over alle rader, ser
+            # hodet bedre ut jo flere ukjente etiketter epoken hadde - og de
+            # ukjente er systematisk de lengste rundene.
+            y = ST[idx]
+            y = y[y >= 0].float()
+            ut["st_ce"] = s["st_ce"] / ns
+            ut["st_treff"] = s["st_treff"] / ns
+            ut["st_rmse"] = (s["st_kvad"] / ns) ** 0.5
+            ut["st_forklart"] = 1.0 - (s["st_kvad"] / ns) / max(float(y.var(unbiased=False)), 1e-9)
+            ut["st_snitt"] = s["st_sum"] / ns
         return ut, torch.cat(lp_alle)
 
     g = torch.Generator(device="cpu").manual_seed(args.froe + args.epoke)
@@ -771,7 +960,7 @@ def main():
         perm = tren_idx[torch.randperm(n_tren, generator=g).to(enhet)]
         for i in range(0, n_tren, args.batch):
             j = perm[i : i + args.batch]
-            p, v, t, vr, vh = modell.alle_hoder(X[j].float())
+            p, v, t, vr, vh, sl_, kv_ = modell.alt(X[j].float())
 
             if frosset:
                 # Policyleddet hoppes over HELT. Gradienten inn i det ville
@@ -807,6 +996,31 @@ def main():
                 tap_verdi = F.mse_loss(v / verdi_skala, G[j] / verdi_skala)
                 tap_hale = torch.zeros((), device=enhet)
 
+            # ============ FORDELINGSVERDIEN: KVANTIL-HUBER (§127) ==========
+            #
+            # `u_i = (y - theta_i)/skala`, Huber paa `u`, vektet med
+            # `|tau_i - 1[u < 0]|`. Det er QR-tapet: minimum ligger i den ekte
+            # tau_i-kvantilen, ikke i snittet, saa hodet BESKRIVER fordelingen i
+            # stedet for aa sikte mellom klumpene.
+            #
+            # `u.detach()` i vekten er ikke en detalj: `1[u < 0]` er en trinnfunksjon
+            # med gradient null nesten overalt og udefinert i null, og en gradient
+            # gjennom den ville vaert stoey.
+            #
+            # SKALAEN er den samme som MSE-leddet bruker, saa de to modusene er
+            # sammenliknbare og `--vekt-verdi-kvantil` betyr det samme som
+            # `--vekt-verdi` gjorde.
+            if KVANTIL_PAA:
+                y_ = (GR[j] if delt else G[j]).unsqueeze(1)
+                u = (y_ - kv_) / verdi_skala
+                au = u.abs()
+                k_ = args.kvantil_huber
+                huber = torch.where(au <= k_, 0.5 * u * u, k_ * (au - 0.5 * k_))
+                vekt_q = (TAU - (u.detach() < 0).float()).abs()
+                tap_kvantil = (vekt_q * huber).sum(dim=1).mean()
+            else:
+                tap_kvantil = torch.zeros((), device=enhet)
+
             mal = Fa[j]
             mk = mal > 0
             if mk.any():
@@ -814,6 +1028,22 @@ def main():
                 tap_tro = F.cross_entropy(t[mk], m3[mk], reduction="mean")
             else:
                 tap_tro = torch.zeros((), device=enhet)
+
+            # ============ STIKKHODET (§127) ================================
+            #
+            # Kryssentropi mot «hvor mange stikk tar laget mitt i RESTEN av
+            # runden», med de ukjente maskert bort. Perfekt etikett, kjent ved
+            # rundeslutt, akkurat som troens - og signalet er TETT: etiketten
+            # flytter seg for hvert stikk, mens verdien foerst faller ved
+            # rundeslutt.
+            if args.vekt_stikk > 0 and ST_KJENT is not None:
+                mst = ST_KJENT[j]
+                if mst.any():
+                    tap_stikk = F.cross_entropy(sl_[mst], ST[j][mst], reduction="mean")
+                else:
+                    tap_stikk = torch.zeros((), device=enhet)
+            else:
+                tap_stikk = torch.zeros((), device=enhet)
 
             # `tap_ent` baerer fortegnet SITT SELV — se `entropitapet`. Med
             # `--entropi-fase` tom er den eksakt `-args.entropi * ent`, altsaa
@@ -823,7 +1053,9 @@ def main():
                 + tap_ent
                 + args.vekt_verdi * tap_verdi
                 + args.vekt_verdi_hale * tap_hale
+                + args.vekt_verdi_kvantil * tap_kvantil
                 + args.vekt_tro * tap_tro
+                + args.vekt_stikk * tap_stikk
             )
             opt.zero_grad(set_to_none=True)
             tap.backward()
@@ -949,6 +1181,12 @@ def main():
     rad_ut = {
         "epoke": args.epoke,
         "sek": round(time.time() - t0, 1),
+        # §127s TO BRYTERE I HVER ENESTE RAD. To epoker med ulike brytere gir
+        # tall som ikke er sammenliknbare, og uten dem i loggen er de heller
+        # ikke gjenkjennelige som ulike - samme regel som lambda og gamma.
+        "vekt_stikk": args.vekt_stikk,
+        "vekt_verdi_kvantil": args.vekt_verdi_kvantil,
+        "andel_stikk_kjent": round(andel_stikk, 4),
         "kl": round(kl, 6),
         "logitskala": round(logitskala, 2),
         "stoppet_paa_kl": stoppet_paa_kl,
@@ -994,7 +1232,20 @@ def main():
                 else ""
             )
             + f" (i utvalget {etter['forklart']:+.4f}) "
-            f"| KL={kl:.5f} "
+            # ============ STIKKHODET PAA HOLDOUT (§127) ====================
+            #
+            # Det ENE tallet som sier om stikkhodet laerer noe som generaliserer,
+            # ved siden av verdiens. Begge er «forklart varians paa
+            # holdout-KAMPER», med hvert sitt maal og hver sin nevner - §124
+            # FUNN 2 kostet ti epoker paa aa lese det i-utvalget-tallet.
+            + (
+                f"| STIKK forklart {hold('st_forklart')} "
+                f"(RMSE {hold_etter['st_rmse']:.3f}, treff "
+                f"{hold_etter['st_treff'] * 100:.1f} %) "
+                if hold_etter is not None and "st_forklart" in hold_etter
+                else "| STIKK n/a "
+            )
+            + f"| KL={kl:.5f} "
             # ============ DE TRE TALLENE §126 STAAR OG FALLER PAA ==========
             #
             # Snittentropien over alle rader kan STIGE mens en fase kollapser

@@ -1,23 +1,60 @@
 /**
- * SANDKASSENETTET — ETT FELLES UNDERLAG, FIRE HODER.
+ * SANDKASSENETTET — ETT FELLES UNDERLAG, SEKS HODER.
  *
  * `docs/sandkassen.md` §5 og `docs/mlb.md` fase 0.4: ett nett tar alle
- * beslutninger, med alt vi har bygd som INNGANGER. Utgangen er fire hoder over
+ * beslutninger, med alt vi har bygd som INNGANGER. Utgangen er seks hoder over
  * den samme stammen:
  *
- *   policy     68  (`HANDLING_LENGDE`)  — utfallet, selvtrent
- *   verdi       1                       — det som gjenstår av DENNE runden
- *   tro       208  (52 kort × 4 seter)  — hvor kortene FAKTISK lå
- *   verdiHale   1                       — den diskonterte halen (§125)
+ *   policy        68  (`HANDLING_LENGDE`)  — utfallet, selvtrent
+ *   verdi          1                       — rundens SKALAR (§125)
+ *   tro          208  (52 kort × 4 seter)  — hvor kortene FAKTISK lå
+ *   verdiHale      1                       — den diskonterte halen (§125)
+ *   stikk         13  (0…12 stikk)         — hvor STIKKENE gikk (§127)
+ *   verdiKvantil  32                       — rundens FORDELING (§127)
  *
- * `V(s)` er SUMMEN av de to verdihodene. Delingen kom av en måling: rundens
- * poeng er tre ganger så forutsigbart som resten av kampen (+0,60 mot +0,19 i
- * ridge R² på de samme trekkene), og ett hode mot ett blandet mål lærer det
- * uforutsigbare leddet like hardt som det forutsigbare. Se `delteRetur` i
- * `selvspill.ts` for hvorfor hver del må ha SIN EGEN etikett.
+ * `V(s)` er SUMMEN av verdileddene, og identiteten `A = G − V` er urørt:
  *
- * Verdi og tro har perfekte etiketter og ingen sirkularitet. Bare policyen
- * læres av hva som virket, og det er nettopp den delen som skal være selvtrent.
+ *     V_runde = verdi(skalar) + snitt(verdiKvantil)
+ *     V       = V_runde + V_hale
+ *
+ * Delingen runde/hale kom av en måling: rundens poeng er tre ganger så
+ * forutsigbart som resten av kampen (+0,60 mot +0,19 i ridge R² på de samme
+ * trekkene), og ett hode mot ett blandet mål lærer det uforutsigbare leddet
+ * like hardt som det forutsigbare. Se `delteRetur` i `selvspill.ts` for hvorfor
+ * hver del må ha SIN EGEN etikett.
+ *
+ * Verdi, tro og stikk har perfekte etiketter og ingen sirkularitet. Bare
+ * policyen læres av hva som virket, og det er nettopp den delen som skal være
+ * selvtrent.
+ *
+ * ===================== STIKKHODET (§127) ================================
+ *
+ * `docs/mlb-arkitektur.md` og §124: 99,68 % av fordelens varians ligger MELLOM
+ * runder. Verdien spår POENG, som først faller ved rundeslutt. Men kontrakten
+ * avgjøres av STIKK, og stikk faller hele tiden.
+ *
+ * Stikkhodet spår **hvor mange stikk laget mitt tar i RESTEN av runden**, med
+ * fasit kjent ved rundeslutt — nøyaktig som troens. Formen er kategorisk over
+ * 0…12 og ikke totalen, og det er MÅLT og ikke valgt: totalen er per
+ * konstruksjon bit-identisk for hver beslutning i samme runde (0 % av variansen
+ * innenfor runden), mens «resten» flytter seg for hvert stikk. Se
+ * `stikkIgjenFasit` i `selvspill.ts` for målingen.
+ *
+ * ===================== FORDELINGSVERDIEN (§127) =========================
+ *
+ * Kontrakten holder eller ryker. Utfallet er TODELT, ikke klokkeformet, og et
+ * hode som spår snittet sikter mellom klumpene. Ridge-taket på +0,19 ble målt
+ * for GJENNOMSNITTET — det binder ikke en fordeling.
+ *
+ * `verdiKvantil` er 32 kvantiler over rundens gjenstående poeng, trent med
+ * kvantil-Huber. Kvantiler og ikke et fast støttesett fordi rundepoengene
+ * spenner ±100 med blandede løpslengder (solo er ±målPoeng) mens massen ligger
+ * i ±24 — et fast rutenett måtte enten vært grovt der massen er eller
+ * meningsløst bredt.
+ *
+ * **Og hodet er AV som standard, eksakt.** Med `W = 0, b = 0` er snittet av
+ * kvantilene 0, og `V_runde` er da bit-identisk med skalaren alene. Ablasjonen
+ * er derfor ikke «omtrent uendret» — den er den samme funksjonen.
  *
  * ===================== HVORFOR TROEN ER ET HODE OG IKKE ET NETT ==========
  *
@@ -38,13 +75,22 @@
  * ===================== VEKTFORMATET =====================================
  *
  * SAMME Int32/Float32-format som `src/nevro/nett.ts` leser, så hele
- * verktøykjeden virker uendret. Fila er FEM nett i rekkefølge:
+ * verktøykjeden virker uendret. Fila er SJU nett i rekkefølge:
  *
  *   0  stammen     1032 → … → S
  *   1  policy         S → 68
  *   2  verdi          S → 1
  *   3  tro            S → 208
- *   4  verdiHale      S → 1     (nytt i §125; fire deler leses fortsatt)
+ *   4  verdiHale      S → 1     (nytt i §125)
+ *   5  stikk          S → 13    (nytt i §127)
+ *   6  verdiKvantil   S → 32    (nytt i §127)
+ *
+ * Nye hoder legges ALLTID BAKERST, og leseren tar imot 4, 5, 6 eller 7 deler.
+ * Et hode som mangler bygges med `W = 0, b = 0`, og da er hver eneste utgang
+ * bit-identisk med det nettet fila ble skrevet av. Hadde et nytt hode stått
+ * mellom to gamle, ville en gammel fil blitt lest FORSKJØVET — trohodets vekter
+ * tolket som stikkhodets — og det er den stille varianten av feil som dette
+ * prosjektet har brukt mest tid på.
  *
  * `forover` legger ReLU på alle lag unntatt det SISTE i hvert nett. Stammens
  * siste lag skal aktiveres — den mater alle hodene — så ReLU-en gjøres her, rett
@@ -77,26 +123,60 @@ export const POLICY_UT = HANDLING_LENGDE; // 68
 export const TRO_UT = MLB_TRO_KORT * MLB_TRO_KLASSER; // 208
 /** Verdihodet er ett tall: rundens poeng for setet som står for tur. */
 export const VERDI_UT = 1;
+/**
+ * STIKKHODETS BREDDE: 0…12 stikk, altså 13 klasser (§127).
+ *
+ * Tallet er `antallStikk + 1` ved fire spillere, og det HÅNDHEVES mot motorens
+ * egen kortgiving i `test/mlb-nett.test.ts`. En hardkodet 13 som stille ble feil
+ * ved et annet spillerantall ville gitt et hode som trenes mot en etikett det
+ * ikke har en plass til.
+ */
+export const STIKK_UT = 13;
+/**
+ * KVANTILHODETS BREDDE (§127). 32 kvantiler, τ_i = (i + ½)/32.
+ *
+ * Midtpunktsplasseringen er ikke pynt: med τ_i = i/K er den første kvantilen
+ * τ = 0, og kvantil-Huber-tapet for τ = 0 er en ren nedoverpress uten
+ * motvekt — hodet ville jaget minimumet i stedet for å beskrive fordelingen.
+ */
+export const KVANTIL_UT = 32;
+
+/** τ-verdiene, én gang, delt av TS-siden og av `verktoy/mlb-tren.py`. */
+export const KVANTIL_TAU: readonly number[] = Array.from(
+  { length: KVANTIL_UT },
+  (_, i) => (i + 0.5) / KVANTIL_UT,
+);
 
 /**
  * Delene i vektfila, i den rekkefølgen de står. Trenerens speil av denne.
  *
- * ===================== HVORFOR HALEHODET STÅR SIST ======================
+ * ===================== NYE HODER LEGGES BAKERST, ALLTID =================
  *
- * §125 delte verdimålet i to (`delteRetur` i `selvspill.ts`): `V = V_runde +
- * V_hale`, med hver sin etikett. Det krevde et hode til — og det er lagt
- * BAKERST og ikke ved siden av `verdi`, med vilje.
+ * §125 delte verdimålet i to (`delteRetur` i `selvspill.ts`), §127 la til
+ * stikkhodet og kvantilhodet. Hver gang er hodet lagt BAKERST og ikke ved siden
+ * av det det hører sammen med, med vilje.
  *
- * En vektfil skrevet før §125 har fire deler. Leseren tar imot både fire og
- * fem: mangler den femte, bygges den med **W = 0 og b = 0**, og da er
- * `V = V_runde + 0` bit-identisk med det gamle nettets `V`. Ti epokers vekter
- * kan altså leses videre uten at en eneste utgang flytter seg.
+ * Leseren tar imot 4, 5, 6 eller 7 deler. Et hode som mangler bygges med
+ * **W = 0 og b = 0**, og da er hver eneste utgang bit-identisk med det nettet
+ * fila ble skrevet av: `V_hale ≡ 0` og `snitt(kvantiler) ≡ 0`. Ti epokers
+ * vekter kan altså leses videre uten at noe flytter seg.
  *
- * Hadde hodet stått mellom `verdi` og `tro`, ville en gammel fil blitt lest
+ * Hadde et hode stått mellom `verdi` og `tro`, ville en gammel fil blitt lest
  * FORSKJØVET — trohodets vekter tolket som halehodets — og det er den stille
  * varianten av feil som dette prosjektet har brukt mest tid på.
  */
-export const DELER = ["stamme", "policy", "verdi", "tro", "verdiHale"] as const;
+export const DELER = [
+  "stamme",
+  "policy",
+  "verdi",
+  "tro",
+  "verdiHale",
+  "stikk",
+  "verdiKvantil",
+] as const;
+
+/** Den ELDSTE filen som fortsatt kan leses: stamme + policy + verdi + tro. */
+const MINSTE_DELER = 4;
 
 /** Standardformen på stammen. Trenerens `--skjult` overstyrer den. */
 export const STANDARD_SKJULT: readonly number[] = [1024, 768, 512];
@@ -128,6 +208,21 @@ export interface Framover {
   readonly verdiHale?: number;
   /** 208 tall, RÅ logits. Softmax per kort over de fire klassene gjøres av leseren. */
   readonly tro: Float32Array;
+  /**
+   * STIKKHODET (§127): 13 RÅ logits over «hvor mange stikk tar laget mitt i
+   * RESTEN av denne runden», 0…12. Softmax gjøres av leseren.
+   *
+   * VALGFRITT av samme grunn som `verdiRunde`: `NettLik` oppfylles også av
+   * stillaser uten hodet (`tilfeldigNett`, K2-prøvenes forsterker), og
+   * `selvspill.ts` leser det ikke i beslutningen — det er en hjelpeoppgave som
+   * former stammen, ikke en inngang til valget.
+   */
+  readonly stikk?: Float32Array;
+  /**
+   * KVANTILHODET (§127): 32 tall i POENG, ikke normalisert. `snitt` av dem er
+   * fordelingens forventning, og det er nøyaktig det leddet `verdi` bærer.
+   */
+  readonly verdiKvantil?: Float32Array;
 }
 
 // ===========================================================================
@@ -143,6 +238,10 @@ export class Sandkassenett {
   private readonly verdiHode: NevroNett;
   private readonly troHode: NevroNett;
   private readonly haleHode: NevroNett;
+  private readonly stikkHode: NevroNett;
+  private readonly kvantilHode: NevroNett;
+  /** Hvor mange deler fila FAKTISK hadde — for rapportering, ikke for logikk. */
+  readonly lesteDeler: number;
 
   /** Antall trekk nettet tar inn. Er `TREKK_LENGDE`, og det håndheves. */
   readonly inngangsLengde: number;
@@ -151,17 +250,17 @@ export class Sandkassenett {
 
   constructor(deler: readonly NevroNett[]) {
     /**
-     * FIRE ELLER FEM DELER, og ingenting imellom.
+     * FIRE TIL SJU DELER, og ingenting utenfor.
      *
-     * Fire er formatet før §125: da bygges halehodet med W = 0 og b = 0, og
-     * `V = V_runde + 0` er bit-identisk med det gamle nettets `V`. Fem er
-     * formatet etter. Tre — eller seks — er en forskjøvet fil, og den skal bli
-     * en feilmelding og ikke stille søppel.
+     * Fire er formatet før §125, fem før §127, sju etter. Manglende haledeler
+     * bygges med W = 0 og b = 0, og da er hver utgang bit-identisk med det
+     * nettet fila ble skrevet av. Tre — eller åtte — er en forskjøvet eller
+     * fremmed fil, og den skal bli en feilmelding og ikke stille søppel.
      */
-    if (deler.length !== DELER.length && deler.length !== DELER.length - 1) {
+    if (deler.length < MINSTE_DELER || deler.length > DELER.length) {
       throw new Error(
-        `Sandkassenettet er ${DELER.length} nett (${DELER.join(", ")}), eller ` +
-          `${DELER.length - 1} for en fil skrevet før §125. Fila har ${deler.length}.`,
+        `Sandkassenettet er ${MINSTE_DELER}–${DELER.length} nett ` +
+          `(${DELER.join(", ")}). Fila har ${deler.length}.`,
       );
     }
     const [stamme, policy, verdi, tro] = deler as [NevroNett, NevroNett, NevroNett, NevroNett];
@@ -191,23 +290,36 @@ export class Sandkassenett {
     }
     const bredde = sist(stamme, "stammen").ut;
 
-    /** Halehodet, om fila er skrevet før §125: W = 0, b = 0, altså V_hale ≡ 0. */
-    const hale: NevroNett = deler[4] ?? {
+    /**
+     * ET HODE SOM IKKE STO I FILA: W = 0, b = 0.
+     *
+     * For halen betyr det `V_hale ≡ 0`, for kvantilene `snitt ≡ 0`, og for
+     * stikkhodet en uniform fordeling som ingen leser. Alle tre er den
+     * NØYTRALE verdien for sitt ledd, og det er ikke et sammentreff — et hode
+     * som ikke kan være nøytralt hører ikke hjemme bakerst i denne fila.
+     */
+    const nullhode = (ut: number): NevroNett => ({
       lag: [
         {
           inn: bredde,
-          ut: VERDI_UT,
-          vekter: new Float32Array(bredde * VERDI_UT),
-          bias: new Float32Array(VERDI_UT),
+          ut,
+          vekter: new Float32Array(bredde * ut),
+          bias: new Float32Array(ut),
         },
       ],
-    };
+    });
+
+    const hale: NevroNett = deler[4] ?? nullhode(VERDI_UT);
+    const stikk: NevroNett = deler[5] ?? nullhode(STIKK_UT);
+    const kvantil: NevroNett = deler[6] ?? nullhode(KVANTIL_UT);
 
     const krav: readonly [NevroNett, string, number][] = [
       [policy, "policy", POLICY_UT],
       [verdi, "verdi", VERDI_UT],
       [tro, "tro", TRO_UT],
       [hale, "verdiHale", VERDI_UT],
+      [stikk, "stikk", STIKK_UT],
+      [kvantil, "verdiKvantil", KVANTIL_UT],
     ];
     for (const [n, navn, ut] of krav) {
       if (først(n, navn).inn !== bredde) {
@@ -225,13 +337,24 @@ export class Sandkassenett {
     this.verdiHode = verdi;
     this.troHode = tro;
     this.haleHode = hale;
+    this.stikkHode = stikk;
+    this.kvantilHode = kvantil;
     this.inngangsLengde = inn;
     this.stammeBredde = bredde;
+    this.lesteDeler = deler.length;
   }
 
   /** Delene i filrekkefølge — én kilde til sannhet for skriving og rapportering. */
   private nett(): readonly NevroNett[] {
-    return [this.stamme, this.policyHode, this.verdiHode, this.troHode, this.haleHode];
+    return [
+      this.stamme,
+      this.policyHode,
+      this.verdiHode,
+      this.troHode,
+      this.haleHode,
+      this.stikkHode,
+      this.kvantilHode,
+    ];
   }
 
   static fraBytes(b: Uint8Array): Sandkassenett {
@@ -272,24 +395,22 @@ export class Sandkassenett {
     const stamme: NevroLag[] = [];
     for (let i = 0; i + 1 < dims.length; i++) stamme.push(lag(dims[i]!, dims[i + 1]!));
     const bredde = dims[dims.length - 1]!;
+    // NULLHODENE STARTER PÅ NULL, også i et tilfeldig nett — nøyaktig som når en
+    // fil fra før §125/§127 leses. Da er «tilfeldig nett» det SAMME nettet før
+    // og etter, og fase 1s fornuftssjekk måler fortsatt det den målte.
+    const null0 = (ut: number): NevroNett => ({
+      lag: [
+        { inn: bredde, ut, vekter: new Float32Array(bredde * ut), bias: new Float32Array(ut) },
+      ],
+    });
     return new Sandkassenett([
       { lag: stamme },
       { lag: [lag(bredde, POLICY_UT)] },
       { lag: [lag(bredde, VERDI_UT)] },
       { lag: [lag(bredde, TRO_UT)] },
-      // HALEHODET STARTER PÅ NULL, også i et tilfeldig nett — nøyaktig som når
-      // en fil fra før §125 leses. Da er «tilfeldig nett» det SAMME nettet før
-      // og etter §125, og fase 1s fornuftssjekk måler fortsatt det den målte.
-      {
-        lag: [
-          {
-            inn: bredde,
-            ut: VERDI_UT,
-            vekter: new Float32Array(bredde * VERDI_UT),
-            bias: new Float32Array(VERDI_UT),
-          },
-        ],
-      },
+      null0(VERDI_UT),
+      null0(STIKK_UT),
+      null0(KVANTIL_UT),
     ]);
   }
 
@@ -341,6 +462,8 @@ export class Sandkassenett {
     readonly verdi: number;
     readonly tro: number;
     readonly verdiHale: number;
+    readonly stikk: number;
+    readonly verdiKvantil: number;
     readonly sum: number;
   } {
     const s = antallVekter(this.stamme);
@@ -348,7 +471,18 @@ export class Sandkassenett {
     const v = antallVekter(this.verdiHode);
     const t = antallVekter(this.troHode);
     const h = antallVekter(this.haleHode);
-    return { stamme: s, policy: p, verdi: v, tro: t, verdiHale: h, sum: s + p + v + t + h };
+    const k = antallVekter(this.stikkHode);
+    const q = antallVekter(this.kvantilHode);
+    return {
+      stamme: s,
+      policy: p,
+      verdi: v,
+      tro: t,
+      verdiHale: h,
+      stikk: k,
+      verdiKvantil: q,
+      sum: s + p + v + t + h + k + q,
+    };
   }
 
   /** Lagformen, `[inn, ut]` per lag per del — for rapportering. */
@@ -375,7 +509,18 @@ export class Sandkassenett {
     }
     const h = forover(this.stamme, trekk);
     for (let i = 0; i < h.length; i++) if (h[i]! < 0) h[i] = 0;
-    const runde = forover(this.verdiHode, h)[0] ?? 0;
+    const kvantil = forover(this.kvantilHode, h);
+    /**
+     * FORVENTNINGEN ER SNITTET AV KVANTILENE, og det er ikke en tilnærming: med
+     * τ_i = (i + ½)/K er `(1/K)·Σ θ_i` midtpunktsregelen for `∫₀¹ F⁻¹(τ) dτ`,
+     * som ER forventningen. Er hodet null (fil før §127, eller ablasjonen),
+     * blir leddet eksakt 0 og `V_runde` er skalaren alene.
+     */
+    let kvantilSnitt = 0;
+    for (let i = 0; i < kvantil.length; i++) kvantilSnitt += kvantil[i]!;
+    kvantilSnitt /= Math.max(1, kvantil.length);
+
+    const runde = (forover(this.verdiHode, h)[0] ?? 0) + kvantilSnitt;
     const hale = forover(this.haleHode, h)[0] ?? 0;
     return {
       policy: forover(this.policyHode, h),
@@ -383,7 +528,14 @@ export class Sandkassenett {
       verdiRunde: runde,
       verdiHale: hale,
       tro: forover(this.troHode, h),
+      stikk: forover(this.stikkHode, h),
+      verdiKvantil: kvantil,
     };
+  }
+
+  /** Stikkhodet lest som en fordeling over 0…12 stikk. Softmax, én gang. */
+  stikkFordeling(trekk: Float32Array): number[] {
+    return softmaks(this.framover(trekk).stikk ?? new Float32Array(STIKK_UT));
   }
 
   /**
@@ -406,6 +558,22 @@ export class Sandkassenett {
   troFordeling(trekk: Float32Array): number[][] {
     return tilFordeling(this.framover(trekk).tro);
   }
+}
+
+/** Softmaks over en hel vektor. Maks trekkes fra — `exp(700)` er `Infinity`. */
+export function softmaks(rå: Float32Array | readonly number[]): number[] {
+  let maks = -Infinity;
+  for (let i = 0; i < rå.length; i++) maks = Math.max(maks, rå[i] ?? 0);
+  if (!Number.isFinite(maks)) return Array.from({ length: rå.length }, () => 1 / rå.length);
+  let sum = 0;
+  const ut = new Array<number>(rå.length);
+  for (let i = 0; i < rå.length; i++) {
+    const e = Math.exp((rå[i] ?? 0) - maks);
+    ut[i] = e;
+    sum += e;
+  }
+  for (let i = 0; i < ut.length; i++) ut[i]! /= sum;
+  return ut;
 }
 
 /** 208 rå logits → `p[kort][klasse]`, normalisert per kort over de fire klassene. */
