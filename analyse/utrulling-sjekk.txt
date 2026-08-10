@@ -7,11 +7,11 @@ fil                   kode        ute      her  merknad
 ------------------------------------------------------------------------------
 adams-kort.b64        200     2395808  2395808  ok
 adams-vrak.b64        200       19848    19848  ok
-app.js                200      705304   706935  AVVIKER fra web/dist/app.js (-1631 byte)
+app.js                200      712537   712537  ok
 bud-gbt.json          200      322134   322134  ok
-bud-menneske.json     200      208703   362698  HTML-FEILSIDE — filen er ikke lastet opp
-bud-vant.json         200      208703   362638  HTML-FEILSIDE — filen er ikke lastet opp
+bud-menneske.json     200      362698   362698  ok
+bud-vant.json         200      362638   362638  ok
 sdr2.b64              200     2395808  2395808  ok
-worker.js             200       20761   623547  AVVIKER fra web/dist/worker.js (-602786 byte)
+worker.js             200      623547   623547  ok
 
-4 av 8 filer er GALE. Se merknadene over.
+ALT STEMMER — 8 filer, innhold validert mot lokal kopi.
