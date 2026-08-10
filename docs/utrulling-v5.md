@@ -55,20 +55,49 @@ det disjunkte**. Fortegnet snur, altså er den ikke etablert. Den ville kostet
 
 ## Rekkefølgen
 
-1. **Bygg buntene på nytt:**
+> **OMSKREVET 10. august.** Steg 2 sa «last opp», og det var feil premiss:
+> `main.ts` i Val Town-valen PROXYER fra GitHub raw. `/app.js` sto i den
+> tabellen, `/worker.js` ikke, og de to budmodellene sto i ingen. Derfor
+> deployet `app.js` seg selv ved push i ukevis, mens workeren ble servert fra
+> en statisk fil fra 24. juli og budmodellene falt gjennom til datasidens
+> HTML-svar — 209 kB `<!doctype html` med status **200**.
+>
+> Rutene er lagt inn nå. **Utrulling er en push**, ikke en opplasting.
+
+1. **Bump versjonsstrengen BEGGE steder, i samme commit:**
+   `BUNDELVERSJON` i `web/app.ts` og `VENTET` i `web/index.html`.
+
+   De er et håndtrykk: står de ulikt, skriver siden avviket på skjermen i
+   stedet for å vise en halvgammel utgave i stillhet. Bumper du bare den ene,
+   varsler siden om en feil som ikke finnes. Bumper du ingen, er den blind.
+
+2. **Bygg buntene på nytt:**
    ```
-   npx esbuild web/app.ts --bundle --format=esm --charset=utf8 --minify \
+   npx esbuild web/app.ts --bundle --format=esm --charset=utf8 \
      --outfile=web/dist/app.js
+   npx esbuild web/worker.ts --bundle --format=esm --charset=utf8 \
+     --outfile=web/dist/worker.js
    ```
+   **Uten `--minify`** — den utrullede artefakten er umminifisert, og en
+   sammenlikning mot et minifisert bygg «finner» 70 kB drift som ikke finnes.
 
-2. **Last opp `web/dist/app.js` OG `web/dist/worker.js`.** Begge, og
-   workeren er ny — uten den faller boten tilbake til spill uten søk.
+3. **Commit og push.** Da er `app.js`, `worker.js` og begge budmodellene ute:
+   valen henter dem fra GitHub raw ved neste forespørsel.
 
-3. **Bekreft at appen melder «Adams-v5»** i logg-ID-en. Versjonsstrengen er
-   allerede bumpet i kilden. Uten den blandes familiens runder mot v3 og v5 i
-   samme rad i basen, og da kan INGEN av dem måles.
+4. **Kjør sjekken:**
+   ```
+   node verktoy/sjekk-utrulling.ts --ut analyse/utrulling-sjekk.txt
+   ```
+   Den validerer INNHOLDET, ikke statuskoden, og sammenlikner hash mot lokal
+   kopi. En 200 betyr ingenting her — det var nettopp en 200 med HTML som
+   skjulte at budmodellen hadde vært av siden 6. august.
 
-4. **Bekreft md5 av serverte vekter mot lokale**, som ved v3.
+5. **Spillsiden (`index.html`) ligger på Vercel**, ikke i valen. Den følger
+   git-koblingen til prosjektet `project-a9l2n` med `web` som rot.
+
+6. **Bekreft i en nettleser** at logg-ID-en melder riktig versjon. Uten den
+   blandes familiens runder mot ulike versjoner i samme rad i basen, og da
+   kan INGEN av dem måles.
 
 ## FORELDET AVSNITT — RETTET 6. august
 
