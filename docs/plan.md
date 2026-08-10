@@ -9972,3 +9972,237 @@ Målinger: `analyse/mlb-fordel-diagnose.txt`, `analyse/mlb-motalle-del1.tsv`,
 5. Porten og STYRKE måler mot den svake halvparten av vanerommet.
 6. γ virker som konstruert internt, men **stigen har ikke bekreftet noe**, og
    KL-bremsen forklarer hvorfor sju epoker ikke rakk det.
+
+---
+
+## §125 og §126 — skrevet inn i ettertid
+
+De to øktene mellom §124 og §127 er dokumentert i KODEN og i commit-meldingen
+`4d26080`, men fikk aldri et avsnitt her. Kort, så nummereringen ikke lyver:
+
+**§125** delte verdimålet i to (`delteRetur` i `src/mlb/selvspill.ts`,
+`verdiHale` i `src/mlb/nett.ts`), gjorde KL-bremsen totrinns — frys policyhodet
+ved `--kl-maal`, stammen ved `--kl-tak`, i stedet for å stoppe hele
+gjennomløpet — ga verdihodene sin egen skrittlengde, og MÅLTE skrittlengden i
+stedet for å velge den: `lr 5e-5` med 16 gjennomløp gir 1 216 gradientsteg
+innenfor tillitsområdet, mot §124s førti på sju epoker.
+
+**§126** var kollapsfiksen. Entropibonusen fikk **én koeffisient per fase** — den
+gamle ble målt på ett snitt der 78 % av radene er kortspill, så trumfvalget og
+budet kollapset under et STIGENDE snitt. Troen ble koblet inn som inngang igjen
+(«alle sensorene skal være på»). Løpslengden ble blandet (30/60/100), fordi
+`målPoeng` var konstant i all trening og K4/K6 dermed var strukturelt ulærbare.
+Bare `lovlig.bud:13` og den ene overflødige bias-inngangen ble fjernet;
+`TREKK_LENGDE` gikk fra 1 032 til **1 031**.
+
+Den siste detaljen har en konsekvens som må sies høyt: **vektfiler fra før §126
+kan ikke lenger leses.** `e1-modell/mlb-g05-beste.bin` — vektene som står på
+−3,43 mot `rask` — har 1 032 innganger, og `Sandkassenett` avviser dem. Alle
+tall under er derfor målt på den nye layouten, og de gamle tallene står som
+DOKUMENT, ikke som noe som kan kjøres om igjen.
+
+---
+
+## §127 — stikkhodet, fordelingsverdien og søket som står av
+
+Tre arkitekturendringer, bestilt og bygd. To er hjelpetap med perfekt fasit og
+trenes fra epoke 0 i samme løp; den tredje er et grensesnitt som skal stå AV til
+kollapsen er brutt. Alle tre har hver sin bryter, så de kan skilles etterpå uten
+å gjette.
+
+### 1. STIKKHODET — og formen er MÅLT, ikke valgt
+
+Nettet hadde policy, verdi og tro. Verdien spår **poeng**, og poeng faller først
+ved rundeslutt. Kontrakten avgjøres av **stikk**, og stikk faller hele tiden.
+
+Det nye hodet er 13 klasser: **hvor mange stikk tar laget mitt i RESTEN av denne
+runden.** Fasiten er gratis — kjent ved rundeslutt, som troens — og signalet er
+tett. Det er samme grep som gjorde trohodet verdt noe: gi stammen en oppgave med
+perfekt fasit som KREVER representasjonen policyen trenger. Vi gjorde det for
+hvor kortene ligger. Dette er første gang for hvor stikkene går.
+
+**Oppdraget ba om å begrunne formen med et tall. Her er det.**
+
+Tre former var kandidater: antall stikk igjen, sannsynlighet per stikk, og
+fordeling over TOTALEN. Totalen faller på nøyaktig samme regnestykke som λ = 1
+gjorde i §124:
+
+```
+total(runde, lag) er en KONSTANT innenfor runden
+=> 0 % av etikettens varians ligger INNENFOR runden
+```
+
+Det er ikke et anslag, det er en identitet: laget tar like mange stikk uansett
+hvilken beslutning i runden man spør ved. Et hode mot den etiketten ser tolv
+kortvalg med samme fasit, og lærer nøyaktig det som ikke skiller dem — 99,68 %
+mellom runder, 0,32 % innenfor, hele §124 om igjen med et nytt hode.
+
+Målt på 31 118 rader fra 60 kamper med blandede løpslengder. Tallet regnes nå i
+`examples/mlb-erfaring.ts` og står i hver eneste erfaringsrapport:
+
+| etikett | Var totalt | Var INNENFOR runden | **andel innenfor** |
+|---|---|---|---|
+| **stikk igjen** (valgt) | 8,1284 | 4,6553 | **57,27 %** |
+| totalen (forkastet) | — | — | **0 %, per identitet** |
+| **KONTROLL: `Gr`** | 1470,3610 | **0,0000** | **0,00 %** |
+
+Kontrollarmen er ikke pynt. `Gr` — rundens gjenstående poeng — er per
+konstruksjon konstant innenfor samme (runde, sete), så `Var_innenfor(Gr)` MÅ
+være eksakt null. Samme rader, samme kode, kjent svar: den traff 0,0000, og
+først da betyr 57,27 % noe.
+
+«Sannsynlighet per stikk» ble forkastet av samme grunn som totalen: vektoren
+«hvilke stikk vant laget» er også konstant gjennom runden, og de tolv plassene
+er dessuten dominert av allerede spilte stikk, som er avlesbare rett fra
+inngangen.
+
+**Etiketten er −1 når runden aldri ble ferdigspilt**, ikke 0. De radene maskeres
+bort på samme måte som `troFasit`s nullklasse. Et 0 der ville lært nettet at
+laget tar null stikk i nettopp de rundene ingen fikk spilt ferdig — og de er
+systematisk de lengste.
+
+Merk hva etiketten gjør i BUDRUNDEN: ved `stikkSpilt = 0` er «resten» hele
+runden, så budet får et signal som spår **hvor mange stikk laget kommer til å
+ta**. Det er nøyaktig det et bud er. K3 kaller budrunden det største enkeltgapet
+(41,8 %), og dette er den første gradienten som treffer den fasen med en fasit.
+
+### 2. FORDELINGSVERDIEN — 32 kvantiler, og identiteten er urørt
+
+Kontrakten holder eller ryker. Utfallet er **todelt**, ikke klokkeformet, og et
+hode som spår snittet sikter mellom klumpene. **Ridge-taket på +0,19 ble målt
+for GJENNOMSNITTET — det binder ikke en fordeling.**
+
+`verdiKvantil` er 32 kvantiler over rundens gjenstående poeng, τ_i = (i + ½)/32,
+trent med kvantil-Huber. **Kvantiler og ikke et fast støttesett**, og det er
+også et tall: med blandede løpslengder (§126) er solo ±målPoeng, altså ±100,
+mens massen ligger i ±24 (bud 5–12 gir budvinneren ±2n). Et fast rutenett måtte
+enten vært grovt der massen er, eller meningsløst bredt. Målt på røykprøvens
+egne rader spente de nullstilte kvantilene **−100,00 … +14,00**.
+
+Identiteten `A = G − V` er urørt, og det er en konstruksjon og ikke et løfte:
+
+```
+V_runde = verdi(skalar) + snitt(kvantiler)
+V       = V_runde + V_hale
+```
+
+Med τ_i = (i + ½)/K er `(1/K)·Σ θ_i` midtpunktsregelen for `∫₀¹ F⁻¹(τ) dτ`, som
+**er** forventningen. Det er ikke en tilnærming til fordelingens snitt — det er
+snittet.
+
+- **Hodet PÅ:** skalaren nullstilles og fryses, så `V_runde` ER fordelingens
+  forventning. To hoder trent mot samme etikett ville vært uidentifiserbart, og
+  §124 målte akkurat det på det todelte verdihodet.
+- **Hodet AV (ablasjonen):** kvantilhodet får ingen gradient, det står på
+  `W = 0` fra initialiseringen, snittet er **eksakt 0**, og `V_runde` er
+  skalaren alene. §126 bit for bit, ikke «omtrent uendret».
+
+### 3. SØKEGRENSESNITTET — bygd, koblet, og AV
+
+`src/mlb/sok.ts`: verdener trukket fra **trohodet**, med kapasitetene som hard
+skranke, og et `Søk`-grensesnitt der `null` betyr «ingen mening» og valget
+faller tilbake på policyen.
+
+Uttømmende oppregning falt på kombinatorikken — 55 millioner forenlige
+fordelinger ved fem stikk, som er nøyaktig der potten på +0,947 ligger — men
+**trekking faller ikke på det samme**: prisen for N verdener er N. Og det er
+nettopp §117s diagnose brukt riktig vei: gapet er informasjon, ikke dybde, og
+trohodet er tre ganger bedre enn den håndlagde slutningen (§119).
+
+Det står AV, og det er ikke målt. Grunnen står i `docs/mlb-arkitektur.md` punkt
+1: et søk oppå en policy som ikke leser hånden gjør ingenting. Poenget med å
+bygge det nå er å slippe å ettermontere det i en fil som til da har hatt én
+beslutningsvei.
+
+**AVGJØRELSE 5 er skrevet ut** i `docs/mlb.md` — tabellen som skiller søk i
+GRADIENTEN (forbudt: 268 kjernetimer per epoke, og fordelen ville vært regnet på
+en annen beslutningsvei) fra søk ved SPILLETID (tillatt, umålt). Skillet var
+underforstått, og et underforstått skille er et skille noen leser feil.
+`gjenspill()` kaster nå hvis noen setter et søk.
+
+### Prøvene som gjør «AV» til en påstand som kan feile
+
+Kode som ikke kjøres i noen driver er kode ingen oppdager har råtnet.
+`test/mlb-sok.test.ts`:
+
+1. et bord MED et søk som alltid sier `null` gir **bit-identiske koder** mot et
+   bord uten søk
+2. et søk som gir en ULOVLIG kode blir tatt, med søkets navn i meldingen
+3. de trukne verdenene respekterer kapasitetene eksakt og legger aldri et kort
+   setet allerede har sett
+4. **K2:** bytt ut de skjulte hendene, og verdenene er bit-identiske
+
+`test/mlb-stikkfasit.test.ts` prøver stikketiketten på en IDENTITET som må holde
+uansett hvem som er på hvilket lag:
+
+> to seter, samme runde, samme `stikkSpilt` ⇒ enten SAMME tall (samme lag),
+> eller SUM = `antallStikk − stikkSpilt`
+
+med en kontrollarm der feilen «tell fra stikk 0» er bygd inn — og den blir tatt.
+
+### Vektfila: fire til sju deler, og de nye ALLTID bakerst
+
+```
+0 stamme  1 policy  2 verdi  3 tro  4 verdiHale  5 stikk  6 verdiKvantil
+```
+
+Et hode som mangler bygges med `W = 0, b = 0`, og **null er den nøytrale verdien
+for hvert av dem**: `V_hale ≡ 0`, `snitt(kvantiler) ≡ 0`, stikkhodet uniformt og
+ulest. Hver utgang er da bit-identisk med nettet fila ble skrevet av. Prøven
+klipper hodene av bakfra, ett om gangen, og krever bit-likhet på alle tre
+formatene — den er derfor også prøven på at rekkefølgen er riktig: står et nytt
+hode midt i, blir en gammel fil lest forskjøvet, og trohodet flytter seg først.
+
+`W = 0` er en beskyttelse til, den samme som `--nullstill-verdi`: gradienten inn
+i den DELTE stammen er eksakt null ved første steg, så et hjelpehode med
+tilfeldige vekter ikke kan rive policyen med seg. §124 FUNN 5 målte hva det
+koster når det skjer: styrken falt fra +16 til −760 poeng på én epoke.
+
+### TS mot PyTorch: de to sidenes `V` er målt mot hverandre
+
+Den farligste stille feilen her er at `V_runde` får to definisjoner — én i
+`src/mlb/nett.ts` og én i `verktoy/mlb-tren.py` — som er *nesten* like. Målt på
+de samme åtte radene med de samme trente vektene, med kvantilhodet PÅ og
+skalaren frosset:
+
+```
+PyTorch  V = -50.854164   V_runde = -31.957886   kvantilsnitt = -31.957886
+TS       V = -50.854161   V_runde = -31.957884   kvantilsnitt = -31.957884
+```
+
+Største avvik over åtte rader: **3·10⁻⁶ absolutt på V ≈ 50**, altså ~6·10⁻⁸
+relativt. Det er float32-akkumuleringsrekkefølge, ikke en uenighet.
+
+### DET SOM GIKK GALT: §126-LØPET BLE DREPT AV MINE EGNE ENDRINGER
+
+Dette skal stå, og det skal stå her og ikke i en fotnote.
+
+`analyse/mlb-epoker-126` kjørte da økta begynte, og oppdraget sa uttrykkelig
+«ikke drep det». Jeg bygde på egne filnavn og rørte ingen av dets data — men
+epokedriveren starter `verktoy/mlb-gradient.py` som en NY PROSESS for hver
+epoke, og den leser `verktoy/mlb-tren.py` fra disk hver gang. Da `DELER` gikk fra
+fem til sju mens epoke 2 var i gang, møtte kjøringen sin egen arbeidsfil med
+
+```
+e1-modell/v126/mlb-arbeid.bin: 5 nett, ventet 7 (eller 6)
+```
+
+og døde etter én ferdig epoke (som porten uansett avviste: z = +1,95 mot kravet
+2, tegntest z = +0,79).
+
+**Lærdommen er generell og ny for dette prosjektet:** «egne filnavn» beskytter
+DATA, ikke KODE. Et løp som starter nye prosesser deler kildekoden med den som
+redigerer, og det finnes ingen navnekonvensjon som skiller dem. Skal to løp leve
+side om side gjennom en endring, må det andre kjøre fra et eget arbeidstre.
+
+Løpet er reparerbart uten tap av epoke 1, og kommandoen står her så den ikke må
+gjettes — bryterne på 0 gjør gradienten bit-identisk med §126:
+
+```
+python verktoy/mlb-epoke.py --fortsett --vekt-stikk 0 --vekt-verdi-kvantil 0 \
+  --katalog e1-modell/v126 --arbeid e1-modell/v126/mlb-arbeid.bin ... (som før)
+```
+
+Merk at erfaringsfilene i `mlb-epoke-data-126/` er format v2 og mangler
+stikkfasiten. Treneren sier fra og slår stikkleddet av selv, i stedet for å
+trene mot et felt som ikke finnes.

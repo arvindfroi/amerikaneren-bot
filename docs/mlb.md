@@ -402,6 +402,35 @@ Grovt, med dagens maskin (24 kjerner):
 
 Med søket ute er tallene over farbare: dager, ikke timer.
 
+### AVGJØRELSE 5, PRESISERT (§127): to ting har hatt samme navn
+
+Avgjørelsen forutsetter et skille som aldri har vært skrevet ned, og et
+underforstått skille er et skille noen kommer til å lese feil. Det står derfor
+her, eksplisitt:
+
+| | **søk i GRADIENTEN** | **søk ved SPILLETID** |
+|---|---|---|
+| hvor | `mlb-spill.ts` → `mlb-erfaring.ts` | bare i `spekagent.ts` / målingen |
+| hva det koster | hver beslutning i hver epoke | bare de kampene som måles |
+| hva det gjør med policyen | endrer hva `A` er regnet på | ingenting — vektene er ferdige |
+| **AVGJØRELSE 5** | **FORBUDT** | **tillatt, og foreløpig umålt** |
+
+Den tredje raden er den som betyr noe. Sto søket på i spillingen og av i
+gjenspillingen, ville fordelen vært regnet på handlinger et **annet system**
+tok — feilklassen §122 kaller «det målte var ikke det jeg mente». Sto det på
+begge steder, ville epoken kostet de 268 kjernetimene over.
+
+Grensesnittet finnes fra §127 i `src/mlb/sok.ts`: verdener trukket fra
+**trohodet**, med kapasitetene som hard skranke. Det er den ene formen som
+bruker §117s diagnose («gapet er informasjon, ikke dybde») og §119s trohode —
+og det er den ene formen kombinatorikken ikke stopper: uttømmende oppregning
+møter 55 millioner forenlige fordelinger ved fem stikk, mens trekking koster N.
+
+**Det står AV**, `examples/mlb-erfaring.ts` setter det aldri, og `gjenspill()`
+kaster hvis noen gjør det. Grunnen til at det ikke er målt ennå står i
+`docs/mlb-arkitektur.md` punkt 1: et søk oppå en policy som ikke leser hånden
+gjør ingenting. **Kollapsen må brytes først.**
+
 **Måletid kommer i tillegg**, og den er ikke liten: porten mellom epoker krever
 en parret måling over 2 SE.
 
