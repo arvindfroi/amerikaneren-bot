@@ -197,7 +197,6 @@ for (let g = SI; g < GIVER; g += SN) {
         delvalg,
         hukommelse: hukVektor,
         // AV som standard: troen er et HODE nå, ikke en ekstra passering.
-        tronett: null,
       });
       // Uniformt blant de lovlige: like logits gjør softmaxen uniform, og
       // valget går gjennom NØYAKTIG den funksjonen nettet vil bruke.

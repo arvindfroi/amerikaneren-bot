@@ -82,22 +82,37 @@ KORT = MLBT.KORT
 KLASSER = MLBT.KLASSER
 
 
-def post_dtype(dim, mdim):
-    """En rad slik `examples/mlb-erfaring.ts` skriver den. Pakket, ikke justert."""
-    return numpy.dtype(
-        [
-            ("t", "<f4", (dim,)),
-            ("m", "u1", (mdim,)),
-            ("f", "i1", (KORT,)),
-            ("kode", "<i2"),
-            ("lovlige", "<i2"),
-            ("fase", "<i2"),
-            ("sete", "<i2"),
-            ("A", "<f4"),
-            ("G", "<f4"),
-            ("v", "<f4"),
-        ]
-    )
+def post_dtype(dim, mdim, versjon):
+    """En rad slik `examples/mlb-erfaring.ts` skriver den. Pakket, ikke justert.
+
+    VERSJON 2 (§125) la til tre felt bakerst:
+
+        Gr     f32   det som gjenstaar av DENNE runden
+        Gh     f32   den ALLEREDE DISKONTERTE halen. `Gr + Gh == G` eksakt
+        kamp   i32   kampens froe - saa holdout kan splittes paa KAMP og ikke
+                     paa RAD. §124: forklart varians ble lest i utvalget den
+                     nettopp trente paa, +0,1286 mot +0,0751 paa holdout, og ti
+                     epoker ble lest med det optimistiske tallet.
+
+    Versjon 1 leses fortsatt, men da finnes ikke de tre feltene, og verken det
+    delte verdimaalet eller kamp-holdouten kan regnes. Det sies HOEYT i stedet
+    for aa bli en stille nedgradering.
+    """
+    felt = [
+        ("t", "<f4", (dim,)),
+        ("m", "u1", (mdim,)),
+        ("f", "i1", (KORT,)),
+        ("kode", "<i2"),
+        ("lovlige", "<i2"),
+        ("fase", "<i2"),
+        ("sete", "<i2"),
+        ("A", "<f4"),
+        ("G", "<f4"),
+        ("v", "<f4"),
+    ]
+    if versjon >= 2:
+        felt += [("Gr", "<f4"), ("Gh", "<f4"), ("kamp", "<i4")]
+    return numpy.dtype(felt)
 
 
 def les_erfaring(monster, maks=None):
@@ -107,7 +122,7 @@ def les_erfaring(monster, maks=None):
     if not filer:
         raise SystemExit(f"Fant ingen erfaringsfiler for «{monster}»")
     deler = []
-    dim = mdim = None
+    dim = mdim = versjon0 = None
     n = 0
     for sti in filer:
         with open(sti, "rb") as fh:
@@ -118,15 +133,21 @@ def les_erfaring(monster, maks=None):
             (d,) = struct.unpack("<i", fh.read(4))
             (md,) = struct.unpack("<i", fh.read(4))
             (post,) = struct.unpack("<i", fh.read(4))
-            if versjon != 1:
+            if versjon not in (1, 2):
                 raise SystemExit(f"{sti}: ukjent versjon {versjon}")
             # BREDDEN MAA VAERE EN. Blandes to bredder, hoppes halve korpuset
             # over i stillhet - samme felle som i sd-tren og mlb-tren.
+            #
+            # OG VERSJONEN MAA VAERE EN. To epokers filer med hver sin versjon
+            # ville gitt to ulike dtype-er over samme `concatenate`, og numpy
+            # hadde da laget et objektarray i stedet for aa si fra.
             if dim is None:
-                dim, mdim = d, md
-            elif (d, md) != (dim, mdim):
-                raise SystemExit(f"{sti}: {d}x{md}, ventet {dim}x{mdim}")
-            dt = post_dtype(d, md)
+                dim, mdim, versjon0 = d, md, versjon
+            elif (d, md, versjon) != (dim, mdim, versjon0):
+                raise SystemExit(
+                    f"{sti}: {d}x{md} v{versjon}, ventet {dim}x{mdim} v{versjon0}"
+                )
+            dt = post_dtype(d, md, versjon)
             # RADSTOERRELSEN FRA HODET MOT VAAR EGEN dtype. Er de uenige, leser
             # `fromfile` forskjoevet og gir et korpus som SER ut som tall.
             if dt.itemsize != post:
@@ -142,7 +163,7 @@ def les_erfaring(monster, maks=None):
         print(f"  {sti}: {len(a)} rader", flush=True)
         if maks is not None and n >= maks:
             break
-    return numpy.concatenate(deler), dim, mdim
+    return numpy.concatenate(deler), dim, mdim, versjon0
 
 
 def main():
@@ -156,12 +177,71 @@ def main():
     # LR: 3e-4 sprengte policyen paa FOERSTE steg (loep 1). Med PPO-klippet og
     # KL-bremsen er 1e-4 trygt, og bremsen sier fra om det ikke er det.
     ap.add_argument("--lr", type=float, default=1e-4)
+    ap.add_argument("--lr-verdi", type=float, default=0.0, help="0 = samme som --lr")
     ap.add_argument("--eps", type=float, default=0.2, help="PPO-klippet")
     ap.add_argument("--kl-maal", type=float, default=0.03, help="0 = ingen brems")
     ap.add_argument("--vekt-policy", type=float, default=1.0)
     ap.add_argument("--vekt-verdi", type=float, default=1.0)
     ap.add_argument("--vekt-tro", type=float, default=1.0)
     ap.add_argument("--entropi", type=float, default=0.01)
+    # =============== ENTROPIEN MAA REGNES PER FASE (§126) ================
+    #
+    # ============ DET SOM VAR GALT, OG DET KOSTET HELE POLICYEN =========
+    #
+    # `--entropi` fantes fra §123, den var ALDRI null, og loggen viste at den
+    # virket: snittentropien steg 0,5983 -> 0,8561 over fjorten epoker i v125.
+    # Den var likevel maalt paa feil ting. Snittet tas over ALLE rader med mer
+    # enn en lovlig plass, og radene fordeler seg slik:
+    #
+    #     SPILL_KORT     7 605 av 9 775   (77,8 %)
+    #     BUD              868            ( 8,9 %)
+    #     VRAK_KORT        868            ( 8,9 %)
+    #     VELG_ETTERLYST   217            ( 2,2 %)
+    #     VELG_TRUMF       217            ( 2,2 %)   EN rad per runde
+    #
+    # Ett snitt over de fem er 78 % kortspill. Entropien i kortspillet steg,
+    # snittet steg med den, og de to fasene med faerrest rader kollapset
+    # samtidig UNDER det stigende snittet. Maalt paa v125 etter fjorten epoker
+    # med `--entropi 0.01` slaatt paa hele veien:
+    #
+    #     VELG_TRUMF   2 av 4 koder, ruter 97,7 %, 0,157 bit
+    #     BUD          2 av 12 koder, pass 75 % / bud:6 25 %
+    #
+    # En bonus som maales paa gjennomsnittet av fem faser beskytter den fasen
+    # som har flest rader. Det er nøyaktig den fasen som ikke trengte den.
+    #
+    # ============ RETTELSEN: ETT LEDD PER FASE, MED SIN EGEN VEKT =======
+    #
+    # `--entropi-fase "b,v,t,e,s"` gir fem koeffisienter, en per fase, hver paa
+    # fasens EGET snitt. Da er vekten paa VELG_TRUMF uavhengig av hvor mange
+    # kortvalg som ligger rundt den. Tom streng = §125s oppfoersel, saa en
+    # kjoering uten flagget er bit-identisk med foer.
+    #
+    # Fasene finnes ikke i filformatet med den oppdelingen vi trenger: `fase`
+    # er 0 bud, 1 vrak, 2 velg, 3 spill, og VELG lumper trumfvalget sammen med
+    # etterlysningen. De skilles derfor paa MASKEN — er en trumfkode lovlig, er
+    # raden et trumfvalg. Det er utledet av data og ikke av et nytt felt, saa
+    # gamle erfaringsfiler leses uendret.
+    ap.add_argument(
+        "--entropi-fase",
+        default="",
+        help="fem koeffisienter «bud,vrak,trumf,etterlys,spill» paa hver fases EGET "
+        "entropisnitt. Tom = ett snitt over alle rader (§125).",
+    )
+    # ENTROPIGULV PER FASE, som andel av ln(antall lovlige) i raden.
+    #
+    # Et lineaert ledd er ubundet: er koeffisienten stor nok til aa loefte en
+    # kollapset fase, presser den ogsaa en fase som alt er sunn mot uniform.
+    # Med et gulv er leddet en hengsel — `relu(gulv - H/ln L)` — og det slutter
+    # aa dytte i det oeyeblikket fasen er over gulvet. Da kan koeffisienten
+    # settes hoeyt nok til aa virke uten aa vaere en pris resten av loepet.
+    # 0 per fase = rent lineaert ledd for den fasen.
+    ap.add_argument(
+        "--entropi-gulv",
+        default="",
+        help="fem gulv «bud,vrak,trumf,etterlys,spill» paa NORMALISERT entropi "
+        "(H / ln L). 0 = ingen hengsel for den fasen.",
+    )
     ap.add_argument("--klipp-a", type=float, default=5.0, help="|A| etter standardisering")
     ap.add_argument("--klipp-grad", type=float, default=1.0)
     ap.add_argument("--maks-rader", type=int, default=0, help="0 = alt")
@@ -191,6 +271,38 @@ def main():
     # Skalaskiftet blir da hodets problem og ikke policyens.
     ap.add_argument("--nullstill-verdi", action="store_true")
     ap.add_argument("--maks-logit", type=float, default=1e4)
+    # ============ HVA BREMSEN SKAL GJOERE NAAR DEN FYRER (§125) ==========
+    #
+    # `stopp` er §124s oppfoersel: hele gjennomloepet avsluttes. Maalt over sju
+    # epoker fyrte bremsen i HVER epoke etter 4-16 batcher av 76-228 - sju
+    # epoker ga rundt FOERTI gradientsteg til sammen, og verdihodet, som var
+    # hele poenget med gamma, forklarte aldri noe.
+    #
+    # `frys` er rettelsen: naar KL passerer maalet, fryses STAMMEN og
+    # POLICYHODET, og resten av gjennomloepet trener bare verdi- og trohodet.
+    # De to har perfekte, faste etiketter og ingen grunn til aa stoppe.
+    #
+    # Hvorfor STAMMEN og ikke bare policyhodet: §124 FUNN 5. Stammen er DELT, og
+    # et forsoek med `--vekt-policy 0` lot verdihodets skalakorreksjon gaa rett
+    # gjennom den - entropien STEG, KL naadde 0,187, og styrken falt fra +16 til
+    # -760 poeng. Aa slaa av policytapet beskytter ingenting saa lenge stammen
+    # kan flytte seg. Med stammen frosset er policyen en KONSTANT funksjon, og
+    # det er ikke et loefte: `kl_drift` under maaler det, og en drift over
+    # 1e-6 stopper epoken.
+    ap.add_argument("--kl-handling", choices=("frys", "stopp"), default="frys")
+    # TAKET FOR TRINN 2. 0 = to ganger `--kl-maal`. Mellom maalet og taket
+    # trener stammen videre paa verdi og tro, og policyen driver med den.
+    # §124s ubundne drift naadde 0,187; dette er den samme mekanismen med et tak.
+    ap.add_argument("--kl-tak", type=float, default=0.0)
+    # HVOR OFTE KL MAALES. §124 satte den fra 16 til 4 fordi «en brems som foerst
+    # maaler etter at skaden har skjedd er en logg, ikke en brems». Den var
+    # fortsatt for grov: paa 86 k rader naadde KL **0,45** ved foerste maaling
+    # etter fire batcher - femten ganger maalet. Standarden er derfor 1.
+    ap.add_argument("--kl-intervall", type=int, default=1)
+    # HOLDOUT PAA KAMP, ikke paa rad. Rader fra samme kamp deler bade kortene og
+    # halen, saa en radsplitt maaler hukommelse. 0 = ingen holdout.
+    ap.add_argument("--holdout-del", type=int, default=10, help="1 av N KAMPER holdes utenfor")
+    ap.add_argument("--vekt-verdi-hale", type=float, default=1.0)
     args = ap.parse_args()
 
     t0 = time.time()
@@ -198,10 +310,11 @@ def main():
     skjult = [int(x) for x in args.skjult.split(",")]
 
     print("ERFARING:", flush=True)
-    rad, dim, mdim = les_erfaring(args.inn, maks=(args.maks_rader or None))
+    rad, dim, mdim, versjon = les_erfaring(args.inn, maks=(args.maks_rader or None))
     n = len(rad)
     if n == 0:
         raise SystemExit("Ingen rader — epoken har ingen gradient aa ta")
+    delt = versjon >= 2
 
     # ------------------------------------------------------------------ til GPU
     X = torch.from_numpy(numpy.ascontiguousarray(rad["t"])).to(enhet)
@@ -209,8 +322,26 @@ def main():
     Fa = torch.from_numpy(numpy.ascontiguousarray(rad["f"])).to(enhet).long()
     KODE = torch.from_numpy(numpy.ascontiguousarray(rad["kode"])).to(enhet).long()
     LOV = torch.from_numpy(numpy.ascontiguousarray(rad["lovlige"])).to(enhet).long()
+    RAD_FASE = torch.from_numpy(numpy.ascontiguousarray(rad["fase"])).to(enhet).long()
     G = torch.from_numpy(numpy.ascontiguousarray(rad["G"])).to(enhet).float()
     A = torch.from_numpy(numpy.ascontiguousarray(rad["A"])).to(enhet).float()
+    if delt:
+        GR = torch.from_numpy(numpy.ascontiguousarray(rad["Gr"])).to(enhet).float()
+        GH = torch.from_numpy(numpy.ascontiguousarray(rad["Gh"])).to(enhet).float()
+        # IDENTITETEN PROEVES HER OGSAA, ikke bare i `test/mlb-epoke.test.ts`.
+        # Skriveren og leseren er to filer i to spraak; en avvikende sum ville
+        # betydd at halen ble talt to ganger, og fordelen `A = G - V` ville hatt
+        # en skjevhet uten at noe feilet.
+        avvik = float((GR + GH - G).abs().max())
+        if avvik > 1e-3:
+            raise SystemExit(
+                f"Gr + Gh avviker fra G med {avvik:.6f} paa den verste raden. "
+                f"Verdimaalet er ikke delt konsistent - epoken tas IKKE."
+            )
+        kamp = numpy.ascontiguousarray(rad["kamp"])
+    else:
+        GR = GH = None
+        kamp = None
     del rad
 
     # FORDELEN STANDARDISERES OVER HELE EPOKEN, ikke per batch.
@@ -224,6 +355,110 @@ def main():
 
     MED_VALG = LOV > 1
     andel_valg = float(MED_VALG.float().mean())
+
+    # ===================== FEM FASER, UTLEDET OG IKKE LEST ================
+    #
+    # Filformatets `fase` har fire verdier (0 bud, 1 vrak, 2 velg, 3 spill), og
+    # 2 lumper trumfvalget sammen med etterlysningen. De to er helt ulike valg —
+    # fire farger mot opptil tretten kort — og det er trumfvalget som er
+    # kollapset. Skillet tas paa MASKEN: trumfkodene er de FIRE SISTE plassene i
+    # handlingsrommet (`TRUMF_FRA = HANDLING_LENGDE - ANTALL_TRUMF` i
+    # `src/mlb/handling.ts`), saa er en av dem lovlig, er raden et trumfvalg.
+    #
+    # Utledet, ikke lest: gamle erfaringsfiler virker uendret, og det finnes
+    # ingen ny sannhet som kan komme i utakt med TS-siden.
+    if mdim != 68:
+        raise SystemExit(
+            f"handlingsrommet er {mdim} plasser, ikke 68. Fasedelingen paa masken "
+            f"antar at de FIRE SISTE er trumfkodene - se src/mlb/handling.ts."
+        )
+    FASE_NAVN = ["BUD", "VRAK", "TRUMF", "ETTERLYS", "SPILL"]
+    _er_trumf = M[:, mdim - 4 :].any(dim=1)
+    # 3 (spill) flyttes til 4 FOERST, saa 2 (velg) deles i 2 trumf / 3 etterlys.
+    # Motsatt rekkefoelge ville flyttet de nye 3-ene til 4 i samme slengen.
+    FASEF = torch.where(RAD_FASE == 3, torch.full_like(RAD_FASE, 4), RAD_FASE)
+    FASEF = torch.where(
+        FASEF == 2,
+        torch.where(_er_trumf, torch.full_like(FASEF, 2), torch.full_like(FASEF, 3)),
+        FASEF,
+    )
+    # ln(antall lovlige) — nevneren i den NORMALISERTE entropien. Rader med en
+    # lovlig plass baerer ingen policygradient og er uansett utenfor snittet.
+    LNL = torch.log(LOV.clamp(min=2).float())
+    fase_antall = [int(((FASEF == f) & MED_VALG).sum()) for f in range(5)]
+    print(
+        "FASER (rader med valg): "
+        + "  ".join(f"{FASE_NAVN[f]} {fase_antall[f]}" for f in range(5)),
+        flush=True,
+    )
+
+    def _fem(s, navn):
+        if s.strip() == "":
+            return None
+        d = [float(x) for x in s.split(",")]
+        if len(d) != 5:
+            raise SystemExit(
+                f"{navn} trenger fem tall «bud,vrak,trumf,etterlys,spill», fikk {len(d)}"
+            )
+        return torch.tensor(d, device=enhet, dtype=torch.float32)
+
+    ENT_C = _fem(args.entropi_fase, "--entropi-fase")
+    ENT_GULV = _fem(args.entropi_gulv, "--entropi-gulv")
+    if ENT_GULV is not None and ENT_C is None:
+        raise SystemExit(
+            "--entropi-gulv uten --entropi-fase: gulvet har ingen koeffisient aa henge paa"
+        )
+
+    def entropitapet(ent_rad, norm_rad, valg, fase):
+        """Entropileddet slik det LEGGES TIL tapet — altsaa med fortegnet inne.
+
+        `ENT_C is None` er §125 bit-for-bit: `-entropi * snitt(H)` over alle
+        rader med valg. Ellers ett ledd per fase paa fasens EGET snitt, saa
+        vekten paa en fase ikke henger av hvor mange rader de andre har.
+
+        Fravaerende faser hoppes over. Et snitt over null rader er `nan`, og en
+        `nan` i tapet forplanter seg til hver eneste vekt i ETT steg.
+        """
+        if not bool(valg.any()):
+            return torch.zeros((), device=enhet)
+        if ENT_C is None:
+            return -args.entropi * ent_rad[valg].mean()
+        tap_ = torch.zeros((), device=enhet)
+        for f in range(5):
+            m = valg & (fase == f)
+            if not bool(m.any()):
+                continue
+            if ENT_GULV is not None and float(ENT_GULV[f]) > 0:
+                # HENGSELEN. Under gulvet dyttes fasen opp; over det er leddet
+                # eksakt null, og gradienten med det.
+                tap_ = tap_ + ENT_C[f] * (ENT_GULV[f] - norm_rad[m].mean()).clamp(min=0.0)
+            else:
+                tap_ = tap_ - ENT_C[f] * ent_rad[m].mean()
+        return tap_
+
+    # ===================== HOLDOUT PAA KAMP, IKKE PAA RAD =================
+    #
+    # §124 FUNN 2: «forklart varians» ble maalt paa `kl_idx`, som ble trukket
+    # fra de SAMME radene steget ble tatt paa. Epoke 10 sto paa +0,1286 i
+    # utvalget og +0,0751 paa holdout-KAMPER, og ti epokers rapporter leste det
+    # optimistiske tallet.
+    #
+    # Rader fra samme kamp deler bade kortene, motstanderne og HALEN - en splitt
+    # paa rad maaler derfor hukommelse og ikke generalisering. Splitten gaar paa
+    # kampens froe, og den er deterministisk: samme epoke gir samme holdout.
+    if delt and args.holdout_del > 1:
+        er_hold = (numpy.abs(kamp) % args.holdout_del) == 0
+        tren_idx = torch.from_numpy(numpy.nonzero(~er_hold)[0].astype("<i8")).to(enhet)
+        hold_idx = torch.from_numpy(numpy.nonzero(er_hold)[0].astype("<i8")).to(enhet)
+        if len(hold_idx) < 1000 or len(tren_idx) < 1000:
+            raise SystemExit(
+                f"holdout ga {len(tren_idx)} trenings- og {len(hold_idx)} holdoutrader - "
+                f"for skjevt til aa lese. Senk --holdout-del eller oek --kamper."
+            )
+    else:
+        tren_idx = torch.arange(n, device=enhet)
+        hold_idx = None
+    n_tren = len(tren_idx)
 
     # VERDISKALAEN MAA MAALES, IKKE ANTAS.
     #
@@ -243,16 +478,43 @@ def main():
     modell = Sandkassenett(dim, skjult).to(enhet)
     les_vekter(args.vekter, modell)
     if args.nullstill_verdi:
+        # BEGGE verdihodene, hvert med SITT snitt. Nullstilles bare det ene, er
+        # summen `V` feil med snittet av det andre fra foerste steg, og
+        # fordelen `G^y - V` faar en skjevhet paa nettopp den differansen.
         with torch.no_grad():
             modell.verdi.weight.zero_()
-            modell.verdi.bias.fill_(float(G.mean()))
+            modell.verdi.bias.fill_(float(GR.mean()) if delt else float(G.mean()))
+            modell.verdi_hale.weight.zero_()
+            modell.verdi_hale.bias.fill_(float(GH.mean()) if delt else 0.0)
         print(
-            f"VERDIHODET NULLSTILT: W = 0, b = {float(G.mean()):+.3f}. "
-            f"Gradienten inn i stammen fra verdileddet er null ved foerste steg.",
+            f"VERDIHODENE NULLSTILT: W = 0, b(runde) = "
+            f"{float(GR.mean()) if delt else float(G.mean()):+.3f}, "
+            f"b(hale) = {float(GH.mean()) if delt else 0.0:+.3f}. "
+            f"Gradienten inn i stammen fra verdileddene er null ved foerste steg.",
             flush=True,
         )
     par = sum(p.numel() for p in modell.parameters())
-    opt = torch.optim.AdamW(modell.parameters(), lr=args.lr)
+    # ============ VERDIHODENE FAAR SIN EGEN SKRITTLENGDE (§125) ==========
+    #
+    # Adam flytter hver parameter ~lr per steg, uansett hvor stor gradienten er.
+    # Det er en STYRKE for policyen, der logitene lever paa skala 1-25, og en
+    # svakhet for et lineaert verdihode over stammens 512 ReLU-utganger: er de
+    # optimale vektene av stoerrelsesorden 1e-3, sprer et steg paa 3e-4 seg like
+    # mye som svaret selv, og hodet oscillerer i stedet for aa konvergere.
+    #
+    # Maalt paa 18 130 roeykproeverader: med felles lr 3e-4 og 2 400 steg paa den
+    # FROSNE stammen naadde rundehodet +0,011 forklart i utvalget, mens en
+    # regularisert ridge paa de SAMME 512 utgangene naadde +0,090. Taket laa
+    # altsaa aatte ganger hoeyere enn det optimeringen fant.
+    verdipar = list(modell.verdi.parameters()) + list(modell.verdi_hale.parameters())
+    verdi_id = {id(p) for p in verdipar}
+    opt = torch.optim.AdamW(
+        [
+            {"params": [p for p in modell.parameters() if id(p) not in verdi_id], "lr": args.lr},
+            {"params": verdipar, "lr": (args.lr_verdi or args.lr)},
+        ],
+        lr=args.lr,
+    )
     lastet_opt = False
     if args.opt_tilstand and os.path.exists(args.opt_tilstand):
         try:
@@ -274,12 +536,31 @@ def main():
     def maal(idx):
         """Tap per hode og diagnostikk paa de samme radene, uten gradient."""
         modell.eval()
-        s = {k: 0.0 for k in ("pol", "ent", "tro", "verdi", "treff", "kvad", "kvadG")}
+        s = {
+            k: 0.0
+            for k in ("pol", "ent", "tro", "treff", "kvad", "kvadG", "kvadR", "kvadH")
+        }
         nt = np_ = nv = 0
         lp_alle = []
+        # ============ DIAGNOSTIKKEN SOM MANGLET (§126) ======================
+        #
+        # `ent` alene er ETT snitt over fem faser, og 78 % av radene er
+        # kortspill. v125 loggfoerte at det snittet STEG 0,5983 -> 0,8561 over
+        # fjorten epoker mens trumfvalget kollapset til en farge under det.
+        # Et snitt som kan stige mens delene faller er ikke en maaling, det er
+        # en gjennomsnittsfelle — saa her staar hver fase for seg.
+        #
+        # `ulike` er den harde varianten: hvor mange ULIKE argmaks-koder fasen
+        # faktisk bruker. Det er tallet `examples/mlb-arkitektur.ts --fordeling`
+        # leser paa den utrullede boten, maalt her paa treningsradene, og det er
+        # det som gaar til null naar policyen kollapser.
+        f_ent = [0.0] * 5
+        f_norm = [0.0] * 5
+        f_n = [0] * 5
+        f_kode = [torch.zeros(mdim, device=enhet, dtype=torch.long) for _ in range(5)]
         for i in range(0, len(idx), args.batch):
             j = idx[i : i + args.batch]
-            p, v, t = modell(X[j].float())
+            p, v, t, vr, vh = modell.alle_hoder(X[j].float())
             lg = F.log_softmax(maskerte_logits(p, M[j]), dim=1)
             lp_alle.append(lg)
             valg = MED_VALG[j]
@@ -290,8 +571,21 @@ def main():
                 ent = -(pr * lg.masked_fill(~M[j], 0.0)).sum(1)
                 s["ent"] += float(ent[valg].sum())
                 np_ += int(valg.sum())
+                fase_j = FASEF[j]
+                argmaks = lg.argmax(dim=1)
+                for f in range(5):
+                    mf = valg & (fase_j == f)
+                    if not bool(mf.any()):
+                        continue
+                    f_ent[f] += float(ent[mf].sum())
+                    f_norm[f] += float((ent[mf] / LNL[j][mf]).sum())
+                    f_n[f] += int(mf.sum())
+                    f_kode[f] += torch.bincount(argmaks[mf], minlength=mdim)
             s["kvad"] += float(((v - G[j]) ** 2).sum())
             s["kvadG"] += float((G[j] ** 2).sum())
+            if delt:
+                s["kvadR"] += float(((vr - GR[j]) ** 2).sum())
+                s["kvadH"] += float(((vh - GH[j]) ** 2).sum())
             nv += len(j)
             mal = Fa[j]
             mk = mal > 0
@@ -301,22 +595,46 @@ def main():
                 s["treff"] += float(((t.argmax(dim=2) == m3) & mk).sum())
                 nt += int(mk.sum())
         modell.train()
-        g_snitt = float(G[idx].mean())
-        var_g = s["kvadG"] / max(1, nv) - g_snitt**2
-        return {
+
+        def forklart(kvad, maal_):
+            """1 - MSE/Var. Variansen regnes paa NOEYAKTIG de samme radene."""
+            mse = kvad / max(1, nv)
+            var = float(maal_[idx].var(unbiased=False))
+            return 1.0 - mse / max(var, 1e-9)
+
+        ut = {
             "pol": s["pol"] / max(1, np_),
             "ent": s["ent"] / max(1, np_),
             "tro": s["tro"] / max(1, nt),
             "treff": s["treff"] / max(1, nt),
             "rmse": (s["kvad"] / max(1, nv)) ** 0.5,
-            "forklart": 1.0 - (s["kvad"] / max(1, nv)) / max(var_g, 1e-9),
-        }, torch.cat(lp_alle)
+            "forklart": forklart(s["kvad"], G),
+        }
+        # PER FASE, og med navn i noekkelen — en liste med fem tall uten navn er
+        # nettopp den slags som blir lest i feil rekkefoelge et halvt aar senere.
+        for f in range(5):
+            nf = max(1, f_n[f])
+            ut[f"ent_{FASE_NAVN[f]}"] = f_ent[f] / nf
+            ut[f"norment_{FASE_NAVN[f]}"] = f_norm[f] / nf
+            ut[f"ulike_{FASE_NAVN[f]}"] = float(int((f_kode[f] > 0).sum()))
+        if delt:
+            # HVER DEL MED SITT EGET NEVNER. `forklart_runde` mot Var(Gr) og
+            # `forklart_hale` mot Var(Gh) - deles de paa Var(G), ser den ene
+            # delen kunstig god ut bare fordi den er den store.
+            ut["forklart_runde"] = forklart(s["kvadR"], GR)
+            ut["forklart_hale"] = forklart(s["kvadH"], GH)
+        return ut, torch.cat(lp_alle)
 
     g = torch.Generator(device="cpu").manual_seed(args.froe + args.epoke)
     # KL-RADENE ER FASTE, og de trekkes FOER foerste steg: uten dem er det
     # ingen maate aa se at et steg SPRENGTE policyen paa - bare at tapet falt.
-    kl_idx = torch.randperm(n, generator=g)[: min(args.kl_rader, n)].to(enhet)
+    # De trekkes fra TRENINGSradene: KL maaler drift der gradienten tas.
+    kl_idx = tren_idx[torch.randperm(n_tren, generator=g)[: min(args.kl_rader, n_tren)].to(enhet)]
     foer, lp_foer = maal(kl_idx)
+    # GRUNNLINJEN SLIK DEN FAKTISK VAR: `hold_foer` er maalt paa vekter som
+    # aldri har sett noen av disse radene, paa KAMPER som ikke trenes paa i det
+    # hele tatt. Det er tallet §124 FUNN 2 sier skal staa i rapporten.
+    hold_foer = maal(hold_idx)[0] if hold_idx is not None else None
 
     os.makedirs(os.path.dirname(args.logg) or ".", exist_ok=True)
     logg = open(args.logg, "a", encoding="utf-8", buffering=1)
@@ -326,6 +644,9 @@ def main():
                 "epoke": args.epoke,
                 "start": time.strftime("%Y-%m-%d %H:%M"),
                 "rader": n,
+                "versjon": versjon,
+                "rader_tren": int(n_tren),
+                "rader_hold": 0 if hold_idx is None else int(len(hold_idx)),
                 "andel_med_valg": round(andel_valg, 4),
                 "a_snitt": round(a_snitt, 4),
                 "a_std": round(a_std, 4),
@@ -379,30 +700,112 @@ def main():
             lg0 = F.log_softmax(maskerte_logits(p0, M[sl]), dim=1)
             lp_gammel[sl] = lg0.gather(1, KODE[sl].unsqueeze(1)).squeeze(1)
 
+    # ===================== BREMSEN STOPPET FOR MYE (§125) =================
+    #
+    # ============ DET SOM VAR GALT, OG DET KOSTET SJU EPOKER ============
+    #
+    # Bremsen fyrte i HVER epoke etter 4-16 batcher av 76-228. Sju epoker ga
+    # rundt FOERTI gradientsteg til sammen, og verdihodet - som var hele poenget
+    # med gamma - forklarte aldri noe, fordi det ble nullstilt i epoke 1 og
+    # deretter aldri fikk nok steg til aa laere seg noe igjen.
+    #
+    # Det er en INTERAKSJON ingen av delene har alene:
+    #
+    #   Bremsen finnes for aa beskytte POLICYEN. Den stoppet HELE gjennomloepet.
+    #   Verdi- og trohodet har perfekte, faste etiketter og ingen grunn til aa
+    #   stoppe - men de stoppet likevel, fordi de deler loekke med policyen.
+    #
+    # ============ RETTELSEN: FRYS STAMMEN, IKKE STOPP LOEKKA ============
+    #
+    # Naar KL passerer maalet, settes `requires_grad = False` paa stammen OG
+    # policyhodet. Da er policyen en KONSTANT funksjon resten av gjennomloepet -
+    # ikke «omtrent uendret», men bit-identisk, fordi ingen parameter den leser
+    # kan flytte seg. Verdi- og trohodet trener videre paa den frosne
+    # representasjonen og faar de hundrevis av stegene grunnlinjen trenger.
+    #
+    # ============ MEN EN FROSSEN STAMME HAR EN MAALT PRIS ===============
+    #
+    # `verktoy/mlb-verdi-tak.py` regner den LUKKEDE loesningen - regularisert
+    # ridge, ingen optimeringsvalg - for hva et lineaert hode kan naa. Paa 86 k
+    # rader fra denne riggen, holdout splittet paa KAMP:
+    #
+    #     maal                       1032 raa trekk    512 stammeutganger
+    #     Gr (rundens gjenstaaende)      +0,231              +0,107
+    #     G  (hele det diskonterte)      +0,165              +0,074
+    #
+    # Stammen baerer altsaa under HALVPARTEN av det trekkene selv baerer, og
+    # taket for ethvert lineaert hode over en FROSSEN stamme er +0,107. Ingen
+    # mengde steg kommer forbi det. Stammen maa faa trene, ellers er
+    # grunnlinjen doemt til aa vaere daarlig uansett hvor mange epoker vi kjoerer.
+    #
+    # ============ DERFOR ER BREMSEN TOTRINNS =============================
+    #
+    #   TRINN 1, ved `--kl-maal`:  POLICYHODET fryses og policyleddet faller ut.
+    #                              Stammen trener videre paa verdi og tro, og
+    #                              representasjonen fortsetter aa utvikle seg.
+    #   TRINN 2, ved `--kl-tak`:   STAMMEN fryses ogsaa. Etter det er policyen en
+    #                              KONSTANT funksjon, og `kl_drift` maaler at den
+    #                              er det.
+    #
+    # Mellom de to trinnene DRIVER policyen - stammen er delt, saa den maa. Det
+    # er ikke gratis, og det er nettopp §124 FUNN 5: `--vekt-policy 0` lot
+    # verdihodets skalakorreksjon gaa rett gjennom stammen, KL naadde 0,187, og
+    # styrken falt fra +16 til -760 poeng. Forskjellen her er at driften er
+    # BUNDET og MAALT: `--kl-tak` er taket, KL maales hver fjerde batch helt til
+    # trinn 2 slaar inn, og bade `kl_ved_frys` og `kl` staar i den varige loggen.
+    # En ubundet drift var feilen; en bundet drift er en pris.
+    def frys(moduler):
+        for m in moduler:
+            for p_ in m.parameters():
+                p_.requires_grad_(False)
+
     stoppet_paa_kl = -1
+    frosset_paa = -1
+    frosset_stamme_paa = -1
+    kl_ved_frys = None
+    frosset = False
+    frosset_stamme = False
+    kl_tak = args.kl_tak if args.kl_tak > 0 else 2.0 * args.kl_maal
     modell.train()
     for runde in range(args.gjennomlop):
-        perm = torch.randperm(n, generator=g).to(enhet)
-        for i in range(0, n, args.batch):
+        perm = tren_idx[torch.randperm(n_tren, generator=g).to(enhet)]
+        for i in range(0, n_tren, args.batch):
             j = perm[i : i + args.batch]
-            p, v, t = modell(X[j].float())
+            p, v, t, vr, vh = modell.alle_hoder(X[j].float())
 
-            lg = F.log_softmax(maskerte_logits(p, M[j]), dim=1)
-            valg = MED_VALG[j]
-            if valg.any():
-                lpa = lg.gather(1, KODE[j].unsqueeze(1)).squeeze(1)
-                forhold = (lpa - lp_gammel[j]).clamp(max=20.0).exp()
-                a = An[j]
-                tap_pol = -torch.min(
-                    forhold * a, forhold.clamp(1 - args.eps, 1 + args.eps) * a
-                )[valg].mean()
-                pr = lg.exp()
-                ent = -(pr * lg.masked_fill(~M[j], 0.0)).sum(1)[valg].mean()
-            else:
+            if frosset:
+                # Policyleddet hoppes over HELT. Gradienten inn i det ville
+                # vaert null uansett (alt det leser er frosset), men et ledd som
+                # regnes og ikke virker er et ledd noen leser i tapet og tror
+                # betyr noe.
                 tap_pol = torch.zeros((), device=enhet)
-                ent = torch.zeros((), device=enhet)
+                tap_ent = torch.zeros((), device=enhet)
+            else:
+                lg = F.log_softmax(maskerte_logits(p, M[j]), dim=1)
+                valg = MED_VALG[j]
+                if valg.any():
+                    lpa = lg.gather(1, KODE[j].unsqueeze(1)).squeeze(1)
+                    forhold = (lpa - lp_gammel[j]).clamp(max=20.0).exp()
+                    a = An[j]
+                    tap_pol = -torch.min(
+                        forhold * a, forhold.clamp(1 - args.eps, 1 + args.eps) * a
+                    )[valg].mean()
+                    pr = lg.exp()
+                    ent_rad = -(pr * lg.masked_fill(~M[j], 0.0)).sum(1)
+                    tap_ent = entropitapet(ent_rad, ent_rad / LNL[j], valg, FASEF[j])
+                else:
+                    tap_pol = torch.zeros((), device=enhet)
+                    tap_ent = torch.zeros((), device=enhet)
 
-            tap_verdi = F.mse_loss(v / verdi_skala, G[j] / verdi_skala)
+            if delt:
+                # HVERT HODE MOT SITT EGET MAAL. Trenes summen mot `G` alene, er
+                # delingen uidentifiserbar - nettet kan legge alt i den ene, og
+                # da er to hoder bare ett hode med flere parametre (§124).
+                tap_verdi = F.mse_loss(vr / verdi_skala, GR[j] / verdi_skala)
+                tap_hale = F.mse_loss(vh / verdi_skala, GH[j] / verdi_skala)
+            else:
+                tap_verdi = F.mse_loss(v / verdi_skala, G[j] / verdi_skala)
+                tap_hale = torch.zeros((), device=enhet)
 
             mal = Fa[j]
             mk = mal > 0
@@ -412,15 +815,21 @@ def main():
             else:
                 tap_tro = torch.zeros((), device=enhet)
 
+            # `tap_ent` baerer fortegnet SITT SELV — se `entropitapet`. Med
+            # `--entropi-fase` tom er den eksakt `-args.entropi * ent`, altsaa
+            # §125s ledd, bit for bit.
             tap = (
                 args.vekt_policy * tap_pol
-                - args.entropi * ent
+                + tap_ent
                 + args.vekt_verdi * tap_verdi
+                + args.vekt_verdi_hale * tap_hale
                 + args.vekt_tro * tap_tro
             )
             opt.zero_grad(set_to_none=True)
             tap.backward()
-            torch.nn.utils.clip_grad_norm_(modell.parameters(), args.klipp_grad)
+            torch.nn.utils.clip_grad_norm_(
+                [q for q in modell.parameters() if q.grad is not None], args.klipp_grad
+            )
             opt.step()
 
             # NOEDBREMSEN. Maales sjelden nok til aa vaere gratis, ofte nok til
@@ -431,25 +840,69 @@ def main():
             # `--kl-maal`. En brems som foerst maaler etter at skaden har
             # skjedd er en logg, ikke en brems. GPU-en er 1 % av epoketiden, saa
             # fire ganger hyppigere maaling koster ingenting vi merker.
-            if args.kl_maal > 0 and (i // args.batch) % 4 == 3:
+            #
+            # ETTER TRINN 2 maales den ikke lenger: policyen kan ikke flytte
+            # seg, og en maaling som per konstruksjon gir samme svar er en
+            # maaling som gjoemmer at den ikke maaler. Den ENE etterproeven staar
+            # til slutt.
+            if (
+                args.kl_maal > 0
+                and not frosset_stamme
+                and (i // args.batch) % args.kl_intervall == args.kl_intervall - 1
+            ):
                 with torch.no_grad():
                     _, lp_na = maal(kl_idx)
                     pg0 = lp_foer.exp()
                     kl_na = float(
                         (pg0 * (lp_foer - lp_na)).masked_fill(~M[kl_idx], 0.0).sum(1).mean()
                     )
-                if kl_na > args.kl_maal:
-                    stoppet_paa_kl = i // args.batch
-                    break
+                steg = runde * ((n_tren + args.batch - 1) // args.batch) + i // args.batch
+                if kl_na > args.kl_maal and not frosset:
+                    if args.kl_handling == "stopp":
+                        stoppet_paa_kl = i // args.batch
+                        break
+                    frosset_paa = steg
+                    frosset = True
+                    frys([modell.policy])
+                    print(
+                        f"KL {kl_na:.5f} > {args.kl_maal} paa batch {steg}: POLICYHODET FROSSET. "
+                        f"Stammen trener videre paa verdi og tro (tak {kl_tak:.4f}).",
+                        flush=True,
+                    )
+                if kl_na > kl_tak:
+                    frosset_stamme_paa = steg
+                    kl_ved_frys = kl_na
+                    frosset_stamme = True
+                    frys([modell.stamme])
+                    print(
+                        f"KL {kl_na:.5f} > tak {kl_tak:.4f} paa batch {steg}: STAMMEN FROSSET. "
+                        f"Policyen er naa en konstant funksjon - `kl_drift` maaler at den er det.",
+                        flush=True,
+                    )
         if stoppet_paa_kl >= 0:
             break
 
     etter, lp_etter = maal(kl_idx)
+    hold_etter = maal(hold_idx)[0] if hold_idx is not None else None
     # KL(gammel || ny) paa de faste radene. Et steg som sprenger policyen viser
     # seg HER, ikke i tapet: tapet kan falle fordi fordelingen kollapset.
     with torch.no_grad():
         pg = lp_foer.exp()
         kl = float((pg * (lp_foer - lp_etter)).masked_fill(~M[kl_idx], 0.0).sum(1).mean())
+
+    # ============ PROEVEN PAA AT FRYSEN FAKTISK FROES (§125) =============
+    #
+    # «Stammen er frosset, saa policyen kan ikke drive» er en paastand om koden,
+    # og paastander om koden er nettopp det dette prosjektet har tatt feil av
+    # femten ganger. Her maales den: KL etter hele gjennomloepet mot KL i det
+    # oeyeblikket frysen slo inn. Er de ikke SAMME TALL, har noe policyen leser
+    # flyttet seg likevel - og da er epoken ugyldig, ikke bare interessant.
+    kl_drift = None if kl_ved_frys is None else abs(kl - kl_ved_frys)
+    if kl_drift is not None and kl_drift > 1e-6:
+        raise SystemExit(
+            f"POLICYEN DREV ETTER FRYSEN: KL {kl_ved_frys:.8f} -> {kl:.8f} "
+            f"(drift {kl_drift:.3e}). Da er ikke stammen frosset, og epoken skrives IKKE."
+        )
 
     # ================= VEKTENE MAA VAERE ENDELIGE, OG LOGITENE SMAA =========
     #
@@ -461,6 +914,11 @@ def main():
         ikke_endelige = sum(int((~torch.isfinite(q)).sum()) for q in modell.parameters())
         pk, _, _ = modell(X[: min(4096, n)].float())
         logitskala = float(pk.abs().max())
+    # Frysen tas AV foer vektene skrives. `requires_grad` foelger ikke med i
+    # vektfila, men den foelger med i modellobjektet, og en fremtidig kaller som
+    # gjenbruker det ville arvet en frossen stamme uten aa vite det.
+    for q in modell.parameters():
+        q.requires_grad_(True)
     if ikke_endelige > 0:
         raise SystemExit(
             f"{ikke_endelige} ikke-endelige vekter etter steget - epoken skrives IKKE. "
@@ -494,8 +952,19 @@ def main():
         "kl": round(kl, 6),
         "logitskala": round(logitskala, 2),
         "stoppet_paa_kl": stoppet_paa_kl,
+        "frosset_paa": frosset_paa,
+        "frosset_stamme_paa": frosset_stamme_paa,
+        "kl_tak": round(kl_tak, 6),
+        "batcher": int((n_tren + args.batch - 1) // args.batch) * args.gjennomlop,
+        "kl_ved_frys": None if kl_ved_frys is None else round(kl_ved_frys, 6),
+        "kl_drift": None if kl_drift is None else float(f"{kl_drift:.3e}"),
         "foer": {k: round(v, 5) for k, v in foer.items()},
         "etter": {k: round(v, 5) for k, v in etter.items()},
+        # HOLDOUT PAA KAMP — det ENE tallet som faktisk sier om verdihodet
+        # generaliserer. `hold_foer` er vektene som spilte kampene, `hold_etter`
+        # er vektene etter steget; ingen av dem har trent paa disse kampene.
+        "hold_foer": None if hold_foer is None else {k: round(v, 5) for k, v in hold_foer.items()},
+        "hold_etter": None if hold_etter is None else {k: round(v, 5) for k, v in hold_etter.items()},
         "d_pol": round(etter["pol"] - foer["pol"], 5),
         "d_tro": round(etter["tro"] - foer["tro"], 5),
         "d_rmse": round(etter["rmse"] - foer["rmse"], 5),
@@ -505,19 +974,48 @@ def main():
     logg.write(json.dumps(rad_ut) + "\n")
     logg.close()
 
+    def hold(navn):
+        return "n/a" if hold_etter is None else f"{hold_etter[navn]:+.4f}"
+
     os.makedirs(os.path.dirname(args.rapport) or ".", exist_ok=True)
     with open(args.rapport, "a", encoding="utf-8") as f:
         f.write(
-            f"epoke {args.epoke}: n={n} A={a_snitt:+.3f}+-{a_std:.3f} "
+            f"epoke {args.epoke}: n={n} (tren {n_tren}) A={a_snitt:+.3f}+-{a_std:.3f} "
             f"G={float(G.mean()):+.1f}+-{g_std:.1f} "
             f"| policy {foer['pol']:.4f} -> {etter['pol']:.4f} "
             f"| entropi {foer['ent']:.4f} -> {etter['ent']:.4f} "
             f"| tro {foer['tro']:.4f} -> {etter['tro']:.4f} "
             f"(treff {etter['treff'] * 100:.1f} %) "
             f"| verdi-RMSE {foer['rmse']:.3f} -> {etter['rmse']:.3f} "
-            f"(forklart {foer['forklart']:+.4f} utenfor utvalget "
-            f"-> {etter['forklart']:+.4f} i utvalget) | KL={kl:.5f} "
-            f"| {time.time() - t0:.0f}s\n"
+            f"| FORKLART PAA HOLDOUT-KAMPER: sum {hold('forklart')}"
+            + (
+                f", runde {hold('forklart_runde')}, hale {hold('forklart_hale')}"
+                if delt and hold_etter is not None
+                else ""
+            )
+            + f" (i utvalget {etter['forklart']:+.4f}) "
+            f"| KL={kl:.5f} "
+            # ============ DE TRE TALLENE §126 STAAR OG FALLER PAA ==========
+            #
+            # Snittentropien over alle rader kan STIGE mens en fase kollapser
+            # under den - det er maalt, over fjorten epoker. Fasene staar derfor
+            # her, hver for seg, i den varige fila og ikke bare i jsonl-en:
+            # normalisert entropi, og hvor mange ULIKE koder fasen bruker.
+            + "| FASER "
+            + "  ".join(
+                f"{FASE_NAVN[f][:4]} {etter[f'norment_{FASE_NAVN[f]}']:.3f}"
+                f"/{int(etter[f'ulike_{FASE_NAVN[f]}'])}k"
+                for f in range(5)
+            )
+            + " "
+            + (
+                f"| FRYS: policy paa batch {frosset_paa}, stamme paa {frosset_stamme_paa} "
+                f"av {rad_ut['batcher']}"
+                + (f", drift {kl_drift:.1e} " if kl_drift is not None else " ")
+                if frosset_paa >= 0
+                else "| ingen frys "
+            )
+            + f"| {time.time() - t0:.0f}s\n"
         )
     print(json.dumps(rad_ut), flush=True)
 

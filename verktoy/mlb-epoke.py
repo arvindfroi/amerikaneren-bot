@@ -143,6 +143,7 @@ class Driver:
             "--maalpoeng", str(self.a.maalpoeng),
             "--maksrunder", str(self.a.maksrunder),
             "--temperatur", str(self.a.temperatur),
+            "--tro", self.a.tro,
             "--nett", arbeid,
             "--froe", str(self.a.froe_spill + e * 20_000_000),
             "--uten-k2",
@@ -166,6 +167,7 @@ class Driver:
             "--maksrunder", str(self.a.maksrunder),
             "--lambda", str(self.a.lam),
             "--gamma", str(self.a.gamma),
+            "--tro", self.a.tro,
             "--rapport", f"{self.a.logkatalog}/e{e}-erfaring.txt",
         ]
         return self.kjor("ERFARING", cmd, f"{self.a.logkatalog}/e{e}-erfaring-kjor.txt")[0], ut
@@ -176,7 +178,12 @@ class Driver:
             f"cd {wsl_sti(ROT)} && {py} verktoy/mlb-gradient.py "
             f"--inn '{erf}-s*.bin' --vekter {arbeid} --ut {kandidat} "
             f"--epoke {e} --lr {self.a.lr} --pass {self.a.gjennomlop} "
+            f"--lr-verdi {self.a.lr_verdi} --kl-intervall {self.a.kl_intervall} "
+            f"--kl-maal {self.a.kl_maal} --kl-tak {self.a.kl_tak} "
+            f"--holdout-del {self.a.holdout_del} "
             f"--entropi {self.a.entropi} --batch {self.a.batch} "
+            f"{f'--entropi-fase {self.a.entropi_fase} ' if self.a.entropi_fase else ''}"
+            f"{f'--entropi-gulv {self.a.entropi_gulv} ' if self.a.entropi_gulv else ''}"
             f"--vekt-policy {self.a.vekt_policy} "
             # BARE FOERSTE EPOKE. Nullstilles hodet hver epoke, laerer det aldri.
             f"{'--nullstill-verdi ' if (self.a.nullstill_verdi and e == 1) else ''}"
@@ -204,8 +211,9 @@ class Driver:
             "--ligaband", str(self.a.styrkeband),
             "--ligakamper", str(self.a.styrkekamper),
             "--kjerner", str(self.a.kjerner),
-            "--maalpoeng", str(self.a.maalpoeng),
+            "--maalpoeng", str(self.a.portmaalpoeng),
             "--maksrunder", str(self.a.maksrunder),
+            "--tro", self.a.tro,
             "--epoke", str(e),
             "--ut", ut,
         ]
@@ -310,6 +318,7 @@ class Driver:
             )
             if gradrad:
                 g = gradrad["etter"]
+                h = gradrad.get("hold_etter") or {}
                 # FORKLART VARIANS TO GANGER, OG DET ER IKKE PYNT.
                 #
                 # `foer` er maalt paa vekter som aldri har sett disse radene —
@@ -318,13 +327,22 @@ class Driver:
                 # paa. §124: epoke 10 sto paa +0,1286 i utvalget og +0,0751 paa
                 # holdout-kamper. Ti epoker ble lest med det optimistiske
                 # tallet, og «verdihodet forklarer 13 %» var derfor for hoeyt.
-                f_ = gradrad.get("foer", {})
                 self.si(
                     f"   tap: policy {g['pol']:.4f}  tro {g['tro']:.4f} (treff {g['treff'] * 100:.1f} %)  "
-                    f"verdi-RMSE {g['rmse']:.3f} (forklart "
-                    f"{tallstr(f_.get('forklart'), '+.4f')} utenfor utvalget / "
-                    f"{g['forklart']:+.4f} i utvalget)  "
-                    f"entropi {g['ent']:.4f}  KL={gradrad['kl']:.5f}"
+                    f"verdi-RMSE {g['rmse']:.3f}  entropi {g['ent']:.4f}  KL={gradrad['kl']:.5f}  "
+                    f"frys p={gradrad.get('frosset_paa')} s={gradrad.get('frosset_stamme_paa')} "
+                    f"av {gradrad.get('batcher')}"
+                )
+                # HOLDOUT-KAMPER, og bare det. §124 FUNN 2: ti epoker ble lest
+                # med et tall maalt i utvalget modellen nettopp trente paa
+                # (+0,1286 der mot +0,0751 paa holdout). Tallet i utvalget staar
+                # i `mlb-gradient.jsonl` for den som vil se det; her staar det
+                # som faktisk sier om grunnlinjen generaliserer.
+                self.si(
+                    f"   HOLDOUT (kamper): verdi sum {tallstr(h.get('forklart'), '+.4f')}  "
+                    f"runde {tallstr(h.get('forklart_runde'), '+.4f')}  "
+                    f"hale {tallstr(h.get('forklart_hale'), '+.4f')}  "
+                    f"tro {tallstr(h.get('tro'), '.4f')}"
                 )
             if a.timer > 0 and (time.time() - t_start) / 3600 > a.timer:
                 self.si(f"TIDSTAKET paa {a.timer} timer er naadd — stopper etter epoke {e}")
@@ -338,7 +356,26 @@ def main():
     p.add_argument("--epoker", type=int, default=10)
     p.add_argument("--kamper", type=int, default=5000)
     p.add_argument("--kjerner", type=int, default=20)
-    p.add_argument("--maalpoeng", type=int, default=30)
+    # ===================== BLANDEDE LOEPSLENGDER (§126) ==================
+    #
+    # Ett tall gjorde `makro.maalPoeng.per100` og `.trettiDelt` til KONSTANTE
+    # innganger, og en konstant inngang er en omskalert bias: korrelasjonen mot
+    # biasens egen endring er r = 1,0000 over ti epoker. K5 kunne ikke laeres.
+    #
+    # Og ved maal 30 varer kampen 5,68 runder i trening. `Hukommelse.observer`
+    # bokfoerer ved RUNDE_SLUTT, saa hukommelsen ser hoeyst fire-fem ferdigspilte
+    # runder - mens `sandkassen.md` §3 forutsetter «naar tjue er nok». K4 og K6
+    # er derfor strukturelt ulaerbare ved 30. Ved 100 er kampen 27,16 runder.
+    #
+    # PRISEN: 30/60/100 gir 5,68/12,88/27,16 runder, altsaa ~2,7x maskintid.
+    p.add_argument("--maalpoeng", default="30,60,100", help="ett tall, eller «30,60,100»")
+    # PORTEN doemmer paa ETT tall, med vilje: epoke 3 og epoke 9 skal vaere
+    # sammenliknbare, og de faste froebaandene gir parrede giv bare hvis
+    # loepslengden ogsaa er fast.
+    p.add_argument("--portmaalpoeng", type=int, default=30)
+    # TROEN SOM INNGANG (§126). Samme fil i SPILL, ERFARING og PORT - er de tre
+    # uenige, er det maalte ikke det som ble trent.
+    p.add_argument("--tro", default="e1-modell/mlb-tro.bin")
     p.add_argument("--maksrunder", type=int, default=60)
     p.add_argument("--temperatur", type=float, default=1.0)
     p.add_argument("--sjanse", type=float, default=0.2)
@@ -363,9 +400,52 @@ def main():
     #
     # SAMME STANDARD SOM `examples/mlb-erfaring.ts`. Ett tall, ett sted.
     p.add_argument("--gamma", type=float, default=0.5)
-    p.add_argument("--lr", type=float, default=3e-4)
-    p.add_argument("--pass", dest="gjennomlop", type=int, default=1)
+    # ===================== SKRITTLENGDEN, MAALT OG IKKE VALGT (§125) =====
+    #
+    # §123 satte 3e-4 paa et nett som knapt hadde en mening. Paa en TRENT policy
+    # er den katastrofalt stor, og det ble maalt paa 86 k rader fra denne riggen
+    # (`analyse/mlb-sveip125.txt`), med KL maalt etter HVER batch:
+    #
+    #   | lr    | pass | KL etter loepet | frys      | verdi paa HOLDOUT (runde) |
+    #   |-------|------|-----------------|-----------|---------------------------|
+    #   | 3e-4  |  8   | 0,197 etter ETT steg | batch 0 | -0,005 |
+    #   | 1e-4  |  8   | 0,060           | batch 1   | +0,046 |
+    #   | 5e-5  |  8   | 0,018           | ingen     | +0,163 |
+    #   | 5e-5  | 16   | **0,021**       | **ingen** | **+0,248** |
+    #   | 5e-5  | 32   | 0,028           | ingen     | +0,153 (i utvalget +0,76) |
+    #
+    # Bremsen fyrte altsaa ikke fordi policyen trengte foerti steg - den fyrte
+    # fordi ETT steg var femten ganger stoerre enn tillitsomraadet. Med 5e-5 og
+    # 16 gjennomloep faar hele nettet 1 216 gradientsteg per epoke INNENFOR
+    # tillitsomraadet, mot §124s foerti paa sju epoker.
+    #
+    # 32 gjennomloep er for mye: forklart varians i utvalget stiger til +0,76
+    # mens holdout FALLER til +0,153. Det er overtilpasning, og den er maalt.
+    p.add_argument("--lr", type=float, default=5e-5)
+    p.add_argument("--pass", dest="gjennomlop", type=int, default=16)
+    # VERDIHODENE HAR SIN EGEN SKRITTLENGDE. De er lineaere hoder over stammens
+    # 512 ReLU-utganger, og Adam flytter hver parameter ~lr per steg uansett
+    # gradient - en skrittlengde kalibrert for policylogitene er for kort her.
+    p.add_argument("--lr-verdi", type=float, default=1e-3)
+    p.add_argument("--kl-maal", type=float, default=0.03)
+    p.add_argument("--kl-tak", type=float, default=0.06)
+    p.add_argument("--kl-intervall", type=int, default=1)
+    p.add_argument("--holdout-del", type=int, default=10)
     p.add_argument("--entropi", type=float, default=0.01)
+    # ===================== ENTROPIEN PER FASE (§126) =====================
+    #
+    # `--entropi` var ALDRI null og den VIRKET — snittentropien steg 0,5983 ->
+    # 0,8561 over v125s fjorten epoker. Den var maalt paa feil ting: snittet
+    # tas over alle rader med valg, og 78 % av dem er kortspill. VELG_TRUMF har
+    # EN rad per runde mot kortspillets tolv, saa de to fasene som faktisk
+    # kollapset - trumfvalget og budet - er 2,2 % og 8,9 % av det snittet som
+    # steg. Etter fjorten epoker med bonusen paa sto trumfvalget paa 2 av 4
+    # koder og ruter 97,7 %, og budet paa 2 av 12.
+    #
+    # Med `--entropi-fase` faar hver fase sitt eget snitt og sin egen vekt, saa
+    # trumfvalget ikke lenger kan drukne i kortvalgene. Tom = §125s ledd.
+    p.add_argument("--entropi-fase", default="", help="«bud,vrak,trumf,etterlys,spill»")
+    p.add_argument("--entropi-gulv", default="", help="«bud,vrak,trumf,etterlys,spill», normalisert H")
     # VEKTEN PAA POLICYTAPET. 0 gir en VARMEEPOKE: bare verdi og tro trenes.
     #
     # Den finnes fordi gamma FLYTTER VERDIMAALET. Med gamma = 1 hadde `G` snitt

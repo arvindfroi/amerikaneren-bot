@@ -85,9 +85,12 @@ export interface Vanespek {
    *
    * **84 % av alle beslutninger er kortvalg.** Deler to vaner spillestil, kan
    * de aldri skille seg i mer enn ~16 % av valgene uansett hvor ulikt de byr.
-   * Derfor er stilene åtte, og settene deler ingen: treningsvanene spiller
-   * HØYT, testvanene spiller LAVT, og enhver kryssammenlikning skiller seg
-   * allerede i det første kortet som følges.
+   * Derfor er stilene åtte, og settene deler ingen.
+   *
+   * **§125: fire HØYE og fire LAVE, men ikke fire i hvert sett.** Første split
+   * la alle de høye i trening og alle de lave i test. Det var disjunkt, og det
+   * var samtidig en STYRKESPLITT — se `VANER_TRENING` under. Stilene er
+   * fortsatt åtte og fortsatt delt, men nå med to høye og to lave på hver side.
    */
   readonly spill:
     | "høyest"
@@ -217,7 +220,7 @@ export function lagVane(spek: Vanespek): Beslutter {
           const erTrumf = trumf !== null && k.farge === trumf;
           const p = trumf === null ? verdirang(k) : pris(k, trumf);
           switch (spek.spill) {
-            // ---- de fire som spiller HØYT (treningssettet) ----------------
+            // ---- de fire som spiller HØYT (to i hvert sett, §125) ---------
             case "høyest":
               return p;
             case "honnørFørst":
@@ -228,7 +231,7 @@ export function lagVane(spek: Vanespek): Beslutter {
             case "fargeordenHøy":
               // Spiller «fra venstre i hånden», og høyest innenfor fargen.
               return -FARGER.indexOf(k.farge) * 100 + verdirang(k);
-            // ---- de fire som spiller LAVT (testsettet) --------------------
+            // ---- de fire som spiller LAVT (to i hvert sett, §125) ---------
             case "lavest":
               return -p;
             case "trumfSløseri":
@@ -252,13 +255,57 @@ export interface Vane {
 }
 
 /**
+ * ===================== §125: SPLITTEN VAR OGSÅ EN STYRKESPLITT ==========
+ *
+ * Første split la de fire som spiller HØYT i treningssettet og de fire som
+ * spiller LAVT i testsettet. Den var disjunkt — og §124 målte at den samtidig
+ * var en rangering:
+ *
+ *   nettet TAPTE 7,5 / 7,2 / 5,4 poeng mot tre av fire TRENINGSvaner
+ *   nettet VANT  15 til 29 poeng mot alle fire TESTvanene
+ *
+ * Porten (`examples/mlb-port.ts`) og STYRKE i epoketabellen dømmer begge på
+ * `VANER_TEST`. Begge målte altså mot den halvparten nettet allerede hadde
+ * mettet, og «seier 43 %» var overlegenhet over nettopp den.
+ *
+ * `examples/mlb-vanesplitt.ts` måler vanenes INNBYRDES styrke — hver vane i ett
+ * sete mot tre kopier av hver av de sju andre, parret på givene, kontrollarm
+ * 0,000000 på hver rad. Snittet av kanten mot de sju andre:
+ *
+ *   ordentlig +18,5 · grisk +18,3 · honnørsulten +14,2 · trumfgjerrig +10,4
+ *   trumfsløser +10,1 · middelmådig +1,4 · feig −2,9 · baklengs −4,7
+ *
+ * Den gamle splitten ga snitt **+15,4 mot +1,0**. Den nye gir **+9,0 mot +7,4**,
+ * og hvert sett har to av de fire sterkeste og to av de fire svakeste.
+ *
+ * ===================== TO PAR MÅTTE HOLDES SAMMEN, OG DET ER MÅLT ======
+ *
+ * Splitten er ikke fri. Atferdsavstanden (1 815 ekte stillinger, samme fil)
+ * fant to par som er for LIKE til å kunne stå på hver sin side av K6-grensen:
+ *
+ *   grisk / trumfgjerrig   20,5 % ulike
+ *   feig  / trumfsløser    22,7 % ulike
+ *
+ * Begge er under baren på 25 % i `test/mlb-liga.test.ts`, så begge par må ligge
+ * INNENFOR samme sett. Med den bindingen finnes det bare én 4–4-deling som
+ * balanserer styrken, og det er denne. Det nærmeste KRYSSparet er nå
+ * `grisk` / `ordentlig` på **26,9 %** — over baren, men med tynnere margin enn
+ * før, og grunnen er verdt å skrive ned: **`høyest` og `fargeordenHøy` er
+ * identiske når man FØLGER FARGE.** Da er alle lovlige kort i samme farge, og
+ * begge rangerer på ren verdi. De skiller seg bare når man er renons.
+ */
+
+/**
  * TRENINGSVANENE. Boten møter disse, og skal lære å utnytte dem.
+ *
+ * To sterke (`grisk` +18,3, `trumfgjerrig` +10,4) og to svake (`trumfsløser`
+ * +10,1 er sterk på tallet men taper mot nettet, `feig` −2,9).
  */
 export const VANER_TRENING: readonly Vane[] = [
   { navn: "vane.grisk", spek: { dristighet: 2, vrak: "lavest", trumf: "lengst", etterlys: "høyest", spill: "høyest" } },
-  { navn: "vane.honnørsulten", spek: { dristighet: 1, vrak: "kortestFarge", trumf: "lengst", etterlys: "høyest", spill: "honnørFørst" } },
   { navn: "vane.trumfgjerrig", spek: { dristighet: 0, vrak: "lavest", trumf: "sterkest", etterlys: "høyest", spill: "sparTrumf" } },
-  { navn: "vane.ordentlig", spek: { dristighet: 2, vrak: "kortestFarge", trumf: "sterkest", etterlys: "høyest", spill: "fargeordenHøy" } },
+  { navn: "vane.trumfsløser", spek: { dristighet: 3, vrak: "høyest", trumf: "sterkest", etterlys: "lavest", spill: "trumfSløseri" } },
+  { navn: "vane.feig", spek: { dristighet: -2, vrak: "høyest", trumf: "sterkest", etterlys: "lavest", spill: "lavest" } },
 ] as const;
 
 /**
@@ -266,10 +313,15 @@ export const VANER_TRENING: readonly Vane[] = [
  *
  * Er de samme sett, måler K6 gjenkjenning i vektene i stedet for læring i
  * løpet — og forskjellen mellom de to er hele forskjellen på om K6 er innfridd.
+ *
+ * To sterke (`ordentlig` +18,5, `honnørsulten` +14,2 — de to nettet FAKTISK
+ * taper mot) og to svake (`middelmådig` +1,4, `baklengs` −4,7). Porten dømmer
+ * på dette settet, og det er nettopp derfor det ikke lenger kan være den svake
+ * halvparten.
  */
 export const VANER_TEST: readonly Vane[] = [
-  { navn: "test.feig", spek: { dristighet: -2, vrak: "høyest", trumf: "sterkest", etterlys: "lavest", spill: "lavest" } },
-  { navn: "test.trumfsløser", spek: { dristighet: 3, vrak: "høyest", trumf: "sterkest", etterlys: "lavest", spill: "trumfSløseri" } },
+  { navn: "test.ordentlig", spek: { dristighet: 2, vrak: "kortestFarge", trumf: "sterkest", etterlys: "høyest", spill: "fargeordenHøy" } },
+  { navn: "test.honnørsulten", spek: { dristighet: 1, vrak: "kortestFarge", trumf: "lengst", etterlys: "høyest", spill: "honnørFørst" } },
   { navn: "test.middelmådig", spek: { dristighet: -1, vrak: "høyest", trumf: "lengst", etterlys: "lavest", spill: "midt" } },
   { navn: "test.baklengs", spek: { dristighet: -3, vrak: "lavest", trumf: "lengst", etterlys: "lavest", spill: "fargeordenLav" } },
 ] as const;

@@ -3,7 +3,7 @@
  *
  *   node examples/mlb-spill.ts --kamper 5000 --kjerner 20 --ut analyse/mlb-e0 \
  *     --maalpoeng 30 --temperatur 1.0 --nett e1-modell/mlb-sandkasse.bin \
- *     [--tro <sti>] [--maksrunder 100] [--uten-k2] [--maal]
+ *     [--maksrunder 100] [--uten-k2] [--maal]
  *
  * ===================== HVORFOR «LØPENDE PER RAD» STÅR I TOPPEN ==========
  *
@@ -69,9 +69,54 @@ let kjerner = Math.max(1, cpus().length - 1);
 let skardI = -1;
 let skardN = 1;
 let ut = "analyse/mlb-selvspill";
-let målPoeng = 30;
+/**
+ * LØPSLENGDEN — ÉN ELLER FLERE, TRUKKET PER KAMP (§126).
+ *
+ * ===================== HVORFOR DEN MÅTTE BLI FLERE ======================
+ *
+ * Den var ett tall for hele kjøringen, og arkitekturrevisjonen målte hva det
+ * koster. `makro.målPoeng.per100` og `.trettiDelt` er da KONSTANTE innganger,
+ * og en konstant inngang gir gradienten `c · δ` — nøyaktig proporsjonal med
+ * biasens. Målt over ti epoker er korrelasjonen mellom kolonnens endring og
+ * biasens endring **r = 1,0000**: kolonnen er en omskalert bias, og alt nettet
+ * har lært av den er et konstantledd. K5 kunne derfor ikke læres. Ikke «ble
+ * ikke lært» — kunne ikke, uansett antall epoker.
+ *
+ * Og det slår videre. Ved mål 30 varer en kamp **5,68 runder** i trening.
+ * `Hukommelse.observer` bokfører ved `RUNDE_SLUTT`, så hukommelsen ser høyst
+ * fire–fem ferdigspilte runder før siste beslutning. `docs/sandkassen.md` §3
+ * forutsetter at «nettet lærer selv når fire observasjoner er for lite og når
+ * tjue er nok» — den får aldri tjue. De nitten MAKRO-leddene i hukommelsen
+ * (`…MotStilling`, `…MotTid`) er korrelasjoner over høyst fire punkter, og K6s
+ * nullresultat følger av det. Ved mål 100 er kampen 27,16 runder.
+ *
+ * Én endring, to krav: K5 blir lærbart, K4 og K6 får dybden de forutsetter.
+ *
+ * ===================== PRISEN, MÅLT OG IKKE ANSLÅTT =====================
+ *
+ * 30 / 60 / 100 gir 5,68 / 12,88 / 27,16 runder per kamp. En lik blanding
+ * koster derfor ~2,7× maskintid per kamp mot dagens rene 30-løp.
+ *
+ * ===================== TREKNINGEN ER PER KAMP, IKKE PER SKARD ===========
+ *
+ * Den tas av kampens EGET frø, ikke av kampnummeret. `lagBord` bruker allerede
+ * `kampnr % 4` for setet og `kampnr` gjennom `frø`; en runde-robin på `k` ville
+ * låst løpslengden til bordsammensetningen i et fast mønster, og da måler vi
+ * samspillet mellom de to i stedet for løpslengden. Trekningen er determinis-
+ * tisk per frø, så skardene er enige uten å snakke sammen, og to kjøringer av
+ * samme kommando gir samme kamper.
+ */
+let målPoengValg: number[] = [30];
 let temperatur = 1.0;
-let trosti: string | null = null;
+/**
+ * TROEN SOM INNGANG (§126). Står PÅ som standard, med `e1-modell/mlb-tro.bin`.
+ *
+ * Den sto AV, og resultatet var at TRO-blokkens 209 innganger var eksakt null
+ * i hver rad i ti epoker. Standarden er derfor snudd: sensorene står på, og
+ * `--uten-tro` er den eksplisitte veien til å slå dem av. Stien SKRIVES i
+ * rapporten, så en kjøring uten tro ikke kan forveksles med en med.
+ */
+let trosti: string | null = "e1-modell/mlb-tro.bin";
 let nettsti: string | null = null;
 /**
  * BEFOLKNINGEN, som filer.
@@ -101,16 +146,39 @@ const tall = (v: string | undefined, standard: number, navn: string): number => 
   return x;
 };
 
+/** `--maalpoeng 30` eller `--maalpoeng 30,60,100`. Ett tall er dagens oppførsel. */
+const lesMålPoeng = (v: string | undefined): number[] => {
+  const d = (v ?? "").split(",").filter((x) => x.length > 0).map((x) => tall(x, 0, "--maalpoeng"));
+  if (d.length === 0) throw new Error("--maalpoeng trenger minst ett tall");
+  for (const x of d) {
+    if (!Number.isInteger(x) || x < 1) throw new Error(`--maalpoeng må være hele tall ≥ 1, fikk ${x}`);
+  }
+  return d;
+};
+
+/**
+ * Løpslengden for kamp `k`, trukket av kampens EGET frø.
+ *
+ * Ett tall i lista gir det tallet uten å røre noen RNG — en kjøring med
+ * `--maalpoeng 30` er da bit-identisk med den som var før §126.
+ */
+const målPoengFor = (frø: number): number => {
+  if (målPoengValg.length === 1) return målPoengValg[0]!;
+  const i = Math.floor(lagRng(frø ^ 0x5f37_2b91)() * målPoengValg.length);
+  return målPoengValg[Math.min(i, målPoengValg.length - 1)]!;
+};
+
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   const v = process.argv[i + 1];
   if (a === "--kamper") kamper = tall(v, kamper, "--kamper");
   else if (a === "--froe") frøBase = tall(v, frøBase, "--froe");
   else if (a === "--kjerner") kjerner = tall(v, kjerner, "--kjerner");
-  else if (a === "--maalpoeng") målPoeng = tall(v, målPoeng, "--maalpoeng");
+  else if (a === "--maalpoeng") målPoengValg = lesMålPoeng(v);
   else if (a === "--temperatur") temperatur = tall(v, temperatur, "--temperatur");
   else if (a === "--ut") ut = v ?? ut;
-  else if (a === "--tro") trosti = v ?? "e1-modell/mlb-tro.bin";
+  else if (a === "--tro") trosti = v ?? null;
+  else if (a === "--uten-tro") trosti = null;
   else if (a === "--nett") nettsti = v ?? null;
   else if (a === "--beste") bestesti = v ?? null;
   else if (a === "--tidligere") tidligereStier = (v ?? "").split(",").filter((x) => x.length > 0);
@@ -140,7 +208,6 @@ const rapportfil = `${ut}-rapport.txt`;
  * kjøringen og slås på med `--tro`, slik at de to regimene kan måles hver for
  * seg i stedet for at det dyre er skjult i et standardvalg.
  */
-const tronett = trosti === null ? null : MlbTronett.fraBytes(readFileSync(trosti));
 
 /**
  * DET EKTE NETTET, når det finnes.
@@ -153,6 +220,12 @@ const tronett = trosti === null ? null : MlbTronett.fraBytes(readFileSync(trosti
  * ALLE SETER DELER ÉN INSTANS. Vektene er de samme, `framover` er ren, og en
  * kopi per sete ville kostet 9,5 MB × 4 uten å endre ett eneste tall.
  */
+/**
+ * Lastes ÉN gang per prosess. `MlbTronett` kaster hvis formen er feil, og det
+ * skal den: et trohode med feil bredde ville gitt tause søppelvekter.
+ */
+const tronett = trosti === null ? null : MlbTronett.fraBytes(readFileSync(trosti));
+
 const sandkasse = nettsti === null ? null : Sandkassenett.fraFil(nettsti);
 
 /**
@@ -223,10 +296,10 @@ function kjørSkard(i: number, n: number): void {
     const frø = frøBase + k * 7717;
     const erfaring = spillKamp({
       frø,
-      seter: lagBord(k, frø),
-      målPoeng,
-      maksRunder,
       tronett,
+      seter: lagBord(k, frø),
+      målPoeng: målPoengFor(frø),
+      maksRunder,
       /**
        * SAMLETREKK ER AV. Radene bygges når treningen trenger dem, av
        * `gjenspill()`. Det er §5a, og det er forskjellen på 36 MB og 67 GB.
@@ -322,7 +395,7 @@ if (skardI >= 0) {
   const t = Date.now();
   for (let k = 0; k < n; k++) {
     const frø = frøBase + k * 7717;
-    const e = spillKamp({ frø, seter: lagBord(k, frø), målPoeng, maksRunder, tronett, samleTrekk: false });
+    const e = spillKamp({ frø, seter: lagBord(k, frø), målPoeng: målPoengFor(frø), maksRunder, tronett, samleTrekk: false });
     besl += e.logg.koder.length;
     rader += e.rader.length;
     rnd += e.fasit.runder;
@@ -330,7 +403,7 @@ if (skardI >= 0) {
   }
   const sek = (Date.now() - t) / 1000;
   const rad =
-    `MÅL kamper=${n} maalpoeng=${målPoeng} tro=${trosti === null ? "av" : "på"} ` +
+    `MÅL kamper=${n} maalpoeng=${målPoengValg.join("/")} ` +
     `nett=${nettsti ?? "tilfeldig"} maksrunder=${maksRunder} ` +
     `sek=${sek.toFixed(2)} kamper/s/kjerne=${(n / sek).toFixed(2)} ` +
     `beslutninger/kamp=${(besl / n).toFixed(1)} rader/kamp=${(rader / n).toFixed(1)} ` +
@@ -344,8 +417,9 @@ if (skardI >= 0) {
   writeFileSync(rapportfil, `mlb-spill startet ${new Date().toISOString()}\n`);
   appendFileSync(
     rapportfil,
-    `kamper=${kamper} kjerner=${kjerner} maalpoeng=${målPoeng} temperatur=${temperatur} ` +
-      `tro=${trosti ?? "av"} nett=${nettsti ?? "tilfeldig"} froe=${frøBase} ` +
+    `kamper=${kamper} kjerner=${kjerner} maalpoeng=${målPoengValg.join("/")} temperatur=${temperatur} `
+      + `tro=${trosti ?? "AV"} ` +
+      `nett=${nettsti ?? "tilfeldig"} froe=${frøBase} ` +
       `maksrunder=${maksRunder} beste=${bestesti ?? "(kandidaten selv)"} ` +
       `tidligere=[${tidligereStier.join(",")}]\n`,
   );

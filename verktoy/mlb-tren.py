@@ -134,7 +134,27 @@ def les_bin(monster, fp16, maks=None):
 
 
 class Sandkassenett(nn.Module):
-    """Ett felles underlag, tre hoder."""
+    """Ett felles underlag, FIRE hoder — policy, verdi(runde), tro, verdi(hale).
+
+    ================ HVORFOR VERDIHODET ER DELT I TO (§125) ================
+
+    §124 maalte taket for hvert mulige verdimaal med en regularisert ridge paa
+    de SAMME 1 032 trekkene, holdout splittet paa KAMP:
+
+        resten av kampen        +0,19
+        rundens gjenstaaende    +0,60      <- tre ganger saa forutsigbart
+        resten ETTER runden     +0,17
+
+    Ett hode mot ett BLANDET maal laerer det uforutsigbare leddet like hardt som
+    det forutsigbare. To hoder med hvert sitt maal gjoer ikke det — og summen er
+    fortsatt `V`, saa fordelen `A = G^y - V` er uendret i formen.
+
+    Splitten alene er verdiloes: med gamma = 1 veier halen 97 % av maalet, og et
+    todelt hode gir da variansveid 0,18 mot det ene hodets 0,19. Foerst naar
+    gamma har flyttet rundens andel fra 2,9 % til 79 % betaler den seg. Derfor
+    er rekkefoelgen gamma -> separat rundemaal -> lambda ned, og dette er steg
+    to.
+    """
 
     def __init__(self, dim, skjult):
         super().__init__()
@@ -146,28 +166,68 @@ class Sandkassenett(nn.Module):
         self.policy = nn.Linear(b, POLICY_UT)
         self.verdi = nn.Linear(b, VERDI_UT)
         self.tro = nn.Linear(b, TRO_UT)
+        # HALEHODET STARTER PAA NULL. Da er `V = V_runde + 0` bit-identisk med
+        # nettet foer §125, og en vektfil med fire deler kan leses videre uten
+        # at en eneste utgang flytter seg. Samme grunn som `--nullstill-verdi`:
+        # et hode med tilfeldige vekter dytter den DELTE stammen fra foerste
+        # steg, og §124 FUNN 5 maalte hva det koster (styrke +16 -> -760).
+        self.verdi_hale = nn.Linear(b, VERDI_UT)
+        with torch.no_grad():
+            self.verdi_hale.weight.zero_()
+            self.verdi_hale.bias.zero_()
 
     def underlag(self, x):
-        # ReLU etter HVERT lag, ogsaa det siste: stammen mater tre hoder, den er
-        # ikke logits. TS-siden legger paa noeyaktig den samme.
+        # ReLU etter HVERT lag, ogsaa det siste: stammen mater alle hodene, den
+        # er ikke logits. TS-siden legger paa noeyaktig den samme.
         for l in self.stamme:
             x = F.relu(l(x))
         return x
 
-    def forward(self, x):
+    def alle_hoder(self, x):
+        """policy, V_TOTAL, tro, V_runde, V_hale."""
         h = self.underlag(x)
-        return self.policy(h), self.verdi(h).squeeze(-1), self.tro(h).view(-1, KORT, KLASSER)
+        vr = self.verdi(h).squeeze(-1)
+        vh = self.verdi_hale(h).squeeze(-1)
+        return self.policy(h), vr + vh, self.tro(h).view(-1, KORT, KLASSER), vr, vh
+
+    def forward(self, x):
+        """policy, V_TOTAL, tro — og den midterste er SUMMEN, ikke rundedelen.
+
+        `forward` beholder tre utganger med vilje. Hver eldre kaller skriver
+        `p, v, t = modell(x)` og bruker `v` som grunnlinjen, og `V` er foer som
+        naa `V_runde + V_hale`. Hadde signaturen blitt fem, ville hver kaller
+        maattet endres — og hadde rundedelen staatt paa `v`-plassen, ville de
+        stille maalt mot et ANNET maal. Delene hentes med `alle_hoder`.
+        """
+        p, v, t, _, _ = self.alle_hoder(x)
+        return p, v, t
+
+
+def _deler(modell):
+    """Delene i FILREKKEFOELGE. Ett sted, saa skriver og leser ikke kan bli uenige.
+
+    Halehodet staar BAKERST og ikke ved siden av `verdi`. Da kan en fil med
+    fire deler leses uten aa bli forskjoevet — trohodets vekter tolket som
+    halehodets ville vaert den stille varianten av feil.
+    """
+    return [
+        list(modell.stamme),
+        [modell.policy],
+        [modell.verdi],
+        [modell.tro],
+        [modell.verdi_hale],
+    ]
 
 
 def skriv_vekter(sti, modell):
-    """Appens vektformat: FIRE nett - stamme, policy, verdi, tro - i den rekkefoelgen.
+    """Appens vektformat: FEM nett - stamme, policy, verdi, tro, verdiHale.
 
     `src/nevro/nett.ts` leser det uten oversetter, og `Sandkassenett` i
-    `src/mlb/nett.ts` haandhever at det er noeyaktig fire deler med riktige
-    bredder. En forskjoevet fil blir en feilmelding, ikke stille soeppel.
+    `src/mlb/nett.ts` haandhever bredder og rekkefoelge. En forskjoevet fil blir
+    en feilmelding, ikke stille soeppel.
     """
     os.makedirs(os.path.dirname(sti) or ".", exist_ok=True)
-    deler = [list(modell.stamme), [modell.policy], [modell.verdi], [modell.tro]]
+    deler = _deler(modell)
     with open(sti, "wb") as f:
         f.write(struct.pack("<i", len(deler)))
         for lag in deler:
@@ -188,9 +248,29 @@ def les_vekter(sti, modell):
     """
     with open(sti, "rb") as f:
         (antall,) = struct.unpack("<i", f.read(4))
-        deler = [list(modell.stamme), [modell.policy], [modell.verdi], [modell.tro]]
-        if antall != len(deler):
-            raise SystemExit(f"{sti}: {antall} nett, ventet {len(deler)}")
+        deler = _deler(modell)
+        # ============ FIRE ELLER FEM DELER, OG INGENTING IMELLOM ==========
+        #
+        # Fire er formatet FOER §125. Da leses de fire foerste, og halehodet
+        # blir staaende paa null slik `__init__` satte det — `V = V_runde + 0`
+        # er da bit-identisk med det gamle nettets `V`, og ti epokers vekter kan
+        # brukes videre uten at en eneste utgang flytter seg.
+        if antall == len(deler) - 1:
+            deler = deler[:-1]
+            # NULLSTILLES EKSPLISITT og ikke bare «den er vel null fra
+            # `__init__`». Leses vektene inn i en modell som alt har trent, er
+            # den ikke det, og da hadde en gammel fil faatt en hale fra et annet
+            # loep uten at noe sa fra.
+            with torch.no_grad():
+                modell.verdi_hale.weight.zero_()
+                modell.verdi_hale.bias.zero_()
+            print(
+                f"{sti}: fire deler (foer §125) - halehodet staar paa null, "
+                f"V = V_runde er uendret",
+                flush=True,
+            )
+        elif antall != len(deler):
+            raise SystemExit(f"{sti}: {antall} nett, ventet {len(deler)} (eller {len(deler) - 1})")
         for lag in deler:
             (n,) = struct.unpack("<i", f.read(4))
             if n != len(lag):

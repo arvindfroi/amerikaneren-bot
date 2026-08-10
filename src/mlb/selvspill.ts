@@ -448,6 +448,92 @@ export function diskontertRetur(
   return ut;
 }
 
+/**
+ * VERDIMÅLET DELT I TO, MED HVER SIN ETIKETT — §125, og hvorfor det ikke er
+ * det samme som å bytte mål.
+ *
+ * ===================== DET TAKET SOM ER MÅLT ===========================
+ *
+ * §124 målte hvor mye av hvert mål som i det hele tatt LAR seg forutsi fra de
+ * 1 032 trekkene. Regularisert ridge, holdout splittet på KAMP:
+ *
+ *   | mål                                | ridge R² |
+ *   |------------------------------------|----------|
+ *   | resten av kampen (`G`)             |  +0,19   |
+ *   | **det som gjenstår av DENNE runden**| **+0,60**|
+ *   | resten av kampen ETTER runden      |  +0,17   |
+ *
+ * Rundens poeng er TRE GANGER så forutsigbart. Det er ikke hodet som er for
+ * svakt — det er målet som er for langt.
+ *
+ * ===================== MEN SUMMEN ER DET ENESTE SOM VEILEDES ===========
+ *
+ * §124 prøvde også det opplagte og forkastet det: ett hode med to utganger,
+ * trent mot `G`. Da er delingen UIDENTIFISERBAR — nettet kan legge alt i den
+ * ene. Skal den bety noe, må hver del ha SITT EGET mål, og begge finnes i
+ * dataene:
+ *
+ *     G^γ_t  =  Gr_t  +  Gh_t
+ *
+ *   `Gr`  det som gjenstår av DENNE runden for setet
+ *   `Gh`  den ALLEREDE DISKONTERTE halen — alt fra neste runde og ut
+ *
+ * Identiteten er eksakt, ikke omtrentlig, og `test/mlb-epoke.test.ts` krever
+ * det: `Gr[i] + Gh[i] === diskontertRetur[i]` for hver rad, for enhver γ.
+ *
+ * ===================== HVORFOR γ MÅTTE KOMME FØRST =====================
+ *
+ * Med γ = 1 er splitten verdiløs, og også det er målt: variansveid blir et
+ * todelt hode `(0,60·114 + 0,17·3779)/3893 ≈ 0,18` — praktisk talt nøyaktig det
+ * ene felles hodet allerede får. **Splitten flytter ingen varians så lenge
+ * halen veier 97 % av målet.** γ = 0,5 flyttet rundens andel av Var(målet) fra
+ * 2,9 % til 79 %, og først da betaler det seg å gi runden sitt eget hode.
+ *
+ * Rekkefølgen er derfor γ → separat rundemål → λ ned, og dette er steg to.
+ *
+ * ===================== HALEN BÆRER γ-EN SELV ===========================
+ *
+ * `Gh` er den diskonterte halen, ikke den rå. Nettet spår altså `Gh` direkte,
+ * og `V = V_runde + V_hale` uten en γ noe sted i framoverpasseringen. Alternativet
+ * — å la hodet spå den RÅ halen og gange med γ i TS — ville lagt γ inn i
+ * `nett.ts`, og da hadde to filer hatt hver sin mening om samme tall. Det er
+ * §123 punkt 1 med en ny hovedrolle.
+ */
+export function delteRetur(
+  rader: readonly Beslutningsrad[],
+  fasit: Kampfasit,
+  gamma: number,
+): { readonly runde: Float64Array; readonly hale: Float64Array } {
+  const runde = new Float64Array(rader.length);
+  const hale = new Float64Array(rader.length);
+  for (let i = rader.length - 1; i >= 0; i--) {
+    const rad = rader[i]!;
+    const j = rad.nesteISete;
+    const neste = j >= 0 ? rader[j]! : null;
+    const poengEtter =
+      neste !== null ? neste.poengFør : (fasit.sluttpoeng[rad.sete] ?? rad.poengFør);
+    const r = poengEtter - rad.poengFør;
+    if (neste === null) {
+      // Siste beslutning i setet: alt som er igjen faller i DENNE runden —
+      // kampen tar slutt ved et rundeskille, så det finnes ingen hale.
+      runde[i] = r;
+      hale[i] = 0;
+    } else if (neste.rundeNr > rad.rundeNr) {
+      // Steget krysser rundeskillet: `r` er rundens siste poeng, og ALT etter
+      // det er hale. Diskonteringen legges på her, én gang, samme sted som i
+      // `γSteg` — halen bæres ferdig diskontert.
+      runde[i] = r;
+      hale[i] = gamma * ((runde[j] ?? 0) + (hale[j] ?? 0));
+    } else {
+      // Samme runde: `r` er 0 (poeng faller bare ved rundeslutt), og både
+      // rundedelen og halen arves uendret fra neste beslutning.
+      runde[i] = r + (runde[j] ?? 0);
+      hale[i] = hale[j] ?? 0;
+    }
+  }
+  return { runde, hale };
+}
+
 // ===========================================================================
 // 3. Løkka
 // ===========================================================================
@@ -491,7 +577,23 @@ export interface Kampopsjoner {
   readonly frø: number;
   readonly seter: readonly Sete[];
   readonly målPoeng?: number;
-  /** Trohodet som trekk. `null` sparer ~0,45 ms per beslutning (§120). */
+  /**
+   * ===================== `tronett` ER KOBLET PÅ (§126) ===================
+   *
+   * Feltet matet `tro.p.*`-blokken, og det ble aldri satt: `spillKamp` sendte
+   * `opts.tronett ?? null`, og verken `examples/mlb-erfaring.ts` eller
+   * epokedriveren fylte det. Blokken var derfor eksakt null i hver rad i hver
+   * epoke — 209 innganger som per konstruksjon ikke KUNNE få gradient.
+   *
+   * Det ble først lest som at de er verdiløse. Det var feil lesning: en
+   * inngang som aldri har vært påkoblet kan ikke ha lært noe, og å måle den
+   * på tilfeldig initierte vekter måler støy og ikke evne. Sandkassens premiss
+   * er at alle sensorene står på og at nettet finner ut av resten.
+   *
+   * Den er derfor PÅ fra epoke 0 — og den må være på de samme tre stedene:
+   * spillingen, gjenspillingen som lager gradienten, og `spekagent.ts` som
+   * måles. Er de uenige, er det målte ikke det som ble trent.
+   */
   readonly tronett?: Trofordeler | null;
   /** Injiseres av kalleren; standard er stillaset i denne fila. */
   readonly velger?: Velger;
@@ -536,7 +638,6 @@ function kjørKamp(
   const givingKort: Giving = { antallStikk: giving.antallStikk, talong: giving.talong };
   const brukHukommelse = opts.hukommelse !== false;
   const samleTrekk = opts.samleTrekk === true;
-  const tronett = opts.tronett ?? null;
   const koder: number[] = [];
 
   /**
@@ -564,6 +665,7 @@ function kjørKamp(
    * OG DEN DØR MED KAMPEN. Ingen bok skrives, ingen bok leses fra disk. Det er
    * samme regel som `okt.ts` lever under, og den er håndhevet av test der.
    */
+  const tronett = opts.tronett ?? null;
   const bok = new Hukommelse();
 
   let s: GameState = opprettSpill(regler, opts.frø);

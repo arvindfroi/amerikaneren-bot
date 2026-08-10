@@ -51,6 +51,7 @@ import { dirname } from "node:path";
 
 import { lagRng } from "../src/kort.ts";
 import { AMERIKANER_KODE, SOLO_KODE } from "../src/mlb/handling.ts";
+import { MlbTronett } from "../src/mlb/tronett.ts";
 import { Sandkassenett } from "../src/mlb/nett.ts";
 import { spillKamp, type NettLik, type Sete } from "../src/mlb/selvspill.ts";
 import {
@@ -78,6 +79,12 @@ let kjerner = Math.max(1, cpus().length - 1);
 let skardI = -1;
 let skardN = 1;
 let ut = "analyse/mlb-port";
+/**
+ * TROEN SOM INNGANG (§126). Samme standard og samme fil som i spillingen og i
+ * gjenspillingen — porten dømmer vektene, og den må dømme dem på den vektoren
+ * de faktisk ble trent på.
+ */
+let trosti: string | null = "e1-modell/mlb-tro.bin";
 let målPoeng = 30;
 let maksRunder = 100;
 let epoke = 0;
@@ -92,6 +99,8 @@ for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   const v = process.argv[i + 1];
   if (a === "--kandidat") kandidatSti = v ?? null;
+  else if (a === "--tro") trosti = v ?? null;
+  else if (a === "--uten-tro") trosti = null;
   else if (a === "--forrige") forrigeSti = v ?? null;
   else if (a === "--kamper") kamperPerBånd = tall(v, "--kamper");
   else if (a === "--band") bånd = (v ?? "").split(",").map((x) => tall(x, "--band"));
@@ -174,8 +183,10 @@ interface Utfall {
   readonly budvalg: number;
 }
 
+const tronett = trosti === null ? null : MlbTronett.fraBytes(readFileSync(trosti));
+
 function spill(seter: Sete[], frø: number, kandidatsete: number, tell: boolean): Utfall {
-  const e = spillKamp({ frø, seter, målPoeng, maksRunder, samleTrekk: false });
+  const e = spillKamp({ frø, seter, målPoeng, maksRunder, tronett, samleTrekk: false });
   let grov = 0;
   let bud = 0;
   if (tell) {

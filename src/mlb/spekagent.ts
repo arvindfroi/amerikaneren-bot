@@ -31,7 +31,7 @@ import {
   type SpillerVisning,
 } from "../motor.ts";
 import { lagRng } from "../kort.ts";
-import { byggTrekk, type Trekkontekst } from "./trekk.ts";
+import { byggTrekk, type Trekkontekst, type Trofordeler } from "./trekk.ts";
 import { maske, ta, TOMT_DELVALG, type Delvalg, type Giving } from "./handling.ts";
 import { velgKode, type Framover } from "./nett.ts";
 import { Hukommelse } from "./hukommelse.ts";
@@ -59,6 +59,18 @@ export interface Sandkasseopsjoner {
    * ikke fantes og var grønn på tom mengde.
    */
   readonly påKode?: (kode: number) => void;
+  /**
+   * TROEN SOM INNGANG (§126). Den MÅ settes her og ikke bare i spillingen.
+   *
+   * Sto på `null` før, hardkodet i `velgHandling`. Da leste den utrullede
+   * boten en TRO-blokk full av nuller, mens — hadde treningen hatt den på —
+   * gradienten var tatt på en vektor der de 209 var fylt. Det er prosjektets
+   * verste feilklasse ordrett: det målte og det trente er ikke samme ting.
+   *
+   * Nettet som mates hit er det EKSTERNE trohodet (`MlbTronett`), aldri
+   * sandkassenettets eget — et hode kan ikke være sin egen inngang.
+   */
+  readonly tronett?: Trofordeler | null;
 }
 
 /**
@@ -78,6 +90,7 @@ export class Sandkasseagent {
   private readonly frø: number;
   private readonly brukHukommelse: boolean;
   private readonly påKode: ((kode: number) => void) | null;
+  private readonly tronett: Trofordeler | null;
   private hukommelse: Hukommelse;
   private teller = 0;
 
@@ -87,6 +100,7 @@ export class Sandkasseagent {
     this.frø = opts.frø ?? 0;
     this.brukHukommelse = opts.hukommelse ?? true;
     this.påKode = opts.påKode ?? null;
+    this.tronett = opts.tronett ?? null;
     this.hukommelse = new Hukommelse();
   }
 
@@ -130,7 +144,7 @@ export class Sandkasseagent {
         giving: s.giving,
         delvalg,
         hukommelse,
-        tronett: null,
+        tronett: this.tronett,
       };
       const trekk = byggTrekk(visning, kontekst);
       const ut = this.nett.framover(trekk);

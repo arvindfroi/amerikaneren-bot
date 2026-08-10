@@ -1,13 +1,20 @@
 /**
- * SANDKASSENETTET — ETT FELLES UNDERLAG, TRE HODER.
+ * SANDKASSENETTET — ETT FELLES UNDERLAG, FIRE HODER.
  *
  * `docs/sandkassen.md` §5 og `docs/mlb.md` fase 0.4: ett nett tar alle
- * beslutninger, med alt vi har bygd som INNGANGER. Utgangen er tre hoder over
+ * beslutninger, med alt vi har bygd som INNGANGER. Utgangen er fire hoder over
  * den samme stammen:
  *
- *   policy   68  (`HANDLING_LENGDE`)  — utfallet, selvtrent
- *   verdi     1                       — rundens faktiske poeng
- *   tro     208  (52 kort × 4 seter)  — hvor kortene FAKTISK lå
+ *   policy     68  (`HANDLING_LENGDE`)  — utfallet, selvtrent
+ *   verdi       1                       — det som gjenstår av DENNE runden
+ *   tro       208  (52 kort × 4 seter)  — hvor kortene FAKTISK lå
+ *   verdiHale   1                       — den diskonterte halen (§125)
+ *
+ * `V(s)` er SUMMEN av de to verdihodene. Delingen kom av en måling: rundens
+ * poeng er tre ganger så forutsigbart som resten av kampen (+0,60 mot +0,19 i
+ * ridge R² på de samme trekkene), og ett hode mot ett blandet mål lærer det
+ * uforutsigbare leddet like hardt som det forutsigbare. Se `delteRetur` i
+ * `selvspill.ts` for hvorfor hver del må ha SIN EGEN etikett.
  *
  * Verdi og tro har perfekte etiketter og ingen sirkularitet. Bare policyen
  * læres av hva som virket, og det er nettopp den delen som skal være selvtrent.
@@ -31,15 +38,16 @@
  * ===================== VEKTFORMATET =====================================
  *
  * SAMME Int32/Float32-format som `src/nevro/nett.ts` leser, så hele
- * verktøykjeden virker uendret. Fila er FIRE nett i rekkefølge:
+ * verktøykjeden virker uendret. Fila er FEM nett i rekkefølge:
  *
- *   0  stammen   1032 → … → S
- *   1  policy       S → 68
- *   2  verdi        S → 1
- *   3  tro          S → 208
+ *   0  stammen     1032 → … → S
+ *   1  policy         S → 68
+ *   2  verdi          S → 1
+ *   3  tro            S → 208
+ *   4  verdiHale      S → 1     (nytt i §125; fire deler leses fortsatt)
  *
  * `forover` legger ReLU på alle lag unntatt det SISTE i hvert nett. Stammens
- * siste lag skal aktiveres — den mater tre hoder — så ReLU-en gjøres her, rett
+ * siste lag skal aktiveres — den mater alle hodene — så ReLU-en gjøres her, rett
  * etter kallet. Det er nøyaktig ekvivalent med en stamme som avsluttes med
  * ReLU, og `verktoy/mlb-tren.py` bygger den samme formen i PyTorch.
  *
@@ -70,8 +78,25 @@ export const TRO_UT = MLB_TRO_KORT * MLB_TRO_KLASSER; // 208
 /** Verdihodet er ett tall: rundens poeng for setet som står for tur. */
 export const VERDI_UT = 1;
 
-/** Delene i vektfila, i den rekkefølgen de står. Trenerens speil av denne. */
-export const DELER = ["stamme", "policy", "verdi", "tro"] as const;
+/**
+ * Delene i vektfila, i den rekkefølgen de står. Trenerens speil av denne.
+ *
+ * ===================== HVORFOR HALEHODET STÅR SIST ======================
+ *
+ * §125 delte verdimålet i to (`delteRetur` i `selvspill.ts`): `V = V_runde +
+ * V_hale`, med hver sin etikett. Det krevde et hode til — og det er lagt
+ * BAKERST og ikke ved siden av `verdi`, med vilje.
+ *
+ * En vektfil skrevet før §125 har fire deler. Leseren tar imot både fire og
+ * fem: mangler den femte, bygges den med **W = 0 og b = 0**, og da er
+ * `V = V_runde + 0` bit-identisk med det gamle nettets `V`. Ti epokers vekter
+ * kan altså leses videre uten at en eneste utgang flytter seg.
+ *
+ * Hadde hodet stått mellom `verdi` og `tro`, ville en gammel fil blitt lest
+ * FORSKJØVET — trohodets vekter tolket som halehodets — og det er den stille
+ * varianten av feil som dette prosjektet har brukt mest tid på.
+ */
+export const DELER = ["stamme", "policy", "verdi", "tro", "verdiHale"] as const;
 
 /** Standardformen på stammen. Trenerens `--skjult` overstyrer den. */
 export const STANDARD_SKJULT: readonly number[] = [1024, 768, 512];
@@ -83,7 +108,24 @@ export const STANDARD_SKJULT: readonly number[] = [1024, 768, 512];
 export interface Framover {
   /** 68 tall, RÅ logits — ikke normalisert. Maskeringen hører til i `velgKode`. */
   readonly policy: Float32Array;
+  /**
+   * `V(s) = V_runde(s) + V_hale(s)`. SUMMEN er grunnlinjen fordelen trekker
+   * fra, og den er det eneste `selvspill.ts` bruker — delingen er en sak
+   * mellom hodene og etikettene deres, ikke mellom nettet og kalleren.
+   */
   readonly verdi: number;
+  /**
+   * Delene bak `verdi`, for DIAGNOSTIKK — `V_runde` og den ferdig diskonterte
+   * `V_hale` (§125).
+   *
+   * De er VALGFRIE fordi `NettLik` også oppfylles av stillaser som ikke har to
+   * verdihoder: `tilfeldigNett` og K2-prøvenes forsterker. Å kreve dem der
+   * ville tvunget et stillas til å late som det har en deling det ikke har, og
+   * `selvspill.ts` bruker uansett bare summen — delingen er en sak mellom
+   * hodene og etikettene deres.
+   */
+  readonly verdiRunde?: number;
+  readonly verdiHale?: number;
   /** 208 tall, RÅ logits. Softmax per kort over de fire klassene gjøres av leseren. */
   readonly tro: Float32Array;
 }
@@ -100,6 +142,7 @@ export class Sandkassenett {
   private readonly policyHode: NevroNett;
   private readonly verdiHode: NevroNett;
   private readonly troHode: NevroNett;
+  private readonly haleHode: NevroNett;
 
   /** Antall trekk nettet tar inn. Er `TREKK_LENGDE`, og det håndheves. */
   readonly inngangsLengde: number;
@@ -107,9 +150,18 @@ export class Sandkassenett {
   readonly stammeBredde: number;
 
   constructor(deler: readonly NevroNett[]) {
-    if (deler.length !== DELER.length) {
+    /**
+     * FIRE ELLER FEM DELER, og ingenting imellom.
+     *
+     * Fire er formatet før §125: da bygges halehodet med W = 0 og b = 0, og
+     * `V = V_runde + 0` er bit-identisk med det gamle nettets `V`. Fem er
+     * formatet etter. Tre — eller seks — er en forskjøvet fil, og den skal bli
+     * en feilmelding og ikke stille søppel.
+     */
+    if (deler.length !== DELER.length && deler.length !== DELER.length - 1) {
       throw new Error(
-        `Sandkassenettet er ${DELER.length} nett (${DELER.join(", ")}), fila har ${deler.length}`,
+        `Sandkassenettet er ${DELER.length} nett (${DELER.join(", ")}), eller ` +
+          `${DELER.length - 1} for en fil skrevet før §125. Fila har ${deler.length}.`,
       );
     }
     const [stamme, policy, verdi, tro] = deler as [NevroNett, NevroNett, NevroNett, NevroNett];
@@ -139,10 +191,23 @@ export class Sandkassenett {
     }
     const bredde = sist(stamme, "stammen").ut;
 
+    /** Halehodet, om fila er skrevet før §125: W = 0, b = 0, altså V_hale ≡ 0. */
+    const hale: NevroNett = deler[4] ?? {
+      lag: [
+        {
+          inn: bredde,
+          ut: VERDI_UT,
+          vekter: new Float32Array(bredde * VERDI_UT),
+          bias: new Float32Array(VERDI_UT),
+        },
+      ],
+    };
+
     const krav: readonly [NevroNett, string, number][] = [
       [policy, "policy", POLICY_UT],
       [verdi, "verdi", VERDI_UT],
       [tro, "tro", TRO_UT],
+      [hale, "verdiHale", VERDI_UT],
     ];
     for (const [n, navn, ut] of krav) {
       if (først(n, navn).inn !== bredde) {
@@ -159,8 +224,14 @@ export class Sandkassenett {
     this.policyHode = policy;
     this.verdiHode = verdi;
     this.troHode = tro;
+    this.haleHode = hale;
     this.inngangsLengde = inn;
     this.stammeBredde = bredde;
+  }
+
+  /** Delene i filrekkefølge — én kilde til sannhet for skriving og rapportering. */
+  private nett(): readonly NevroNett[] {
+    return [this.stamme, this.policyHode, this.verdiHode, this.troHode, this.haleHode];
   }
 
   static fraBytes(b: Uint8Array): Sandkassenett {
@@ -206,6 +277,19 @@ export class Sandkassenett {
       { lag: [lag(bredde, POLICY_UT)] },
       { lag: [lag(bredde, VERDI_UT)] },
       { lag: [lag(bredde, TRO_UT)] },
+      // HALEHODET STARTER PÅ NULL, også i et tilfeldig nett — nøyaktig som når
+      // en fil fra før §125 leses. Da er «tilfeldig nett» det SAMME nettet før
+      // og etter §125, og fase 1s fornuftssjekk måler fortsatt det den målte.
+      {
+        lag: [
+          {
+            inn: bredde,
+            ut: VERDI_UT,
+            vekter: new Float32Array(bredde * VERDI_UT),
+            bias: new Float32Array(VERDI_UT),
+          },
+        ],
+      },
     ]);
   }
 
@@ -222,7 +306,7 @@ export class Sandkassenett {
    * vekter — en skriver uten en leser rundt seg er en fil ingen kan bruke.
    */
   tilBytes(): Uint8Array {
-    const nett = [this.stamme, this.policyHode, this.verdiHode, this.troHode];
+    const nett = this.nett();
     let bytes = 4;
     for (const n of nett) {
       bytes += 4;
@@ -251,17 +335,25 @@ export class Sandkassenett {
   }
 
   /** Antall parametre, per del og totalt — for rapportering, ikke for pynt. */
-  parametre(): { readonly stamme: number; readonly policy: number; readonly verdi: number; readonly tro: number; readonly sum: number } {
+  parametre(): {
+    readonly stamme: number;
+    readonly policy: number;
+    readonly verdi: number;
+    readonly tro: number;
+    readonly verdiHale: number;
+    readonly sum: number;
+  } {
     const s = antallVekter(this.stamme);
     const p = antallVekter(this.policyHode);
     const v = antallVekter(this.verdiHode);
     const t = antallVekter(this.troHode);
-    return { stamme: s, policy: p, verdi: v, tro: t, sum: s + p + v + t };
+    const h = antallVekter(this.haleHode);
+    return { stamme: s, policy: p, verdi: v, tro: t, verdiHale: h, sum: s + p + v + t + h };
   }
 
   /** Lagformen, `[inn, ut]` per lag per del — for rapportering. */
   form(): Record<string, readonly (readonly [number, number])[]> {
-    const nett = [this.stamme, this.policyHode, this.verdiHode, this.troHode];
+    const nett = this.nett();
     const ut: Record<string, readonly (readonly [number, number])[]> = {};
     for (let i = 0; i < DELER.length; i++) {
       ut[DELER[i]!] = nett[i]!.lag.map((l) => [l.inn, l.ut] as const);
@@ -283,10 +375,13 @@ export class Sandkassenett {
     }
     const h = forover(this.stamme, trekk);
     for (let i = 0; i < h.length; i++) if (h[i]! < 0) h[i] = 0;
-    const verdi = forover(this.verdiHode, h);
+    const runde = forover(this.verdiHode, h)[0] ?? 0;
+    const hale = forover(this.haleHode, h)[0] ?? 0;
     return {
       policy: forover(this.policyHode, h),
-      verdi: verdi[0] ?? 0,
+      verdi: runde + hale,
+      verdiRunde: runde,
+      verdiHale: hale,
       tro: forover(this.troHode, h),
     };
   }

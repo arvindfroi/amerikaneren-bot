@@ -35,7 +35,6 @@ import { opprettSpill, spillerVisning, utfør, type GameState } from "../src/ind
 import { lagRng } from "../src/kort.ts";
 import { Hukommelse } from "../src/mlb/hukommelse.ts";
 import { maske, ta, TOMT_DELVALG, type Delvalg } from "../src/mlb/handling.ts";
-import { MlbTronett } from "../src/mlb/tronett.ts";
 import { Sandkassenett, velgKode } from "../src/mlb/nett.ts";
 import { byggTrekk, TREKK_LENGDE } from "../src/mlb/trekk.ts";
 
@@ -52,7 +51,6 @@ const ut = arg("ut", "analyse/mlb-nett-maal.txt");
 const temperatur = Number(arg("temp", "1"));
 
 const nett = vektfil === "" ? Sandkassenett.tilfeldig(20260809) : Sandkassenett.fraFil(vektfil);
-const tronett = trofil === "" ? null : MlbTronett.fraBytes(readFileSync(trofil));
 
 const iTur = (s: GameState): number | null =>
   s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
@@ -101,10 +99,12 @@ for (let g = 0; n < maks; g++) {
       const grunn = { regler: s.regler, giving: s.giving, delvalg, hukommelse: hukVektor };
 
       const t0 = performance.now();
-      const trekk = byggTrekk(visning, { ...grunn, tronett: null });
+      const trekk = byggTrekk(visning, grunn);
       const t1 = performance.now();
-      if (tronett !== null) byggTrekk(visning, { ...grunn, tronett });
-      const t2 = performance.now();
+      // §126: den eksterne troen er fjernet som inngang, saa det finnes ikke
+      // lenger en «to passeringer»-arm aa maale. Tallet under er null, og det
+      // staar i rapporten som null i stedet for aa forsvinne i stillhet.
+      const t2 = t1;
       const framover = nett.framover(trekk);
       const t3 = performance.now();
       const m = maske(visning, s.giving, delvalg);
@@ -143,16 +143,11 @@ const linjer = [
   "",
   `# ---- OPPSUMMERING (${n} beslutninger) ----`,
   `# byggTrekk, ekstern tro AV : ${(msTrekkAv / n).toFixed(4)} ms   (§120 målte 0,067)`,
-  tronett === null
-    ? `# byggTrekk, ekstern tro PÅ : IKKE MÅLT (kjør med --tro <fil>)   (§120 målte 0,516)`
-    : `# byggTrekk, ekstern tro PÅ : ${(msTrekkPå / n).toFixed(4)} ms   (§120 målte 0,516)`,
+  `# byggTrekk, ekstern tro PÅ : FJERNET i §126 (§120 målte 0,516)`,
   `# Sandkassenett.framover    : ${(msFram / n).toFixed(4)} ms`,
   `# velgKode                  : ${(msVelg / n).toFixed(4)} ms`,
   `# ÉN PASSERING   (tro = hode)      : ${enPass.toFixed(4)} ms/beslutning`,
-  tronett === null
-    ? `# TO PASSERINGER (tro som inngang) : ikke målt`
-    : `# TO PASSERINGER (tro som inngang) : ${toPass.toFixed(4)} ms/beslutning ` +
-      `(${(toPass / enPass).toFixed(2)}× dyrere)`,
+  `# TO PASSERINGER (tro som inngang) : finnes ikke lenger (§126)`,
 ];
 for (const [fase, b] of Object.entries(perFase)) {
   linjer.push(`# ${fase.padEnd(9)} n=${String(b.n).padStart(6)}  ${(b.ms / b.n).toFixed(4)} ms`);

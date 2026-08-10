@@ -67,9 +67,11 @@ import { dirname } from "node:path";
 
 import { lagRng } from "../src/kort.ts";
 import { Sandkassenett } from "../src/mlb/nett.ts";
+import { MlbTronett } from "../src/mlb/tronett.ts";
 import { HANDLING_LENGDE } from "../src/mlb/handling.ts";
-import { TREKK_LENGDE } from "../src/mlb/trekk.ts";
+import { FASEKODE, TREKK_LENGDE, type Beslutning } from "../src/mlb/trekk.ts";
 import {
+  delteRetur,
   diskontertRetur,
   gaeFordel,
   gjenspill,
@@ -85,6 +87,18 @@ import {
 
 let innMønster = "analyse/mlb-selvspill-s*.jsonl";
 let nettsti: string | null = null;
+/**
+ * ===================== TROEN MÅ VÆRE DEN SAMME HER (§126) ================
+ *
+ * Denne fila SPILLER KAMPEN OM IGJEN for å bygge trekkvektorene gradienten
+ * tas på. Står troen på i `mlb-spill.ts` og av her, ser nettet én vektor når
+ * det handlet og en annen når det lærer — 209 innganger fulle av tall mot 209
+ * nuller. Gradienten ville da vært regnet på en tilstand som aldri fantes.
+ *
+ * Standarden er derfor den samme som i `mlb-spill.ts`, og stien står i
+ * rapporten begge steder slik at uenighet er LESBAR og ikke bare mulig.
+ */
+let trosti: string | null = "e1-modell/mlb-tro.bin";
 let ut = "mlb-epoke-data/erf";
 let kjerner = Math.max(1, cpus().length - 1);
 let skardI = -1;
@@ -127,6 +141,8 @@ for (let i = 2; i < process.argv.length; i++) {
   const v = process.argv[i + 1];
   if (a === "--inn") innMønster = v ?? innMønster;
   else if (a === "--nett") nettsti = v ?? null;
+  else if (a === "--tro") trosti = v ?? null;
+  else if (a === "--uten-tro") trosti = null;
   else if (a === "--ut") ut = v ?? ut;
   else if (a === "--kjerner") kjerner = tall(v, "--kjerner");
   else if (a === "--sjanse") sjanse = tall(v, "--sjanse");
@@ -161,11 +177,56 @@ if (nettsti === null) throw new Error("--nett er påkrevd: fordelen trenger nett
  *   verdimål   f32    G^γ = r + γ·G^γ(neste). Med γ = 1 er det eksakt
  *                     `sluttpoeng[sete] − poengFør`, altså §123s form.
  *   vFør       f32    nettets eget V(s) da raden ble laget — for diagnostikk
+ *
+ * ===================== VERSJON 2 (§125) ================================
+ *
+ *   Gr         f32    det som gjenstår av DENNE runden
+ *   Gh         f32    den ALLEREDE DISKONTERTE halen. `Gr + Gh === G` eksakt
+ *   kamp       i32    kampens frø
+ *
+ * De to første er det todelte verdimålet (`delteRetur` i `selvspill.ts`):
+ * rundens gjenstående er tre ganger så forutsigbart som resten av kampen
+ * (+0,60 mot +0,19), og ett hode mot ett blandet mål lærer det uforutsigbare
+ * leddet like hardt som det forutsigbare.
+ *
+ * Den tredje er den som gjør HOLDOUT mulig. §124 FUNN 2: «forklart varians» ble
+ * målt i det utvalget modellen nettopp trente på — +0,1286 der mot +0,0751 på
+ * holdout-KAMPER — og ti epokers rapporter leste det optimistiske tallet. Uten
+ * kampens frø i raden kan treneren bare splitte på RAD, og rader fra samme kamp
+ * deler både kortene og halen. En radsplitt måler hukommelse.
  */
 const MASKE_LENGDE = HANDLING_LENGDE;
-const POST = TREKK_LENGDE * 4 + MASKE_LENGDE + 52 + 2 * 4 + 4 * 3;
+const FORMATVERSJON = 2;
+const POST = TREKK_LENGDE * 4 + MASKE_LENGDE + 52 + 2 * 4 + 4 * 3 + 4 * 2 + 4;
 
-const FASEKODE: Record<string, number> = { BUDRUNDE: 0, VRAK: 1, VELG: 2, SPILL: 3 };
+/**
+ * ===================== NØKKELEN VAR FEIL, OG `?? 3` SKJULTE DET (§126) ====
+ *
+ * Sto: `{ BUDRUNDE: 0, VRAK: 1, VELG: 2, SPILL: 3 }`, slått opp med
+ * `FASEKODE[rad.beslutning] ?? 3`.
+ *
+ * Men `rad.beslutning` er en `Beslutning`, og den heter **`"BUD"`** —
+ * `fasenavn()` i `src/mlb/trekk.ts` oversetter motorens `"BUDRUNDE"` til
+ * `"BUD"` før den kommer hit. Oppslaget bommet derfor på hver eneste budrad,
+ * `?? 3` tok imot, og **alle bud ble skrevet som SPILL_KORT**. Målt på tjue
+ * skard fra v125: fase 0 hadde **null rader**, og budkodene 52–60 lå i fase 3.
+ *
+ * Feltet var aldri lest av treneren, så feilen kostet ingenting før §126 —
+ * som trenger fasen for å gi budrunden sitt eget entropiledd. Da ville den
+ * kostet alt: budet er nettopp den fasen som skulle beskyttes, og den ville
+ * fått vekten til kortspillet i stedet.
+ *
+ * To ting er rettet, ikke ett. Kartet er flyttet til `src/mlb/trekk.ts`, ved
+ * siden av `fasenavn()` som er det eneste stedet en `Beslutning` blir til, og
+ * typen `Record<Beslutning, number>` gjør et navn som ikke finnes til en
+ * TYPEFEIL. Oppslaget kaster nå i stedet for å falle tilbake — en stille
+ * nedgradering skal si fra. `test/mlb-epoke.test.ts` låser begge deler.
+ */
+const fasekode = (b: Beslutning): number => {
+  const k = FASEKODE[b];
+  if (k === undefined) throw new Error(`Ukjent beslutning «${b}» — fasefeltet ville blitt gjettet`);
+  return k;
+};
 
 const delfil = (i: number): string => `${ut}-s${i}.bin`;
 
@@ -186,6 +247,10 @@ interface Sammendrag extends Record<string, number> {
   sumV: number;
   sumKvadMål: number;
   sumKvadFeil: number;
+  sumRunde: number;
+  sumKvadRunde: number;
+  sumHale: number;
+  sumKvadHale: number;
 }
 
 function kjørSkard(i: number, n: number): void {
@@ -196,6 +261,7 @@ function kjørSkard(i: number, n: number): void {
   if (filer.length === 0) throw new Error(`Fant ingen kamplogger for «${innMønster}»`);
 
   const nett = Sandkassenett.fraFil(nettsti!);
+  const tronett = trosti === null ? null : MlbTronett.fraBytes(readFileSync(trosti));
   mkdirSync(dirname(ut), { recursive: true });
   const fd = openSync(delfil(i), "w");
   {
@@ -209,7 +275,7 @@ function kjørSkard(i: number, n: number): void {
      */
     const hode = Buffer.alloc(20);
     hode.write("MLBE", 0, "ascii");
-    hode.writeInt32LE(1, 4);
+    hode.writeInt32LE(FORMATVERSJON, 4);
     hode.writeInt32LE(TREKK_LENGDE, 8);
     hode.writeInt32LE(MASKE_LENGDE, 12);
     hode.writeInt32LE(POST, 16);
@@ -237,6 +303,10 @@ function kjørSkard(i: number, n: number): void {
     sumV: 0,
     sumKvadMål: 0,
     sumKvadFeil: 0,
+    sumRunde: 0,
+    sumKvadRunde: 0,
+    sumHale: 0,
+    sumKvadHale: 0,
   };
   const t0 = Date.now();
 
@@ -276,13 +346,16 @@ function kjørSkard(i: number, n: number): void {
         samle: samle.includes(sete),
       }));
 
-      const erfaring = gjenspill(logg, { seter, samleTrekk: true, maksRunder });
+      const erfaring = gjenspill(logg, { seter, samleTrekk: true, maksRunder, tronett });
       const rader = erfaring.rader;
       s.kamper++;
       s.rader += rader.length;
       const fordeler = gaeFordel(rader, erfaring.fasit, (x) => x.verdi ?? 0, lambda, gamma);
       // MÅLET REGNES AV SAMME γ SOM FORDELEN, i samme fil, i samme kall.
       const mål = diskontertRetur(rader, erfaring.fasit, gamma);
+      // ... og DELINGEN av det samme målet, av samme γ, i samme kall. Tre
+      // steder med hver sin γ ville gitt en skjevhet som ikke feiler noe sted.
+      const delt = delteRetur(rader, erfaring.fasit, gamma);
 
       // Utvalget er deterministisk av kampens frø — to kjøringer gir samme fil.
       const rng = lagRng((logg.frø ^ 0x51ed_270b) >>> 0);
@@ -298,6 +371,12 @@ function kjørSkard(i: number, n: number): void {
         s.sumV += v;
         s.sumKvadMål += m * m;
         s.sumKvadFeil += (m - v) * (m - v);
+        const gr = delt.runde[r]!;
+        const gh = delt.hale[r]!;
+        s.sumRunde += gr;
+        s.sumKvadRunde += gr * gr;
+        s.sumHale += gh;
+        s.sumKvadHale += gh * gh;
         if (rad.lovlige > 1) s.medValg++;
 
         if (rng() > sjanse) continue;
@@ -316,12 +395,18 @@ function kjørSkard(i: number, n: number): void {
         o += 52;
         buf.writeInt16LE(rad.kode, o);
         buf.writeInt16LE(Math.min(32767, rad.lovlige), o + 2);
-        buf.writeInt16LE(FASEKODE[rad.beslutning] ?? 3, o + 4);
+        buf.writeInt16LE(fasekode(rad.beslutning), o + 4);
         buf.writeInt16LE(rad.sete, o + 6);
         o += 8;
         buf.writeFloatLE(fordel, o);
         buf.writeFloatLE(m, o + 4);
         buf.writeFloatLE(v, o + 8);
+        buf.writeFloatLE(delt.runde[r]!, o + 12);
+        buf.writeFloatLE(delt.hale[r]!, o + 16);
+        // KAMPENS FRØ, ikke et løpenummer. Et løpenummer avhenger av hvor mange
+        // skard som ble brukt, og da hadde holdouten flyttet seg mellom to
+        // kjøringer over de samme kampene.
+        buf.writeInt32LE(logg.frø | 0, o + 20);
 
         iKlump++;
         s.skrevet++;
@@ -347,7 +432,7 @@ if (skardI >= 0) {
   writeFileSync(
     rapportfil,
     `mlb-erfaring startet ${new Date().toISOString()}\n` +
-      `inn=${innMønster} nett=${nettsti} ut=${ut} sjanse=${sjanse} kjerner=${kjerner}\n` +
+      `inn=${innMønster} nett=${nettsti} tro=${trosti ?? "AV"} ut=${ut} sjanse=${sjanse} kjerner=${kjerner}\n` +
       // λ og γ MÅ stå i den varige fila. To epoker med ulik γ gir tall som
       // ikke er sammenliknbare, og uten dem i loggen er de heller ikke
       // gjenkjennelige som ulike.
@@ -377,6 +462,16 @@ if (skardI >= 0) {
   const snittMål = sum((s) => s.sumMål) / Math.max(rader, 1);
   const varMål = sum((s) => s.sumKvadMål) / Math.max(rader, 1) - snittMål * snittMål;
   const mseV = sum((s) => s.sumKvadFeil) / Math.max(rader, 1);
+  /**
+   * RUNDENS ANDEL AV VERDIMÅLETS VARIANS — tallet §124 flyttet fra 2,9 % til
+   * 79 % med γ = 0,5, og som er hele begrunnelsen for at splitten er verdt å
+   * ha. Uten den i den varige fila kan ikke to epoker med ulik γ leses mot
+   * hverandre senere.
+   */
+  const varDel = (sumX: number, sumX2: number): number =>
+    sumX2 / Math.max(rader, 1) - (sumX / Math.max(rader, 1)) ** 2;
+  const varRunde = varDel(sum((s) => s.sumRunde), sum((s) => s.sumKvadRunde));
+  const varHale = varDel(sum((s) => s.sumHale), sum((s) => s.sumKvadHale));
   const linjer = [
     `FERDIG ${new Date().toISOString()}  veggtid=${sek.toFixed(1)} s`,
     `kamper=${sum((s) => s.kamper)} rader=${rader} skrevet=${skrevet} ` +
@@ -385,6 +480,8 @@ if (skardI >= 0) {
       `snitt|A|=${(sum((s) => s.sumAbsFordel) / Math.max(rader, 1)).toFixed(4)}`,
     `verdimaal: snitt=${snittMål.toFixed(3)} varians=${varMål.toFixed(3)} ` +
       `MSE(V)=${mseV.toFixed(3)} forklart=${(1 - mseV / Math.max(varMål, 1e-9)).toFixed(4)}`,
+    `delt maal: var(runde)=${varRunde.toFixed(3)} var(hale)=${varHale.toFixed(3)} ` +
+      `rundens andel=${((varRunde / Math.max(varRunde + varHale, 1e-9)) * 100).toFixed(1)} %`,
     `paa disk=${((skrevet * POST) / 1e6).toFixed(1)} MB (${POST} bytes/rad)`,
     "",
   ];

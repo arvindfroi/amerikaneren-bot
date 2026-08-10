@@ -23,7 +23,6 @@ import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { opprettSpill, spillerVisning, utfør, type GameState } from "../src/index.ts";
 import { lagIndre, ADAMS_MAALT } from "../src/moe2/agentspek.ts";
 import { Hukommelse } from "../src/mlb/hukommelse.ts";
-import { MlbTronett } from "../src/mlb/tronett.ts";
 import { likeKort } from "../src/kort.ts";
 import { vaktKort } from "../src/moe2/konvensjonsvakt.ts";
 import {
@@ -57,7 +56,6 @@ const fasenavn = (s: GameState): Beslutning =>
 const iTur = (s: GameState): number | null =>
   s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
 
-const tronett = trofil === "" ? null : MlbTronett.fraBytes(readFileSync(trofil));
 
 writeFileSync(
   ut,
@@ -96,7 +94,6 @@ for (let g = 0; g < giver; g++) {
       regler: s.regler,
       giving: s.giving,
       hukommelse: huk.vektor(sete, 4),
-      tronett,
     };
 
     const t0 = performance.now();

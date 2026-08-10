@@ -56,6 +56,13 @@ let giver = 400;
 let frøBase = 8_300_000;
 let ut = "analyse/mlb-stigen.tsv";
 let arbeid = "analyse/mlb-stigen-raa";
+/**
+ * TROEN SOM INNGANG (§126). Stigen MÅLER vektene, så den må måle dem på den
+ * samme vektoren de ble trent på. Stien havner i spekstrengen (`mlb:<vekt>~<tro>`)
+ * og dermed i hver eneste målerad — en måling uten troen kan ikke forveksles
+ * med en med.
+ */
+let trosti: string | null = "e1-modell/mlb-tro.bin";
 
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
@@ -64,7 +71,11 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--froe") frøBase = Number(process.argv[++i]);
   else if (a === "--ut") ut = process.argv[++i]!;
   else if (a === "--arbeid") arbeid = process.argv[++i]!;
+  else if (a === "--tro") trosti = process.argv[++i]!;
+  else if (a === "--uten-tro") trosti = null;
 }
+
+const spekFor = (vekt: string): string => (trosti === null ? `mlb:${vekt}` : `mlb:${vekt}~${trosti}`);
 
 if (vekter.length === 0) {
   console.error("Bruk: --vekter <fil1,fil2,...> [--giver 400] [--ut analyse/mlb-stigen.tsv]");
@@ -141,7 +152,7 @@ for (const vekt of vekter) {
         "--froe", String(frøBase),
         "--miljo", mot.spek,
         "--kandidat", mot.spek,
-        "--kandidat", `mlb:${vekt}`,
+        "--kandidat", spekFor(vekt),
         "--ut", rå,
       ],
       { encoding: "utf8", stdio: ["ignore", "ignore", "pipe"] },
@@ -160,7 +171,7 @@ for (const vekt of vekter) {
       .map((l) => JSON.parse(l) as Rad);
 
     const kontroll = døm(rader, mot.spek);
-    const kand = døm(rader, `mlb:${vekt}`);
+    const kand = døm(rader, spekFor(vekt));
 
     // Kontrollen skrives PÅ RADEN, ikke i en logg ved siden av. Et tall uten
     // sin egen nullarm er ikke etterprøvbart av den som leser fila senere.

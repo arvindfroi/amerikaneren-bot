@@ -34,11 +34,61 @@
  *   TRO           261   trohodets fordeling: P(hvert usett kort ligger hvor)
  *   HUKOMMELSE    144   motstanderboka, LÅST layout fra `hukommelse.ts`
  *   MESO          186   budrunden, kontrakten, vraket, trumfvalget, lagstikk
- *   MAKRO          23   kampstillingen, racepresset — OG LØPSLENGDEN
+ *   MAKRO          23   kampstillingen, racepresset - OG LØPSLENGDEN
  *   KONVENSJON     71   hva hver `vaktKort`-regel ville valgt
- *   LOVLIG         74   masken fra `handling.ts`, uendret
+ *   LOVLIG         73   masken fra `handling.ts`, uendret
  *   ------------------
- *   TREKK_LENGDE 1032
+ *   TREKK_LENGDE 1031
+ *
+ * ===================== ÉN INNGANG ER FJERNET, OG BARE ÉN (§126) ========
+ *
+ * Arkitekturrevisjonen fant 222 innganger som «ikke baerer informasjon», og
+ * førsteutkastet til §126 fjernet 215 av dem. Det var galt, og det er verdt
+ * å skrive ned HVORFOR, fordi feilen er lett aa gjoere igjen.
+ *
+ * De 209 tro-inngangene fikk aldri gradient. Men grunnen var ikke at de er
+ * informasjonsløse — det var at INGEN DRIVER SATTE DEM. Blokken var eksakt
+ * null i hver rad, så den kunne per konstruksjon ikke få gradient. Målingen
+ * som skulle vise at de er verdiløse («nettets egen tro flytter 5,62 % av
+ * valgene, uniform stoey 5,17 %») ble gjort på et nett som ALDRI har trent
+ * med dem påkoblet. Tilfeldig initierte vekter på en ny inngang kan ikke gi
+ * annet enn stoey. Målingen svarte altså på et annet spørsmål enn det som
+ * ble stilt.
+ *
+ * Sandkassens premiss er det motsatte: alle sensorene på, og så lar vi
+ * nettet finne ut av resten. Troen er derfor KOBLET PÅ fra epoke 0 - se
+ * `Trekkontekst.tronett`. Det koster 1,84× per beslutning, og den prisen er
+ * tatt med vilje, slik at spørsmålet «tilfører en eksplisitt tro noe utover
+ * hodet?» blir MÅLT for første gang i stedet for antatt i begge retninger.
+ *
+ * ===================== REGELEN SOM STÅR IGJEN =========================
+ *
+ * En inngang fjernes bare når det kan BEVISES at den aldri kan bære
+ * informasjon. Er det tvil, står den. Etter den regelen er det nøyaktig én:
+ *
+ *   `lovlig.bud:13`   Fire spillere gir 12 stikk, så bud 13 er aldri lovlig.
+ *                     Det er ikke en utrent sensor, det er en tom plass i
+ *                     handlingsrommet - og påstanden er PRØVD mot `maske()`
+ *                     selv over hver stilling i seks hele kamper, ikke bare
+ *                     observert i et utvalg.
+ *
+ * DISSE STÅR, selv om de er konstante i dag:
+ *
+ *   `meso.iTur.rel1/2/3` og `meso.utspiller.rel0` SER strukturelt umulige ut -
+ *   vektoren bygges for setet som bestemmer, saa «hvem er i tur» skulle alltid
+ *   vært meg selv. Men det er en KONTRAKT om hvem `byggTrekk` kalles for,
+ *   ikke noe typene håndhever, og målingen bak paastanden er «fikk aldri
+ *   gradient», som er observasjon og ikke bevis. De står.
+ *
+ *   `mikro.bias` og `meso.iTur.rel0` er begge konstant 1, og én av dem er
+ *   overflødig. Den ENESTE som er provbart konstant er `mikro.bias` - den
+ *   andre er bare konstant hvis kontrakten over holder. Og `mikro.bias` kan
+ *   ikke fjernes uten å bryte en sterkere regel: MIKRO ER `e1SpillTrekk` på
+ *   273, hverken flere eller færre, og det er den invarianten som hindrer at
+ *   sandkassen og det utrullede nettet leser ulike sensorer. Én overflødig
+ *   bias-inngang koster ingenting maalbart. Å bryte den invarianten kan koste
+ *   en hel klasse stille feil. Begge står, og det er et valg, ikke en
+ *   forglemmelse.
  *
  * ===================== ÉN LOVLIGHETSREGEL, IKKE TO =======================
  *
@@ -219,7 +269,11 @@ export interface Trekkontekst {
    * nullblokk — den ærlige verdien når vi ikke har sett noen runder ennå.
    */
   readonly hukommelse?: Float64Array | null;
-  /** Trohodet. `null` gir en nullblokk og `tro.tilgjengelig = 0`. */
+  /**
+   * Trohodet. `null` gir en nullblokk og `tro.tilgjengelig = 0`.
+   *
+   * §126: den skal IKKE stå på null i noen driver lenger. Se `TRO_NAVN`.
+   */
   readonly tronett?: Trofordeler | null;
 }
 
@@ -285,8 +339,22 @@ const TROKLASSE = ["rel1", "rel2", "rel3", "talong"] as const;
  * `setteKort`.
  *
  * `tro.tilgjengelig` skiller «ingen tro koblet på» fra «troen er flat». Uten
- * det flagget er de to identiske nullblokker, og nettet ville lest et manglende
- * trohode som en sikker påstand om at ingenting ligger noe sted.
+ * det flagget er de to identiske nullblokker, og nettet ville lest et
+ * manglende trohode som en sikker paastand om at ingenting ligger noe sted.
+ *
+ * ===================== OG NÅ ER DEN FAKTISK KOBLET PÅ (§126) =========
+ *
+ * Blokken var bygd, registrert og eksakt null i hver eneste rad i ti epoker,
+ * fordi ingen driver satte `tronett`. `Sandkasseagent.velgHandling` sendte
+ * `null`, `spillKamp` sendte `opts.tronett ?? null`, og verken epokedriveren
+ * eller `mlb-erfaring.ts` satte det. Det er samme feilklasse som sanseblokken:
+ * riktig bygd, aldri fylt.
+ *
+ * Nå settes den de TRE stedene som må være enige, ellers er det maalte ikke
+ * det som ble trent: `examples/mlb-spill.ts` (som spiller),
+ * `examples/mlb-erfaring.ts` (som gjenspiller for gradienten) og
+ * `src/mlb/spekagent.ts` (som rulles ut og maales). Er de uenige, ser nettet
+ * én vektor når det handler og en annen når det lærer.
  */
 export const TRO_NAVN: readonly string[] = (() => {
   const ut: string[] = [];
@@ -321,7 +389,23 @@ export const HUKOMMELSE_LENGDE = HUKOMMELSE_NAVN.length; // 144
 // 6. MESO — kontrakten
 // ===========================================================================
 
-const BESLUTNINGER: readonly Beslutning[] = ["BUD", "VRAK", "VELG", "SPILL"];
+export const BESLUTNINGER: readonly Beslutning[] = ["BUD", "VRAK", "VELG", "SPILL"];
+
+/**
+ * BESLUTNINGEN SOM TALL, slik MLBE-radens `fase`-felt bærer den.
+ *
+ * ===================== HVORFOR DEN STÅR HER OG IKKE I SKRIVEREN =========
+ *
+ * Den sto i `examples/mlb-erfaring.ts`, som en `Record<string, number>` med
+ * nøkkelen `BUDRUNDE` — motorens navn, ikke `fasenavn()`s. Oppslaget bommet
+ * derfor på hver eneste budrad, og `?? 3` gjorde bommen til «SPILL». Målt: fase
+ * 0 hadde **null rader** i tjue skard, og budkodene 52–60 lå i fase 3.
+ *
+ * Rettelsen er ikke bare nøkkelen. Kartet hører hjemme ved siden av `fasenavn`,
+ * som er det eneste stedet `Beslutning` blir til, og typen er `Record<Beslutning,
+ * number>` slik at et navn som ikke finnes er en TYPEFEIL og ikke en 3.
+ */
+export const FASEKODE: Record<Beslutning, number> = { BUD: 0, VRAK: 1, VELG: 2, SPILL: 3 };
 
 /**
  * Fasen, lest av VISNINGEN og ikke av konteksten.
@@ -382,6 +466,12 @@ export const MESO_NAVN: readonly string[] = (() => {
   ut.push("meso.stikkSpiltAndel");
   ut.push("meso.talong", "meso.antallStikk");
   for (const b of BESLUTNINGER) ut.push(`meso.beslutning.${b}`);
+  /**
+   * `meso.iTur` og `meso.utspiller.rel0` STÅR (§126). De er konstante i dag —
+   * vektoren bygges for setet som bestemmer - men det er en KONTRAKT om hvem
+   * `byggTrekk` kalles for, ikke noe typene håndhever, og «fikk aldri
+   * gradient» er observasjon og ikke bevis. Se filhodet.
+   */
   for (const r of REL) ut.push(`meso.iTur.${r}`);
   ut.push("meso.bordAntall");
   for (const r of REL) ut.push(`meso.utspiller.${r}`);
@@ -498,15 +588,42 @@ const DELSTEG: readonly Delsteg[] = [
   "SPILL_KORT",
 ];
 
+/**
+ * ===================== HANDLINGSKODENE SOM KAN VÆRE LOVLIGE (§126) ========
+ *
+ * Fire spillere gir **12 stikk**, så `bud:13` er ALDRI lovlig. Vektrevisjonen
+ * fant kolonnen som permanent null — ikke av variansen, som aldri kan se en
+ * inngang som ikke varierer, men av gradienten: den hadde aldri fått noen.
+ *
+ * ===================== HVORFOR DETTE IKKE ER EN ANDRE LOVLIGHETSREGEL ====
+ *
+ * Toppen av fila har en hard regel: lovligheten finnes ÉTT sted, i
+ * `handling.maske(...)`. Lista under koder ikke lovlighet på nytt — den sier
+ * bare hvilke plasser i vektoren som er verdt å bruke, og den er PRØVD mot
+ * masken selv. `test/mlb-trekk.test.ts` krever at hver utelatt kode er null i
+ * hver eneste maske den ser. Blir en av dem lovlig, er prøven rød, ikke stille.
+ *
+ * Handlingsrommet selv røres IKKE. Policyhodet har fortsatt 68 utganger, og
+ * `bud:13` er fortsatt en av dem — en logit som trenes mot ingenting, men som
+ * masken stenger. Å krympe handlingsrommet ville flyttet hver eneste kode og
+ * gjort hver vektfil og hver erfaringsrad i prosjektet uleselig, for én logit.
+ */
+export const LOVLIG_UTELATT: readonly string[] = ["bud:13"];
+
+/** Indeksene i `HANDLING_NAVN` som faktisk får en plass i LOVLIG-blokken. */
+export const LOVLIG_KODER: readonly number[] = HANDLING_NAVN.map((_, i) => i).filter(
+  (i) => !LOVLIG_UTELATT.includes(HANDLING_NAVN[i]!),
+);
+
 export const LOVLIG_NAVN: readonly string[] = (() => {
   const ut: string[] = [];
-  for (const navn of HANDLING_NAVN) ut.push(`lovlig.${navn}`);
+  for (const i of LOVLIG_KODER) ut.push(`lovlig.${HANDLING_NAVN[i]}`);
   for (const d of DELSTEG) ut.push(`lovlig.delsteg.${d}`);
   ut.push("lovlig.antall");
   return ut;
 })();
 
-export const LOVLIG_LENGDE = LOVLIG_NAVN.length; // 74
+export const LOVLIG_LENGDE = LOVLIG_NAVN.length; // 73
 
 // ===========================================================================
 // 10. Den samlede layouten
@@ -563,17 +680,16 @@ export function byggTrekk(visning: SpillerVisning, kontekst: Trekkontekst): Floa
   // ---- TRO --------------------------------------------------------------
   {
     const b = BLOKK.TRO;
-    const trekk = troTrekk(visning, kontekst.giving.antallStikk, mål);
     const usett = new Uint8Array(52).fill(1);
     for (const k of visning.dinHånd) usett[kortIndeks(k)] = 0;
-    for (const s of visning.historikk) for (const kp of s.kort) usett[kortIndeks(kp.kort)] = 0;
+    for (const st of visning.historikk) for (const kp of st.kort) usett[kortIndeks(kp.kort)] = 0;
     for (const kp of visning.bord) usett[kortIndeks(kp.kort)] = 0;
     for (const k of visning.dittVrak) usett[kortIndeks(k)] = 0;
     for (let i = 0; i < 52; i++) v[b + i] = usett[i] ?? 0;
 
     const nett = kontekst.tronett ?? null;
     if (nett !== null) {
-      const p = nett.fordeling(trekk);
+      const p = nett.fordeling(troTrekk(visning, kontekst.giving.antallStikk, mål));
       for (let k = 0; k < MLB_TRO_KORT; k++) {
         if (usett[k] !== 1) continue; // sette kort er ikke gjetning
         const rad = p[k];
@@ -821,13 +937,19 @@ export function byggTrekk(visning: SpillerVisning, kontekst: Trekkontekst): Floa
     const b = BLOKK.LOVLIG;
     const delvalg = kontekst.delvalg ?? TOMT_DELVALG;
     const m = maske(visning, kontekst.giving, delvalg);
-    for (let i = 0; i < HANDLING_LENGDE; i++) v[b + i] = m[i] ?? 0;
+    // `LOVLIG_KODER` hopper over de kodene som aldri kan bli lovlige ved fire
+    // spillere (§126). Antallet under telles av HELE masken — en utelatt kode
+    // som mot formodning ble lovlig, ville da vist seg som et avvik mellom
+    // `lovlig.antall` og summen av plassene, og `test/mlb-trekk.test.ts` leser
+    // masken direkte og krever at de utelatte er null.
+    for (let i = 0; i < LOVLIG_KODER.length; i++) v[b + i] = m[LOVLIG_KODER[i]!] ?? 0;
+    const nk = LOVLIG_KODER.length;
     const steg = nesteDelsteg(visning, delvalg);
     if (steg !== null) {
       const i = DELSTEG.indexOf(steg);
-      if (i >= 0) v[b + HANDLING_LENGDE + i] = 1;
+      if (i >= 0) v[b + nk + i] = 1;
     }
-    v[b + HANDLING_LENGDE + DELSTEG.length] = antallLovlige(m) / HANDLING_LENGDE;
+    v[b + nk + DELSTEG.length] = antallLovlige(m) / HANDLING_LENGDE;
   }
 
   return v;
