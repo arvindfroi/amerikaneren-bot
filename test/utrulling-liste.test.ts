@@ -13,12 +13,10 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 
+import { utenKommentarer, utledNavn } from "../verktoy/sjekk-utrulling.ts";
+
 /** Samme utledning som verktøyet. Endres den ene, skal denne bli rød. */
-function utled(app: string): Set<string> {
-  const navn = new Set<string>(["worker.js", "app.js"]);
-  for (const m of app.matchAll(/"([a-z0-9-]+\.(?:json|b64|bin|js))"/g)) navn.add(m[1]!);
-  return navn;
-}
+const utled = utledNavn;
 
 test("utrullingssjekken utleder filnavnene fra web/app.ts", () => {
   const app = readFileSync("web/app.ts", "utf8");
@@ -42,4 +40,30 @@ test("DATA_URL står ett sted, og lar seg lese ut", () => {
   const treff = [...app.matchAll(/const DATA_URL = "([^"]+)"/g)];
   assert.equal(treff.length, 1, `DATA_URL står ${treff.length} steder — verktøyet leser den første`);
   assert.ok(treff[0]![1]!.endsWith("/"), "DATA_URL må slutte på «/», ellers blir stiene feil");
+});
+
+test("utledningen leser IKKE kommentarer — den feilen ble faktisk gjort", () => {
+  // «tro.b64» sto i én kommentar i app.ts. Verktøyet meldte den som
+  // utrullingsfeil, og den ble rapportert videre som et funn. Appen henter
+  // den aldri: TROFIL === null. Feilklassen verktøyet skal fange, begått av
+  // verktøyet selv.
+  const kode = [
+    'const DATA_URL = "https://eksempel/";',
+    '// Sett til "spoekelse.json" hvis den senere replikeres.',
+    '/* og "annet-spoekelse.b64" i en blokk */',
+    'const ekte = await hent("virkelig.json");',
+  ].join("\n");
+
+  const navn = utled(kode);
+  assert.ok(navn.has("virkelig.json"), "mistet en fil som FAKTISK hentes");
+  assert.ok(!navn.has("spoekelse.json"), "leste en //-kommentar");
+  assert.ok(!navn.has("annet-spoekelse.b64"), "leste en blokk-kommentar");
+});
+
+test("kommentarfjerningen spiser ikke «//» inne i en URL", () => {
+  // Naiv fjerning ville kappet DATA_URL ved «https://». Den er hele grunnlaget
+  // for sjekken, så den feilen ville gjort verktøyet stille ubrukelig.
+  const beholdt = utenKommentarer('const U = "https://a.example/b"; // vekk');
+  assert.ok(beholdt.includes("https://a.example/b"), `URL-en ble spist: ${beholdt}`);
+  assert.ok(!beholdt.includes("vekk"), "kommentaren ble ikke fjernet");
 });
