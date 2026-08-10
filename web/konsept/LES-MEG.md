@@ -11,17 +11,28 @@ har nå.»
 |---|---|
 | `ipad-skisse.jpg` | hele spillskjermen på nettbrett, håndtegnet |
 | `appikon.png` | appikonet — den rene formen for stilen |
-| `ordmerke.png` | samme stil med navnetrekket |
+
+Første forsøk la inn feil ikon: en variant med skarp 3D og neonkontur. Den
+lignet, og den var feil. Den ekte er **vesentlig mykere** — se under.
 
 ## Det bildene sier, som ord ikke klarte
 
-**Airbrush, ikke flate flater.** Kortfargene er oppblåste og glossy, med
-lyskilde oppe til venstre: høylys på oversiden, mørk underside, myke kanter.
-Som klistremerker eller ballonger, ikke som ikoner. Kløver og spar er
-koksgrå med gradient, ikke svarte.
+**AIRBRUSH — og ingen harde kanter i det hele tatt.** Dette er det viktigste,
+og det som er lettest å bomme på. Kortfargene har ikke kontur. De er myke
+former med gradient fra lyst oppe til venstre til mørkt nede til høyre, og
+kantene FADER ut i stedet for å slutte. Litt ute av fokus, med vilje.
 
-**Glød.** Myke haloer rundt fjes, bar og medaljonger. Uskarpe kanter.
-Stjerna har en lysende blå kontur.
+Kløver og spar er koksgrå, ikke svarte. Hjerter og ruter er korall, ikke
+knallrød. Begge med samme myke skygging.
+
+**Ikke 3D-ikoner.** Ikke skarpe høylys, ikke neonkontur, ikke plastaktig
+glans. Tenk myk pensel på et lerret, ikke en rendret modell.
+
+**Bakgrunnen lysner MOT KANTENE.** Dyp kobolt i midtpartiet som fader til
+nesten hvitt ytterst — omvendt vignett. Det er signaturen.
+
+**Stjerna** har vannrette røde og hvite striper med myke, nesten uskarpe
+overganger, og en lys blå diffus kontur som gløder utover.
 
 **Naive tusjstreker.** Fjesene i skissen er tegnet med tykk, ujevn svart
 pensel — skjeve sirkler, prikker som øyne, krusedullskjegg. Bevisst klønete.
