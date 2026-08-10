@@ -201,7 +201,33 @@ sanseblokk resten av planen kan bygge på.
 - verdihodet lærer noe trivielt (f.eks. «hvor mange stikk har laget tatt»)
 - én epoke kjører ende til ende på en time
 
-### Fase 2 — ligaen
+### Fase 2 — ligaen. ✅ FØRSTE TI EPOKER KJØRT 10. august (§123).
+
+> **RESULTAT (§123).** Epokedriveren finnes (`verktoy/mlb-epoke.py`), og ti
+> epoker à 5 000 kamper er kjørt på 5,35 timer. Mot de tre TESTVANENE — fast
+> referanse, argmaks, 600 giv parret på kortene:
+>
+> | | epoke 0 (tilfeldig) | epoke 10 |
+> |---|---|---|
+> | poeng | −279,7 | **+22,8** |
+> | seiersandel | 2,8 % | **43,0 %** (fair share er 25 %) |
+> | `amerikaner`/`solo` | 8,49 % | **0,00 %** |
+> | verdihodets forklarte varians | −0,30 | **+0,14** |
+> | tro-CE | 1,491 | 1,218 |
+>
+> Porten godkjente 6 av 10, kontrollarmen traff 0,0000 hver gang, og K2 var
+> grønn 20 av 20 på epokenes EGNE vekter. **Kurven beveger seg.**
+>
+> To ting måtte rettes underveis, og begge er skrevet ut i §123: TD alene
+> (AVGJØRELSE 3) drev policyen mot MER `amerikaner`/`solo` fordi verdihodet
+> ennå forklarte −0,97 av variansen — rettet med GAE(λ), der λ = 1 er
+> «faktisk minus ventet» og λ = 0 er TD-en AVGJØRELSE 3 vil ha tilbake når
+> verdihodet duger. Og `−A·log π` er ubundet: første ti-epokersløp saturerte
+> policyen på FØRSTE gradientsteg, og porten adopterte den saturerte
+> konstanten to ganger. Rettet med PPO-klipp, KL-brems og en logitvakt.
+>
+> **`rask` er fortsatt ikke målt mot**, så avbruddskriteriets punkt 2 er
+> uavgjort. Det er neste steg.
 
 ```
 for hver epoke:
