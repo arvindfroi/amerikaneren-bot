@@ -153,7 +153,11 @@ def main():
     ap.add_argument("--skjult", default="1024,768,512")
     ap.add_argument("--pass", dest="gjennomlop", type=int, default=1)
     ap.add_argument("--batch", type=int, default=1024)
-    ap.add_argument("--lr", type=float, default=3e-4)
+    # LR: 3e-4 sprengte policyen paa FOERSTE steg (loep 1). Med PPO-klippet og
+    # KL-bremsen er 1e-4 trygt, og bremsen sier fra om det ikke er det.
+    ap.add_argument("--lr", type=float, default=1e-4)
+    ap.add_argument("--eps", type=float, default=0.2, help="PPO-klippet")
+    ap.add_argument("--kl-maal", type=float, default=0.03, help="0 = ingen brems")
     ap.add_argument("--vekt-policy", type=float, default=1.0)
     ap.add_argument("--vekt-verdi", type=float, default=1.0)
     ap.add_argument("--vekt-tro", type=float, default=1.0)
@@ -166,7 +170,8 @@ def main():
     ap.add_argument("--opt-tilstand", default="e1-modell/mlb-adam.pt")
     ap.add_argument("--logg", default="analyse/mlb-gradient.jsonl")
     ap.add_argument("--rapport", default="analyse/mlb-gradient.txt")
-    ap.add_argument("--kl-rader", type=int, default=16384)
+    ap.add_argument("--kl-rader", type=int, default=8192)
+    ap.add_argument("--maks-logit", type=float, default=1e4)
     args = ap.parse_args()
 
     t0 = time.time()
@@ -305,6 +310,48 @@ def main():
         + "\n"
     )
 
+    # ===================== ATFERDSPOLICYENS log p, MAALT FOER FOERSTE STEG ===
+    #
+    # ================ DET SOM VAR GALT, OG DET DREPTE HELE FOERSTE LOEPET ===
+    #
+    # `-A * log p` er UBUNDET nedover. For A > 0 lever tapet paa aa presse
+    # log p mot 0, for A < 0 paa aa presse det mot -uendelig, og ingenting
+    # stopper det. `clip_grad_norm_` hjelper ikke: Adam normaliserer bort
+    # gradientens STOERRELSE, saa steget per parameter er ~lr uansett hvor
+    # liten normen er. Med 286 batcher per epoke og lr 3e-4 flytter en «epoke»
+    # hver vekt ~0,086 - det DOBBELTE av He-skalaen sqrt(2/1032) = 0,044.
+    #
+    # Maalt i loep 1 (arkivert i `analyse/mlb-gradient-loep1.txt`): FOERSTE
+    # gradientsteg tok entropien fra 1,4035 til 0,0013 nat og KL til 5 299.
+    # Etter seks epoker var policylogitene +-4,7 millioner, entropien eksakt
+    # 0, og alle ti epokene maalte en saturert konstant. Porten ADOPTERTE den
+    # to ganger, fordi «spill alltid laveste lovlige kode» aldri byr
+    # amerikaner og derfor scorer bra mot vanene.
+    #
+    # ================ RETTELSEN: ET BUNDET MAAL, OG EN NOEDBREMS ============
+    #
+    # PPO-klippet forhold. `lp_gammel` er log p under vektene som FAKTISK
+    # spilte kampene - de samme vektene vi starter fra, saa de kan maales her
+    # i stedet for aa baeres gjennom filformatet:
+    #
+    #     forhold = exp(log p_ny - log p_gammel)
+    #     maal    = min(forhold * A, klipp(forhold, 1+-eps) * A)
+    #
+    # Naar policyen har flyttet seg mer enn eps i en retning som hjelper, er
+    # gradienten NULL. Maalet kan ikke lenger betale for aa flykte.
+    #
+    # I tillegg stopper gjennomloepet naar KL mot atferdspolicyen passerer
+    # `--kl-maal`. Det er den samme grensen sett fra utsiden, og den fanger
+    # ogsaa en eksplosjon som klippet ikke rakk aa stoppe.
+    with torch.no_grad():
+        lp_gammel = torch.empty(n, device=enhet)
+        for i in range(0, n, args.batch):
+            sl = slice(i, min(i + args.batch, n))
+            p0, _, _ = modell(X[sl].float())
+            lg0 = F.log_softmax(maskerte_logits(p0, M[sl]), dim=1)
+            lp_gammel[sl] = lg0.gather(1, KODE[sl].unsqueeze(1)).squeeze(1)
+
+    stoppet_paa_kl = -1
     modell.train()
     for runde in range(args.gjennomlop):
         perm = torch.randperm(n, generator=g).to(enhet)
@@ -316,7 +363,11 @@ def main():
             valg = MED_VALG[j]
             if valg.any():
                 lpa = lg.gather(1, KODE[j].unsqueeze(1)).squeeze(1)
-                tap_pol = (-An[j] * lpa)[valg].mean()
+                forhold = (lpa - lp_gammel[j]).clamp(max=20.0).exp()
+                a = An[j]
+                tap_pol = -torch.min(
+                    forhold * a, forhold.clamp(1 - args.eps, 1 + args.eps) * a
+                )[valg].mean()
                 pr = lg.exp()
                 ent = -(pr * lg.masked_fill(~M[j], 0.0)).sum(1)[valg].mean()
             else:
@@ -344,12 +395,48 @@ def main():
             torch.nn.utils.clip_grad_norm_(modell.parameters(), args.klipp_grad)
             opt.step()
 
+            # NOEDBREMSEN. Maales sjelden nok til aa vaere gratis, ofte nok til
+            # aa ta en eksplosjon FOER epoken er over.
+            if args.kl_maal > 0 and (i // args.batch) % 16 == 15:
+                with torch.no_grad():
+                    _, lp_na = maal(kl_idx)
+                    pg0 = lp_foer.exp()
+                    kl_na = float(
+                        (pg0 * (lp_foer - lp_na)).masked_fill(~M[kl_idx], 0.0).sum(1).mean()
+                    )
+                if kl_na > args.kl_maal:
+                    stoppet_paa_kl = i // args.batch
+                    break
+        if stoppet_paa_kl >= 0:
+            break
+
     etter, lp_etter = maal(kl_idx)
     # KL(gammel || ny) paa de faste radene. Et steg som sprenger policyen viser
     # seg HER, ikke i tapet: tapet kan falle fordi fordelingen kollapset.
     with torch.no_grad():
         pg = lp_foer.exp()
         kl = float((pg * (lp_foer - lp_etter)).masked_fill(~M[kl_idx], 0.0).sum(1).mean())
+
+    # ================= VEKTENE MAA VAERE ENDELIGE, OG LOGITENE SMAA =========
+    #
+    # Loep 1 skrev vekter som ga policylogits paa +-4,7 millioner, og ingenting
+    # sa fra. Et nett med saturerte logits ER en konstant funksjon: entropien
+    # er null, `velgKode` gir alltid samme kode, og porten kan ikke se
+    # forskjell paa «laert» og «doed». Her maales det, og det stopper epoken.
+    with torch.no_grad():
+        ikke_endelige = sum(int((~torch.isfinite(q)).sum()) for q in modell.parameters())
+        pk, _, _ = modell(X[: min(4096, n)].float())
+        logitskala = float(pk.abs().max())
+    if ikke_endelige > 0:
+        raise SystemExit(
+            f"{ikke_endelige} ikke-endelige vekter etter steget - epoken skrives IKKE. "
+            f"Senk --lr eller --kl-maal."
+        )
+    if logitskala > args.maks_logit:
+        raise SystemExit(
+            f"policylogitene naadde {logitskala:.3e} (tak {args.maks_logit:.0f}). Det er en "
+            f"saturert konstant, ikke en policy - epoken skrives IKKE. Senk --lr."
+        )
 
     skriv_vekter(args.ut, modell)
     if args.opt_tilstand:
@@ -360,6 +447,8 @@ def main():
         "epoke": args.epoke,
         "sek": round(time.time() - t0, 1),
         "kl": round(kl, 6),
+        "logitskala": round(logitskala, 2),
+        "stoppet_paa_kl": stoppet_paa_kl,
         "etter": {k: round(v, 5) for k, v in etter.items()},
         "d_pol": round(etter["pol"] - foer["pol"], 5),
         "d_tro": round(etter["tro"] - foer["tro"], 5),

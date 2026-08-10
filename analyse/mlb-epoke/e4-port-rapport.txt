@@ -1,0 +1,8 @@
+mlb-port epoke 4 startet 2026-08-09T21:28:37.587Z
+kandidat=e1-modell/mlb-e4.bin forrige=e1-modell/mlb-beste-e3.bin
+referanse=VANER_TEST kamper/band=300 band=[1800000000,1850000000] liga-h2h=200@1900000000 maalpoeng=30 maksrunder=60
+FERDIG 2026-08-09T21:31:38.033Z  veggtid=180.4 s  kamper=2200
+PORT (fast referanse, parret) GODKJENT n=600 snitt=64.6800 se=5.6731 z=11.40 tegn=413/587 tegnZ=9.86 bånd=[66.6867,62.6733] kontroll=0.00 — godkjent: 64.6800 ± 5.6731 (z = 11.40), tegn 413/587 (z = 9.86), 2 bånd enige
+STYRKE kandidat -68.693 ± 4.067 poeng, seier 11.0 %  |  forrige -133.373, seier 6.3 %  |  avbrutt 2.2 %
+GROVBUD (amerikaner+solo) andel av budvalg: kandidat 0.03 % mot forrige 0.06 % (16.2 budvalg/kamp)
+LIGA-H2H (kandidat mot forrige paa ligabordet, n=200): 20.500 ± 10.006 (z=2.05), seier 12.0 % mot 8.5 %, avbrutt 19.5 %

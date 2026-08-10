@@ -59,6 +59,16 @@ def wsl_sti(sti):
     return p
 
 
+def tallstr(x, form="+.2f"):
+    """NaN/None serialiseres som `null` i JSON og sprenger en formatstreng.
+
+    Loep 1 doede noeyaktig der: LIGA-H2H fikk spredning 0 fordi to saturerte
+    nett spilte BIT-LIKT, z ble NaN -> null, og driveren krasjet i epoke 8
+    etter halvannen time. En maalerigg skal kunne rapportere «vet ikke».
+    """
+    return "n/a" if x is None else format(x, form)
+
+
 def logg_linje(sti, tekst):
     os.makedirs(os.path.dirname(sti) or ".", exist_ok=True)
     with open(sti, "a", encoding="utf-8") as f:
@@ -285,7 +295,7 @@ class Driver:
                 f"kontroll={rad['kontroll_z']}  "
                 f"| STYRKE {s['kandidatPoeng']:+.3f} poeng, seier {s['kandidatSeier'] * 100:.1f} %, "
                 f"grovbud {s['grovbudAndel'] * 100:.2f} %, avbrutt {s['avbrutt'] * 100:.1f} %  "
-                f"| LIGA-H2H {dom['ligaH2H']['diff']:+.2f} (z={dom['ligaH2H']['z']:+.2f})  "
+                f"| LIGA-H2H {tallstr(dom['ligaH2H']['diff'])} (z={tallstr(dom['ligaH2H']['z'])})  "
                 f"| {'ADOPTERT' if adoptert else 'FORKASTET'}: {dom['begrunnelse']}"
             )
             if gradrad:

@@ -1,0 +1,8 @@
+mlb-port epoke 8 startet 2026-08-10T00:01:55.268Z
+kandidat=e1-modell/mlb-e8.bin forrige=e1-modell/mlb-beste-e5.bin
+referanse=VANER_TEST kamper/band=300 band=[1800000000,1850000000] liga-h2h=200@1900000000 maalpoeng=30 maksrunder=60
+FERDIG 2026-08-10T00:02:49.108Z  veggtid=53.8 s  kamper=2200
+PORT (fast referanse, parret) GODKJENT n=600 snitt=5.5950 se=0.6622 z=8.45 tegn=341/529 tegnZ=6.65 bånd=[6.1200,5.0700] kontroll=0.00 — godkjent: 5.5950 ± 0.6622 (z = 8.45), tegn 341/529 (z = 6.65), 2 bånd enige
+STYRKE kandidat 21.653 ± 0.432 poeng, seier 38.8 %  |  forrige 16.058, seier 30.8 %  |  avbrutt 3.0 %
+GROVBUD (amerikaner+solo) andel av budvalg: kandidat 0.00 % mot forrige 0.00 % (12.3 budvalg/kamp)
+LIGA-H2H (kandidat mot forrige paa ligabordet, n=200): 9.258 ± 1.465 (z=6.32), seier 19.0 % mot 13.0 %, avbrutt 0.5 %

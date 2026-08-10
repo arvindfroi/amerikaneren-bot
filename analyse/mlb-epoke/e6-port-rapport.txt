@@ -1,0 +1,8 @@
+mlb-port epoke 6 startet 2026-08-09T22:40:48.092Z
+kandidat=e1-modell/mlb-e6.bin forrige=e1-modell/mlb-beste-e5.bin
+referanse=VANER_TEST kamper/band=300 band=[1800000000,1850000000] liga-h2h=200@1900000000 maalpoeng=30 maksrunder=60
+FERDIG 2026-08-09T22:41:47.211Z  veggtid=59.1 s  kamper=2200
+PORT (fast referanse, parret) AVVIST n=600 snitt=-2.8033 se=0.6852 z=-4.09 tegn=212/501 tegnZ=-3.44 bånd=[-2.9333,-2.6733] kontroll=0.00 — z = -4.09, krever 2; tegntest 212/501 (z = -3.44), krever 1.5 — et snitt uten tegnet bak seg er båret av noen få kamper; båndene er uenige: bånd 0 = -2.9333, bånd 1 = -2.6733
+STYRKE kandidat 13.255 ± 0.567 poeng, seier 18.0 %  |  forrige 16.058, seier 30.8 %  |  avbrutt 24.0 %
+GROVBUD (amerikaner+solo) andel av budvalg: kandidat 0.00 % mot forrige 0.00 % (20.4 budvalg/kamp)
+LIGA-H2H (kandidat mot forrige paa ligabordet, n=200): -0.675 ± 1.538 (z=-0.44), seier 8.5 % mot 13.0 %, avbrutt 1.0 %

@@ -98,3 +98,8 @@ vrak-data/
 # igjen hver epoke og kan gjenskapes fra froeet. Rapportene under analyse/
 # er det varige sporet.
 mlb-epoke-data/
+
+# Portens raa skardfiler: 20 per arm per epoke, destillert til
+# analyse/mlb-epoke/e*-port-rapport.txt og -dom.jsonl.
+analyse/mlb-epoke/*-port-par-*.jsonl
+analyse/mlb-epoke/*-port-liga-*.jsonl

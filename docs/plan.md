@@ -9223,3 +9223,276 @@ finnes ingen epokedriver som binder sammen «spill → tren → K2 → port →
 adopter», og porten er derfor prøvd på konstruerte tall og ikke på en ekte
 epoke ennå. `rask` som målearm er et spor i `liga.ts`, ikke en kobling — den
 hører hjemme i et måleskript i `examples/`, utenfor herkomstgrensen.
+
+## §123 — MLB fase 0.5: den første gradienten, og de to måtene den drev feil vei
+
+`docs/mlb.md` fase 2, `docs/sandkassen.md` §6. §122 endte med setningen «ingen
+gradient er tatt». Denne økta tok den første, og så den tiende.
+
+Løkka er `verktoy/mlb-epoke.py`:
+
+```
+K2  →  SPILL  →  ERFARING  →  TREN (GPU)  →  K2  →  PORT  →  ADOPTER/FORKAST
+```
+
+| ledd | fil | hva det gjør |
+|---|---|---|
+| SPILL | `examples/mlb-spill.ts` (utvidet) | 5 000 kamper over 20 skard mot befolkningen |
+| ERFARING | `examples/mlb-erfaring.ts` (ny) | kamplogg → 1 032 trekk + maske + tre etiketter, via `gjenspill()` |
+| TREN | `verktoy/mlb-gradient.py` (ny) | én gradientrunde, tre hoder, masken i tapet |
+| PORT | `examples/mlb-port.ts` (ny) | parret måling mot fast referanse, med kontrollarm |
+| DRIVER | `verktoy/mlb-epoke.py` (ny) | binder dem, og skriver én varig rad per epoke |
+
+### KURVEN — og den beveger seg
+
+Ti epoker, 5 000 kamper hver, løp til 30, rundetak 60. Styrketallet er
+kandidatens poeng mot de tre TESTVANENE — fast referanse, argmaks, 600 giv
+parret på kortene, samme giv i hver epoke. `VANER_TEST` er aldri i
+treningsligaen.
+
+| epoke | styrke (poeng) | seier | grovbud | avbrutt | PORT | tro-CE | treff | verdi-RMSE | forklart | entropi |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0 (tilfeldig) | **−279,7** | 2,8 % | 8,49 % | — | — | 1,491 | 31,9 % | 158,0 | −0,30 | 1,399 |
+| 1 | −244,6 | 5,5 % | 3,40 % | 6,8 % | **GODKJENT** z=+2,89 | 1,303 | 31,9 % | 120,8 | −0,30 | 1,374 |
+| 2 | −251,9 | 6,8 % | 0,54 % | 7,7 % | avvist z=−0,68 | 1,255 | 32,9 % | 106,9 | −0,00 | 1,333 |
+| 3 | −133,4 | 6,3 % | 0,06 % | 1,7 % | **GODKJENT** z=+11,72 | 1,249 | 32,9 % | 83,7 | +0,06 | 1,328 |
+| 4 | −68,7 | 11,0 % | 0,03 % | 2,2 % | **GODKJENT** z=+11,40 | 1,239 | 33,4 % | 88,0 | +0,09 | 1,317 |
+| 5 | **+16,1** | 30,8 % | 0,00 % | 12,5 % | **GODKJENT** z=+20,82 | 1,234 | 33,6 % | 94,5 | +0,11 | 1,308 |
+| 6 | +13,3 | 18,0 % | 0,00 % | 24,0 % | avvist z=−4,09 | 1,223 | 34,0 % | 89,5 | +0,12 | 1,290 |
+| 7 | +7,7 | 14,5 % | 0,00 % | 20,2 % | avvist z=−9,81 | 1,230 | 34,2 % | 74,5 | +0,13 | 1,264 |
+| 8 | +21,7 | 38,8 % | 0,00 % | 3,0 % | **GODKJENT** z=+8,45 | 1,231 | 34,3 % | 66,3 | +0,14 | 1,248 |
+| 9 | +22,5 | 43,0 % | 0,00 % | 1,5 % | **GODKJENT** z=+2,19 | 1,221 | 34,6 % | 64,4 | +0,14 | 1,230 |
+| 10 | **+22,8** | **43,0 %** | 0,00 % | 1,3 % | avvist z=+0,77 | 1,218 | 34,9 % | 58,6 | +0,13 | 1,220 |
+
+**Svaret på spørsmålet økta ble stilt er ja.** Kurven beveger seg, og den
+beveger seg i alle fem tallene samtidig:
+
+- **styrketallet fra −279,7 til +22,8 poeng** mot en motstand boten aldri har
+  trent mot
+- **seiersandelen fra 2,8 % til 43,0 %.** Fire like spillere gir 25 %. Nettet
+  slår altså de tre testvanene med god margin fra epoke 8
+- **`amerikaner`/`solo` fra 8,49 % til 0,00 %** av budvalgene — den ene tingen
+  som dominerer poengskalaen, lært bort uten at noen kodet den
+- **verdi-RMSE fra 158,0 til 58,6**, og forklart varians fra **−0,30 til +0,14**:
+  verdihodet gikk fra verre enn snittet til å forklare noe
+- **tro-CE fra 1,491 til 1,218**, treff 31,9 → 34,9 % — og troen er *ikke*
+  veiledet av noen her; den lærer av hvor kortene faktisk lå i epokens egne
+  kamper
+
+Porten godkjente 6 av 10 og avviste 4. **Kontrollarmen traff 0,0000 i hver
+eneste epoke.** De fire avvisningene er ikke støy: epoke 6 og 7 er en ekte
+tilbakegang (+16,1 → +13,3 → +7,7), og porten fanget den med både z og
+tegntest. Epoke 10 ble avvist på tegntesten alene ved z = +0,77 — nøyaktig det
+kravet er til for.
+
+Dette er **ikke** en påstand om at MLB er i nærheten av `rask`. Motstanden er
+fire stiliserte vaner. Det er en påstand om at rørgata lærer.
+
+### Det som var galt, og de to første kunne ikke ses uten å kjøre
+
+**1. VERDIETIKETTEN KUNNE IKKE VÆRE «KAMPENS UTFALL» SLIK DET STÅR.**
+
+`docs/mlb.md` §2 sier at episoden er KAMPEN. Skrevet rett fram blir etiketten
+setets sluttpoeng. Da teleskoperer ikke TD-en:
+
+```
+A(s,a) = r + V(s') − V(s),   r = poeng(t+1) − poeng(t)
+```
+
+Skal `A` være TD-residualet til et konsistent mål, må `V` spå det som
+GJENSTÅR: `sluttpoeng[sete] − poengFør`. Bare da er `G(t) = r + G(t+1)` en
+identitet. Med råe sluttpoeng ville `r` blitt talt to ganger, og fordelen fått
+en systematisk skjevhet på nøyaktig rundens poeng — på hver rad, i hver epoke,
+uten at noe feilet.
+
+Prøven er én setning: *et perfekt verdihode må gi `A = 0` på hver eneste rad.*
+
+**2. TD ALENE DREV POLICYEN I FEIL RETNING.**
+
+AVGJØRELSE 3 valgte TD med verdihodet som grunnlinje, og begrunnelsen holder.
+Men TD hviler på at `V` virker, og i epoke 1 gjør den ikke det:
+
+- **`r` er null for nesten hver beslutning.** Poeng faller bare ved rundeslutt,
+  og et sete tar ~15 beslutninger per runde. For alle unntatt den siste er
+  `A = V(s') − V(s)` og ingenting annet.
+- **verdihodet forklarte −0,97 av variansen** etter én epoke.
+
+Målt: andelen `amerikaner`/`solo` **steg fra 46,6 % til 58,0 % på én epoke**, og
+82 % av kampene nådde rundetaket. Nettet lærte å skyte seg selv i foten, fordi
+straffen lå femten steg unna i et ledd som ikke fantes ennå.
+
+Rettelsen er GAE(λ) — en parameter, ikke et nytt valg. λ = 0 er nøyaktig
+`tdFordel`; λ = 1 er nøyaktig `G_t − V(s_t)`, «faktisk minus ventet»,
+`docs/sandkassen.md` §6 ordrett, uten et eneste bootstrap-ledd. Begge er ren
+selvtrening: `G` er utfallet, ikke en dom. Med λ = 1 falt grovbudandelen fra
+80,0 % til 0,0 % på én epoke.
+
+AVGJØRELSE 3 var altså ikke feil. Den var for tidlig. λ er hvor mye vi tør
+stole på verdihodet, og nå som «forklart» har passert null er det et tall vi
+kan måle oss ned fra.
+
+**3. `−A·log π` ER UBUNDET, OG DET DREPTE HELE FØRSTE LØPET.**
+
+Det første ti-epokersløpet ble kjørt, og det målte ingenting. Sporet ligger i
+`analyse/mlb-gradient-loep1.txt`:
+
+| epoke | entropi | KL | \|policylogit\| |
+|---|---|---|---|
+| 1 | 1,4035 → **0,0013** | **5 299** | ~10⁴ |
+| 6 | 0,0000 → 0,0000 | 2 103 209 | **4,4 · 10⁶** |
+
+**Første gradientsteg saturerte policyen.** For `A > 0` lever tapet på å presse
+`log π` mot 0, for `A < 0` på å presse det mot −∞, og ingenting stopper det.
+`clip_grad_norm_` hjelper ikke: Adam normaliserer bort gradientens STØRRELSE,
+så steget per parameter er ~`lr` uansett hvor liten normen er. Med 286 batcher
+og `lr = 3e-4` flytter én «epoke» hver vekt ~0,086 — det DOBBELTE av
+He-skalaen `sqrt(2/1032) = 0,044`.
+
+**Og porten adopterte den. To ganger.** Et nett med logits på ±4,7 millioner er
+en KONSTANT funksjon: `velgKode` gir alltid laveste lovlige kode, som i
+budrunden er `pass` — og en bot som alltid passer byr aldri `amerikaner` og
+scorer derfor +15 poeng mot vanene. Porten kunne ikke se forskjell på «lært» og
+«død».
+
+Tre rettelser, og den siste er den viktigste:
+
+- **PPO-klippet forhold** mot atferdspolicyen. Målet er bundet: når policyen
+  har flyttet seg mer enn `eps` i en retning som hjelper, er gradienten null.
+  `log π_gammel` måles i treneren selv — det er de samme vektene vi starter fra,
+  så ingenting må bæres gjennom filformatet.
+- **KL-nødbrems** midt i gjennomløpet, `--kl-maal 0,03`.
+- **En vakt som stopper epoken** på ikke-endelige vekter eller
+  `|policylogit| > 10⁴`. Løp 2 holdt seg på KL 0,031 → 0,006 og entropi
+  1,399 → 1,220 gjennom ti epoker.
+
+**Lærdommen er ikke «PPO er bedre».** Den er at *ingenting i riggen målte om
+policyen fortsatt var en policy.* Entropien og logitskalaen er nå i rapporten
+fordi de er det eneste som skiller en lært funksjon fra en saturert konstant, og
+porten kan ikke gjøre den jobben.
+
+**4. PORTEN DØMTE PÅ FEIL BORD.**
+
+Første utgave lot porten dømme på LIGABORDET. Med tre nesten tilfeldige
+motstandere tar kampen ikke slutt (§122s ubundne løp), «lederen vinner»
+avgjøres av hvem som sank saktest, og skalaen er hundrevis av poeng. Samme
+kandidat, samme epoke:
+
+| bord | dom |
+|---|---|
+| ligabordet | **−170,2 poeng** (z = −5,27), 40 % avbrutt |
+| fast referanse (`VANER_TEST`) | **+31,7 poeng** (z = +2,87), 0 % avbrutt |
+
+Porten dømte hovedsakelig motstandernes selvdestruksjon. Den dømmer nå på den
+faste referansen, i to disjunkte frøbånd, med kontrollarm. Ligabordet
+rapporteres ved siden av som `LIGA-H2H` — det er der intransitiviteten i §2 vil
+vise seg, og et tall som motsier porten er noe vi vil SE.
+
+**5. VERDISKALAEN VAR ANTATT, IKKE MÅLT.** `mlb-tren.py` deler verditapet på
+10, fordi etiketten der var RUNDENS poeng. Her er den resten av kampen: snitt
+−115 poeng, spredning 107. Med en fast skala på 10 blir verditapet
+`(107/10)² = 114` mot tro-CE ~1,4 — **åtti ganger større**, og de to andre
+hodene ville fått gradienten sin spist. Skalaen settes nå av dataene; utgangen
+er fortsatt poeng.
+
+**6. `numpy.fromfile` KAN IKKE FEILE PÅ EN FORSKJØVET RAD.** Den leser stille,
+forskjøvet, og gir et korpus som ser ut som tall. MLBE-formatet bærer derfor
+radbredden i filhodet, og leseren KREVER at `dtype.itemsize` stemmer.
+
+**7. K2 PRØVDE ARKITEKTUREN, IKKE VEKTENE.** `test/mlb-k2-nett.test.ts` bygde
+sitt eget lille nett. En prøve som ikke rører epokens vekter kan ikke gi dem en
+blindhetsattest. `MLB_K2_NETT` bytter dem inn. Med de ekte 2,4 M vektene tar de
+tre K2-filene 14–37 s, kontrollarmene blir fortsatt tatt, og de kjøres to
+ganger per epoke — før spillet og etter treningen. **20 av 20 grønne.**
+
+**8. ADAMS MOMENTER DØDE MED PROSESSEN.** Hver epoke er et nytt Python-kall.
+Uten en lagret optimalisatortilstand er ti epoker med ett gjennomløp hver **ti
+første steg**, ikke ti steg.
+
+**9. EN NaN I EN RAPPORT KAN DREPE EN KJØRING.** Løp 1 døde etter halvannen
+time i epoke 8 fordi LIGA-H2H fikk spredning 0 — to saturerte nett spilte
+bit-likt — og `z` ble `NaN` → `null` → `TypeError` i en formatstreng. En
+målerigg skal kunne rapportere «vet ikke» uten å falle.
+
+### To vektfiler, og hvorfor det ikke er en oppmykning av porten
+
+`docs/mlb.md` fase 2 skriver «ellers: forkast». Lest bokstavelig kaster en
+avvist epoke både gradienten og datagrunnlaget — og med en port som krever
+z ≥ 2 + tegntest + to enige bånd ville ti epoker lett blitt ti kopier av epoke
+0. Da hadde vi ikke målt om kurven beveger seg, bare om ETT steg er stort nok.
+
+| fil | flyttes av | rolle |
+|---|---|---|
+| `mlb-arbeid.bin` | hver gradientrunde | kandidatsetet i selvspillet |
+| `mlb-beste.bin` | **bare porten** | ligaens beste, og motstanderen kandidaten møter |
+
+Treningen løper videre; BEFOLKNINGEN er portet. Dataene er alltid på-policy for
+vektene som trenes, og «adopter» betyr fortsatt nøyaktig det samme. At epoke 6
+og 7 ble avvist og epoke 8 kom tilbake over epoke 5, er skillet i arbeid:
+gradienten fikk lov til å gå gjennom en dal som porten ikke slapp inn i ligaen.
+
+### Frøbåndene, avsatt før første kamp
+
+Hullet mellom trodataens holdout (1,254 G) og mlb-dataens trening (2,000 G) var
+ledig:
+
+| bånd | bruk |
+|---|---|
+| 1,300 G + e·20 M | selvspillet, epoke `e` |
+| 1,800 G / 1,850 G | portens to disjunkte bånd |
+| 1,900 G | LIGA-H2H |
+
+Port- og referansebåndene flytter seg ikke mellom epoker. De trenes aldri på, så
+det er ingen lekkasje — og faste giv gjør at styrketallet fra epoke 3 og epoke 9
+er PARRET på kortene, ikke bare sammenliknbart.
+
+### Budsjettet sprakk, og det var ikke måletiden
+
+§122 lovet ti epoker på 1,82 timer for SPILLINGEN, med 9 % margin. Målt ende
+til ende: **5,35 timer.** Fordelingen per epoke, i sekunder:
+
+| ledd | epoke 1 | epoke 10 | andel |
+|---|---|---|---|
+| SPILL | 781 | 1 160 | **73 %** |
+| ERFARING (gjenspilling) | 264 | 333 | 21 % |
+| PORT | 200 | 46 | 5 % |
+| K2 × 2 | 41 | 61 | 3 % |
+| TREN (GPU) | 17 | 32 | **1 %** |
+
+**Måletiden var ikke problemet — spillingen ble dobbelt så dyr som §122 målte.**
+Grunnen er ligaen selv: §122 målte epoke 0, der «beste» ER kandidaten og bare
+4 av 7 motstandersete-trekninger treffer et nett. Med seks porterte forgjengere
+i befolkningen er 7 av 10 seter et nett, og et framoverpass er tre
+størrelsesordener dyrere enn en vane. Prisen for å ikke glemme er reell, og den
+sto i §3 uten et tall ved siden av seg. Nå har den ett.
+
+GPU-en er 1 % av epoken. **Denne rørgata er CPU-bundet på selvspill, ikke
+gradient-bundet** — og det er verdt å vite før noen optimerer treneren.
+
+Den billigste knappen som ikke er tatt: ERFARING gjenspiller hver kamp for å
+bygge trekkene på nytt, men kandidatsetet BYGGER dem allerede under spillingen.
+Å skrive dem der ville spart 21 % av epoketiden. Det ble ikke gjort fordi
+gjenspillingen er §5a-påstanden i bruk, og den er nå prøvd bit for bit.
+
+### Status
+
+`npm test`: **617 grønne, 0 røde** (596 før økta). Typecheck ren. Sju av de nye
+er `test/mlb-epoke.test.ts`; resten er `test/modellreferanser.test.ts`, som
+teller én prøve per vektfil som FINNES — de ti epokevektene aktiverer altså
+sine egne strukturprøver, og det er meningen.
+`test/mlb-herkomst.test.ts` er uendret og grønn — ingenting under `src/mlb/`
+når et orakel, en dobbeltdummy eller `d7alle`, heller ikke transitivt. Ingen
+mester, intet orakel, ingen ekspertimitasjon: de tre etikettene er utfallet,
+fortiden, og fordelen.
+
+Nye filer: `examples/mlb-erfaring.ts`, `examples/mlb-port.ts`,
+`examples/mlb-init.ts`, `verktoy/mlb-gradient.py`, `verktoy/mlb-epoke.py`,
+`test/mlb-epoke.test.ts`. Målinger: `analyse/mlb-epoker.txt` og `.jsonl`,
+`analyse/mlb-gradient.txt`, `analyse/mlb-epoke/` (per epoke: K2, spill,
+erfaring, trening, port), og løp 1 arkivert i `analyse/*-loep1.*`.
+
+**Det som IKKE er gjort, og som er neste steg:** `rask` er fortsatt ikke målt
+mot. Avbruddskriteriets punkt 2 — «beste epoke slår ikke `rask` parret, over
+2 SE» — kan ikke avgjøres før det finnes et måleskript i `examples/` som setter
+Adams-stakken i et sete utenfor herkomstgrensen. Det er det ene tallet som
+avgjør om MLB er på vei mot noe; de ti epokene her sier bare at den er på vei
+bort fra ingenting.

@@ -1,0 +1,8 @@
+mlb-port epoke 7 startet 2026-08-09T23:22:51.236Z
+kandidat=e1-modell/mlb-e7.bin forrige=e1-modell/mlb-beste-e5.bin
+referanse=VANER_TEST kamper/band=300 band=[1800000000,1850000000] liga-h2h=200@1900000000 maalpoeng=30 maksrunder=60
+FERDIG 2026-08-09T23:24:12.808Z  veggtid=81.6 s  kamper=2200
+PORT (fast referanse, parret) AVVIST n=600 snitt=-8.3717 se=0.8535 z=-9.81 tegn=192/533 tegnZ=-6.45 bånd=[-8.7567,-7.9867] kontroll=0.00 — z = -9.81, krever 2; tegntest 192/533 (z = -6.45), krever 1.5 — et snitt uten tegnet bak seg er båret av noen få kamper; båndene er uenige: bånd 0 = -8.7567, bånd 1 = -7.9867
+STYRKE kandidat 7.687 ± 0.821 poeng, seier 14.5 %  |  forrige 16.058, seier 30.8 %  |  avbrutt 20.2 %
+GROVBUD (amerikaner+solo) andel av budvalg: kandidat 0.00 % mot forrige 0.00 % (20.0 budvalg/kamp)
+LIGA-H2H (kandidat mot forrige paa ligabordet, n=200): -3.245 ± 1.625 (z=-2.00), seier 4.5 % mot 13.0 %, avbrutt 1.0 %

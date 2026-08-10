@@ -1,0 +1,27 @@
+wsl.exe -e bash -lc cd /mnt/c/Users/arvin/Documents/Claude/Projects/amerikaneren-bot && ~/Arvind-Lora/.venv/bin/python verktoy/mlb-gradient.py --inn 'mlb-epoke-data/erf-s*.bin' --vekter e1-modell/mlb-arbeid.bin --ut e1-modell/mlb-e6.bin --epoke 6 --lr 0.0001 --pass 1 --entropi 0.01 --batch 4096 --opt-tilstand e1-modell/mlb-adam.pt --logg analyse/mlb-gradient.jsonl --rapport analyse/mlb-gradient.txt
+--- kode 0 etter 21.4 s ---
+ERFARING:
+  mlb-epoke-data/erf-s0.bin: 19542 rader
+  mlb-epoke-data/erf-s1.bin: 21169 rader
+  mlb-epoke-data/erf-s10.bin: 20693 rader
+  mlb-epoke-data/erf-s11.bin: 18482 rader
+  mlb-epoke-data/erf-s12.bin: 21040 rader
+  mlb-epoke-data/erf-s13.bin: 19547 rader
+  mlb-epoke-data/erf-s14.bin: 20628 rader
+  mlb-epoke-data/erf-s15.bin: 20543 rader
+  mlb-epoke-data/erf-s16.bin: 20477 rader
+  mlb-epoke-data/erf-s17.bin: 20749 rader
+  mlb-epoke-data/erf-s18.bin: 19788 rader
+  mlb-epoke-data/erf-s19.bin: 21379 rader
+  mlb-epoke-data/erf-s2.bin: 20663 rader
+  mlb-epoke-data/erf-s3.bin: 19554 rader
+  mlb-epoke-data/erf-s4.bin: 20739 rader
+  mlb-epoke-data/erf-s5.bin: 20912 rader
+  mlb-epoke-data/erf-s6.bin: 19702 rader
+  mlb-epoke-data/erf-s7.bin: 20038 rader
+  mlb-epoke-data/erf-s8.bin: 19070 rader
+  mlb-epoke-data/erf-s9.bin: 21187 rader
+405902 rader, 1032 trekk, 68 plasser, 2380821 parametre, enhet cuda, Adam lastet (11s)
+{"epoke": 6, "sek": 13.8, "kl": 0.008777, "logitskala": 10.26, "stoppet_paa_kl": -1, "etter": {"pol": 0.02338, "ent": 1.29019, "tro": 1.22345, "treff": 0.33963, "rmse": 89.47617, "forklart": 0.11844}, "d_pol": -0.0089, "d_tro": -0.00706, "d_rmse": -1.19414, "d_ent": -0.01824, "ut": "e1-modell/mlb-e6.bin"}
+
+--- stderr ---
