@@ -91,7 +91,6 @@ test("MLB-bro: adapteren og selvspillsløkka velger identisk ved temperatur 0", 
       frø,
       målPoeng: 30,
       seter: [0, 1, 2, 3].map((i) => ({ navn: `n${i}`, nett, temperatur: 0 })),
-      tronett: null,
       hukommelse: true,
       maksRunder: 40,
     });

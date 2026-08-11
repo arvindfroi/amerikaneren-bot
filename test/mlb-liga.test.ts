@@ -127,9 +127,18 @@ test("vanene: trenings- og testsettet VELGER ULIKT på ekte stillinger — målt
     }
   }
   /**
-   * BAREN ER 25 %, ikke «over null». Målt er det NÆRMESTE paret 51,9 % ulike,
-   * så terskelen har god margin — og en fremtidig endring som gjør to vaner
-   * like igjen blir tatt lenge før de er identiske.
+   * BAREN ER 25 %, ikke «over null».
+   *
+   * §125 gjorde om splitten fordi den gamle var en STYRKESPLITT (se
+   * `VANER_TRENING`), og marginen ble tynnere: det nærmeste KRYSSparet var
+   * 51,9 % ulike før, og er **26,9 %** nå (`vane.grisk` mot `test.ordentlig`).
+   *
+   * Grunnen er målt og verdt å ha skrevet ned: **`høyest` og `fargeordenHøy` er
+   * identiske når man FØLGER FARGE** — alle lovlige kort er da i samme farge,
+   * og begge rangerer på ren verdi. De skiller seg bare når man er renons.
+   * Samme forhold gjelder `lavest` mot `fargeordenLav`. Baren står derfor
+   * fortsatt på 25 %, men den er nå en ekte skranke og ikke en formalitet:
+   * flyttes to slike stiler til hver sin side igjen, blir prøven rød.
    */
   assert.ok(
     verste >= 0.25,

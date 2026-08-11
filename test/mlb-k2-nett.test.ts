@@ -65,10 +65,18 @@ import { byggTrekk, TREKK_LENGDE, type Trofordeler } from "../src/mlb/trekk.ts";
  * påstanden nå er prøvd på det som faktisk kjører, ikke bare på en slektning av
  * det. Uten variabelen er oppførselen nøyaktig som før.
  */
-const NETT =
-  process.env.MLB_K2_NETT === undefined || process.env.MLB_K2_NETT === ""
-    ? Sandkassenett.tilfeldig(20_260_809, [128, 64])
-    : Sandkassenett.fraFil(process.env.MLB_K2_NETT);
+const NETT = ((kilde: string | undefined): Sandkassenett => {
+  if (kilde === undefined || kilde === "") return Sandkassenett.tilfeldig(20_260_809, [128, 64]);
+  /**
+   * `tilfeldig<froe>` GODTAS OGSÅ, samme form som `mlb:`-speken i
+   * `agentspek.ts`. Uten den kunne kravbatteriet ikke kjøre K2 i det hele tatt
+   * før en epoke hadde skrevet sin første vektfil — og en prøve som først kan
+   * kjøres når svaret nesten er klart, blir ikke kjørt.
+   */
+  return kilde.startsWith("tilfeldig")
+    ? Sandkassenett.tilfeldig(Number(kilde.slice(9)) || 0)
+    : Sandkassenett.fraFil(kilde);
+})(process.env.MLB_K2_NETT);
 
 /**
  * ET EKSTERNT TROHODE SOM FORSTERKER, IKKE DEMPER — samme som i

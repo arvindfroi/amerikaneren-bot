@@ -23,8 +23,9 @@ import { test } from "node:test";
 import { lagRng } from "../src/kort.ts";
 import { HANDLING_LENGDE } from "../src/mlb/handling.ts";
 import { Sandkassenett } from "../src/mlb/nett.ts";
-import { TREKK_LENGDE } from "../src/mlb/trekk.ts";
+import { BESLUTNINGER, FASEKODE, fasenavn, TREKK_LENGDE } from "../src/mlb/trekk.ts";
 import {
+  delteRetur,
   diskontertRetur,
   gjenspill,
   kamploggFraLinje,
@@ -153,6 +154,63 @@ test("identiteten A = G^gamma - V holder for lambda = 1, ogsaa naar gamma < 1", 
     }
   }
   assert.ok(e.rader.length > 20, "for få rader");
+});
+
+test("det DELTE verdimaalet er en identitet: Gr + Gh = G^gamma, for enhver gamma", () => {
+  /**
+   * §125 gir verdihodet to etiketter i stedet for én. Skulle summen av dem
+   * avvike fra `diskontertRetur`, ville halen blitt talt to ganger — eller
+   * ingen — og fordelen `A = G^γ − V` ville hatt en systematisk skjevhet uten
+   * at noe feilet noe sted. Det er nøyaktig feilklassen §123 punkt 1 beskriver,
+   * og den eneste beskyttelsen mot den er at identiteten er PRØVD.
+   */
+  const frø = 5_650_023;
+  const e = spillKamp({ frø, seter: bord(frø, 3), målPoeng: MÅL, maksRunder: MAKS_RUNDER });
+  assert.ok(e.rader.length > 20, "for få rader");
+
+  for (const gamma of [1, 0.7, 0.5, 0.3, 0]) {
+    const g = diskontertRetur(e.rader, e.fasit, gamma);
+    const d = delteRetur(e.rader, e.fasit, gamma);
+    let verste = 0;
+    for (let i = 0; i < e.rader.length; i++) {
+      verste = Math.max(verste, Math.abs(d.runde[i]! + d.hale[i]! - g[i]!));
+    }
+    assert.ok(verste < 1e-9, `gamma ${gamma}: Gr + Gh avvek ${verste} fra G^γ`);
+  }
+
+  /**
+   * OG KONTROLLEN SOM KAN FEILE: med γ = 1 må halen være den RÅ resten etter
+   * runden, med γ = 0 må den være eksakt null. Uten den ville prøven over vært
+   * grønn også for `runde = G, hale = 0` — altså for en «deling» som ikke
+   * deler noe.
+   */
+  const null0 = delteRetur(e.rader, e.fasit, 0);
+  let maksHale0 = 0;
+  for (let i = 0; i < e.rader.length; i++) maksHale0 = Math.max(maksHale0, Math.abs(null0.hale[i]!));
+  assert.equal(maksHale0, 0, "med gamma = 0 skal halen være eksakt null");
+
+  const ett = delteRetur(e.rader, e.fasit, 1);
+  let haleVarians = 0;
+  for (let i = 0; i < e.rader.length; i++) haleVarians += Math.abs(ett.hale[i]!);
+  assert.ok(
+    haleVarians > 0,
+    "med gamma = 1 har halen null masse — da er «delingen» bare G lagt i rundedelen",
+  );
+
+  /**
+   * OG RUNDEDELEN MÅ VÆRE KONSTANT INNENFOR EN RUNDE for ett sete. Poeng
+   * faller bare ved rundeslutt, så alle valgene i samme runde har den samme
+   * gjenstående runden — er de ikke det, teller `r` noe som ikke er poeng.
+   */
+  const sett = new Map<string, number>();
+  for (let i = 0; i < e.rader.length; i++) {
+    const r = e.rader[i]!;
+    const nøkkel = `${r.sete}:${r.rundeNr}`;
+    const før = sett.get(nøkkel);
+    if (før === undefined) sett.set(nøkkel, ett.runde[i]!);
+    else assert.ok(Math.abs(før - ett.runde[i]!) < 1e-9, `rundedelen varierte innenfor ${nøkkel}`);
+  }
+  assert.ok(sett.size > 10, `bare ${sett.size} sete/runde-par`);
 });
 
 /**
@@ -325,8 +383,42 @@ test("MLBE-radens bredde er den avtalte", () => {
    * layouten uten at alle tre følger med, leser `numpy.fromfile` forskjøvet og
    * gir et korpus som SER ut som tall.
    */
-  const post = TREKK_LENGDE * 4 + HANDLING_LENGDE + 52 + 2 * 4 + 4 * 3;
-  assert.equal(TREKK_LENGDE, 1032);
+  // VERSJON 2 (§125) la til Gr (f32), Gh (f32) og kamp (i32) bakerst.
+  const post = TREKK_LENGDE * 4 + HANDLING_LENGDE + 52 + 2 * 4 + 4 * 3 + 4 * 2 + 4;
+  // §126 fjernet ÉN inngang — `lovlig.bud:13`, den eneste som kan BEVISES
+  // umulig. 1032 -> 1031. Handlingsrommet er urørt: policyhodets 68 utganger
+  // og maskens bredde står, så bare `t` krymper.
+  assert.equal(TREKK_LENGDE, 1031);
   assert.equal(HANDLING_LENGDE, 68);
-  assert.equal(post, 4268);
+  assert.equal(post, 4276);
+});
+
+// ===========================================================================
+// 6. FASEFELTET — det oppslaget som bommet på hver eneste budrad
+// ===========================================================================
+
+test("FASEKODE dekker hver Beslutning fasenavn() kan gi, og BUD er 0", () => {
+  /**
+   * §126. Skriveren slo opp `{ BUDRUNDE: 0, ... }` med `rad.beslutning`, som
+   * er `"BUD"` og aldri `"BUDRUNDE"` — `fasenavn()` oversetter motorens navn
+   * før raden lages. `?? 3` tok imot bommen, og alle bud ble skrevet som
+   * SPILL. Målt på tjue skard: fase 0 hadde null rader.
+   *
+   * Prøven er derfor ikke «er kartet riktig», men «kan et navn `fasenavn()`
+   * faktisk gir bomme på kartet i det hele tatt». Det er den formen som ville
+   * vært rød mot den gamle koden.
+   */
+  for (const b of BESLUTNINGER) {
+    assert.equal(typeof FASEKODE[b], "number", `FASEKODE mangler «${b}»`);
+  }
+  assert.equal(new Set(Object.values(FASEKODE)).size, BESLUTNINGER.length);
+  assert.equal(FASEKODE.BUD, 0);
+
+  // Og fra den andre siden: hvert navn `fasenavn()` KAN returnere må finnes i
+  // kartet. Lista er motorens faser, ikke en kopi av `BESLUTNINGER`.
+  const faser = ["BUDRUNDE", "VRAK", "VELG", "SPILL", "RUNDE_SLUTT", "FERDIG"] as const;
+  for (const f of faser) {
+    const navn = fasenavn({ fase: f } as unknown as Parameters<typeof fasenavn>[0]);
+    if (navn !== null) assert.ok(navn in FASEKODE, `fasenavn() ga «${navn}», som ikke er i FASEKODE`);
+  }
 });

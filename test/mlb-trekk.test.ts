@@ -57,7 +57,9 @@ import {
   KONVENSJON_NAVN,
   KONVENSJONSREGLER,
   LOVLIG_LENGDE,
+  LOVLIG_KODER,
   LOVLIG_NAVN,
+  LOVLIG_UTELATT,
   MAKRO_LENGDE,
   MAKRO_NAVN,
   MESO_LENGDE,
@@ -317,10 +319,20 @@ test("MLB-trekk: LOVLIG-blokken ER handlingsrommets maske, plass for plass", () 
     sett[beslutning]++;
 
     const m = maske(visning, s.giving, TOMT_DELVALG);
-    for (let i = 0; i < HANDLING_LENGDE; i++) {
-      if (v[b + i] !== m[i]) {
-        feil.push(`${beslutning}: lovlig.${HANDLING_NAVN[i]} er ${v[b + i]}, masken sier ${m[i]}`);
+    // §126: blokken har en plass per kode i `LOVLIG_KODER`, ikke per kode i
+    // handlingsrommet. Sammenlikningen gaar plass for plass gjennom det kartet,
+    // saa den er fortsatt bit-for-bit mot masken og ikke «enig med den».
+    for (let i = 0; i < LOVLIG_KODER.length; i++) {
+      const k = LOVLIG_KODER[i]!;
+      if (v[b + i] !== m[k]) {
+        feil.push(`${beslutning}: lovlig.${HANDLING_NAVN[k]} er ${v[b + i]}, masken sier ${m[k]}`);
       }
+    }
+    // Og den andre retningen: en UTELATT kode maa vaere ulovlig. Er den ikke
+    // det, mangler blokken en plass som baerer informasjon.
+    for (const navn of LOVLIG_UTELATT) {
+      const k = HANDLING_NAVN.indexOf(navn);
+      if (m[k] !== 0) feil.push(`${beslutning}: den utelatte ${navn} var LOVLIG`);
     }
 
     // Kryssjekk mot motoren i spillefasen: et merket kort MÅ være lovlig, og
@@ -337,7 +349,7 @@ test("MLB-trekk: LOVLIG-blokken ER handlingsrommets maske, plass for plass", () 
     // Delsteget må være satt nøyaktig når det finnes ett.
     const steg = nesteDelsteg(visning, TOMT_DELVALG);
     let antallSteg = 0;
-    for (let i = 0; i < 5; i++) if (v[b + HANDLING_LENGDE + i] === 1) antallSteg++;
+    for (let i = 0; i < 5; i++) if (v[b + LOVLIG_KODER.length + i] === 1) antallSteg++;
     if (antallSteg !== (steg === null ? 0 : 1)) {
       feil.push(`${beslutning}: ${antallSteg} delsteg satt, forventet ${steg === null ? 0 : 1}`);
     }
@@ -482,11 +494,13 @@ test("MLB-trekk: ingen blokk står konstant null over et representativt utvalg",
   assert.ok((levende.get("TRO") ?? 0) >= 10, "usett-masken i TRO-blokken fylles ikke");
 });
 
-test("MLB-trekk: trohodet fyller TRO-blokken og setter tilgjengelig-flagget", () => {
+test("MLB-trekk: trohodet FYLLER TRO-blokken, og flagget skiller av fra flat", () => {
   /**
-   * Et FALSKT trohode med en kjent fordeling. Poenget er ikke om troen er god —
-   * det er at koblingen finnes. Sanseblokken var riktig bygd og leverte nuller
-   * fordi ingen kaller sendte inn troen; her prøves nettopp den stien.
+   * §126: blokken var bygd, registrert og eksakt null i hver rad i ti epoker,
+   * fordi ingen driver satte `tronett`. Den er nå påkoblet i spillingen, i
+   * gjenspillingen og i `spekagent.ts`. Prøven her er den samme som før — at
+   * STIEN virker — og den er viktigere nå enn den var, for den er det eneste
+   * som skiller «koblet på» fra «trodde vi koblet på».
    */
   const falskt = {
     fordeling(): number[][] {
@@ -494,7 +508,7 @@ test("MLB-trekk: trohodet fyller TRO-blokken og setter tilgjengelig-flagget", ()
     },
   };
   let prøvd = 0;
-  gåGjennom(1, (s, sete, beslutning) => {
+  gåGjennom(1, (s, sete) => {
     if (s.fase !== "SPILL" || prøvd > 40) return;
     const visning = spillerVisning(s, sete);
     const utenTro = byggTrekk(visning, kontekstFor(s));
@@ -521,9 +535,7 @@ test("MLB-trekk: trohodet fyller TRO-blokken og setter tilgjengelig-flagget", ()
     }
   });
   assert.ok(prøvd > 20, `bare ${prøvd} stillinger prøvd`);
-});
-
-// ===========================================================================
+});// ===========================================================================
 // 6. KONVENSJONSBLOKKEN sier hva den påstår
 // ===========================================================================
 

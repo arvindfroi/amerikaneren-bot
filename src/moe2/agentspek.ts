@@ -46,6 +46,7 @@ import { lagRng } from "../kort.ts";
 import { Økt } from "./okt.ts";
 import { Sandkassenett } from "../mlb/nett.ts";
 import { Sandkasseagent } from "../mlb/spekagent.ts";
+import { MlbTronett } from "../mlb/tronett.ts";
 
 /**
  * Nettene leses ÉN gang og deles. `E1Agent` holder ingen tilstand mellom
@@ -1249,6 +1250,24 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
    */
   if (indre.startsWith("mlb:")) {
     let rest = indre.slice(4);
+    /**
+     * ============ TROEN SOM INNGANG, I SPEKKEN (§126) ==================
+     *
+     * `mlb:<vekter>~<trosti>` kobler det EKSTERNE trohodet paa som inngang.
+     * Uten `~` staar TRO-blokkens 209 plasser paa null.
+     *
+     * Den maa staa I SPEKKEN og ikke i en miljoevariabel eller en standardsti,
+     * fordi spekstrengen er det som logges i hver eneste maalerad. Vekter
+     * trent MED troen paa og maalt UTEN ville gitt et tall som ser ut som en
+     * daarlig bot, og ingenting i loggen ville sagt hvorfor. Naa staar det der.
+     */
+    let trosti: string | null = null;
+    const tilde = rest.lastIndexOf("~");
+    if (tilde >= 0) {
+      trosti = rest.slice(tilde + 1);
+      rest = rest.slice(0, tilde);
+      if (trosti === "") throw new Error(`Tom trosti i «${indre}»`);
+    }
     let hukommelse = true;
     if (rest.endsWith("h0")) {
       hukommelse = false;
@@ -1261,7 +1280,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     const nett = kilde.startsWith("tilfeldig")
       ? Sandkassenett.tilfeldig(tall(kilde.slice(9), 0, `froe i «${indre}»`))
       : Sandkassenett.fraFil(kilde);
-    return new Sandkasseagent(nett, { temperatur, hukommelse }) as unknown as Spekagent;
+    const tronett = trosti === null ? null : MlbTronett.fraBytes(readFileSync(trosti));
+    return new Sandkasseagent(nett, { temperatur, hukommelse, tronett }) as unknown as Spekagent;
   }
   if (indre.startsWith("e1:")) {
     const rest = indre.slice(3);

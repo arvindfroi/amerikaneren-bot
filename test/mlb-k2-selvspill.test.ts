@@ -50,6 +50,7 @@ import { Hukommelse } from "../src/mlb/hukommelse.ts";
 import { maske, nesteDelsteg, TOMT_DELVALG, type Delvalg, type Giving } from "../src/mlb/handling.ts";
 import { byggTrekk } from "../src/mlb/trekk.ts";
 import { velgKode, type Framover, type NettLik } from "../src/mlb/selvspill.ts";
+import { Sandkassenett } from "../src/mlb/nett.ts";
 
 // ===========================================================================
 // Riggen
@@ -104,7 +105,6 @@ function lagVelger(nett: NettLik): Velg {
       giving: GIVING,
       delvalg,
       hukommelse: huk,
-      tronett: null,
     });
     /**
      * TEMPERATUR 0. Med sampling ville prøven målt RNG-strømmen og ikke
@@ -209,6 +209,42 @@ test("K2/selvspill: valgt kode er identisk når BARE de skjulte hendene byttes �
       r.avvik.slice(0, 8).join("\n"),
   );
 });
+
+/**
+ * ===================== OG DEN SAMME PRØVEN PÅ EPOKENS EGNE VEKTER ========
+ *
+ * `MLB_K2_NETT` bytter ut forsterkeren med en ekte vektfil, akkurat som i
+ * `mlb-k2-nett.test.ts`. Uten den prøver denne fila BESLUTNINGSLØKKA — som er
+ * det den er til for — men ikke de vektene som faktisk skal spille.
+ *
+ * §124 fant nøyaktig det hullet: en K2-prøve testet arkitekturen og ikke
+ * vektene. `examples/mlb-krav.ts` setter derfor variabelen alltid, og med den
+ * satt gir hver eneste K2-prøve i batteriet en blindhetsattest på det som
+ * kjører.
+ *
+ * FORSTERKEREN BLIR STÅENDE OVER, og det er med vilje: et trent nett kan være
+ * ufølsomt for nettopp det trekket som lekker, og da ville en grønn test på
+ * vektene alene ikke betydd noe. De to prøvene svarer på hver sin halvdel.
+ */
+const VEKTFIL = process.env.MLB_K2_NETT;
+test(
+  "K2/selvspill: samme prøve på EPOKENS EGNE VEKTER (MLB_K2_NETT)",
+  { skip: VEKTFIL === undefined || VEKTFIL === "" ? "MLB_K2_NETT er ikke satt" : false },
+  () => {
+    const nett = VEKTFIL!.startsWith("tilfeldig")
+      ? Sandkassenett.tilfeldig(Number(VEKTFIL!.slice(9)) || 0)
+      : Sandkassenett.fraFil(VEKTFIL!);
+    const r = prøv(lagVelger(nett), 3, 3, 2);
+    assert.ok(r.stillinger >= 20, `bare ${r.stillinger} stillinger — prøven beviser ingenting`);
+    assert.deepEqual(
+      r.avvik.slice(0, 8),
+      [],
+      `JUKS med de EKTE vektene (${VEKTFIL}): valget avhenger av skjulte kort.\n` +
+        `${r.avvik.length} avvik. Ett er nok.\n\n` +
+        r.avvik.slice(0, 8).join("\n"),
+    );
+  },
+);
 
 test("K2/selvspill: prøven kan FEILE — et nett som ser ÉN bit skal bli tatt", () => {
   /**
