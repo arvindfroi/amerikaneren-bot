@@ -183,8 +183,15 @@ function k2(r: Rigg): Kravrad {
    * ARKITEKTUREN. Det var nettopp hullet §124 fant.
    */
   const res = kjørNode(["--test", ...K2_PRØVER], { MLB_K2_NETT: r.vekt });
-  const pass = /^# pass (\d+)/m.exec(res.ut)?.[1] ?? "?";
-  const fail = /^# fail (\d+)/m.exec(res.ut)?.[1] ?? "?";
+  /**
+   * BEGGE RAPPORTFORMENE. `node --test` skriver «# pass N» med TAP-rapportøren
+   * og «ℹ pass N» med `spec`, som er standard når utdata er et rør. Første
+   * utkast leste bare den første og skrev «? prøver grønne» i tabellen — et
+   * spørsmålstegn der et tall skulle stått, i den ene raden som kan avgjøres
+   * absolutt.
+   */
+  const pass = /^(?:#|ℹ)\s*pass (\d+)/m.exec(res.ut)?.[1] ?? "?";
+  const fail = /^(?:#|ℹ)\s*fail (\d+)/m.exec(res.ut)?.[1] ?? "?";
   /**
    * FELLA ER ALLEREDE INNE I PRØVENE: hver av de fire har en jukserarm som
    * lekker ÉN bit og skal bli tatt. Kjøres de grønt, har begge halvdelene

@@ -290,3 +290,91 @@ epoke 10 (`analyse/mlb-motalle-del1.tsv`, 600 giv per motstander):
 Den disjunktheten K6 krever ble samtidig en styrkesplitt, uten at det var
 tilsiktet. Det påvirker ikke K6-tallene i seg selv, men det betyr at **ingen av
 de interne kurvene i §123 kan leses som framgang mot noe som er verdt å slå.**
+
+---
+
+## Kravbatteriet — hvordan MLB måles mot K2–K8
+
+**Alle tall over gjelder DAGENS STAKK.** Sandkassen hadde ingen slik måling i
+det hele tatt: vi kunne si om et MLB-nett slår `rask`, og ingenting om det
+innfrir et eneste krav. `examples/mlb-krav.ts` lukker det.
+
+```
+node examples/mlb-krav.ts --vekter e1-modell/mlb-beste.bin \
+  --tro e1-modell/mlb-tro.bin --ut analyse/mlb-krav
+
+node examples/mlb-krav.ts --vekter tilfeldig7310001 --uten-tro --kjapp \
+  --bare k4,k5,k6          # ett underutvalg, små tall — apparattest, ikke kravdom
+```
+
+Batteriet skriver `analyse/mlb-krav.tsv` **rad for rad mens den lages** og en
+lesbar `.txt` til slutt. Hver rad har måltallet, kontrollarmen, fella og
+`innfridd`-dommen.
+
+### Hva som er gjenbrukt, og hva som ikke kunne bli det
+
+| krav | prøve | gjenbrukt? |
+|---|---|---|
+| **K2** | `test/mlb-k2-{tro,trekk,nett,selvspill}.test.ts` med `MLB_K2_NETT=<vekt>` | **helt** |
+| **K3** | `examples/tak-kart.ts --fase bud --spek mlb:<vekt>` | **helt** |
+| **K7** | `examples/tak-kart.ts --fase spill --fra 7 --til 11` | **helt** |
+| **K8** | `examples/mlb-k8.ts --nett <trofil>` | **helt** |
+| **K4** | `examples/mlb-k4.ts` | nei — se under |
+| **K5** | `examples/mlb-k5.ts` | riggen ja, armene nei |
+| **K6** | `examples/mlb-k6.ts` | måltallet ja, benken og armene nei |
+
+De tre siste kunne ikke gjenbrukes, og grunnen er den samme hver gang:
+`k4-hukommelse.ts` måler `Profilbok` og `Økt`, `k5-kontekst.ts` leser
+alpha-muens utfallsvektor, `k6-vaner.ts` skrur på `okt:`-laget. **Ingen av de
+tre finnes i sandkassen** — hukommelsen der er 144 *innganger* i
+trekkvektoren, ikke et lag utenpå et nett. Måltallet i K6 er likevel `k6-vaner`
+sitt ordrett, og K5 bruker `medStilling`/`motstandersete` derfra.
+
+`MLB_K2_NETT` er poenget i K2-raden: uten den prøver K2 **arkitekturen**, ikke
+vektene. Det var hullet §124 fant, og batteriet setter variabelen alltid.
+
+### Hver rad har en kontroll og en felle
+
+`AdamsMax.md`-vedlegget, håndhevet i tabellen:
+
+| krav | kontrollarm (kjent tall) | falsifiseringsarm (må bli tatt) |
+|---|---|---|
+| K2 | bit-identisk valg når skjulte hender byttes | fire jukserarmer som lekker én bit |
+| K3/K7 | tomt vindu (`--fra 99 --til 99`) → **+0,0000** | dagens stakk i samme vindu, samme giv |
+| K4 | `h0` mot `h0` → **+0,0000** | nett plantet på hukommelsesblokka |
+| K5 | lik stilling i begge armer → **+0,0000** | nett plantet på `makro.racepress` |
+| K6 | `h0` mot `h0`, dd = **+0,0000** per rad; speilarm på **0,2500** | nett plantet på hukommelsesblokka |
+| K8 | gulv = `ln 3` → 0 % av veien; `gulv+` skrives ved siden av | slår trohodet `gulv+` i det hele tatt? |
+
+En rad der kontrollen bommer eller fella slipper unna merkes **STUM**, og
+tallet skal da ikke leses. `test/mlb-krav.test.ts` låser begge halvdelene fast.
+
+### Tre ting som må stå
+
+1. **Løpene må være lange.** Ved `målPoeng 30` varer en kamp 5,68 runder, og
+   K4 og K6 er strukturelt ulærbare. Standard i batteriet er `målPoeng 300`,
+   `maksRunder 40`.
+2. **K6 måles på `VANER_TEST`, aldri på treningssettet.** Ellers måler prøven
+   gjenkjenning i vektene i stedet for læring i løpet.
+3. **K4 prøve B (framoverblikket) er ikke målbar.** Sandkassen har ingen
+   alpha-mu, og søket den har (`src/mlb/sok.ts`) står av i hver driver —
+   `Sete.søk` er `undefined` overalt, og AVGJØRELSE 5 forbyr søk i gradienten.
+   Raden sier «ikke målbar» i stedet for å oppgi et tall.
+
+### To defekter funnet av batteriet, ingen av dem rettet her
+
+**`observerRunde` mot `observer`.** `Sandkasseagent` eksponerer
+bokføringskroken som `observerRunde`, mens `examples/kamp.ts`, `okt:`, `vr:`,
+`amu:`, `profil:` og `sumvelger` alle kaller `observer`. Navnene møtes aldri, så
+et `mlb:`-lag på **kampbenken får aldri bokført en eneste runde** — hukommelsen
+står eksakt null hele kampen. Det er brudd nummer 2 fra §K6 om igjen, ett hus
+lenger bort. Målt, ikke påstått: `mlb-k4.ts`-armen `PLANTET-utikk` er et nett
+med en beviselig hukommelseseffekt og et tikk som aldri kalles, og den måler
+**+0,0000**. K4- og K6-prøvene bruker derfor drivere som tikker riktig
+(`spillKamp` i `src/mlb/selvspill.ts`).
+
+**Ingen MLB-vektfil på disk kan lastes av HEAD.** Hver `e1-modell/mlb-*.bin` er
+skrevet mot en stamme på **1 032** trekk; HEAD har **1 031** etter at §126
+fjernet én inngang. `Sandkassenett.fraFil` avviser alle. Batteriet er derfor
+røykprøvd mot `tilfeldig<frø>`, som alltid bygges mot HEADs bredde — og de
+tallene er en apparattest, ikke en kravdom.
