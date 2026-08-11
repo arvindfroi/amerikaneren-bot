@@ -531,6 +531,7 @@ function k8(r: Rigg): Kravrad {
   const andel = (x: number): number => (Math.log(3) - x) / Math.log(3);
   const nett = snitt(rader.map((x) => x.nett));
   const gulvPluss = snitt(rader.map((x) => x.gulvPluss));
+  const gulvMålt = snitt(rader.map((x) => x.gulv));
   const nettSe = se(rader.map((x) => x.nett));
   const slårGulv = Number.isFinite(nett) && nett < gulvPluss;
   return {
@@ -538,8 +539,21 @@ function k8(r: Rigg): Kravrad {
     bånd: r.bånd,
     navn: "predikere motstandernes kort",
     målt: `${(100 * andel(nett)).toFixed(2)} % av veien gulv → tak (log-tap ${nett.toFixed(4)} ± ${nettSe.toFixed(4)}, n=${rader.length})`,
-    kontroll: `gulv (uniform over 3) = ${Math.log(3).toFixed(4)}, gulv+ = ${gulvPluss.toFixed(4)} → ${(100 * andel(gulvPluss)).toFixed(2)} %`,
-    kontrollOk: rader.length > 0 && Math.abs(andel(Math.log(3))) < 1e-12,
+    kontroll:
+      `gulvet i FILA = ${gulvMålt.toFixed(5)} mot ln 3 = ${Math.log(3).toFixed(5)}; ` +
+      `gulv+ = ${gulvPluss.toFixed(4)} → ${(100 * andel(gulvPluss)).toFixed(2)} %`,
+    /**
+     * KONTROLLEN LESER GULVET UT AV DATAENE, ikke ut av formelen.
+     *
+     * Første utkast sammenliknet `andel(ln 3)` med 0 — en tautologi som er sann
+     * uansett hva fila inneholder. Nå kreves det at `gulv`-kolonnen `mlb-k8.ts`
+     * FAKTISK skrev er `ln 3` (den skrives som `-log(1/3)` per kort). Er den
+     * ikke det, er skalaen prosentandelen regnes mot en annen enn §119 sin, og
+     * tallene kan ikke sammenliknes med 12,34 %.
+     *
+     * Den er fortsatt den svakeste av de sju kontrollene, og det skal stå.
+     */
+    kontrollOk: rader.length > 0 && Math.abs(gulvMålt - Math.log(3)) < 1e-4,
     felle: `slår trohodet gulv+? ${slårGulv ? "ja" : "NEI"}`,
     felleOk: slårGulv,
     innfridd: rader.length === 0 ? "stum" : slårGulv ? "ja" : "nei",
