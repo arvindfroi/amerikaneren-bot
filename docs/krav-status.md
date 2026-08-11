@@ -301,7 +301,7 @@ innfrir et eneste krav. `examples/mlb-krav.ts` lukker det.
 
 ```
 node examples/mlb-krav.ts --vekter e1-modell/mlb-beste.bin \
-  --tro e1-modell/mlb-tro.bin --ut analyse/mlb-krav
+  --tro e1-modell/mlb-tro.bin --to-band --ut analyse/mlb-krav
 
 node examples/mlb-krav.ts --vekter tilfeldig7310001 --uten-tro --kjapp \
   --bare k4,k5,k6          # ett underutvalg, små tall — apparattest, ikke kravdom
@@ -310,6 +310,17 @@ node examples/mlb-krav.ts --vekter tilfeldig7310001 --uten-tro --kjapp \
 Batteriet skriver `analyse/mlb-krav.tsv` **rad for rad mens den lages** og en
 lesbar `.txt` til slutt. Hver rad har måltallet, kontrollarmen, fella og
 `innfridd`-dommen.
+
+| flagg | hva det styrer |
+|---|---|
+| `--vekter` | vektfila, eller `tilfeldig<frø>` |
+| `--tro` / `--uten-tro` | det eksterne trohodet, som havner i spekstrengen |
+| `--bare k4,k6` | kjør et underutvalg |
+| `--giver` | giv i K5, K7 og K8 |
+| `--budgiver` | giv i K3 **alene** — budvinduet forgreiner seg over fire egne bud og er en helt annen kostnadsklasse enn stikkvinduet |
+| `--kamper` | kamper per vane i K4 og K6 |
+| `--to-band` | kjør ALT i to disjunkte frøbånd. **Ingenting adopteres på ett bånd** — §65 hadde z = 0,71 i det ene og 0,54 i det neste |
+| `--kjapp` | røykmodus. Tallene er da en apparattest, ikke en kravdom |
 
 ### Hva som er gjenbrukt, og hva som ikke kunne bli det
 
@@ -361,7 +372,19 @@ tallet skal da ikke leses. `test/mlb-krav.test.ts` låser begge halvdelene fast.
    `Sete.søk` er `undefined` overalt, og AVGJØRELSE 5 forbyr søk i gradienten.
    Raden sier «ikke målbar» i stedet for å oppgi et tall.
 
-### To defekter funnet av batteriet, ingen av dem rettet her
+### Tre defekter funnet av batteriet
+
+**Sandkassenettet ble bygd på nytt i hver eneste node i taketreet.** `lagIndre`
+delte E1-nettene (`lesNett`) men ikke sandkassenettene, så
+`lagIndre("mlb:...")` kostet **80,4 ms** mot 3,0 ms for `ADAMS_MAALT` — hele
+forskjellen var vektene. `tak-kart.ts` bygger fire agenter per node, og med et
+femstikks vindu er det hundrevis av noder per (giv, sete): K7-raden skrev **tre
+rader på ti minutter** der den skulle skrevet tjuefire. **Rettet** —
+`agentspek.ts` deler nå `Sandkassenett` og `MlbTronett` på samme vilkår og med
+samme begrunnelse som `lesNett`: framoverpasset er en ren funksjon, tilstanden
+ligger i `Sandkasseagent`. Målt etter: **3,2 ms**, altså 25×.
+
+**De to under er IKKE rettet** — filene eies av andre økter.
 
 **`observerRunde` mot `observer`.** `Sandkasseagent` eksponerer
 bokføringskroken som `observerRunde`, mens `examples/kamp.ts`, `okt:`, `vr:`,

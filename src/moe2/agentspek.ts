@@ -60,6 +60,50 @@ export const lesNett = (fil: string): ReturnType<typeof lesE1Nett> => {
 };
 
 /**
+ * SAMME DELING FOR SANDKASSEN — og den er ikke en mikrooptimalisering.
+ *
+ * `Sandkassenett.framover` allokerer alt den bruker og har ingen tilstand
+ * mellom kall, akkurat som `E1Agent`. Tilstanden ligger i `Sandkasseagent`
+ * (hukommelsen og beslutningstelleren), og den bygges fortsatt per agent.
+ * Delingen er derfor trygg av nøyaktig samme grunn som over.
+ *
+ * ============ HVA DEN KOSTET Å IKKE HA ==================================
+ *
+ * `examples/tak-kart.ts` bygger FIRE agenter i hver eneste node i taketreet.
+ * Målt: `lagIndre("mlb:tilfeldig7310001")` tok **80,4 ms** mot 3,0 ms for
+ * `ADAMS_MAALT` — hele forskjellen var at vektene ble bygd på nytt hver gang.
+ * Med et sluttspillvindu på fem stikk er det hundrevis av noder per (giv,
+ * sete), og K7-raden i kravbatteriet skrev tre rader på ti minutter der den
+ * skulle skrevet tjuefire. Kravet var i praksis umålbart for MLB.
+ *
+ * Nøkkelen er KILDESTRENGEN, ikke filstien: `tilfeldig<frø>` er like
+ * deterministisk som en fil, og en prøve som bygger nullarmen sin av et
+ * tilfeldig nett skal ikke betale for det i hver node.
+ */
+const sandkassebuf = new Map<string, Sandkassenett>();
+const lesSandkassenett = (kilde: string): Sandkassenett => {
+  let n = sandkassebuf.get(kilde);
+  if (n === undefined) {
+    n = kilde.startsWith("tilfeldig")
+      ? Sandkassenett.tilfeldig(tall(kilde.slice(9), 0, `froe i «${kilde}»`))
+      : Sandkassenett.fraFil(kilde);
+    sandkassebuf.set(kilde, n);
+  }
+  return n;
+};
+
+/** Det eksterne trohodet, delt på samme vilkår: `fordeling` er en ren funksjon. */
+const trobuf = new Map<string, MlbTronett>();
+const lesTronett = (sti: string): MlbTronett => {
+  let n = trobuf.get(sti);
+  if (n === undefined) {
+    n = MlbTronett.fraBytes(readFileSync(sti));
+    trobuf.set(sti, n);
+  }
+  return n;
+};
+
+/**
  * DEN UTRULLEDE STAKKEN, ett sted.
  *
  * Standardspekene i analyseverktøyene hadde drevet: de sto på
@@ -1277,10 +1321,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     const kilde = at < 0 ? rest : rest.slice(0, at);
     const temperatur = at < 0 ? 0 : tall(rest.slice(at + 1), 0, `temperatur i «${indre}»`);
     if (kilde === "") throw new Error(`Tom vektkilde i «${indre}»`);
-    const nett = kilde.startsWith("tilfeldig")
-      ? Sandkassenett.tilfeldig(tall(kilde.slice(9), 0, `froe i «${indre}»`))
-      : Sandkassenett.fraFil(kilde);
-    const tronett = trosti === null ? null : MlbTronett.fraBytes(readFileSync(trosti));
+    const nett = lesSandkassenett(kilde);
+    const tronett = trosti === null ? null : lesTronett(trosti);
     return new Sandkasseagent(nett, { temperatur, hukommelse, tronett }) as unknown as Spekagent;
   }
   if (indre.startsWith("e1:")) {

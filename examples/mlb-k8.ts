@@ -74,6 +74,15 @@ const VRAKALFA = Number(arg("--vrakalfa", "2"));
 const NETTFIL = arg("--nett", "e1-modell/mlb-tro.bin");
 const UT = arg("--ut", "analyse/mlb-k8-0.jsonl");
 const [SI, SN] = (arg("--skard", "0/1").split("/") as [string, string]).map(Number) as [number, number];
+/**
+ * FRØBÅNDET, som flagg og ikke som konstant.
+ *
+ * Sto hardkodet på 12 000 000. Da kan prøven ikke REPLIKERES i et disjunkt
+ * bånd, og vedlegget i `AdamsMax.md` krever nettopp det: «parret på giv,
+ * replikert i disjunkte frøbånd». Standardverdien er den gamle konstanten, så
+ * hver eksisterende rad i `analyse/` er bit-identisk med før.
+ */
+const FRØ = tall(arg("--froe", "12000000"), 12_000_000, "froe");
 
 /** Relativt sete, samme koding som `fyllSanser` og `monteTro`. */
 const rel = (sete: number, p: number, n: number): number => (p - sete + n) % n;
@@ -123,7 +132,7 @@ let n = 0;
 
 for (let g = 0; g < GIVER; g++) {
   if (g % SN !== SI) continue;
-  const frø = 12_000_000 + g * 6151;
+  const frø = FRØ + g * 6151;
   const ag = [0, 1, 2, 3].map(() => lagIndre(DRIVER));
   let s: GameState = opprettSpill({ antallSpillere: 4 }, frø);
   let vakt = 0;

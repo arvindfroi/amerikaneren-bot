@@ -76,7 +76,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 import { ADAMS_MAALT, tall } from "../src/moe2/agentspek.ts";
-import { fmt, mlbSpek, Radskriver, se, snitt } from "./mlb-krav-felles.ts";
+import { fmt, mlbSpek, Radskriver, se, snitt, tegntest } from "./mlb-krav-felles.ts";
 
 // ===========================================================================
 // 1. Dagens stakk — ARKIVERTE tall, med kilde
@@ -110,6 +110,16 @@ export const DAGENS: Record<string, { verdi: string; kilde: string }> = {
 
 export interface Kravrad {
   readonly krav: string;
+  /**
+   * FRØBÅNDET raden ble målt i.
+   *
+   * `AdamsMax.md`-vedlegget punkt 1: «replikert i disjunkte frøbånd». Det er
+   * ikke pynt — auksjonskorreksjonen (§65) hadde z = 0,71 i ett bånd og 0,54 i
+   * det neste og ble forkastet på nettopp det. Kjøres batteriet med to bånd,
+   * står hver krav to ganger i tabellen, og en effekt som bare finnes i det ene
+   * er synlig i stedet for utjevnet.
+   */
+  readonly bånd: number;
   readonly navn: string;
   /** Måltallet, formatert med sin egen enhet. */
   readonly målt: string;
@@ -146,10 +156,25 @@ function lesJsonl<T>(sti: string): T[] {
     .map((l) => JSON.parse(l) as T);
 }
 
-/** Snitt og SE av `diff` i en `tak-kart`-fil. Måltallet for K3 og K7. */
-function takGap(sti: string): { n: number; snitt: number; se: number } {
+/**
+ * Snitt, SE OG TEGNTEST av `diff` i en `tak-kart`-fil. Måltallet for K3 og K7.
+ *
+ * Tegntesten står ved siden av snittet fordi rundepoengene har ±50 og ±100 i
+ * halene: to tredeler av de +0,947 i K7 lå i 16 giver av 1 000 (§117), så et
+ * snitt uten tegnet bak seg kan være båret av en håndfull kontraktvipp.
+ */
+function takGap(sti: string): {
+  n: number;
+  snitt: number;
+  se: number;
+  pos: number;
+  neg: number;
+  p: number;
+} {
   const d = lesJsonl<{ diff: number }>(sti).map((r) => r.diff);
-  return { n: d.length, snitt: snitt(d), se: se(d) };
+  const pos = d.filter((x) => x > 0).length;
+  const neg = d.filter((x) => x < 0).length;
+  return { n: d.length, snitt: snitt(d), se: se(d), pos, neg, p: tegntest(pos, pos + neg) };
 }
 
 // ===========================================================================
@@ -161,6 +186,23 @@ interface Rigg {
   readonly tro: string | null;
   readonly utBase: string;
   readonly giver: number;
+  /**
+   * EGET GIVTALL FOR BUDVINDUET, og det er ikke en bekvemmelighet.
+   *
+   * `tak-kart.ts` forgreiner seg over VÅRE valg inne i vinduet, altså ~b^v
+   * blader. Budvinduet har `BUDSJETT = 4` og en b på opptil elleve bud, og
+   * hvert blad er en HEL runde spilt av fire nett. Trikkvinduet har b ≈ 2–3.
+   * Målt i røykmodus: budvinduet skrev ni rader på ti minutter der
+   * sluttspillvinduet var ferdig på under ett.
+   *
+   * Med ett felles `--giver` måtte enten K3 vært uframkommelig eller K7 vært
+   * tynt. To tall løser det, og begge står i rapporten.
+   */
+  readonly budGiver: number;
+  /** Frøbåndets basis. Disjunkte bånd = disjunkte tallrekker, ingen overlapp. */
+  readonly frø: number;
+  /** Båndets nummer, bare for merking i tabellen. */
+  readonly bånd: number;
   readonly kamper: number;
   readonly målPoeng: number;
   readonly maksRunder: number;
@@ -200,6 +242,7 @@ function k2(r: Rigg): Kravrad {
   const jukserne = (res.ut.match(/kan FEILE/g) ?? []).length;
   return {
     krav: "K2",
+    bånd: r.bånd,
     navn: "aldri jukse",
     målt: `${pass} prøver grønne, ${fail} røde`,
     kontroll: "bit-identisk valg under bytte av skjulte hender",
@@ -233,12 +276,14 @@ function takvindu(
 ): Kravrad {
   const spek = mlbSpek({ vekt: r.vekt, tro: r.tro });
   const base = `${r.utBase}-${krav.toLowerCase()}`;
-  const kjør = (merke: string, sp: string, v: string[]): { n: number; snitt: number; se: number } => {
+  const giver = krav === "K3" ? r.budGiver : r.giver;
+  const kjør = (merke: string, sp: string, v: string[]): ReturnType<typeof takGap> => {
     const fil = `${base}-${merke}.jsonl`;
     new Radskriver(fil);
     kjørNode([
       "examples/tak-kart.ts",
-      "--giver", String(r.giver),
+      "--giver", String(giver),
+      "--froe", String(r.frø),
       "--spek", sp,
       "--merke", merke,
       "--ut", fil,
@@ -251,18 +296,37 @@ function takvindu(
   const stakk = kjør("stakk", ADAMS_MAALT, vindu);
   // FELLA: et tomt vindu MÅ gi eksakt 0. Slår den ikke til, måler kartet noe
   // annet enn vinduet — og da er begge tallene over uleselige.
+  // Kontrollen er BILLIG uansett vindu — den forgreiner seg aldri — men den
+  // skal ha samme antall giv som armen den kontrollerer, ellers er den ikke
+  // den samme målingen.
   const tom = kjør("tomtvindu", spek, ["--fase", "spill", "--fra", "99", "--til", "99"]);
 
+  /**
+   * PORTEN ER «GAPET ER INNENFOR 2 SE AV NULL» — og den er FARLIG ALENE.
+   *
+   * Med få giv er SE stor, og da er ALT innenfor 2 SE. En måling uten kraft
+   * ville dermed levert «innfridd» for et hvilket som helst nett. Målt i
+   * røykmodus: 8 rader ga +7,88 ± 4,01, altså «ja».
+   *
+   * Kraften måles derfor av FELLA: dagens stakk i nøyaktig samme vindu på
+   * nøyaktig samme giv. Har den ikke et påvisbart gap heller, kan ikke
+   * målingen skille en lukket port fra en tom benk, og raden er STUM.
+   */
   const innfridd = Number.isFinite(mlb.snitt) && Math.abs(mlb.snitt) <= 2 * mlb.se;
+  const kontrollOk = tom.n > 0 && Math.abs(tom.snitt) < 1e-9;
+  const felleOk = Number.isFinite(stakk.snitt) && stakk.snitt > 2 * stakk.se;
   return {
     krav,
+    bånd: r.bånd,
     navn,
-    målt: `${fmt(mlb.snitt)} ± ${mlb.se.toFixed(4)} poeng/runde igjen (n=${mlb.n})`,
+    målt:
+      `${fmt(mlb.snitt)} ± ${mlb.se.toFixed(4)} poeng/runde igjen ` +
+      `(n=${mlb.n}, ${mlb.pos}/${mlb.pos + mlb.neg} opp, p=${mlb.p.toFixed(3)})`,
     kontroll: `tomt vindu: ${fmt(tom.snitt)} (må være +0,0000)`,
-    kontrollOk: tom.n > 0 && Math.abs(tom.snitt) < 1e-9,
+    kontrollOk,
     felle: `dagens stakk i samme vindu, samme giv: ${fmt(stakk.snitt)} ± ${stakk.se.toFixed(4)}`,
-    felleOk: Number.isFinite(stakk.snitt) && stakk.snitt > 2 * stakk.se,
-    innfridd: tom.n === 0 || Math.abs(tom.snitt) >= 1e-9 ? "stum" : innfridd ? "ja" : "nei",
+    felleOk,
+    innfridd: !kontrollOk || !felleOk ? "stum" : innfridd ? "ja" : "nei",
     kilde: `examples/tak-kart.ts ${vindu.join(" ")}`,
     merknad: port,
   };
@@ -280,6 +344,7 @@ function k4(r: Rigg): Kravrad {
     "--maalrunde", String(r.målRunde),
     "--maalpoeng", String(r.målPoeng),
     "--maksrunder", String(r.maksRunder),
+    "--froe", String(r.frø),
     "--ut", base,
   ]);
   const rader = lesJsonl<{ arm: string; ulikt: number }>(`${base}.jsonl`);
@@ -294,6 +359,7 @@ function k4(r: Rigg): Kravrad {
   const kOk = kontroll.n > 0 && kontroll.a === 0;
   return {
     krav: "K4",
+    bånd: r.bånd,
     navn: "hukommelse over hele spillet",
     målt: `${fmt(mlb.a)} av valgene endres av hukommelsen (n=${mlb.n})`,
     kontroll: `h0 mot h0: ${fmt(kontroll.a)} (må være +0,0000)`,
@@ -318,6 +384,7 @@ function k5(r: Rigg): Kravrad {
     "--vekter", r.vekt,
     ...(r.tro === null ? ["--uten-tro"] : ["--tro", r.tro]),
     "--giver", String(r.giver),
+    "--froe", String(r.frø),
     "--ut", base,
   ]);
   type Rad = { arm: string; ulikt: number; tv: number; verdigap: number };
@@ -344,6 +411,7 @@ function k5(r: Rigg): Kravrad {
   const retning = mlb.lavere > mlb.høyere;
   return {
     krav: "K5",
+    bånd: r.bånd,
     navn: "forstå konteksten og tilpasse seg",
     målt:
       `${fmt(mlb.andel)} endrede valg, TV ${fmt(mlb.tv)} (n=${mlb.n}); ` +
@@ -371,6 +439,7 @@ function k6(r: Rigg): Kravrad {
     "--kamper", String(r.kamper),
     "--maalpoeng", String(r.målPoeng),
     "--maksrunder", String(r.maksRunder),
+    "--froe", String(r.frø),
     "--ut", base,
   ]);
   type Rad = { arm: string; rundeNr: number; dd: number };
@@ -408,6 +477,7 @@ function k6(r: Rigg): Kravrad {
   const felleOk = Math.abs(plantet.dd) > 3 * plantet.ddSe;
   return {
     krav: "K6",
+    bånd: r.bånd,
     navn: "lære vaner og utnytte dem",
     målt:
       `stigning ${fmt(mlb.b)} ± ${mlb.bse.toFixed(4)} per runde ` +
@@ -431,6 +501,7 @@ function k8(r: Rigg): Kravrad {
   if (r.tro === null) {
     return {
       krav: "K8",
+      bånd: r.bånd,
       navn: "predikere motstandernes kort",
       målt: "ikke kjørt — ingen trofil",
       kontroll: "—",
@@ -448,6 +519,7 @@ function k8(r: Rigg): Kravrad {
     "examples/mlb-k8.ts",
     "--giver", String(r.giver),
     "--nett", r.tro,
+    "--froe", String(r.frø),
     "--ut", fil,
   ]);
   type Rad = { gulv: number; gulvPluss: number; nett: number; av?: number; bayes?: number };
@@ -463,6 +535,7 @@ function k8(r: Rigg): Kravrad {
   const slårGulv = Number.isFinite(nett) && nett < gulvPluss;
   return {
     krav: "K8",
+    bånd: r.bånd,
     navn: "predikere motstandernes kort",
     målt: `${(100 * andel(nett)).toFixed(2)} % av veien gulv → tak (log-tap ${nett.toFixed(4)} ± ${nettSe.toFixed(4)}, n=${rader.length})`,
     kontroll: `gulv (uniform over 3) = ${Math.log(3).toFixed(4)}, gulv+ = ${gulvPluss.toFixed(4)} → ${(100 * andel(gulvPluss)).toFixed(2)} %`,
@@ -506,10 +579,18 @@ function kjør(): void {
   let utBase = "analyse/mlb-krav";
   let bare: string[] = [];
   let giver = 120;
+  let budGiver = 30;
   let kamper = 6;
   let målPoeng = 300;
   let maksRunder = 40;
   let målRunde = 8;
+  /**
+   * DISJUNKTE FRØBÅND. Ett bånd er standard fordi batteriet er dyrt; to er det
+   * `AdamsMax.md`-vedlegget krever før noe adopteres. Båndene er 50 millioner
+   * fra hverandre, og hver prøve stepper med under 10 000 per giv, så de kan
+   * ikke overlappe uansett hvor stort `--giver` settes.
+   */
+  let bånd = [7_700_000];
 
   for (let i = 2; i < process.argv.length; i++) {
     const a = process.argv[i]!;
@@ -520,14 +601,18 @@ function kjør(): void {
     else if (a === "--ut") utBase = v ?? utBase;
     else if (a === "--bare") bare = (v ?? "").split(",").filter((x) => x !== "").map((x) => x.toLowerCase());
     else if (a === "--giver") giver = tall(v, giver, "--giver");
+    else if (a === "--budgiver") budGiver = tall(v, budGiver, "--budgiver");
     else if (a === "--kamper") kamper = tall(v, kamper, "--kamper");
     else if (a === "--maalpoeng") målPoeng = tall(v, målPoeng, "--maalpoeng");
     else if (a === "--maksrunder") maksRunder = tall(v, maksRunder, "--maksrunder");
     else if (a === "--maalrunde") målRunde = tall(v, målRunde, "--maalrunde");
+    else if (a === "--band") bånd = (v ?? "").split(",").filter((x) => x !== "").map((x) => tall(x, 0, "--band"));
+    else if (a === "--to-band") bånd = [7_700_000, 57_700_000];
     else if (a === "--kjapp") {
       // RØYKMODUS. Tallene er da IKKE en kravdom — de viser at apparatet
       // virker. Det står i rapporten, ikke bare her.
       giver = 6;
+      budGiver = 2;
       kamper = 2;
       målPoeng = 120;
       maksRunder = 12;
@@ -535,7 +620,6 @@ function kjør(): void {
     }
   }
 
-  const rigg: Rigg = { vekt, tro, utBase, giver, kamper, målPoeng, maksRunder, målRunde };
   const navn = bare.length === 0 ? Object.keys(ALLE) : bare.filter((k) => k in ALLE);
   if (navn.length === 0) throw new Error(`Ingen kjente krav i «${bare.join(",")}». Finnes: ${Object.keys(ALLE).join(", ")}`);
 
@@ -547,30 +631,51 @@ function kjør(): void {
    */
   const tsv = new Radskriver(
     `${utBase}.tsv`,
-    "krav\tnavn\tmaalt\tkontroll\tkontroll_ok\tfelle\tfelle_ok\tinnfridd\tdagens_stakk\tkilde",
+    "krav\tband\tnavn\tmaalt\tkontroll\tkontroll_ok\tfelle\tfelle_ok\tinnfridd\tdagens_stakk\tkilde",
   );
 
   const rader: Kravrad[] = [];
   const t0 = Date.now();
-  for (const n of navn) {
-    process.stderr.write(`\n=== ${n.toUpperCase()} — kjører ===\n`);
-    const rad = ALLE[n]!(rigg);
-    rader.push(rad);
-    tsv.rad(
-      [
-        rad.krav,
-        rad.navn,
-        rad.målt,
-        rad.kontroll,
-        rad.kontrollOk ? "OK" : "BOMMET",
-        rad.felle,
-        rad.felleOk ? "TATT" : "SLAPP UNNA",
-        rad.innfridd,
-        DAGENS[rad.krav]?.verdi ?? "—",
-        rad.kilde,
-      ].join("\t"),
-    );
-    process.stderr.write(`  ${rad.krav}: ${rad.målt}  [${rad.innfridd}]\n`);
+  for (let b = 0; b < bånd.length; b++) {
+    /**
+     * HVERT BÅND FÅR SIN EGEN UTBASE når det er mer enn ett. Uten det ville
+     * bånd 2 skrevet over bånd 1s råfiler, og «replikert i disjunkte frøbånd»
+     * hadde vært en påstand uten data bak seg.
+     */
+    const rigg: Rigg = {
+      vekt,
+      tro,
+      utBase: bånd.length === 1 ? utBase : `${utBase}-b${b}`,
+      giver,
+      budGiver,
+      frø: bånd[b]!,
+      bånd: b,
+      kamper,
+      målPoeng,
+      maksRunder,
+      målRunde,
+    };
+    for (const n of navn) {
+      process.stderr.write(`\n=== ${n.toUpperCase()} bånd ${b} (frø ${rigg.frø}) — kjører ===\n`);
+      const rad = ALLE[n]!(rigg);
+      rader.push(rad);
+      tsv.rad(
+        [
+          rad.krav,
+          rad.bånd,
+          rad.navn,
+          rad.målt,
+          rad.kontroll,
+          rad.kontrollOk ? "OK" : "BOMMET",
+          rad.felle,
+          rad.felleOk ? "TATT" : "SLAPP UNNA",
+          rad.innfridd,
+          DAGENS[rad.krav]?.verdi ?? "—",
+          rad.kilde,
+        ].join("\t"),
+      );
+      process.stderr.write(`  ${rad.krav} b${b}: ${rad.målt}  [${rad.innfridd}]\n`);
+    }
   }
 
   const L: string[] = [];
@@ -579,11 +684,12 @@ function kjør(): void {
   L.push(`Vekter:    ${vekt}`);
   L.push(`Tro:       ${tro ?? "AV"}`);
   L.push(`Spek:      ${mlbSpek({ vekt, tro })}`);
-  L.push(`Omfang:    ${giver} giv, ${kamper} kamper per vane, løp til ${målPoeng} (maks ${maksRunder} runder)`);
+  L.push(`Omfang:    ${giver} giv (${budGiver} i budvinduet), ${kamper} kamper per vane, løp til ${målPoeng} (maks ${maksRunder} runder)`);
+  L.push(`Frøbånd:   ${bånd.join(", ")}${bånd.length === 1 ? "  — ETT BÅND. Vedlegget krever to før noe adopteres (--to-band)." : "  — disjunkte"}`);
   L.push(`Kjøretid:  ${Math.round((Date.now() - t0) / 1000)} s`);
   L.push("");
   for (const r of rader) {
-    L.push(`--- ${r.krav} — ${r.navn} ---`);
+    L.push(`--- ${r.krav} — ${r.navn}${bånd.length > 1 ? ` (bånd ${r.bånd}, frø ${bånd[r.bånd]})` : ""} ---`);
     L.push(`  MÅLT       ${r.målt}`);
     L.push(`  KONTROLL   ${r.kontroll}   [${r.kontrollOk ? "OK" : "BOMMET"}]`);
     L.push(`  FELLE      ${r.felle}   [${r.felleOk ? "TATT" : "SLAPP UNNA"}]`);
@@ -595,7 +701,22 @@ function kjør(): void {
   }
   const innfridde = rader.filter((r) => r.innfridd === "ja").length;
   const stumme = rader.filter((r) => r.innfridd === "stum").length;
-  L.push(`${innfridde} av ${rader.length} porter lukket.`);
+  L.push(`${innfridde} av ${rader.length} rader lukket porten sin.`);
+  if (bånd.length > 1) {
+    /**
+     * REPLIKASJONEN ER EN EGEN DOM. §65: auksjonskorreksjonen hadde z = 0,71 i
+     * ett bånd og 0,54 i det neste, og ble forkastet på nettopp det. Et krav
+     * som bare innfris i ETT bånd er ikke innfridd.
+     */
+    const perKrav = new Map<string, string[]>();
+    for (const r of rader) perKrav.set(r.krav, [...(perKrav.get(r.krav) ?? []), r.innfridd]);
+    const sprikende = [...perKrav].filter(([, v]) => new Set(v).size > 1).map(([k]) => k);
+    L.push(
+      sprikende.length === 0
+        ? "Alle krav gir samme dom i begge bånd."
+        : `SPRIKER MELLOM BÅNDENE: ${sprikende.join(", ")}. Et krav som bare innfris i ETT bånd er IKKE innfridd.`,
+    );
+  }
   if (stumme > 0) {
     L.push(
       `${stumme} rad(er) er STUMME: kontrollarmen bommet eller fella slapp unna. ` +
