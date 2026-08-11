@@ -55,7 +55,7 @@ function spillMedAdapter(
     if (s.rundeNr >= 40) break;
     const lovlig = lovligeHandlinger(s);
     if (lovlig.fase === "RUNDE_SLUTT") {
-      for (const a of agenter) a.observerRunde(s);
+      for (const a of agenter) a.observer(s);
       s = utfør(s, { type: "NESTE" }).state;
       continue;
     }

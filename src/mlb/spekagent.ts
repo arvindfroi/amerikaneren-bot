@@ -111,8 +111,33 @@ export class Sandkasseagent {
     this.teller = 0;
   }
 
-  /** Bokfør en runde uten å bli spurt om et trekk (se `Spekagent`). */
-  observerRunde(s: GameState): void {
+  /**
+   * Bokfør en tilstand uten å bli spurt om et trekk.
+   *
+   * ============ NAVNET ER GRENSESNITTETS, IKKE MITT ==================
+   *
+   * Denne het `observerRunde` fra 10. august til 11. august, og i hele den
+   * tiden ble den ALDRI KALT. `Spekagent` erklærer kroken som `observer?(s)`,
+   * og hver driver kaller `a.observer?.(s)` — et valgfritt kall på et navn
+   * som ikke fantes, altså en stille ingenting.
+   *
+   * Følgen: et `mlb:`-lag på kampbenken bokførte aldri en runde, så
+   * hukommelsen sto på null gjennom hele kampen. Hvert MLB-tall målt der er
+   * målt UTEN hukommelse — og K4 og K6 handler om nettopp den.
+   *
+   * Kravbatteriet fant det med et tall, ikke ved lesing: en arm med beviselig
+   * hukommelseseffekt målte +0,0000. `test/mlb-krav.test.ts` låser det.
+   *
+   * Lærdommen er at et VALGFRITT grensesnittkall ikke feiler når navnet er
+   * feil — `?.` svelger alt. En påkrevd metode ville gitt typefeil på
+   * sekundet.
+   *
+   * Og `implements Spekagent` er IKKE løsningen her: herkomstprøven leser
+   * importgrafen tekstlig, så selv en `import type` fra `moe2/` gjør den rød.
+   * Grensen mot den gamle stakken veier tyngre enn en typesjekk. Vakten er
+   * derfor `test/mlb-krav.test.ts`, som måler at bokføringen FYRER.
+   */
+  observer(s: GameState): void {
     if (this.brukHukommelse) this.hukommelse.observer(s);
   }
 

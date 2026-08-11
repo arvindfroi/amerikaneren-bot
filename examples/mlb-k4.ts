@@ -72,7 +72,7 @@ import { lesSandkasse, mlbSpek, plantetNett, Radskriver, fmt } from "./mlb-krav-
 export interface K4Agent {
   velgHandling(s: GameState): Handling;
   nyKamp(): void;
-  observerRunde?(s: GameState): void;
+  observer?(s: GameState): void;
 }
 
 export interface K4Opts {
@@ -159,7 +159,7 @@ export function kjørKamp(arm: K4Arm, frø: number, o: Required<Omit<K4Opts, "ve
       // TIKKET. `Hukommelse.observer` bokfører BARE på RUNDE_SLUTT, og ingen
       // spillsløyfe spør en agent om et trekk i den fasen. Uten denne linja er
       // hukommelsen tom hele kampen — se filhodet i `examples/mlb-krav.ts`.
-      if (arm.tikk) for (const a of agenter) a.observerRunde?.(s);
+      if (arm.tikk) for (const a of agenter) a.observer?.(s);
       s = utfør(s, { type: "NESTE" }).state;
       continue;
     }
