@@ -10317,3 +10317,89 @@ måles alene:
 
 Med begge bryterne på 0 er gradienten §126 bit for bit bortsett fra de tre
 endringene, og det er nettopp det ablasjonsbryterne ble bygd for.
+
+### DE FØRSTE TALLENE: TRE ARMER, EPOKE 1, SAMME RIGG
+
+Alle tre startet fra tilfeldige vekter på den samme §126-layouten (1 031
+innganger), 1 200 kamper, blandede løpslengder 30/60/100, samme frøbånd, samme
+port og samme entropikonfigurasjon. Bare det som står i kolonneoverskriften
+skiller dem.
+
+| | **v126** | **v127** | **v127b** |
+|---|---|---|---|
+| λ | 1,0 | 1,0 | **0,95** |
+| motstander i 40 %-sporet | beste | beste | **nåværende** |
+| `--sjanse` | 0,2 | 0,2 | **0,5** |
+| stikkhodet / kvantilhodet | av / av | **på / på** | av / av |
+| gradientrader | 147 427 | 147 427 | **368 128** |
+| batcher | 2 064 | 2 064 | 5 152 |
+| **PORTEN** | AVVIST, z = +1,95 | AVVIST, z = +0,05 | **GODKJENT, z = +2,85** |
+| tegntest | 269/520 (z = +0,79) | 262/519 (z = +0,22) | **294/535 (z = +2,29)** |
+| KL etter løpet | 0,0267 | **0,1225** | 0,0374 |
+| frys (policy / stamme) | ingen | **batch 110 / 123** | ingen |
+| verdi, holdout-kamper (sum) | +0,7496 | +0,5221 | **+0,7548** |
+| — rundedelen | +0,9191 | +0,7067 | **+0,9263** |
+| — halen | +0,1736 | +0,0633 | +0,1597 |
+| **stikkhodet, holdout-kamper** | — | **+0,6045** | −0,5065 *(av)* |
+| tro (CE) | 1,1888 | 1,2100 | **1,1711** |
+
+Fire ting kan leses, og ett av dem er ubehagelig.
+
+**1. Stikkhodet lærer, og det lærer fort.** +0,6045 forklart varians på
+holdout-KAMPER etter én epoke, mot kontrollens −0,5065. Kontrollen er ikke en
+gjetning: med `--vekt-stikk 0` står hodet på `W = 0`, spår uniformt, og
+forventningen er konstant 6,0 for hver rad — så −0,51 er nøyaktig «gjett midten»
+på dette utvalget. Til sammenlikning er ridge-taket §124 målte for rundens
+gjenstående POENG +0,60. Stikkhodet treffer altså på første epoke det
+poengmålet trengte et tak for å nå.
+
+**2. Men de to nye hodene KOSTER, og det er målt.** v127 er den eneste armen der
+KL sprengte taket: 0,1225 mot et tak på 0,12, med policyhodet frosset på batch
+110 og stammen på 123 av 2 064. To ekstra hoder på en DELT stamme driver
+policyen hardere — det er §124 FUNN 5s mekanisme, ikke en ny en. Prisen viser
+seg i verdihodet, som fikk 123 av 2 064 batcher med en stamme som kunne bevege
+seg: +0,71 mot de to andres +0,92.
+
+Det er en skranke og ikke en dom. `W = 0`-initialiseringen gjør at hjelpehodene
+ikke kan dytte stammen ved FØRSTE steg, men den sier ingenting om det tusende.
+Neste knott er derfor `--lr` eller en egen skrittlengde for stikkhodet, ikke å
+fjerne det.
+
+**3. De tre eksterne endringene ga den første godkjente epoken i denne riggen.**
++6,815 ± 2,389 (z = +2,85), tegntest 294/535 (z = +2,29), **begge bånd enige**,
+kontrollarm 0,0000 i hver rad. v126 og v127 ble begge avvist på nøyaktig samme
+port.
+
+**Men de tre kan ikke skilles fra hverandre her, og det skal sies rett ut.**
+v127b endret λ, motstanderen OG datamengden samtidig. z-en kan komme fra hvilken
+som helst av dem — eller fra at 2,5× flere rader ga 2,5× flere batcher. Å skille
+dem krever tre løp til, og de er billige (én knott hver): det er neste økts
+første oppgave, ikke en konklusjon her.
+
+**4. λ = 0,95 gjorde nøyaktig det den skulle med fordelen.** `sd(A)` falt fra
+47,3 til 28,1 mens `sd(G)` sto stille på 47,4. Bootstrappingen innad i runden er
+altså i gang, og den er i gang uten at verdihodet ble dårligere — +0,9263 mot
++0,9191.
+
+### DET SOM IKKE ER MÅLT ENNÅ
+
+Oppdraget ba om tre målinger. To av dem finnes over. Den tredje gjør ikke, og
+grunnen er strukturell:
+
+**Kollapstallene** (trumffarger brukt, budkoder, andel der valgt trumf er
+lengste farge) står i `docs/mlb-arkitektur.md` målt på
+`e1-modell/mlb-g05-beste.bin`. **Den fila kan ikke lenger leses** — §126 fjernet
+`lovlig.bud:13`, så stammen har 1 031 innganger og filen 1 032. De gamle tallene
+er derfor et DOKUMENT, ikke en grunnlinje som kan kjøres om igjen, og et nytt
+løp må komme til samme antall epoker (~14) før tallene er sammenliknbare. Det
+som ER lest, per epoke og per fase, er normalisert entropi og antall ULIKE
+argmaks-koder — og etter én epoke er ingen av armene i nærheten av kollaps
+(TRUMF 0,88–0,93 normalisert entropi, mot 0,157 og 2 av 4 koder da v125
+kollapset).
+
+**Stigen mot `rask`** krever et vektsett som er verdt å måle. Etter én epoke fra
+tilfeldige vekter er STYRKE −13,9 poeng, og en stigemåling der ville kostet
+timer for å bekrefte at et nesten utrent nett taper. Utgangspunktet står
+fortsatt på **−3,43** (`analyse/mlb-stigen-g05.tsv`, gamle layouten), og stigen
+skal kjøres når kontrollarmen har adoptert nok epoker til at STYRKE nærmer seg
+det v125/v126 sto på.
