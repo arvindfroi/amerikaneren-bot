@@ -22,9 +22,46 @@ det ikke målt — og da skal det ikke påstås.
 | **K6** lære og utnytte vaner | ikke innfridd | vekst med rundenr **z = 0,23** | vekst > 2 SE | §K6 |
 | **K7** optimalt sluttspill | ikke innfridd | **+0,947** poeng/runde igjen ved fem stikk | ~0 | §117 |
 | **K8** predikere kort | ikke innfridd | **12,34 %** av veien gulv → tak | vesentlig høyere | §119 |
-| *K1* slå mennesker | retning | 15,83 % menneskeseier | < 5 % | menneskestigen |
+| *K1* slå mennesker | retning | **32,1 %** menneskeseier mot v5 (n=78, KI 22,7–43,0) | < 5 % | Val Town, `type='kamp'` |
 
 **Én port er lukket av sju.** Det er den ærlige stillingen.
+
+---
+
+## K1 — slå mennesker (retning, ikke port)
+
+**Oppdatert 1. september fra Val Town-basen, `type='kamp'`.** Grunnlinja er
+25 %: ett menneske mot tre bots.
+
+| motstander | kamper | mennesket vant | andel |
+|---|---|---|---|
+| PIMC/MAKS | 16 | 12 | 75,0 % |
+| NevroHjerne | 13 | 8 | 61,5 % |
+| før-v5-linja (Vaar, v1–v3) | 19 | 3 | 15,8 % |
+| **Adams-v5 (utrullet 5. aug)** | **78** | **25** | **32,1 %** |
+| **KRAVET** | | | **< 5 %** |
+
+95 %-intervall (Wilson) for v5: **22,7 % – 43,0 %**. Hele intervallet ligger
+over kravet.
+
+**De 15,8 % som `AdamsMax.md` har sitert er før-v5-linja**, målt 1.–4. august.
+Den beskriver ingen bot som er utrullet i dag. Tallet er korrekt regnet for sitt
+eget vindu — `docs/plan.md:2979` summerer Vaar 10/2, v1 6/1, v2 1/0, v3 2/0 —
+men det er ikke en måling av v5.
+
+**Stedfortrederen er feilkalibrert.** «15,83 % (v5)» er v5 mot en
+menneske-ekvivalent bot som ble valgt fordi hun vant omtrent like ofte som
+menneskene gjorde i de 19 kampene. Ekte mennesker tar 32,1 % av v5. Hun er
+altså rundt dobbelt så svak som dem hun står for, og **hvert K1-tall regnet
+gjennom henne undervurderer avstanden til kravet**. Rekalibrering mot
+v5-tallet må skje før slike tall siteres igjen.
+
+**Forbehold.** Bare 78 av 248 startede v5-kamper ble fullført, og av de
+forlatte med ≥ 8 spilte runder (n=56) lå mennesket bak i 84 %. Folk forlater
+kamper de taper, så 32,1 % er et TAK på menneskenes andel, ikke et punktanslag.
+Fullføringsgraden var dessuten ulik (før-v5 41,3 %, v5 31,5 %) og
+spillersammensetningen skiftet mellom vinduene, så 15,8 → 32,1 skal ikke leses
+som at v5 er svakere enn v1–v3.
 
 ---
 
@@ -40,6 +77,50 @@ en kontrollarm som lekker én bit og blir tatt.
 **Det som holder den lukket:** i sandkassen leser alt `spillerVisning`, aldri
 `GameState`. De skjulte kortene *finnes ikke* i det nettet ser. Garantien er en
 typegrense, ikke en konvensjon.
+
+### ⚠️ Prøven kan ikke kjøres fra en fersk klone (funnet 1. september)
+
+`e1-modell/` står i `.gitignore` (linje 15). Fire vektfiler er likevel sporet
+(`bud-gbt.json`, `bud-menneske.json`, `bud-vant.json`, `ftf1.bin`), men **to som
+spekstrengen krever er det ikke**: `e1-modell/vrakrang.bin` og
+`e1-modell/d7alle.bin`. Uten dem kaster `lagIndre` (`src/moe2/agentspek.ts:520`)
+ENOENT, og disse faller:
+
+| prøve | resultat i fersk klone |
+|---|---|
+| `k2-aldri-jukse` + `k2-alle-faser` | **13 av 13 feiler**, alle på ENOENT |
+| `k4-hukommelse`, `k5-kontekst`, `k6-vaner`, `k3-budgap` | 21 av 27 feiler, alle på ENOENT |
+| hele `npm test` | **492 av 607 grønne, 114 røde** |
+
+**113 av de 114 røde sporer til de to filene** — 81 direkte ENOENT på
+`vrakrang.bin`, 24 på `d7alle.bin`, og resten avledet (jukseprøven som ikke kan
+bygge sin egen jukser, `STANDARDNETT`-vakta som sier fra at standardverdien
+peker på noe som ikke finnes, og `examples/sd-orakel.ts` som faller på samme
+`d7alle.bin` når `sd-orakel-format` kaller den). Ingen av dem er en målt
+regresjon — det er manglende filer. Men konsekvensen
+er reell: **K2 er den ene porten som er erklært BEVIST, og beviset kan i dag
+ikke etterprøves av noen som klonet repoet.** Det er samme klasse feil som
+`test/utrullet-lik-spek.test.ts` finnes for å fange — at det målte og det
+utrullede ikke er samme ting — bare ett hakk lenger ut: her kan det målte ikke
+bygges i det hele tatt.
+
+Fikses ved å spore de to filene slik budvektene ble sporet 10. august
+(«Budmodellens vekter inn i repoet – de har aldri ligget noe sted»).
+
+### Den 114. er en ekte feil, og den er Windows-spesifikk
+
+`test/mlb-selvspill.test.ts:333` bygger stien slik:
+
+```ts
+const rot = new URL("..", import.meta.url).pathname;
+readFileSync(`${rot}${fil}`.replace(/^\//, ""), "utf8")
+```
+
+På Windows gir `pathname` `/C:/...`, og da er `.replace(/^\//, "")` riktig. På
+Linux og macOS gir den `/home/...`, og å stryke skråstreken gjør stien relativ:
+`home/user/amerikaneren-bot/src/mlb/selvspill.ts`. Testen — den som håndhever at
+selvspillet aldri rører disk — kan altså **bare kjøre på Windows**. Bruk
+`fileURLToPath` i stedet.
 
 ---
 
