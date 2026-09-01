@@ -65,21 +65,41 @@ advarte om.
 
 **Og det feller stedfortrederen.** «Der vi står (v5) = 15,83 %» er målt mot en
 STEDFORTREDER — en bot valgt fordi den vant omtrent like ofte mot Adams som
-menneskene gjorde i de 19 kampene. Den kalibreringen er nå motsagt: ekte
-mennesker tar 32,1 % av v5, stedfortrederen 15,83 %. **Stedfortrederen er
-omtrent dobbelt så svak som menneskene hun skal stå for**, og hvert K1-tall
-regnet gjennom henne undervurderer derfor avstanden til kravet.
+menneskene gjorde i de 19 kampene. Den kalibreringen er nå motsagt, og stigen er
+kjørt om mot dagens utrullede v5 med 800 kamper per arm
+(`analyse/stedfortreder-2026-09-01.md`):
+
+| kandidat | andel mot v5 | 95 %-KI |
+|---|---|---|
+| nevro | 3,5 % | 2,4–5,0 |
+| d7alle bart | 6,8 % | 5,2–8,7 |
+| ftf1 | 6,9 % | 5,3–8,8 |
+| Adams uten budmodell | 7,1 % | 5,5–9,1 |
+| Adams uten vrakrangerer | 22,9 % | 20,1–25,9 |
+| **KONTROLL: v5 mot seg selv** | **25,3 %** | 22,4–28,4 |
+| **MENNESKENE** | **32,1 %** | 22,7–43,0 |
+
+Kontrollarmen omslutter 0,2500, slik prøven over krever. Og da faller premisset
+stigen ble bygd på: **menneskenes intervall inneholder kontrollarmen — de kan
+ikke skilles fra enda en kopi av Adams-v5 selv.** `docs/plan.md` §41 skrev
+«menneskene ligger på 15,8 %, altså SVAKERE enn Adams-v3». De er ikke svakere
+enn Adams. Det finnes ikke noe trinn mellom 7,1 % og 22,9 %, og altså ingen
+stedfortreder å velge: til K1 må v5 selv brukes inntil menneskedataene er
+tykkere.
 
 Det har tre konsekvenser:
 
 1. **Å si «10,8 prosentpoeng igjen» var å behandle 15,83 som et faktum.** Målt
-   mot mennesker er avstanden nå ~27 pp, ikke 10,8.
+   mot mennesker er avstanden 32,1 → 5,0, og mot kontrollarmen 25,3 → 5,0.
+   Kravet ber om at Adams skal slå et menneske omtrent så klart som han i dag
+   slår NevroHjerne (3,5 %) — ikke en finjustering av dagens stakk.
 2. **Den bindende usikkerheten er ikke hvor sterk Adams er, men hvor godt vi
    har målt menneskene.** Flere ekte familiekamper er derfor verdt mer enn
    flere modulmålinger, og de koster ingen CPU — de koster kvelder. Det rådet
    var riktig, og det er nettopp det som avslørte feilen.
-3. **Stedfortrederen må rekalibreres mot v5-tallet** før noe K1-tall som er
-   regnet gjennom henne kan siteres igjen.
+3. **Samme kjøring replikerer K3 uavhengig.** Å fjerne budmodellen koster
+   18,2 pp, å fjerne vrakrangereren 2,4 pp. `budm` bærer stakken — nå målt på
+   kamper til 100 poeng, ikke på rundedifferanse. To benker, samme svar.
 
 **Forbehold ved de 32,1 %.** Bare 78 av 248 startede v5-kamper ble fullført.
 Av de forlatte som rakk ≥ 8 runder (n=56) lå mennesket bak i 84 % — folk

@@ -49,12 +49,31 @@ Den beskriver ingen bot som er utrullet i dag. Tallet er korrekt regnet for sitt
 eget vindu — `docs/plan.md:2979` summerer Vaar 10/2, v1 6/1, v2 1/0, v3 2/0 —
 men det er ikke en måling av v5.
 
-**Stedfortrederen er feilkalibrert.** «15,83 % (v5)» er v5 mot en
-menneske-ekvivalent bot som ble valgt fordi hun vant omtrent like ofte som
-menneskene gjorde i de 19 kampene. Ekte mennesker tar 32,1 % av v5. Hun er
-altså rundt dobbelt så svak som dem hun står for, og **hvert K1-tall regnet
-gjennom henne undervurderer avstanden til kravet**. Rekalibrering mot
-v5-tallet må skje før slike tall siteres igjen.
+**Stedfortrederen er feilkalibrert, og stigen er målt på nytt.** «15,83 % (v5)»
+er v5 mot en menneske-ekvivalent bot kalibrert til de 19 kampenes 15,8 %. Hele
+stigen er nå kjørt om mot dagens utrullede v5, 800 kamper per arm
+(`analyse/stedfortreder-2026-09-01.md`):
+
+| kandidat | andel | 95 %-KI |
+|---|---|---|
+| nevro | 3,5 % | 2,4–5,0 |
+| d7alle bart | 6,8 % | 5,2–8,7 |
+| ftf1 | 6,9 % | 5,3–8,8 |
+| Adams uten budmodell | 7,1 % | 5,5–9,1 |
+| Adams uten vrakrangerer | 22,9 % | 20,1–25,9 |
+| **KONTROLL: v5 mot seg selv** | **25,3 %** | 22,4–28,4 |
+| **MENNESKENE mot v5** | **32,1 %** | 22,7–43,0 |
+
+Kontrollarmen omslutter 0,2500 slik K1-benken krever. **Menneskenes intervall
+inneholder kontrollarmens punktestimat: de kan ikke skilles fra enda en kopi av
+Adams-v5.** Det snur premisset stigen ble bygget på (§41: «menneskene ligger på
+15,8 %, altså SVAKERE enn Adams-v3»). Det finnes ikke noe trinn mellom 7,1 % og
+22,9 %, og altså **ingen stedfortreder å velge** — til K1 må v5 selv brukes
+inntil menneskedataene er tykkere.
+
+Samme kjøring replikerer K3 uavhengig: å fjerne budmodellen koster 18,2 pp, å
+fjerne vrakrangereren 2,4 pp. `budm` bærer stakken, målt på kamper denne gangen
+og ikke på rundedifferanse.
 
 **Forbehold.** Bare 78 av 248 startede v5-kamper ble fullført, og av de
 forlatte med ≥ 8 spilte runder (n=56) lå mennesket bak i 84 %. Folk forlater
@@ -78,38 +97,33 @@ en kontrollarm som lekker én bit og blir tatt.
 `GameState`. De skjulte kortene *finnes ikke* i det nettet ser. Garantien er en
 typegrense, ikke en konvensjon.
 
-### ⚠️ Prøven kan ikke kjøres fra en fersk klone (funnet 1. september)
+### Prøven kunne ikke kjøres fra en fersk klone — funnet og rettet 1. september
 
-`e1-modell/` står i `.gitignore` (linje 15). Fire vektfiler er likevel sporet
-(`bud-gbt.json`, `bud-menneske.json`, `bud-vant.json`, `ftf1.bin`), men **to som
-spekstrengen krever er det ikke**: `e1-modell/vrakrang.bin` og
-`e1-modell/d7alle.bin`. Uten dem kaster `lagIndre` (`src/moe2/agentspek.ts:520`)
-ENOENT, og disse faller:
+`e1-modell/` står i `.gitignore` (linje 15), og **to vektfiler spekstrengen
+krever lå ingen steder i repoet**: `vrakrang.bin` og `d7alle.bin`. Uten dem
+kastet `lagIndre` (`src/moe2/agentspek.ts:520`) ENOENT, og i en fersk klone falt
+**114 av 607 prøver — deriblant alle tretten K2-prøvene**. K2 er det ene kravet
+som er erklært BEVIST, og beviset kunne altså ikke etterprøves av noen andre enn
+den maskinen filene tilfeldigvis lå på.
 
-| prøve | resultat i fersk klone |
-|---|---|
-| `k2-aldri-jukse` + `k2-alle-faser` | **13 av 13 feiler**, alle på ENOENT |
-| `k4-hukommelse`, `k5-kontekst`, `k6-vaner`, `k3-budgap` | 21 av 27 feiler, alle på ENOENT |
-| hele `npm test` | **492 av 607 grønne, 114 røde** |
+**Rettingen:** vektene lå i repoet hele tiden, som base64 i
+`web/dist/adams-kort.b64` og `web/dist/adams-vrak.b64` — nøyaktig det
+nettleseren laster ned, sporet fordi Vercel serverer `web/`.
+`verktoy/hent-vekter.mjs` pakker dem ut til `e1-modell/` og kjøres som
+`pretest`. Formatet parses før noe treffer disk, og skrivingen er idempotent.
 
-**113 av de 114 røde sporer til de to filene** — 81 direkte ENOENT på
-`vrakrang.bin`, 24 på `d7alle.bin`, og resten avledet (jukseprøven som ikke kan
-bygge sin egen jukser, `STANDARDNETT`-vakta som sier fra at standardverdien
-peker på noe som ikke finnes, og `examples/sd-orakel.ts` som faller på samme
-`d7alle.bin` når `sd-orakel-format` kaller den). Ingen av dem er en målt
-regresjon — det er manglende filer. Men konsekvensen
-er reell: **K2 er den ene porten som er erklært BEVIST, og beviset kan i dag
-ikke etterprøves av noen som klonet repoet.** Det er samme klasse feil som
-`test/utrullet-lik-spek.test.ts` finnes for å fange — at det målte og det
-utrullede ikke er samme ting — bare ett hakk lenger ut: her kan det målte ikke
-bygges i det hele tatt.
+At de pakkes ut FRA nettleserfilene er ikke en detalj: da er «målt = utrullet»
+ikke lenger noe som må håndheves i ettertid — det følger av at det er de samme
+bytene. Å spore `e1-modell/*.bin` i tillegg ville lagret de samme vektene to
+ganger, og to kopier kan komme i utakt. Det er nøyaktig feilklassen
+`test/utrullet-lik-spek.test.ts` finnes for å fange.
 
-Fikses ved å spore de to filene slik budvektene ble sporet 10. august
-(«Budmodellens vekter inn i repoet – de har aldri ligget noe sted»).
+Verifisert: `utrullet-lik-spek` 3 av 3, K2 13 av 13, og **hele `npm test` 616 av
+617 grønne, 0 røde** — fra 492 av 607 med 114 røde.
 
-### Den 114. er en ekte feil, og den er Windows-spesifikk
+### Den 114. var en ekte feil, og den var Windows-spesifikk
 
-`test/mlb-selvspill.test.ts:333` bygger stien slik:
+`test/mlb-selvspill.test.ts:333` bygde stien slik:
 
 ```ts
 const rot = new URL("..", import.meta.url).pathname;
@@ -117,10 +131,10 @@ readFileSync(`${rot}${fil}`.replace(/^\//, ""), "utf8")
 ```
 
 På Windows gir `pathname` `/C:/...`, og da er `.replace(/^\//, "")` riktig. På
-Linux og macOS gir den `/home/...`, og å stryke skråstreken gjør stien relativ:
-`home/user/amerikaneren-bot/src/mlb/selvspill.ts`. Testen — den som håndhever at
-selvspillet aldri rører disk — kan altså **bare kjøre på Windows**. Bruk
-`fileURLToPath` i stedet.
+Linux og macOS gir den `/home/...`, og å stryke skråstreken gjorde stien
+relativ. Testen — den som håndhever at selvspillet aldri rører disk — kunne
+altså **bare kjøre på Windows**, og feilet i det stille overalt ellers. Rettet
+med `fileURLToPath` + `join`.
 
 ---
 
