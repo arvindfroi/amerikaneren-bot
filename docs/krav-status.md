@@ -18,7 +18,7 @@ det ikke målt — og da skal det ikke påstås.
 | **K2** aldri jukse | **BEVIST** | 0 avvik, falsifiserbar | 0 avvik | `test/k2-aldri-jukse.test.ts` |
 | **K3** optimalt i alle faser | ikke innfridd | budrunden: **41,8 %** av det som er å hente står igjen | ~0 | §K3 |
 | **K4** hukommelse + planlegging | **ubevist** | benken kan ikke vise det | målbar effekt | §K4 |
-| **K5** forstå kontekst | delvis | **0 av 20** valg endret i «bak 70–90» | endrer valg der det betyr noe | §K5 |
+| **K5** forstå kontekst | **ikke innfridd** | 7,3 % endret — men **den vendte knotten gir 7,3 % òg** (n=192) | endrer valg der det betyr noe | `analyse/k5-2026-09-02.md` |
 | **K6** lære og utnytte vaner | ikke innfridd | vekst med rundenr **z = 0,23** | vekst > 2 SE | §K6 |
 | **K7** optimalt sluttspill | ikke innfridd | **+0,947** poeng/runde igjen ved fem stikk | ~0 | §117 |
 | **K8** predikere kort | ikke innfridd | **12,34 %** av veien gulv → tak | vesentlig høyere | §119 |
@@ -179,15 +179,36 @@ motstanderen er mange ganger alt regelbasert slutning gir.
 
 ## K5 — forstå konteksten og tilpasse seg
 
-**Målt, og halve knotten var død.**
+**Målt på nytt 2. september ved n=192, og RETNINGEN HOLDT IKKE.**
+(`analyse/k5-2026-09-02.md`. Fire disjunkte frøbånd à 48 stillinger mot 16–20 i
+alle tidligere kjøringer.)
 
-| stilling | endrede valg |
-|---|---|
-| **bak** 70–90 | **0 av 20** |
-| foran 90–70 | 4 av 20 |
+| arm | endret | av | andel |
+|---|---|---|---|
+| KONTROLL (bit-identiske armer) | 0 | 192 | **0,0 %** |
+| **BAK-retningen** (λ=0 mot λ=1,5) | 14 | 192 | **7,3 %** |
+| **samme knott VENDT FEIL VEI** | 14 | 192 | **7,3 %** |
+| UTRULLET (`amu:foerer`) bak | 1 | 78 | **1,3 %** |
 
-Å ligge under endret ingenting. Formen er rettet, men **den nye
-atferdsmålingen gjenstår** — retningen er bevist, størrelsen ikke.
+**Den vendte knotten endrer nøyaktig like mange valg som den riktige.**
+Antallet endrede valg bærer altså ingen informasjon om at knotten peker riktig
+vei — bare retningen blant de endrede kunne gjort det, og den replikerer ikke:
+tegntesten er 10 opp / 3 ned samlet, men **2 opp / 2 ned når frøbånd 5 100 000
+tas ut**. Åtte av de ti «opp» ligger i det ene båndet — som tilfeldigvis er
+standardverdien i `examples/k5-kontekst.ts` og dermed båndet alle tidligere
+K5-kjøringer har brukt.
+
+Og i den utrullede boten (`amu:foerer`) er effekten 1,3 %: fiksen fyrer bare i
+seter der søket er avslått.
+
+Dette er en NEDGRADERING fra «retningen er bevist, størrelsen ikke», gjort på
+12x datagrunnlaget. Det som ikke er vist er at racepresset er verdiløst — ved
+n=192 ville en ekte effekt på et par prosentpoeng ikke kunne skilles fra null.
+Funnet er at effekten ikke kan skilles fra å vri knotten feil vei.
+
+**Neste steg er måling og konfigurasjon, ikke trening:** flere bånd før noe
+endres i koden, og så spørsmålet om `amu:` skal kjøre i flere seter enn
+føreren.
 
 **MLB-svaret:** `målPoeng` og `racepress` er trekk, i to skalaer. Nettet kan
 ikke unngå å se stillingen. At vi trener på løp til 30 og dømmer på 100 gjør
