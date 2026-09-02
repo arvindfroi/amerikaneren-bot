@@ -26,6 +26,44 @@ under har en filreferanse eller et paragrafnummer. Der jeg er usikker, står det
 | 4 | Hovedtråd og worker er to ulike bots over samme beslutning, og oppløsningsregelen er en **stoppeklokke**. | lokalt optimum ødelegger avtale | ikke etterprøvd |
 | 5 | `docs/utrulling-v5.md` sier `bud-menneske.json` ikke er med. `web/app.ts:147` laster den. | målt ≠ utrullet | **fortsatt live** |
 | 6 | Vakten mot rivaliserende spek-parsere kan **ikke feile**, og det står 14 rivaler bak den. | målt ≠ utrullet | ikke etterprøvd |
+| N14 | **Reservekjeden for budmodellen er usynlig i dataene.** Hvilken av tre modeller som faktisk kjørte sier ingen logget rad noe om. | målt ≠ utrullet | **NY 2. sep** |
+
+## N14 — reservekjeden er godt bygd, men utfallet havner ingen steder (ny 2. september)
+
+**Dette er ikke en svelget feil.** `hentBudmodell` (`web/app.ts:321`) er en av de
+bedre vaktpostene i repoet: den fanger Val Towns 200-med-HTML eksplisitt, kaller
+`tolkBudmodell` med én gang så feil `dim` utløser reserven i stedet for å bli
+avvist lenger nede, og roper `console.warn` på hvert trinn. Kjeden er
+
+    bud-menneske.json  →  bud-vant.json  →  bud-gbt.json
+
+**Problemet er hvor ropet havner.** `console.warn` går til nettleserkonsollen på
+farmors iPad. Ingen leser den. Og `logg("start", …)` (`web/app.ts:1151`) skriver
+`motstander` og `styrke` til Val Town — altså hvilken bot vi MENTE å kjøre —
+men **ingen rad sier hvilken budmodell som faktisk vant kjeden**.
+
+Hvorfor det betyr noe, konkret: stedfortrederstigen 1. september målte at å
+fjerne budmodellen koster **18,2 prosentpoeng** vinnerandel — den klart største
+enkeltkomponenten i stakken. `docs/utrulling-v5.md:167` sier samtidig at
+`bud-menneske.json` «aldri [ble] lastet opp». I praksis faller kjeden altså
+trolig til `bud-vant.json`, som er nettopp modellen `ADAMS`-speken navngir, og
+alt stemmer. Men **det er en slutning, ikke en måling**: ingen logget rad kan
+bekrefte den for noen enkelt økt.
+
+Konsekvensen for K1: hver rad i Val Town-basen er merket «Adams-v5» uansett
+hvilken av tre budmodeller som kjørte. Skulle `bud-menneske.json` bli lastet opp
+en dag, ville den utrullede botens sterkeste komponent byttes ut i stillhet, og
+menneskeandelen ville blande to populasjoner uten at én eneste rad viste det.
+Det er samme feilklasse som resten av fila: ikke en feil som krasjer, men en
+konfigurasjon som ikke kan etterprøves i ettertid.
+
+**Rettingen er liten og ikke gjort her.** Én linje: ta med de faktisk oppløste
+modellnavnene i `start`-hendelsen. Den er bevisst utelatt fordi `esbuild` ikke
+er installert i miljøet denne revisjonen ble kjørt i — å endre `web/app.ts`
+uten å bygge `web/dist/app.js` på nytt ville gjenskapt funn N1, kilden foran
+bunten, som nettopp er lukket. Gjør begge deler samtidig, eller ingen av dem.
+
+---
 
 ## Etterprøving 2. september 2026
 

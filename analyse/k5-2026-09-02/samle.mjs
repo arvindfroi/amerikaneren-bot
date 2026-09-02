@@ -25,7 +25,23 @@ for (const f of filer) {
   const t = readFileSync(f, "utf8");
   for (const [navn, re, form] of møn) {
     const m = t.match(re);
-    if (!m) { console.error(`! ${navn} ikke funnet i ${f}`); continue; }
+    /**
+     * KASTER, den advarer ikke.
+     *
+     * Her sto `console.error(...); continue;`. Et mønster som ikke traff ville
+     * da gitt en MINDRE nevner uten at totalen så noe annerledes ut — «14 av
+     * 192» kunne i virkeligheten vært «14 av 144», og advarselen ville ligget
+     * på stderr der en `| grep` eller `| tail` spiser den.
+     *
+     * Det er samme feilklasse som resten av denne mappa handler om: et tall som
+     * ser gyldig ut fordi det som gikk galt ble håndtert i stillhet. En
+     * aggregator som ikke kan si «jeg leste alle fire skardene» skal ikke
+     * skrive ut en prosent.
+     *
+     * (Kjøringen 2. september ga null advarsler — nevnerne er ekte 4×48. Det er
+     * verifisert, ikke antatt.)
+     */
+    if (!m) throw new Error(`«${navn}» ikke funnet i ${f} — nevneren ville blitt feil`);
     // Kontrollraden har n foer ulike; de andre har «X av Y».
     if (form === "nb") legg(navn, Number(m[2]), Number(m[1]));
     else legg(navn, Number(m[1]), Number(m[2]));
