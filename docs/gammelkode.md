@@ -20,12 +20,36 @@ under har en filreferanse eller et paragrafnummer. Der jeg er usikker, står det
 
 | # | funn | klasse | status |
 |---|---|---|---|
-| 1 | `web/dist/worker.js` er 57 commits gammel. Duplikatkjeden `utrullet.ts` fjernet er fortsatt den som KJØRER. | målt ≠ utrullet | **live** |
-| 2 | `web/app.ts` bygger kjeden FOR HÅND og tar flertallet av beslutningene. `byggUtrullet` fikset workeren, ikke appen. | målt ≠ utrullet | **live** |
-| 3 | `examples/matrise.ts:100` kaller `rask` «den utrullede boten i dag». Det er den ikke. §118s hovedtall hviler på det. | målt ≠ utrullet | **live** |
-| 4 | Hovedtråd og worker er to ulike bots over samme beslutning, og oppløsningsregelen er en **stoppeklokke**. | lokalt optimum ødelegger avtale | **live** |
-| 5 | `docs/utrulling-v5.md` sier `bud-menneske.json` ikke er med. `web/app.ts:147` laster den. | målt ≠ utrullet | **live** |
-| 6 | Vakten mot rivaliserende spek-parsere kan **ikke feile**, og det står 14 rivaler bak den. | målt ≠ utrullet | **live** |
+| 1 | `web/dist/worker.js` er 57 commits gammel. Duplikatkjeden `utrullet.ts` fjernet er fortsatt den som KJØRER. | målt ≠ utrullet | **RETTET** (10. aug) |
+| 2 | `web/app.ts` bygger kjeden FOR HÅND og tar flertallet av beslutningene. `byggUtrullet` fikset workeren, ikke appen. | målt ≠ utrullet | ikke etterprøvd |
+| 3 | `examples/matrise.ts:100` kaller `rask` «den utrullede boten i dag». Det er den ikke. §118s hovedtall hviler på det. | målt ≠ utrullet | **RETTET** (2. sep) |
+| 4 | Hovedtråd og worker er to ulike bots over samme beslutning, og oppløsningsregelen er en **stoppeklokke**. | lokalt optimum ødelegger avtale | ikke etterprøvd |
+| 5 | `docs/utrulling-v5.md` sier `bud-menneske.json` ikke er med. `web/app.ts:147` laster den. | målt ≠ utrullet | **fortsatt live** |
+| 6 | Vakten mot rivaliserende spek-parsere kan **ikke feile**, og det står 14 rivaler bak den. | målt ≠ utrullet | ikke etterprøvd |
+
+## Etterprøving 2. september 2026
+
+Denne fila hadde alle seks funn merket «live» i tre uker etter at minst ett av
+dem var rettet. **En revisjon som ikke oppdateres blir selv til gammelkode**, og
+overrapporterer gjelden akkurat som en foreldet måling overrapporterer styrken.
+Tre av seks er etterprøvd nå; de tre andre er ærlig merket som ikke etterprøvd
+heller enn å bli gjettet på.
+
+- **N1 er rettet.** `git log` viser 0 commits mellom `web/worker.ts` og
+  `web/dist/worker.js`, og likeså for `app.ts`. Utrullingsrunden 10. august
+  («UTRULLET: alle atte filer stemmer») lukket den.
+- **N3 er rettet 2. september.** `rask` er nå `ADAMS_MAALT` importert fra
+  `agentspek.ts`, med strengen uendret så historiske matrise-tall fortsatt
+  gjelder. Påstanden om at den var den utrullede boten er borte, og
+  `test/spek-en-kilde.test.ts` pinner at `rask ≠ ADAMS`.
+- **N5 står fortsatt.** `web/app.ts:168` setter `BUDMODELL =
+  "bud-menneske.json"` og linje 416 laster den, mens `utrulling-v5.md:167` sier
+  at fila «aldri [ble] lastet opp». I praksis faller kjeden gjennom til
+  `bud-vant.json` — som er nettopp modellen `ADAMS`-speken navngir — så
+  avviket er godartet i dag. Det er likevel to kilder som sier ulike ting om
+  hvilken budmodell som kjører, og hvilken av dem som har rett avhenger av
+  hva som ligger på CDN-en. Ikke rettet her: §147 kaller valget «ubesluttet»,
+  og det er en produktbeslutning, ikke en opprydding.
 
 ---
 
