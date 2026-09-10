@@ -136,3 +136,26 @@ Arvind: tre nivåer — makro (race mot 100), meso (kontrakten), mikro (stikket)
 spilletid oppå MLB-nettet (K4.3, K7.2, K8 kanal 6), og hukommelse som inngang til
 trosnettet (K8.4, K6.6). Resten er bygd; spørsmålet der er om trening og måling
 når tallene.
+
+---
+
+## Oppdatering natten til 11. sep (maskintid, Tokyo)
+
+Kursen fra eieren kl. 03: gjør Adams sterkere DIREKTE (søk, tro, lærte bud); MLB fortsetter
+som forskning; trening foran benking; menneskekravene (K1, K6) sjekkes etter utrulling.
+
+| # | før | nå | hva som ble gjort |
+|---|---|---|---|
+| K8.4 / K6.6 | hukommelse → tro ikke bygd | **BYGD hele veien**, gevinst bare i treningsbefolkningen | 804-inngang, `--tro-hukommelse`, `MlbSøketro` i søket, `rundeslutt` i appen. R1-holdout −0,0055 ± 0,0007 (7,6 SE, placebo null); i Adams-drevne kamper null (K8 per runde, 24+24 kamper). Må trenes på motstanderne den skal brukes mot. |
+| K8.4 måling | batteriet så bare runde 1 | **JA** (verktøy) | `mlb-k8 --kamp --nett2 --drivere`, standardstien byte-identisk |
+| K3.6 / K8 | søket trakk verdener etter budet alene | **BYGD** | MLB-trohodet i Adams-søket: +6,1 pp riktig plasserte kort (forsvar +7,6, makker +7,0). Kampbenk mot appens kjede kjører. |
+| K3.6 | søk bare som fører, med feil mål for makker/forsvar | **BYGD** | `sik:alle…L` — lagmålet i utspillingene |
+| K3.1 / K3.2 / K3.8 / K5.4 | håndregel over GBT-μ, amerikaner/solo aldri valgt | **BYGD, trenes nå** | `BudQagent` (`budq:`): Q(stilling, bud) lært fra utspillinger, argmax over lovlige bud inkl. amerikaner/solo, kampstillingen i trekkene. Data genereres (`examples/budq-data.ts`), trener `verktoy/budq-tren.py`. |
+| K1.2 / X2 | appen ≠ benken | **BYGD** | appen bygger kjeden via `byggUtrullet`; `test/app-lik-spek.test.ts` spiller appens oppdeling mot speken |
+| nettside | frys, 20 s frist, søket av for økten | **JA** | frist < 5 s med søket selv på 4 s, feil løses, gjenoppretting, logging av lag/σ/verdener. Ikke utrullet. |
+| K6.6-data | botenes bud ikke logget | **BYGD** | `runde`-raden logger `budrunde` for alle seter (virker fra neste utrulling) |
+| K8.2 | ingen terskel | **FORSLAG** | «veldig høyt nivå» = **≥ 25 % av veien gulv → tak** på K8-batteriet (log-tap ≤ 0,824 med gulv 1,0986). I dag 13,65 % (trosnettfila), R2-trosnettet 0,918 på egen holdout ≈ 16 %. |
+
+Fortsatt NEI: K4.3/K7.2/K8 kanal 6 (søk oppå MLB-nettet), K7.1 (eksakt sluttspill i spill),
+K8 kanal 2 og 5. Menneskedata: 3 251 runder med full historikk ligger i Val Town, men det
+finnes ingen eksportvei — eksisterende skript leser en lokal dump fra 23. jul–1. aug.

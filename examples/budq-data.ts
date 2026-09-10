@@ -1,0 +1,121 @@
+/**
+ * BUDQ-DATA — etikettene budmodellen lærer av (K3.1, K3.2). 11. sep.
+ *
+ *   node examples/budq-data.ts --kamper 200 --skard 0/8 --verdener 4 --ut D:/amb-grp/budq/d0/s0.jsonl
+ *     [--spek <policy>] [--sjanse 0.5] [--froe 15000000] [--maksrunder 60]
+ *
+ * For et utvalg budbeslutninger i hele kamper til 100: trekk K verdener forenlige med
+ * det setet VET (`trekkVerdener`, budvekten på — de andres bud teller), og for HVERT
+ * lovlige bud: tving budet nå, spill runden ferdig med policyen, og les av rundeutfallet
+ * (egne poeng minus snittet av de tre andre). Alle budene får de SAMME verdenene, så
+ * forskjellene mellom dem er parvise.
+ *
+ * INGEN FASIT I ETIKETTEN: verdenene trekkes fra setets visning, ikke fra den virkelige
+ * given. Den virkelige given brukes bare til å spille KAMPEN videre, så stillingene
+ * (auksjoner, kampstillinger) er de policyen faktisk havner i.
+ *
+ * Utspillingene har egne agentinstanser, aldri kampens: et lag med tilstand
+ * (vrakrangereren husker vraket mellom VRAK og VELG) skal ikke kunne lekke mellom dem.
+ *
+ * EKSPERTITERASJON: `--spek` er policyen som spiller resten av runden. Start med
+ * `ADAMS`; når et BudQ-nett finnes, spill med `budq:<fil>:…` og tren på nytt.
+ */
+
+import { appendFileSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
+
+import { opprettSpill, utfør, type GameState } from "../src/index.ts";
+import { lovligeHandlinger } from "../src/motor.ts";
+import type { Bud } from "../src/regler.ts";
+import { lagRng } from "../src/kort.ts";
+import { ADAMS, lagIndre, tall } from "../src/moe2/agentspek.ts";
+import { medVerden, trekkVerdener } from "../src/moe2/sdkort.ts";
+import { BUDQ_BUD, budqTrekk } from "../src/moe2/budq.ts";
+
+const arg = (n: string, s: string): string => {
+  const i = process.argv.indexOf(n);
+  return i < 0 ? s : (process.argv[i + 1] ?? s);
+};
+const KAMPER = tall(arg("--kamper", "200"), 200, "kamper");
+const [SI, SN] = arg("--skard", "0/1").split("/").map(Number) as [number, number];
+const K = tall(arg("--verdener", "4"), 4, "verdener");
+const SJANSE = Number(arg("--sjanse", "0.5"));
+const FRØ = tall(arg("--froe", "15000000"), 15_000_000, "froe");
+const MAKSRUNDER = tall(arg("--maksrunder", "60"), 60, "maksrunder");
+const SPEK = arg("--spek", ADAMS);
+const UT = arg("--ut", "D:/amb-grp/budq/d0/s0.jsonl");
+mkdirSync(dirname(UT), { recursive: true });
+
+const kamp = [0, 1, 2, 3].map(() => lagIndre(SPEK));
+const utspill = [0, 1, 2, 3].map(() => lagIndre(SPEK));
+
+/** Rundeutfallet for `sete`: egne poeng minus snittet av de tre andre. 0 om ingen runde ble spilt. */
+function utfall(s: GameState, sete: number): number {
+  const d = s.sisteRunde?.delta;
+  if (d === undefined) return 0;
+  const egne = d[sete] ?? 0;
+  const andre = d.reduce((a, x) => a + x, 0) - egne;
+  return egne - andre / (d.length - 1);
+}
+
+/** Tving `bud` for `sete` nå, og spill runden ferdig med utspillingsagentene. */
+function spillUt(start: GameState, sete: number, bud: Bud): number {
+  let s = utfør(start, { type: "BUD", spiller: sete, bud }).state;
+  const runde = start.rundeNr;
+  let vakt = 0;
+  while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && s.rundeNr === runde && vakt++ < 400) {
+    const i = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+    if (i === null || i === undefined) break;
+    s = utfør(s, utspill[i]!.velgHandling(s)).state;
+  }
+  return utfall(s, sete);
+}
+
+const velg = lagRng(9_100_000 + SI);
+let skrevet = 0;
+const t0 = Date.now();
+for (let g = 0; g < KAMPER; g++) {
+  if (g % SN !== SI) continue;
+  const frø = FRØ + g * 7717;
+  let s: GameState = opprettSpill({ antallSpillere: 4, målPoeng: 100 }, frø);
+  for (const a of kamp) a.nyKamp();
+  let vakt = 0;
+  while (s.fase !== "FERDIG" && s.rundeNr < MAKSRUNDER && vakt++ < 40_000) {
+    if (s.fase === "RUNDE_SLUTT") {
+      s = utfør(s, { type: "NESTE" }).state;
+      continue;
+    }
+    const sete = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+    if (sete === null || sete === undefined) break;
+    const h = kamp[sete]!.velgHandling(s);
+
+    if (s.fase === "BUDRUNDE" && velg() < SJANSE) {
+      const lov = lovligeHandlinger(s);
+      const kandidater = lov.fase === "BUDRUNDE" ? lov.bud.filter((b) => BUDQ_BUD.includes(b)) : [];
+      if (kandidater.length >= 2) {
+        const verdener = trekkVerdener(s, sete, K, lagRng((frø * 31 + skrevet * 104_729 + sete) >>> 0), undefined, undefined, 32, undefined, true);
+        if (verdener.length > 0) {
+          const q: Record<string, number[]> = {};
+          for (const b of kandidater) {
+            q[String(b)] = verdener.map((hender) => Math.round(spillUt(medVerden(s, hender, sete), sete, b) * 100) / 100);
+          }
+          appendFileSync(
+            UT,
+            JSON.stringify({
+              frø,
+              runde: s.rundeNr,
+              sete,
+              policy: h.type === "BUD" ? String(h.bud) : null,
+              x: [...budqTrekk(s, sete)].map((x) => Math.round(x * 10_000) / 10_000),
+              q,
+            }) + "\n",
+          );
+          skrevet++;
+        }
+      }
+    }
+    s = utfør(s, h).state;
+  }
+  process.stdout.write(`\r  skard ${SI}/${SN}: kamp ${g}, ${skrevet} budstillinger, ${((Date.now() - t0) / 1000).toFixed(0)} s   `);
+}
+console.log(`\nSkard ${SI}/${SN} ferdig: ${skrevet} budstillinger → ${UT}`);

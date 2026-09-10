@@ -1369,6 +1369,10 @@ function håndterHendelser(hendelser: readonly Hendelse[]): void {
         trumf: state.trumf,
         etterlyst: state.etterlyst === null ? null : [state.etterlyst.farge, state.etterlyst.verdi],
         makker: state.makker,
+        // BUDRUNDEN FOR ALLE SETER (11. sep). Uten den finnes bare menneskets egne bud
+        // (`valg-bud`) og vinnerbudet: botenes bud og pass var borte, og hukommelsens
+        // budavvik (K6.6) kunne ikke gjenskapes fra loggen. Offentlig informasjon.
+        budrunde: { sisteBud: state.budrunde.sisteBud.slice(), passet: state.budrunde.passet.slice() },
       });
       // ÉN rad per runde med hvert bottrekk: sete, fase, lag og tenketid.
       // `sene` er søkesvar som kom etter fristen og ble kastet (bare når > 0).

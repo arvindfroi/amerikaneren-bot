@@ -29,6 +29,7 @@ import { Ensemble, type EnsembleModus } from "./ensemble.ts";
 import { Rolleorakel, type Rolle } from "./rolleorakel.ts";
 import { Sikkerorakel } from "./sikkerorakel.ts";
 import { MlbSøketro } from "./soketro.ts";
+import { BudQagent } from "./budq.ts";
 import { Vrakvelger } from "./vrakvelg.ts";
 import { Etterlysvelger } from "./etterlys.ts";
 import { Vrakvelger2, lesVrakflagg } from "./vrakvelg2.ts";
@@ -566,6 +567,22 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     const nett = nettFraBytes(new Uint8Array(readFileSync(rest.slice(0, a))))[0];
     if (nett === undefined) throw new Error(`Tomme vekter i «${rest.slice(0, a)}»`);
     return new Vrakrangerer(lagIndre(rest.slice(b + 1), ctx), nett, rest.slice(a + 1, b));
+  }
+  /**
+   * `budq:<nettfil>:<indre>` — BUDET SOM ET LÆRT VALG (K3.1, 11. sep).
+   *
+   * Står på `budm:` sin plass i kjeden: Q(stilling, bud) fra utspillinger, argmax over
+   * de lovlige budene, ingen terskel og ingen kalibrerte konstanter. Se `budq.ts`.
+   */
+  if (indre.startsWith("budq:")) {
+    const rest = indre.slice(5);
+    const skille = rest.indexOf(":");
+    if (skille < 0) throw new Error(`Ugyldig budq-spek «${indre}» – forventet budq:<nettfil>:<indre>`);
+    // Ikke `lesNett`: den er E1-kortnettenes leser og krever en E1-bredde. BudQ-nettet
+    // har sin egen (143 inn, 11 ut), og `BudQagent` håndhever den.
+    const budqNett = nettFraBytes(new Uint8Array(readFileSync(rest.slice(0, skille))))[0];
+    if (budqNett === undefined) throw new Error(`Tomt BudQ-nett i «${indre}»`);
+    return new BudQagent(lagIndre(rest.slice(skille + 1), ctx), budqNett);
   }
   if (indre.startsWith("budm:")) {
     const rest = indre.slice(5);
