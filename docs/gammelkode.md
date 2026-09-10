@@ -26,7 +26,7 @@ under har en filreferanse eller et paragrafnummer. Der jeg er usikker, står det
 | 4 | Hovedtråd og worker er to ulike bots over samme beslutning, og oppløsningsregelen er en **stoppeklokke**. | lokalt optimum ødelegger avtale | ikke etterprøvd |
 | 5 | `docs/utrulling-v5.md` sier `bud-menneske.json` ikke er med. `web/app.ts:147` laster den. | målt ≠ utrullet | **fortsatt live** |
 | 6 | Vakten mot rivaliserende spek-parsere kan **ikke feile**, og det står 14 rivaler bak den. | målt ≠ utrullet | ikke etterprøvd |
-| N14 | **Reservekjeden for budmodellen er usynlig i dataene.** Hvilken av tre modeller som faktisk kjørte sier ingen logget rad noe om. | målt ≠ utrullet | **NY 2. sep** |
+| N14 | **Reservekjeden for budmodellen er usynlig i dataene.** Hvilken av tre modeller som faktisk kjørte sier ingen logget rad noe om. | målt ≠ utrullet | **RETTET** (10. sep) |
 
 ## N14 — reservekjeden er godt bygd, men utfallet havner ingen steder (ny 2. september)
 
@@ -57,11 +57,50 @@ menneskeandelen ville blande to populasjoner uten at én eneste rad viste det.
 Det er samme feilklasse som resten av fila: ikke en feil som krasjer, men en
 konfigurasjon som ikke kan etterprøves i ettertid.
 
-**Rettingen er liten og ikke gjort her.** Én linje: ta med de faktisk oppløste
-modellnavnene i `start`-hendelsen. Den er bevisst utelatt fordi `esbuild` ikke
-er installert i miljøet denne revisjonen ble kjørt i — å endre `web/app.ts`
-uten å bygge `web/dist/app.js` på nytt ville gjenskapt funn N1, kilden foran
-bunten, som nettopp er lukket. Gjør begge deler samtidig, eller ingen av dem.
+**RETTET 10. september.** `oppløst` i `web/app.ts` noterer hvilke filer som
+faktisk vant hver reservekjede, og `logg("start", …)` skriver dem til Val Town
+som feltet `modeller`. `start` logges etter `await besteBot()`, så feltene er
+alltid utfylt. `null` i `bud` betyr at alle tre falt bort og at NevroHjernes
+budgivning kjørte — en helt annen bot, nå synlig som det.
+
+Kilde og bunt er bygd og committet i samme steg, slik funnet selv krevde.
+
+**Verifisert ende-til-ende i Chromium, på den bygde bunten — ikke på kilden.**
+To armer, med alle Val Town-kall avskåret så ingen testrad nådde
+produksjonsbasen:
+
+| arm | `bud-menneske.json` | `modeller.bud` som ble logget |
+|---|---|---|
+| B (som i produksjon) | svarer 200 med HTML | **`bud-vant.json`** |
+| A | finnes | **`bud-menneske.json`** |
+
+Arm B er den som betyr noe: at kjeden faller til `bud-vant.json` var til nå en
+SLUTNING fra `utrulling-v5.md`. Nå er den målt, og fra 10. september står den i
+hver eneste loggede rad.
+
+Merk at `tro` logges som `false`: trosnettet er av med vilje (`TROFIL === null`,
+en målt beslutning — fortegnet snudde mellom frøbånd). Det er ikke en feil, men
+det er nå synlig i stedet for å måtte leses ut av en kommentar.
+
+### Sidefunn: de to buntene var bygd med ULIKE flagg
+
+Ombyggingen avslørte det. Den utrullede `web/dist/app.js` var **ikke
+minifisert** — 5 140 linjer, 721 kB, med `// src/kort.ts`-kommentarer i klartekst
+— mens `web/dist/worker.js` var det (én linje). `MESTERAI-NETT.md` dokumenterer
+`--minify` for **begge**.
+
+Ingen har altså kjørt den dokumenterte kommandoen for `app.js`. Det er samme
+familie som resten av fila: ikke en feil som krasjer, men et avvik mellom det
+som står skrevet og det som er rullet ut, som ingen prøve kunne se.
+
+`app.js` er nå bygd med den dokumenterte kommandoen: 110 linjer, 632 kB, **88 kB
+mindre over mobilnett**. `--minify` i esbuild bevarer semantikk, og den
+minifiserte bunten er den som ble kjørt i Chromium-verifiseringen over — så det
+er den, ikke kilden, som er prøvd.
+
+Dette er en endring i utrullet artefakt utover selve N14-fiksen, og den skal
+leses som det. Vil du ha den gamle formen tilbake, er det å utelate `--minify`;
+men da avviker `app.js` fra både `worker.js` og fra utrullingslista igjen.
 
 ---
 
@@ -73,9 +112,14 @@ overrapporterer gjelden akkurat som en foreldet måling overrapporterer styrken.
 Tre av seks er etterprøvd nå; de tre andre er ærlig merket som ikke etterprøvd
 heller enn å bli gjettet på.
 
-- **N1 er rettet.** `git log` viser 0 commits mellom `web/worker.ts` og
-  `web/dist/worker.js`, og likeså for `app.ts`. Utrullingsrunden 10. august
-  («UTRULLET: alle atte filer stemmer») lukket den.
+- **N1 er rettet, og fra 10. september VOKTET.** `git log` viser 0 commits
+  mellom `web/worker.ts` og `web/dist/worker.js`, og likeså for `app.ts`.
+  Utrullingsrunden 10. august («UTRULLET: alle atte filer stemmer») lukket den.
+  Men den kunne komme tilbake usett: `utrullet-lik-spek` og `spek-en-kilde`
+  leser begge KILDEN, og en bunt bygd fra en eldre kilde består begge to — den
+  er internt konsistent, bare foreldet. `test/bunt-ikke-foreldet.test.ts` spør
+  nå git om det finnes commits som rører kilden etter siste bunt-commit, og
+  gjør dermed N1 til en rød test i stedet for noe man må huske.
 - **N3 er rettet 2. september.** `rask` er nå `ADAMS_MAALT` importert fra
   `agentspek.ts`, med strengen uendret så historiske matrise-tall fortsatt
   gjelder. Påstanden om at den var den utrullede boten er borte, og
