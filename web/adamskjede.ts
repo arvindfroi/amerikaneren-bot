@@ -26,6 +26,7 @@ import { tolkBudmodell, type Budmodell } from "../src/moe2/budmodell.ts";
 import { Sikkerorakel, type SikkerTellere } from "../src/moe2/sikkerorakel.ts";
 import { byggUtrullet, type Søkspek, type Velger } from "../src/moe2/utrullet.ts";
 import { MlbTronett } from "../src/mlb/tronett.ts";
+import { BUDQ_INN, BUDQ_UT } from "../src/moe2/budq.ts";
 
 /**
  * Meldingsprotokollen mellom hovedtråd og worker.
@@ -59,11 +60,21 @@ export interface AdamsKonfig {
   readonly fristMs?: number;
   /**
    * TROEN I SØKET (11. sep): MLB-trohodet vekter verdenene — 32 kandidater og
-   * budvekten av, som `~mlbu=` i speken. AV som standard: kampbenken dømmer den
-   * først, og fila er 7,9 MB. Krever `tro` i vektene; mangler den eller kan den ikke
-   * leses, bygges søket uten, og `Bygd.tro` sier fra.
+   * budvekten av, som `~mlbu=` i speken. AV som standard: kampbenken dømte den til
+   * ingen virkning i førersetet (−0,002 ± 0,010), og fila er 7,9 MB. Krever `tro` i
+   * vektene; mangler den eller kan den ikke leses, bygges søket uten, og `Bygd.tro`
+   * sier fra.
    */
   readonly troISøk?: boolean;
+  /**
+   * BUDQ (11. sep): budet som et lært valg (`src/moe2/budq.ts`) i stedet for
+   * budmodellen og terskelen. AV som standard. Mot ADAMS replikert til ~+0,03 i
+   * vinnerandel i to frøbånd, men lært mot Adams-motstandere — ikke mot mennesker.
+   * Krever `budq` i vektene; mangler nettet eller har feil bredde, byr kjeden med
+   * budmodellen som før, og `Bygd.budq` sier fra. Gjelder begge tråder, så paritetsprøven
+   * holder.
+   */
+  readonly budqPå?: boolean;
 }
 
 /** Rå vekter slik de kommer over nettet: base64 og JSON. */
@@ -73,6 +84,8 @@ export interface RåAdamsVekter {
   readonly vrak: string | null;
   /** MLB-trohodet som base64, eller null. Leses bare når `troISøk`. */
   readonly tro?: string | null;
+  /** BudQ-nettet som base64, eller null. Leses bare når `budqPå`. */
+  readonly budq?: string | null;
 }
 
 /** Hva som FAKTISK ble bygd — ikke hva vi ba om. Se `oppløst` i `web/app.ts`. */
@@ -86,6 +99,8 @@ export interface Bygd {
   readonly sik: Sikkerorakel | null;
   /** Trohodet sitter i søket. */
   readonly tro: boolean;
+  /** BudQ byr i stedet for budmodellen. */
+  readonly budq: boolean;
 }
 
 export function tilBytes(b64: string): Uint8Array {
@@ -153,13 +168,34 @@ export function byggAdams(v: RåAdamsVekter, k: AdamsKonfig, medSøk: boolean, k
       }
     }
   }
+  // BudQ gjelder BEGGE tråder: budet tas av hovedtråden, men workerens utspillinger
+  // må by som den samme boten, ellers måler søket en annen kjede enn den som spiller.
+  let budqNett: NevroNett | null = null;
+  if (k.budqPå === true) {
+    if (v.budq === undefined || v.budq === null) {
+      console.warn("BudQ er slått på, men nettet ble ikke sendt – byr med budmodellen");
+    } else {
+      try {
+        const n = nettFraBytes(tilBytes(v.budq))[0] ?? null;
+        const siste = n?.lag[n.lag.length - 1];
+        if (n === null || n.lag[0]?.inn !== BUDQ_INN || siste?.ut !== BUDQ_UT) {
+          console.warn(`BudQ-nettet har feil form (ventet ${BUDQ_INN} inn, ${BUDQ_UT} ut) – byr med budmodellen`);
+        } else {
+          budqNett = n;
+        }
+      } catch (feil) {
+        console.warn("BudQ-nettet kunne ikke leses – byr med budmodellen:", feil);
+      }
+    }
+  }
   const bygg = (vn: NevroNett | null): ReturnType<typeof byggUtrullet> =>
     byggUtrullet({
       kortnett: nettFraBytes(kortBytes)[0]!,
       kort: E1Agent.fraBytes(kortBytes, {}, kilde),
       vaktflagg: k.vaktflagg,
-      bud,
+      bud: budqNett === null ? bud : null,
       budterskel: k.budterskel,
+      budq: budqNett,
       vraknett: vn,
       vrakflagg: k.vrakflagg,
       søk: medSøk ? søkspek(k, tronett) : null,
@@ -180,7 +216,14 @@ export function byggAdams(v: RåAdamsVekter, k: AdamsKonfig, medSøk: boolean, k
     bygd = bygg(null);
     vrak = false;
   }
-  return { agent: bygd.agent, bud: bud !== null, vrak, sik: bygd.sik, tro: tronett !== null && bygd.sik !== null };
+  return {
+    agent: bygd.agent,
+    bud: bud !== null && budqNett === null,
+    vrak,
+    sik: bygd.sik,
+    tro: tronett !== null && bygd.sik !== null,
+    budq: budqNett !== null,
+  };
 }
 
 /**

@@ -1,21 +1,27 @@
 /**
- * BUDQ — BUDET SOM ET LÆRT VALG (K3.1, 11. sep). Fire ting må holde:
+ * BUDQ — BUDET SOM ET LÆRT VALG (K3.1, 11. sep). Fem ting må holde:
  *
  *   1. INDEKSENE: hvert bud har nøyaktig én utgang, og et bud uten utgang kastes.
  *   2. K2: trekkene endres ikke når de SKJULTE hendene byttes. Kontroll: egen hånd
  *      og kampstillingen endrer dem.
  *   3. VALGET er argmax over de LOVLIGE budene — et bedre, men ulovlig bud velges aldri.
  *   4. SPEKEN `budq:<fil>:<indre>` bygger agenten fra fil, og feil bredde kastes.
+ *   5. DEN UTRULLEDE VEIEN (`byggUtrullet`, `byggAdams`) bygger det samme budlaget som
+ *      speken, kaster på to budlag, og står AV til noen slår den på.
  */
 import { strict as assert } from "node:assert";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { lovligeHandlinger } from "../src/motor.ts";
 import { lagIndre, ADAMS } from "../src/moe2/agentspek.ts";
 import { BUDQ_BUD, BUDQ_INN, BUDQ_UT, BudQagent, budqIndeks, budqTrekk } from "../src/moe2/budq.ts";
-import type { NevroNett } from "../src/nevro/nett.ts";
+import { byggUtrullet } from "../src/moe2/utrullet.ts";
+import { tolkBudmodell } from "../src/moe2/budmodell.ts";
+import { E1Agent } from "../src/e1/agent.ts";
+import { nettFraBytes, type NevroNett } from "../src/nevro/nett.ts";
+import { byggAdams } from "../web/adamskjede.ts";
 
 /** Ett lineært lag med nullvekter: utgangen ER biasen, uansett stilling. */
 const plantet = (bias: number[], inn = BUDQ_INN): NevroNett => ({
@@ -121,6 +127,63 @@ test("speken budq:<fil>:<indre> bygger fra fil, og feil bredde kastes", () => {
     const agent = lagIndre(spek);
     const s0 = opprettSpill({ antallSpillere: 4 }, 3_300_118);
     assert.deepEqual(agent.velgHandling(s0), { type: "BUD", spiller: s0.iTur, bud: 12 });
+  } finally {
+    rmSync(fil, { force: true });
+  }
+});
+
+test("den utrullede veien bygger samme budlag som speken, kaster på to budlag, og står av som standard", () => {
+  const katalog = "node_modules/.cache";
+  const fil = `${katalog}/budq-prove2.bin`;
+  mkdirSync(katalog, { recursive: true });
+  // Et nett som faktisk skiller mellom budene, så paritet ikke er gratis.
+  const nett = plantet(bias({ "10": 4, "11": 3, "9": 2.5, PASS: 3.5 }));
+  writeFileSync(fil, tilBytes(nett));
+  try {
+    const kortfil = ADAMS.slice(ADAMS.lastIndexOf("e1:") + 3);
+    const kortBytes = new Uint8Array(readFileSync(kortfil));
+    const bygd = byggUtrullet({
+      kortnett: nettFraBytes(kortBytes)[0]!,
+      kort: E1Agent.fraBytes(kortBytes),
+      vaktflagg: "abmp",
+      budq: nett,
+    }).agent;
+    const spek = lagIndre(`budq:${fil}:vakt:abmp:e1:${kortfil}`);
+    let s = opprettSpill({ antallSpillere: 4 }, 3_300_119);
+    let n = 0;
+    let bud = 0;
+    for (let i = 0; i < 400 && s.fase !== "RUNDE_SLUTT" && s.fase !== "FERDIG"; i++) {
+      const a = bygd.velgHandling(s);
+      assert.deepEqual(a, spek.velgHandling(s), `divergens i fase ${s.fase} etter ${n} valg`);
+      if (a.type === "BUD") bud++;
+      n++;
+      s = utfør(s, a).state;
+    }
+    assert.ok(n > 20 && bud > 0, `for lite sammenliknet (${n} valg, ${bud} bud)`);
+
+    assert.throws(
+      () =>
+        byggUtrullet({
+          kortnett: nettFraBytes(kortBytes)[0]!,
+          kort: E1Agent.fraBytes(kortBytes),
+          vaktflagg: "abmp",
+          bud: tolkBudmodell(JSON.parse(readFileSync("e1-modell/bud-vant.json", "utf8"))),
+          budq: nett,
+        }),
+      /budq/,
+    );
+
+    const vekter = {
+      kort: Buffer.from(kortBytes).toString("base64"),
+      bud: null,
+      vrak: null,
+      budq: tilBytes(nett).toString("base64"),
+    };
+    const konfig = { vaktflagg: "abmp", vrakflagg: "telrd", budterskel: -3, verdener: 0, sigma: 0.5 };
+    assert.equal(byggAdams(vekter, konfig, false).budq, false, "BudQ skal stå av uten budqPå");
+    assert.equal(byggAdams(vekter, { ...konfig, budqPå: true }, false).budq, true);
+    const feilForm = { ...vekter, budq: tilBytes(plantet(bias({}), BUDQ_INN - 3)).toString("base64") };
+    assert.equal(byggAdams(feilForm, { ...konfig, budqPå: true }, false).budq, false, "feil form skal falle tilbake");
   } finally {
     rmSync(fil, { force: true });
   }

@@ -65,6 +65,7 @@ import { Konvensjonsvakt, lesVaktflagg } from "./konvensjonsvakt.ts";
 import { Budagent } from "./budmodell.ts";
 import { Vrakrangerer } from "./vrakrang.ts";
 import { Sikkerorakel } from "./sikkerorakel.ts";
+import { BudQagent } from "./budq.ts";
 import type { Visningstro } from "./troprior.ts";
 import { MlbSøketro } from "./soketro.ts";
 import { Profilagent } from "./profilagent.ts";
@@ -127,6 +128,12 @@ export interface UtrulletSpek {
   /** Budmodellen, allerede tolket. `null` = NevroHjernes budgivning, som før. */
   readonly bud?: ConstructorParameters<typeof Budagent>[1] | null;
   readonly budterskel?: number;
+  /**
+   * BUDQ (11. sep): budet som et laert valg i stedet for budmodellens regel, i
+   * `BudQagent`-formatet (143 inn, 11 ut). Kan ikke kombineres med `bud`: to budlag i
+   * samme kjede ville gitt et bud ingen maaling staar bak.
+   */
+  readonly budq?: NevroNett | null;
   readonly vraknett?: NevroNett | null;
   readonly vrakflagg?: string;
   readonly søk?: Søkspek | null;
@@ -158,7 +165,14 @@ export function byggUtrullet(spek: UtrulletSpek): { agent: Velger; økt: Økt | 
 
   let kjede: Velger = vakt;
   let budagent: Budagent | null = null;
-  if (spek.bud !== null && spek.bud !== undefined) {
+  const budq = spek.budq ?? null;
+  if (budq !== null && spek.bud !== null && spek.bud !== undefined) {
+    throw new Error("byggUtrullet: baade bud og budq er satt - velg ett budlag");
+  }
+  if (budq !== null) {
+    // Samme plass i kjeden som `budm:` / `budq:` i speken: over vakten, under soeket.
+    kjede = new BudQagent(vakt, budq) as unknown as Velger;
+  } else if (spek.bud !== null && spek.bud !== undefined) {
     budagent = new Budagent(vakt, spek.bud, spek.budterskel ?? 0);
     kjede = budagent;
   }
