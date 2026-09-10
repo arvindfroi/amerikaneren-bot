@@ -831,6 +831,29 @@ def main():
             ut["st_snitt"] = s["st_sum"] / ns
         return ut, torch.cat(lp_alle)
 
+    @torch.no_grad()
+    def kl_logp(idx):
+        """BARE policyens log-sannsynligheter paa `idx` - det KL-bremsen leser.
+
+        KL-sjekken per batch kalte `maal(kl_idx)` og kastet alt utenom `lp`:
+        ~20 diagnostikktall, hvert med sin egen synkronisering til CPU. Profilen
+        10. september (200 000 rader, en passering): `maal` 20,2 s mot ~3 s for
+        selve framover+bakover - omtrent fem ganger treningen, per batch.
+
+        Samme oppdeling i batcher, samme `eval()`, samme `modell.alt`, samme
+        maskering og samme `log_softmax` som i `maal`. `lp` er derfor den samme
+        tensoren, og treningen den samme: proevd med sha1 paa vektene etter en
+        passering, gammel sti mot ny.
+        """
+        modell.eval()
+        lp_alle = []
+        for i in range(0, len(idx), args.batch):
+            j = idx[i : i + args.batch]
+            p, *_ = modell.alt(X[j].float())
+            lp_alle.append(F.log_softmax(maskerte_logits(p, M[j]), dim=1))
+        modell.train()
+        return torch.cat(lp_alle)
+
     g = torch.Generator(device="cpu").manual_seed(args.froe + args.epoke)
     # KL-RADENE ER FASTE, og de trekkes FOER foerste steg: uten dem er det
     # ingen maate aa se at et steg SPRENGTE policyen paa - bare at tapet falt.
@@ -1100,7 +1123,7 @@ def main():
                 and (i // args.batch) % args.kl_intervall == args.kl_intervall - 1
             ):
                 with torch.no_grad():
-                    _, lp_na = maal(kl_idx)
+                    lp_na = kl_logp(kl_idx)
                     pg0 = lp_foer.exp()
                     kl_na = float(
                         (pg0 * (lp_foer - lp_na)).masked_fill(~M[kl_idx], 0.0).sum(1).mean()
