@@ -78,6 +78,11 @@ def les(monster, maks):
             (d,) = struct.unpack("<i", fh.read(4))
             (md,) = struct.unpack("<i", fh.read(4))
             (post,) = struct.unpack("<i", fh.read(4))
+            if v >= 4:
+                # Versjon 4 har maalkoden bakerst i hodet (0 poeng, 1 seier) - se
+                # `les_erfaring` i mlb-gradient.py. Taket maales paa det maalet fila har.
+                (maal,) = struct.unpack("<i", fh.read(4))
+                print(f"{sti}: maal {'SEIER' if maal == 1 else 'POENG'}", flush=True)
             if v < 2:
                 raise SystemExit(
                     f"{sti}: versjon {v}. Det delte maalet og kampnummeret finnes ikke "

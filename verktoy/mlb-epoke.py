@@ -201,6 +201,8 @@ class Driver:
         ]
         if self.a.rask_kjerne:
             cmd.append("--rask-kjerne")
+        if self.a.seier:
+            cmd += ["--seier", self.a.seier]
         return self.kjor("ERFARING", cmd, f"{self.a.logkatalog}/e{e}-erfaring-kjor.txt")[0], ut
 
     def tren(self, e, arbeid, erf, kandidat):
@@ -286,6 +288,7 @@ class Driver:
                 f"  lambda={a.lam} gamma={a.gamma} lr={a.lr} kamper={a.kamper}"
                 f"  vekt-stikk={a.vekt_stikk} vekt-verdi-kvantil={a.vekt_verdi_kvantil}"
                 f"  motstander={a.motstander}"
+                f"  maal={('seier ' + a.seier) if a.seier else 'poeng'}"
                 # KJERNEN I TRENINGSDATAENE. Kolonnekjernen er ikke bit-identisk;
                 # et loep som bruker den skal vaere gjenkjennelig i den varige fila.
                 + (f"  kjerne=kolonne (--rask-kjerne)" if a.rask_kjerne else "  kjerne=rad")
@@ -538,6 +541,9 @@ def main():
     # argmaks i 1000/1000 ekte stillinger); maaling gjoer det ikke, saa K2 og
     # porten kjoerer alltid den bit-identiske `forover`. 1,94x per beslutning.
     p.add_argument("--rask-kjerne", action="store_true")
+    # SEIERSMAALET (src/mlb/seier.ts): seiersprediktorens vektfil. Tom = poeng,
+    # som foer. Gjelder ERFARING - det er der belonningen regnes.
+    p.add_argument("--seier", default="")
     p.add_argument("--batch", type=int, default=1024)
     # ===================== FROEBAANDENE, AVSATT FOER FOERSTE KAMP =========
     #

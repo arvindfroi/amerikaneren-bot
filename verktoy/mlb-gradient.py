@@ -129,7 +129,7 @@ def les_erfaring(monster, maks=None):
     if not filer:
         raise SystemExit(f"Fant ingen erfaringsfiler for «{monster}»")
     deler = []
-    dim = mdim = versjon0 = None
+    dim = mdim = versjon0 = maal0 = None
     n = 0
     for sti in filer:
         with open(sti, "rb") as fh:
@@ -140,19 +140,32 @@ def les_erfaring(monster, maks=None):
             (d,) = struct.unpack("<i", fh.read(4))
             (md,) = struct.unpack("<i", fh.read(4))
             (post,) = struct.unpack("<i", fh.read(4))
-            if versjon not in (1, 2, 3):
+            if versjon not in (1, 2, 3, 4):
                 raise SystemExit(f"{sti}: ukjent versjon {versjon}")
+            # ============ VERSJON 4: MAALET STAAR I HODET (10. sep) ============
+            #
+            # 0 = POENG (alt foer versjon 4), 1 = SEIER (`--seier`, src/mlb/seier.ts).
+            # Radene er BYTE-LIKE i de to: G, Gr og Gh er bare regnet mot ulike
+            # belonninger. Uten feltet ville en glob over to epoker blandet
+            # vinnersjanse og poeng i samme verdihode uten at noe feilet.
+            maal = 0
+            if versjon >= 4:
+                (maal,) = struct.unpack("<i", fh.read(4))
+                if maal not in (0, 1):
+                    raise SystemExit(f"{sti}: ukjent maalkode {maal}")
             # BREDDEN MAA VAERE EN. Blandes to bredder, hoppes halve korpuset
             # over i stillhet - samme felle som i sd-tren og mlb-tren.
             #
             # OG VERSJONEN MAA VAERE EN. To epokers filer med hver sin versjon
             # ville gitt to ulike dtype-er over samme `concatenate`, og numpy
-            # hadde da laget et objektarray i stedet for aa si fra.
+            # hadde da laget et objektarray i stedet for aa si fra. Og MAALET
+            # maa vaere ett, av grunnen over.
             if dim is None:
-                dim, mdim, versjon0 = d, md, versjon
-            elif (d, md, versjon) != (dim, mdim, versjon0):
+                dim, mdim, versjon0, maal0 = d, md, versjon, maal
+            elif (d, md, versjon, maal) != (dim, mdim, versjon0, maal0):
                 raise SystemExit(
-                    f"{sti}: {d}x{md} v{versjon}, ventet {dim}x{mdim} v{versjon0}"
+                    f"{sti}: {d}x{md} v{versjon} maal {maal}, "
+                    f"ventet {dim}x{mdim} v{versjon0} maal {maal0}"
                 )
             dt = post_dtype(d, md, versjon)
             # RADSTOERRELSEN FRA HODET MOT VAAR EGEN dtype. Er de uenige, leser
@@ -170,7 +183,7 @@ def les_erfaring(monster, maks=None):
         print(f"  {sti}: {len(a)} rader", flush=True)
         if maks is not None and n >= maks:
             break
-    return numpy.concatenate(deler), dim, mdim, versjon0
+    return numpy.concatenate(deler), dim, mdim, versjon0, maal0
 
 
 def main():
@@ -358,7 +371,9 @@ def main():
     skjult = [int(x) for x in args.skjult.split(",")]
 
     print("ERFARING:", flush=True)
-    rad, dim, mdim, versjon = les_erfaring(args.inn, maks=(args.maks_rader or None))
+    rad, dim, mdim, versjon, maal_kode = les_erfaring(args.inn, maks=(args.maks_rader or None))
+    MAAL_NAVN = {0: "POENG", 1: "SEIER (vinnersjanse i prosentpoeng, src/mlb/seier.ts)"}[maal_kode]
+    print(f"MAAL: {MAAL_NAVN}  (MLBE v{versjon})", flush=True)
     n = len(rad)
     if n == 0:
         raise SystemExit("Ingen rader — epoken har ingen gradient aa ta")
@@ -1251,6 +1266,8 @@ def main():
         # ikke gjenkjennelige som ulike - samme regel som lambda og gamma.
         "vekt_stikk": args.vekt_stikk,
         "vekt_verdi_kvantil": args.vekt_verdi_kvantil,
+        # MAALET I HVER RAD (MLBE v4): poeng og seier gir tall som ikke er sammenliknbare.
+        "maal": MAAL_NAVN.split(" ")[0],
         "andel_stikk_kjent": round(andel_stikk, 4),
         "kl": round(kl, 6),
         "logitskala": round(logitskala, 2),

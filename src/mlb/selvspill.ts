@@ -188,6 +188,16 @@ export interface Beslutningsrad {
   readonly troFasit: Int8Array;
   /** Setets akkumulerte kamppoeng FØR denne beslutningen. */
   readonly poengFør: number;
+  /**
+   * HELE POENGTAVLA før beslutningen, i seterekkefølge — `poengAlleFør[sete]`
+   * er `poengFør`. Offentlig informasjon (alle ser tavla), så K2 er urørt.
+   *
+   * Finnes for seiersmålet (`seier.ts`): sjansen til å vinne kampen avhenger
+   * av hvor langt ALLE er fra målet, ikke bare setet selv. I gjenspillingen
+   * får bare kandidatsetene rader, så tavla kan ikke settes sammen av de andre
+   * setenes `poengFør` i ettertid.
+   */
+  readonly poengAlleFør: readonly number[];
   /** Indeks til neste rad for SAMME sete, eller −1 om dette var den siste. */
   nesteISete: number;
   /**
@@ -847,6 +857,7 @@ function kjørKamp(
            */
           troFasit: troFasit(s, sete),
           poengFør: s.totalPoeng[sete] ?? 0,
+          poengAlleFør: s.totalPoeng.slice(),
           nesteISete: -1,
           // UKJENT til runden er over — se `fyllStikkIgjen`.
           stikkIgjen: -1,

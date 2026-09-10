@@ -80,6 +80,8 @@ import {
   type Kamplogg,
   type Sete,
 } from "../src/mlb/selvspill.ts";
+import { Seiersprediktor, somSeiersmål } from "../src/mlb/seier.ts";
+import { createHash } from "node:crypto";
 
 // ---------------------------------------------------------------------------
 // Argumenter
@@ -130,6 +132,13 @@ let lambda = 1.0;
  */
 let gamma = 0.5;
 
+/**
+ * SEIERSMÅLET (`src/mlb/seier.ts`): stien til seiersprediktoren. `null` = poeng,
+ * som før. Med den byttes rundepoeng mot ENDRING I VINNERSJANSE før fordelen og
+ * målene regnes, og filhodet får målkoden (FORMATVERSJON 4).
+ */
+let seiersti: string | null = null;
+
 const tall = (v: string | undefined, navn: string): number => {
   const x = Number(v);
   if (!Number.isFinite(x)) throw new Error(`${navn} trenger et tall, fikk «${String(v)}»`);
@@ -158,6 +167,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--rapport") rapportfil = v ?? rapportfil;
   else if (a === "--lambda") lambda = tall(v, "--lambda");
   else if (a === "--gamma") gamma = tall(v, "--gamma");
+  else if (a === "--seier") seiersti = v ?? null;
   else if (a === "--skard") {
     const d = (v ?? "0/1").split("/");
     skardI = tall(d[0], "--skard i");
@@ -216,7 +226,17 @@ if (nettsti === null) throw new Error("--nett er påkrevd: fordelen trenger nett
  * den sykdommen §124 fant i λ = 1.
  */
 const MASKE_LENGDE = HANDLING_LENGDE;
-const FORMATVERSJON = 3;
+/**
+ * VERSJON 4 (10. september): RADENE ER UENDRET, men hodet har fått ett felt
+ * til bakerst — MÅLKODEN. 0 = poeng (alt før), 1 = seier (`--seier`, se
+ * `src/mlb/seier.ts`). `G`, `Gr` og `Gh` er byte for byte samme felt i begge,
+ * bare regnet mot ulik belønning, så uten koden i hodet ville en glob over to
+ * epoker blandet vinnersjanse og poeng i samme verdihode uten at noe feilet.
+ * `verktoy/mlb-gradient.py` krever at alle filene har samme kode.
+ */
+const FORMATVERSJON = 4;
+const MÅLKODE_POENG = 0;
+const MÅLKODE_SEIER = 1;
 const POST = TREKK_LENGDE * 4 + MASKE_LENGDE + 52 + 2 * 4 + 4 * 3 + 4 * 2 + 4 + 2;
 
 /**
@@ -309,6 +329,7 @@ function kjørSkard(i: number, n: number): void {
   if (filer.length === 0) throw new Error(`Fant ingen kamplogger for «${innMønster}»`);
 
   const nett = Sandkassenett.fraFil(nettsti!);
+  const seier = seiersti === null ? null : Seiersprediktor.fraFil(seiersti);
   const tronett = trosti === null ? null : MlbTronett.fraBytes(readFileSync(trosti));
   if (raskKjerne) {
     nett.brukKolonnekjerne();
@@ -325,12 +346,13 @@ function kjørSkard(i: number, n: number): void {
      * korpus som ser ut som tall. Med bredden i hodet kan leseren KREVE at
      * `dtype.itemsize` stemmer, og en glemt kolonne blir en feilmelding.
      */
-    const hode = Buffer.alloc(20);
+    const hode = Buffer.alloc(24);
     hode.write("MLBE", 0, "ascii");
     hode.writeInt32LE(FORMATVERSJON, 4);
     hode.writeInt32LE(TREKK_LENGDE, 8);
     hode.writeInt32LE(MASKE_LENGDE, 12);
     hode.writeInt32LE(POST, 16);
+    hode.writeInt32LE(seier === null ? MÅLKODE_POENG : MÅLKODE_SEIER, 20);
     writeSync(fd, hode);
   }
 
@@ -406,15 +428,24 @@ function kjørSkard(i: number, n: number): void {
       }));
 
       const erfaring = gjenspill(logg, { seter, samleTrekk: true, maksRunder, tronett });
-      const rader = erfaring.rader;
+      /**
+       * SEIERSMÅLET BYTTER POENG MOT VINNERSJANSE her, én gang, før ALLE tre
+       * målfunksjonene under. De leser bare `poengFør` og `sluttpoeng`, og
+       * `somSeiersmål` bytter nettopp de to — se filhodet i `src/mlb/seier.ts`.
+       */
+      const målgrunnlag =
+        seier === null
+          ? erfaring
+          : somSeiersmål(erfaring.rader, erfaring.fasit, (p, sete, m) => seier.sjanse(p, sete, m));
+      const rader = målgrunnlag.rader;
       s.kamper++;
       s.rader += rader.length;
-      const fordeler = gaeFordel(rader, erfaring.fasit, (x) => x.verdi ?? 0, lambda, gamma);
+      const fordeler = gaeFordel(rader, målgrunnlag.fasit, (x) => x.verdi ?? 0, lambda, gamma);
       // MÅLET REGNES AV SAMME γ SOM FORDELEN, i samme fil, i samme kall.
-      const mål = diskontertRetur(rader, erfaring.fasit, gamma);
+      const mål = diskontertRetur(rader, målgrunnlag.fasit, gamma);
       // ... og DELINGEN av det samme målet, av samme γ, i samme kall. Tre
       // steder med hver sin γ ville gitt en skjevhet som ikke feiler noe sted.
-      const delt = delteRetur(rader, erfaring.fasit, gamma);
+      const delt = delteRetur(rader, målgrunnlag.fasit, gamma);
 
       /**
        * VARIANSOPPDELINGEN, gruppert på (runde, sete) INNENFOR denne kampen.
@@ -532,6 +563,7 @@ if (skardI >= 0) {
       // ikke er sammenliknbare, og uten dem i loggen er de heller ikke
       // gjenkjennelige som ulike.
       `lambda=${lambda} gamma=${gamma} maksrunder=${maksRunder}\n` +
+      `maal=${seiersti === null ? "poeng" : `seier ${seiersti} sha1=${createHash("sha1").update(readFileSync(seiersti)).digest("hex").slice(0, 12)}`}\n` +
       `kjerne=${raskKjerne ? "kolonne (--rask-kjerne, ikke bit-identisk)" : "rad (bit-identisk)"}\n`,
   );
   const t0 = Date.now();
