@@ -115,3 +115,33 @@ mlb-tro-data/
 # Halvskrevne skard fra et avbrutt steg i mlb-fase0a.sh. Skriptet gir dem
 # riktig navn foerst naar prosessen har avsluttet med kode 0.
 *.delvis
+
+# TRENINGSDATA SOM GJENSKAPES FRA KODEN (lagt til 10. sep). Maaleresultater og
+# raarader under analyse/ skal i git; erfaringsfiler og treningskorpus skal ikke -
+# samme regel som e1-modell/. Eksakte navn med vilje: et glob som «bud-*/» ville
+# skjult en framtidig kodemappe med samme prefiks.
+/mlb-epoke-data-125/
+/mlb-epoke-data-126/
+/mlb-epoke-data-127/
+/mlb-epoke-data-127b/
+/mlb-epoke-data-g05/
+/mlb-epoke-data-skala/
+/bud-auksjon/
+/bud-data9/
+/bud-data10/
+/bud-halv/
+/bud-kvant/
+/bud-regner/
+/bud-splitt/
+/bud-sveip/
+/regr-bro/
+/regr-menneske/
+/regr-mester/
+/regr-mk/
+/regr-par/
+/regr-sterk/
+/e1-d5data/
+/hand-verdi/
+/analyse/roeyk-g05/
+/analyse/126-sveip/erf-s*.bin
+/analyse/126-roeyk/erf-s*.bin
