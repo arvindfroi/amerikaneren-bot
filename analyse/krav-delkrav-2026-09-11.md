@@ -20,7 +20,7 @@ Kandidatene: **Adams-v5** (utrullet) · **i2** (MLB, imitasjon av Adams med seie
 
 | # | delkrav | status i dag | kode? |
 |---|---|---|---|
-| K1.1 | Menneskene vinner **< 5 %** av kampene til 100 (strekkmål, retning) | menneskene 22/83 = 26,5 % mot v5 siden 10. aug (Val Town); oppdateres av egen gjennomgang | **NEI** — ingen kandidat er sterkere enn Adams: i2 0,225 mot tre Adams (400 frø, −2,9 SE), R1 e1–e4 0,233 / 0,234 / 0,220 / 0,217 |
+| K1.1 | Menneskene vinner **< 5 %** av kampene til 100 (strekkmål, retning) | fullførte kamper fra 10. aug 22/83 = 26,5 % [18,2–36,9]; med forlatte kamper anslått 23,0 % [18,3–28,4], gulv 8,3 %. I praksis ÉN spiller (88 % av kampene). Mennesket taper budrunden (klarer 56 % mot botenes 75 %, bud 11: −6,2) og henter igjen som makker og i motspill. For å vise < 5 %: 0 seire i ≥ 74 kamper (gjennomgang 11. sep) | **NEI** — ingen kandidat er sterkere enn Adams: i2 0,225 mot tre Adams (400 frø, −2,9 SE), R1 e1–e4 0,233 / 0,234 / 0,220 / 0,217 |
 | K1.2 | Målt mot boten menneskene FAKTISK møter | appen kjører `bud-menneske` + `sik`-søk (24 verdener) i førersetet; benken dømmer mot `ADAMS`-speken | **BYGD** — appspeken finnes og er tidsmålt (1 frø 481 s → 100 frø ≈ 50 min), ikke kjørt som dom |
 | K1.3 | Nok menneskedata til at intervallet sier noe | 32,1 % var et TAK (69 % forlatt, de fleste bak) | **BYGD** — loggingen finnes; flaskehalsen er kvelder med spill |
 | K1.4 | Proxy-benk: kontroll 0,2500, disjunkte frøbånd, alle skard | kampbenken leste bare skard 0 fram til 10. sep — rettet, alt omlest | **JA** (`test/kamp-les.test.ts`) |
