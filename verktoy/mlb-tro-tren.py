@@ -129,6 +129,40 @@ def skriv_vekter(sti, modell):
             f.write(l.bias.detach().cpu().float().numpy().astype("<f4").tobytes())
 
 
+def les_dims(sti):
+    """Lagbreddene i en vektfil i appformatet, uten aa laste vektene."""
+    with open(sti, "rb") as f:
+        (deler,) = struct.unpack("<i", f.read(4))
+        if deler != 1:
+            raise SystemExit(f"{sti}: {deler} deler, trosnettet er EN")
+        (lag,) = struct.unpack("<i", f.read(4))
+        dims = []
+        for i in range(lag):
+            inn, ut = struct.unpack("<ii", f.read(8))
+            if i == 0:
+                dims.append(inn)
+            dims.append(ut)
+            f.seek(inn * ut * 4 + ut * 4, 1)
+    return dims
+
+
+def les_vekter(sti, modell):
+    """Leser appformatet tilbake. R2 starter hver epoke fra forrige epokes trosnett."""
+    with open(sti, "rb") as f:
+        f.read(8)
+        for l in modell.lag:
+            inn, ut = struct.unpack("<ii", f.read(8))
+            if (inn, ut) != (l.in_features, l.out_features):
+                raise SystemExit(f"{sti}: lag {inn}x{ut}, ventet {l.in_features}x{l.out_features}")
+            w = numpy.frombuffer(f.read(inn * ut * 4), dtype="<f4").reshape(ut, inn)
+            b = numpy.frombuffer(f.read(ut * 4), dtype="<f4")
+            with torch.no_grad():
+                l.weight.copy_(torch.from_numpy(w.copy()))
+                l.bias.copy_(torch.from_numpy(b.copy()))
+        if f.read(1):
+            raise SystemExit(f"{sti}: det sto igjen byte etter siste lag")
+
+
 def kapasitetsreferanse(Fa):
     """Treffrate og K8-tap for en teller som bare kjenner antall plasser igjen.
 
@@ -167,14 +201,25 @@ def main():
     ap.add_argument("--tapsform", default="ce4", choices=["ce4", "kond"])
     ap.add_argument("--logg", default="analyse/mlb-tro-tren.jsonl")
     ap.add_argument("--rapport", default="analyse/mlb-tro-tren.txt")
+    # R2 (10. sep): trosnettet trenes SAMMEN med policyen, paa epokens egne kamper.
+    ap.add_argument("--vekter", default="", help="start fra disse vektene (appformat); tom = tilfeldig")
+    ap.add_argument("--hold-del", type=int, default=0, help=">0: holdout = rader med froe %% N == 0 fra --tren")
     args = ap.parse_args()
 
     enhet = "cuda" if torch.cuda.is_available() else "cpu"
     t0 = time.time()
     print("TRENING:", flush=True)
-    Xtr, Ftr, _, _, dim = les_bin(args.tren)
-    print("HOLDOUT:", flush=True)
-    Xho, Fho, _, Sho, dim2 = les_bin(args.hold)
+    Xtr, Ftr, FROtr, STtr, dim = les_bin(args.tren)
+    if args.hold_del > 0:
+        # HOLDOUT PAA KAMP, fra samme filer: epokens data har ikke et eget froebaand,
+        # og en radvis splitt ville maalt gjenkjenning av kampen.
+        hold = (numpy.abs(FROtr.astype(numpy.int64)) % args.hold_del) == 0
+        Xho, Fho, Sho = Xtr[hold], Ftr[hold], STtr[hold]
+        Xtr, Ftr = Xtr[~hold], Ftr[~hold]
+        dim2 = dim
+    else:
+        print("HOLDOUT:", flush=True)
+        Xho, Fho, _, Sho, dim2 = les_bin(args.hold)
     if dim != dim2:
         raise SystemExit(f"tren dim {dim} != holdout dim {dim2}")
     print(
@@ -201,8 +246,15 @@ def main():
     er_honnor = (rang >= 10).unsqueeze(0)
 
     torch.manual_seed(args.froe)
-    dims = [dim] + [int(x) for x in args.skjult.split(",")] + [KORT * KLASSER]
+    if args.vekter:
+        dims = les_dims(args.vekter)
+        if dims[0] != dim:
+            raise SystemExit(f"{args.vekter} tar {dims[0]} trekk, dataene har {dim}")
+    else:
+        dims = [dim] + [int(x) for x in args.skjult.split(",")] + [KORT * KLASSER]
     modell = Tronett(dims).to(enhet)
+    if args.vekter:
+        les_vekter(args.vekter, modell)
     opt = torch.optim.AdamW(modell.parameters(), lr=args.lr)
     plan = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epoker)
 
@@ -272,10 +324,20 @@ def main():
             "perStikk": {int(k): round(v[0] / max(1, v[1]), 5) for k, v in sorted(perStikk.items())},
         }
 
+    # STARTVEKTENE MAALES FOERST (R2). De er grunnlinjen: et trosnett som ikke
+    # slaar dem paa epokens egen holdout skal ikke erstatte dem, og driveren leser
+    # «tro_foer»/«tro_etter» for aa avgjoere det.
+    modell.eval()
+    foer = mål(Xh, Fh, Sh)
+    print(json.dumps({"tro_foer": {k: v for k, v in foer.items() if k != "perStikk"}}), flush=True)
     os.makedirs(os.path.dirname(args.logg) or ".", exist_ok=True)
     logg = open(args.logg, "a", encoding="utf-8", buffering=1)
-    beste = float("inf")
-    beste_rad = None
+    beste = foer["k8"] if args.vekter else float("inf")
+    beste_rad = (0, foer) if args.vekter else None
+    if args.vekter:
+        # Uten dette kunne en epoke som bare ble verre etterlate en fil DAARLIGERE
+        # enn den den startet fra.
+        skriv_vekter(args.ut, modell)
     n = len(Xt)
     for e in range(args.epoker):
         modell.train()
@@ -331,6 +393,7 @@ def main():
         f.write(f"K8-tap per stikk: {h['perStikk']}\n")
         f.write(f"vekter -> {args.ut}\n")
     print(f"\nFerdig: beste holdout K8-tap {beste:.5f} -> {args.ut}", flush=True)
+    print(json.dumps({"tro_etter": {"epoke": beste_rad[0], **{k: v for k, v in beste_rad[1].items() if k != "perStikk"}}}), flush=True)
     print(f"Rapport lagt til {args.rapport}", flush=True)
 
 

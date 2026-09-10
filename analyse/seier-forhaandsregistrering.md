@@ -69,6 +69,28 @@ rapporteres, men avgjør ingenting.
 - **Bedre enn Adams:** kampandel > 0,25 med nedre 95 %-grense over 0,25.
 - **Adopteres** først når det er replikert i et disjunkt frøbånd (800 000 000).
 
+## Kravregelen — lagt til 10. sep 22:20, før R1 har produsert én epoke
+
+Arvind: treningen skal jobbe mot KRAVENE, ikke bare mot kampandel. En kandidat
+som slår Adams på kampbenken, men gjør et krav verre, adopteres IKKE.
+
+Hver R1-epoke kjøres gjennom kravbatteriet (`examples/mlb-krav.ts --to-band`)
+ved siden av kampbenken (`D:\amb-imit\maal-r1.sh`). Adopsjon krever i begge bånd:
+
+| krav | regel |
+|---|---|
+| K2 | «ja» — ingen unntak |
+| K3 | budgapet (poeng/runde igjen) ikke over startvektenes med mer enn 2 SE |
+| K4 | «ja» |
+| K5 | ikke verre enn startvektenes V(bak)-andel med mer enn 2 SE |
+| K6 | stigningen ikke under startvektenes med mer enn 2 SE |
+| K7 | sluttspillgapet ikke over startvektenes med mer enn 2 SE |
+| K8 | andelen av veien gulv → tak ikke under startvektenes med mer enn 2 SE |
+
+Startvektenes rader måles med samme batteri før R1 dømmes. K7 og K4-framoverblikk
+krever søk i spillet og er ikke ventet å bevege seg av R1 alene — de har egen
+plan (søk oppå nettet), men de skal ikke bli VERRE.
+
 ## Avbruddskriteriet — skrevet ned nå, så det ikke forhandles senere
 
 MLB-linjen **stoppes** hvis ingen kandidat har kampandel over 0,25 (nedre
@@ -86,8 +108,9 @@ til Adams-stakken direkte (budsøk K=240 er målt +2,0, `ADAMS-MAX-ARBEIDSPLAN`)
 |---|---|---|
 | i1 | imitasjon, lr 1e-4, 6 pass | **kampbenk 0,086** (400 frø / 1 600 kandidatkamper, −25,6 SE, 7 opp / 269 ned), 10. sep. *Først lest som 0,100 på 25 frø: `kampport.sh` leste bare skard 0 — se under.* |
 | i1b | imitasjon, lr 3e-4, 20 pass, samme data | samsvar holdout 73,9 % (trening 82,5 %, verdihodet overtilpasset: forklart −0,02 holdout). Stigen mot Adams −0,34 ± 0,41 (n=600). **Kampbenk 0,204** (400 frø / 1 600 kandidatkamper, differanse −0,046 ± 0,009, **−5,19 SE**, 55 opp / 135 ned, margin −6,7 ± 1,2), 10. sep. *Først lest som 0,190, −1,44 SE på 25 frø.* |
-| i2 | imitasjon + verdihoder mot SEIER, 8 000 nye kamper (frø 2 000 000 000 +), sjanse ~0,33 | data spilt |
-| R1–R6 | `mlb-epoke.py --seier --adams-andel 0.5`, fra beste imitasjon | ikke startet |
+| i2 | imitasjon + verdihoder mot SEIER, 8 000 nye kamper (frø 2 000 000 000 +), sjanse ~0,33, fra i1b | samsvar holdout 75,8 % (BUD 95,8 / VRAK 60,6 / TRUMF 93,7 / ETTERLYS 99,9 / SPILL 73,7), verdi forklart +0,25. Stigen mot Adams +0,18 ± 0,36 (n=600). **Kampbenk 0,225** (400 frø, −0,025 ± 0,009, −2,91 SE, 62 opp / 109 ned, margin −3,8 ± 1,1), 10. sep. **Beste imitasjon → R1 startet fra i2** |
+| i3 | som i2, men KANONISK vrak og 16 000 kamper (frø 300 000 000 +), sjanse 0,165, fra i2 | samsvar holdout **78,9 %** (VRAK 60,6 → **85,0 %**, SPILL 75,0), verdi forklart +0,29. Stigen mot Adams +0,01 ± 0,34. **Kampbenk 0,2131** (−4,32 SE). Parret mot i2 på samme 400 frø: **−0,012 ± 0,011** (−1,1 SE), margin −3,3 ± 1,2. Ikke bedre → R1 startes IKKE på nytt. Høyere samsvar ga ikke flere seire |
+| R1–R6 | `mlb-epoke.py --seier --adams-andel 0.5`, fra i2 | **e1: 0,2331** (400 frø, −0,0169 ± 0,0084, −2,00 SE, 66 opp / 99 ned, margin −2,8 ± 1,1), 10. sep 23:01. Porten (gate 2) forkastet, KL 0,036. Kravbatteri e1 kjører. K5- og K8-radene er ugyldige for R1 — se `krav-samspill-2026-09-10.md` §3 |
 
 **Lest av i1 (skrevet etter målingen, ikke en ny hypotese):** 67 % samsvar gir
 −1,17 poeng/giv på stigen men bare 0,10 av kampene. Små avvik hoper seg opp over

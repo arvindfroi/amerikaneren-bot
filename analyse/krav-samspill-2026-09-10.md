@@ -86,7 +86,11 @@ blokkerer ikke læringen. Men den er ikke dommen: kampbenken er.
 
 1. **R1** (K1 og K5-gradient), dømt per epoke på kampbenk + K2/K3/K4/K6/K7.
 2. **Rett målingene** (K5 på policyen, K8 på nettets eget trohode) — mens R1 går.
-3. **Budarmen**: utforsking bare i budfasen (amerikaner/solo). K3 og K5.
+3. **Budarmen**: utforsking bare i budfasen (amerikaner/solo). K3 og K5. *Nedprioritert etter
+   menneskedataene (lest 10. sep): mennesker byr amerikaner/solo i 5 av 5 576 budvalg (0,09 %), og
+   vinner 5 av 1 732 budrunder med dem. Hullet er ekte for K3, men lite for K1. Mennesker byr derimot
+   11 i 14,5 % av budrundene de vinner, mot 4,7 % for botene — det er en K4/K6 → K3-kobling som betyr
+   mer: å lese hvor aggressivt DENNE motstanderen byr.*
 4. **Trosnettet på nytt**, på R1-befolkningen og MED hukommelse som inngang (K6 → K8).
    Da først kan K7 og K3-midtspill forventes å flytte seg.
 5. **Søk oppå nettet** (K7, K4-planlegging), med troen fra steg 4.

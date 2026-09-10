@@ -262,6 +262,57 @@ class Driver:
             dom = json.loads([l for l in f if l.strip()][-1])
         return sek, dom
 
+    def tro_steg(self, e, kilde, tro_naa):
+        """R2: TROSNETTET TRENES SAMMEN MED POLICYEN, paa epokens egne kamper.
+
+        Trosnettet var fast og trent paa ADAMS_MAALT mot seg selv, mens policyen
+        laerte. Troen er motstanderspesifikk (§119), saa jo mer spillet flyttet seg,
+        jo mer feil ble den om nettopp de spillerne den ble brukt mot - og
+        kortspillet (K7, K3) bygger paa den. Se analyse/krav-samspill-2026-09-10.md.
+
+        Rekkefoelgen i epoken er valgt: dette steget kjoerer ETTER porten, og et
+        godtatt trosnett tas i bruk fra NESTE epoke. Kandidaten i denne epoken er
+        trent paa data spilt med det gamle trosnettet og skal maales med det samme -
+        samme regel som §126 (samme fil i SPILL, ERFARING og PORT).
+
+        GODTAS BARE hvis K8-tapet paa epokens holdout (froe % 10 == 0) faller.
+        """
+        ut = f"{self.a.datakatalog}/tro-e{e}"
+        cmd = [
+            self.node,
+            "examples/mlb-trodata-logg.ts",
+            "--inn", f"{kilde}-s*.jsonl",
+            "--ut", ut,
+            "--kjerner", str(self.a.kjerner),
+            "--sjanse", str(self.a.tro_sjanse),
+            "--maksrunder", str(self.a.maksrunder),
+        ]
+        sek_data, _ = self.kjor("TRODATA", cmd, f"{self.a.logkatalog}/e{e}-trodata.txt")
+        kandidat = f"{self.a.katalog}/mlb-tro-e{e}.bin"
+        py = self.a.wsl_python
+        indre = (
+            f"cd {wsl_sti(ROT)} && {py} verktoy/mlb-tro-tren.py "
+            f"--tren '{ut}-s*.bin' --hold-del 10 --vekter {tro_naa} --ut {kandidat} "
+            f"--epoker {self.a.tro_epoker} --lr {self.a.tro_lr} "
+            f"--logg {self.a.logkatalog}/e{e}-trotren.jsonl --rapport {self.a.logkatalog}/e{e}-trotren-rapport.txt"
+        )
+        sek_tren, utskrift = self.kjor("TROTREN (GPU)", ["wsl.exe", "-e", "bash", "-lc", indre], f"{self.a.logkatalog}/e{e}-trotren.txt")
+        foer = etter = None
+        for linje in utskrift.splitlines():
+            linje = linje.strip()
+            if linje.startswith("{") and '"tro_foer"' in linje:
+                foer = json.loads(linje)["tro_foer"]
+            if linje.startswith("{") and '"tro_etter"' in linje:
+                etter = json.loads(linje)["tro_etter"]
+        godtatt = foer is not None and etter is not None and etter["k8"] < foer["k8"] - 1e-4
+        self.si(
+            f"    TRO e{e}: K8-tap holdout "
+            f"{tallstr(None if foer is None else foer['k8'], '.5f')} -> "
+            f"{tallstr(None if etter is None else etter['k8'], '.5f')}  "
+            f"{'GODTATT -> ' + kandidat if godtatt else 'FORKASTET, beholder ' + tro_naa}"
+        )
+        return sek_data, sek_tren, (kandidat if godtatt else tro_naa), foer, etter, godtatt
+
     # ------------------------------------------------------------------ loekka
     def gå(self):
         a = self.a
@@ -270,11 +321,15 @@ class Driver:
         os.makedirs(a.katalog, exist_ok=True)
         os.makedirs(os.path.dirname(a.arbeid) or ".", exist_ok=True)
 
-        tilstand = {"epoke": 0, "beste": a.beste, "tidligere": [], "adoptert": 0}
+        tilstand = {"epoke": 0, "beste": a.beste, "tidligere": [], "adoptert": 0, "tro": a.tro}
         if a.fortsett and os.path.exists(self.tilstand):
             with open(self.tilstand, encoding="utf-8") as f:
                 tilstand = json.load(f)
             self.si(f"FORTSETTER fra epoke {tilstand['epoke']}")
+            # R2: trosnettet som sist ble GODTATT, ikke flaggets standard.
+            if a.tro_tren and tilstand.get("tro"):
+                a.tro = tilstand["tro"]
+                self.si(f"  trosnett fra tilstanden: {a.tro}")
         else:
             if not os.path.exists(a.arbeid):
                 raise SystemExit(f"Arbeidsvektene mangler: {a.arbeid}")
@@ -292,6 +347,7 @@ class Driver:
                 f"  motstander={a.motstander}"
                 f"  maal={('seier ' + a.seier) if a.seier else 'poeng'}"
                 f"  adams-andel={a.adams_andel}"
+                f"  tro-tren={('ja, ' + str(a.tro_epoker) + ' pass, lr ' + str(a.tro_lr)) if a.tro_tren else 'nei (fast trosnett)'}"
                 # KJERNEN I TRENINGSDATAENE. Kolonnekjernen er ikke bit-identisk;
                 # et loep som bruker den skal vaere gjenkjennelig i den varige fila.
                 + (f"  kjerne=kolonne (--rask-kjerne)" if a.rask_kjerne else "  kjerne=rad")
@@ -324,6 +380,20 @@ class Driver:
             tider["tren"], gradrad = self.tren(e, a.arbeid, erf, kandidat)
             tider["k2_etter"] = self.k2(kandidat, "etter", e)
             tider["port"], dom = self.port(e, kandidat, tilstand["beste"])
+            tro_brukt = a.tro
+            tro_info = {"brukt": tro_brukt}
+            if a.tro_tren:
+                sd, st, ny_tro, foer, etter, godtatt = self.tro_steg(e, kilde, a.tro)
+                tider["trodata"], tider["trotren"] = sd, st
+                tro_info.update({
+                    "kandidat": f"{a.katalog}/mlb-tro-e{e}.bin",
+                    "godtatt": godtatt,
+                    "k8_foer": None if foer is None else round(foer["k8"], 5),
+                    "k8_etter": None if etter is None else round(etter["k8"], 5),
+                    "neste": ny_tro,
+                })
+                a.tro = ny_tro
+                tilstand["tro"] = a.tro
 
             adoptert = dom["dom"] == "godkjent"
             if adoptert:
@@ -362,6 +432,9 @@ class Driver:
                 "beste": tilstand["beste"],
                 "begrunnelse": dom["begrunnelse"],
                 "gradient": gradrad,
+                # HVILKET TROSNETT KANDIDATEN BLE TRENT OG PORTET MED. Dommeren maa bruke
+                # det samme, ellers maales en annen bot enn den som ble trent.
+                "tro": tro_info,
             }
             logg_linje(self.jsonl, json.dumps(rad))
             s = dom["styrke"]
@@ -550,6 +623,11 @@ def main():
     # ADAMS SOM MOTSTANDER: andelen kamper med kandidaten mot tre Adams-v5 (kampbenkens
     # bord). 0 = bare ligaen, som foer.
     p.add_argument("--adams-andel", type=float, default=0.0)
+    # R2: TROSNETTET TRENES SAMMEN MED POLICYEN (se Driver.tro_steg).
+    p.add_argument("--tro-tren", action="store_true")
+    p.add_argument("--tro-epoker", type=int, default=3)
+    p.add_argument("--tro-lr", type=float, default=3e-4)
+    p.add_argument("--tro-sjanse", type=float, default=0.3)
     p.add_argument("--batch", type=int, default=1024)
     # ===================== FROEBAANDENE, AVSATT FOER FOERSTE KAMP =========
     #
