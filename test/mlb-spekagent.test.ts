@@ -22,6 +22,10 @@ import { Sandkasseagent } from "../src/mlb/spekagent.ts";
 import { Sandkassenett } from "../src/mlb/nett.ts";
 import { spillKamp } from "../src/mlb/selvspill.ts";
 import { lagIndre } from "../src/moe2/agentspek.ts";
+import { MlbTronett } from "../src/mlb/tronett.ts";
+import type { Trofordeler } from "../src/mlb/trekk.ts";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const nett = Sandkassenett.tilfeldig(7_310_001);
 
@@ -31,6 +35,8 @@ function spillMedAdapter(
   målPoeng: number,
   hukommelse: boolean,
   koder?: number[],
+  tronett: Trofordeler | null = null,
+  maksRunder = 40,
 ): string[] {
   const agenter = [0, 1, 2, 3].map(
     () =>
@@ -38,6 +44,7 @@ function spillMedAdapter(
         temperatur: 0,
         frø,
         hukommelse,
+        tronett,
         påKode: koder === undefined ? undefined : (k) => koder.push(k),
       }),
   );
@@ -52,7 +59,7 @@ function spillMedAdapter(
   // enn loekka paa ellers IDENTISKE valg. Prøven fant altsaa en forskjell i
   // stoppebetingelsen, ikke i en beslutning - men den ville sett like roed ut.
   for (let vakt = 0; vakt < 60_000 && s.fase !== "FERDIG"; vakt++) {
-    if (s.rundeNr >= 40) break;
+    if (s.rundeNr >= maksRunder) break;
     const lovlig = lovligeHandlinger(s);
     if (lovlig.fase === "RUNDE_SLUTT") {
       for (const a of agenter) a.observer(s);
@@ -108,6 +115,42 @@ test("MLB-bro: adapteren og selvspillsløkka velger identisk ved temperatur 0", 
   }
 
   assert.ok(sammenliknet > 0, "ingen kamper ble sammenliknet");
+});
+
+test("MLB-bro: MED trohode og hukommelse, kamp til 100 — løkkene er enige, og troen endrer valg", () => {
+  /**
+   * Prøven over kjører UTEN trohode og til 30. Sansekontrollen 10. september
+   * viste at TRO-veien også er lik (6/6 kamper med i2-vektene), men ingen prøve
+   * låste det: en adapter som glemte å sende `tronett` videre ville vært grønn
+   * her. Denne kjører samme kamper med trohodet på i begge løkker, og krever i
+   * tillegg at trohodet ENDRER minst ett valg — ellers kan den ikke se forskjell.
+   */
+  const tronett = MlbTronett.fraBytes(
+    readFileSync(fileURLToPath(new URL("../e1-modell/mlb-tro.bin", import.meta.url))),
+  );
+  let sammenliknet = 0;
+  let troenEndret = 0;
+  for (const frø of [7_400_101, 7_400_102]) {
+    const e = spillKamp({
+      frø,
+      målPoeng: 100,
+      seter: [0, 1, 2, 3].map((i) => ({ navn: `n${i}`, nett, temperatur: 0 })),
+      tronett,
+      hukommelse: true,
+      maksRunder: 12,
+    });
+    const fraLøkka = [...e.logg.koder];
+    assert.ok(e.fasit.runder >= 3, `bare ${e.fasit.runder} runder — hukommelsen fikk aldri noe å bokføre`);
+    const medTro: number[] = [];
+    spillMedAdapter(frø, 100, true, medTro, tronett, 12);
+    assert.deepEqual(medTro, fraLøkka, `frø ${frø}: løkkene er uenige MED trohodet på`);
+    const utenTro: number[] = [];
+    spillMedAdapter(frø, 100, true, utenTro, null, 12);
+    if (utenTro.length !== fraLøkka.length || utenTro.some((k, i) => k !== fraLøkka[i])) troenEndret++;
+    sammenliknet++;
+  }
+  assert.equal(sammenliknet, 2);
+  assert.ok(troenEndret > 0, "trohodet endret ikke ett valg — prøven kan ikke se om troen er koblet");
 });
 
 test("MLB-bro: adapteren er deterministisk — samme stilling gir samme valg", () => {
