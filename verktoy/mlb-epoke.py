@@ -152,6 +152,8 @@ class Driver:
             cmd.append("--rask-kjerne")
         if self.a.adams_andel > 0:
             cmd += ["--adams-andel", str(self.a.adams_andel)]
+        if self.a.ligavekter:
+            cmd += ["--ligavekter", self.a.ligavekter]
         # ===================== HVEM ER 40-PROSENTEN? (§127) ==================
         #
         # `TRENINGSVEKTER` i src/mlb/liga.ts er beste 0,4 / tidligere 0,3 /
@@ -313,6 +315,48 @@ class Driver:
         )
         return sek_data, sek_tren, (kandidat if godtatt else tro_naa), foer, etter, godtatt
 
+    def seier_steg(self, e, kilde, seier_naa):
+        """R2: SEIERSPREDIKTOREN TILPASSES PAA NYTT, paa epokens egne kamper.
+
+        Belonningen (src/mlb/seier.ts) er P(seier | tavla) laert paa Adams mot seg
+        selv. Naar spillestyrken ved bordet endrer seg, endrer sjansen for aa vinne
+        fra en gitt tavle seg ogsaa - og en fast prediktor gir da en belonning som er
+        kalibrert mot et annet bord. Se analyse/krav-samspill-2026-09-10.md.
+
+        GODTAS BARE hvis holdout-CE paa epokens kamper faller mot den gamle, OG
+        TS/PyTorch-pariteten (examples/seier-paritet.ts) holder. Tas i bruk fra
+        neste epoke, av samme grunn som trosnettet.
+        """
+        ut = f"{self.a.datakatalog}/seier-e{e}"
+        cmd = [self.node, "examples/seier-data.ts", "--ut", ut, "--kjerner", str(self.a.kjerner), f"{kilde}-s*.jsonl"]
+        sek_data, _ = self.kjor("SEIERDATA", cmd, f"{self.a.logkatalog}/e{e}-seierdata.txt")
+        kandidat = f"{self.a.katalog}/seier-e{e}"
+        indre = (
+            f"cd {wsl_sti(ROT)} && {self.a.wsl_python} verktoy/seier-tren.py "
+            f"--inn '{ut}-s*.csv' --ut {kandidat} --sammenlikn {seier_naa} --traader 8"
+        )
+        sek_tren, utskrift = self.kjor("SEIERTREN", ["wsl.exe", "-e", "bash", "-lc", indre], f"{self.a.logkatalog}/e{e}-seiertren.txt")
+        foer = etter = None
+        for linje in utskrift.splitlines():
+            linje = linje.strip()
+            if linje.startswith("{") and '"seier_foer"' in linje:
+                d = json.loads(linje)
+                foer, etter = d["seier_foer"], d["seier_etter"]
+        bedre = foer is not None and etter is not None and etter < foer - 1e-3
+        paritet = False
+        if bedre:
+            try:
+                self.kjor("SEIERPARITET", [self.node, "examples/seier-paritet.ts", kandidat], f"{self.a.logkatalog}/e{e}-seierparitet.txt")
+                paritet = True
+            except RuntimeError:
+                paritet = False
+        godtatt = bedre and paritet
+        self.si(
+            f"    SEIER e{e}: holdout CE {tallstr(foer, '.4f')} -> {tallstr(etter, '.4f')}  "
+            f"{'GODTATT -> ' + kandidat + '.bin' if godtatt else ('FORKASTET (paritet)' if bedre else 'FORKASTET') + ', beholder ' + seier_naa}"
+        )
+        return sek_data, sek_tren, (kandidat + ".bin" if godtatt else seier_naa), foer, etter, godtatt
+
     # ------------------------------------------------------------------ loekka
     def gå(self):
         a = self.a
@@ -321,7 +365,7 @@ class Driver:
         os.makedirs(a.katalog, exist_ok=True)
         os.makedirs(os.path.dirname(a.arbeid) or ".", exist_ok=True)
 
-        tilstand = {"epoke": 0, "beste": a.beste, "tidligere": [], "adoptert": 0, "tro": a.tro}
+        tilstand = {"epoke": 0, "beste": a.beste, "tidligere": [], "adoptert": 0, "tro": a.tro, "seier": a.seier}
         if a.fortsett and os.path.exists(self.tilstand):
             with open(self.tilstand, encoding="utf-8") as f:
                 tilstand = json.load(f)
@@ -330,6 +374,9 @@ class Driver:
             if a.tro_tren and tilstand.get("tro"):
                 a.tro = tilstand["tro"]
                 self.si(f"  trosnett fra tilstanden: {a.tro}")
+            if tilstand.get("seier"):
+                a.seier = tilstand["seier"]
+                self.si(f"  seiersprediktor fra tilstanden: {a.seier}")
         else:
             if not os.path.exists(a.arbeid):
                 raise SystemExit(f"Arbeidsvektene mangler: {a.arbeid}")
@@ -347,6 +394,7 @@ class Driver:
                 f"  motstander={a.motstander}"
                 f"  maal={('seier ' + a.seier) if a.seier else 'poeng'}"
                 f"  adams-andel={a.adams_andel}"
+                f"  seier-tren-hver={a.seier_tren_hver}  ligavekter={a.ligavekter or 'standard'}"
                 f"  tro-tren={('ja, ' + str(a.tro_epoker) + ' pass, lr ' + str(a.tro_lr)) if a.tro_tren else 'nei (fast trosnett)'}"
                 # KJERNEN I TRENINGSDATAENE. Kolonnekjernen er ikke bit-identisk;
                 # et loep som bruker den skal vaere gjenkjennelig i den varige fila.
@@ -394,6 +442,13 @@ class Driver:
                 })
                 a.tro = ny_tro
                 tilstand["tro"] = a.tro
+            seier_info = {"brukt": a.seier}
+            if a.seier and a.seier_tren_hver > 0 and e % a.seier_tren_hver == 0:
+                sd2, st2, ny_seier, sf, se2, sg = self.seier_steg(e, kilde, a.seier)
+                tider["seierdata"], tider["seiertren"] = sd2, st2
+                seier_info.update({"godtatt": sg, "ce_foer": sf, "ce_etter": se2, "neste": ny_seier})
+                a.seier = ny_seier
+                tilstand["seier"] = a.seier
 
             adoptert = dom["dom"] == "godkjent"
             if adoptert:
@@ -435,6 +490,7 @@ class Driver:
                 # HVILKET TROSNETT KANDIDATEN BLE TRENT OG PORTET MED. Dommeren maa bruke
                 # det samme, ellers maales en annen bot enn den som ble trent.
                 "tro": tro_info,
+                "seier": seier_info,
             }
             logg_linje(self.jsonl, json.dumps(rad))
             s = dom["styrke"]
@@ -628,6 +684,10 @@ def main():
     p.add_argument("--tro-epoker", type=int, default=3)
     p.add_argument("--tro-lr", type=float, default=3e-4)
     p.add_argument("--tro-sjanse", type=float, default=0.3)
+    # R2: SEIERSPREDIKTOREN TILPASSES PAA NYTT hvert N-te epoke (0 = fast). Se Driver.seier_steg.
+    p.add_argument("--seier-tren-hver", type=int, default=0)
+    # R2: VANEANDELEN I LIGAEN, «beste,tidligere,vaner» (tom = TRENINGSVEKTER 0,4/0,3/0,3).
+    p.add_argument("--ligavekter", default="")
     p.add_argument("--batch", type=int, default=1024)
     # ===================== FROEBAANDENE, AVSATT FOER FOERSTE KAMP =========
     #

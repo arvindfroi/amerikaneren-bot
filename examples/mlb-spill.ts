@@ -57,7 +57,7 @@ import {
   tilfeldigNett,
   type Sete,
 } from "../src/mlb/selvspill.ts";
-import { epokeDeltaker, Liga, VANER_TRENING } from "../src/mlb/liga.ts";
+import { epokeDeltaker, Liga, TRENINGSVEKTER, VANER_TRENING } from "../src/mlb/liga.ts";
 /**
  * LÆREREN — Arvind 10. september: MLB startes fra Adams-v5, et bevisst unntak fra
  * «ingen mester» (`docs/mlb.md` AVGJØRELSE 1b og 2). Importen ligger i `examples/`
@@ -207,6 +207,13 @@ let laerer: "adams" | null = null;
  */
 let adamsAndel = 0;
 
+/**
+ * VANEANDELEN (`--ligavekter beste,tidligere,vaner`, R2). K6 krever vaner å lære og
+ * utnytte, og i R1 satt de i bare 15 % av kampene (30 % av ligahalvdelen). Tom =
+ * `TRENINGSVEKTER` i `src/mlb/liga.ts`. Summen må være 1.
+ */
+let ligavekter: { beste: number; tidligere: number; vaner: number } | null = null;
+
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   const v = process.argv[i + 1];
@@ -229,6 +236,13 @@ for (let i = 2; i < process.argv.length; i++) {
     laerer = "adams";
   }
   else if (a === "--adams-andel") adamsAndel = tall(v, adamsAndel, "--adams-andel");
+  else if (a === "--ligavekter") {
+    const d = (v ?? "").split(",").map((x) => tall(x, NaN, "--ligavekter"));
+    if (d.length !== 3 || d.some((x) => !(x >= 0)) || Math.abs(d[0]! + d[1]! + d[2]! - 1) > 1e-6) {
+      throw new Error(`--ligavekter trenger «beste,tidligere,vaner» som summerer til 1, fikk «${String(v)}»`);
+    }
+    ligavekter = { beste: d[0]!, tidligere: d[1]!, vaner: d[2]! };
+  }
   else if (a === "--maal") bareMål = true;
   else if (a === "--skard") {
     const d = (v ?? "0/1").split("/");
@@ -314,7 +328,8 @@ function lagBord(kampnr: number, frø: number): Sete[] {
   if (laerer === "adams") return lærerbord(frø);
   if (adamsAndel > 0 && lagRng(frø ^ 0x6ad4_11a1)() < adamsAndel) return adamsbord(kampnr, frø);
   const rng = lagRng(frø ^ 0x2b7c_1d55);
-  const liga = new Liga(VANER_TRENING);
+  const liga =
+    ligavekter === null ? new Liga(VANER_TRENING) : new Liga(VANER_TRENING, { ...TRENINGSVEKTER, ...ligavekter });
   const kandidat = epokeDeltaker(
     nettsti === null ? "epoke0.tilfeldig" : navnAv(nettsti),
     sandkasse ?? tilfeldigNett(lagRng(frø ^ 0x9e37_79b9)),
@@ -554,7 +569,7 @@ if (skardI >= 0) {
       `nett=${nettsti ?? "tilfeldig"} froe=${frøBase} ` +
       `maksrunder=${maksRunder} beste=${bestesti ?? "(kandidaten selv)"} ` +
       `tidligere=[${tidligereStier.join(",")}] ` +
-      `laerer=${laerer === null ? "ingen (liga)" : "adams (alle fire seter, Arvinds unntak 10. sep)"} adams-andel=${adamsAndel} ` +
+      `laerer=${laerer === null ? "ingen (liga)" : "adams (alle fire seter, Arvinds unntak 10. sep)"} adams-andel=${adamsAndel} ligavekter=${ligavekter === null ? "standard" : `${ligavekter.beste}/${ligavekter.tidligere}/${ligavekter.vaner}`} ` +
       `kjerne=${raskKjerne ? "kolonne (--rask-kjerne, ikke bit-identisk)" : "rad (bit-identisk)"}\n`,
   );
   if (kjørK2) k2EllerStopp();

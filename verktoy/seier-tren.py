@@ -54,7 +54,7 @@ def trekk(P, mal, sete):
 
 
 def les(mønster):
-    filer = sorted(glob.glob(mønster))
+    filer = sorted({f for m in mønster.split(",") for f in glob.glob(m)})
     if not filer:
         raise SystemExit(f"ingen filer matcher {mønster}")
     d = np.concatenate([np.loadtxt(f, delimiter=",", skiprows=1, ndmin=2) for f in filer])
@@ -134,6 +134,33 @@ def skriv_vekter(sti, modell):
             f.write(l.bias.detach().cpu().float().numpy().astype("<f4").tobytes())
 
 
+def les_prediktor(sti):
+    """Leser en prediktor i appformatet tilbake til et MLP, for sammenlikning paa samme holdout."""
+    with open(sti, "rb") as f:
+        (deler,) = struct.unpack("<i", f.read(4))
+        if deler != 1:
+            raise SystemExit(f"{sti}: {deler} deler, ventet 1")
+        (antall,) = struct.unpack("<i", f.read(4))
+        vekter = []
+        for _ in range(antall):
+            inn, ut = struct.unpack("<ii", f.read(8))
+            w = np.frombuffer(f.read(inn * ut * 4), dtype="<f4").reshape(ut, inn).copy()
+            b = np.frombuffer(f.read(ut * 4), dtype="<f4").copy()
+            vekter.append((inn, ut, w, b))
+        if f.read(1):
+            raise SystemExit(f"{sti}: det sto igjen byte etter siste lag")
+    if vekter[0][0] != INN or vekter[-1][1] != UT:
+        raise SystemExit(f"{sti}: {vekter[0][0]} inn / {vekter[-1][1]} ut, ventet {INN}/{UT}")
+    modell = lag_modell([v[1] for v in vekter[:-1]])
+    lin = [m for m in modell if isinstance(m, nn.Linear)]
+    with torch.no_grad():
+        for l, (inn, ut, w, b) in zip(lin, vekter):
+            l.weight.copy_(torch.from_numpy(w))
+            l.bias.copy_(torch.from_numpy(b))
+    modell.eval()
+    return modell
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--inn", required=True)
@@ -144,6 +171,8 @@ def main():
     ap.add_argument("--batch", type=int, default=8192)
     ap.add_argument("--froe", type=int, default=20260910)
     ap.add_argument("--traader", type=int, default=4)
+    # R2: den gamle prediktoren maales paa SAMME holdout, saa driveren kan godta eller forkaste.
+    ap.add_argument("--sammenlikn", default="", help="gammel prediktor (appformat)")
     args = ap.parse_args()
     torch.set_num_threads(args.traader)
     t0 = time.time()
@@ -204,6 +233,11 @@ def main():
     p_egen = pr[:, 0].clip(1e-6, 1 - 1e-6)
     bin_mod = float(-(egen_h * np.log(p_egen) + (1 - egen_h) * np.log(1 - p_egen)).mean())
     say(f"PREDIKTOR binaert tap eget sete {bin_mod:.4f}  (rangtabell {bin_tab:.4f}, konstant {bin_konst:.4f})")
+    if args.sammenlikn:
+        gammel = les_prediktor(args.sammenlikn)
+        ce_gammel = ce(gammel, Xh, Yh)
+        say(f"SAMMENLIKNET med {args.sammenlikn} paa samme holdout: CE gammel {ce_gammel:.4f}, ny {ce_h:.4f}")
+        print(json.dumps({"seier_foer": ce_gammel, "seier_etter": ce_h}), flush=True)
     say(f"PREDIKTOR argmaks treffer vinneren: {(pr.argmax(1) == Y[hold]).mean() * 100:.1f} %")
 
     say("KALIBRERING eget sete (holdout): anslag -> faktisk (n)")
