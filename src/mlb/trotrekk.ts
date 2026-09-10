@@ -80,6 +80,22 @@ const TRO_BLOKK = 342;
 
 export const MLB_TRO_INN = NEAT_INN + TRO_BLOKK;
 
+/**
+ * HUKOMMELSEN SOM INNGANG TIL TROEN (K6 → K8, 11. sep).
+ *
+ * Troen er motstanderspesifikk (§119: 12,34 % → 5,09 % på en annen motstander), men
+ * trosnettet hadde ingen måte å vite HVEM det gjettet om. Hukommelsen
+ * (`src/mlb/hukommelse.ts`) er nettopp det: 48 tall per motstander om hvordan hun
+ * har budt, vraket og spilt i de FERDIGE rundene. Lagt BAKERST, så et nett med de
+ * gamle 660 inngangene kan utvides med nullkolonner og gi nøyaktig samme svar.
+ *
+ * Tallet er skrevet ut her i stedet for importert, fordi `hukommelse.ts` og denne
+ * fila ellers ville importert hverandre; `test/mlb-trohukommelse.test.ts` krever at
+ * det er lik `HUKOMMELSE_LENGDE_4`.
+ */
+export const MLB_TRO_HUKOMMELSE = 144;
+export const MLB_TRO_INN_H = MLB_TRO_INN + MLB_TRO_HUKOMMELSE;
+
 /** Offsetene eksportert som ÉN kilde til sannhet, som ellers i prosjektet. */
 export const TROINNGANG = {
   NEAT: 0,
@@ -188,5 +204,29 @@ export function troTrekk(
     }
   }
 
+  return v;
+}
+
+/**
+ * `troTrekk` + hukommelsen bakerst (se `MLB_TRO_INN_H`). `null` gir en nullblokk —
+ * den ærlige verdien før første runde er ferdig.
+ *
+ * K2: hukommelsen bokfører bare FERDIGE runder (`Hukommelse.observer`), og det den
+ * leser der, er det alle så da runden var over.
+ */
+export function troTrekkMedHukommelse(
+  visning: SpillerVisning,
+  antallStikk: number,
+  målPoeng: number,
+  hukommelse: Float64Array | null,
+): Float32Array {
+  const v = new Float32Array(MLB_TRO_INN_H);
+  v.set(troTrekk(visning, antallStikk, målPoeng), 0);
+  if (hukommelse !== null) {
+    if (hukommelse.length !== MLB_TRO_HUKOMMELSE) {
+      throw new Error(`Hukommelsen har ${hukommelse.length} tall, trosnettet venter ${MLB_TRO_HUKOMMELSE}`);
+    }
+    for (let i = 0; i < MLB_TRO_HUKOMMELSE; i++) v[MLB_TRO_INN + i] = hukommelse[i]!;
+  }
   return v;
 }

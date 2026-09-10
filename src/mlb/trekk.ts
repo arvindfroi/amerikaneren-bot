@@ -242,6 +242,16 @@ export function visningTilState(
 export interface Trofordeler {
   /** → `p[kort][klasse]`, klasse 0–2 = rel. sete 1–3, klasse 3 = talongen. */
   fordeling(trekk: Float32Array): number[][];
+  /**
+   * Trekkene nettet tar — med hukommelsen hvis nettet leser den (K6 → K8). Mangler
+   * metoden (stillaser i prøver), brukes `troTrekk` som før.
+   */
+  trekkFor?(
+    visning: SpillerVisning,
+    antallStikk: number,
+    målPoeng: number,
+    hukommelse: Float64Array | null,
+  ): Float32Array;
 }
 
 /**
@@ -689,7 +699,14 @@ export function byggTrekk(visning: SpillerVisning, kontekst: Trekkontekst): Floa
 
     const nett = kontekst.tronett ?? null;
     if (nett !== null) {
-      const p = nett.fordeling(troTrekk(visning, kontekst.giving.antallStikk, mål));
+      // HUKOMMELSEN TIL TROEN (K6 → K8): samme vektor som HUKOMMELSE-blokken under,
+      // så troen kan gjette om DENNE motstanderen. Et nett uten hukommelsesinngang får
+      // `troTrekk` alene, bit-identisk med før.
+      const t =
+        nett.trekkFor !== undefined
+          ? nett.trekkFor(visning, kontekst.giving.antallStikk, mål, kontekst.hukommelse ?? null)
+          : troTrekk(visning, kontekst.giving.antallStikk, mål);
+      const p = nett.fordeling(t);
       for (let k = 0; k < MLB_TRO_KORT; k++) {
         if (usett[k] !== 1) continue; // sette kort er ikke gjetning
         const rad = p[k];

@@ -23,20 +23,34 @@
 
 import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { foroverKolonne } from "../nevro/nett-kolonne.ts";
-import { MLB_TRO_INN, MLB_TRO_KLASSER, MLB_TRO_KORT, MLB_TRO_UT } from "./trotrekk.ts";
+import type { SpillerVisning } from "../motor.ts";
+import {
+  MLB_TRO_INN,
+  MLB_TRO_INN_H,
+  MLB_TRO_KLASSER,
+  MLB_TRO_KORT,
+  MLB_TRO_UT,
+  troTrekk,
+  troTrekkMedHukommelse,
+} from "./trotrekk.ts";
 
 export class MlbTronett {
   private readonly nett: NevroNett;
   /** Se `brukKolonnekjerne`. Av som standard, og av i all måling. */
   private kolonne = false;
+  /** `MLB_TRO_INN` (uten hukommelse) eller `MLB_TRO_INN_H` (med, K6 → K8). */
+  readonly innBredde: number;
 
   constructor(nett: NevroNett) {
     const første = nett.lag[0];
     const siste = nett.lag[nett.lag.length - 1];
     if (første === undefined || siste === undefined) throw new Error("MLB-trohodet: tomt nett");
-    if (første.inn !== MLB_TRO_INN) {
-      throw new Error(`MLB-trohodet tar ${MLB_TRO_INN} trekk, nettet har ${første.inn}`);
+    if (første.inn !== MLB_TRO_INN && første.inn !== MLB_TRO_INN_H) {
+      throw new Error(
+        `MLB-trohodet tar ${MLB_TRO_INN} (uten hukommelse) eller ${MLB_TRO_INN_H} (med) trekk, nettet har ${første.inn}`,
+      );
     }
+    this.innBredde = første.inn;
     if (siste.ut !== MLB_TRO_UT) {
       throw new Error(`MLB-trohodet må ha ${MLB_TRO_UT} utganger, nettet har ${siste.ut}`);
     }
@@ -60,6 +74,27 @@ export class MlbTronett {
     return this;
   }
 
+  /** Leser dette nettet hukommelsen (K6 → K8)? Avgjøres av bredden, ikke av et flagg. */
+  get brukerHukommelse(): boolean {
+    return this.innBredde === MLB_TRO_INN_H;
+  }
+
+  /**
+   * TREKKENE FOR NETTOPP DETTE NETTET: med hukommelsen bakerst hvis nettet leser den,
+   * ellers `troTrekk` alene — bit-identisk med før. Alle som bygger trotrekk skal gå
+   * gjennom denne, så en ny bredde ikke må huskes på hvert kallsted.
+   */
+  trekkFor(
+    visning: SpillerVisning,
+    antallStikk: number,
+    målPoeng: number,
+    hukommelse: Float64Array | null,
+  ): Float32Array {
+    return this.brukerHukommelse
+      ? troTrekkMedHukommelse(visning, antallStikk, målPoeng, hukommelse)
+      : troTrekk(visning, antallStikk, målPoeng);
+  }
+
   /** Hvilken kjerne som FAKTISK regner — for rapportene, så ingen må gjette. */
   get kjerne(): "rad" | "kolonne" {
     return this.kolonne ? "kolonne" : "rad";
@@ -67,8 +102,8 @@ export class MlbTronett {
 
   /** → `p[kort][klasse]`, normalisert per kort over de fire klassene. */
   fordeling(trekk: Float32Array): number[][] {
-    if (trekk.length !== MLB_TRO_INN) {
-      throw new Error(`MLB-trohodet ventet ${MLB_TRO_INN} trekk, fikk ${trekk.length}`);
+    if (trekk.length !== this.innBredde) {
+      throw new Error(`MLB-trohodet ventet ${this.innBredde} trekk, fikk ${trekk.length}`);
     }
     const rå = this.kolonne ? foroverKolonne(this.nett, trekk) : forover(this.nett, trekk);
     const ut: number[][] = [];

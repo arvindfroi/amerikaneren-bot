@@ -41,7 +41,7 @@ import {
   type Beslutter,
   type Kamplogg,
 } from "../src/mlb/selvspill.ts";
-import { MLB_TRO_INN, troTrekk } from "../src/mlb/trotrekk.ts";
+import { MLB_TRO_INN, MLB_TRO_INN_H, troTrekk, troTrekkMedHukommelse } from "../src/mlb/trotrekk.ts";
 
 export interface Trorad {
   readonly t: Float32Array;
@@ -59,18 +59,28 @@ export interface Trorad {
  */
 export function troRaderFraLogg(
   logg: Kamplogg,
-  opts: { readonly sjanse: number; readonly rng: () => number; readonly maksRunder: number },
+  opts: {
+    readonly sjanse: number;
+    readonly rng: () => number;
+    readonly maksRunder: number;
+    /** Legg hukommelsen bakerst i trekkene (K6 → K8, `MLB_TRO_INN_H`). */
+    readonly hukommelse?: boolean;
+  },
 ): Trorad[] {
   const koder = logg.koder;
   let i = 0;
-  const fanget: (SpillerVisning | null)[] = [];
+  const fanget: ({ visning: SpillerVisning; huk: Float64Array | null } | null)[] = [];
   const beslutter: Beslutter = (p) => {
     const kode = koder[i++];
     if (kode === undefined) throw new Error(`frø ${logg.frø}: kamploggen er kortere enn kampen`);
     if (p.maske[kode] !== 1) {
       throw new Error(`frø ${logg.frø}: kode ${kode} er ulovlig i ${p.delsteg} — loggen hører til en annen kamp`);
     }
-    fanget.push(p.delsteg === "SPILL_KORT" ? p.visning : null);
+    fanget.push(
+      p.delsteg === "SPILL_KORT"
+        ? { visning: p.visning, huk: opts.hukommelse === true && p.hukommelse !== undefined ? p.hukommelse() : null }
+        : null,
+    );
     return kode;
   };
   const e = spillKamp({
@@ -93,8 +103,9 @@ export function troRaderFraLogg(
   const giving = kortgiving(lagRegler({ antallSpillere: logg.antallSpillere, målPoeng: logg.målPoeng }));
   const ut: Trorad[] = [];
   for (let j = 0; j < fanget.length; j++) {
-    const visning = fanget[j];
-    if (visning === null || visning === undefined) continue;
+    const fangst = fanget[j];
+    if (fangst === null || fangst === undefined) continue;
+    const visning = fangst.visning;
     if (opts.rng() >= opts.sjanse) continue;
     const rad = e.rader[j]!;
     if (rad.sete !== visning.deg) {
@@ -104,7 +115,10 @@ export function troRaderFraLogg(
     for (let k = 0; k < 52; k++) if (rad.troFasit[k]! > 0) noe = true;
     if (!noe) continue; // ingen ukjente kort, ingenting å lære
     ut.push({
-      t: troTrekk(visning, giving.antallStikk, logg.målPoeng),
+      t:
+        opts.hukommelse === true
+          ? troTrekkMedHukommelse(visning, giving.antallStikk, logg.målPoeng, fangst.huk)
+          : troTrekk(visning, giving.antallStikk, logg.målPoeng),
       f: rad.troFasit,
       frø: logg.frø,
       stikk: rad.stikkSpilt,
@@ -125,6 +139,7 @@ function kjør(): void {
   let kjerner = 1;
   let sjanse = 0.3;
   let maksRunder = 100;
+  let medHukommelse = false;
   let skardI = -1;
   let skardN = 1;
   for (let a = 2; a < process.argv.length; a++) {
@@ -135,6 +150,7 @@ function kjør(): void {
     else if (x === "--kjerner") kjerner = Number(v);
     else if (x === "--sjanse") sjanse = Number(v);
     else if (x === "--maksrunder") maksRunder = Number(v);
+    else if (x === "--hukommelse") medHukommelse = true;
     else if (x === "--skard") {
       const d = (v ?? "0/1").split("/");
       skardI = Number(d[0]);
@@ -169,9 +185,10 @@ function kjør(): void {
   const hode = Buffer.alloc(12);
   hode.write("MLBT", 0, "ascii");
   hode.writeInt32LE(1, 4);
-  hode.writeInt32LE(MLB_TRO_INN, 8);
+  const DIM = medHukommelse ? MLB_TRO_INN_H : MLB_TRO_INN;
+  hode.writeInt32LE(DIM, 8);
   writeSync(fd, hode);
-  const POST = MLB_TRO_INN * 4 + 52 + 4 + 2 + 2;
+  const POST = DIM * 4 + 52 + 4 + 2 + 2;
   const KLUMP = 512;
   const buf = Buffer.alloc(POST * KLUMP);
   let iKlump = 0;
@@ -190,9 +207,9 @@ function kjør(): void {
       if (kampnr % skardN !== skardI) continue;
       const logg = kamploggFraLinje(linje);
       const rng = lagRng((logg.frø ^ 0x7a0d_a7a1) >>> 0);
-      for (const r of troRaderFraLogg(logg, { sjanse, rng, maksRunder })) {
+      for (const r of troRaderFraLogg(logg, { sjanse, rng, maksRunder, hukommelse: medHukommelse })) {
         let o = iKlump * POST;
-        for (let k = 0; k < MLB_TRO_INN; k++) {
+        for (let k = 0; k < DIM; k++) {
           buf.writeFloatLE(r.t[k]!, o);
           o += 4;
         }
@@ -209,7 +226,7 @@ function kjør(): void {
   }
   tøm();
   closeSync(fd);
-  console.log(`skard ${skardI}/${skardN}: ${kamper} kamper, ${rader} rader (${MLB_TRO_INN} trekk) -> ${sti}`);
+  console.log(`skard ${skardI}/${skardN}: ${kamper} kamper, ${rader} rader (${DIM} trekk) -> ${sti}`);
 }
 
 const inngang = process.argv[1];

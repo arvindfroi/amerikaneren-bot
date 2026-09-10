@@ -234,7 +234,8 @@ for (let g = 0; g < GIVER; g++) {
          * `test/mlb-k2-tro.test.ts` holder at det er en blind funksjon.
          */
         {
-          const f = trohode.fordeling(troTrekk(spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng));
+          // Stillingene er fra første runde, så hukommelsen er tom per konstruksjon.
+          const f = trohode.fordeling(trohode.trekkFor(spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, null));
           let tap = 0;
           let treff = 0;
           for (let p = 0; p < s.antallSpillere; p++) {

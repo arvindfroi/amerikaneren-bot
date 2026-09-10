@@ -648,6 +648,11 @@ export interface Beslutningspunkt {
   /** Trekkvektoren, eller `null` når løkka kjører uten å bygge trekk. */
   readonly trekk: Float32Array | null;
   readonly framover: Framover | null;
+  /**
+   * Hukommelsesvektoren for setet, regnet FØRST når noen spør (K6 → K8, trosdata med
+   * hukommelse). Lat, så løkka ikke betaler for den der ingen bruker den.
+   */
+  readonly hukommelse?: () => Float64Array;
 }
 
 export type Beslutter = (punkt: Beslutningspunkt) => number;
@@ -835,7 +840,16 @@ function kjørKamp(
         : null;
       const framover = oppsett.nett !== null && trekk !== null ? oppsett.nett.framover(trekk) : null;
 
-      const kode = beslutter({ visning, sete, delsteg, delvalg, maske: m, trekk, framover });
+      const kode = beslutter({
+        visning,
+        sete,
+        delsteg,
+        delvalg,
+        maske: m,
+        trekk,
+        framover,
+        hukommelse: () => bok.vektor(sete, regler.antallSpillere),
+      });
       koder.push(kode);
 
       if (påRad !== null && oppsett.samle !== false) {

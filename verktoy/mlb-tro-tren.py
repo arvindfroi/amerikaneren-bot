@@ -150,14 +150,19 @@ def les_vekter(sti, modell):
     """Leser appformatet tilbake. R2 starter hver epoke fra forrige epokes trosnett."""
     with open(sti, "rb") as f:
         f.read(8)
-        for l in modell.lag:
+        for i, l in enumerate(modell.lag):
             inn, ut = struct.unpack("<ii", f.read(8))
-            if (inn, ut) != (l.in_features, l.out_features):
+            utvid = i == 0 and ut == l.out_features and inn < l.in_features
+            if (inn, ut) != (l.in_features, l.out_features) and not utvid:
                 raise SystemExit(f"{sti}: lag {inn}x{ut}, ventet {l.in_features}x{l.out_features}")
             w = numpy.frombuffer(f.read(inn * ut * 4), dtype="<f4").reshape(ut, inn)
             b = numpy.frombuffer(f.read(ut * 4), dtype="<f4")
             with torch.no_grad():
-                l.weight.copy_(torch.from_numpy(w.copy()))
+                if utvid:
+                    l.weight.zero_()
+                    l.weight[:, :inn].copy_(torch.from_numpy(w.copy()))
+                else:
+                    l.weight.copy_(torch.from_numpy(w.copy()))
                 l.bias.copy_(torch.from_numpy(b.copy()))
         if f.read(1):
             raise SystemExit(f"{sti}: det sto igjen byte etter siste lag")
@@ -248,8 +253,13 @@ def main():
     torch.manual_seed(args.froe)
     if args.vekter:
         dims = les_dims(args.vekter)
-        if dims[0] != dim:
-            raise SystemExit(f"{args.vekter} tar {dims[0]} trekk, dataene har {dim}")
+        if dims[0] > dim:
+            raise SystemExit(f"{args.vekter} tar {dims[0]} trekk, dataene har bare {dim}")
+        if dims[0] < dim:
+            # UTVIDET INNGANG (K6 -> K8): de nye kolonnene (hukommelsen, lagt BAKERST) starter
+            # paa NULL, saa nettet gir noeyaktig samme fordeling som foer til det har laert noe.
+            print(f"UTVIDER inngangen {dims[0]} -> {dim}: nye kolonner starter paa null", flush=True)
+            dims[0] = dim
     else:
         dims = [dim] + [int(x) for x in args.skjult.split(",")] + [KORT * KLASSER]
     modell = Tronett(dims).to(enhet)
