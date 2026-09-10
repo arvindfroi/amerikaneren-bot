@@ -1,0 +1,10 @@
+mlb-spill startet 2026-08-10T21:57:36.944Z
+kamper=8 kjerner=2 maalpoeng=30/60/100 temperatur=1 nett=tilfeldig froe=1700000000 maksrunder=60 beste=(kandidaten selv) tidligere=[]
+FERDIG 2026-08-10T21:57:37.976Z
+kamper=8 veggtid=1.0 s
+kamper/s totalt=7.76  kamper/s/kjerne=4.87
+beslutninger/kamp=2883.8  rader/kamp=751.0  bytes/kamp=8409
+avbrutt paa rundetaket=62.5 %
+erfaring på disk=0.1 MB
+EPOKEANSLAG 5000 kamper: 10.7 min
+TI EPOKER: 1.79 timer

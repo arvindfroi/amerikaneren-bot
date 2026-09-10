@@ -1,0 +1,13 @@
+TREKK_LENGDE = 1032
+
+=== SLUTTSPILLET: forenlige kortfordelinger, 300 giv ===
+  stikk igjen | n stillinger | median log10(fordelinger) | min | maks
+            1 |          300 |                     1.92 | 0.78 | 2.32
+            2 |          300 |                     3.70 | 1.95 | 4.28
+            3 |          300 |                     5.29 | 3.23 | 6.08
+            4 |          300 |                     7.00 | 4.54 | 7.80
+            5 |          300 |                     8.58 | 5.88 | 9.47
+            6 |          300 |                    10.16 | 7.23 | 11.10
+  (log10 = 6 betyr en million fordelinger; hver må loeses eksakt for aa gi et eksakt svar)
+
+FERDIG 2026-08-10T20:29:53.613Z

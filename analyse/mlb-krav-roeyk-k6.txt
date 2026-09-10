@@ -1,0 +1,31 @@
+K6 — LÆRE MOTSTANDERNES VANER OG UTNYTTE DEM (sandkassen)
+
+Vekter:      tilfeldig7310001
+Tro:         e1-modell/mlb-tro.bin
+Motstandere: test.ordentlig, test.honnørsulten, test.middelmådig, test.baklengs — TESTSETTET, aldri treningssettet
+Kamper:      2 per vane per arm, til 120 poeng, maks 12 runder
+Frøbånd:     7700000 + k·7717
+Kjøretid:    19 s
+
+dd(k,r) = kant med hukommelsen PÅ − kant med den AV, parret på identisk giv.
+Kant    = fokussetets rundepoeng − snittet av de tre andres.
+Skille:   runde < 6 er TIDLIG, runde ≥ 6 er SENT.
+
+arm         n     kant(på)          dd                 stigning/runde      tidlig    sent    vekst              opp/ned   p      maks r
+--------------------------------------------------------------------------------------------------------------------------------------------
+KONTROLL       96  -11.295 ± 1.697    +0.000 ± 0.000    +0.0000 ± 0.0000    +0.00   +0.00   +0.000 ± 0.000     0/0    NaN   11
+mlb            96   -8.715 ± 1.221    +2.580 ± 1.789    +1.0599 ± 0.5093    -3.31   +8.47  +11.771 ± 3.385    29/25   0.683   11
+PLANTET        96  -18.892 ± 4.391    -7.597 ± 4.481    +0.2098 ± 1.3049    -6.99   -8.20   -1.208 ± 9.009    46/36   0.320   11
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+SPEIL (fire like MLB-seter): fokussetet vant 0 av 8 = 0.0000 ± 0.0000. Kampbenkens nullarm er 0,2500.
+
+KONTROLL må være dd = +0,000 på HVER RAD: begge halvdelene har
+hukommelsen av, så kampene er bit-identiske. Er den ikke null, lekker
+noe annet enn hukommelsen mellom armene.
+PLANTET må ha stor |dd|: den armen HAR en hukommelseseffekt per
+konstruksjon. Er den null, er det benken som er stum.
+
+K6 ER INNFRIDD når STIGNINGEN er positiv med margin — ikke når `dd` er
+det. Et positivt nivå betyr bare at hukommelsen hjelper; kravet er at
+gevinsten VOKSER med rundenummeret, som er signaturen på læring i løpet.

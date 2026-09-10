@@ -1,0 +1,11 @@
+AVSTAND: 1815 stillinger, naermeste par vane.grisk / vane.trumfgjerrig = 20.5 %  -> analyse/mlb-vanesplitt-avstand.tsv
+  vane.ordentlig         +18.525
+  vane.grisk             +18.337
+  vane.honnørsulten      +14.169
+  vane.trumfgjerrig      +10.407
+  test.trumfsløser       +10.137
+  test.middelmådig       +1.393
+  test.feig              -2.911
+  test.baklengs          -4.689
+
+STYRKE ferdig paa 0.2 min, verste kontroll 0.000000 -> analyse/mlb-vanesplitt-styrke.tsv

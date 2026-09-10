@@ -1,0 +1,50 @@
+mlb-arkitektur 2026-08-10T20:27:51.362Z
+TREKK_LENGDE = 1032
+
+=== VEKTREVISJON: e1-modell/mlb-e1.bin -> e1-modell/mlb-g05-beste.bin ===
+stammens forste lag: 1032 inn x 1024 ut
+kolonner uendret (bit-identiske):        0
+kolonner BARE krympet (samme forhold):   214
+kolonner som har flyttet seg fritt:      818
+  krympefaktoren er 0.999561 — ren AdamW-vektnedbrytning, ingen laering
+  TRO: 209
+  MESO: 4
+  LOVLIG: 1
+  ALLE dode utenfor TRO: meso.iTur.rel1, meso.iTur.rel2, meso.iTur.rel3, meso.utspiller.rel0, lovlig.bud:13
+
+KONSTANTE INNGANGER, FUNNET AV VEKTENE (r mot biasen > 0,999): 8
+  makro.antallSpillere           r = 0.99997851
+  makro.målPoeng.trettiDelt      r = 0.99997826
+  meso.iTur.rel0                 r = 0.99997676
+  mikro.bias                     r = 0.99997673
+  meso.talong                    r = 0.99997564
+  makro.målPoeng.per100          r = 0.99997527
+  makro.antallStikk              r = 0.99997479
+  meso.antallStikk               r = 0.99997478
+  --- de ti nest hoyeste, som IKKE er konstante ---
+  mikro.høyesteUte.H             r = 0.96721511
+  mikro.høyesteUte.S             r = 0.96563171
+  mikro.høyesteUte.K             r = 0.96238446
+  mikro.høyesteUte.R             r = 0.95558870
+  hukommelse.rel3.mikro.honnørsen.verdi r = 0.94211196
+  hukommelse.rel1.mikro.honnørsen.verdi r = 0.94100446
+  hukommelse.rel2.mikro.honnørsen.verdi r = 0.93253079
+  mikro.stikkIgjen               r = 0.91491284
+  meso.stikkIgjen                r = 0.91482070
+  mikro.antallUte.S              r = 0.90971216
+
+KONSTANTE INNGANGER — korrelasjon mellom kolonnens endring og BIASENS endring:
+(1,00 betyr at kolonnen er en omskalert bias og ikke kan uttrykke noe om inngangen)
+  meso.talong                  r = 1.0000  |W| 1.4035 -> 1.4083
+  meso.antallStikk             r = 1.0000  |W| 1.4738 -> 1.4812
+  makro.antallStikk            r = 1.0000  |W| 1.4849 -> 1.4970
+  makro.antallSpillere         r = 1.0000  |W| 1.3700 -> 1.3758
+  makro.målPoeng.per100        r = 1.0000  |W| 1.4019 -> 1.4125
+  makro.målPoeng.trettiDelt    r = 1.0000  |W| 1.3747 -> 1.3781
+  --- til sammenlikning, inngangar som VARIERER ---
+  mikro.hånd.S14               r = 0.4496  |W| 1.4227 -> 1.4124
+  mikro.stikkIgjen             r = 0.9149  |W| 1.4099 -> 1.4176
+  makro.racepress              r = -0.5472  |W| 1.3568 -> 1.4929
+  meso.kontrakt                r = 0.9079  |W| 1.4203 -> 1.4252
+
+FERDIG 2026-08-10T20:27:51.398Z

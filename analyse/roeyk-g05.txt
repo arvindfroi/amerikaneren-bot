@@ -1,0 +1,8 @@
+mlb-erfaring startet 2026-08-10T13:08:42.765Z
+inn=mlb-epoke-data/e10-s0.jsonl,mlb-epoke-data/e10-s1.jsonl nett=e1-modell/mlb-arbeid.bin ut=analyse/roeyk-g05/erf sjanse=0.2 kjerner=4
+lambda=1 gamma=0.5 maksrunder=60
+FERDIG 2026-08-10T13:11:20.183Z  veggtid=157.4 s
+kamper=500 rader=186989 skrevet=37580 medValg=146528 (78.4 %)
+fordel: snitt=45.2119 snitt|A|=45.2998
+verdimaal: snitt=-5.594 varians=143.968 MSE(V)=2502.823 forklart=-16.3846
+paa disk=160.4 MB (4268 bytes/rad)

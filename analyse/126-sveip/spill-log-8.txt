@@ -1,0 +1,4 @@
+skard 8/12 startet 2026-08-10T21:44:01.107Z
+25 kamper, 2.54 kamper/s, 305.0 beslutninger/kamp, 4.2 runder/kamp
+50 kamper, 2.41 kamper/s, 296.7 beslutninger/kamp, 4.1 runder/kamp
+FERDIG {"skard":8,"kamper":66,"sekunder":27.01,"kamperPerSek":2.443,"beslutningerPerKamp":310.3,"raderPerKamp":81.1,"medValgPerKamp":64.4,"runderPerKamp":4.33,"avbruttAndel":0,"bytesPerKamp":1133}

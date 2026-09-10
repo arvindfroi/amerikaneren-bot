@@ -1,0 +1,63 @@
+MLB FORDELSDIAGNOSE  2026-08-10 14:49  enhet=cuda
+inn=mlb-epoke-data/erf-s0.bin
+
+1 filer, 17733 rader, 1032 trekk
+
+=== 1. VERDIHODET ===
+G:  snitt  -46.802  sd   69.524  min -347.0  maks +86.0
+V:  snitt  -60.040  sd   21.677
+RMSE 66.895   forklart varians +0.0742
+korr(V, G) = +0.3330
+korr(A, G) = +0.9502
+
+per fase:
+  vrak   n=    1003  sd(G)=   70.87  RMSE=   68.74  forklart=+0.0592
+  velg   n=     454  sd(G)=   72.66  RMSE=   71.30  forklart=+0.0371
+  spill  n=   16276  sd(G)=   69.20  RMSE=   66.65  forklart=+0.0723
+
+=== 2. IDENTITETEN A = G - V (proeve paa at lambda var 1) ===
+maks |A - (G - V)| = 0.0000   snitt = 0.000000
+Er den ~0, baerer fordelen INGEN kredittilordning utover V-differansen.
+
+=== 3. VARIANSOPPDELINGEN AV FORDELEN ===
+231 kamper, 5950 (kamp,runde,sete)-grupper, 2.98 rader per gruppe  (0s)
+Var(A) totalt          4299.726
+  MELLOM runder        4288.902    99.75 %
+  INNENFOR runder        10.824     0.25 %
+
+Andelen INNENFOR er all kreditt som skiller ett kortvalg fra et annet i
+samme runde. Resten dytter hele runden i samme retning.
+
+bare rader med >1 lovlig valg (n=13812):
+  INNENFOR runder   0.26 %   MELLOM  99.74 %
+
+=== 4. HVOR MYE ER I DET HELE TATT FORUTSIGBART? ===
+Proben ser NOEYAKTIG de samme 1 032 trekkene som verdihodet. Holdout er
+splittet paa KAMP, ikke paa rad.
+tren 14740 rader (184 kamper), holdout 2993 rader (47 kamper)
+
+maal                              sd   ridge R2    MLP R2  V-hodet R2
+G  (resten av kampen)          69.53    -0.1600   -0.1545     -0.0308
+G klippet paa +-2 sd           54.45    -0.0209   -0.0598           -
+r  (rundens poeng)             10.56    +0.5127   +0.4095           -
+resten ETTER runden            68.26    -0.1771   -0.1559           -
+
+=== 6. DISKONTERINGEN: hvor mye hale taaler signalet? ===
+ gamma   sd(r_k)   sd(hale)  signal/stoey  innenfor %   ridge R2
+  1.00      9.75      67.89          0.14           -    -0.1600
+  0.90      9.75      21.25          0.46           -    +0.0024
+  0.80      9.75      13.29          0.73           -    +0.1246
+  0.70      9.75       9.61          1.01           -    +0.2368
+  0.50      9.75       5.58          1.75           -    +0.3947
+  0.30      9.75       3.02          3.23           -    +0.4788
+  0.00      9.75       0.00 9745361204.00           -    +0.5127
+
+`signal/stoey` er sd(rundens poeng) delt paa sd(den diskonterte halen).
+Ved gamma = 1 er halen alt som skiller kredittene fra hverandre — og den
+er den SAMME for hver beslutning i runden.
+
+LES DEN SLIK: slaar en ridge-regresjon paa de samme trekkene verdihodets
+egne 13 %, er hodet UNDERTRENT og ikke ved taket. Er rundens poeng mye
+mer forutsigbart enn resten av kampen, ligger fiksen i MAALET.
+
+ferdig paa 4 s

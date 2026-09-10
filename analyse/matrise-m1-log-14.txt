@@ -1,0 +1,1 @@
+skard 14/20: 100 rader -> analyse/matrise-m1-s14.jsonl

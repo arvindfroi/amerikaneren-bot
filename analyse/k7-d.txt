@@ -1,0 +1,30 @@
+
+=== GATE 2: kandidat i ett sete, okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin i de tre andre ===
+713 (giv, sete). Alle fire seter har konvensjonsvakten; bare vektene skiller.
+
+arm                                        poeng/runde for setet
+--------------------------------------------------------------------
+KONTROLL                                   +0.002 ± 0.420
+okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5d4:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin +0.050 ± 0.419
+okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5d5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin -0.044 ± 0.420
+--------------------------------------------------------------------
+
+PARRET mot KONTROLL (miljoet mot seg selv i samme sete):
+  okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5d4:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin +0.0482 ± 0.0477 (1.0 SE)  2/2  p=0.500
+  okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5d5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin -0.0463 ± 0.1061 (-0.4 SE)  5/11  p=1.000
+
+PER ROLLE (rollen er KONTROLLENS, saa parene er de samme):
+  okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5d4:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+    foerer    n=  178  +0.1929 ± 0.1910 (1.0 SE)  2/2  p=0.500
+    makker    n=  179  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+    forsvar   n=  356  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+  okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5d5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+    foerer    n=  178  -0.1854 ± 0.4256 (-0.4 SE)  5/11  p=1.000
+    makker    n=  179  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+    forsvar   n=  356  +0.0000 ± 0.0000 (NaN SE)  0/0  p=NaN
+
+KONTROLLARMEN skal ligge paa 0. Gjoer den ikke det, er det seteskjevhet
+i oppsettet, og ingen av de andre tallene kan leses.
+
+PORTEN: en ny vekt adopteres bare om den er positiv med margin OG
+positiv i klart over halvparten av parene. Aldri adoptere paa stoey.

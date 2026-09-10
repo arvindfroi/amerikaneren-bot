@@ -1,0 +1,176 @@
+[08-08 21:14] === ADAMS MAX: ablasjon nedover fra full stakk, merke «natt2» ===
+file:///C:/Users/arvin/Documents/Claude/Projects/amerikaneren-bot/examples/maxrigg.ts:471
+    throw new Error(
+          ^
+
+Error: Armene «u-amue» og «kontroll» har SAMME spek. gate 2 nøkler på speken, så den ene ville overskrevet den andre i stillhet:
+  okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+    at file:///C:/Users/arvin/Documents/Claude/Projects/amerikaneren-bot/examples/maxrigg.ts:471:11
+    at ModuleJob.run (node:internal/modules/esm/module_job:413:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:660:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.13.0
+[08-08 21:14] AVBRUTT: maxrigg.ts --toerr feilet. Se analyse/max-natt2-kjorelogg.txt. Ingen armer kjørt.
+[08-08 21:19] === ADAMS MAX: ablasjon nedover fra full stakk, merke «natt2» ===
+
+=== ADAMS MAX: ABLASJON NEDOVER FRA FULL STAKK ===
+merke «natt2»   13 armer + KONTROLL   amu-rolle «foerer»
+
+FULL STAKK (gate 2s MILJØ, og dermed KONTROLLARMEN):
+  okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+
+GRUNNLINJA (alt av):
+  e1:e1-modell/d7alle.bin
+
+ARMENE SOM VILLE BLITT KJØRT (13 stk, alle i SAMME gate2-kjøring)
+----------------------------------------------------------------------------------------------------
+kode            slag        usynlig på  fjernet i forhold til FULL
+----------------------------------------------------------------------------------------------------
+kontroll        KONTROLL    -           ingenting — den ER full stakk
+u-okt           minus       gate2       okt
+u-vr            minus       -           vr
+u-amu           minus       -           amu + amub + amug + amur + amuv
+u-amub          minus       -           amub
+u-amug          minus       -           amug
+u-amur          minus       gate2       amur
+u-amuv          minus       -           amuv
+u-profil        minus       gate2       profil
+u-budm          minus       -           budm + budsok
+u-budsok        minus       -           budsok
+u-vakt          minus       -           vakt
+grunnlinje      grunnlinje  -           okt + vr + amu + amub + amug + amur + amuv + profil + budm + budsok + vakt
+----------------------------------------------------------------------------------------------------
+
+SPEKENE, i sin helhet:
+  kontroll
+    okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+  u-okt
+    vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+  u-vr
+    okt:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+  u-amu
+    okt:vr:e1-modell/vrakrang.bin:telrd:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+  u-amub
+    okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16gm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+  u-amug
+    okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+  u-amur
+    okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r0v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+  u-amuv
+    okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+  u-profil
+    okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+  u-budm
+    okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:vakt:abmpf:e1:e1-modell/d7alle.bin
+  u-budsok
+    okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0:vakt:abmpf:e1:e1-modell/d7alle.bin
+  u-vakt
+    okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:e1:e1-modell/d7alle.bin
+  grunnlinje
+    e1:e1-modell/d7alle.bin
+
+MODULER SOM IKKE ER I FULL STAKK — DE KAN IKKE ABLATERES NEDOVER
+(«full minus X» er lik full når X ikke er der. Riggen later ikke som.)
+  amum       amu «m2» — A8, framoverblikk over egne valg
+             M=2 koster 3,1x M=1 (138 -> 439 ms per beslutning). De gamle 5,3x var kontensjon. AV i full stakk; --med amum slår den på
+  amue       amu «e» — A7, uleselighet
+             PARKERT: ikke i K1–K8, målt −0,0941. AV i full stakk; --med amue slår den på
+  budkamp    budm «kamp1.5» — MAKRO → MESO, kampstillingen inn i BUDET (K5 → K3)
+             racepress er strukturelt EKSAKT 0 på gate 2 — bare kampbenken ser den. AV som standard; --med budkamp slår den på
+  eks        eks: — eksakt sluttspill
+             §56 målte eks:3 = −0,343 og eks:4 = −0,753. AV i full stakk med vilje
+  Slå dem på med --med <kode> om de skal måles.
+
+NØSTEDE MODULER — å fjerne forelderen fjerner barna med:
+  u-amu        fjerner også amub, amug, amur, amuv
+  u-budm       fjerner også budsok
+  Effekten av «u-forelder» er derfor FORELDEREN OG BARNA SAMLET, ikke
+  forelderen alene. Rapporten skriver det i klartekst.
+
+UMÅLBART PER PORT — dette skal leses FØR tallene:
+  gate2: okt, amur, profil
+      okt      krever MIN_RUNDER = 4 observerte runder; gate 2 gir 1
+      amur     krever framdrift mot målPoeng; på gate 2 er press EKSAKT 0
+      profil   lærer over runder; gate 2 gir 1 runde per agent
+  kamp: ingen — alle moduler i full stakk kan sees her
+  «Bidrar 0» på en port der modulen er usynlig betyr IKKE at den er verdiløs.
+
+KONTROLLARMENE (ufravikelige):
+  gate 2      miljøet mot seg selv skal måle EKSAKT 0,0000
+  kampbenken  fire like agenter skal måle 0,2500
+  Avviker en av dem, er den benken i stykker og INGEN andre tall kan leses.
+
+KOMMANDOENE SOM VILLE BLITT KJØRT
+
+PORT 1 — gate 2 (900 giv over 14 skard, alle 13 armer i samme kjøring):
+  for S in 0..13:
+    node examples/gate2.ts \
+      --kandidat "okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin" \
+      --kandidat "vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin" \
+      --kandidat "okt:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin" \
+      --kandidat "okt:vr:e1-modell/vrakrang.bin:telrd:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin" \
+      --kandidat "okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16gm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin" \
+      --kandidat "okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin" \
+      --kandidat "okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r0v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin" \
+      --kandidat "okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin" \
+      --kandidat "okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin" \
+      --kandidat "okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:vakt:abmpf:e1:e1-modell/d7alle.bin" \
+      --kandidat "okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0:vakt:abmpf:e1:e1-modell/d7alle.bin" \
+      --kandidat "okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:e1:e1-modell/d7alle.bin" \
+      --kandidat "e1:e1-modell/d7alle.bin" \
+      --miljo "okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin" \
+      --froe 5300000 --giver 900 --skard S/14 \
+      --ut analyse/max-natt2-g-s$S.jsonl
+  node examples/gate2.ts --rapport "analyse/max-natt2-g-s*.jsonl"
+
+PORT 2 — kampbenken (300 kamper over 14 skard, ÉN kjøring PER ARM):
+  for hver arm A, for S i 0..13:
+    node examples/kamp.ts --uparret \
+      --kandidat "<armens spek>" --miljo "<FULL>" \
+      --kamper 300 --froe 730000000 --skard S/14 \
+      --ut analyse/max-natt2-k-<kode>-s$S.jsonl
+
+PRESISJONEN
+  900 giv gir 3600 par per arm, SE ca ±0.1087 poeng/runde
+  til sammenlikning:  400 giv ±0.1630   1600 ±0.0815   4000 ±0.0515
+  En effekt må være over 2 SE OG ha tegntesten med seg. Aldri snittet alene.
+
+KOSTNADEN
+  gate 2:  900 giv x 4 seter x 14 armer = 50 400 replays
+           tid ukjent. Kjør «node examples/maxrigg.ts --tid --merke natt2» først,
+           og gi tallet tilbake som --ms-replay.
+  kamp:    13 armer x 14 skard = 182 prosesser, 300 kamper hver
+           tid ukjent. --ms-kamp <ms> gir anslaget.
+
+  DELINGEN PÅ SKARD ER IKKE GRATIS. Kontensjonen er målt i denne riggen:
+  samme frø, samme speker, 25,2 s per replay med seks andre node-prosesser
+  på maskinen mot 5,1 s uten. Prosjektets kostnadssveip 7. august målte 67x
+  på en mettet CPU. Regn med at wall-clock blir 1,5–3x tallene over.
+
+FILENE (alle med skardsuffiks, alle skrevet av prosessen selv):
+  analyse/max-natt2-g-s0.jsonl ... analyse/max-natt2-g-s13.jsonl
+  analyse/max-natt2-k-<kode>-s0.jsonl ...
+  analyse/max-natt2-armkart.json   (armkartet — rapporten trenger det for å oversette spek til modul)
+  analyse/max-natt2-armer.tsv
+  analyse/max-natt2-full.txt
+  analyse/max-natt2-parametre.sh
+  analyse/max-natt2-toerr.txt
+
+INGENTING ER KJØRT. Dette er --toerr.
+
+Alle 13 armspeker lar seg bygge.
+[08-08 21:19] 13 armer + KONTROLL. Miljø = FULL stakk.
+[08-08 21:19] FULL: okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+[08-08 21:19] --- PORT 2: kampbenken, 300 kamper per arm over 14 skard ---
+[08-08 21:19]   arm kontroll
+[08-08 21:39]   arm kontroll ferdig: 300 rader
+[08-08 21:39]   arm u-okt
+[08-08 22:02]   arm u-okt ferdig: 300 rader
+[08-08 22:02]   arm u-vr
+[08-08 22:22]   arm u-vr ferdig: 300 rader
+[08-08 22:22]   arm u-amu
+[08-08 22:40]   arm u-amu ferdig: 300 rader
+[08-08 22:40]   arm u-amub
+[08-08 23:13]   arm u-amub ferdig: 300 rader
+[08-08 23:13]   arm u-amug

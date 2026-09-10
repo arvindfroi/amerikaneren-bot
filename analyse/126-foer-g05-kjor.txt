@@ -1,0 +1,19 @@
+TREKK_LENGDE = 1032
+
+=== HANDLINGSFORDELING: 9775 beslutninger ===
+
+  softmax-entropi ved T = 1 (det selvspillet utforsker med):
+    BUD              normalisert entropi 0.1676   andel beslutninger under 0,01: 0.0 %
+    VRAK_KORT        normalisert entropi 0.6278   andel beslutninger under 0,01: 0.0 %
+    VELG_TRUMF       normalisert entropi 0.2992   andel beslutninger under 0,01: 0.0 %
+    VELG_ETTERLYST   normalisert entropi 0.4546   andel beslutninger under 0,01: 0.0 %
+    SPILL_KORT       normalisert entropi 0.6202   andel beslutninger under 0,01: 0.1 %
+
+  TRUMFVALGETS KVALITET (217 valg): valgt farge er den LENGSTE i 33.2 % (tilfeldig valg gir ~25-35 %). Snittlengde valgt 3.15 mot lengste 4.67.
+  BUD              n=  868  ulike koder=  2  entropi=0.811 bit  topp: bud:pass=75.0%  bud:6=25.0%
+  VRAK_KORT        n=  868  ulike koder= 29  entropi=4.270 bit  topp: kort:S13=9.0%  kort:H6=7.5%  kort:S11=7.3%  kort:R13=7.3%  kort:K8=7.0%
+  VELG_TRUMF       n=  217  ulike koder=  1  entropi=0.000 bit  topp: trumf:R=100.0%
+  VELG_ETTERLYST   n=  217  ulike koder=  6  entropi=1.356 bit  topp: kort:R14=62.7%  kort:R13=26.7%  kort:R11=9.2%  kort:R5=0.5%  kort:R7=0.5%
+  SPILL_KORT       n= 7605  ulike koder= 52  entropi=5.578 bit  topp: kort:H3=2.7%  kort:R6=2.6%  kort:K13=2.6%  kort:R2=2.6%  kort:K11=2.6%
+
+FERDIG 2026-08-10T21:33:39.666Z

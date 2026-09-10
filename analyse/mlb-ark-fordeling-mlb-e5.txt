@@ -1,0 +1,11 @@
+mlb-arkitektur 2026-08-10T20:32:43.865Z
+TREKK_LENGDE = 1032
+
+=== HANDLINGSFORDELING: 5518 beslutninger ===
+  BUD              n=  854  ulike koder=  4  entropi=0.819 bit  topp: bud:pass=85.1%  bud:5=6.9%  bud:9=6.0%  bud:6=2.0%
+  VRAK_KORT        n=  452  ulike koder= 31  entropi=4.397 bit  topp: kort:R9=8.4%  kort:H9=8.2%  kort:R7=7.7%  kort:K8=7.7%  kort:S11=7.1%
+  VELG_TRUMF       n=  113  ulike koder=  4  entropi=1.590 bit  topp: trumf:S=44.2%  trumf:H=32.7%  trumf:K=22.1%  trumf:R=0.9%
+  VELG_ETTERLYST   n=  113  ulike koder= 14  entropi=2.976 bit  topp: kort:S13=32.7%  kort:H9=18.6%  kort:K5=11.5%  kort:H13=8.8%  kort:K8=8.0%
+  SPILL_KORT       n= 3986  ulike koder= 52  entropi=5.633 bit  topp: kort:S14=2.7%  kort:K11=2.6%  kort:S3=2.5%  kort:K12=2.5%  kort:S10=2.5%
+
+FERDIG 2026-08-10T20:32:53.930Z

@@ -1,0 +1,32 @@
+[08-08 23:05] === KAMPPORT: nevro ===
+[08-08 23:05] kandidat: okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+[08-08 23:05] miljoe:   nevro
+[08-08 23:05] 400 kamper, 4 skard, froe 616000000
+[08-08 23:05] PARRET modus - kamp-les.py krever fire rader per froe og virker ikke uparret.
+[08-08 23:05] startet 4 skard
+[08-09 06:07] alle skard ferdige - 1600 rader
+100 froe, 400 rader, 17.3 runder per kamp
+
+  KANDIDATENS vinnerandel   0.7875
+  MILJOETS vinnerandel      0.2500   <- MAA vaere 0.2500
+
+  differanse i vinnerandel  +0.5375 +/- 0.0211  (+25.43 SE)
+  tegntest froe             95 opp / 0 ned  (z=+9.75)
+
+  differanse i sluttmargin  +57.765 +/- 2.723  (+21.22 SE)
+
+  Grunnlinja er 0,2500. En vinnerandel paa 0,2500 betyr INGEN forskjell;
+  0,3333 betyr at kandidaten vinner 1 av 3 mot tre like motstandere.
+[08-09 06:07] RESULTAT:
+100 froe, 400 rader, 17.3 runder per kamp
+
+  KANDIDATENS vinnerandel   0.7875
+  MILJOETS vinnerandel      0.2500   <- MAA vaere 0.2500
+
+  differanse i vinnerandel  +0.5375 +/- 0.0211  (+25.43 SE)
+  tegntest froe             95 opp / 0 ned  (z=+9.75)
+
+  differanse i sluttmargin  +57.765 +/- 2.723  (+21.22 SE)
+
+  Grunnlinja er 0,2500. En vinnerandel paa 0,2500 betyr INGEN forskjell;
+  0,3333 betyr at kandidaten vinner 1 av 3 mot tre like motstandere.

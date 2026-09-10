@@ -1,0 +1,1 @@
+MÅL kamper=30 maalpoeng=30 tro=av nett=e1-modell/mlb-sandkasse.bin sek=23.39 kamper/s/kjerne=1.28 beslutninger/kamp=1461.3 rader/kamp=383.7 runder/kamp=24.80 avbrutt=13.3% ms/beslutning=0.534

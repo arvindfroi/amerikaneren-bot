@@ -1,0 +1,1 @@
+  skard 3: 80 rader  skard 3: 160 rader  skard 3: 240 rader  skard 3: 320 rader  skard 3: 400 raderSkard 3 ferdig: 400 rader, 0 givavvik -> analyse/kp-juks6-rettets3.jsonl

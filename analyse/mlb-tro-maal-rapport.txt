@@ -1,0 +1,1 @@
+MÅL kamper=40 maalpoeng=30 tro=på sek=18.32 kamper/s/kjerne=2.18 beslutninger/kamp=1234.8 rader/kamp=329.8 runder/kamp=20.63 avbrutt=7.5% ms/beslutning=0.371

@@ -1,0 +1,104 @@
+
+=== K2 bånd 0 (frø 7700000) — kjører ===
+  K2 b0: 11 prøver grønne, 0 røde  [ja]
+
+=== K3 bånd 0 (frø 7700000) — kjører ===
+  K3 b0: +6.2500 ± 4.1993 poeng/runde igjen (n=8, 2/2 opp, p=0.500)  [stum]
+
+=== K4 bånd 0 (frø 7700000) — kjører ===
+  K4 b0: +0.4167 av valgene endres av hukommelsen (n=12)  [ja]
+
+=== K5 bånd 0 (frø 7700000) — kjører ===
+  K5 b0: +0.1111 endrede valg, TV +0.0228 (n=18); V(bak) lavere i 1 av 18  [nei]
+
+=== K6 bånd 0 (frø 7700000) — kjører ===
+  K6 b0: stigning +1.0599 ± 0.5093 per runde (z = 2.08), nivå dd +2.580 ± 1.789, n=96  [stum]
+
+=== K7 bånd 0 (frø 7700000) — kjører ===
+  K7 b0: +2.2500 ± 1.4549 poeng/runde igjen (n=24, 6/6 opp, p=0.031)  [stum]
+
+=== K8 bånd 0 (frø 7700000) — kjører ===
+  K8 b0: 10.49 % av veien gulv → tak (log-tap 0.9834 ± 0.0218, n=48)  [ja]
+
+MLB MOT KRAVENE K2–K8
+
+Vekter:    tilfeldig7310001
+Tro:       e1-modell/mlb-tro.bin
+Spek:      mlb:tilfeldig7310001~e1-modell/mlb-tro.bin
+Omfang:    6 giv (2 i budvinduet), 2 kamper per vane, løp til 120 (maks 12 runder)
+Frøbånd:   7700000  — ETT BÅND. Vedlegget krever to før noe adopteres (--to-band).
+Kjøretid:  167 s
+
+--- K2 — aldri jukse ---
+  MÅLT       11 prøver grønne, 0 røde
+  KONTROLL   bit-identisk valg under bytte av skjulte hender   [OK]
+  FELLE      4 jukserarmer (én bit lekket) — må bli tatt   [TATT]
+  DAGENS     0 avvik   (krav-status.md K2 (BEVIST))
+  INNFRIDD   JA
+  Kilde      test/mlb-k2-tro.test.ts test/mlb-k2-trekk.test.ts test/mlb-k2-nett.test.ts test/mlb-k2-selvspill.test.ts
+  Merknad    MLB_K2_NETT=tilfeldig7310001 — prøvene kjørte VEKTENE, ikke bare arkitekturen. mlb-k2-tro og mlb-k2-trekk måler trekkvektoren og er vektuavhengige av natur.
+
+--- K3 — optimalt i alle faser (budrunden) ---
+  MÅLT       +6.2500 ± 4.1993 poeng/runde igjen (n=8, 2/2 opp, p=0.500)
+  KONTROLL   tomt vindu: +0.0000 (må være +0,0000)   [OK]
+  FELLE      dagens stakk i samme vindu, samme giv: +12.5000 ± 6.3696   [SLAPP UNNA]
+  DAGENS     41,8 % av budtaket igjen   (krav-status.md K3)
+  INNFRIDD   STUM
+  Kilde      examples/tak-kart.ts --fase bud
+  Merknad    Innfridd når gapet til budtaket er innenfor 2 SE av null. Budrunden er det største gapet dagens stakk har, og det eneste vinduet stort nok for K1.
+
+--- K4 — hukommelse over hele spillet ---
+  MÅLT       +0.4167 av valgene endres av hukommelsen (n=12)
+  KONTROLL   h0 mot h0: +0.0000 (må være +0,0000)   [OK]
+  FELLE      plantet hukommelsesnett: +1.0000, samme nett uten tikk: +0.0000   [TATT]
+  DAGENS     ubevist — benken kan ikke vise det   (krav-status.md K4)
+  INNFRIDD   JA
+  Kilde      analyse/mlb-krav-roeyk-k4.txt
+  Merknad    PRØVE B (framoverblikk, alpha-mu M≥2) er IKKE MÅLBAR: sandkassen har ingen alpha-mu, og `Sete.søk` står av i hver driver (AVGJØRELSE 5). «PLANTET-utikk = +0,0000» er defekten `observerRunde` mot `observer`.
+
+--- K5 — forstå konteksten og tilpasse seg ---
+  MÅLT       +0.1111 endrede valg, TV +0.0228 (n=18); V(bak) lavere i 1 av 18
+  KONTROLL   lik stilling: +0.0000 endret, TV +0.0000 (må være +0,0000)   [OK]
+  FELLE      plantet på makro.racepress: +1.0000 endret, TV +0.2690   [TATT]
+  DAGENS     0 av 20 endret i «bak 70–90»   (krav-status.md K5)
+  INNFRIDD   NEI
+  Kilde      analyse/mlb-krav-roeyk-k5.txt
+  Merknad    Retningen måles på VERDIHODET, ikke på alpha-muens spredning — den finnes ikke i sandkassen. Det er en svakere prøve enn `k5-kontekst.ts`.
+
+--- K6 — lære vaner og utnytte dem ---
+  MÅLT       stigning +1.0599 ± 0.5093 per runde (z = 2.08), nivå dd +2.580 ± 1.789, n=96
+  KONTROLL   h0 mot h0: dd +0.0000 (må være +0,0000 på hver rad)   [OK]
+  FELLE      plantet hukommelsesnett: dd -7.597 ± 4.481   [SLAPP UNNA]
+  DAGENS     vekst z = 0,23   (krav-status.md K6)
+  INNFRIDD   STUM
+  Kilde      analyse/mlb-krav-roeyk-k6.txt
+  Merknad    Motstanderne er VANER_TEST — aldri i treningsligaen. Porten er STIGNINGEN, ikke nivået: et positivt nivå betyr bare at hukommelsen hjelper, ikke at den lærer i løpet.
+
+--- K7 — matematisk optimalt sluttspill ---
+  MÅLT       +2.2500 ± 1.4549 poeng/runde igjen (n=24, 6/6 opp, p=0.031)
+  KONTROLL   tomt vindu: +0.0000 (må være +0,0000)   [OK]
+  FELLE      dagens stakk i samme vindu, samme giv: +0.1250 ± 0.0690   [SLAPP UNNA]
+  DAGENS     +0,947 poeng/runde igjen ved fem stikk   (krav-status.md K7 / §117)
+  INNFRIDD   STUM
+  Kilde      examples/tak-kart.ts --fase spill --fra 7 --til 11
+  Merknad    DE SISTE FEM STIKKENE, ikke de to. §117: «K7 hvilte på den trangeste mulige lesningen av sitt eget ord.» Taket er klarsynt — en MÅLESTOKK, ikke en inngang til boten.
+
+--- K8 — predikere motstandernes kort ---
+  MÅLT       10.49 % av veien gulv → tak (log-tap 0.9834 ± 0.0218, n=48)
+  KONTROLL   gulv (uniform over 3) = 1.0986, gulv+ = 1.0121 → 7.87 %   [OK]
+  FELLE      slår trohodet gulv+? ja   [TATT]
+  DAGENS     12,34 % av veien gulv → tak   (krav-status.md K8 / §119)
+  INNFRIDD   JA
+  Kilde      examples/mlb-k8.ts
+  Merknad    Kravet har ingen absolutt terskel — «veldig høyt nivå» er et tall mellom gulv og tak. Porten her er den svakest mulige som betyr noe: slår den `gulv+`, altså renonsene alene.
+
+3 av 7 rader lukket porten sin.
+3 rad(er) er STUMME: kontrollarmen bommet eller fella slapp unna. De tallene skal ikke leses — prøven målte ikke det den sier den måler.
+
+«DAGENS» ER SITERT FOR K2, K4, K5, K6 og K8 og MÅLT FOR K3 og K7.
+Skillet er ikke pynt: `tak-kart.ts` tar `--spek` og kan derfor settes på
+ADAMS_MAALT på nøyaktig samme giv. De andre prøvene er bygd rundt hver
+sin stakk, og en «ny måling av dagens stakk» der ville vært en annen
+prøve enn den `docs/krav-status.md` siterer.
+
+Skrevet: analyse/mlb-krav-roeyk.tsv og analyse/mlb-krav-roeyk.txt

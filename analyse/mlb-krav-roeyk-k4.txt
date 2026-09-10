@@ -1,0 +1,29 @@
+K4 — HUKOMMELSE OVER HELE SPILLET (sandkassen)
+
+Vekter:     tilfeldig7310001
+Tro:        e1-modell/mlb-tro.bin
+Kamper:     2 til 120 poeng, målrunde 4, maks 12
+Frøbånd:    7700000 + k·7717
+Kjøretid:   9 s
+
+Måltallet: andel av fokussetets valg i målrunden som endrer seg når
+hukommelsen er FYLT av de foregående rundene, mot en FERSK agent på
+nøyaktig samme stilling.
+
+arm              stillinger   ulike    andel     maks bokførte runder
+----------------------------------------------------------------------
+KONTROLL                 12       0   +0.0000                    0
+mlb                      12       5   +0.4167                    4
+PLANTET                  12      12   +1.0000                    4
+PLANTET-utikk            12       0   +0.0000                    0
+----------------------------------------------------------------------
+
+KONTROLL må være +0,0000. Er den ikke det, måler prøven RNG-posisjon
+eller agentbygging, og ingen av de andre radene kan leses.
+PLANTET må være klart over null — den armen HAR evnen per konstruksjon.
+PLANTET-utikk må være +0,0000: samme nett, men hukommelsen tikkes aldri.
+
+PRØVE B (framoverblikk) ER IKKE MÅLBAR HER. Sandkassen har ingen
+alpha-mu, og søket den har (`src/mlb/sok.ts`) står av i hver driver:
+`Sete.søk` er undefined overalt, og AVGJØRELSE 5 forbyr søk i
+gradienten. Et tall her ville vært oppdiktet.

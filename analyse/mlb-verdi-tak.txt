@@ -1,0 +1,14 @@
+
+=== 2026-08-10 19:12 vekter=e1-modell/g05/mlb-arbeid.bin inn=analyse/roeyk125/erf-s*.bin
+18130 rader (16217 tren / 1913 holdout paa KAMP, 1 av 10), stammen gir 512 ut
+  G  (resten av kampen, diskontert)    sd=  8.89  1032 raa: +0.0350  512 stamme: -0.0197
+  Gr (denne rundens gjenstaaende)      sd=  8.14  1032 raa: +0.1744  512 stamme: +0.0901
+  Gh (den diskonterte halen)           sd=  3.81  1032 raa: -0.0658  512 stamme: -0.0597
+  (3s)
+
+=== 2026-08-10 19:16 vekter=e1-modell/g05/mlb-arbeid.bin inn=analyse/roeyk125b/erf-s*.bin
+85775 rader (77461 tren / 8314 holdout paa KAMP, 1 av 10), stammen gir 512 ut
+  G  (resten av kampen, diskontert)    sd=  8.41  1032 raa: +0.1654  512 stamme: +0.0743
+  Gr (denne rundens gjenstaaende)      sd=  7.75  1032 raa: +0.2311  512 stamme: +0.1074
+  Gh (den diskonterte halen)           sd=  3.65  1032 raa: +0.0705  512 stamme: +0.0532
+  (10s)

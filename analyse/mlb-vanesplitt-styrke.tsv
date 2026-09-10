@@ -1,0 +1,68 @@
+a	b	n	kant	se	z	kontroll
+vane.grisk	vane.honnørsulten	120	7.8500	0.8236	9.53	0.0000 OK
+vane.grisk	vane.trumfgjerrig	120	13.2750	0.8923	14.88	0.0000 OK
+vane.grisk	vane.ordentlig	120	1.4333	0.7703	1.86	0.0000 OK
+vane.grisk	test.feig	120	32.0500	0.4062	78.91	0.0000 OK
+vane.grisk	test.trumfsløser	120	21.6333	3.0594	7.07	0.0000 OK
+vane.grisk	test.middelmådig	120	18.5750	0.8704	21.34	0.0000 OK
+vane.grisk	test.baklengs	120	33.5417	0.2214	151.52	0.0000 OK
+vane.honnørsulten	vane.grisk	120	-6.0750	0.8066	-7.53	0.0000 OK
+vane.honnørsulten	vane.trumfgjerrig	120	10.5833	0.8281	12.78	0.0000 OK
+vane.honnørsulten	vane.ordentlig	120	-5.1750	0.9636	-5.37	0.0000 OK
+vane.honnørsulten	test.feig	120	30.5833	0.3338	91.62	0.0000 OK
+vane.honnørsulten	test.trumfsløser	120	19.0833	3.0181	6.32	0.0000 OK
+vane.honnørsulten	test.middelmådig	120	18.1250	0.8154	22.23	0.0000 OK
+vane.honnørsulten	test.baklengs	120	32.0583	0.1946	164.77	0.0000 OK
+vane.trumfgjerrig	vane.grisk	120	-9.5333	0.8369	-11.39	0.0000 OK
+vane.trumfgjerrig	vane.honnørsulten	120	-8.1583	0.6757	-12.07	0.0000 OK
+vane.trumfgjerrig	vane.ordentlig	120	-8.7333	0.8551	-10.21	0.0000 OK
+vane.trumfgjerrig	test.feig	120	28.8583	0.4690	61.54	0.0000 OK
+vane.trumfgjerrig	test.trumfsløser	120	23.1917	2.8584	8.11	0.0000 OK
+vane.trumfgjerrig	test.middelmådig	120	17.3667	0.8009	21.68	0.0000 OK
+vane.trumfgjerrig	test.baklengs	120	29.8583	0.4546	65.69	0.0000 OK
+vane.ordentlig	vane.grisk	120	0.9917	0.2021	4.91	0.0000 OK
+vane.ordentlig	vane.honnørsulten	120	7.5333	0.8371	9.00	0.0000 OK
+vane.ordentlig	vane.trumfgjerrig	120	12.9083	0.8811	14.65	0.0000 OK
+vane.ordentlig	test.feig	120	32.1167	0.4115	78.04	0.0000 OK
+vane.ordentlig	test.trumfsløser	120	24.1917	3.0040	8.05	0.0000 OK
+vane.ordentlig	test.middelmådig	120	18.4917	0.8704	21.25	0.0000 OK
+vane.ordentlig	test.baklengs	120	33.4417	0.2282	146.55	0.0000 OK
+test.feig	vane.grisk	120	-4.9000	0.8426	-5.82	0.0000 OK
+test.feig	vane.honnørsulten	120	-9.3750	0.7457	-12.57	0.0000 OK
+test.feig	vane.trumfgjerrig	120	-9.7667	0.7901	-12.36	0.0000 OK
+test.feig	vane.ordentlig	120	-6.9083	1.0901	-6.34	0.0000 OK
+test.feig	test.trumfsløser	120	18.9417	2.9790	6.36	0.0000 OK
+test.feig	test.middelmådig	120	-9.0333	0.7785	-11.60	0.0000 OK
+test.feig	test.baklengs	120	0.6667	0.2287	2.92	0.0000 OK
+test.trumfsløser	vane.grisk	120	3.2750	1.3144	2.49	0.0000 OK
+test.trumfsløser	vane.honnørsulten	120	1.5583	1.7637	0.88	0.0000 OK
+test.trumfsløser	vane.trumfgjerrig	120	11.9667	1.2475	9.59	0.0000 OK
+test.trumfsløser	vane.ordentlig	120	2.1000	1.6297	1.29	0.0000 OK
+test.trumfsløser	test.feig	120	21.0667	1.8954	11.11	0.0000 OK
+test.trumfsløser	test.middelmådig	120	9.2333	1.7986	5.13	0.0000 OK
+test.trumfsløser	test.baklengs	120	21.7583	1.8906	11.51	0.0000 OK
+test.middelmådig	vane.grisk	120	-6.5917	0.8418	-7.83	0.0000 OK
+test.middelmådig	vane.honnørsulten	120	-10.1917	0.7132	-14.29	0.0000 OK
+test.middelmådig	vane.trumfgjerrig	120	-7.7417	0.6627	-11.68	0.0000 OK
+test.middelmådig	vane.ordentlig	120	-7.6500	1.0233	-7.48	0.0000 OK
+test.middelmådig	test.feig	120	9.1417	0.8034	11.38	0.0000 OK
+test.middelmådig	test.trumfsløser	120	23.0833	2.9218	7.90	0.0000 OK
+test.middelmådig	test.baklengs	120	9.7000	0.8483	11.43	0.0000 OK
+test.baklengs	vane.grisk	120	-7.2417	0.8800	-8.23	0.0000 OK
+test.baklengs	vane.honnørsulten	120	-10.1083	0.7403	-13.65	0.0000 OK
+test.baklengs	vane.trumfgjerrig	120	-9.9083	0.8260	-11.99	0.0000 OK
+test.baklengs	vane.ordentlig	120	-6.5083	1.0391	-6.26	0.0000 OK
+test.baklengs	test.feig	120	-0.6500	0.2309	-2.82	0.0000 OK
+test.baklengs	test.trumfsløser	120	11.1917	2.9125	3.84	0.0000 OK
+test.baklengs	test.middelmådig	120	-9.6000	0.8206	-11.70	0.0000 OK
+
+# STYRKE = snittet av kanten mot de sju andre
+vane	styrke
+vane.ordentlig	18.525
+vane.grisk	18.337
+vane.honnørsulten	14.169
+vane.trumfgjerrig	10.407
+test.trumfsløser	10.137
+test.middelmådig	1.393
+test.feig	-2.911
+test.baklengs	-4.689

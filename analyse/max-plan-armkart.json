@@ -1,0 +1,348 @@
+{
+  "merke": "plan",
+  "laget": "2026-08-08T14:11:03.734Z",
+  "full": "okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16bgm2e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin",
+  "grunnlinje": "e1:e1-modell/d7alle.bin",
+  "amuRolle": "alle",
+  "moduler": [
+    {
+      "kode": "okt",
+      "navn": "okt: — økt-scopet motstandermodell (A2/K4/K6)",
+      "iFull": true,
+      "usynligPaa": [
+        "gate2"
+      ],
+      "merknad": "krever MIN_RUNDER = 4 observerte runder; gate 2 gir 1",
+      "iFullNaa": true
+    },
+    {
+      "kode": "vr",
+      "navn": "vr: — vrakrangerer og trumfvalg",
+      "iFull": true,
+      "usynligPaa": [],
+      "merknad": "",
+      "iFullNaa": true
+    },
+    {
+      "kode": "amu",
+      "navn": "amu: — alpha-mu-søket (hele laget)",
+      "iFull": true,
+      "usynligPaa": [],
+      "merknad": "fjernes den, faller b, g, e, r og v med — de bor inne i den",
+      "iFullNaa": true
+    },
+    {
+      "kode": "amub",
+      "navn": "amu «b» — A5, bayesiansk verdensvekt",
+      "iFull": true,
+      "forelder": "amu",
+      "usynligPaa": [],
+      "merknad": "av gir vektkilde «av»; «s» er ALTERNATIVET og kan ikke stables med b",
+      "iFullNaa": true
+    },
+    {
+      "kode": "amug",
+      "navn": "amu «g» — A6, signalforenlighet",
+      "iFull": true,
+      "forelder": "amu",
+      "usynligPaa": [],
+      "merknad": "",
+      "iFullNaa": true
+    },
+    {
+      "kode": "amum",
+      "navn": "amu «m2» — A8, framoverblikk over egne valg",
+      "iFull": false,
+      "forelder": "amu",
+      "usynligPaa": [],
+      "merknad": "M=2 koster 3,1x M=1 (138 -> 439 ms per beslutning). De gamle 5,3x var kontensjon. AV i full stakk; --med amum slår den på",
+      "iFullNaa": true
+    },
+    {
+      "kode": "amue",
+      "navn": "amu «e0.25» — A7, uleselighet blant likeverdige kort",
+      "iFull": true,
+      "forelder": "amu",
+      "usynligPaa": [],
+      "merknad": "",
+      "iFullNaa": true
+    },
+    {
+      "kode": "amur",
+      "navn": "amu «r1.5» — kampstillingsstyrt varians",
+      "iFull": true,
+      "forelder": "amu",
+      "usynligPaa": [
+        "gate2"
+      ],
+      "merknad": "krever framdrift mot målPoeng; på gate 2 er press EKSAKT 0",
+      "iFullNaa": true
+    },
+    {
+      "kode": "amuv",
+      "navn": "amu «v0.5» — vaktens veto over søket",
+      "iFull": true,
+      "forelder": "amu",
+      "usynligPaa": [],
+      "merknad": "§103: uten den målte amu:alle −0,2837. §106 målte +0,4809 med den — men §109 REPLIKERTE i disjunkt bånd og fikk +0,1742 ± 0,0970 (1,8 SE), altså UNDER porten. +0,4809 er et erstattet tall og skal ikke siteres.",
+      "iFullNaa": true
+    },
+    {
+      "kode": "profil",
+      "navn": "profil: — motstandermodellen som fyller økt-boka",
+      "iFull": true,
+      "usynligPaa": [
+        "gate2"
+      ],
+      "merknad": "lærer over runder; gate 2 gir 1 runde per agent",
+      "iFullNaa": true
+    },
+    {
+      "kode": "budm",
+      "navn": "budm: — budmodellen (GBT μ, σ)",
+      "iFull": true,
+      "usynligPaa": [],
+      "merknad": "fjernes den, faller budsøket med — det er et felt inne i den",
+      "iFullNaa": true
+    },
+    {
+      "kode": "budsok",
+      "navn": "budm «sok12k8b0.5» — A4, budsøket",
+      "iFull": true,
+      "forelder": "budm",
+      "usynligPaa": [],
+      "merknad": "",
+      "iFullNaa": true
+    },
+    {
+      "kode": "budkamp",
+      "navn": "budm «kamp1.5» — MAKRO → MESO, kampstillingen inn i BUDET (K5 → K3)",
+      "iFull": false,
+      "forelder": "budm",
+      "usynligPaa": [
+        "gate2"
+      ],
+      "merknad": "racepress er strukturelt EKSAKT 0 på gate 2 — bare kampbenken ser den. AV som standard; --med budkamp slår den på",
+      "iFullNaa": false
+    },
+    {
+      "kode": "eks",
+      "navn": "eks: — eksakt sluttspill",
+      "iFull": false,
+      "usynligPaa": [],
+      "merknad": "§56 målte eks:3 = −0,343 og eks:4 = −0,753. AV i full stakk med vilje",
+      "iFullNaa": false
+    },
+    {
+      "kode": "vakt",
+      "navn": "vakt:abmpf — konvensjonsvakten",
+      "iFull": true,
+      "usynligPaa": [],
+      "merknad": "",
+      "iFullNaa": true
+    }
+  ],
+  "armer": [
+    {
+      "kode": "kontroll",
+      "slag": "KONTROLL",
+      "spek": "okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16bgm2e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [],
+      "usynligPaa": [],
+      "merknad": "FULL mot seg selv — skal måle EKSAKT 0,0000"
+    },
+    {
+      "kode": "u-okt",
+      "slag": "minus",
+      "spek": "vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16bgm2e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "okt"
+      ],
+      "usynligPaa": [
+        "gate2"
+      ],
+      "merknad": "krever MIN_RUNDER = 4 observerte runder; gate 2 gir 1"
+    },
+    {
+      "kode": "u-vr",
+      "slag": "minus",
+      "spek": "okt:amu:alle:12k16bgm2e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "vr"
+      ],
+      "usynligPaa": [],
+      "merknad": ""
+    },
+    {
+      "kode": "u-amu",
+      "slag": "minus",
+      "spek": "okt:vr:e1-modell/vrakrang.bin:telrd:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "amu",
+        "amub",
+        "amug",
+        "amum",
+        "amue",
+        "amur",
+        "amuv"
+      ],
+      "usynligPaa": [],
+      "merknad": "fjernes den, faller b, g, e, r og v med — de bor inne i den"
+    },
+    {
+      "kode": "u-amub",
+      "slag": "minus",
+      "spek": "okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16gm2e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "amub"
+      ],
+      "usynligPaa": [],
+      "merknad": "av gir vektkilde «av»; «s» er ALTERNATIVET og kan ikke stables med b"
+    },
+    {
+      "kode": "u-amug",
+      "slag": "minus",
+      "spek": "okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16bm2e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "amug"
+      ],
+      "usynligPaa": [],
+      "merknad": ""
+    },
+    {
+      "kode": "u-amum",
+      "slag": "minus",
+      "spek": "okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16bgm1e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "amum"
+      ],
+      "usynligPaa": [],
+      "merknad": "M=2 koster 3,1x M=1 (138 -> 439 ms per beslutning). De gamle 5,3x var kontensjon. AV i full stakk; --med amum slår den på"
+    },
+    {
+      "kode": "u-amue",
+      "slag": "minus",
+      "spek": "okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16bgm2e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "amue"
+      ],
+      "usynligPaa": [],
+      "merknad": ""
+    },
+    {
+      "kode": "u-amur",
+      "slag": "minus",
+      "spek": "okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16bgm2e0.25r0v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "amur"
+      ],
+      "usynligPaa": [
+        "gate2"
+      ],
+      "merknad": "krever framdrift mot målPoeng; på gate 2 er press EKSAKT 0"
+    },
+    {
+      "kode": "u-amuv",
+      "slag": "minus",
+      "spek": "okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16bgm2e0.25r1.5v0:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "amuv"
+      ],
+      "usynligPaa": [],
+      "merknad": "§103: uten den målte amu:alle −0,2837. §106 målte +0,4809 med den — men §109 REPLIKERTE i disjunkt bånd og fikk +0,1742 ± 0,0970 (1,8 SE), altså UNDER porten. +0,4809 er et erstattet tall og skal ikke siteres."
+    },
+    {
+      "kode": "u-profil",
+      "slag": "minus",
+      "spek": "okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16bgm2e0.25r1.5v0.5:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "profil"
+      ],
+      "usynligPaa": [
+        "gate2"
+      ],
+      "merknad": "lærer over runder; gate 2 gir 1 runde per agent"
+    },
+    {
+      "kode": "u-budm",
+      "slag": "minus",
+      "spek": "okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16bgm2e0.25r1.5v0.5:profil:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "budm",
+        "budsok"
+      ],
+      "usynligPaa": [],
+      "merknad": "fjernes den, faller budsøket med — det er et felt inne i den"
+    },
+    {
+      "kode": "u-budsok",
+      "slag": "minus",
+      "spek": "okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16bgm2e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0:vakt:abmpf:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "budsok"
+      ],
+      "usynligPaa": [],
+      "merknad": ""
+    },
+    {
+      "kode": "u-vakt",
+      "slag": "minus",
+      "spek": "okt:vr:e1-modell/vrakrang.bin:telrd:amu:alle:12k16bgm2e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "vakt"
+      ],
+      "usynligPaa": [],
+      "merknad": ""
+    },
+    {
+      "kode": "grunnlinje",
+      "slag": "grunnlinje",
+      "spek": "e1:e1-modell/d7alle.bin",
+      "fjernet": [
+        "okt",
+        "vr",
+        "amu",
+        "amub",
+        "amug",
+        "amue",
+        "amur",
+        "amuv",
+        "profil",
+        "budm",
+        "budsok",
+        "vakt",
+        "amum"
+      ],
+      "usynligPaa": [],
+      "merknad": "alt av — det rene nettet"
+    }
+  ],
+  "gate2": {
+    "giver": 1600,
+    "skard": 16,
+    "froe": 5300000,
+    "filer": [
+      "analyse/max-plan-g-s0.jsonl",
+      "analyse/max-plan-g-s1.jsonl",
+      "analyse/max-plan-g-s2.jsonl",
+      "analyse/max-plan-g-s3.jsonl",
+      "analyse/max-plan-g-s4.jsonl",
+      "analyse/max-plan-g-s5.jsonl",
+      "analyse/max-plan-g-s6.jsonl",
+      "analyse/max-plan-g-s7.jsonl",
+      "analyse/max-plan-g-s8.jsonl",
+      "analyse/max-plan-g-s9.jsonl",
+      "analyse/max-plan-g-s10.jsonl",
+      "analyse/max-plan-g-s11.jsonl",
+      "analyse/max-plan-g-s12.jsonl",
+      "analyse/max-plan-g-s13.jsonl",
+      "analyse/max-plan-g-s14.jsonl",
+      "analyse/max-plan-g-s15.jsonl"
+    ]
+  },
+  "kamp": {
+    "kamper": 200,
+    "skard": 16,
+    "froe": 730000000
+  }
+}

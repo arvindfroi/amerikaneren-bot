@@ -1,0 +1,2 @@
+skard 6/8 startet 2026-08-10T22:12:51.208Z
+FERDIG {"skard":6,"kamper":3,"sekunder":23.73,"kamperPerSek":0.126,"beslutningerPerKamp":3098,"raderPerKamp":774.7,"medValgPerKamp":613.7,"runderPerKamp":54,"avbruttAndel":0.3333,"bytesPerKamp":9007}

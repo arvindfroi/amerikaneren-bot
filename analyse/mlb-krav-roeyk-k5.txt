@@ -1,0 +1,30 @@
+K5 — FORSTÅ KONTEKSTEN OG TILPASSE SEG (sandkassen)
+
+Vekter:     tilfeldig7310001
+Tro:        e1-modell/mlb-tro.bin
+Drivere:    mlb:tilfeldig7310001~e1-modell/mlb-tro.bin i alle fire seter
+Stilling:   BAK 70–90 mot FORAN 90–70, løp til 100
+Giv:        6, frøbånd 7700000 + g·4409, stikk 2–7
+Kjøretid:   2 s
+
+arm         stillinger  endret   andel      TV-avstand          verdigap (bak−foran)   bak lavere/høyere  p
+----------------------------------------------------------------------------------------------------------------
+KONTROLL            18       0   +0.0000    +0.0000 ± 0.0000     +0.0000 ± 0.0000        0/0      NaN
+mlb                 18       2   +0.1111    +0.0228 ± 0.0031     +0.1094 ± 0.0167        1/17     0.000
+PLANTET             18      18   +1.0000    +0.2690 ± 0.0317     +0.1094 ± 0.0167        1/17     0.000
+----------------------------------------------------------------------------------------------------------------
+
+racepress: BAK 0.3600, FORAN -0.3600.
+Er begge eksakt 0, kan ingen del av makroblokka bite, og et nulltall her
+sier ingenting om nettet — det sier at stillingen aldri ble konstruert.
+
+KONTROLL må være +0,0000 på ALLE TRE måltallene. Den gir begge sidene
+BAK-stillingen, så armene er bit-identiske.
+PLANTET må være klart over null: den reagerer på makroblokka per
+konstruksjon, og en prøve som ikke tar den måler ingenting.
+
+RETNINGEN. Kravet sier ikke bare «ulikt», det sier hvilken vei: å ligge
+under skal gi mer risiko. Sandkassen har ingen utfallsvektor per gren,
+så retningen måles på VERDIHODET — V(bak) skal være lavere enn
+V(foran). Det er en SVAKERE prøve enn `k5-kontekst.ts` sin spredning,
+og det skal stå her og ikke bare i koden.

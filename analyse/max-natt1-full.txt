@@ -1,0 +1,1 @@
+okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin

@@ -1,0 +1,12 @@
+skard 5/20 startet 2026-08-09T16:46:27.326Z
+25 kamper, 0.51 kamper/s, 1430.9 beslutninger/kamp, 24.2 runder/kamp
+50 kamper, 0.42 kamper/s, 1718.9 beslutninger/kamp, 29.3 runder/kamp
+75 kamper, 0.49 kamper/s, 1467.4 beslutninger/kamp, 24.8 runder/kamp
+100 kamper, 0.46 kamper/s, 1538.2 beslutninger/kamp, 26.1 runder/kamp
+125 kamper, 0.42 kamper/s, 1634.1 beslutninger/kamp, 27.8 runder/kamp
+150 kamper, 0.45 kamper/s, 1555.8 beslutninger/kamp, 26.4 runder/kamp
+175 kamper, 0.47 kamper/s, 1500.0 beslutninger/kamp, 25.4 runder/kamp
+200 kamper, 0.47 kamper/s, 1505.3 beslutninger/kamp, 25.5 runder/kamp
+225 kamper, 0.47 kamper/s, 1509.8 beslutninger/kamp, 25.6 runder/kamp
+250 kamper, 0.50 kamper/s, 1437.0 beslutninger/kamp, 24.3 runder/kamp
+FERDIG {"skard":5,"kamper":250,"sekunder":500.13,"kamperPerSek":0.5,"beslutningerPerKamp":1437,"raderPerKamp":377.1,"medValgPerKamp":303.1,"runderPerKamp":24.28,"avbruttAndel":0.124,"bytesPerKamp":4273}

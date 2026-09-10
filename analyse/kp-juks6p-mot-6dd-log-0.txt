@@ -1,0 +1,1 @@
+  skard 0: 80 rader  skard 0: 160 rader  skard 0: 240 rader  skard 0: 320 rader  skard 0: 400 raderSkard 0 ferdig: 400 rader, 0 givavvik -> analyse/kp-juks6p-mot-6dds0.jsonl

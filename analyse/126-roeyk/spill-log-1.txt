@@ -1,0 +1,2 @@
+skard 1/2 startet 2026-08-10T21:57:37.083Z
+FERDIG {"skard":1,"kamper":4,"sekunder":0.88,"kamperPerSek":4.54,"beslutningerPerKamp":3075.3,"raderPerKamp":801.5,"medValgPerKamp":641.8,"runderPerKamp":53.5,"avbruttAndel":0.75,"bytesPerKamp":8948}

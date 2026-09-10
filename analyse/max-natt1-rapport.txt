@@ -1,0 +1,100 @@
+# ADAMS MAX — ALLE DELER, OG RELASJONENE MELLOM DEM
+
+merke «natt1», armkart laget 2026-08-08T14:19:15.559Z
+FULL STAKK (miljø og kontroll):
+  okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+
+Ablasjon NEDOVER: hver arm er FULL MINUS én modul. Tallet under er
+derfor hva modulen BIDRAR MED NÅR ALT ANNET ER DER — ikke hva den er
+verdt alene. En modul målt alene måles i feil selskap: «amu:alle»
+målte −0,2837 uten vaktens veto og +0,4809 med den.
+
+==============================================================================
+KONTROLLARMEN, GATE 2 — FULL mot seg selv i samme sete
+==============================================================================
+  +0.0000 ± 0.0000   (0 av parene skilte seg fra FULL)
+  OK — bit-identisk med FULL i hvert eneste par, som den skal.
+
+==============================================================================
+BIDRAG PER MODUL — gate 2   (poeng/runde, FULL minus modulen)
+==============================================================================
+modul           bidrag       SE   SE-er        tegntest       p
+------------------------------------------------------------------------------
+vr             +0.1205   0.0997     1.2         137/233   0.009
+amu            +0.1670   0.1121     1.5         201/413   0.623
+amub           -0.0273   0.0757    -0.4          88/180   0.823
+amug           -0.1153   0.1139    -1.0         177/362   0.713
+amue           -0.0941   0.0774    -1.2          84/182   0.335
+amuv           +0.2705   0.0976     2.8         281/387   0.000
+budm           +0.8116   0.1491     5.4        640/1097   0.000
+budsok         +0.0044   0.0504     0.1          54/121   0.275
+vakt           +0.1241   0.1301     1.0        623/1158   0.011
+------------------------------------------------------------------------------
+HELE STAKKEN   +1.1348   0.1658     6.8        981/1704   0.000
+  (FULL minus GRUNNLINJA — hva hele modulsamlingen er verdt til sammen)
+
+  sum av de målbare bidragene   +1.2614
+  hele stakken                  +1.1348
+  SUPERADDITIVITET              -0.1266
+    SE hvis leddene uavhengige  ±0.3548
+    SE hvis fullt korrelerte    ±1.0718
+  DOM: IKKE AVGJORT innenfor den strengeste grensa.
+
+UMÅLBART PÅ GATE 2 — utelatt fra tabellen over med vilje
+  okt        -0.0000 ± 0.0000   (0 par skilte seg fra FULL)
+             krever MIN_RUNDER = 4 observerte runder; gate 2 gir 1
+             BIT-IDENTISK med FULL i hvert par — porten kan BEVISLIG
+             ikke se modulen. Det er en egenskap ved benken, ikke
+             ved modulen.
+  amur       -0.0000 ± 0.0000   (0 par skilte seg fra FULL)
+             krever framdrift mot målPoeng; på gate 2 er press EKSAKT 0
+             BIT-IDENTISK med FULL i hvert par — porten kan BEVISLIG
+             ikke se modulen. Det er en egenskap ved benken, ikke
+             ved modulen.
+  profil     -0.0000 ± 0.0000   (0 par skilte seg fra FULL)
+             lærer over runder; gate 2 gir 1 runde per agent
+             BIT-IDENTISK med FULL i hvert par — porten kan BEVISLIG
+             ikke se modulen. Det er en egenskap ved benken, ikke
+             ved modulen.
+  TALLENE OVER ER IKKE NULLRESULTATER. gate 2 lager friske agenter per
+  giv og stopper etter én runde, så disse modulene har ikke noe å virke
+  på her. Les dem på kampbenken eller ikke i det hele tatt.
+
+NØSTING — «u-forelder» fjerner barna med:
+  bidrag(amu) er amu PLUSS amub, amug, amue, amur, amuv samlet.
+  bidrag(budm) er budm PLUSS budsok samlet.
+
+==============================================================================
+RELASJONENE — interaksjon(X,Y) = bidrag(X,Y samlet) − bidrag(X) − bidrag(Y)
+==============================================================================
+X x Y                   samlet         X         Y   interaksjon      2 SE
+------------------------------------------------------------------------------
+amub x amug            -0.1540   -0.0273   -0.1153       -0.0114    0.5938
+                    -> ikke avgjort
+amuv x vakt            +0.4606   +0.2705   +0.1241       +0.0660    0.7202
+                    -> ikke avgjort
+------------------------------------------------------------------------------
+  «2 SE» er den STRENGESTE grensa (fullt korrelerte ledd). Er
+  interaksjonen mindre enn den, er relasjonen ikke påvist.
+
+==============================================================================
+KAMPBENKEN — vinnerandel for armen i fokussetet (null = 0,2500)
+==============================================================================
+  KONTROLLARMEN MANGLER. Uten den kan ingen vinnerandel leses.
+
+modul         vinnerandel       SE   vs 0,25      vunnet       p
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+  Radene er ARMEN (FULL uten modulen). Ligger den UNDER 0,2500, taper
+  stakken på å miste modulen — altså bidrar modulen positivt.
+  Her er INGEN modul strukturelt umålbar: agentene husker og kampene
+  går til målPoeng. Til gjengjeld er parringen svakere enn gate 2s.
+
+==============================================================================
+BENKEN ER I STYKKER: kampbenken (kontrollarm mangler)
+Ingen av tallene over kan leses. Rett kontrollarmen først.
+
+PORTEN: en modul beholdes bare om bidraget er over 2 SE OG tegntesten
+er med den. Aldri adoptere eller forkaste på snittet alene — og aldri
+på ett frøbånd. Replikér i et disjunkt bånd før noe endres.
+==============================================================================

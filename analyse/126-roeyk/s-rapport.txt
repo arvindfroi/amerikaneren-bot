@@ -1,0 +1,10 @@
+mlb-spill startet 2026-08-10T22:12:50.991Z
+kamper=24 kjerner=8 maalpoeng=30/60/100 temperatur=1 tro=e1-modell/mlb-tro.bin nett=e1-modell/v126/mlb-arbeid.bin froe=1750000000 maksrunder=100 beste=(kandidaten selv) tidligere=[]
+FERDIG 2026-08-10T22:13:19.064Z
+kamper=24 veggtid=28.1 s
+kamper/s totalt=0.85  kamper/s/kjerne=0.19
+beslutninger/kamp=2685.4  rader/kamp=686.6  bytes/kamp=7842
+avbrutt paa rundetaket=25.0 %
+erfaring på disk=0.2 MB
+EPOKEANSLAG 5000 kamper: 97.5 min
+TI EPOKER: 16.25 timer

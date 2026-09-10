@@ -1,0 +1,16 @@
+kontroll	okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-okt	vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-vr	okt:amu:foerer:12k16bgm1e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-amu	okt:vr:e1-modell/vrakrang.bin:telrd:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-amub	okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16gm1e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-amug	okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bm1e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-amue	okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-amur	okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0.25r0v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-amuv	okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0.25r1.5v0:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-profil	okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0.25r1.5v0.5:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-budm	okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0.25r1.5v0.5:profil:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-budsok	okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-vakt	okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:e1:e1-modell/d7alle.bin
+grunnlinje	e1:e1-modell/d7alle.bin
+u-amub-amug	okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16m1e0.25r1.5v0.5:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:vakt:abmpf:e1:e1-modell/d7alle.bin
+u-amuv-vakt	okt:vr:e1-modell/vrakrang.bin:telrd:amu:foerer:12k16bgm1e0.25r1.5v0:profil:budm:e1-modell/bud-vant.json@-3.0/0.6/0/-3.0/0/sok12k8b0.5:e1:e1-modell/d7alle.bin

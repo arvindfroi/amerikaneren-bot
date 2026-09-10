@@ -1,0 +1,16 @@
+=== A-flat0.01 ===
+epoke 0: n=13630 (tren 12262) A=-0.007+-7.812 G=+6.1+-8.4 | policy 0.0058 -> -0.0833 | entropi 0.7831 -> 0.8065 | tro 1.1182 -> 1.0992 (treff 41.6 %) | verdi-RMSE 7.790 -> 5.311 | FORKLART PAA HOLDOUT-KAMPER: sum +0.1377, runde +0.2015, hale +0.0366 (i utvalget +0.6038) | KL=0.00981 | FASER BUD 0.099/2k  VRAK 0.541/23k  TRUM 0.491/2k  ETTE 0.269/9k  SPIL 0.593/52k | ingen frys | 13s
+  [A-flat0.01 kode 0]
+=== B-fase0.01 ===
+epoke 0: n=13630 (tren 12262) A=-0.007+-7.812 G=+6.1+-8.4 | policy 0.0058 -> -0.0673 | entropi 0.7831 -> 0.8922 | tro 1.1182 -> 1.0978 (treff 41.7 %) | verdi-RMSE 7.790 -> 5.210 | FORKLART PAA HOLDOUT-KAMPER: sum +0.1322, runde +0.1985, hale +0.0361 (i utvalget +0.6188) | KL=0.03305 | FASER BUD 0.475/2k  VRAK 0.578/23k  TRUM 0.435/2k  ETTE 0.340/9k  SPIL 0.595/52k | FRYS: policy paa batch 127, stamme paa -1 av 192 | 12s
+  [B-fase0.01 kode 0]
+=== C-fase0.05 ===
+epoke 0: n=13630 (tren 12262) A=-0.007+-7.812 G=+6.1+-8.4 | policy 0.0058 -> -0.0211 | entropi 0.7831 -> 0.8905 | tro 1.1182 -> 1.0943 (treff 42.2 %) | verdi-RMSE 7.790 -> 5.139 | FORKLART PAA HOLDOUT-KAMPER: sum +0.1328, runde +0.2003, hale +0.0366 (i utvalget +0.6292) | KL=0.03955 | FASER BUD 0.260/4k  VRAK 0.617/23k  TRUM 0.699/3k  ETTE 0.497/11k  SPIL 0.599/52k | FRYS: policy paa batch 18, stamme paa -1 av 192 | 13s
+  [C-fase0.05 kode 0]
+=== D-gulv1.0 ===
+epoke 0: n=13630 (tren 12262) A=-0.007+-7.812 G=+6.1+-8.4 | policy 0.0058 -> -0.0090 | entropi 0.7831 -> 0.8705 | tro 1.1182 -> 1.1096 (treff 40.2 %) | verdi-RMSE 7.790 -> 7.380 | FORKLART PAA HOLDOUT-KAMPER: sum +0.1880, runde +0.2604, hale +0.0468 (i utvalget +0.2351) | KL=0.06164 | FASER BUD 0.165/2k  VRAK 0.628/25k  TRUM 0.658/3k  ETTE 0.502/11k  SPIL 0.596/52k | FRYS: policy paa batch 4, stamme paa 8 av 192, drift 0.0e+00 | 3s
+  [D-gulv1.0 kode 0]
+=== E-gulv0.3 ===
+epoke 0: n=13630 (tren 12262) A=-0.007+-7.812 G=+6.1+-8.4 | policy 0.0058 -> -0.0144 | entropi 0.7831 -> 0.8694 | tro 1.1182 -> 1.1075 (treff 40.4 %) | verdi-RMSE 7.790 -> 6.959 | FORKLART PAA HOLDOUT-KAMPER: sum +0.1878, runde +0.2684, hale +0.0438 (i utvalget +0.3200) | KL=0.06009 | FASER BUD 0.169/2k  VRAK 0.616/24k  TRUM 0.686/3k  ETTE 0.502/12k  SPIL 0.597/52k | FRYS: policy paa batch 5, stamme paa 26 av 192, drift 0.0e+00 | 4s
+  [E-gulv0.3 kode 0]
+SVEIP FERDIG Mon Aug 10 23:46:17 CEST 2026

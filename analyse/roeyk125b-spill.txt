@@ -1,0 +1,8 @@
+FERDIG 2026-08-10T17:15:53.197Z
+kamper=2500 veggtid=92.0 s
+kamper/s totalt=27.18  kamper/s/kjerne=1.44
+beslutninger/kamp=333.5  rader/kamp=85.7  bytes/kamp=1191
+avbrutt paa rundetaket=0.0 %
+erfaring på disk=3.0 MB
+EPOKEANSLAG 5000 kamper: 3.1 min
+TI EPOKER: 0.51 timer

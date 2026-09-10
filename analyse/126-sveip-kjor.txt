@@ -1,0 +1,86 @@
+ERFARING:
+  analyse/126-sveip/erf-s0.bin: 1237 rader
+  analyse/126-sveip/erf-s1.bin: 1093 rader
+  analyse/126-sveip/erf-s10.bin: 1124 rader
+  analyse/126-sveip/erf-s11.bin: 1097 rader
+  analyse/126-sveip/erf-s2.bin: 1191 rader
+  analyse/126-sveip/erf-s3.bin: 1195 rader
+  analyse/126-sveip/erf-s4.bin: 1141 rader
+  analyse/126-sveip/erf-s5.bin: 1140 rader
+  analyse/126-sveip/erf-s6.bin: 1063 rader
+  analyse/126-sveip/erf-s7.bin: 1195 rader
+  analyse/126-sveip/erf-s8.bin: 1087 rader
+  analyse/126-sveip/erf-s9.bin: 1067 rader
+FASER (rader med valg): BUD 961  VRAK 1251  TRUMF 315  ETTERLYS 295  SPILL 8001
+13630 rader, 1032 trekk, 68 plasser, 2381334 parametre, enhet cuda, Adam fersk (2s)
+{"epoke": 0, "sek": 12.7, "kl": 0.009811, "logitskala": 14.84, "stoppet_paa_kl": -1, "frosset_paa": -1, "frosset_stamme_paa": -1, "kl_tak": 0.06, "batcher": 192, "kl_ved_frys": null, "kl_drift": null, "foer": {"pol": 0.0058, "ent": 0.78309, "tro": 1.1182, "treff": 0.39206, "rmse": 7.79048, "forklart": 0.1477, "ent_BUD": 0.1159, "norment_BUD": 0.05132, "ulike_BUD": 2.0, "ent_VRAK": 1.39019, "norment_VRAK": 0.52184, "ulike_VRAK": 23.0, "ent_TRUMF": 0.63843, "norment_TRUMF": 0.46053, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.55248, "norment_ETTERLYS": 0.25629, "ulike_ETTERLYS": 11.0, "ent_SPILL": 0.7772, "norment_SPILL": 0.58991, "ulike_SPILL": 52.0, "forklart_runde": 0.16245, "forklart_hale": 0.04694}, "etter": {"pol": -0.08332, "ent": 0.80651, "tro": 1.09916, "treff": 0.4158, "rmse": 5.31145, "forklart": 0.60382, "ent_BUD": 0.22972, "norment_BUD": 0.09919, "ulike_BUD": 2.0, "ent_VRAK": 1.44296, "norment_VRAK": 0.5414, "ulike_VRAK": 23.0, "ent_TRUMF": 0.68099, "norment_TRUMF": 0.49123, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.57984, "norment_ETTERLYS": 0.2694, "ulike_ETTERLYS": 9.0, "ent_SPILL": 0.78491, "norment_SPILL": 0.59347, "ulike_SPILL": 52.0, "forklart_runde": 0.71123, "forklart_hale": 0.11837}, "hold_foer": {"pol": 0.02297, "ent": 0.76805, "tro": 1.11735, "treff": 0.392, "rmse": 7.51463, "forklart": 0.1552, "ent_BUD": 0.12668, "norment_BUD": 0.05665, "ulike_BUD": 2.0, "ent_VRAK": 1.38219, "norment_VRAK": 0.51889, "ulike_VRAK": 17.0, "ent_TRUMF": 0.65819, "norment_TRUMF": 0.47478, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.57524, "norment_ETTERLYS": 0.26416, "ulike_ETTERLYS": 7.0, "ent_SPILL": 0.77522, "norment_SPILL": 0.58705, "ulike_SPILL": 50.0, "forklart_runde": 0.23094, "forklart_hale": 0.04641}, "hold_etter": {"pol": 0.01755, "ent": 0.79223, "tro": 1.11709, "treff": 0.39085, "rmse": 7.59217, "forklart": 0.13768, "ent_BUD": 0.21963, "norment_BUD": 0.09584, "ulike_BUD": 2.0, "ent_VRAK": 1.44148, "norment_VRAK": 0.54089, "ulike_VRAK": 17.0, "ent_TRUMF": 0.71061, "norment_TRUMF": 0.51259, "ulike_TRUMF": 3.0, "ent_ETTERLYS": 0.60375, "norment_ETTERLYS": 0.27716, "ulike_ETTERLYS": 8.0, "ent_SPILL": 0.7841, "norment_SPILL": 0.59326, "ulike_SPILL": 51.0, "forklart_runde": 0.20145, "forklart_hale": 0.03657}, "d_pol": -0.08911, "d_tro": -0.01904, "d_rmse": -2.47904, "d_ent": 0.02342, "ut": "/tmp/126-A-flat0.01.bin"}
+ERFARING:
+  analyse/126-sveip/erf-s0.bin: 1237 rader
+  analyse/126-sveip/erf-s1.bin: 1093 rader
+  analyse/126-sveip/erf-s10.bin: 1124 rader
+  analyse/126-sveip/erf-s11.bin: 1097 rader
+  analyse/126-sveip/erf-s2.bin: 1191 rader
+  analyse/126-sveip/erf-s3.bin: 1195 rader
+  analyse/126-sveip/erf-s4.bin: 1141 rader
+  analyse/126-sveip/erf-s5.bin: 1140 rader
+  analyse/126-sveip/erf-s6.bin: 1063 rader
+  analyse/126-sveip/erf-s7.bin: 1195 rader
+  analyse/126-sveip/erf-s8.bin: 1087 rader
+  analyse/126-sveip/erf-s9.bin: 1067 rader
+FASER (rader med valg): BUD 961  VRAK 1251  TRUMF 315  ETTERLYS 295  SPILL 8001
+13630 rader, 1032 trekk, 68 plasser, 2381334 parametre, enhet cuda, Adam fersk (1s)
+KL 0.03009 > 0.03 paa batch 127: POLICYHODET FROSSET. Stammen trener videre paa verdi og tro (tak 0.0600).
+{"epoke": 0, "sek": 11.5, "kl": 0.033048, "logitskala": 13.87, "stoppet_paa_kl": -1, "frosset_paa": 127, "frosset_stamme_paa": -1, "kl_tak": 0.06, "batcher": 192, "kl_ved_frys": null, "kl_drift": null, "foer": {"pol": 0.0058, "ent": 0.78309, "tro": 1.1182, "treff": 0.39206, "rmse": 7.79048, "forklart": 0.1477, "ent_BUD": 0.1159, "norment_BUD": 0.05132, "ulike_BUD": 2.0, "ent_VRAK": 1.39019, "norment_VRAK": 0.52184, "ulike_VRAK": 23.0, "ent_TRUMF": 0.63843, "norment_TRUMF": 0.46053, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.55248, "norment_ETTERLYS": 0.25629, "ulike_ETTERLYS": 11.0, "ent_SPILL": 0.7772, "norment_SPILL": 0.58991, "ulike_SPILL": 52.0, "forklart_runde": 0.16245, "forklart_hale": 0.04694}, "etter": {"pol": -0.0673, "ent": 0.89221, "tro": 1.09776, "treff": 0.41736, "rmse": 5.21015, "forklart": 0.61879, "ent_BUD": 1.05204, "norment_BUD": 0.47502, "ulike_BUD": 2.0, "ent_VRAK": 1.54011, "norment_VRAK": 0.57762, "ulike_VRAK": 23.0, "ent_TRUMF": 0.6036, "norment_TRUMF": 0.43541, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.73077, "norment_ETTERLYS": 0.33955, "ulike_ETTERLYS": 9.0, "ent_SPILL": 0.78888, "norment_SPILL": 0.5953, "ulike_SPILL": 52.0, "forklart_runde": 0.73074, "forklart_hale": 0.12546}, "hold_foer": {"pol": 0.02297, "ent": 0.76805, "tro": 1.11735, "treff": 0.392, "rmse": 7.51463, "forklart": 0.1552, "ent_BUD": 0.12668, "norment_BUD": 0.05665, "ulike_BUD": 2.0, "ent_VRAK": 1.38219, "norment_VRAK": 0.51889, "ulike_VRAK": 17.0, "ent_TRUMF": 0.65819, "norment_TRUMF": 0.47478, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.57524, "norment_ETTERLYS": 0.26416, "ulike_ETTERLYS": 7.0, "ent_SPILL": 0.77522, "norment_SPILL": 0.58705, "ulike_SPILL": 50.0, "forklart_runde": 0.23094, "forklart_hale": 0.04641}, "hold_etter": {"pol": 0.01676, "ent": 0.89589, "tro": 1.11715, "treff": 0.39331, "rmse": 7.61617, "forklart": 0.13222, "ent_BUD": 1.1479, "norment_BUD": 0.52179, "ulike_BUD": 2.0, "ent_VRAK": 1.54083, "norment_VRAK": 0.57798, "ulike_VRAK": 19.0, "ent_TRUMF": 0.63312, "norment_TRUMF": 0.4567, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.77097, "norment_ETTERLYS": 0.35312, "ulike_ETTERLYS": 8.0, "ent_SPILL": 0.78798, "norment_SPILL": 0.5948, "ulike_SPILL": 51.0, "forklart_runde": 0.19854, "forklart_hale": 0.03611}, "d_pol": -0.0731, "d_tro": -0.02044, "d_rmse": -2.58033, "d_ent": 0.10912, "ut": "/tmp/126-B-fase0.01.bin"}
+ERFARING:
+  analyse/126-sveip/erf-s0.bin: 1237 rader
+  analyse/126-sveip/erf-s1.bin: 1093 rader
+  analyse/126-sveip/erf-s10.bin: 1124 rader
+  analyse/126-sveip/erf-s11.bin: 1097 rader
+  analyse/126-sveip/erf-s2.bin: 1191 rader
+  analyse/126-sveip/erf-s3.bin: 1195 rader
+  analyse/126-sveip/erf-s4.bin: 1141 rader
+  analyse/126-sveip/erf-s5.bin: 1140 rader
+  analyse/126-sveip/erf-s6.bin: 1063 rader
+  analyse/126-sveip/erf-s7.bin: 1195 rader
+  analyse/126-sveip/erf-s8.bin: 1087 rader
+  analyse/126-sveip/erf-s9.bin: 1067 rader
+FASER (rader med valg): BUD 961  VRAK 1251  TRUMF 315  ETTERLYS 295  SPILL 8001
+13630 rader, 1032 trekk, 68 plasser, 2381334 parametre, enhet cuda, Adam fersk (1s)
+KL 0.03058 > 0.03 paa batch 18: POLICYHODET FROSSET. Stammen trener videre paa verdi og tro (tak 0.0600).
+{"epoke": 0, "sek": 12.9, "kl": 0.039546, "logitskala": 14.32, "stoppet_paa_kl": -1, "frosset_paa": 18, "frosset_stamme_paa": -1, "kl_tak": 0.06, "batcher": 192, "kl_ved_frys": null, "kl_drift": null, "foer": {"pol": 0.0058, "ent": 0.78309, "tro": 1.1182, "treff": 0.39206, "rmse": 7.79048, "forklart": 0.1477, "ent_BUD": 0.1159, "norment_BUD": 0.05132, "ulike_BUD": 2.0, "ent_VRAK": 1.39019, "norment_VRAK": 0.52184, "ulike_VRAK": 23.0, "ent_TRUMF": 0.63843, "norment_TRUMF": 0.46053, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.55248, "norment_ETTERLYS": 0.25629, "ulike_ETTERLYS": 11.0, "ent_SPILL": 0.7772, "norment_SPILL": 0.58991, "ulike_SPILL": 52.0, "forklart_runde": 0.16245, "forklart_hale": 0.04694}, "etter": {"pol": -0.02106, "ent": 0.89054, "tro": 1.09429, "treff": 0.42181, "rmse": 5.13867, "forklart": 0.62918, "ent_BUD": 0.58605, "norment_BUD": 0.25964, "ulike_BUD": 4.0, "ent_VRAK": 1.64668, "norment_VRAK": 0.61662, "ulike_VRAK": 23.0, "ent_TRUMF": 0.96971, "norment_TRUMF": 0.6995, "ulike_TRUMF": 3.0, "ent_ETTERLYS": 1.07037, "norment_ETTERLYS": 0.49652, "ulike_ETTERLYS": 11.0, "ent_SPILL": 0.79734, "norment_SPILL": 0.59907, "ulike_SPILL": 52.0, "forklart_runde": 0.74292, "forklart_hale": 0.13295}, "hold_foer": {"pol": 0.02297, "ent": 0.76805, "tro": 1.11735, "treff": 0.392, "rmse": 7.51463, "forklart": 0.1552, "ent_BUD": 0.12668, "norment_BUD": 0.05665, "ulike_BUD": 2.0, "ent_VRAK": 1.38219, "norment_VRAK": 0.51889, "ulike_VRAK": 17.0, "ent_TRUMF": 0.65819, "norment_TRUMF": 0.47478, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.57524, "norment_ETTERLYS": 0.26416, "ulike_ETTERLYS": 7.0, "ent_SPILL": 0.77522, "norment_SPILL": 0.58705, "ulike_SPILL": 50.0, "forklart_runde": 0.23094, "forklart_hale": 0.04641}, "hold_etter": {"pol": 0.01694, "ent": 0.88455, "tro": 1.11752, "treff": 0.39146, "rmse": 7.61352, "forklart": 0.13282, "ent_BUD": 0.62639, "norment_BUD": 0.27966, "ulike_BUD": 3.0, "ent_VRAK": 1.6621, "norment_VRAK": 0.62273, "ulike_VRAK": 18.0, "ent_TRUMF": 0.9815, "norment_TRUMF": 0.708, "ulike_TRUMF": 3.0, "ent_ETTERLYS": 1.11914, "norment_ETTERLYS": 0.51131, "ulike_ETTERLYS": 7.0, "ent_SPILL": 0.7922, "norment_SPILL": 0.59632, "ulike_SPILL": 51.0, "forklart_runde": 0.20032, "forklart_hale": 0.03657}, "d_pol": -0.02686, "d_tro": -0.02391, "d_rmse": -2.65182, "d_ent": 0.10745, "ut": "/tmp/126-C-fase0.05.bin"}
+ERFARING:
+  analyse/126-sveip/erf-s0.bin: 1237 rader
+  analyse/126-sveip/erf-s1.bin: 1093 rader
+  analyse/126-sveip/erf-s10.bin: 1124 rader
+  analyse/126-sveip/erf-s11.bin: 1097 rader
+  analyse/126-sveip/erf-s2.bin: 1191 rader
+  analyse/126-sveip/erf-s3.bin: 1195 rader
+  analyse/126-sveip/erf-s4.bin: 1141 rader
+  analyse/126-sveip/erf-s5.bin: 1140 rader
+  analyse/126-sveip/erf-s6.bin: 1063 rader
+  analyse/126-sveip/erf-s7.bin: 1195 rader
+  analyse/126-sveip/erf-s8.bin: 1087 rader
+  analyse/126-sveip/erf-s9.bin: 1067 rader
+FASER (rader med valg): BUD 961  VRAK 1251  TRUMF 315  ETTERLYS 295  SPILL 8001
+13630 rader, 1032 trekk, 68 plasser, 2381334 parametre, enhet cuda, Adam fersk (1s)
+KL 0.03769 > 0.03 paa batch 4: POLICYHODET FROSSET. Stammen trener videre paa verdi og tro (tak 0.0600).
+KL 0.06164 > tak 0.0600 paa batch 8: STAMMEN FROSSET. Policyen er naa en konstant funksjon - `kl_drift` maaler at den er det.
+{"epoke": 0, "sek": 3.1, "kl": 0.061643, "logitskala": 14.89, "stoppet_paa_kl": -1, "frosset_paa": 4, "frosset_stamme_paa": 8, "kl_tak": 0.06, "batcher": 192, "kl_ved_frys": 0.061643, "kl_drift": 0.0, "foer": {"pol": 0.0058, "ent": 0.78309, "tro": 1.1182, "treff": 0.39206, "rmse": 7.79048, "forklart": 0.1477, "ent_BUD": 0.1159, "norment_BUD": 0.05132, "ulike_BUD": 2.0, "ent_VRAK": 1.39019, "norment_VRAK": 0.52184, "ulike_VRAK": 23.0, "ent_TRUMF": 0.63843, "norment_TRUMF": 0.46053, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.55248, "norment_ETTERLYS": 0.25629, "ulike_ETTERLYS": 11.0, "ent_SPILL": 0.7772, "norment_SPILL": 0.58991, "ulike_SPILL": 52.0, "forklart_runde": 0.16245, "forklart_hale": 0.04694}, "etter": {"pol": -0.00903, "ent": 0.87048, "tro": 1.10961, "treff": 0.40191, "rmse": 7.38002, "forklart": 0.23514, "ent_BUD": 0.37228, "norment_BUD": 0.16543, "ulike_BUD": 2.0, "ent_VRAK": 1.67804, "norment_VRAK": 0.62777, "ulike_VRAK": 25.0, "ent_TRUMF": 0.91256, "norment_TRUMF": 0.65827, "ulike_TRUMF": 3.0, "ent_ETTERLYS": 1.08424, "norment_ETTERLYS": 0.50222, "ulike_ETTERLYS": 11.0, "ent_SPILL": 0.79139, "norment_SPILL": 0.59552, "ulike_SPILL": 52.0, "forklart_runde": 0.26997, "forklart_hale": 0.06612}, "hold_foer": {"pol": 0.02297, "ent": 0.76805, "tro": 1.11735, "treff": 0.392, "rmse": 7.51463, "forklart": 0.1552, "ent_BUD": 0.12668, "norment_BUD": 0.05665, "ulike_BUD": 2.0, "ent_VRAK": 1.38219, "norment_VRAK": 0.51889, "ulike_VRAK": 17.0, "ent_TRUMF": 0.65819, "norment_TRUMF": 0.47478, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.57524, "norment_ETTERLYS": 0.26416, "ulike_ETTERLYS": 7.0, "ent_SPILL": 0.77522, "norment_SPILL": 0.58705, "ulike_SPILL": 50.0, "forklart_runde": 0.23094, "forklart_hale": 0.04641}, "hold_etter": {"pol": 0.00771, "ent": 0.8635, "tro": 1.11662, "treff": 0.39228, "rmse": 7.36753, "forklart": 0.18795, "ent_BUD": 0.40899, "norment_BUD": 0.18312, "ulike_BUD": 2.0, "ent_VRAK": 1.68391, "norment_VRAK": 0.63042, "ulike_VRAK": 15.0, "ent_TRUMF": 0.87131, "norment_TRUMF": 0.62852, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 1.15231, "norment_ETTERLYS": 0.52662, "ulike_ETTERLYS": 8.0, "ent_SPILL": 0.792, "norment_SPILL": 0.59434, "ulike_SPILL": 50.0, "forklart_runde": 0.26035, "forklart_hale": 0.04685}, "d_pol": -0.01483, "d_tro": -0.00859, "d_rmse": -0.41046, "d_ent": 0.08739, "ut": "/tmp/126-D-gulv1.0.bin"}
+ERFARING:
+  analyse/126-sveip/erf-s0.bin: 1237 rader
+  analyse/126-sveip/erf-s1.bin: 1093 rader
+  analyse/126-sveip/erf-s10.bin: 1124 rader
+  analyse/126-sveip/erf-s11.bin: 1097 rader
+  analyse/126-sveip/erf-s2.bin: 1191 rader
+  analyse/126-sveip/erf-s3.bin: 1195 rader
+  analyse/126-sveip/erf-s4.bin: 1141 rader
+  analyse/126-sveip/erf-s5.bin: 1140 rader
+  analyse/126-sveip/erf-s6.bin: 1063 rader
+  analyse/126-sveip/erf-s7.bin: 1195 rader
+  analyse/126-sveip/erf-s8.bin: 1087 rader
+  analyse/126-sveip/erf-s9.bin: 1067 rader
+FASER (rader med valg): BUD 961  VRAK 1251  TRUMF 315  ETTERLYS 295  SPILL 8001
+13630 rader, 1032 trekk, 68 plasser, 2381334 parametre, enhet cuda, Adam fersk (1s)
+KL 0.03119 > 0.03 paa batch 5: POLICYHODET FROSSET. Stammen trener videre paa verdi og tro (tak 0.0600).
+KL 0.06009 > tak 0.0600 paa batch 26: STAMMEN FROSSET. Policyen er naa en konstant funksjon - `kl_drift` maaler at den er det.
+{"epoke": 0, "sek": 3.8, "kl": 0.060095, "logitskala": 14.81, "stoppet_paa_kl": -1, "frosset_paa": 5, "frosset_stamme_paa": 26, "kl_tak": 0.06, "batcher": 192, "kl_ved_frys": 0.060095, "kl_drift": 0.0, "foer": {"pol": 0.0058, "ent": 0.78309, "tro": 1.1182, "treff": 0.39206, "rmse": 7.79048, "forklart": 0.1477, "ent_BUD": 0.1159, "norment_BUD": 0.05132, "ulike_BUD": 2.0, "ent_VRAK": 1.39019, "norment_VRAK": 0.52184, "ulike_VRAK": 23.0, "ent_TRUMF": 0.63843, "norment_TRUMF": 0.46053, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.55248, "norment_ETTERLYS": 0.25629, "ulike_ETTERLYS": 11.0, "ent_SPILL": 0.7772, "norment_SPILL": 0.58991, "ulike_SPILL": 52.0, "forklart_runde": 0.16245, "forklart_hale": 0.04694}, "etter": {"pol": -0.01443, "ent": 0.86938, "tro": 1.10746, "treff": 0.40418, "rmse": 6.95866, "forklart": 0.31999, "ent_BUD": 0.38009, "norment_BUD": 0.16884, "ulike_BUD": 2.0, "ent_VRAK": 1.64485, "norment_VRAK": 0.61551, "ulike_VRAK": 24.0, "ent_TRUMF": 0.951, "norment_TRUMF": 0.686, "ulike_TRUMF": 3.0, "ent_ETTERLYS": 1.08271, "norment_ETTERLYS": 0.50162, "ulike_ETTERLYS": 12.0, "ent_SPILL": 0.79287, "norment_SPILL": 0.59737, "ulike_SPILL": 52.0, "forklart_runde": 0.37047, "forklart_hale": 0.07453}, "hold_foer": {"pol": 0.02297, "ent": 0.76805, "tro": 1.11735, "treff": 0.392, "rmse": 7.51463, "forklart": 0.1552, "ent_BUD": 0.12668, "norment_BUD": 0.05665, "ulike_BUD": 2.0, "ent_VRAK": 1.38219, "norment_VRAK": 0.51889, "ulike_VRAK": 17.0, "ent_TRUMF": 0.65819, "norment_TRUMF": 0.47478, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 0.57524, "norment_ETTERLYS": 0.26416, "ulike_ETTERLYS": 7.0, "ent_SPILL": 0.77522, "norment_SPILL": 0.58705, "ulike_SPILL": 50.0, "forklart_runde": 0.23094, "forklart_hale": 0.04641}, "hold_etter": {"pol": 0.01026, "ent": 0.86309, "tro": 1.11689, "treff": 0.39255, "rmse": 7.36832, "forklart": 0.18778, "ent_BUD": 0.41603, "norment_BUD": 0.18623, "ulike_BUD": 2.0, "ent_VRAK": 1.64764, "norment_VRAK": 0.61687, "ulike_VRAK": 16.0, "ent_TRUMF": 0.93465, "norment_TRUMF": 0.67421, "ulike_TRUMF": 2.0, "ent_ETTERLYS": 1.13661, "norment_ETTERLYS": 0.51936, "ulike_ETTERLYS": 8.0, "ent_SPILL": 0.79355, "norment_SPILL": 0.59663, "ulike_SPILL": 50.0, "forklart_runde": 0.2684, "forklart_hale": 0.0438}, "d_pol": -0.02023, "d_tro": -0.01073, "d_rmse": -0.83183, "d_ent": 0.0863, "ut": "/tmp/126-E-gulv0.3.bin"}

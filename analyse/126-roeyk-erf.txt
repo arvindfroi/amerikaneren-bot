@@ -1,0 +1,9 @@
+mlb-erfaring startet 2026-08-10T22:13:34.953Z
+inn=analyse/126-roeyk/s-s*.jsonl nett=e1-modell/v126/mlb-arbeid.bin tro=e1-modell/mlb-tro.bin ut=analyse/126-roeyk/erf sjanse=0.3 kjerner=8
+lambda=1 gamma=0.5 maksrunder=100
+FERDIG 2026-08-10T22:13:44.601Z  veggtid=9.6 s
+kamper=24 rader=16479 skrevet=4899 medValg=13152 (79.8 %)
+fordel: snitt=-42.0608 snitt|A|=43.4613
+verdimaal: snitt=-41.154 varians=2057.808 MSE(V)=3823.384 forklart=-0.8580
+delt maal: var(runde)=1503.813 var(hale)=453.794 rundens andel=76.8 %
+paa disk=20.9 MB (4276 bytes/rad)

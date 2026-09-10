@@ -1,0 +1,18 @@
+mlb-arkitektur 2026-08-10T22:20:39.773Z
+TREKK_LENGDE = 1031
+
+=== HANDLINGSFORDELING: 26089 beslutninger ===
+
+  softmax-entropi ved T = 1 (det selvspillet utforsker med):
+    BUD              normalisert entropi 0.8379   andel beslutninger under 0,01: 0.0 %
+    VRAK_KORT        normalisert entropi 0.9257   andel beslutninger under 0,01: 0.0 %
+    VELG_TRUMF       normalisert entropi 0.9399   andel beslutninger under 0,01: 0.0 %
+    SPILL_KORT       normalisert entropi 0.9121   andel beslutninger under 0,01: 0.0 %
+
+  TRUMFVALGETS KVALITET (600 valg): valgt farge er den LENGSTE i 31.7 % (tilfeldig valg gir ~25-35 %). Snittlengde valgt 2.98 mot lengste 4.59.
+  BUD              n= 1430  ulike koder=  5  entropi=1.638 bit  topp: bud:7=42.0%  bud:solo=42.0%  bud:10=9.6%  bud:11=6.4%  bud:pass=0.1%
+  VRAK_KORT        n= 2400  ulike koder= 39  entropi=4.522 bit  topp: kort:S3=8.8%  kort:R11=8.5%  kort:K10=8.0%  kort:S7=7.8%  kort:R2=7.2%
+  VELG_TRUMF       n=  600  ulike koder=  3  entropi=1.412 bit  topp: trumf:R=50.8%  trumf:K=36.0%  trumf:H=13.2%
+  SPILL_KORT       n=21659  ulike koder= 52  entropi=5.636 bit  topp: kort:R9=2.5%  kort:H2=2.5%  kort:R4=2.4%  kort:H9=2.4%  kort:K11=2.4%
+
+FERDIG 2026-08-10T22:24:44.562Z

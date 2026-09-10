@@ -1,0 +1,6 @@
+FERDIG 2026-08-10T21:44:45.373Z  veggtid=12.3 s
+kamper=800 rader=67876 skrevet=13630 medValg=53675 (79.1 %)
+fordel: snitt=0.0287 snitt|A|=5.4881
+verdimaal: snitt=6.077 varians=70.910 MSE(V)=60.217 forklart=0.1508
+delt maal: var(runde)=61.388 var(hale)=13.757 rundens andel=81.7 %
+paa disk=58.3 MB (4280 bytes/rad)

@@ -1,0 +1,9 @@
+mlb-erfaring startet 2026-08-10T17:15:53.374Z
+inn=analyse/roeyk125b/s-s*.jsonl nett=e1-modell/g05/mlb-arbeid.bin ut=analyse/roeyk125b/erf sjanse=0.4 kjerner=20
+lambda=1 gamma=0.5 maksrunder=60
+FERDIG 2026-08-10T17:16:34.189Z  veggtid=40.8 s
+kamper=2500 rader=214338 skrevet=85775 medValg=168360 (78.5 %)
+fordel: snitt=3.5765 snitt|A|=7.7218
+verdimaal: snitt=5.783 varians=70.401 MSE(V)=81.378 forklart=-0.1559
+delt maal: var(runde)=59.880 var(hale)=13.267 rundens andel=81.9 %
+paa disk=367.1 MB (4280 bytes/rad)
