@@ -346,6 +346,13 @@ function adamsBeslutter(regler: GameRules, giving: Kortgiving): Beslutter {
   return (p) => {
     if (p.delvalg.vrak.length === 0 && p.delvalg.trumf === null) {
       plan = agent.velgHandling(visningTilState(p.visning, regler, giving));
+      // KANONISK VRAKREKKEFØLGE. Adams leverer de fire vrakkortene i vilkårlig orden (målt
+      // 10. sep på 200 kamper: 263 stigende, 82 synkende, 1 865 annet av 2 210 vrak). Rekkefølgen
+      // endrer ikke spillet, men imitasjonen ville lært å GJETTE den, og samsvaret i VRAK blitt
+      // kunstig lavt. Stigende kortkode er én fast rekkefølge; settet er Adams' eget.
+      if (plan.type === "VRAK") {
+        plan = { ...plan, kort: [...plan.kort].sort((a, b) => kortKode(a) - kortKode(b)) };
+      }
     }
     const h = plan;
     if (h === null) throw new Error("Adams-læreren har ingen plan");
