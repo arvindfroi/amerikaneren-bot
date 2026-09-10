@@ -1,0 +1,96 @@
+# K5 - kontekst og tilpasning   2026-09-10T07:54:06.853Z
+# giv 24, froe 15100000, stilling BAK 70-90 mot FORAN 90-70 av 100
+# indre: vakt:abmpf:e1:e1-modell/d7alle.bin   driver: vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+
+# arm 1 = venstre side, arm 2 = hoeyre side i «ulike»-sammenlikningen
+
+arm                                           n    ulike  andel   press 1/2        spred 1/2        racejust  opp/ned  foerer(n/ulike/opp/ned)
+A  BAK/FORAN, nett alene (uten soek)          48   2      0.042   0.360 / -0.360     -   /   -      0         0/0      20/2/0/0
+B  BAK/FORAN, amu l=0 (racepresset AV)        48   11     0.229   0.360 / -0.360   7.24 / 7.22      0         7/2      20/4/3/0
+C  BAK/FORAN, amu l=1.5 (begge kanaler)       48   12     0.250   0.360 / -0.360   7.29 / 7.22      96        5/5      20/4/3/0
+D  l=0 mot l=1.5, FAST stilling 70-90 (bak)   48   6      0.125   0.360 / 0.360    7.24 / 7.29      48        6/0      20/0/0/0
+E  l=0 mot l=1.5, FAST stilling 90-70 (foran) 48   2      0.042   -0.360 / -0.360  7.22 / 7.22      48        1/1      20/0/0/0
+Fb VENDT FEIL VEI: l=0 mot l=-1.5, FAST 70-90 (bak)48   7      0.146   0.360 / 0.360    7.24 / 7.24      48        1/6      20/0/0/0
+Ff VENDT FEIL VEI: l=0 mot l=-1.5, FAST 90-70 (foran)48   5      0.104   -0.360 / -0.360  7.22 / 7.24      48        4/0      20/1/1/0
+K  KONTROLL: begge armer bit-identiske        48   0      0.000   0.360 / 0.360    7.29 / 7.29      96        0/0      20/0/0/0
+
+retning (arm C): bak tok STOERRE risiko i 9, mindre i 15, likt i 24 av 48
+
+# DOMMEN
+  TILPASNING: 12 av 48 valg endret seg med kampstillingen.
+  RACEPRESSET (r1.5) endret 6 (bak) + 2 (foran) valg ved fast stilling.
+  BAK-RETNINGEN (det avgjoerende tallet, var 0 av 20 med den gamle formen): 6 av 48 valg endret seg. Spredning 7.245 (knott av) -> 7.285 (knott paa).
+    RIKTIG VEI: aa ligge under gir MER risiko.
+  FORAN-RETNINGEN: 2 av 48 valg endret seg. Spredning 7.224 (knott av) -> 7.224 (knott paa).  FEIL VEI.
+  FALSIFISERING (l=-1.5, samme knott vendt feil vei): bak 7/48 (spred 7.245 -> 7.238), foran 5/48 (spred 7.224 -> 7.237)
+    Den vendte knotten blir tatt - kriteriet kan feile.
+    tegntest paa de vendte armene: bak 1 opp / 6 ned av 7, foran 4 opp / 0 ned av 5. Er de jevne, er «SVEKKET»-flagget over et snittartefakt.
+
+# TEGNTEST - retning rad for rad blant de ENDREDE stillingene
+  BAK  (fast 70-90): 6 opp / 0 ned av 6 endrede. Kravet vil ha OPP.
+  FORAN (fast 90-70): 1 opp / 1 ned av 2 endrede. Kravet vil ha NED.
+
+# DEN UTRULLEDE BOTEN ER amu:foerer - samme tall, bare foerersetet
+  BAK  (fast 70-90): 0 av 20 foerervalg endret seg (0 opp / 0 ned).
+  FORAN (fast 90-70): 0 av 20 foerervalg endret seg (0 opp / 0 ned).
+    I DEN UTRULLEDE BOTEN ER BAK-RETNINGEN FORTSATT NULL. Fiksen fyrer bare i seter der soeket er avslaatt.
+
+# stillinger der valget endret seg - A  BAK/FORAN, nett alene (uten soek)
+  froe 15130863 stikk 2 sete 1 (foerer): arm1 K9 (spred -), arm2 S4 (spred -)
+  froe 15152908 stikk 2 sete 1 (foerer): arm1 K12 (spred -), arm2 S3 (spred -)
+
+# stillinger der valget endret seg - B  BAK/FORAN, amu l=0 (racepresset AV)
+  froe 15100000 stikk 2 sete 3 (forsvar): arm1 R14 (spred 8.02), arm2 R4 (spred 8.91)
+  froe 15108818 stikk 2 sete 3 (makker): arm1 H2 (spred 2.26), arm2 H8 (spred 2.26)
+  froe 15126454 stikk 2 sete 0 (forsvar): arm1 H9 (spred 6.35), arm2 H7 (spred 1.19)
+  froe 15130863 stikk 2 sete 2 (forsvar): arm1 K8 (spred 6.05), arm2 K6 (spred 6.07)
+  froe 15135272 stikk 2 sete 1 (foerer): arm1 R14 (spred 9.78), arm2 R13 (spred 9.78)
+  froe 15148499 stikk 2 sete 2 (makker): arm1 S2 (spred 3.62), arm2 R10 (spred 3.50)
+  froe 15161726 stikk 2 sete 1 (foerer): arm1 H11 (spred 0.25), arm2 H14 (spred 0.28)
+  froe 15179362 stikk 2 sete 2 (foerer): arm1 H11 (spred 17.49), arm2 R14 (spred 17.87)
+  froe 15188180 stikk 2 sete 3 (forsvar): arm1 R2 (spred 11.05), arm2 S4 (spred 11.14)
+  froe 15196998 stikk 2 sete 2 (foerer): arm1 R12 (spred 9.75), arm2 H14 (spred 13.14)
+  froe 15201407 stikk 2 sete 2 (forsvar): arm1 K10 (spred 8.79), arm2 K4 (spred 9.07)
+
+# stillinger der valget endret seg - C  BAK/FORAN, amu l=1.5 (begge kanaler)
+  froe 15108818 stikk 2 sete 3 (makker): arm1 H2 (spred 2.26), arm2 H8 (spred 2.26)
+  froe 15122045 stikk 2 sete 0 (forsvar): arm1 R9 (spred 1.46), arm2 S10 (spred 1.02)
+  froe 15126454 stikk 2 sete 0 (forsvar): arm1 H9 (spred 6.35), arm2 H7 (spred 1.19)
+  froe 15135272 stikk 2 sete 1 (foerer): arm1 R14 (spred 9.78), arm2 R13 (spred 9.78)
+  froe 15148499 stikk 2 sete 2 (makker): arm1 S2 (spred 3.62), arm2 R10 (spred 3.50)
+  froe 15161726 stikk 2 sete 1 (foerer): arm1 H11 (spred 0.25), arm2 H14 (spred 0.28)
+  froe 15179362 stikk 2 sete 2 (foerer): arm1 H11 (spred 17.49), arm2 R14 (spred 17.87)
+  froe 15179362 stikk 2 sete 3 (makker): arm1 S8 (spred 0.36), arm2 S2 (spred 0.44)
+  froe 15183771 stikk 2 sete 3 (forsvar): arm1 K6 (spred 8.14), arm2 H5 (spred 8.09)
+  froe 15188180 stikk 2 sete 3 (forsvar): arm1 R2 (spred 11.05), arm2 S4 (spred 11.14)
+  froe 15196998 stikk 2 sete 2 (foerer): arm1 R12 (spred 9.75), arm2 H14 (spred 13.14)
+  froe 15196998 stikk 2 sete 0 (forsvar): arm1 S9 (spred 1.33), arm2 S10 (spred 1.17)
+
+# stillinger der valget endret seg - D  l=0 mot l=1.5, FAST stilling 70-90 (bak)
+  froe 15100000 stikk 2 sete 3 (forsvar): arm1 R14 (spred 8.02), arm2 R4 (spred 8.91)
+  froe 15122045 stikk 2 sete 0 (forsvar): arm1 S10 (spred 0.88), arm2 R9 (spred 1.46)
+  froe 15130863 stikk 2 sete 2 (forsvar): arm1 K8 (spred 6.05), arm2 K6 (spred 6.07)
+  froe 15183771 stikk 2 sete 3 (forsvar): arm1 R11 (spred 8.12), arm2 K6 (spred 8.14)
+  froe 15196998 stikk 2 sete 0 (forsvar): arm1 S10 (spred 1.18), arm2 S9 (spred 1.33)
+  froe 15201407 stikk 2 sete 2 (forsvar): arm1 K10 (spred 8.79), arm2 K4 (spred 9.07)
+
+# stillinger der valget endret seg - E  l=0 mot l=1.5, FAST stilling 90-70 (foran)
+  froe 15179362 stikk 2 sete 3 (makker): arm1 S8 (spred 0.36), arm2 S2 (spred 0.44)
+  froe 15183771 stikk 2 sete 3 (forsvar): arm1 R11 (spred 8.12), arm2 H5 (spred 8.09)
+
+# stillinger der valget endret seg - Fb VENDT FEIL VEI: l=0 mot l=-1.5, FAST 70-90 (bak)
+  froe 15108818 stikk 2 sete 3 (makker): arm1 H2 (spred 2.26), arm2 H6 (spred 2.15)
+  froe 15148499 stikk 2 sete 2 (makker): arm1 S2 (spred 3.62), arm2 R10 (spred 3.50)
+  froe 15157317 stikk 2 sete 0 (forsvar): arm1 S5 (spred 7.98), arm2 S7 (spred 7.85)
+  froe 15166135 stikk 2 sete 0 (makker): arm1 S14 (spred 3.84), arm2 S9 (spred 3.81)
+  froe 15179362 stikk 2 sete 3 (makker): arm1 S8 (spred 0.36), arm2 S2 (spred 0.44)
+  froe 15183771 stikk 2 sete 3 (forsvar): arm1 R11 (spred 8.12), arm2 H5 (spred 8.09)
+  froe 15196998 stikk 2 sete 0 (forsvar): arm1 S10 (spred 1.18), arm2 H10 (spred 1.17)
+
+# stillinger der valget endret seg - Ff VENDT FEIL VEI: l=0 mot l=-1.5, FAST 90-70 (foran)
+  froe 15100000 stikk 2 sete 1 (foerer): arm1 R11 (spred 15.79), arm2 R9 (spred 15.94)
+  froe 15108818 stikk 2 sete 3 (makker): arm1 H8 (spred 2.26), arm2 H2 (spred 2.26)
+  froe 15122045 stikk 2 sete 0 (forsvar): arm1 S10 (spred 1.02), arm2 R3 (spred 1.35)
+  froe 15183771 stikk 2 sete 3 (forsvar): arm1 R11 (spred 8.12), arm2 K6 (spred 8.14)
+  froe 15196998 stikk 2 sete 0 (forsvar): arm1 S10 (spred 1.17), arm2 S9 (spred 1.33)
+

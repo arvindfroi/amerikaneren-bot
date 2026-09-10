@@ -18,7 +18,7 @@ det ikke målt — og da skal det ikke påstås.
 | **K2** aldri jukse | **BEVIST** | 0 avvik, falsifiserbar | 0 avvik | `test/k2-aldri-jukse.test.ts` |
 | **K3** optimalt i alle faser | ikke innfridd | budrunden: **41,8 %** av det som er å hente står igjen | ~0 | §K3 |
 | **K4** hukommelse + planlegging | **ubevist** | benken kan ikke vise det | målbar effekt | §K4 |
-| **K5** forstå kontekst | **ikke innfridd** | 7,3 % endret — men **den vendte knotten gir 7,3 % òg** (n=192) | endrer valg der det betyr noe | `analyse/k5-2026-09-02.md` |
+| **K5** forstå kontekst | **delvis** | retningen VIST: ekte knott **72/21** riktig vei, vendt knott **89/14** motsatt vei (n=576, tolv bånd, 10. sep) — men bare **3 %** endrede valg i utrullet `amu:foerer` | endrer valg der det betyr noe | `analyse/k5-2026-09-02.md` |
 | **K6** lære og utnytte vaner | ikke innfridd | vekst med rundenr **z = 0,23** | vekst > 2 SE | §K6 |
 | **K7** optimalt sluttspill | ikke innfridd | **+0,947** poeng/runde igjen ved fem stikk | ~0 | §117 |
 | **K8** predikere kort | ikke innfridd | **12,34 %** av veien gulv → tak | vesentlig høyere | §119 |
@@ -179,36 +179,37 @@ motstanderen er mange ganger alt regelbasert slutning gir.
 
 ## K5 — forstå konteksten og tilpasse seg
 
-**Målt på nytt 2. september ved n=192, og RETNINGEN HOLDT IKKE.**
-(`analyse/k5-2026-09-02.md`. Fire disjunkte frøbånd à 48 stillinger mot 16–20 i
-alle tidligere kjøringer.)
+**Målt på nytt 10. september ved n=576 (tolv bånd), og RETNINGEN HOLDER.**
+(`analyse/k5-2026-09-02.md`, «Oppdatering 10. september». Skard 0 kjørt om på
+`9b04182` ble byte-identisk med 2. september-fila, så de tolv båndene er samme
+bot og kan legges sammen.)
 
-| arm | endret | av | andel |
+| arm (n=576) | endret | av | andel |
 |---|---|---|---|
-| KONTROLL (bit-identiske armer) | 0 | 192 | **0,0 %** |
-| **BAK-retningen** (λ=0 mot λ=1,5) | 14 | 192 | **7,3 %** |
-| **samme knott VENDT FEIL VEI** | 14 | 192 | **7,3 %** |
-| UTRULLET (`amu:foerer`) bak | 1 | 78 | **1,3 %** |
+| KONTROLL (bit-identiske armer) | 0 | 576 | **0,0 %** |
+| BAK, ekte knott (λ=0 mot λ=1,5) | 52 | 576 | 9,0 % |
+| BAK, samme knott VENDT (λ=−1,5) | 59 | 576 | 10,2 % |
+| UTRULLET (`amu:foerer`) bak / foran | 7 / 8 | 235 | **3,0 / 3,4 %** |
 
-**Den vendte knotten endrer nøyaktig like mange valg som den riktige.**
-Antallet endrede valg bærer altså ingen informasjon om at knotten peker riktig
-vei — bare retningen blant de endrede kunne gjort det, og den replikerer ikke:
-tegntesten er 10 opp / 3 ned samlet, men **2 opp / 2 ned når frøbånd 5 100 000
-tas ut**. Åtte av de ti «opp» ligger i det ene båndet — som tilfeldigvis er
-standardverdien i `examples/k5-kontekst.ts` og dermed båndet alle tidligere
-K5-kjøringer har brukt.
+**Antallet endrede valg skiller fortsatt ikke armene** — begge dytter søket like
+hardt. **Retningen gjør det:** blant de endrede valgene går den ekte knotten
+riktig vei (mer spredning bak, mindre foran) **72 mot 21**, og den vendte knotten
+går MOTSATT vei **89 mot 14** (begge p < 10⁻⁶). Et søkeartefakt ville trukket
+begge samme vei. Signalet replikerer i alle åtte nye bånd alene (53 / 13 og
+70 / 8).
 
-Og i den utrullede boten (`amu:foerer`) er effekten 1,3 %: fiksen fyrer bare i
-seter der søket er avslått.
+**Hva 2. september tok feil av:** dommen «retningen holder ikke» hvilte på
+bak-armen i fire bånd (10 opp / 3 ned, «2 / 2 uten skard 0»). De tre småbåndene
+hadde to til fire endrede valg hver, og den vendte armens retning ble ikke talt.
+Med tolv bånd heller ni av de elleve båndene utenom 5 100 000 riktig vei; ett
+står likt og ett går feil.
 
-Dette er en NEDGRADERING fra «retningen er bevist, størrelsen ikke», gjort på
-12x datagrunnlaget. Det som ikke er vist er at racepresset er verdiløst — ved
-n=192 ville en ekte effekt på et par prosentpoeng ikke kunne skilles fra null.
-Funnet er at effekten ikke kan skilles fra å vri knotten feil vei.
+Status **delvis**: retningen er vist. Ikke vist er at det gir poeng, og i den
+utrullede boten endres bare ~3 % av valgene — `amu:foerer` søker bare i
+førersetet.
 
-**Neste steg er måling og konfigurasjon, ikke trening:** flere bånd før noe
-endres i koden, og så spørsmålet om `amu:` skal kjøre i flere seter enn
-føreren.
+**Neste steg er fortsatt måling og konfigurasjon, ikke trening:** spørsmålet om
+`amu:` skal kjøre i flere seter enn føreren, og så effekten målt i poeng.
 
 **MLB-svaret:** `målPoeng` og `racepress` er trekk, i to skalaer. Nettet kan
 ikke unngå å se stillingen. At vi trener på løp til 30 og dømmer på 100 gjør
