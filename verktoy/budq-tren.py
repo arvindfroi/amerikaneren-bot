@@ -84,7 +84,8 @@ def main():
     ap.add_argument("--data", required=True)
     ap.add_argument("--ut", required=True)
     ap.add_argument("--skjult", default="256,256")
-    ap.add_argument("--epoker", type=int, default=40)
+    ap.add_argument("--epoker", type=int, default=60)
+    ap.add_argument("--skala", type=float, default=10.0, help="maalene deles paa dette foer trening")
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--vektforfall", type=float, default=1e-4)
     ap.add_argument("--batch", type=int, default=2048)
@@ -112,14 +113,20 @@ def main():
         return x
 
     til = lambda z: torch.from_numpy(z).to(enhet)
-    Xt, Tt, Mt = til(X[~hold]), til(T[~hold]), til(M[~hold])
+    # PARVIS MAAL: alle budene i en rad deler de SAMME verdenene, saa radens felles nivaa
+    # («hvor god var haanden») er stoey for valget. Trekkes det lovlige snittet fra, blir
+    # maalet budets FORDEL - argmax er uendret, variansen langt lavere.
+    snittlovlig = (T * M).sum(axis=1, keepdims=True) / numpy.maximum(1.0, M.sum(axis=1, keepdims=True))
+    A = ((T - snittlovlig) * M / a.skala).astype(numpy.float32)
+    Xt, Tt, Mt = til(X[~hold]), til(A[~hold]), til(M[~hold])
     Xh, Th, Mh, Ph = til(X[hold]), til(T[hold]), til(M[hold]), P[hold]
     opt = torch.optim.AdamW(lag.parameters(), lr=a.lr, weight_decay=a.vektforfall)
 
     @torch.no_grad()
     def maal():
         ut = fram(Xh)
-        mse = float((((ut - Th) ** 2) * Mh).sum() / Mh.sum())
+        Ah = til(A[hold])
+        mse = float((((ut - Ah) ** 2) * Mh).sum() / Mh.sum())
         maskert = ut.masked_fill(Mh == 0, -1e9)
         valg = maskert.argmax(dim=1)
         q_valg = Th.gather(1, valg.unsqueeze(1)).squeeze(1).cpu().numpy()
@@ -147,7 +154,7 @@ def main():
             opt.zero_grad(set_to_none=True)
             tap.backward()
             opt.step()
-            sum_tap += float(tap) * len(j)
+            sum_tap += tap.item() * len(j)
         mse, g, se, tak, enig, ford = maal()
         print(f"epoke {e + 1}/{a.epoker}: tren {sum_tap / n:.3f}  hold mse {mse:.3f}  "
               f"gevinst {g:+.3f} ± {se:.3f}  tak {tak:+.3f}  enig m/policy {enig * 100:.1f} %", flush=True)

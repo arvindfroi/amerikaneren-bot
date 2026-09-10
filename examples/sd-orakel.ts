@@ -61,7 +61,10 @@ import { LOVLIGE_BREDDER } from "../src/e1/agent.ts";
 import { Trosnett } from "../src/moe2/trosnett.ts";
 import { lagTrovekt } from "../src/moe2/troprior.ts";
 import { E1Agent, lesE1Nett } from "../src/e1/nett.ts";
-import { standardMål, trekkVerdener, vurderKortSD } from "../src/moe2/sdkort.ts";
+import { lagMål, standardMål, trekkVerdener, vurderKortSD } from "../src/moe2/sdkort.ts";
+import { vurderPar } from "../src/moe2/sdpar.ts";
+import { MlbSøketro } from "../src/moe2/soketro.ts";
+import { MlbTronett } from "../src/mlb/tronett.ts";
 import { alphaMu } from "../src/moe2/alphamu.ts";
 import { monteTro } from "../src/moe2/montetro.ts";
 import { lagHvemLaVekt } from "../src/moe2/hvemla-slutning.ts";
@@ -196,7 +199,19 @@ let fortsKombi: "min" | "snitt" | "cfr" = "cfr";
  * signal nettet ikke allerede har - og det er hele AlphaZero-loekka:
  * nett gir prior -> soek slaar nett -> destiller -> bedre nett -> sterkere soek.
  */
-let orakel: "sd" | "amu" = "sd";
+// `as`, ikke typeannotasjon: da snevrer TypeScript `orakel` til "sd" på toppnivå og
+// melder hver senere sammenlikning med "par" som umulig.
+let orakel = "sd" as "sd" | "amu" | "par";
+/**
+ * `--orakel par` (11. sep): `vurderPar` — den samme utspillingen som søket ved spilletid —
+ * med MLB-trohodet i verdenene (`--mlbtro <fil>`, budvekten av) og valgfritt lagmålet
+ * (`--lagmaal`). Målt før dette: trohodet gir +6,1 pp riktig plasserte kort i søkets
+ * verdener (forsvar +7,6, makker +7,0). Det er en kilde til etiketter nettet IKKE
+ * allerede har, i motsetning til flere rader av samme SD-etikett (§77: eksakt null).
+ * Et trohode med hukommelse får se hver tilstand, også RUNDE_SLUTT.
+ */
+let mlbTroFil: string | null = null;
+let lagmålPaa = false;
 /**
  * SPREDNINGSPORTEN. Merk bare stillinger der valget faktisk BETYR noe.
  *
@@ -257,6 +272,8 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--maks") maks = Number(process.argv[++i]);
   else if (a === "--motpart") motpartSpek = process.argv[++i] ?? "nevro";
   else if (a === "--budspredning") budspredning = Number(process.argv[++i]);
+  else if (a === "--mlbtro") mlbTroFil = process.argv[++i] ?? null;
+  else if (a === "--lagmaal") lagmålPaa = true;
 }
 
 // --- BREDDE OG TRO: valider FOER en eneste rad genereres ------------------
@@ -280,6 +297,12 @@ if (bredde >= E1_SPILL_DIM_V9 && trosnett === null && !monteTroPaa) {
   );
 }
 console.error(`bredde ${bredde}, tro: ${troFil ?? "ingen"}, slutning: ${slutning}`);
+if (orakel === "par" && slutning !== "av") {
+  throw new Error("--orakel par vekter verdenene med MLB-trohodet; --slutning må være av");
+}
+const mlbTro =
+  mlbTroFil === null ? null : new MlbSøketro(MlbTronett.fraBytes(new Uint8Array(readFileSync(mlbTroFil))));
+if (orakel === "par") console.error(`par-orakel: mlbtro ${mlbTroFil ?? "ingen"}, lagmål ${lagmålPaa ? "på" : "av"}`);
 
 /**
  * ATFERDSMODELLEN for `--slutning bayes`: kortnettet selv. `P(kort | haand,
@@ -481,10 +504,13 @@ alleKamper: for (let k = 0; k < kamper; k++) {
   const frø = frøBase + skardI * 1_000_000 + k;
   let s = opprettSpill({ antallSpillere: 4 }, frø);
   let guard = 0;
+  mlbTro?.nyKamp();
   /** Kontrakten denne runden tvinges til, eller null = la nevro by fritt. */
   let tvungetBud: number | null = null;
   let harBydd = false;
   while (s.fase !== "FERDIG" && guard++ < 20_000) {
+    // Søketroens bok ser HVER tilstand, også RUNDE_SLUTT (se `soketro.ts`).
+    mlbTro?.observer(s);
     if (s.fase === "RUNDE_SLUTT") {
       if (s.rundeNr + 1 >= 30) break;
       s = utfør(s, { type: "NESTE" }).state;
@@ -524,13 +550,34 @@ alleKamper: for (let k = 0; k < kamper; k++) {
               : trosnett === null
                 ? undefined
                 : (lagTrovekt(trosnett, s, sete) ?? undefined);
-        let vurdert = vurderKortSD(s, sete, fortsettelser, {
-          verdener,
-          rng,
-          trovekt,
-          verdenKandidater: trovekt === undefined ? 3 : kandidater,
-          fortsKombi: fortsKombi,
-        });
+        let vurdert: ReturnType<typeof vurderKortSD> =
+          orakel === "par"
+            ? (() => {
+                // PAR-ORAKELET: samme utspilling som søket ved spilletid, trohodet i
+                // verdenene og (valgfritt) lagmålet. Raden bærer snittet per kort.
+                const par = vurderPar(s, sete, fortsettelser[0]!, {
+                  verdener,
+                  rng,
+                  verdenKandidater: kandidater,
+                  trovekt: mlbTro === null ? undefined : (mlbTro.vektFor(s, sete) ?? undefined),
+                  budvekt: mlbTro === null,
+                  mål: lagmålPaa ? lagMål : undefined,
+                });
+                if (par === null) return [];
+                return par.kandidater.map((k) => ({
+                  indeks: lovlige.findIndex((l) => l.farge === k.kort.farge && l.verdi === k.kort.verdi),
+                  kort: k.kort,
+                  verdi: k.snitt,
+                  n: par.n,
+                })) as unknown as ReturnType<typeof vurderKortSD>;
+              })()
+            : vurderKortSD(s, sete, fortsettelser, {
+                verdener,
+                rng,
+                trovekt,
+                verdenKandidater: trovekt === undefined ? 3 : kandidater,
+                fortsKombi: fortsKombi,
+              });
 
         /**
          * SPREDNINGSPORTEN. Er beste og verste kort like gode, finnes det
@@ -679,6 +726,9 @@ alleKamper: for (let k = 0; k < kamper; k++) {
               kd: kandidater,
               rv: rolleVekt,
               ki: spillerFil ?? "nevro",
+              // PAR-ORAKELET (11. sep): hvilket trohode og hvilket mål. Bare på par-rader,
+              // så standardradene er byte-identiske med før.
+              ...(orakel === "par" ? { mlb: mlbTroFil, lm: lagmålPaa ? 1 : 0 } : {}),
             }) + "\n",
           );
           merket++;
