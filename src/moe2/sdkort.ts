@@ -315,6 +315,8 @@ export function trekkVerdener(
   kandidater = 3,
   /** KANAL 2: budvinnerens vrak som bevis. Udefinert = av, bit-identisk. */
   vrakvekt?: Vrakvekt,
+  /** Budvekten på kandidatverdenene; se `trekkVerdenBelief`. Standard på. */
+  budvekt = true,
 ): number[][][] {
   const ut: number[][][] = [];
   for (let v = 0; v < antall; v++) {
@@ -322,7 +324,7 @@ export function trekkVerdener(
     // for den håndlagde formelen. Kalleren må sørge for at prioren beskriver
     // dem som faktisk sitter ved bordet - se `laertForenlighet` i sampler.ts.
     const w = trekkVerdenBelief(
-      state, spiller, rng, kandidater, prior, undefined, trovekt, vrakvekt,
+      state, spiller, rng, kandidater, prior, undefined, trovekt, vrakvekt, budvekt,
     );
     if (w !== null) ut.push(w.hender);
   }

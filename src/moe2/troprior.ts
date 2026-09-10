@@ -21,9 +21,17 @@
  * ÉN UTREGNING PER TREKK, ikke per verden. Fordelingen avhenger av
  * STILLINGEN, ikke av verdenen, så den regnes ut én gang og gjenbrukes på alle
  * kandidatene. Vekten per verden blir da bare en sum av oppslag.
+ *
+ * ============ TO TROSNETT, ÉN VEKT (11. sep) ==============================
+ *
+ * `lagTrovekt` tar det gamle trosnettet (e1-trekk, K8-tap rundt 1,05). MLB-trohodet
+ * (`src/mlb/tronett.ts`) er langt skarpere — rundt 0,95 på samme mål — men bodde bare
+ * i MLB-agentens trekk, aldri i søkets verdener. `lagTrovektFraVisning` er broen.
+ * Begge deler NØYAKTIG samme vekt fra fordelingen, så forskjellen mellom dem er
+ * nettet og ingenting annet.
  */
 
-import type { GameState } from "../motor.ts";
+import { spillerVisning, type GameState, type SpillerVisning } from "../motor.ts";
 import type { Verden } from "../solver/sampler.ts";
 import { e1SpillTrekk, E1_SPILL_DIM_V8 } from "../e1/trekk.ts";
 import { kortIndeks } from "../nevro/trekk.ts";
@@ -33,26 +41,30 @@ import { TRO_KLASSER, TRO_KORT } from "./trosnett.ts";
 const GULV = 1e-4;
 
 /**
- * Bygger vektfunksjonen for ÉN stilling. `null` når det ikke finnes skjulte
- * kort å vekte på – da er alle verdener like og troen bidrar ingenting.
+ * Kortene `sete` ikke ser, i stigende indeks.
+ *
+ * SYNLIGE kort teller ikke: alle verdener er enige om dem, så de ville lagt til en
+ * konstant og bare gjort tallene større. `medEgetVrak` regner budvinnerens eget vrak
+ * som sett — hun kastet det selv. Av for `lagTrovekt`, så den er bit-identisk med før.
  */
-export function lagTrovekt(
-  trosnett: { fordeling(trekk: Float32Array): number[][] },
-  state: GameState,
-  sete: number,
-): ((v: Verden) => number) | null {
-  // SYNLIGE kort teller ikke: alle verdener er enige om dem, så de ville lagt
-  // til en konstant og bare gjort tallene større.
+function skjulteKort(state: GameState, sete: number, medEgetVrak: boolean): number[] {
   const synlig = new Set<number>();
   for (const k of state.hender[sete] ?? []) synlig.add(kortIndeks(k));
   for (const t of state.historikk) for (const kp of t.kort) synlig.add(kortIndeks(kp.kort));
   for (const kp of state.bord) synlig.add(kortIndeks(kp.kort));
+  if (medEgetVrak && state.budvinner === sete) for (const k of state.vrak) synlig.add(kortIndeks(k));
 
   const skjult: number[] = [];
   for (let i = 0; i < TRO_KORT; i++) if (!synlig.has(i)) skjult.push(i);
-  if (skjult.length === 0) return null;
+  return skjult;
+}
 
-  const p = trosnett.fordeling(e1SpillTrekk(state, sete, E1_SPILL_DIM_V8));
+/** Vekten fra en ferdig fordeling `p[kort][klasse]` (rel. sete 1–3, klasse 3 = talongen). */
+function vektFraFordeling(
+  p: readonly (readonly number[])[],
+  skjult: readonly number[],
+  sete: number,
+): (v: Verden) => number {
   const log = new Float64Array(TRO_KORT * TRO_KLASSER);
   for (let i = 0; i < TRO_KORT; i++) {
     for (let c = 0; c < TRO_KLASSER; c++) {
@@ -75,4 +87,52 @@ export function lagTrovekt(
     }
     return sum;
   };
+}
+
+/**
+ * Bygger vektfunksjonen for ÉN stilling. `null` når det ikke finnes skjulte
+ * kort å vekte på – da er alle verdener like og troen bidrar ingenting.
+ */
+export function lagTrovekt(
+  trosnett: { fordeling(trekk: Float32Array): number[][] },
+  state: GameState,
+  sete: number,
+): ((v: Verden) => number) | null {
+  const skjult = skjulteKort(state, sete, false);
+  if (skjult.length === 0) return null;
+  return vektFraFordeling(trosnett.fordeling(e1SpillTrekk(state, sete, E1_SPILL_DIM_V8)), skjult, sete);
+}
+
+/** Det et visningsbasert trohode må kunne. Strukturell type, så `moe2` ikke eier nettet. */
+export interface Visningstro {
+  /** Leser nettet hukommelsen (K6 → K8)? Mangler feltet, gjør det ikke. */
+  readonly brukerHukommelse?: boolean;
+  trekkFor(
+    visning: SpillerVisning,
+    antallStikk: number,
+    målPoeng: number,
+    hukommelse: Float64Array | null,
+  ): Float32Array;
+  /** → `p[kort][klasse]`, klasse 0–2 = rel. sete 1–3, klasse 3 = talongen. */
+  fordeling(trekk: Float32Array): number[][];
+}
+
+/**
+ * Samme vekt, fra MLB-trohodet.
+ *
+ * K2 ER STRUKTURELL HER: nettet får `spillerVisning(state, sete)` og de offentlige
+ * regelparametrene, aldri `state`. De skjulte kortene leses fra egen hånd, stikkene,
+ * bordet og — for budvinneren — eget vrak. `test/sik-tro.test.ts` bytter motstandernes
+ * hender og krever samme vekt.
+ */
+export function lagTrovektFraVisning(
+  nett: Visningstro,
+  state: GameState,
+  sete: number,
+  hukommelse: Float64Array | null,
+): ((v: Verden) => number) | null {
+  const skjult = skjulteKort(state, sete, true);
+  if (skjult.length === 0) return null;
+  const trekk = nett.trekkFor(spillerVisning(state, sete), state.giving.antallStikk, state.regler.målPoeng, hukommelse);
+  return vektFraFordeling(nett.fordeling(trekk), skjult, sete);
 }

@@ -34,6 +34,7 @@
  */
 
 import { lovligeKort, utfør, type GameState, type Handling } from "../motor.ts";
+import type { Verden } from "../solver/sampler.ts";
 import type { Kort } from "../kort.ts";
 import { medVerden, standardMål, trekkVerdener, type Utspiller } from "./sdkort.ts";
 import { lagHvemLaVekt } from "./hvemla-slutning.ts";
@@ -76,6 +77,26 @@ export interface ParOpts {
    * `src/moe2/spillvekt.ts`. Av som standard - ingen stille regresjon.
    */
   readonly spillvekt?: boolean;
+  /**
+   * TROEN I VERDENENE (11. sep): vektfunksjonen for DENNE stillingen, bygd av
+   * kalleren — se `lagTrovektFraVisning` i `troprior.ts`.
+   *
+   * Utelukker `spillvekt`. A1 og troen leser det samme beviset (hodet i
+   * `verdensvekt.ts`), og begge på samtidig ville telt det to ganger. Det er en
+   * feil å be om begge, ikke et valg, så det kastes.
+   */
+  readonly trovekt?: (v: Verden) => number;
+  /** Budvekten på kandidatverdenene. Standard på; av når troen selv leser budet. */
+  readonly budvekt?: boolean;
+  /**
+   * FRISTEN, i `klokke()`-millisekunder. Utspillingen går VERDEN FOR VERDEN, og en
+   * verden som ikke rakk fristen tas ikke med for NOEN kandidat — marginen er
+   * fortsatt parvis over nøyaktig de samme verdenene. Udefinert = ingen frist, og
+   * all måling går uten.
+   */
+  readonly frist?: number;
+  /** Klokka fristen måles mot. Standard `performance.now()`; prøvene setter sin egen. */
+  readonly klokke?: () => number;
   readonly verdener: number;
   readonly rng: () => number;
   readonly mål?: (sluttState: GameState, spiller: number) => number;
@@ -134,6 +155,9 @@ export function vurderPar(
 ): ParResultat | null {
   const lovlige = lovligeKort(state, spiller);
   if (lovlige.length < 2) return null;
+  if (opts.spillvekt === true && opts.trovekt !== undefined) {
+    throw new Error("vurderPar: spillvekt og trovekt leser det samme beviset - velg én");
+  }
 
   const verdener = trekkVerdener(
     state,
@@ -141,19 +165,39 @@ export function vurderPar(
     opts.verdener,
     opts.rng,
     undefined,
-    opts.spillvekt === true ? lagHvemLaVekt(state, spiller) : undefined,
+    opts.trovekt ?? (opts.spillvekt === true ? lagHvemLaVekt(state, spiller) : undefined),
     opts.verdenKandidater,
+    undefined,
+    opts.budvekt ?? true,
   );
   if (verdener.length === 0) return null;
   const mål = opts.mål ?? standardMål;
+  const klokke = opts.klokke ?? ((): number => performance.now());
 
-  const kandidater: ParKandidat[] = lovlige.map((kort) => {
-    const perVerden: number[] = [];
-    for (const hender of verdener) {
-      const h: Handling = { type: "SPILL", spiller, kort };
+  /**
+   * VERDEN FOR VERDEN, ikke kort for kort (11. sep). Det er det som gjør fristen
+   * mulig uten å ødelegge parringen: en verden er enten spilt ut for ALLE kandidatene
+   * eller for ingen. Rekkefølgen endrer ingen verdi — motparten er tilstandsløs i SPILL
+   * (E1, vakt og budagent holder ingenting mellom kall der), og hver utspilling starter
+   * fra sin egen `medVerden`. `test/sik-tro.test.ts` holder den gamle rekkefølgen som
+   * referanse.
+   */
+  const verdier: number[][] = lovlige.map(() => []);
+  let brukt = 0;
+  for (const hender of verdener) {
+    if (opts.frist !== undefined && klokke() >= opts.frist) break;
+    for (let i = 0; i < lovlige.length; i++) {
+      const h: Handling = { type: "SPILL", spiller, kort: lovlige[i]! };
       const etter = utfør(medVerden(state, hender, spiller), h).state;
-      perVerden.push(mål(spillFerdig(etter, motpart), spiller));
+      verdier[i]!.push(mål(spillFerdig(etter, motpart), spiller));
     }
+    brukt++;
+  }
+  // Fristen rakk ikke én verden: «ingen data», og policyen skal stå.
+  if (brukt === 0) return null;
+
+  const kandidater: ParKandidat[] = lovlige.map((kort, i) => {
+    const perVerden = verdier[i]!;
     const snitt = perVerden.reduce((a, b) => a + b, 0) / perVerden.length;
     return { kort, snitt, perVerden };
   });
@@ -167,7 +211,7 @@ export function vurderPar(
   const rang = new Map<ParKandidat, number>();
   if (vk === "flest") {
     for (const k of kandidater) rang.set(k, 0);
-    for (let w = 0; w < verdener.length; w++) {
+    for (let w = 0; w < brukt; w++) {
       let best = -Infinity;
       for (const k of kandidater) if (k.perVerden[w]! > best) best = k.perVerden[w]!;
       const vinnere = kandidater.filter((k) => k.perVerden[w]! >= best - 1e-9);
@@ -190,7 +234,7 @@ export function vurderPar(
   if (nestBeste === null) {
     return {
       kandidater,
-      n: verdener.length,
+      n: brukt,
       beste,
       nestBeste: null,
       margin: 0,
@@ -209,5 +253,5 @@ export function vurderPar(
     marginSE = Math.sqrt(varians / d.length);
   }
   const sigma = Number.isFinite(marginSE) && marginSE > 1e-12 ? margin / marginSE : 0;
-  return { kandidater, n: verdener.length, beste, nestBeste, margin, marginSE, sigma };
+  return { kandidater, n: brukt, beste, nestBeste, margin, marginSE, sigma };
 }

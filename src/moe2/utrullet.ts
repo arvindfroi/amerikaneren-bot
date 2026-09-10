@@ -65,6 +65,7 @@ import { Konvensjonsvakt, lesVaktflagg } from "./konvensjonsvakt.ts";
 import { Budagent } from "./budmodell.ts";
 import { Vrakrangerer } from "./vrakrang.ts";
 import { Sikkerorakel } from "./sikkerorakel.ts";
+import { lagTrovektFraVisning, type Visningstro } from "./troprior.ts";
 import { Profilagent } from "./profilagent.ts";
 import { Økt } from "./okt.ts";
 // TYPE-ONLY. `rolleorakel.ts` drar inn mer enn nettleseren trenger, og et
@@ -85,6 +86,17 @@ export type Søkspek =
       readonly verdener: number;
       /** Konfidensporten. Overstyr nettet bare der marginen slår sin egen SE. */
       readonly sigma: number;
+      /** Verdener importance-samplingen velger mellom. Udefinert = 3, som utrullet. */
+      readonly verdenKandidater?: number;
+      /**
+       * MLB-trohodet i verdenene (11. sep). Udefinert/null = som før. Et nett som
+       * leser hukommelsen avvises: søket fører ingen bok ennå.
+       */
+      readonly tronett?: Visningstro | null;
+      /** Budvekten på verdenene. Standard på. */
+      readonly budvekt?: boolean;
+      /** Tidsbudsjett per beslutning i ms. Udefinert = ingen frist (all måling). */
+      readonly fristMs?: number;
     }
   | {
       readonly type: "amu";
@@ -133,8 +145,10 @@ export interface UtrulletSpek {
  * på den mellom kamper — det er DEN som skiller «én økt» fra «historie», og
  * hele grunnen til at boka ikke rører disk.
  */
-export function byggUtrullet(spek: UtrulletSpek): { agent: Velger; økt: Økt | null } {
+export function byggUtrullet(spek: UtrulletSpek): { agent: Velger; økt: Økt | null; sik: Sikkerorakel | null } {
   const økt = spek.økt === true ? new Økt() : null;
+  // Søkeleddet selv, så appen kan logge `sik.siste` (hvem bestemte, verdener, σ, ms).
+  let sik: Sikkerorakel | null = null;
 
   const vakt: Velger = new Konvensjonsvakt(spek.kort, lesVaktflagg(spek.vaktflagg));
 
@@ -159,11 +173,20 @@ export function byggUtrullet(spek: UtrulletSpek): { agent: Velger; økt: Økt | 
     // den ER motparten; ingen `utenSøk()`-strengkirurgi trengs.
     const motpart = kjede as unknown as ConstructorParameters<typeof Alphamuagent>[1];
     if (søk.type === "sik") {
-      kjede = new Sikkerorakel(kjede, motpart as never, {
+      const tronett = søk.tronett ?? null;
+      if (tronett !== null && tronett.brukerHukommelse === true) {
+        throw new Error("byggUtrullet: trohodet leser hukommelsen, og søket fører ingen bok ennå");
+      }
+      sik = new Sikkerorakel(kjede, motpart as never, {
         verdener: søk.verdener,
         sigma: søk.sigma,
         roller: ["foerer"],
-      }) as unknown as Velger;
+        verdenKandidater: søk.verdenKandidater,
+        trovektFor: tronett === null ? undefined : (st, sete) => lagTrovektFraVisning(tronett, st, sete, null),
+        budvekt: søk.budvekt,
+        fristMs: søk.fristMs,
+      });
+      kjede = sik as unknown as Velger;
     } else {
       /**
        * A5s ATFERDSMODELL, fra nettet som FAKTISK spiller.
@@ -213,5 +236,5 @@ export function byggUtrullet(spek: UtrulletSpek): { agent: Velger; økt: Økt | 
     kjede = new Vrakrangerer(kjede, spek.vraknett, spek.vrakflagg ?? "telrd") as unknown as Velger;
   }
 
-  return { agent: kjede, økt };
+  return { agent: kjede, økt, sik };
 }

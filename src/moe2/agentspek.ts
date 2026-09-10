@@ -28,6 +28,7 @@ import { lagSumledd, type Sumvekter } from "./sumledd.ts";
 import { Ensemble, type EnsembleModus } from "./ensemble.ts";
 import { Rolleorakel, type Rolle } from "./rolleorakel.ts";
 import { Sikkerorakel } from "./sikkerorakel.ts";
+import { lagTrovektFraVisning } from "./troprior.ts";
 import { Vrakvelger } from "./vrakvelg.ts";
 import { Etterlysvelger } from "./etterlys.ts";
 import { Vrakvelger2, lesVrakflagg } from "./vrakvelg2.ts";
@@ -1083,6 +1084,37 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     // «<verdener>[k<kandidater>][a<kriterium>]» - f.eks. «24k32amin».
     // `a` er ALPHA-MU-kriteriet over verdener: min, kvantil, flest.
     let vFelt = d[2] ?? "";
+    /**
+     * «~<art>=<fil>» bakerst i verdensfeltet: TROEN I VERDENENE (11. sep).
+     *
+     *   mlb=<fil>   MLB-trohodet vekter verdenene, budformelen beholdes
+     *   mlbu=<fil>  MLB-trohodet alene — det leser budrunden selv
+     *
+     * Plukkes ut FØRST, fordi en filsti kan inneholde «a», «k» og «s», som feltet
+     * under leser som kriterium, kandidater og spillvekt. Feltantallet er uendret, så
+     * `utenSøk` stripper akkurat som før. Stien kan ikke ha kolon (bruk relativ sti).
+     */
+    let trovektFor: ((st: GameState, sete: number) => ReturnType<typeof lagTrovektFraVisning>) | undefined;
+    let budvekt = true;
+    const tPos = vFelt.indexOf("~");
+    if (tPos >= 0) {
+      const troFelt = vFelt.slice(tPos + 1);
+      vFelt = vFelt.slice(0, tPos);
+      const likPos = troFelt.indexOf("=");
+      const art = likPos < 0 ? "" : troFelt.slice(0, likPos);
+      const sti = likPos < 0 ? "" : troFelt.slice(likPos + 1);
+      if ((art !== "mlb" && art !== "mlbu") || sti === "") {
+        throw new Error(`Ukjent trokilde «${troFelt}» i «${indre}» - forventet mlb=<fil> eller mlbu=<fil>`);
+      }
+      const tronett = lesTronett(sti);
+      // HUKOMMELSEN I SØKET ER IKKE KOBLET: Sikkerorakelet ser ikke RUNDE_SLUTT, så
+      // boka ville stått tom og et 804-nett fått nuller hele kampen — stille. Kast.
+      if (tronett.brukerHukommelse) {
+        throw new Error(`«${sti}» leser hukommelsen, og søket fører ingen hukommelse ennå`);
+      }
+      trovektFor = (st, sete) => lagTrovektFraVisning(tronett, st, sete, null);
+      budvekt = art === "mlb";
+    }
     let verdenKombi: "snitt" | "min" | "kvantil" | "flest" = "snitt";
     // «s» paa slutten slaar paa A1-spillvekten: kandidatverdenene vektes ogsaa
     // etter hvordan de andre har SPILT, ikke bare etter hva de bod.
@@ -1114,6 +1146,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       verdenKandidater,
       verdenKombi,
       spillvekt,
+      trovektFor,
+      budvekt,
       roller: rolle === "alle" ? [] : [rolle],
     });
   }
