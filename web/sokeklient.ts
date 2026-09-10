@@ -35,6 +35,8 @@
  *   – Bommer søket på fristen `maksFristbrudd` ganger på rad, settes det på
  *     pause resten av kampen: på en maskin der hvert søk bommer, er hvert søk
  *     fire og et halvt sekund venting for ingenting.
+ *   – Hver ferdige runde sendes til en protokoll-3-worker (`rundeSlutt`), så en
+ *     søketro som leser hukommelsen ser den. En eldre worker får den ikke.
  */
 
 import type { GameState, Handling } from "../src/motor.ts";
@@ -87,6 +89,9 @@ export interface Søkesvar {
   readonly utfall?: Søkeutfall | null;
   /** Workerens egen regnetid. Differansen mot `ms` er kø og meldingsoverføring. */
   readonly wms?: number;
+  /** Protokoll 3: søkets parrede σ for denne beslutningen, og verdenene som rakk. */
+  readonly sigma?: number;
+  readonly n?: number;
 }
 
 export interface Klientvalg {
@@ -152,6 +157,24 @@ export class Søkeklient {
     }
     // En protokoll-1-worker kjenner ikke `nyKamp` og ville svart med feil.
     if (this.status === "klar" && this.protokoll >= 2) this.arbeider?.postMessage({ type: "nyKamp" });
+  }
+
+  /**
+   * DEN FERDIGE RUNDEN, til søketroens hukommelse (K6 → K8).
+   *
+   * Workeren blir aldri spurt om et trekk ved `RUNDE_SLUTT`, så uten denne ville en
+   * søketro med hukommelse stått med tom bok — og `MlbSøketro` kaster da ved neste
+   * runde i stedet for å spille stille uten. Går bare til en KLAR worker som forstår
+   * meldingen (protokoll 3); en eldre ville svart med feil. På pause sendes den
+   * likevel: søket kan komme tilbake ved neste kamp, men boka er kampens.
+   */
+  rundeSlutt(state: GameState): void {
+    if ((this.status !== "klar" && this.status !== "pause") || this.protokoll < 3) return;
+    try {
+      this.arbeider?.postMessage({ type: "rundeslutt", state });
+    } catch (feil) {
+      console.warn("rundeslutt kunne ikke sendes:", feil);
+    }
   }
 
   /**
@@ -251,6 +274,7 @@ export class Søkeklient {
           protokoll: this.protokoll,
           ...(fra === "treg" ? { fra } : {}),
           ...(typeof d.ms === "number" ? { byggMs: d.ms } : {}),
+          ...(typeof d.tro === "boolean" ? { tro: d.tro } : {}),
         });
       } else {
         this.status = "feil";
@@ -269,13 +293,23 @@ export class Søkeklient {
     }
     this.venter.delete(id);
     const ms = this.tid.nå() - lapp.t0;
-    const svar = d as Partial<FraWorker & { handling: Handling; utfall: Søkeutfall | null; ms: number; utløpt: true; feil: string }>;
+    const svar = d as Partial<
+      FraWorker & { handling: Handling; utfall: Søkeutfall | null; ms: number; utløpt: true; feil: string; sigma: number; n: number }
+    >;
 
     if (svar.handling !== undefined) {
       this.fristbrudd = 0;
       const utfall = svar.utfall ?? null;
       const lag: Søkelag = this.protokoll < 2 ? "soek-v1" : utfall === "overstyrt" ? "soek" : "soek-nett";
-      lapp.løs({ handling: svar.handling, lag, ms, utfall, ...(typeof svar.ms === "number" ? { wms: svar.ms } : {}) });
+      lapp.løs({
+        handling: svar.handling,
+        lag,
+        ms,
+        utfall,
+        ...(typeof svar.ms === "number" ? { wms: svar.ms } : {}),
+        ...(typeof svar.sigma === "number" ? { sigma: svar.sigma } : {}),
+        ...(typeof svar.n === "number" ? { n: svar.n } : {}),
+      });
       return;
     }
     if (svar.utløpt === true) {

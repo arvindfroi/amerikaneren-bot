@@ -31,7 +31,7 @@ export type Initmelding = {
   readonly kort: string;
   readonly bud: unknown;
   readonly vrak: string | null;
-  /** Sendes, men leses ikke: `Trosnett` krever et bredere nett enn `d7alle`. */
+  /** MLB-trohodet som base64. Leses bare når `troISøk` er satt (se `AdamsKonfig`). */
   readonly tro: string | null;
 } & AdamsKonfig;
 
@@ -39,7 +39,12 @@ export type TilWorker =
   | Initmelding
   /** `frist` er `Date.now()`-tid. Hovedtråd og worker deler veggklokka, ikke `performance.now()`. */
   | { readonly type: "adams-trekk"; readonly id: number; readonly state: GameState; readonly sete: number; readonly frist?: number }
-  | { readonly type: "nyKamp" };
+  | { readonly type: "nyKamp" }
+  /**
+   * Protokoll 3. Den ferdige runden, så søketroens hukommelse (K6 → K8) ser den —
+   * workeren blir aldri spurt om et trekk ved `RUNDE_SLUTT`. Ingen svar.
+   */
+  | { readonly type: "rundeslutt"; readonly state: GameState };
 
 export type FraWorker =
   | {
@@ -51,10 +56,20 @@ export type FraWorker =
       readonly bud: boolean;
       readonly vrak: boolean;
       readonly søk: boolean;
+      /** Protokoll 3: trohodet sitter i søket. */
+      readonly tro?: boolean;
       readonly ms: number;
     }
   | { readonly id: 0; readonly klar: false; readonly protokoll: number; readonly feil: string }
-  | { readonly id: number; readonly handling: Handling; readonly utfall: Søkeutfall | null; readonly ms: number }
+  | {
+      readonly id: number;
+      readonly handling: Handling;
+      readonly utfall: Søkeutfall | null;
+      readonly ms: number;
+      /** Protokoll 3: parret σ og verdener som faktisk ble spilt ut, når søket vurderte. */
+      readonly sigma?: number;
+      readonly n?: number;
+    }
   | { readonly id: number; readonly utløpt: true; readonly forsinketMs: number }
   | { readonly id: number; readonly feil: string };
 
@@ -72,7 +87,7 @@ export function lagSøkekjerne(
       // hentet dem – ingen dobbel nedlasting av sju megabyte.
       const t0 = performance.now();
       try {
-        const bygd = byggAdams({ kort: m.kort, bud: m.bud, vrak: m.vrak }, m, true);
+        const bygd = byggAdams({ kort: m.kort, bud: m.bud, vrak: m.vrak, tro: m.tro }, m, true);
         adams = bygd.agent;
         sik = bygd.sik;
         /**
@@ -90,6 +105,7 @@ export function lagSøkekjerne(
           bud: bygd.bud,
           vrak: bygd.vrak,
           søk: bygd.sik !== null,
+          tro: bygd.tro,
           ms: Math.round(performance.now() - t0),
         });
       } catch (feil) {
@@ -108,6 +124,17 @@ export function lagSøkekjerne(
       return;
     }
 
+    if (m.type === "rundeslutt") {
+      // Kjeden sender tilstanden innover (`Vrakrangerer` → `Sikkerorakel` → søketroen).
+      // Et kast her skal ikke drepe workeren; neste trekk melder feilen med sin id.
+      try {
+        adams?.observer?.(m.state);
+      } catch (feil) {
+        console.warn("rundeslutt kunne ikke bokføres:", feil);
+      }
+      return;
+    }
+
     if (m.type === "adams-trekk") {
       try {
         if (adams === null) throw new Error("adams er ikke initialisert");
@@ -123,7 +150,14 @@ export function lagSøkekjerne(
         const før = sik === null ? null : { ...sik.tellere };
         const handling = adams.velgHandling(m.state);
         const utfall = sik === null || før === null ? null : lesUtfall(før, sik.tellere);
-        post({ id: m.id, handling, utfall, ms: Math.round(performance.now() - t0) });
+        const siste = sik?.siste ?? null;
+        post({
+          id: m.id,
+          handling,
+          utfall,
+          ms: Math.round(performance.now() - t0),
+          ...(siste === null ? {} : { sigma: Math.round(siste.sigma * 100) / 100, n: siste.n }),
+        });
       } catch (feil) {
         post({ id: m.id, feil: String(feil) });
       }

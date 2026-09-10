@@ -1380,6 +1380,9 @@ function håndterHendelser(hendelser: readonly Hendelse[]): void {
         });
         bottrekk = [];
       }
+      // Søketroens hukommelse (K6 → K8) ser runden først når den er ferdig. Går bare
+      // til en klar worker som forstår meldingen (protokoll 3); ellers ingenting.
+      søkeklient.rundeSlutt(state);
     } else if (h.type === "KAMP_SLUTT") {
       logg("kamp", { vinner: h.vinner, totalPoeng: state.totalPoeng, runder: state.rundeNr + 1 });
     }
@@ -1460,6 +1463,10 @@ function fortsett(): void {
           ...(svar.wms !== undefined ? { wms: svar.wms } : {}),
           verdener: SØKVERDENER,
           sigma: SØKSIGMA,
+          // Protokoll 3: søkets EGEN parrede σ for trekket og verdenene som rakk fristen.
+          // `sigma` over er porten; disse to sier hvor tydelig valget var og om tiden bet.
+          ...(svar.sigma !== undefined ? { sigmaMålt: svar.sigma } : {}),
+          ...(svar.n !== undefined ? { verdenerBrukt: svar.n } : {}),
         });
         notérBottrekk(aktør, "SPILL", lag, ms);
         gjørMedPause(valgt, 250);

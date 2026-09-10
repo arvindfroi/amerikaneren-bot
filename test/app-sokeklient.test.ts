@@ -441,3 +441,61 @@ test("ende til ende: klienten mot ekte kjerne over en asynkron, klonende kanal",
   assert.ok(svar.handling !== null && erLovligKort(s, svar.handling));
   k.nyKamp();
 });
+
+// ---------------------------------------------------------------------------
+// Protokoll 3: rundeslutt til søketroen, σ og n per trekk, troen i søket
+// ---------------------------------------------------------------------------
+
+test("rundeSlutt går bare til en klar worker som forstår den (protokoll 3)", async () => {
+  const toer = await klarKlient(); // KVITT sier protokoll 2
+  toer.k.rundeSlutt(S0);
+  assert.ok(!toer.arbeidere[0]!.sendt.some((m) => m.type === "rundeslutt"), "en protokoll-2-worker ville svart med feil");
+
+  const tre = oppsett();
+  tre.k.rundeSlutt(S0); // før start: ingenting å sende til
+  tre.k.start(INIT);
+  await tøm();
+  tre.k.rundeSlutt(S0); // laster: ingenting
+  tre.arbeidere[0]!.svar({ ...KVITT, protokoll: 3, tro: false });
+  tre.k.rundeSlutt(S0);
+  assert.equal(tre.arbeidere[0]!.sendt.filter((m) => m.type === "rundeslutt").length, 1);
+  assert.ok(tre.logg.some(([t, d]) => t === "worker" && d.status === "klar" && d.tro === false));
+});
+
+test("klienten fører σ og n fra workeren inn i svaret", async () => {
+  const { k, arbeidere } = await klarKlient();
+  const p = spør(k);
+  arbeidere[0]!.svar({ id: arbeidere[0]!.trekk()[0]!.id, handling: H, utfall: "enig", ms: 12, sigma: 1.25, n: 24 });
+  await tøm();
+  assert.equal(p.svar()?.sigma, 1.25);
+  assert.equal(p.svar()?.n, 24);
+});
+
+test("kjernen: troen i søket når den er slått på, σ og n i svaret, og rundeslutt når søketroen", () => {
+  const troB64 = readFileSync(join(ROT, "e1-modell", "mlb-tro.bin")).toString("base64");
+  const svar: FraWorker[] = [];
+  const kjerne = lagSøkekjerne((m) => svar.push(m));
+  kjerne({ ...INIT_EKTE, tro: troB64, troISøk: true });
+  const kvitt = svar.shift() as Extract<FraWorker, { klar: true }>;
+  assert.equal(kvitt.klar, true, JSON.stringify(kvitt));
+  assert.equal(kvitt.tro, true, "trohodet ble ikke bygd inn i søket");
+
+  const { s, aktør } = førerstilling(61_100_004);
+  // En ferdig runde FØR trekket: skal bokføres uten svar og uten å kaste.
+  kjerne({ type: "rundeslutt", state: structuredClone(s) });
+  assert.equal(svar.length, 0, "rundeslutt skal ikke svare");
+  kjerne({ type: "adams-trekk", id: 11, state: structuredClone(s), sete: aktør });
+  const t = svar.shift() as Extract<FraWorker, { handling: Handling }>;
+  assert.ok(erLovligKort(s, t.handling));
+  if (t.utfall !== "ikke-vurdert") {
+    assert.equal(typeof t.sigma, "number", JSON.stringify(t));
+    assert.ok((t.n ?? 0) > 0, JSON.stringify(t));
+  }
+
+  // Slått på uten trohode: søket bygges uten, og kvitteringen sier det.
+  const uten: FraWorker[] = [];
+  lagSøkekjerne((m) => uten.push(m))({ ...INIT_EKTE, troISøk: true });
+  assert.equal((uten[0] as Extract<FraWorker, { klar: true }>).tro, false);
+  // Og av som standard, selv når fila sendes.
+  assert.equal(byggAdams({ ...VEKTER, tro: troB64 }, KONFIG, true).tro, false);
+});

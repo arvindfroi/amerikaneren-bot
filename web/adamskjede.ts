@@ -25,6 +25,7 @@ import { nettFraBytes, type NevroNett } from "../src/nevro/nett.ts";
 import { tolkBudmodell, type Budmodell } from "../src/moe2/budmodell.ts";
 import { Sikkerorakel, type SikkerTellere } from "../src/moe2/sikkerorakel.ts";
 import { byggUtrullet, type Søkspek, type Velger } from "../src/moe2/utrullet.ts";
+import { MlbTronett } from "../src/mlb/tronett.ts";
 
 /**
  * Meldingsprotokollen mellom hovedtråd og worker.
@@ -32,11 +33,13 @@ import { byggUtrullet, type Søkspek, type Velger } from "../src/moe2/utrullet.t
  *   1  `adams-init` / `adams-trekk`, kvittering `{klar}` uten versjon
  *   2  + request-id med `frist`, `utløpt`-svar, `nyKamp`, `utfall` per trekk,
  *      og `protokoll` i kvitteringen
+ *   3  + `rundeslutt` (søketroens hukommelse ser hver ferdige runde), `sigma` og
+ *      `n` per trekk, og `tro` i kvitteringen
  *
- * Hovedtråden må tåle 1: Val Town-proxyen serverer workeren fra en PINNET
+ * Hovedtråden må tåle 1 og 2: Val Town-proxyen serverer workeren fra en PINNET
  * commit, og den er eldre enn denne fila (se rapporten om reservebundelen).
  */
-export const SØKEPROTOKOLL = 2;
+export const SØKEPROTOKOLL = 3;
 
 /** Konfigurasjonen som sendes til workeren. Tall og flagg, aldri agenter. */
 export interface AdamsKonfig {
@@ -48,10 +51,19 @@ export interface AdamsKonfig {
   /** Konfidensporten: overstyr nettet bare når marginen slår sin egen SE. */
   readonly sigma: number;
   /**
-   * Tidsbudsjettet per beslutning i søket selv. Leses IKKE av søket enda —
-   * se `søkspek` under. Hovedtråden har sin egen frist uansett.
+   * Tidsbudsjettet per beslutning i søket selv (`Sikkerorakel.fristMs`). Når tiden er
+   * ute, kuttes hele verdener og σ regnes på dem som rakk. Hovedtrådens frist
+   * (`web/sokeklient.ts`) står i tillegg, for meldingskøen og tregere enheter.
+   * Udefinert = ingen frist, slik all måling og paritetsprøven kjører.
    */
   readonly fristMs?: number;
+  /**
+   * TROEN I SØKET (11. sep): MLB-trohodet vekter verdenene — 32 kandidater og
+   * budvekten av, som `~mlbu=` i speken. AV som standard: kampbenken dømmer den
+   * først, og fila er 7,9 MB. Krever `tro` i vektene; mangler den eller kan den ikke
+   * leses, bygges søket uten, og `Bygd.tro` sier fra.
+   */
+  readonly troISøk?: boolean;
 }
 
 /** Rå vekter slik de kommer over nettet: base64 og JSON. */
@@ -59,6 +71,8 @@ export interface RåAdamsVekter {
   readonly kort: string;
   readonly bud: unknown | null;
   readonly vrak: string | null;
+  /** MLB-trohodet som base64, eller null. Leses bare når `troISøk`. */
+  readonly tro?: string | null;
 }
 
 /** Hva som FAKTISK ble bygd — ikke hva vi ba om. Se `oppløst` i `web/app.ts`. */
@@ -70,6 +84,8 @@ export interface Bygd {
   readonly vrak: boolean;
   /** Søkelaget, for tellerne. `null` når søket er av. */
   readonly sik: Sikkerorakel | null;
+  /** Trohodet sitter i søket. */
+  readonly tro: boolean;
 }
 
 export function tilBytes(b64: string): Uint8Array {
@@ -80,16 +96,19 @@ export function tilBytes(b64: string): Uint8Array {
 }
 
 /**
- * SØKESPEKEN, ETT STED.
- *
- * `fristMs` er med i konfigurasjonen fordi `Søkspek` sin `sik`-variant får et
- * valgfritt tidsbudsjett per beslutning. Når det feltet finnes, er påkoblingen
- * ÉN linje her — `fristMs: k.fristMs` — og ingenting annet i appen endres.
- * Til da er det hovedtrådens frist (`web/sokeklient.ts`) som holder tiden.
+ * SØKESPEKEN, ETT STED — speilet av `sik:foerer:<sigma>:<V>[k32~mlbu=<fil>]` i
+ * `src/moe2/agentspek.ts`. `test/app-lik-spek.test.ts` holder den utrullede delen
+ * av den lik speken.
  */
-export function søkspek(k: AdamsKonfig): Søkspek | null {
+export function søkspek(k: AdamsKonfig, tronett: MlbTronett | null = null): Søkspek | null {
   if (k.verdener <= 0) return null;
-  return { type: "sik", verdener: k.verdener, sigma: k.sigma };
+  return {
+    type: "sik",
+    verdener: k.verdener,
+    sigma: k.sigma,
+    ...(k.fristMs === undefined ? {} : { fristMs: k.fristMs }),
+    ...(tronett === null ? {} : { tronett, verdenKandidater: 32, budvekt: false }),
+  };
 }
 
 /**
@@ -120,7 +139,21 @@ export function byggAdams(v: RåAdamsVekter, k: AdamsKonfig, medSøk: boolean, k
       console.warn("Vrakrangereren kunne ikke leses:", feil);
     }
   }
-  const bygg = (vn: NevroNett | null): Velger =>
+  // Samme reserveregel som vrak og bud: et trohode som ikke kan leses tar ikke ned
+  // søket, men `Bygd.tro` sier at det mangler.
+  let tronett: MlbTronett | null = null;
+  if (medSøk && k.troISøk === true) {
+    if (v.tro === undefined || v.tro === null) {
+      console.warn("Troen i søket er slått på, men trohodet ble ikke sendt – søker uten");
+    } else {
+      try {
+        tronett = MlbTronett.fraBytes(tilBytes(v.tro));
+      } catch (feil) {
+        console.warn("Trohodet kunne ikke leses – søker uten:", feil);
+      }
+    }
+  }
+  const bygg = (vn: NevroNett | null): ReturnType<typeof byggUtrullet> =>
     byggUtrullet({
       kortnett: nettFraBytes(kortBytes)[0]!,
       kort: E1Agent.fraBytes(kortBytes, {}, kilde),
@@ -129,34 +162,33 @@ export function byggAdams(v: RåAdamsVekter, k: AdamsKonfig, medSøk: boolean, k
       budterskel: k.budterskel,
       vraknett: vn,
       vrakflagg: k.vrakflagg,
-      søk: medSøk ? søkspek(k) : null,
+      søk: medSøk ? søkspek(k, tronett) : null,
       // K4/K6 er BYGD, men ikke maalt i spill enda. Slås de på, må `nyKamp`
       // nå begge tråder — og det gjør den nå (N5).
       økt: false,
-    }).agent;
+    });
 
-  let agent: Velger;
+  let bygd: ReturnType<typeof byggUtrullet>;
   let vrak = vraknett !== null;
   try {
-    agent = bygg(vraknett);
+    bygd = bygg(vraknett);
   } catch (feil) {
     // `Vrakrangerer` KASTER på feil bredde i stedet for å score søppel. Et
     // stille feilvalg ville nesten ikke syntes, så vi faller tilbake og sier fra.
     if (vraknett === null) throw feil;
     console.warn("Vrakrangereren ble avvist:", feil);
-    agent = bygg(null);
+    bygd = bygg(null);
     vrak = false;
   }
-  return { agent, bud: bud !== null, vrak, sik: finnSikkerorakel(agent) };
+  return { agent: bygd.agent, bud: bud !== null, vrak, sik: bygd.sik, tro: tronett !== null && bygd.sik !== null };
 }
 
 /**
  * Finner søkelaget i kjeden ved å følge `indre`.
  *
- * `byggUtrullet` returnerer bare det ytterste laget, og `utrullet.ts` er ikke
- * vår å endre. Feltet heter `indre` i hvert lag i kjeden; skulle det bytte navn,
- * gir denne `null` og `test/app-sokeklient.test.ts` blir rød — loggen mister
- * `utfall`, men spillet går som før.
+ * `byggAdams` får søkelaget direkte fra `byggUtrullet(...).sik` nå. Denne står for
+ * kjeder bygd andre steder, og som vakt: skulle feltet `indre` bytte navn, gir den
+ * `null` og `test/app-sokeklient.test.ts` blir rød.
  */
 export function finnSikkerorakel(agent: unknown): Sikkerorakel | null {
   let x: unknown = agent;
