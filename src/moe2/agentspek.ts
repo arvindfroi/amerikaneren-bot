@@ -28,7 +28,7 @@ import { lagSumledd, type Sumvekter } from "./sumledd.ts";
 import { Ensemble, type EnsembleModus } from "./ensemble.ts";
 import { Rolleorakel, type Rolle } from "./rolleorakel.ts";
 import { Sikkerorakel } from "./sikkerorakel.ts";
-import { lagTrovektFraVisning } from "./troprior.ts";
+import { MlbSøketro } from "./soketro.ts";
 import { Vrakvelger } from "./vrakvelg.ts";
 import { Etterlysvelger } from "./etterlys.ts";
 import { Vrakvelger2, lesVrakflagg } from "./vrakvelg2.ts";
@@ -1094,7 +1094,7 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      * under leser som kriterium, kandidater og spillvekt. Feltantallet er uendret, så
      * `utenSøk` stripper akkurat som før. Stien kan ikke ha kolon (bruk relativ sti).
      */
-    let trovektFor: ((st: GameState, sete: number) => ReturnType<typeof lagTrovektFraVisning>) | undefined;
+    let tro: MlbSøketro | undefined;
     let budvekt = true;
     const tPos = vFelt.indexOf("~");
     if (tPos >= 0) {
@@ -1106,16 +1106,20 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       if ((art !== "mlb" && art !== "mlbu") || sti === "") {
         throw new Error(`Ukjent trokilde «${troFelt}» i «${indre}» - forventet mlb=<fil> eller mlbu=<fil>`);
       }
-      const tronett = lesTronett(sti);
-      // HUKOMMELSEN I SØKET ER IKKE KOBLET: Sikkerorakelet ser ikke RUNDE_SLUTT, så
-      // boka ville stått tom og et 804-nett fått nuller hele kampen — stille. Kast.
-      if (tronett.brukerHukommelse) {
-        throw new Error(`«${sti}» leser hukommelsen, og søket fører ingen hukommelse ennå`);
-      }
-      trovektFor = (st, sete) => lagTrovektFraVisning(tronett, st, sete, null);
+      // ÉN SØKETRO PER AGENT: nettet deles, boka gjør ikke det — den er denne kampens.
+      // Et trohode med hukommelse får boka fylt gjennom `observer` (kampbenken kaller den).
+      tro = new MlbSøketro(lesTronett(sti));
       budvekt = art === "mlb";
     }
     let verdenKombi: "snitt" | "min" | "kvantil" | "flest" = "snitt";
+    // «L» aller bakerst (11. sep): LAGMÅLET i utspillingene i stedet for «egne minus
+    // snittet av de tre andre», som undervurderer å hjelpe makker med en faktor tre
+    // (§103). Opt-in, som «L» i amu-speken. Plukkes før «s» og «a<kriterium>».
+    let lagmål = false;
+    if (vFelt.endsWith("L")) {
+      lagmål = true;
+      vFelt = vFelt.slice(0, -1);
+    }
     // «s» paa slutten slaar paa A1-spillvekten: kandidatverdenene vektes ogsaa
     // etter hvordan de andre har SPILT, ikke bare etter hva de bod.
     let spillvekt = false;
@@ -1146,8 +1150,9 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       verdenKandidater,
       verdenKombi,
       spillvekt,
-      trovektFor,
+      tro,
       budvekt,
+      lagmål,
       roller: rolle === "alle" ? [] : [rolle],
     });
   }

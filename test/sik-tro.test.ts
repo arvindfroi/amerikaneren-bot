@@ -3,7 +3,7 @@
  *
  * Søket i den utrullede boten trakk verdener vektet etter budet alene. Nå kan
  * MLB-trohodet vekte dem (`~mlb=` / `~mlbu=` i `sik:`-speken, `tronett` i
- * `byggUtrullet`), og appen kan gi søket en frist. Fem ting må holde:
+ * `byggUtrullet`), og appen kan gi søket en frist. Seks ting må holde:
  *
  *   1. REKKEFØLGEN: utspillingen går verden for verden nå. Verdiene per kort og
  *      verden skal være NØYAKTIG de den gamle kort-for-kort-løkka ga.
@@ -13,6 +13,8 @@
  *   4. KLASSENE: rel. sete 1 er neste sete, klasse 3 er vraket. En plantet
  *      fordeling skal trekke verdenen dit den peker.
  *   5. FRISTEN kutter hele verdener, og null verdener lar nettet stå.
+ *   6. HUKOMMELSEN når søketroen gjennom `observer`, og en bok som aldri så
+ *      RUNDE_SLUTT kaster i stedet for å stå tom.
  */
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
@@ -32,6 +34,9 @@ import { trekkVerden, type Verden } from "../src/solver/sampler.ts";
 import { kortTilInt } from "../src/solver/dds.ts";
 import { kortIndeks } from "../src/nevro/trekk.ts";
 import { MlbTronett } from "../src/mlb/tronett.ts";
+import { Hukommelse } from "../src/mlb/hukommelse.ts";
+import { MLB_TRO_HUKOMMELSE, MLB_TRO_INN } from "../src/mlb/trotrekk.ts";
+import { MlbSøketro } from "../src/moe2/soketro.ts";
 import { nettFraBytes, type NevroNett } from "../src/nevro/nett.ts";
 import { E1Agent } from "../src/e1/agent.ts";
 
@@ -201,6 +206,7 @@ test("speken: ~mlbu= bygger, utenSøk stripper som før, troen når fram, ukjent
   const a = lagIndre(medTro) as unknown as Sikkerorakel;
   const b = lagIndre(utenTro) as unknown as Sikkerorakel;
   assert.ok(a instanceof Sikkerorakel);
+  assert.ok(a.tro instanceof MlbSøketro);
   let ulik = 0;
   for (const s of STILLINGER.slice(0, 6)) {
     a.velgHandling(s);
@@ -212,18 +218,22 @@ test("speken: ~mlbu= bygger, utenSøk stripper som før, troen når fram, ukjent
   assert.throws(() => lagIndre(`sik:foerer:0.5:4k8~abc=e1-modell/mlb-tro.bin:${ADAMS}`), /trokilde/);
 });
 
-test("byggUtrullet tar trohodet, og avviser et som leser hukommelsen", () => {
-  const kortBytes = new Uint8Array(readFileSync("e1-modell/d7alle.bin"));
-  const rå = nettFraBytes(readFileSync("e1-modell/mlb-tro.bin"))[0]!;
-  const utvidet = (nett: NevroNett, ekstra: number): NevroNett => {
-    const [første, ...resten] = nett.lag;
-    const inn = første!.inn + ekstra;
-    const vekter = new Float32Array(første!.ut * inn);
-    for (let r = 0; r < første!.ut; r++) {
-      for (let c = 0; c < første!.inn; c++) vekter[r * inn + c] = første!.vekter[r * første!.inn + c]!;
-    }
-    return { lag: [{ inn, ut: første!.ut, vekter, bias: første!.bias }, ...resten] };
-  };
+const RÅ = nettFraBytes(readFileSync("e1-modell/mlb-tro.bin"))[0]!;
+
+/** Første lag utvidet med `ekstra` nullkolonner bakerst. */
+const utvidet = (nett: NevroNett, ekstra: number): NevroNett => {
+  const [første, ...resten] = nett.lag;
+  const inn = første!.inn + ekstra;
+  const vekter = new Float32Array(første!.ut * inn);
+  for (let r = 0; r < første!.ut; r++) {
+    for (let c = 0; c < første!.inn; c++) vekter[r * inn + c] = første!.vekter[r * første!.inn + c]!;
+  }
+  return { lag: [{ inn, ut: første!.ut, vekter, bias: første!.bias }, ...resten] };
+};
+
+test("byggUtrullet tar et trohode med og uten hukommelse, og gir søket en søketro", () => {
+  // Kortnettet hentes fra ADAMS-speken, ikke skrevet på nytt (test/spek-en-kilde.test.ts).
+  const kortBytes = new Uint8Array(readFileSync(ADAMS.slice(ADAMS.lastIndexOf("e1:") + 3)));
   const bygg = (tronett: MlbTronett) =>
     byggUtrullet({
       kortnett: nettFraBytes(kortBytes)[0]!,
@@ -233,6 +243,90 @@ test("byggUtrullet tar trohodet, og avviser et som leser hukommelsen", () => {
       budterskel: -3.0,
       søk: { type: "sik", verdener: 4, sigma: 0.5, verdenKandidater: 8, tronett, budvekt: false },
     });
-  assert.ok(bygg(new MlbTronett(rå)).sik !== null);
-  assert.throws(() => bygg(new MlbTronett(utvidet(rå, 144))), /hukommelsen/);
+  const uten = bygg(new MlbTronett(RÅ)).sik?.tro;
+  assert.ok(uten instanceof MlbSøketro);
+  assert.equal(uten.brukerHukommelse, false);
+  const med = bygg(new MlbTronett(utvidet(RÅ, MLB_TRO_HUKOMMELSE))).sik?.tro;
+  assert.ok(med instanceof MlbSøketro);
+  assert.equal(med.brukerHukommelse, true);
+});
+
+test("hukommelsen når søketroen gjennom observer; en bok uten RUNDE_SLUTT kaster", () => {
+  // Én hukommelseskolonne sterkt koblet, som i test/mlb-trohukommelse.test.ts.
+  const plantet = utvidet(RÅ, MLB_TRO_HUKOMMELSE);
+  const første = plantet.lag[0]!;
+  for (let r = 0; r < første.ut; r++) første.vekter[r * første.inn + MLB_TRO_INN + 5] = 3;
+  const nett = new MlbTronett(plantet);
+
+  const følger = new MlbSøketro(nett);
+  const døv = new MlbSøketro(nett);
+  const sik = new Sikkerorakel(lagIndre(ADAMS) as unknown as Indre, motpart, {
+    verdener: 2,
+    sigma: 99,
+    tro: new MlbSøketro(nett),
+  });
+  const kontroll = new Hukommelse();
+  const agenter = [0, 1, 2, 3].map(() => lagIndre(ADAMS));
+  let s = opprettSpill({ antallSpillere: 4, målPoeng: 100 }, 5_120_777);
+  // Rundetallet leses, ikke antas: første runde er `rundeNr` i starttilstanden.
+  const start = s.rundeNr;
+  let endret = 0;
+  let sjekket = 0;
+  let kastet = false;
+  let vakt = 0;
+  while (s.fase !== "FERDIG" && vakt++ < 8000 && sjekket < 12) {
+    følger.observer(s);
+    sik.observer(s);
+    kontroll.observer(s);
+    if (s.fase === "RUNDE_SLUTT") {
+      s = utfør(s, { type: "NESTE" }).state;
+      continue;
+    }
+    const sete = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+    if (sete === null || sete === undefined) break;
+    if (s.fase === "SPILL") {
+      // Den døve ser bare stillingene den blir spurt om — aldri RUNDE_SLUTT.
+      if (s.rundeNr === start) døv.vektFor(s, sete);
+      else if (!kastet) {
+        assert.throws(() => døv.vektFor(s, sete), /RUNDE_SLUTT/);
+        kastet = true;
+      }
+      if (s.rundeNr > start && kontroll.vektor(sete, 4)[5] !== 0) {
+        const med = følger.vektFor(s, sete)!;
+        // Kontrollarm: samme nett, tom bok (første runde den ser er denne).
+        const tom = new MlbSøketro(nett).vektFor(s, sete)!;
+        const w = trekkVerden(s, sete, lagRng(sjekket + 1));
+        if (w !== null) {
+          sjekket++;
+          if (med(w) !== tom(w)) endret++;
+        }
+      }
+    }
+    s = utfør(s, agenter[sete]!.velgHandling(s)).state;
+  }
+  assert.ok(kastet, "kampen nådde aldri runde 2");
+  assert.ok(sjekket > 0, "ingen stilling med hukommelse i den koblede kolonnen");
+  assert.equal(endret, sjekket, "hukommelsen nådde ikke troen");
+  assert.ok(følger.runder() >= 1);
+  assert.equal((sik.tro as MlbSøketro).runder(), følger.runder(), "Sikkerorakel.observer når ikke søketroen");
+  følger.nyKamp();
+  assert.equal(følger.runder(), 0);
+});
+
+test("«L» i sik-speken bytter til lagmålet, og bare det", () => {
+  const med = `sik:alle:0:4k8L:${ADAMS}`;
+  const uten = `sik:alle:0:4k8:${ADAMS}`;
+  // Feltantallet er uendret, så rollout-motparten er den samme.
+  assert.equal(utenSøk(med), ADAMS);
+  const a = lagIndre(med) as unknown as Sikkerorakel;
+  const b = lagIndre(uten) as unknown as Sikkerorakel;
+  let ulik = 0;
+  for (const s of STILLINGER.slice(0, 8)) {
+    a.velgHandling(s);
+    b.velgHandling(s);
+    // Samme frø og samme verdener: bare utfallsmålet skiller armene.
+    assert.equal(a.siste?.n, b.siste?.n);
+    if (a.siste?.sigma !== b.siste?.sigma) ulik++;
+  }
+  assert.ok(ulik > 0, "«L» ga nøyaktig samme σ i alle stillinger — lagmålet når ikke utspillingen");
 });

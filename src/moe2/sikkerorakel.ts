@@ -23,12 +23,17 @@
  * ytterpunktene reproduserer kjente tall er selve valideringen av oppsettet;
  * går det ikke opp, er det operatoren som er feil, ikke funnet.
  *
- * ============ TROEN OG FRISTEN (11. sep) ==================================
+ * ============ TROEN, LAGMÅLET OG FRISTEN (11. sep) ========================
  *
  * Søket i den utrullede boten trakk verdener vektet etter BUDET alene, blant tre
  * kandidater. Det skarpeste trosnettet prosjektet har (MLB-trohodet) satt aldri i
- * søket. `trovektFor` kobler det inn; `budvekt: false` slår av budformelen når
- * trohodet selv leser budrunden.
+ * søket. `tro` kobler det inn (med hukommelsen: `soketro.ts`); `budvekt: false` slår
+ * av budformelen når trohodet selv leser budrunden.
+ *
+ * `lagmål` bytter utfallsmålet til sidens snitt mot den andre sidens (`lagMål`).
+ * Standardmålet trekker fra makkerens poeng, så søk som makker eller forsvarer
+ * måler feil ting (§103) — og de to rollene er nettopp der troen skjerper verdenene
+ * mest (+7 pp mot +2 for føreren).
  *
  * `fristMs` er appens tidsbudsjett. Uten den kunne ett tregt trekk fryse bordet;
  * med den kuttes hele verdener (se `vurderPar`), så σ regnes fortsatt parvis. All
@@ -37,9 +42,9 @@
 
 import { type GameState, type Handling } from "../motor.ts";
 import { lagRng } from "../kort.ts";
-import type { Verden } from "../solver/sampler.ts";
 import { vurderPar } from "./sdpar.ts";
-import type { Utspiller } from "./sdkort.ts";
+import type { Søketro } from "./soketro.ts";
+import { lagMål, type Utspiller } from "./sdkort.ts";
 import { rolleFor, type Rolle } from "./rolleorakel.ts";
 
 export interface SikkerOpts {
@@ -61,13 +66,16 @@ export interface SikkerOpts {
   /** A1: vekt verdenene etter spillet, ikke bare budrunden. */
   readonly spillvekt?: boolean;
   /**
-   * TROEN I VERDENENE. Kalles én gang per vurdert beslutning og gir vektfunksjonen
-   * for stillingen, eller null når ingenting er skjult. Udefinert = som før.
-   * Utelukker `spillvekt` (samme bevis to ganger).
+   * TROEN I VERDENENE. `vektFor` kalles én gang per vurdert beslutning og gir
+   * vektfunksjonen for stillingen, eller null når ingenting er skjult. Har den en bok
+   * (`MlbSøketro` med hukommelse), får den se hver tilstand gjennom `observer`.
+   * Udefinert = som før. Utelukker `spillvekt` (samme bevis to ganger).
    */
-  readonly trovektFor?: (state: GameState, sete: number) => ((v: Verden) => number) | null;
+  readonly tro?: Søketro | null;
   /** Budvekten på verdenene. Standard på. */
   readonly budvekt?: boolean;
+  /** LAGMÅLET i utspillingene i stedet for `standardMål`. Standard av, bit-identisk. */
+  readonly lagmål?: boolean;
   /** Tidsbudsjett per beslutning i millisekunder. Udefinert = ingen frist. */
   readonly fristMs?: number;
   /** Klokka fristen og `siste.ms` måles med. Standard `performance.now()`. */
@@ -104,8 +112,10 @@ export class Sikkerorakel {
   private readonly verdenKandidater: number;
   private readonly verdenKombi: "snitt" | "min" | "kvantil" | "flest";
   private readonly spillvekt: boolean;
-  private readonly trovektFor: ((state: GameState, sete: number) => ((v: Verden) => number) | null) | null;
+  /** Søketroen, eller null. Offentlig for loggen og prøvene. */
+  readonly tro: Søketro | null;
   private readonly budvekt: boolean;
+  private readonly mål: ((s: GameState, spiller: number) => number) | undefined;
   private readonly fristMs: number | null;
   private readonly klokke: () => number;
   readonly tellere: SikkerTellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, enig: 0, avkortet: 0 };
@@ -125,12 +135,14 @@ export class Sikkerorakel {
     this.verdenKandidater = opts.verdenKandidater ?? 3;
     this.verdenKombi = opts.verdenKombi ?? "snitt";
     this.spillvekt = opts.spillvekt === true;
-    this.trovektFor = opts.trovektFor ?? null;
+    this.tro = opts.tro ?? null;
     this.budvekt = opts.budvekt ?? true;
+    // Udefinert, ikke `standardMål`: da velger `vurderPar` selv, og standardstien er urørt.
+    this.mål = opts.lagmål === true ? lagMål : undefined;
     this.fristMs = opts.fristMs ?? null;
     this.klokke = opts.klokke ?? ((): number => performance.now());
     // Feil ved bygging, ikke ved første trekk midt i en kamp.
-    if (this.spillvekt && this.trovektFor !== null) {
+    if (this.spillvekt && this.tro !== null) {
       throw new Error("Sikkerorakel: spillvekt og trovekt leser det samme beviset - velg én");
     }
     if (this.fristMs !== null && !(this.fristMs > 0)) {
@@ -140,10 +152,21 @@ export class Sikkerorakel {
 
   nyKamp(): void {
     this.indre.nyKamp();
+    this.tro?.nyKamp?.();
+  }
+
+  /**
+   * Bokfør en tilstand uten å bli spurt om et trekk — `RUNDE_SLUTT` kommer bare hit.
+   * Sendes videre innover, så lag under søket som fører egen bok ser det samme.
+   */
+  observer(state: GameState): void {
+    this.tro?.observer?.(state);
+    (this.indre as { observer?(s: GameState): void }).observer?.(state);
   }
 
   velgHandling(state: GameState): Handling {
     this.siste = null;
+    this.tro?.observer?.(state);
     if (state.fase !== "SPILL" || state.iTur === null) return this.indre.velgHandling(state);
     const sete = state.iTur;
     if (this.roller.length > 0) {
@@ -157,8 +180,9 @@ export class Sikkerorakel {
       verdenKandidater: this.verdenKandidater,
       verdenKombi: this.verdenKombi,
       spillvekt: this.spillvekt,
-      trovekt: this.trovektFor === null ? undefined : (this.trovektFor(state, sete) ?? undefined),
+      trovekt: this.tro === null ? undefined : (this.tro.vektFor(state, sete) ?? undefined),
       budvekt: this.budvekt,
+      mål: this.mål,
       frist: this.fristMs === null ? undefined : start + this.fristMs,
       klokke: this.klokke,
       verdener: this.verdener,

@@ -65,7 +65,8 @@ import { Konvensjonsvakt, lesVaktflagg } from "./konvensjonsvakt.ts";
 import { Budagent } from "./budmodell.ts";
 import { Vrakrangerer } from "./vrakrang.ts";
 import { Sikkerorakel } from "./sikkerorakel.ts";
-import { lagTrovektFraVisning, type Visningstro } from "./troprior.ts";
+import type { Visningstro } from "./troprior.ts";
+import { MlbSøketro } from "./soketro.ts";
 import { Profilagent } from "./profilagent.ts";
 import { Økt } from "./okt.ts";
 // TYPE-ONLY. `rolleorakel.ts` drar inn mer enn nettleseren trenger, og et
@@ -76,6 +77,8 @@ import type { Rolle } from "./rolleorakel.ts";
 export interface Velger {
   velgHandling(s: GameState): Handling;
   nyKamp(): void;
+  /** Bokfør en tilstand uten trekk (også RUNDE_SLUTT). Den som driver spillet kaller den for hver tilstand. */
+  observer?(s: GameState): void;
 }
 
 /** Søket, eller fraværet av det. `null` = rent nett, som er billigst. */
@@ -89,8 +92,9 @@ export type Søkspek =
       /** Verdener importance-samplingen velger mellom. Udefinert = 3, som utrullet. */
       readonly verdenKandidater?: number;
       /**
-       * MLB-trohodet i verdenene (11. sep). Udefinert/null = som før. Et nett som
-       * leser hukommelsen avvises: søket fører ingen bok ennå.
+       * MLB-trohodet i verdenene (11. sep). Udefinert/null = som før. Leser nettet
+       * hukommelsen, MÅ kalleren vise agenten hver tilstand, også RUNDE_SLUTT, gjennom
+       * `agent.observer` — ellers kaster søketroen i neste runde.
        */
       readonly tronett?: Visningstro | null;
       /** Budvekten på verdenene. Standard på. */
@@ -174,15 +178,12 @@ export function byggUtrullet(spek: UtrulletSpek): { agent: Velger; økt: Økt | 
     const motpart = kjede as unknown as ConstructorParameters<typeof Alphamuagent>[1];
     if (søk.type === "sik") {
       const tronett = søk.tronett ?? null;
-      if (tronett !== null && tronett.brukerHukommelse === true) {
-        throw new Error("byggUtrullet: trohodet leser hukommelsen, og søket fører ingen bok ennå");
-      }
       sik = new Sikkerorakel(kjede, motpart as never, {
         verdener: søk.verdener,
         sigma: søk.sigma,
         roller: ["foerer"],
         verdenKandidater: søk.verdenKandidater,
-        trovektFor: tronett === null ? undefined : (st, sete) => lagTrovektFraVisning(tronett, st, sete, null),
+        tro: tronett === null ? null : new MlbSøketro(tronett),
         budvekt: søk.budvekt,
         fristMs: søk.fristMs,
       });

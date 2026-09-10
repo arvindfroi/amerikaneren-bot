@@ -291,6 +291,11 @@ class Driver:
             "--sjanse", str(self.a.tro_sjanse),
             "--maksrunder", str(self.a.maksrunder),
         ]
+        if self.a.tro_hukommelse:
+            # K6 -> K8 (11. sep): hukommelsen bakerst i trotrekkene. Treneren utvider et
+            # 660-nett med nullkolonner, saa foerste epoke starter paa noeyaktig samme tro.
+            # Maalt paa R1-kamper: -0.0055 +/- 0.0007 i K8-tap, stokket hukommelse null.
+            cmd.append("--hukommelse")
         sek_data, _ = self.kjor("TRODATA", cmd, f"{self.a.logkatalog}/e{e}-trodata.txt")
         kandidat = f"{self.a.katalog}/mlb-tro-e{e}.bin"
         py = self.a.wsl_python
@@ -687,6 +692,8 @@ def main():
     p.add_argument("--tro-epoker", type=int, default=3)
     p.add_argument("--tro-lr", type=float, default=3e-4)
     p.add_argument("--tro-sjanse", type=float, default=0.3)
+    p.add_argument("--tro-hukommelse", action="store_true",
+                   help="K6->K8: trosnettet trenes med hukommelsen som inngang (660 -> 804)")
     # R2: SEIERSPREDIKTOREN TILPASSES PAA NYTT hvert N-te epoke (0 = fast). Se Driver.seier_steg.
     p.add_argument("--seier-tren-hver", type=int, default=0)
     # R2: VANEANDELEN I LIGAEN, «beste,tidligere,vaner» (tom = TRENINGSVEKTER 0,4/0,3/0,3).
