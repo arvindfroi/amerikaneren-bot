@@ -79,8 +79,7 @@ content-blokkeringen iPad-ens Safari ellers ville gitt.
 1. Bygg spill-bundelen (én gang, eller etter kodeendring):
 
    ```bash
-   npx esbuild web/app.ts --bundle --format=esm --charset=utf8 --minify --outfile=web/dist/app.js
-   npx esbuild web/worker.ts --bundle --format=esm --charset=utf8 --minify --outfile=web/dist/worker.js
+   npm run bygg-web   # verktoy/bygg-web.mjs: esbuild --bundle --format=esm --charset=utf8 --minify, begge buntene
    ```
 
 2. Start broen på laptopen (fra repo-roten):
