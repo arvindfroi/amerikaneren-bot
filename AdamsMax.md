@@ -32,34 +32,83 @@ vekslingskurs — se under.
 | NevroHjerne | 3,65 % |
 | sd-r2 | 6,77 % |
 | ftf1 | 7,29 % |
-| **familien (19 ekte kamper)** | **15,8 %** |
-| **der vi står (v5)** | **15,83 %** |
+| *menneskene mot før-v5-linja (19 ekte kamper, 1.–4. aug)* | *15,8 %* |
+| **menneskene mot v5 (78 ekte kamper, 5. aug–1. sep)** | **32,1 %** |
+| **der vi står (v5, mot STEDFORTREDEREN)** | **15,83 %** |
 | **KRAVET** | **< 5,0 %** |
 
-**Status: ikke innfridd — men avstanden er langt mer usikker enn tallet ser ut.**
+**Status: ikke innfridd, og avstanden er STØRRE enn denne fila har hevdet.**
+
+De to menneskeradene måler ikke samme bot. 15,8 % er før-v5-linja (Vaar, v1,
+v2, v3) og slutter 4. august — den beskriver ingen bot som er utrullet i dag.
+v5 har stått på nettsidene siden 5. august, og der har menneskene 78
+ferdigspilte kamper.
 
 ### < 5 % ER ET STREKKMÅL, og grunnlaget er tynnere enn overskriften
 
 Arvind, 8. august: «at mennesker skal bare kunne slå oss i 5% av kamper i et
 race til hundre er noe jeg tror er mulig, MEN det er bare et strekkmål.»
 
-Og de 15,8 % er **3 av 19 kamper**. Intervallet står i `docs/plan.md`:
+De 15,8 % var **3 av 19 kamper**, og intervallet sto i `docs/plan.md`:
 
     MÅLT 15,8 %      95 %-intervall  5,5 % – 37,5 %
 
-**Den nedre enden er allerede på målet.** Vi vet ikke om familien slår Adams 5 %
-eller 35 % av gangene. Og «der vi står (v5) = 15,83 %» er målt mot en
-STEDFORTREDER — en bot valgt fordi den vinner omtrent like ofte som familien
-gjorde i de 19 kampene. Hele K1-målingen hviler altså på en proxy kalibrert mot
-tre observasjoner.
+**Her sto det tidligere «den nedre enden er allerede på målet». Det stemmer
+ikke lenger.** Med v5 og 78 kamper (1. september) er målingen:
 
-Det har to konsekvenser, og begge peker samme vei:
+    MÅLT 32,1 %      95 %-intervall (Wilson)  22,7 % – 43,0 %
 
-1. **Å si «10,8 prosentpoeng igjen» er å behandle 15,83 som et faktum.** Det er
-   det ikke. Avstanden kan være 10,8 — den kan også være 0,5.
+Hele intervallet ligger over kravet, og den nedre enden er nå 4,5 ganger
+målet — ikke på det. Nitten kamper var rett og slett for få: punktestimatet
+doblet seg da grunnlaget ble firedoblet, akkurat slik det brede intervallet
+advarte om.
+
+**Og det feller stedfortrederen.** «Der vi står (v5) = 15,83 %» er målt mot en
+STEDFORTREDER — en bot valgt fordi den vant omtrent like ofte mot Adams som
+menneskene gjorde i de 19 kampene. Den kalibreringen er nå motsagt, og stigen er
+kjørt om mot dagens utrullede v5 med 800 kamper per arm
+(`analyse/stedfortreder-2026-09-01.md`):
+
+| kandidat | andel mot v5 | 95 %-KI |
+|---|---|---|
+| nevro | 3,5 % | 2,4–5,0 |
+| d7alle bart | 6,8 % | 5,2–8,7 |
+| ftf1 | 6,9 % | 5,3–8,8 |
+| Adams uten budmodell | 7,1 % | 5,5–9,1 |
+| Adams uten vrakrangerer | 22,9 % | 20,1–25,9 |
+| **KONTROLL: v5 mot seg selv** | **25,3 %** | 22,4–28,4 |
+| **MENNESKENE** | **32,1 %** | 22,7–43,0 |
+
+Kontrollarmen omslutter 0,2500, slik prøven over krever. Og da faller premisset
+stigen ble bygd på: **menneskenes intervall inneholder kontrollarmen — de kan
+ikke skilles fra enda en kopi av Adams-v5 selv.** `docs/plan.md` §41 skrev
+«menneskene ligger på 15,8 %, altså SVAKERE enn Adams-v3». De er ikke svakere
+enn Adams. Det finnes ikke noe trinn mellom 7,1 % og 22,9 %, og altså ingen
+stedfortreder å velge: til K1 må v5 selv brukes inntil menneskedataene er
+tykkere.
+
+Det har tre konsekvenser:
+
+1. **Å si «10,8 prosentpoeng igjen» var å behandle 15,83 som et faktum.** Målt
+   mot mennesker er avstanden 32,1 → 5,0, og mot kontrollarmen 25,3 → 5,0.
+   Kravet ber om at Adams skal slå et menneske omtrent så klart som han i dag
+   slår NevroHjerne (3,5 %) — ikke en finjustering av dagens stakk.
 2. **Den bindende usikkerheten er ikke hvor sterk Adams er, men hvor godt vi
    har målt menneskene.** Flere ekte familiekamper er derfor verdt mer enn
-   flere modulmålinger, og de koster ingen CPU — de koster kvelder.
+   flere modulmålinger, og de koster ingen CPU — de koster kvelder. Det rådet
+   var riktig, og det er nettopp det som avslørte feilen.
+3. **Samme kjøring replikerer K3 uavhengig.** Å fjerne budmodellen koster
+   18,2 pp, å fjerne vrakrangereren 2,4 pp. `budm` bærer stakken — nå målt på
+   kamper til 100 poeng, ikke på rundedifferanse. To benker, samme svar.
+
+**Forbehold ved de 32,1 %.** Bare 78 av 248 startede v5-kamper ble fullført.
+Av de forlatte som rakk ≥ 8 runder (n=56) lå mennesket bak i 84 % — folk
+forlater kamper de taper. Menneskenes ekte andel er derfor trolig LAVERE enn
+32,1 %; tallet er et tak, ikke et punkt. Samme skjevhet lå i de 19 kampene
+(fullføringsgrad 41,3 % for før-v5-linja mot v5-linjas 31,5 %), så 15,8 → 32,1
+skal ikke leses som at v5 er svakere enn v1–v3: spillersammensetningen er også
+ulik mellom de to vinduene. Det som står igjen uansett er nivået mot v5 og at
+kravet er langt unna.
 
 K1 behandles derfor som en RETNING, ikke som en port. K2–K8 er portene.
 
@@ -545,7 +594,7 @@ arbeidslista, og den er ærlig om hva som er kode og hva som er timer:
 
 | krav | prøven finnes | innfridd |
 |---|---|---|
-| K1 bedre enn mennesker | ja | **nei** — 15,83 % mot < 5,0 % |
+| K1 bedre enn mennesker | ja | **nei** — **32,1 %** mot < 5,0 % (78 ekte v5-kamper; 15,83 % var stedfortrederen) |
 | K2 aldri jukse | ja | **ja** (kortspill) — men se talonghullet |
 | K3 SOTA i alle faser | ja | delvis — **~21 % av budtaket er nåbart** (revidert) |
 | K4 hukommelse + planlegging | ja | **nei** — hviler på samme tall som K6, se §108. `M=1`, så framoverblikket er av |

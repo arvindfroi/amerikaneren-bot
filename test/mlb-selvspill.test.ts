@@ -24,7 +24,9 @@
 
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { lagRng } from "../src/kort.ts";
@@ -328,9 +330,13 @@ test("selvspill og liga RØRER ALDRI disk — spillerprofiler dør med økta", (
    */
   const utenKommentarer = (kilde: string): string =>
     kilde.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
-  const rot = new URL("..", import.meta.url).pathname;
+  // `pathname` gir «/C:/...» på Windows og «/home/...» på Linux og macOS. Å
+  // stryke den ledende skråstreken var riktig for den første og ødela stien for
+  // de to andre - denne testen kunne bare kjøre på Windows. `fileURLToPath`
+  // gjør det riktige på alle tre.
+  const rot = fileURLToPath(new URL("..", import.meta.url));
   for (const fil of ["src/mlb/selvspill.ts", "src/mlb/liga.ts"]) {
-    const kilde = utenKommentarer(readFileSync(`${rot}${fil}`.replace(/^\//, ""), "utf8"));
+    const kilde = utenKommentarer(readFileSync(join(rot, fil), "utf8"));
     for (const forbudt of [
       "node:fs",
       "writeFile",

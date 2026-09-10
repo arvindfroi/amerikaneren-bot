@@ -383,6 +383,34 @@ const SØKSIGMA = 0.5;
  *  en meldingsgrense; workeren må bygge sin egen fra de samme bytene. */
 let råVekter: { kort: string; bud: unknown; vrak: string | null; tro: string | null } | null = null;
 
+/**
+ * ============ HVILKE FILER SOM FAKTISK VANT RESERVEKJEDEN ================
+ *
+ * `docs/gammelkode.md` N14. Reservekjedene under er gode — de fanger Val Towns
+ * 200-med-HTML eksplisitt og roper `console.warn` på hvert trinn. Problemet var
+ * hvor ropet havnet: nettleserkonsollen på farmors iPad, som ingen leser.
+ *
+ * Og `logg("start", …)` skrev bare `motstander` og `styrke` — altså hvilken bot
+ * vi MENTE å kjøre. **Ingen rad sa hvilken budmodell som faktisk kjørte.**
+ *
+ * Det er ikke en detalj: stedfortrederstigen 1. september målte at å fjerne
+ * budmodellen koster 18,2 prosentpoeng vinnerandel, den største enkeltdelen i
+ * stakken. Ble `bud-menneske.json` lastet opp en dag, ville den sterkeste
+ * komponenten byttet seg ut i stillhet, og hver menneskeandel i basen ville
+ * blandet to populasjoner uten at én eneste rad viste det.
+ *
+ * Nå skrives oppløsningen til basen ved hver kampstart. `start` logges etter
+ * `await besteBot()` (se `start()`), så feltene er alltid utfylt når de logges.
+ * `null` i `bud` betyr at ALLE tre falt bort og at NevroHjernes budgivning
+ * kjørte i stedet — som er en helt annen bot, og som nå er synlig som det.
+ */
+const oppløst: {
+  kort: string | null;
+  bud: string | null;
+  vrak: boolean;
+  tro: boolean;
+} = { kort: null, bud: null, vrak: false, tro: false };
+
 function medVrakrangerer(bot: Bot, b64: string | null): Bot {
   if (b64 === null) {
     console.warn("Vrakrangereren kunne ikke hentes – vraker som før.");
@@ -391,7 +419,9 @@ function medVrakrangerer(bot: Bot, b64: string | null): Bot {
   try {
     const nett = nettFraBytes(tilBytes(b64))[0];
     if (nett === undefined) throw new Error("tomme vekter");
-    return new Vrakrangerer(bot, nett, VRAKFLAGG);
+    const medRang = new Vrakrangerer(bot, nett, VRAKFLAGG);
+    oppløst.vrak = true; // settes FØRST når den faktisk er bygd, ikke når fila kom
+    return medRang;
   } catch (feil) {
     console.warn("Vrakrangereren ble avvist:", feil);
     return bot;
@@ -404,22 +434,34 @@ function besteBot(): Promise<Bot> {
     // Faller tilbake til sd-r2 om de finjusterte vektene ikke kan hentes.
     // Da spiller boten som i gaar i stedet for aa ikke spille i det hele tatt.
     hentB64(KORTVEKTER).then(async (t) => {
-      if (t !== null) return t;
+      if (t !== null) {
+        oppløst.kort = KORTVEKTER;
+        return t;
+      }
       console.warn(`${KORTVEKTER} kunne ikke hentes – faller tilbake til sd-r2.`);
       const r = await hentB64("sdr2.b64");
       if (r === null) throw new Error("verken finjusterte vekter eller sd-r2 kunne hentes");
+      oppløst.kort = "sdr2.b64";
       return r;
     }),
     // Budmodellen hentes ved siden av vektene, med reserve. Feiler BEGGE,
     // faller vi tilbake til NevroHjernes budgivning i stedet for å la hele
     // boten dø – kortspillet er uendret og fortsatt det familien har møtt.
     hentBudmodell(BUDMODELL).then(async (m) => {
-      if (m !== null) return m;
+      if (m !== null) {
+        oppløst.bud = BUDMODELL;
+        return m;
+      }
       console.warn(`${BUDMODELL} kunne ikke hentes – faller tilbake til ${BUDMODELL_RESERVE}.`);
       const r = await hentBudmodell(BUDMODELL_RESERVE);
-      if (r !== null) return r;
+      if (r !== null) {
+        oppløst.bud = BUDMODELL_RESERVE;
+        return r;
+      }
       console.warn(`${BUDMODELL_RESERVE} kunne heller ikke hentes – siste utvei ${BUDMODELL_SISTE_UTVEI}.`);
-      return hentBudmodell(BUDMODELL_SISTE_UTVEI);
+      const s = await hentBudmodell(BUDMODELL_SISTE_UTVEI);
+      oppløst.bud = s === null ? null : BUDMODELL_SISTE_UTVEI;
+      return s;
     }),
     // Vrakrangereren. Samme vilkår som de to over: feiler den, vraker og
     // velger trumf boten som i går. Ingen enkeltdel får lov til å ta ned
@@ -448,13 +490,18 @@ function besteBot(): Promise<Bot> {
       let bot: Bot = kort;
       if (budRå === null) {
         console.warn("Budmodellen kunne ikke lastes – spiller med NevroHjernes bud.");
+        oppløst.bud = null;
       } else {
         try {
           bot = new Budagent(kort, tolkBudmodell(budRå), BUDTERSKEL);
         } catch (feil) {
           console.warn("Budmodellen ble avvist:", feil);
+          // Hentet, men forkastet her. Da KJØRER den ikke, og da skal den
+          // heller ikke stå i loggen som om den gjorde det.
+          oppløst.bud = null;
         }
       }
+      oppløst.tro = troB64 !== null;
       råVekter = { kort: b64, bud: budRå, vrak: vrakB64, tro: troB64 };
       return medVrakrangerer(bot, vrakB64);
     })
@@ -1148,7 +1195,14 @@ async function start(navn: string): Promise<void> {
     void broPost({ type: "nyKamp", mesterSeter: MESTER_SETER });
     void broPost(broRundeStart());
   }
-  logg("start", { frø: state.frø, målPoeng: state.regler.målPoeng, motstander, styrke });
+  // `modeller` er de FAKTISK oppløste filene, ikke de vi ba om. Se `oppløst`.
+  logg("start", {
+    frø: state.frø,
+    målPoeng: state.regler.målPoeng,
+    motstander,
+    styrke,
+    modeller: { ...oppløst },
+  });
   fortsett();
 }
 

@@ -51,7 +51,7 @@ import { dirname } from "node:path";
 import { globSync } from "node:fs";
 
 import { opprettSpill, utfør, type GameState } from "../src/index.ts";
-import { lagIndre, tall } from "../src/moe2/agentspek.ts";
+import { ADAMS_MAALT, lagIndre, tall } from "../src/moe2/agentspek.ts";
 
 const arg = (n: string, s: string): string => {
   const i = process.argv.indexOf(n);
@@ -96,8 +96,25 @@ export const STAKKER: Record<string, string> = {
     `okt:${VR}:amu:foerer:12k16bgm2e0r1.5v0.5d5B4:profil:` +
     `${BUDSOK}/kamp1.5:${NETT}`,
 
-  /** «Rask»: ingen søk, ingen hukommelse. Den utrullede boten i dag. */
-  rask: `${VR}:${BUD}:${NETT}`,
+  /**
+   * «Rask»: ingen søk, ingen hukommelse.
+   *
+   * DENNE ER IKKE DEN UTRULLEDE BOTEN, og her sto det at den var det.
+   * (`docs/gammelkode.md` N3 — funnet 9. august, rettet 2. september.)
+   *
+   * Den er `ADAMS_MAALT`. Forskjellen fra utrullede `ADAMS` er ETT tegn:
+   * vaktflagget `abmpf` mot `abmp`. Nettopp den `f`-en står på prosjektets egen
+   * liste over de fjorten gangene «det målte» og «det utrullede» ikke var samme
+   * bot (`test/utrullet-lik-spek.test.ts`), og §118s hovedtall hvilte på
+   * påstanden her.
+   *
+   * STRENGEN ER BEHOLDT UENDRET MED VILJE. Alle tidligere matrise-tall er målt
+   * med den, og å bytte den til `ADAMS` ville gjort historikken usammenliknbar
+   * uten å si fra — samme feil, motsatt vei. Det som er rettet er navnet og
+   * påstanden. At de to ikke glir sammen igjen er pinnet i
+   * `test/spek-en-kilde.test.ts`.
+   */
+  rask: ADAMS_MAALT,
 
   /**
    * Maks UTEN hukommelsen — isolerer K4 og K6 i ett par.

@@ -18,13 +18,69 @@ det ikke målt — og da skal det ikke påstås.
 | **K2** aldri jukse | **BEVIST** | 0 avvik, falsifiserbar | 0 avvik | `test/k2-aldri-jukse.test.ts` |
 | **K3** optimalt i alle faser | ikke innfridd | budrunden: **41,8 %** av det som er å hente står igjen | ~0 | §K3 |
 | **K4** hukommelse + planlegging | **ubevist** | benken kan ikke vise det | målbar effekt | §K4 |
-| **K5** forstå kontekst | delvis | **0 av 20** valg endret i «bak 70–90» | endrer valg der det betyr noe | §K5 |
+| **K5** forstå kontekst | **ikke innfridd** | 7,3 % endret — men **den vendte knotten gir 7,3 % òg** (n=192) | endrer valg der det betyr noe | `analyse/k5-2026-09-02.md` |
 | **K6** lære og utnytte vaner | ikke innfridd | vekst med rundenr **z = 0,23** | vekst > 2 SE | §K6 |
 | **K7** optimalt sluttspill | ikke innfridd | **+0,947** poeng/runde igjen ved fem stikk | ~0 | §117 |
 | **K8** predikere kort | ikke innfridd | **12,34 %** av veien gulv → tak | vesentlig høyere | §119 |
-| *K1* slå mennesker | retning | 15,83 % menneskeseier | < 5 % | menneskestigen |
+| *K1* slå mennesker | retning | **32,1 %** menneskeseier mot v5 (n=78, KI 22,7–43,0) | < 5 % | Val Town, `type='kamp'` |
 
 **Én port er lukket av sju.** Det er den ærlige stillingen.
+
+---
+
+## K1 — slå mennesker (retning, ikke port)
+
+**Oppdatert 1. september fra Val Town-basen, `type='kamp'`.** Grunnlinja er
+25 %: ett menneske mot tre bots.
+
+| motstander | kamper | mennesket vant | andel |
+|---|---|---|---|
+| PIMC/MAKS | 16 | 12 | 75,0 % |
+| NevroHjerne | 13 | 8 | 61,5 % |
+| før-v5-linja (Vaar, v1–v3) | 19 | 3 | 15,8 % |
+| **Adams-v5 (utrullet 5. aug)** | **78** | **25** | **32,1 %** |
+| **KRAVET** | | | **< 5 %** |
+
+95 %-intervall (Wilson) for v5: **22,7 % – 43,0 %**. Hele intervallet ligger
+over kravet.
+
+**De 15,8 % som `AdamsMax.md` har sitert er før-v5-linja**, målt 1.–4. august.
+Den beskriver ingen bot som er utrullet i dag. Tallet er korrekt regnet for sitt
+eget vindu — `docs/plan.md:2979` summerer Vaar 10/2, v1 6/1, v2 1/0, v3 2/0 —
+men det er ikke en måling av v5.
+
+**Stedfortrederen er feilkalibrert, og stigen er målt på nytt.** «15,83 % (v5)»
+er v5 mot en menneske-ekvivalent bot kalibrert til de 19 kampenes 15,8 %. Hele
+stigen er nå kjørt om mot dagens utrullede v5, 800 kamper per arm
+(`analyse/stedfortreder-2026-09-01.md`):
+
+| kandidat | andel | 95 %-KI |
+|---|---|---|
+| nevro | 3,5 % | 2,4–5,0 |
+| d7alle bart | 6,8 % | 5,2–8,7 |
+| ftf1 | 6,9 % | 5,3–8,8 |
+| Adams uten budmodell | 7,1 % | 5,5–9,1 |
+| Adams uten vrakrangerer | 22,9 % | 20,1–25,9 |
+| **KONTROLL: v5 mot seg selv** | **25,3 %** | 22,4–28,4 |
+| **MENNESKENE mot v5** | **32,1 %** | 22,7–43,0 |
+
+Kontrollarmen omslutter 0,2500 slik K1-benken krever. **Menneskenes intervall
+inneholder kontrollarmens punktestimat: de kan ikke skilles fra enda en kopi av
+Adams-v5.** Det snur premisset stigen ble bygget på (§41: «menneskene ligger på
+15,8 %, altså SVAKERE enn Adams-v3»). Det finnes ikke noe trinn mellom 7,1 % og
+22,9 %, og altså **ingen stedfortreder å velge** — til K1 må v5 selv brukes
+inntil menneskedataene er tykkere.
+
+Samme kjøring replikerer K3 uavhengig: å fjerne budmodellen koster 18,2 pp, å
+fjerne vrakrangereren 2,4 pp. `budm` bærer stakken, målt på kamper denne gangen
+og ikke på rundedifferanse.
+
+**Forbehold.** Bare 78 av 248 startede v5-kamper ble fullført, og av de
+forlatte med ≥ 8 spilte runder (n=56) lå mennesket bak i 84 %. Folk forlater
+kamper de taper, så 32,1 % er et TAK på menneskenes andel, ikke et punktanslag.
+Fullføringsgraden var dessuten ulik (før-v5 41,3 %, v5 31,5 %) og
+spillersammensetningen skiftet mellom vinduene, så 15,8 → 32,1 skal ikke leses
+som at v5 er svakere enn v1–v3.
 
 ---
 
@@ -40,6 +96,45 @@ en kontrollarm som lekker én bit og blir tatt.
 **Det som holder den lukket:** i sandkassen leser alt `spillerVisning`, aldri
 `GameState`. De skjulte kortene *finnes ikke* i det nettet ser. Garantien er en
 typegrense, ikke en konvensjon.
+
+### Prøven kunne ikke kjøres fra en fersk klone — funnet og rettet 1. september
+
+`e1-modell/` står i `.gitignore` (linje 15), og **to vektfiler spekstrengen
+krever lå ingen steder i repoet**: `vrakrang.bin` og `d7alle.bin`. Uten dem
+kastet `lagIndre` (`src/moe2/agentspek.ts:520`) ENOENT, og i en fersk klone falt
+**114 av 607 prøver — deriblant alle tretten K2-prøvene**. K2 er det ene kravet
+som er erklært BEVIST, og beviset kunne altså ikke etterprøves av noen andre enn
+den maskinen filene tilfeldigvis lå på.
+
+**Rettingen:** vektene lå i repoet hele tiden, som base64 i
+`web/dist/adams-kort.b64` og `web/dist/adams-vrak.b64` — nøyaktig det
+nettleseren laster ned, sporet fordi Vercel serverer `web/`.
+`verktoy/hent-vekter.mjs` pakker dem ut til `e1-modell/` og kjøres som
+`pretest`. Formatet parses før noe treffer disk, og skrivingen er idempotent.
+
+At de pakkes ut FRA nettleserfilene er ikke en detalj: da er «målt = utrullet»
+ikke lenger noe som må håndheves i ettertid — det følger av at det er de samme
+bytene. Å spore `e1-modell/*.bin` i tillegg ville lagret de samme vektene to
+ganger, og to kopier kan komme i utakt. Det er nøyaktig feilklassen
+`test/utrullet-lik-spek.test.ts` finnes for å fange.
+
+Verifisert: `utrullet-lik-spek` 3 av 3, K2 13 av 13, og **hele `npm test` 616 av
+617 grønne, 0 røde** — fra 492 av 607 med 114 røde.
+
+### Den 114. var en ekte feil, og den var Windows-spesifikk
+
+`test/mlb-selvspill.test.ts:333` bygde stien slik:
+
+```ts
+const rot = new URL("..", import.meta.url).pathname;
+readFileSync(`${rot}${fil}`.replace(/^\//, ""), "utf8")
+```
+
+På Windows gir `pathname` `/C:/...`, og da er `.replace(/^\//, "")` riktig. På
+Linux og macOS gir den `/home/...`, og å stryke skråstreken gjorde stien
+relativ. Testen — den som håndhever at selvspillet aldri rører disk — kunne
+altså **bare kjøre på Windows**, og feilet i det stille overalt ellers. Rettet
+med `fileURLToPath` + `join`.
 
 ---
 
@@ -84,15 +179,36 @@ motstanderen er mange ganger alt regelbasert slutning gir.
 
 ## K5 — forstå konteksten og tilpasse seg
 
-**Målt, og halve knotten var død.**
+**Målt på nytt 2. september ved n=192, og RETNINGEN HOLDT IKKE.**
+(`analyse/k5-2026-09-02.md`. Fire disjunkte frøbånd à 48 stillinger mot 16–20 i
+alle tidligere kjøringer.)
 
-| stilling | endrede valg |
-|---|---|
-| **bak** 70–90 | **0 av 20** |
-| foran 90–70 | 4 av 20 |
+| arm | endret | av | andel |
+|---|---|---|---|
+| KONTROLL (bit-identiske armer) | 0 | 192 | **0,0 %** |
+| **BAK-retningen** (λ=0 mot λ=1,5) | 14 | 192 | **7,3 %** |
+| **samme knott VENDT FEIL VEI** | 14 | 192 | **7,3 %** |
+| UTRULLET (`amu:foerer`) bak | 1 | 78 | **1,3 %** |
 
-Å ligge under endret ingenting. Formen er rettet, men **den nye
-atferdsmålingen gjenstår** — retningen er bevist, størrelsen ikke.
+**Den vendte knotten endrer nøyaktig like mange valg som den riktige.**
+Antallet endrede valg bærer altså ingen informasjon om at knotten peker riktig
+vei — bare retningen blant de endrede kunne gjort det, og den replikerer ikke:
+tegntesten er 10 opp / 3 ned samlet, men **2 opp / 2 ned når frøbånd 5 100 000
+tas ut**. Åtte av de ti «opp» ligger i det ene båndet — som tilfeldigvis er
+standardverdien i `examples/k5-kontekst.ts` og dermed båndet alle tidligere
+K5-kjøringer har brukt.
+
+Og i den utrullede boten (`amu:foerer`) er effekten 1,3 %: fiksen fyrer bare i
+seter der søket er avslått.
+
+Dette er en NEDGRADERING fra «retningen er bevist, størrelsen ikke», gjort på
+12x datagrunnlaget. Det som ikke er vist er at racepresset er verdiløst — ved
+n=192 ville en ekte effekt på et par prosentpoeng ikke kunne skilles fra null.
+Funnet er at effekten ikke kan skilles fra å vri knotten feil vei.
+
+**Neste steg er måling og konfigurasjon, ikke trening:** flere bånd før noe
+endres i koden, og så spørsmålet om `amu:` skal kjøre i flere seter enn
+føreren.
 
 **MLB-svaret:** `målPoeng` og `racepress` er trekk, i to skalaer. Nettet kan
 ikke unngå å se stillingen. At vi trener på løp til 30 og dømmer på 100 gjør

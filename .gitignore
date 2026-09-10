@@ -105,3 +105,13 @@ analyse/mlb-epoke/*-port-par-*.jsonl
 analyse/mlb-epoke/*-port-liga-*.jsonl
 
 verktoy/__pycache__/
+
+# MLB fase 0a: trohodets datasett. ~24 rader per giv a ~2,7 kB, altsaa ~6,5 GB
+# for de 100 000 treningsgivene `verktoy/mlb-fase0a.sh` lager som standard.
+# Gjenskapes fra froebaandene i `examples/mlb-trodata.ts` naar som helst; det
+# varige sporet er nettet og rapportene under analyse/.
+mlb-tro-data/
+
+# Halvskrevne skard fra et avbrutt steg i mlb-fase0a.sh. Skriptet gir dem
+# riktig navn foerst naar prosessen har avsluttet med kode 0.
+*.delvis

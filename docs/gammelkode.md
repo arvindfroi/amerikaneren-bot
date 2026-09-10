@@ -20,12 +20,118 @@ under har en filreferanse eller et paragrafnummer. Der jeg er usikker, står det
 
 | # | funn | klasse | status |
 |---|---|---|---|
-| 1 | `web/dist/worker.js` er 57 commits gammel. Duplikatkjeden `utrullet.ts` fjernet er fortsatt den som KJØRER. | målt ≠ utrullet | **live** |
-| 2 | `web/app.ts` bygger kjeden FOR HÅND og tar flertallet av beslutningene. `byggUtrullet` fikset workeren, ikke appen. | målt ≠ utrullet | **live** |
-| 3 | `examples/matrise.ts:100` kaller `rask` «den utrullede boten i dag». Det er den ikke. §118s hovedtall hviler på det. | målt ≠ utrullet | **live** |
-| 4 | Hovedtråd og worker er to ulike bots over samme beslutning, og oppløsningsregelen er en **stoppeklokke**. | lokalt optimum ødelegger avtale | **live** |
-| 5 | `docs/utrulling-v5.md` sier `bud-menneske.json` ikke er med. `web/app.ts:147` laster den. | målt ≠ utrullet | **live** |
-| 6 | Vakten mot rivaliserende spek-parsere kan **ikke feile**, og det står 14 rivaler bak den. | målt ≠ utrullet | **live** |
+| 1 | `web/dist/worker.js` er 57 commits gammel. Duplikatkjeden `utrullet.ts` fjernet er fortsatt den som KJØRER. | målt ≠ utrullet | **RETTET** (10. aug) |
+| 2 | `web/app.ts` bygger kjeden FOR HÅND og tar flertallet av beslutningene. `byggUtrullet` fikset workeren, ikke appen. | målt ≠ utrullet | ikke etterprøvd |
+| 3 | `examples/matrise.ts:100` kaller `rask` «den utrullede boten i dag». Det er den ikke. §118s hovedtall hviler på det. | målt ≠ utrullet | **RETTET** (2. sep) |
+| 4 | Hovedtråd og worker er to ulike bots over samme beslutning, og oppløsningsregelen er en **stoppeklokke**. | lokalt optimum ødelegger avtale | ikke etterprøvd |
+| 5 | `docs/utrulling-v5.md` sier `bud-menneske.json` ikke er med. `web/app.ts:147` laster den. | målt ≠ utrullet | **fortsatt live** |
+| 6 | Vakten mot rivaliserende spek-parsere kan **ikke feile**, og det står 14 rivaler bak den. | målt ≠ utrullet | ikke etterprøvd |
+| N14 | **Reservekjeden for budmodellen er usynlig i dataene.** Hvilken av tre modeller som faktisk kjørte sier ingen logget rad noe om. | målt ≠ utrullet | **RETTET** (10. sep) |
+
+## N14 — reservekjeden er godt bygd, men utfallet havner ingen steder (ny 2. september)
+
+**Dette er ikke en svelget feil.** `hentBudmodell` (`web/app.ts:321`) er en av de
+bedre vaktpostene i repoet: den fanger Val Towns 200-med-HTML eksplisitt, kaller
+`tolkBudmodell` med én gang så feil `dim` utløser reserven i stedet for å bli
+avvist lenger nede, og roper `console.warn` på hvert trinn. Kjeden er
+
+    bud-menneske.json  →  bud-vant.json  →  bud-gbt.json
+
+**Problemet er hvor ropet havner.** `console.warn` går til nettleserkonsollen på
+farmors iPad. Ingen leser den. Og `logg("start", …)` (`web/app.ts:1151`) skriver
+`motstander` og `styrke` til Val Town — altså hvilken bot vi MENTE å kjøre —
+men **ingen rad sier hvilken budmodell som faktisk vant kjeden**.
+
+Hvorfor det betyr noe, konkret: stedfortrederstigen 1. september målte at å
+fjerne budmodellen koster **18,2 prosentpoeng** vinnerandel — den klart største
+enkeltkomponenten i stakken. `docs/utrulling-v5.md:167` sier samtidig at
+`bud-menneske.json` «aldri [ble] lastet opp». I praksis faller kjeden altså
+trolig til `bud-vant.json`, som er nettopp modellen `ADAMS`-speken navngir, og
+alt stemmer. Men **det er en slutning, ikke en måling**: ingen logget rad kan
+bekrefte den for noen enkelt økt.
+
+Konsekvensen for K1: hver rad i Val Town-basen er merket «Adams-v5» uansett
+hvilken av tre budmodeller som kjørte. Skulle `bud-menneske.json` bli lastet opp
+en dag, ville den utrullede botens sterkeste komponent byttes ut i stillhet, og
+menneskeandelen ville blande to populasjoner uten at én eneste rad viste det.
+Det er samme feilklasse som resten av fila: ikke en feil som krasjer, men en
+konfigurasjon som ikke kan etterprøves i ettertid.
+
+**RETTET 10. september.** `oppløst` i `web/app.ts` noterer hvilke filer som
+faktisk vant hver reservekjede, og `logg("start", …)` skriver dem til Val Town
+som feltet `modeller`. `start` logges etter `await besteBot()`, så feltene er
+alltid utfylt. `null` i `bud` betyr at alle tre falt bort og at NevroHjernes
+budgivning kjørte — en helt annen bot, nå synlig som det.
+
+Kilde og bunt er bygd og committet i samme steg, slik funnet selv krevde.
+
+**Verifisert ende-til-ende i Chromium, på den bygde bunten — ikke på kilden.**
+To armer, med alle Val Town-kall avskåret så ingen testrad nådde
+produksjonsbasen:
+
+| arm | `bud-menneske.json` | `modeller.bud` som ble logget |
+|---|---|---|
+| B (som i produksjon) | svarer 200 med HTML | **`bud-vant.json`** |
+| A | finnes | **`bud-menneske.json`** |
+
+Arm B er den som betyr noe: at kjeden faller til `bud-vant.json` var til nå en
+SLUTNING fra `utrulling-v5.md`. Nå er den målt, og fra 10. september står den i
+hver eneste loggede rad.
+
+Merk at `tro` logges som `false`: trosnettet er av med vilje (`TROFIL === null`,
+en målt beslutning — fortegnet snudde mellom frøbånd). Det er ikke en feil, men
+det er nå synlig i stedet for å måtte leses ut av en kommentar.
+
+### Sidefunn: de to buntene var bygd med ULIKE flagg
+
+Ombyggingen avslørte det. Den utrullede `web/dist/app.js` var **ikke
+minifisert** — 5 140 linjer, 721 kB, med `// src/kort.ts`-kommentarer i klartekst
+— mens `web/dist/worker.js` var det (én linje). `MESTERAI-NETT.md` dokumenterer
+`--minify` for **begge**.
+
+Ingen har altså kjørt den dokumenterte kommandoen for `app.js`. Det er samme
+familie som resten av fila: ikke en feil som krasjer, men et avvik mellom det
+som står skrevet og det som er rullet ut, som ingen prøve kunne se.
+
+`app.js` er nå bygd med den dokumenterte kommandoen: 110 linjer, 632 kB, **88 kB
+mindre over mobilnett**. `--minify` i esbuild bevarer semantikk, og den
+minifiserte bunten er den som ble kjørt i Chromium-verifiseringen over — så det
+er den, ikke kilden, som er prøvd.
+
+Dette er en endring i utrullet artefakt utover selve N14-fiksen, og den skal
+leses som det. Vil du ha den gamle formen tilbake, er det å utelate `--minify`;
+men da avviker `app.js` fra både `worker.js` og fra utrullingslista igjen.
+
+---
+
+## Etterprøving 2. september 2026
+
+Denne fila hadde alle seks funn merket «live» i tre uker etter at minst ett av
+dem var rettet. **En revisjon som ikke oppdateres blir selv til gammelkode**, og
+overrapporterer gjelden akkurat som en foreldet måling overrapporterer styrken.
+Tre av seks er etterprøvd nå; de tre andre er ærlig merket som ikke etterprøvd
+heller enn å bli gjettet på.
+
+- **N1 er rettet, og fra 10. september VOKTET.** `git log` viser 0 commits
+  mellom `web/worker.ts` og `web/dist/worker.js`, og likeså for `app.ts`.
+  Utrullingsrunden 10. august («UTRULLET: alle atte filer stemmer») lukket den.
+  Men den kunne komme tilbake usett: `utrullet-lik-spek` og `spek-en-kilde`
+  leser begge KILDEN, og en bunt bygd fra en eldre kilde består begge to — den
+  er internt konsistent, bare foreldet. `test/bunt-ikke-foreldet.test.ts` spør
+  nå git om det finnes commits som rører kilden etter siste bunt-commit, og
+  gjør dermed N1 til en rød test i stedet for noe man må huske.
+- **N3 er rettet 2. september.** `rask` er nå `ADAMS_MAALT` importert fra
+  `agentspek.ts`, med strengen uendret så historiske matrise-tall fortsatt
+  gjelder. Påstanden om at den var den utrullede boten er borte, og
+  `test/spek-en-kilde.test.ts` pinner at `rask ≠ ADAMS`.
+- **N5 står fortsatt.** `web/app.ts:168` setter `BUDMODELL =
+  "bud-menneske.json"` og linje 416 laster den, mens `utrulling-v5.md:167` sier
+  at fila «aldri [ble] lastet opp». I praksis faller kjeden gjennom til
+  `bud-vant.json` — som er nettopp modellen `ADAMS`-speken navngir — så
+  avviket er godartet i dag. Det er likevel to kilder som sier ulike ting om
+  hvilken budmodell som kjører, og hvilken av dem som har rett avhenger av
+  hva som ligger på CDN-en. Ikke rettet her: §147 kaller valget «ubesluttet»,
+  og det er en produktbeslutning, ikke en opprydding.
 
 ---
 
