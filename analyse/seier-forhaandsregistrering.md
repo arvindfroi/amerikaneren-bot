@@ -84,7 +84,13 @@ til Adams-stakken direkte (budsøk K=240 er målt +2,0, `ADAMS-MAX-ARBEIDSPLAN`)
 
 | arm | hva | status 10. sep |
 |---|---|---|
-| i1 | imitasjon, lr 1e-4, 6 pass | stigen målt, kampbenk kjører |
-| i1b | imitasjon, lr 3e-4, 20 pass, samme data | trener |
+| i1 | imitasjon, lr 1e-4, 6 pass | **kampbenk 0,086** (400 frø / 1 600 kandidatkamper, −25,6 SE, 7 opp / 269 ned), 10. sep. *Først lest som 0,100 på 25 frø: `kampport.sh` leste bare skard 0 — se under.* |
+| i1b | imitasjon, lr 3e-4, 20 pass, samme data | samsvar holdout 73,9 % (trening 82,5 %, verdihodet overtilpasset: forklart −0,02 holdout). Stigen mot Adams −0,34 ± 0,41 (n=600). **Kampbenk 0,204** (400 frø / 1 600 kandidatkamper, differanse −0,046 ± 0,009, **−5,19 SE**, 55 opp / 135 ned, margin −6,7 ± 1,2), 10. sep. *Først lest som 0,190, −1,44 SE på 25 frø.* |
 | i2 | imitasjon + verdihoder mot SEIER, 8 000 nye kamper (frø 2 000 000 000 +), sjanse ~0,33 | data spilt |
-| R1–R6 | `mlb-epoke.py --seier`, fra beste imitasjon | ikke startet |
+| R1–R6 | `mlb-epoke.py --seier --adams-andel 0.5`, fra beste imitasjon | ikke startet |
+
+**Lest av i1 (skrevet etter målingen, ikke en ny hypotese):** 67 % samsvar gir
+−1,17 poeng/giv på stigen men bare 0,10 av kampene. Små avvik hoper seg opp over
+en kamp til 100, så samsvarstallet alene sier lite. Derfor måles samsvaret nå PER
+FASE (`pol_treff_BUD` … i `mlb-gradient.py`), og RL-epokene spiller halvparten av
+kampene mot tre Adams (`--adams-andel`) — det bordet dommen tas på.

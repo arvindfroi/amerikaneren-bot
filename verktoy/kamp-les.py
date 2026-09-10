@@ -10,14 +10,24 @@ en vinner, og hvert sete er fokus en gang. Er den ikke det, er noe galt.
 """
 import glob, json, math, sys
 
-monster = sys.argv[1]
+# ALLE POSISJONSARGUMENTER, hvert globbet. `kampport.sh` sendte globben UKVOTERT, saa
+# bash ekspanderte den til seksten filnavn, og her ble bare sys.argv[1] lest - SKARD 0.
+# Hver kampport med 16 skard ble dermed doemt paa 1/16 av kampene (funnet 10. sep:
+# i1b «0,190, -1,44 SE» paa 25 froe var 0,204, -5,19 SE paa 400).
 utfil = None
 if "--ut" in sys.argv:
     utfil = sys.argv[sys.argv.index("--ut") + 1]
+monstre = [a for i, a in enumerate(sys.argv[1:], 1)
+           if not a.startswith("--") and sys.argv[i - 1] != "--ut"]
+if not monstre:
+    sys.exit("bruk: kamp-les.py <jsonl-glob> [flere ...] [--ut fil]")
 
 per_froe = {}
 rader = 0
-for f in glob.glob(monster):
+filer = sorted({f for m in monstre for f in glob.glob(m)})
+if not filer:
+    sys.exit(f"ingen filer matcher {monstre}")
+for f in filer:
     for ln in open(f, encoding="utf-8"):
         ln = ln.strip()
         if not ln:
@@ -56,7 +66,7 @@ miljoandel = sum(b for _, b, _, _, _ in L) / n
 runder = sum(e for _, _, _, _, e in L) / n
 
 ut = []
-ut.append("%d froe, %d rader, %.1f runder per kamp" % (n, rader, runder))
+ut.append("%d froe, %d rader, %.1f runder per kamp  (%d filer)" % (n, rader, runder, len(filer)))
 ut.append("")
 ut.append("  KANDIDATENS vinnerandel   %.4f" % kandandel)
 ut.append("  MILJOETS vinnerandel      %.4f   <- MAA vaere 0.2500" % miljoandel)
