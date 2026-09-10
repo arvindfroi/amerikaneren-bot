@@ -227,6 +227,8 @@ class Driver:
             # verdien paa naar man leser epokeloggen et halvt aar senere.
             f"--vekt-stikk {self.a.vekt_stikk} "
             f"--vekt-verdi-kvantil {self.a.vekt_verdi_kvantil} "
+            # KL-ANKERET (R2): fast ankerpolicy for hele loepet, ikke forrige epoke.
+            f"{('--anker ' + self.a.anker + ' --vekt-anker ' + str(self.a.vekt_anker) + ' ') if self.a.anker else ''}"
             # BARE FOERSTE EPOKE. Nullstilles hodet hver epoke, laerer det aldri.
             f"{'--nullstill-verdi ' if (self.a.nullstill_verdi and e == 1) else ''}"
             f"--opt-tilstand {self.a.optimalisator} "
@@ -394,6 +396,7 @@ class Driver:
                 f"  motstander={a.motstander}"
                 f"  maal={('seier ' + a.seier) if a.seier else 'poeng'}"
                 f"  adams-andel={a.adams_andel}"
+                f"  anker={(a.anker + ' vekt ' + str(a.vekt_anker)) if a.anker else 'ingen'}"
                 f"  seier-tren-hver={a.seier_tren_hver}  ligavekter={a.ligavekter or 'standard'}"
                 f"  tro-tren={('ja, ' + str(a.tro_epoker) + ' pass, lr ' + str(a.tro_lr)) if a.tro_tren else 'nei (fast trosnett)'}"
                 # KJERNEN I TRENINGSDATAENE. Kolonnekjernen er ikke bit-identisk;
@@ -688,6 +691,9 @@ def main():
     p.add_argument("--seier-tren-hver", type=int, default=0)
     # R2: VANEANDELEN I LIGAEN, «beste,tidligere,vaner» (tom = TRENINGSVEKTER 0,4/0,3/0,3).
     p.add_argument("--ligavekter", default="")
+    # R2: KL-ANKERET mot en fast policy (typisk imitasjonen loepet startet fra).
+    p.add_argument("--anker", default="")
+    p.add_argument("--vekt-anker", type=float, default=0.0)
     p.add_argument("--batch", type=int, default=1024)
     # ===================== FROEBAANDENE, AVSATT FOER FOERSTE KAMP =========
     #

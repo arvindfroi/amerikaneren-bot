@@ -329,6 +329,16 @@ def main():
     # meningen er aa flytte policyen HELT til laereren, og en brems mot det er
     # en brems mot oppgaven.
     ap.add_argument("--imitasjon", action="store_true")
+    # ===================== KL-ANKERET (R2, 10. sep) =====================
+    #
+    # R1 viste at KL-bremsen mot FORRIGE epoke ikke holder: fordelen er mest stoey
+    # (verdien forklarer ~0,27 paa holdout, halen ~0,01), policyen tar smaa steg
+    # uten retning, og driften fra imitasjonen akkumuleres (e1 -> e4: -0,016
+    # parret paa kampbenken). Ankeret straffer KL(anker || policy) mot en FAST
+    # policy (i2), saa nettet bare forlater den der fordelen faktisk betaler.
+    # Med --anker satt maales KL mot ankeret ogsaa naar vekten er 0.
+    ap.add_argument("--anker", default="", help="fast ankerpolicy (vektfil)")
+    ap.add_argument("--vekt-anker", type=float, default=0.0)
     # HOLDOUT PAA KAMP, ikke paa rad. Rader fra samme kamp deler bade kortene og
     # halen, saa en radsplitt maaler hukommelse. 0 = ingen holdout.
     ap.add_argument("--holdout-del", type=int, default=10, help="1 av N KAMPER holdes utenfor")
@@ -967,6 +977,23 @@ def main():
             lg0 = F.log_softmax(maskerte_logits(p0, M[sl]), dim=1)
             lp_gammel[sl] = lg0.gather(1, KODE[sl].unsqueeze(1)).squeeze(1)
 
+    # KL-ANKERET: ankerets log-sannsynligheter over HELE handlingsrommet, regnet EN
+    # gang. En ekstra framoverpassering per batch ville doblet GPU-tiden; en tabell
+    # paa n x 68 float32 er ~0,5 GB ved 1,8 M rader.
+    lg_anker = None
+    if args.anker:
+        anker = Sandkassenett(dim, skjult).to(enhet)
+        les_vekter(args.anker, anker)
+        anker.eval()
+        with torch.no_grad():
+            lg_anker = torch.empty((n, mdim), device=enhet, dtype=torch.float32)
+            for i in range(0, n, args.batch):
+                sl = slice(i, min(i + args.batch, n))
+                pa, _, _ = anker(X[sl].float())
+                lg_anker[sl] = F.log_softmax(maskerte_logits(pa, M[sl]), dim=1).float()
+        del anker
+        print(f"KL-ANKER: {args.anker}, vekt {args.vekt_anker}", flush=True)
+
     # ===================== BREMSEN STOPPET FOR MYE (§125) =================
     #
     # ============ DET SOM VAR GALT, OG DET KOSTET SJU EPOKER ============
@@ -1039,6 +1066,7 @@ def main():
         for i in range(0, n_tren, args.batch):
             j = perm[i : i + args.batch]
             p, v, t, vr, vh, sl_, kv_ = modell.alt(X[j].float())
+            tap_anker = torch.zeros((), device=enhet)
 
             if frosset:
                 # Policyleddet hoppes over HELT. Gradienten inn i det ville
@@ -1068,6 +1096,11 @@ def main():
                     pr = lg.exp()
                     ent_rad = -(pr * lg.masked_fill(~M[j], 0.0)).sum(1)
                     tap_ent = entropitapet(ent_rad, ent_rad / LNL[j], valg, FASEF[j])
+                    if lg_anker is not None and args.vekt_anker > 0:
+                        # KL(anker || policy) paa rader med ekte valg. Ulovlige plasser
+                        # nulles som i entropien: -1e30 mot -1e30 skal ikke telle.
+                        la = lg_anker[j]
+                        tap_anker = (la.exp() * (la - lg)).masked_fill(~M[j], 0.0).sum(1)[valg].mean()
                 else:
                     tap_pol = torch.zeros((), device=enhet)
                     tap_ent = torch.zeros((), device=enhet)
@@ -1142,6 +1175,7 @@ def main():
                 + args.vekt_verdi_kvantil * tap_kvantil
                 + args.vekt_tro * tap_tro
                 + args.vekt_stikk * tap_stikk
+                + args.vekt_anker * tap_anker
             )
             opt.zero_grad(set_to_none=True)
             tap.backward()
@@ -1264,6 +1298,18 @@ def main():
     # er nettopp vektene som spilte kampene og regnet fordelene. Det er det
     # aerlige tallet for «hvor god var grunnlinjen da gradienten ble tatt», og
     # det er derfor med i resultatlinja og ikke bare i aapningslinja.
+    # KL MOT ANKERET paa de faste KL-radene, foer og etter. Er ankeret startvektene,
+    # MAA «foer» vaere 0 - det er kontrollarmen for selve maalingen.
+    kl_anker_foer = kl_anker_etter = None
+    if lg_anker is not None:
+        with torch.no_grad():
+            la = lg_anker[kl_idx]
+            mk = M[kl_idx]
+            pa = la.exp()
+            kl_anker_foer = float((pa * (la - lp_foer)).masked_fill(~mk, 0.0).sum(1).mean())
+            lp_slutt = kl_logp(kl_idx)
+            kl_anker_etter = float((pa * (la - lp_slutt)).masked_fill(~mk, 0.0).sum(1).mean())
+        print(f"KL-ANKER paa KL-radene: foer {kl_anker_foer:.6f}, etter {kl_anker_etter:.6f}", flush=True)
     rad_ut = {
         "epoke": args.epoke,
         "sek": round(time.time() - t0, 1),
@@ -1276,6 +1322,9 @@ def main():
         "maal": MAAL_NAVN.split(" ")[0],
         "andel_stikk_kjent": round(andel_stikk, 4),
         "kl": round(kl, 6),
+        "vekt_anker": args.vekt_anker,
+        "kl_anker_foer": None if kl_anker_foer is None else round(kl_anker_foer, 6),
+        "kl_anker_etter": None if kl_anker_etter is None else round(kl_anker_etter, 6),
         "logitskala": round(logitskala, 2),
         "stoppet_paa_kl": stoppet_paa_kl,
         "frosset_paa": frosset_paa,
