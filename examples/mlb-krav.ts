@@ -387,44 +387,75 @@ function k5(r: Rigg): Kravrad {
     "--froe", String(r.frø),
     "--ut", base,
   ]);
-  type Rad = { arm: string; ulikt: number; tv: number; verdigap: number };
+  type Rad = { arm: string; fase?: string; ulikt: number; tv: number; budgap?: number };
   const rader = lesJsonl<Rad>(`${base}.jsonl`);
   const d = (arm: string) => {
-    const x = rader.filter((y) => y.arm === arm);
+    const alle = rader.filter((y) => y.arm === arm);
+    const x = alle.filter((y) => y.fase !== "BUD");
+    const b = alle.filter((y) => y.fase === "BUD");
+    const høyere = b.filter((y) => (y.budgap ?? 0) > 1e-12).length;
+    const lavere = b.filter((y) => (y.budgap ?? 0) < -1e-12).length;
     return {
       n: x.length,
       andel: x.length === 0 ? NaN : x.reduce((s, y) => s + y.ulikt, 0) / x.length,
       tv: snitt(x.map((y) => y.tv)),
-      lavere: x.filter((y) => y.verdigap < -1e-12).length,
-      høyere: x.filter((y) => y.verdigap > 1e-12).length,
+      budN: b.length,
+      budNull: b.every((y) => (y.budgap ?? 0) === 0),
+      budGap: snitt(b.map((y) => y.budgap ?? 0)),
+      budSe: se(b.map((y) => y.budgap ?? 0)),
+      høyere,
+      lavere,
+      p: tegntest(høyere, høyere + lavere),
     };
   };
   const kontroll = d("KONTROLL");
   const mlb = d("mlb");
   const plantet = d("PLANTET");
-  const kOk = kontroll.n > 0 && kontroll.andel === 0 && kontroll.tv === 0;
+  const pluss = d("PLANTET+BUD");
+  const minus = d("PLANTET-BUD");
+  const kOk =
+    kontroll.n > 0 && kontroll.andel === 0 && kontroll.tv === 0 && kontroll.budN > 0 && kontroll.budNull;
   /**
    * PORTEN HAR TO LEDD, og det andre er det kravet faktisk sier: «å ligge under
    * skal gi mer risiko». Endring alene er ikke tilpasning — retningen må være
-   * riktig, og her måles den på verdihodet (V(bak) < V(foran)).
+   * riktig.
+   *
+   * ============ RETNINGEN MÅLES PÅ BUDET, IKKE PÅ VERDIHODET (10. sep) ======
+   *
+   * Første utgave dømte på V(bak) < V(foran). Under seiersmålet spår V endringen
+   * i vinnersjanse fra tavla, og den er ≈ 0 både bak og foran: i2 fikk «nei» på
+   * 150 av 360, nær tilfeldig, mens i1b med poengverdi fikk «ja». Det var et
+   * skifte i enhet, ikke i evne. Retningen er nå: bak skal by HØYERE enn foran,
+   * med tegntest, og fella har to armer som må tas hver sin vei.
    */
-  const retning = mlb.lavere > mlb.høyere;
+  const retning = mlb.høyere > mlb.lavere && mlb.p < 0.05;
+  const felleOk =
+    plantet.andel > 0.5 &&
+    pluss.høyere > pluss.lavere &&
+    pluss.p < 0.05 &&
+    minus.lavere > minus.høyere &&
+    minus.p < 0.05;
   return {
     krav: "K5",
     bånd: r.bånd,
     navn: "forstå konteksten og tilpasse seg",
     målt:
-      `${fmt(mlb.andel)} endrede valg, TV ${fmt(mlb.tv)} (n=${mlb.n}); ` +
-      `V(bak) lavere i ${mlb.lavere} av ${mlb.lavere + mlb.høyere}`,
-    kontroll: `lik stilling: ${fmt(kontroll.andel)} endret, TV ${fmt(kontroll.tv)} (må være +0,0000)`,
+      `${fmt(mlb.andel)} endrede kortvalg, TV ${fmt(mlb.tv)} (n=${mlb.n}); ` +
+      `BUD bak høyere i ${mlb.høyere} av ${mlb.høyere + mlb.lavere} (p=${mlb.p.toFixed(3)}), ` +
+      `budgap ${fmt(mlb.budGap)} ± ${mlb.budSe.toFixed(4)} (n=${mlb.budN})`,
+    kontroll: `lik stilling: ${fmt(kontroll.andel)} endret, TV ${fmt(kontroll.tv)}, budgap ${fmt(kontroll.budGap)} (må være +0,0000)`,
     kontrollOk: kOk,
-    felle: `plantet på makro.racepress: ${fmt(plantet.andel)} endret, TV ${fmt(plantet.tv)}`,
-    felleOk: plantet.andel > 0.5,
-    innfridd: !kOk || !(plantet.andel > 0.5) ? "stum" : mlb.andel > 0 && retning ? "ja" : "nei",
+    felle:
+      `plantet på racepress: ${fmt(plantet.andel)} endret; ` +
+      `PLANTET+BUD bak høyere ${pluss.høyere}/${pluss.høyere + pluss.lavere}, ` +
+      `PLANTET-BUD bak lavere ${minus.lavere}/${minus.høyere + minus.lavere}`,
+    felleOk,
+    innfridd: !kOk || !felleOk ? "stum" : mlb.andel > 0 && retning ? "ja" : "nei",
     kilde: `${base}.txt`,
     merknad:
-      "Retningen måles på VERDIHODET, ikke på alpha-muens spredning — den " +
-      "finnes ikke i sandkassen. Det er en svakere prøve enn `k5-kontekst.ts`.",
+      "Retningen måles på POLICYEN I BUDET (bak skal by høyere), ikke på verdihodet: " +
+      "under seiersmålet er V(bak) − V(foran) ≈ 0 per konstruksjon. Se " +
+      "analyse/krav-samspill-2026-09-10.md §3A.",
   };
 }
 
@@ -519,10 +550,11 @@ function k8(r: Rigg): Kravrad {
     "examples/mlb-k8.ts",
     "--giver", String(r.giver),
     "--nett", r.tro,
+    "--sandkasse", r.vekt,
     "--froe", String(r.frø),
     "--ut", fil,
   ]);
-  type Rad = { gulv: number; gulvPluss: number; nett: number; av?: number; bayes?: number };
+  type Rad = { gulv: number; gulvPluss: number; nett: number; sandkasse?: number; av?: number; bayes?: number };
   const rader = lesJsonl<Rad>(fil);
   /**
    * ANDELEN AV VEIEN GULV → TAK, nøyaktig som §119 regner den: gulvet er
@@ -534,11 +566,20 @@ function k8(r: Rigg): Kravrad {
   const gulvMålt = snitt(rader.map((x) => x.gulv));
   const nettSe = se(rader.map((x) => x.nett));
   const slårGulv = Number.isFinite(nett) && nett < gulvPluss;
+  // NETTETS EGET TROHODE (10. sep): trosnettFILA over er fast under RL, så den
+  // raden sto stille uansett hva en epoke gjorde. Hodet i sandkassenettet trenes.
+  const sk = rader.filter((x) => typeof x.sandkasse === "number").map((x) => x.sandkasse!);
+  const skSnitt = snitt(sk);
+  const skSe = se(sk);
   return {
     krav: "K8",
     bånd: r.bånd,
     navn: "predikere motstandernes kort",
-    målt: `${(100 * andel(nett)).toFixed(2)} % av veien gulv → tak (log-tap ${nett.toFixed(4)} ± ${nettSe.toFixed(4)}, n=${rader.length})`,
+    målt:
+      `${(100 * andel(nett)).toFixed(2)} % av veien gulv → tak (log-tap ${nett.toFixed(4)} ± ${nettSe.toFixed(4)}, n=${rader.length})` +
+      (sk.length > 0
+        ? `; nettets EGET trohode ${(100 * andel(skSnitt)).toFixed(2)} % (log-tap ${skSnitt.toFixed(4)} ± ${skSe.toFixed(4)})`
+        : ""),
     kontroll:
       `gulvet i FILA = ${gulvMålt.toFixed(5)} mot ln 3 = ${Math.log(3).toFixed(5)}; ` +
       `gulv+ = ${gulvPluss.toFixed(4)} → ${(100 * andel(gulvPluss)).toFixed(2)} %`,
@@ -561,7 +602,9 @@ function k8(r: Rigg): Kravrad {
     merknad:
       "Kravet har ingen absolutt terskel — «veldig høyt nivå» er et tall " +
       "mellom gulv og tak. Porten her er den svakest mulige som betyr noe: " +
-      "slår den `gulv+`, altså renonsene alene.",
+      "slår den `gulv+`, altså renonsene alene. Første tall er trosnettFILA, som er " +
+      "fast under RL-trening; «nettets EGET trohode» er hodet i sandkassenettet, trent " +
+      "hver epoke, og det er det epoker sammenliknes på.",
   };
 }
 

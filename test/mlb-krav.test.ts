@@ -195,6 +195,20 @@ test("K5: kontrollarmen er EKSAKT 0 på alle tre måltallene, og den plantede bl
     "racepress er likt i de to armene — da ble kampstillingen aldri konstruert, " +
       "og et nulltall sier ingenting om nettet",
   );
+
+  // RETNINGEN PÅ BUDET (10. sep): kontrollen er eksakt 0, og begge fellene tas hver sin vei.
+  assert.ok(k.budStillinger > 0, "kontrollarmen fikk 0 budstillinger — budgrenen fyrer ikke");
+  assert.equal(k.budGap, 0, "lik stilling må gi budgap eksakt 0");
+  const pluss = dømK5(rader, "PLANTET+BUD");
+  assert.ok(
+    pluss.budHøyere > pluss.budLavere && pluss.budP < 0.05,
+    `PLANTET+BUD skulle by høyere bak: ${pluss.budHøyere} høyere / ${pluss.budLavere} lavere, p=${pluss.budP}`,
+  );
+  const minus = dømK5(rader, "PLANTET-BUD");
+  assert.ok(
+    minus.budLavere > minus.budHøyere && minus.budP < 0.05,
+    `PLANTET-BUD skulle by lavere bak: ${minus.budHøyere} høyere / ${minus.budLavere} lavere, p=${minus.budP}`,
+  );
 });
 
 // ===========================================================================

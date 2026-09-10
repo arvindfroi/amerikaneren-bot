@@ -58,6 +58,9 @@ import { lagRng } from "../src/kort.ts";
 import { STANDARDNETT } from "../src/moe2/agentspek.ts";
 import { MlbTronett } from "../src/mlb/tronett.ts";
 import { troTrekk } from "../src/mlb/trotrekk.ts";
+import { byggTrekk } from "../src/mlb/trekk.ts";
+import { TOMT_DELVALG } from "../src/mlb/handling.ts";
+import { lesSandkasse } from "./mlb-krav-felles.ts";
 
 const arg = (n: string, s: string): string => {
   const i = process.argv.indexOf(n);
@@ -92,6 +95,20 @@ const atferd = {
   logits: (st: GameState, s2: number) => forover(nett, e1SpillTrekk(st, s2, nett.lag[0]!.inn)),
 };
 const trohode = MlbTronett.fraBytes(new Uint8Array(readFileSync(NETTFIL)));
+
+/**
+ * NETTETS EGET TROHODE (`--sandkasse <vekter>`, 10. sep). Kravbatteriet målte
+ * bare trosnettFILA over, og den er fast under RL-trening: K8-raden sto dermed
+ * stille uansett hva en epoke gjorde. Hodet inne i sandkassenettet trenes hver
+ * epoke og måles her på de SAMME stillingene og de SAMME kortene, med samme
+ * renormalisering over de tre setene.
+ *
+ * Trekkene er sandkassens egne (`byggTrekk` av `spillerVisning`), med trosnettet
+ * som inngang slik agenten spiller, og hukommelsen tom — stillingene er alle fra
+ * første runde, der den per konstruksjon er tom.
+ */
+const SANDKASSE = arg("--sandkasse", "");
+const sandkasse = SANDKASSE === "" ? null : lesSandkasse(SANDKASSE);
 
 interface Arm {
   navn: string;
@@ -239,6 +256,39 @@ for (let g = 0; g < GIVER; g++) {
           // Nettet trenger aldri gulvet. Feltet skrives likevel, så rapporten
           // kan behandle armene likt i stedet for å ha et unntak.
           rad.nett_gulvbandt = 0;
+        }
+
+        if (sandkasse !== null) {
+          const trekk = byggTrekk(spillerVisning(s, sete), {
+            regler: s.regler,
+            giving: s.giving,
+            delvalg: TOMT_DELVALG,
+            hukommelse: null,
+            tronett: trohode,
+          });
+          const rå = sandkasse.framover(trekk).tro;
+          let tap = 0;
+          let treff = 0;
+          for (let p = 0; p < s.antallSpillere; p++) {
+            if (p === sete) continue;
+            const r = rel(sete, p, s.antallSpillere);
+            if (r < 1 || r > 3) continue;
+            for (const k of s.hender[p] ?? []) {
+              // Logitene står KORT × 4 (rel sete 1, 2, 3, talong), som trohodet og troFasit.
+              const b = kortIndeks(k) * 4;
+              let maks = -Infinity;
+              for (let c = 0; c < 4; c++) maks = Math.max(maks, rå[b + c] ?? 0);
+              const e = [0, 1, 2, 3].map((c) => Math.exp((rå[b + c] ?? 0) - maks));
+              const sum = e[0]! + e[1]! + e[2]!;
+              const pr = sum > 1e-12 ? e[r - 1]! / sum : 1 / 3;
+              tap += -Math.log(Math.max(1e-12, pr));
+              let best = 0;
+              for (let i = 1; i < 3; i++) if (e[i]! > e[best]!) best = i;
+              if (best === r - 1) treff++;
+            }
+          }
+          rad.sandkasse = Number((tap / kort).toFixed(5));
+          rad.sandkasse_treff = Number((treff / kort).toFixed(5));
         }
 
         appendFileSync(UT, JSON.stringify(rad) + "\n");

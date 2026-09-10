@@ -35,7 +35,9 @@
  *   ANDEL ENDRET   argmaks over de lovlige kodene ble en annen
  *   TV-AVSTAND     halve L1-avstanden mellom de to policyfordelingene over de
  *                  LOVLIGE kodene. Kontinuerlig, og eksakt 0 når armene er like
- *   VERDIGAP       V(bak) − V(foran). Retningen kravet ber om, med tegntest
+ *   VERDIGAP       V(bak) − V(foran). Rapporteres, men DØMMER IKKE lenger —
+ *                  under seiersmålet er den ≈ 0 per konstruksjon (se `plantetBud`)
+ *   BUDGAP         forventet budnivå bak − foran. RETNINGEN, med tegntest (10. sep)
  *
  * ===================== NULLARMEN =========================================
  *
@@ -65,7 +67,15 @@ import { lovligeKort, spillerVisning } from "../src/motor.ts";
 import { lagIndre, tall } from "../src/moe2/agentspek.ts";
 import { racepress } from "../src/moe2/race.ts";
 import { Sandkasseagent } from "../src/mlb/spekagent.ts";
-import { maske, TOMT_DELVALG, type Giving } from "../src/mlb/handling.ts";
+import {
+  AMERIKANER_KODE,
+  budFraKode,
+  maske,
+  PASS_KODE,
+  SOLO_KODE,
+  TOMT_DELVALG,
+  type Giving,
+} from "../src/mlb/handling.ts";
 import { MlbTronett } from "../src/mlb/tronett.ts";
 import type { Framover, NettLik } from "../src/mlb/selvspill.ts";
 import {
@@ -161,6 +171,45 @@ function tv(a: readonly number[], b: readonly number[]): number {
 // Armene
 // ===========================================================================
 
+/**
+ * BUDNIVÅET til en kode: pass 0, tallbud = antall stikk, amerikaner 14, solo 15.
+ * Skalaen er ordinal — den brukes bare til «byr høyere enn», aldri som poeng.
+ */
+export function budnivå(kode: number): number {
+  if (kode === PASS_KODE) return 0;
+  if (kode === AMERIKANER_KODE) return 14;
+  if (kode === SOLO_KODE) return 15;
+  return Number(budFraKode(kode));
+}
+
+/**
+ * FALSIFISERINGSARMENE FOR RETNINGEN (10. september).
+ *
+ * K5-raden dømte retningen på VERDIHODET (V(bak) < V(foran)). Under seiersmålet
+ * spår V endringen i vinnersjanse FRA tavla, som allerede har priset inn
+ * stillingen — den er ≈ 0 både bak og foran, og retningen kunne ikke lenger ses
+ * (i2: 150 av 360, nær tilfeldig; `analyse/krav-samspill-2026-09-10.md` §3A).
+ *
+ * Retningen måles derfor på POLICYEN I BUDET: ligger man bak, skal man by
+ * høyere. To plantede nett gjør prøven i stand til å feile begge veier: +1 byr
+ * høyest mulig når vi ligger bak, −1 passer. Begge reagerer bare når
+ * `makro.racepress` er positiv — nøyaktig forskjellen prøven konstruerer.
+ */
+export function plantetBud(indre: NettLik, indeks: number, retning: 1 | -1): NettLik {
+  return {
+    framover(trekk: Float32Array): Framover {
+      const f = indre.framover(trekk);
+      if (!((trekk[indeks] ?? 0) > 0)) return f;
+      const policy = Float32Array.from(f.policy);
+      for (let k = PASS_KODE; k <= SOLO_KODE; k++) {
+        if (retning > 0) policy[k] = policy[k]! + 4 * budnivå(k);
+        else if (k === PASS_KODE) policy[k] = policy[k]! + 60;
+      }
+      return { ...f, policy };
+    },
+  };
+}
+
 export interface K5Opts {
   readonly vekt: string;
   readonly tro?: string | null;
@@ -172,6 +221,8 @@ export interface K5Opts {
   readonly maksPerGiv?: number;
   readonly fraStikk?: number;
   readonly tilStikk?: number;
+  /** Budstillinger per giv (første budvalg rundt bordet). */
+  readonly maksBudPerGiv?: number;
 }
 
 export interface K5Rad {
@@ -188,6 +239,14 @@ export interface K5Rad {
   readonly verdigap: number;
   readonly pressBak: number;
   readonly pressForan: number;
+  /** "SPILL" (kortvalg, stikk 2–7) eller "BUD". Rader skrevet før 10. sep mangler feltet = SPILL. */
+  readonly fase?: "SPILL" | "BUD";
+  /** Budradene: forventet budnivå under policyen bak og foran, og differansen. */
+  readonly budBak?: number;
+  readonly budForan?: number;
+  readonly budgap?: number;
+  readonly passBak?: number;
+  readonly passForan?: number;
 }
 
 interface Arm {
@@ -230,6 +289,8 @@ function lagArmer(o: K5Opts): Arm[] {
       bygg: bygger(plantetPåTrekk(rå, trekkIndeks("makro.racepress"), 0)),
       likStilling: false,
     },
+    { navn: "PLANTET+BUD", bygg: bygger(plantetBud(rå, trekkIndeks("makro.racepress"), 1)), likStilling: false },
+    { navn: "PLANTET-BUD", bygg: bygger(plantetBud(rå, trekkIndeks("makro.racepress"), -1)), likStilling: false },
   ];
 }
 
@@ -246,6 +307,7 @@ export function målK5(o: K5Opts, skriv?: (r: K5Rad) => void): K5Rad[] {
   const maksPerGiv = o.maksPerGiv ?? 3;
   const fraStikk = o.fraStikk ?? 2;
   const tilStikk = o.tilStikk ?? 7;
+  const maksBudPerGiv = o.maksBudPerGiv ?? 4;
 
   /**
    * DRIVERNE ER MLB SELV, ikke `ADAMS_MAALT`. Stillingsfordelingen arver
@@ -264,8 +326,78 @@ export function målK5(o: K5Opts, skriv?: (r: K5Rad) => void): K5Rad[] {
       let s: GameState = opprettSpill({ antallSpillere: 4, målPoeng }, frø);
       let vakt = 0;
       let iGiv = 0;
+      let iBud = 0;
 
       while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && vakt++ < 400) {
+        /**
+         * BUDSTILLINGENE (10. sep): samme stilling, samme kort, ulik kampstilling —
+         * og nå også i BUDET, der retningen «bak ⇒ mer risiko» er tydeligst.
+         */
+        if (s.fase === "BUDRUNDE" && s.iTur !== null && iBud < maksBudPerGiv) {
+          const sete = s.iTur;
+          const mot = motstandersete(s, sete);
+          const bak = medStilling(s, sete, mot, egne, motstander);
+          const foran = arm.likStilling ? bak : medStilling(s, sete, mot, motstander, egne);
+          const giving: Giving = { antallStikk: s.giving.antallStikk, talong: s.giving.talong };
+          const m = maske(spillerVisning(bak, sete), giving, TOMT_DELVALG);
+          let lovlige = 0;
+          for (let i = 0; i < m.length; i++) if (m[i] === 1) lovlige++;
+          if (lovlige >= 2) {
+            const a1 = arm.bygg();
+            a1.agent.nyKamp();
+            const hBak = a1.agent.velgHandling(bak);
+            const fBak = a1.siste();
+            const a2 = arm.bygg();
+            a2.agent.nyKamp();
+            const hForan = a2.agent.velgHandling(foran);
+            const fForan = a2.siste();
+            if (fBak !== null && fForan !== null && hBak.type === "BUD" && hForan.type === "BUD") {
+              const dBak = fordeling(fBak.policy, m);
+              const dForan = fordeling(fForan.policy, m);
+              let argBak = 0;
+              let argForan = 0;
+              let budBak = 0;
+              let budForan = 0;
+              let passBak = 0;
+              let passForan = 0;
+              for (let i = 0; i < dBak.p.length; i++) {
+                const kode = dBak.koder[i]!;
+                budBak += dBak.p[i]! * budnivå(kode);
+                budForan += dForan.p[i]! * budnivå(kode);
+                if (kode === PASS_KODE) {
+                  passBak = dBak.p[i]!;
+                  passForan = dForan.p[i]!;
+                }
+                if (dBak.p[i]! > dBak.p[argBak]!) argBak = i;
+                if (dForan.p[i]! > dForan.p[argForan]!) argForan = i;
+              }
+              const rad: K5Rad = {
+                arm: arm.navn,
+                fase: "BUD",
+                frø,
+                stikk: 0,
+                sete,
+                kortBak: dBak.koder[argBak] ?? -1,
+                kortForan: dForan.koder[argForan] ?? -1,
+                ulikt: argBak === argForan ? 0 : 1,
+                tv: tv(dBak.p, dForan.p),
+                verdiBak: fBak.verdi,
+                verdiForan: fForan.verdi,
+                verdigap: fBak.verdi - fForan.verdi,
+                pressBak: racepress(bak, sete),
+                pressForan: racepress(foran, sete),
+                budBak,
+                budForan,
+                budgap: budBak - budForan,
+                passBak,
+                passForan,
+              };
+              rader.push(rad);
+              skriv?.(rad);
+              iBud++;
+            }
+          }
+        }
         if (
           s.fase === "SPILL" &&
           s.iTur !== null &&
@@ -310,6 +442,7 @@ export function målK5(o: K5Opts, skriv?: (r: K5Rad) => void): K5Rad[] {
             }
             const rad: K5Rad = {
               arm: arm.navn,
+              fase: "SPILL",
               frø,
               stikk: s.stikkSpilt,
               sete,
@@ -352,10 +485,23 @@ export interface K5Dom {
   readonly p: number;
   readonly pressBak: number;
   readonly pressForan: number;
+  readonly budStillinger: number;
+  readonly budGap: number;
+  readonly budGapSe: number;
+  /** Budstillinger der BAK byr HØYERE enn FORAN — retningen kravet ber om. */
+  readonly budHøyere: number;
+  readonly budLavere: number;
+  readonly budP: number;
+  readonly passGap: number;
 }
 
 export function døm(rader: readonly K5Rad[], arm: string): K5Dom {
-  const r = rader.filter((x) => x.arm === arm);
+  const alle = rader.filter((x) => x.arm === arm);
+  const r = alle.filter((x) => x.fase !== "BUD");
+  const b = alle.filter((x) => x.fase === "BUD");
+  const budgap = b.map((x) => x.budgap ?? 0);
+  const budHøyere = budgap.filter((g) => g > 1e-12).length;
+  const budLavere = budgap.filter((g) => g < -1e-12).length;
   const tvs = r.map((x) => x.tv);
   const gap = r.map((x) => x.verdigap);
   const lavere = r.filter((x) => x.verdigap < -1e-12).length;
@@ -374,6 +520,13 @@ export function døm(rader: readonly K5Rad[], arm: string): K5Dom {
     p: tegntest(lavere, lavere + høyere),
     pressBak: r[0]?.pressBak ?? 0,
     pressForan: r[0]?.pressForan ?? 0,
+    budStillinger: b.length,
+    budGap: snitt(budgap),
+    budGapSe: se(budgap),
+    budHøyere,
+    budLavere,
+    budP: tegntest(budHøyere, budHøyere + budLavere),
+    passGap: snitt(b.map((x) => (x.passBak ?? 0) - (x.passForan ?? 0))),
   };
 }
 
@@ -438,7 +591,7 @@ function kjør(): void {
   L.push("");
   L.push("arm         stillinger  endret   andel      TV-avstand          verdigap (bak−foran)   bak lavere/høyere  p");
   L.push("-".repeat(112));
-  for (const arm of ["KONTROLL", "mlb", "PLANTET"]) {
+  for (const arm of ["KONTROLL", "mlb", "PLANTET", "PLANTET+BUD", "PLANTET-BUD"]) {
     const d = døm(rader, arm);
     L.push(
       `${d.arm.padEnd(11)} ${String(d.stillinger).padStart(10)} ${String(d.ulike).padStart(7)} ` +
@@ -448,6 +601,18 @@ function kjør(): void {
     );
   }
   L.push("-".repeat(112));
+  L.push("");
+  L.push("BUDET (retningen): forventet budnivå under policyen, bak minus foran. Pass 0, tallbud = stikk, amerikaner 14, solo 15.");
+  L.push("arm           budstillinger   budgap (bak−foran)    bak høyere/lavere   p       passgap");
+  L.push("-".repeat(100));
+  for (const arm of ["KONTROLL", "mlb", "PLANTET", "PLANTET+BUD", "PLANTET-BUD"]) {
+    const d = døm(rader, arm);
+    L.push(
+      `${d.arm.padEnd(13)} ${String(d.budStillinger).padStart(13)}   ${fmt(d.budGap).padStart(9)} ± ${d.budGapSe.toFixed(4)}   ` +
+        `${String(d.budHøyere).padStart(8)}/${String(d.budLavere).padEnd(8)}   ${d.budP.toFixed(3)}   ${fmt(d.passGap)}`,
+    );
+  }
+  L.push("-".repeat(100));
   const k = døm(rader, "mlb");
   L.push("");
   L.push(`racepress: BAK ${k.pressBak.toFixed(4)}, FORAN ${k.pressForan.toFixed(4)}.`);
@@ -460,10 +625,12 @@ function kjør(): void {
   L.push("konstruksjon, og en prøve som ikke tar den måler ingenting.");
   L.push("");
   L.push("RETNINGEN. Kravet sier ikke bare «ulikt», det sier hvilken vei: å ligge");
-  L.push("under skal gi mer risiko. Sandkassen har ingen utfallsvektor per gren,");
-  L.push("så retningen måles på VERDIHODET — V(bak) skal være lavere enn");
-  L.push("V(foran). Det er en SVAKERE prøve enn `k5-kontekst.ts` sin spredning,");
-  L.push("og det skal stå her og ikke bare i koden.");
+  L.push("under skal gi mer risiko. Den måles på POLICYEN I BUDET (fra 10. sep):");
+  L.push("bak skal by høyere enn foran. PLANTET+BUD må gi bak høyere, PLANTET-BUD");
+  L.push("bak lavere — ellers kan prøven ikke se retningen.");
+  L.push("Verdigapet står i tabellen, men DØMMER IKKE: under seiersmålet spår V");
+  L.push("endringen i vinnersjanse fra tavla, og den er ≈ 0 både bak og foran");
+  L.push("(analyse/krav-samspill-2026-09-10.md §3A).");
 
   const tekst = L.join("\n");
   new Radskriver(`${utBase}.txt`).rad(tekst);
