@@ -30,6 +30,7 @@ import { Rolleorakel, type Rolle } from "./rolleorakel.ts";
 import { Sikkerorakel } from "./sikkerorakel.ts";
 import { MlbSøketro } from "./soketro.ts";
 import { BudQagent } from "./budq.ts";
+import { Rolleruter } from "./rolleruter.ts";
 import { Vrakvelger } from "./vrakvelg.ts";
 import { Etterlysvelger } from "./etterlys.ts";
 import { Vrakvelger2, lesVrakflagg } from "./vrakvelg2.ts";
@@ -1444,6 +1445,32 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
    * be om den. Denne spekken gjoer det, saa spoersmaalet kan avgjoeres med
    * tall i stedet for antakelse.
    */
+  /**
+   * `e1r:<standardfil>:<rolle>=<fil>[,<rolle>=<fil>]` - ETT KORTNETT PER ROLLE (11. sep,
+   * `rolleruter.ts`). Bud, vrak og trumf gaar til standardnettet; bare kortvalg i de
+   * navngitte rollene rutes. Uten roller er den noeyaktig `e1:<standardfil>`.
+   */
+  if (indre.startsWith("e1r:")) {
+    const rest = indre.slice(4);
+    const skille = rest.indexOf(":");
+    const standardFil = skille < 0 ? rest : rest.slice(0, skille);
+    const liste = skille < 0 ? "" : rest.slice(skille + 1);
+    const last = (fil: string): E1Agent => {
+      const n = lesNett(fil);
+      // Sanseblokken trenger en tro, og ruteren fyller ingen - se `e1:<fil>@<tro>`.
+      if (n.lag[0]!.inn >= 558) throw new Error(`e1r: «${fil}» har sanseblokk (${n.lag[0]!.inn} inn)`);
+      return new E1Agent(n);
+    };
+    const perRolle = new Map<Rolle, E1Agent>();
+    for (const del of liste.split(",").filter((x) => x !== "")) {
+      const [rolle, fil] = del.split("=");
+      if ((rolle !== "foerer" && rolle !== "makker" && rolle !== "forsvar") || fil === undefined || fil === "") {
+        throw new Error(`Ugyldig rolle «${del}» i «${indre}» - forventet foerer=<fil>, makker=<fil> eller forsvar=<fil>`);
+      }
+      perRolle.set(rolle, last(fil));
+    }
+    return new Rolleruter(last(standardFil), perRolle) as unknown as Spekagent;
+  }
   if (indre.startsWith("e1s:")) {
     return new E1Agent(lesNett(indre.slice(4)), new NevroAgent(), {
       søkFaser: ["VRAK", "VELG"],
