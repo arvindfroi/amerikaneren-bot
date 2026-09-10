@@ -70,9 +70,14 @@ const INDEX = (les("web/index.html") ?? "").replace(
   /<script src="https:\/\/[^"]*\/app\.js"><\/script>/,
   '<script src="/app.js"></script>',
 );
+// `index.html` laster `dist/app.js` RELATIVT, og appen henter `dist/worker.js`
+// fra samme opphav før Val Town-reserven. Uten `/dist/`-rutene falt bromodus
+// stille over på den pinnede bundelen hos Val Town.
 const STATISK: Record<string, [string, string]> = {
   "/app.js": ["web/dist/app.js", "text/javascript; charset=utf-8"],
   "/worker.js": ["web/dist/worker.js", "text/javascript; charset=utf-8"],
+  "/dist/app.js": ["web/dist/app.js", "text/javascript; charset=utf-8"],
+  "/dist/worker.js": ["web/dist/worker.js", "text/javascript; charset=utf-8"],
 };
 
 const server = createServer((req, res) => {
@@ -93,7 +98,7 @@ const server = createServer((req, res) => {
       const innhold = les(fil[0]);
       if (innhold === null) {
         res.writeHead(404, CORS);
-        res.end("bygg web-bundelen: npx esbuild web/app.ts ...");
+        res.end("bygg web-bundelen: npm run bygg-web");
         return;
       }
       res.writeHead(200, { "content-type": fil[1], "cache-control": "no-store", ...CORS });

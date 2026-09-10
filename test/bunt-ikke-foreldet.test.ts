@@ -50,10 +50,22 @@ const ROT = fileURLToPath(new URL("..", import.meta.url));
 const git = (...args: string[]): string =>
   execFileSync("git", args, { cwd: ROT, encoding: "utf8" }).trim();
 
-/** Kilde → bunt. Begge bygges av `npx esbuild` i utrullingslista. */
+/**
+ * Kilde → bunt. Begge bygges av `npm run bygg-web` (`verktoy/bygg-web.mjs`).
+ *
+ * De delte modulene i `web/` står med HVER bunt som importerer dem. Uten det
+ * kunne `web/sokeklient.ts` endres og committes uten ny `app.js`, og vakten
+ * ville vært grønn — N1 i ny drakt, med kilden flyttet ut av fila vakten så på.
+ */
 const PAR: readonly (readonly [string, string])[] = [
   ["web/app.ts", "web/dist/app.js"],
+  ["web/adamskjede.ts", "web/dist/app.js"],
+  ["web/sokeklient.ts", "web/dist/app.js"],
+  // `sokekjerne.ts` står bare med workeren: appen importerer bare TYPER derfra,
+  // og de forsvinner i bunten.
   ["web/worker.ts", "web/dist/worker.js"],
+  ["web/adamskjede.ts", "web/dist/worker.js"],
+  ["web/sokekjerne.ts", "web/dist/worker.js"],
 ];
 
 for (const [kilde, bunt] of PAR) {

@@ -73,13 +73,13 @@ det disjunkte**. Fortegnet snur, altså er den ikke etablert. Den ville kostet
 
 2. **Bygg buntene på nytt:**
    ```
-   npx esbuild web/app.ts --bundle --format=esm --charset=utf8 \
-     --outfile=web/dist/app.js
-   npx esbuild web/worker.ts --bundle --format=esm --charset=utf8 \
-     --outfile=web/dist/worker.js
+   npm run bygg-web
    ```
-   **Uten `--minify`** — den utrullede artefakten er umminifisert, og en
-   sammenlikning mot et minifisert bygg «finner» 70 kB drift som ikke finnes.
+   Det er `verktoy/bygg-web.mjs`: esbuild `--bundle --format=esm
+   --charset=utf8 --minify` for BEGGE buntene. **Rettet 11. september:** her sto
+   «uten `--minify`», men de committede buntene var minifisert (reprodusert
+   byte for byte med esbuild 0.28.1). Lista beskrev en annen artefakt enn den
+   som lå i repoet. Sammenlikn alltid bygg med SAMME kommando.
 
 3. **Commit og push.** Da er `app.js`, `worker.js` og begge budmodellene ute:
    valen henter dem fra GitHub raw ved neste forespørsel.
