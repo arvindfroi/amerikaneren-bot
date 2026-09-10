@@ -1,0 +1,166 @@
+START 2026-08-11 01:43  arbeid=e1-modell/v127b/mlb-arbeid.bin -> beste=e1-modell/v127b/mlb-beste.bin  lambda=0.95 gamma=0.5 lr=5e-05 kamper=1200  vekt-stikk=0.0 vekt-verdi-kvantil=0.0  motstander=naa  entropi=PER FASE 0.5,0.5,0.5,0.5,0.5 gulv 0.75,0.55,0.85,0.65,0.55 (--entropi 0.0 er INERT)
+
+=== EPOKE 1 (01:43:40) ===
+    -> K2 (for)
+    -> SPILL
+START 2026-08-11 01:44  arbeid=e1-modell/v127b/mlb-arbeid.bin -> beste=e1-modell/v127b/mlb-beste.bin  lambda=0.95 gamma=0.5 lr=5e-05 kamper=1200  vekt-stikk=0.0 vekt-verdi-kvantil=0.0  motstander=naa  entropi=PER FASE 0.5,0.5,0.5,0.5,0.5 gulv 0.75,0.55,0.85,0.65,0.55 (--entropi 0.0 er INERT)
+
+=== EPOKE 1 (01:44:49) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 1 FERDIG paa 19.7 min  | PORT GODKJENT snitt=+6.815+-2.389 z=+2.85 tegn=294/535 (z=+2.29) kontroll=0  | STYRKE -13.902 poeng, seier 22.7 %, grovbud 0.00 %, avbrutt 0.0 %  | LIGA-H2H +175.15 (z=+14.61)  | ADOPTERT: godkjent: 6.8150 ± 2.3894 (z = 2.85), tegn 294/535 (z = 2.29), 2 bånd enige
+   tap: policy -0.1387  tro 1.1535 (treff 39.1 %)  verdi-RMSE 21.532  entropi 1.3505  KL=0.03740  frys p=-1 s=-1 av 5152
+   HOLDOUT (kamper): verdi sum +0.7548  runde +0.9263  hale +0.1597  tro 1.1711  STIKK -0.5065 (treff 10.2 %)
+
+=== EPOKE 2 (02:04:31) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 2 FERDIG paa 29.7 min  | PORT GODKJENT snitt=+5.315+-2.354 z=+2.26 tegn=282/512 (z=+2.30) kontroll=0  | STYRKE -8.587 poeng, seier 26.0 %, grovbud 0.04 %, avbrutt 0.0 %  | LIGA-H2H +219.41 (z=+11.00)  | ADOPTERT: godkjent: 5.3150 ± 2.3541 (z = 2.26), tegn 282/512 (z = 2.30), 2 bånd enige
+   tap: policy -0.1671  tro 1.1478 (treff 39.7 %)  verdi-RMSE 16.135  entropi 1.2861  KL=0.02118  frys p=-1 s=-1 av 7648
+   HOLDOUT (kamper): verdi sum +0.7019  runde +0.8992  hale -0.0150  tro 1.1653  STIKK -0.3535 (treff 8.4 %)
+
+=== EPOKE 3 (02:34:12) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 3 FERDIG paa 33.3 min  | PORT GODKJENT snitt=+12.270+-2.042 z=+6.01 tegn=282/485 (z=+3.59) kontroll=0  | STYRKE +3.683 poeng, seier 31.7 %, grovbud 0.02 %, avbrutt 0.0 %  | LIGA-H2H +274.72 (z=+11.81)  | ADOPTERT: godkjent: 12.2700 ± 2.0420 (z = 6.01), tegn 282/485 (z = 3.59), 2 bånd enige
+   tap: policy -0.1345  tro 1.1448 (treff 39.7 %)  verdi-RMSE 12.193  entropi 1.2891  KL=0.01576  frys p=-1 s=-1 av 8800
+   HOLDOUT (kamper): verdi sum +0.6906  runde +0.8891  hale -0.0269  tro 1.1575  STIKK -0.3827 (treff 7.8 %)
+
+=== EPOKE 4 (03:07:33) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 4 FERDIG paa 33.2 min  | PORT AVVIST snitt=-2.493+-1.871 z=-1.33 tegn=239/514 (z=-1.59) kontroll=0  | STYRKE +1.190 poeng, seier 30.3 %, grovbud 0.00 %, avbrutt 0.0 %  | LIGA-H2H +39.09 (z=+4.91)  | FORKASTET: z = -1.33, krever 2; tegntest 239/514 (z = -1.59), krever 1.5 — et snitt uten tegnet bak seg er båret av noen få kamper; båndene er uenige: bånd 0 = -2.4267, bånd 1 = -2.5600
+   tap: policy -0.0713  tro 1.1423 (treff 39.4 %)  verdi-RMSE 10.842  entropi 1.2870  KL=0.01614  frys p=-1 s=-1 av 9616
+   HOLDOUT (kamper): verdi sum +0.6922  runde +0.8874  hale -0.0267  tro 1.1570  STIKK -0.4438 (treff 8.7 %)
+
+=== EPOKE 5 (03:40:45) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 5 FERDIG paa 31.7 min  | PORT GODKJENT snitt=+3.803+-1.800 z=+2.11 tegn=288/539 (z=+1.59) kontroll=0  | STYRKE +7.487 poeng, seier 31.2 %, grovbud 0.00 %, avbrutt 0.0 %  | LIGA-H2H +44.71 (z=+5.68)  | ADOPTERT: godkjent: 3.8033 ± 1.7998 (z = 2.11), tegn 288/539 (z = 1.59), 2 bånd enige
+   tap: policy -0.1266  tro 1.1417 (treff 39.6 %)  verdi-RMSE 10.662  entropi 1.2678  KL=0.01766  frys p=-1 s=-1 av 9376
+   HOLDOUT (kamper): verdi sum +0.6789  runde +0.8787  hale -0.0484  tro 1.1527  STIKK -0.4673 (treff 8.6 %)
+
+=== EPOKE 6 (04:12:28) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 6 FERDIG paa 32.0 min  | PORT GODKJENT snitt=+5.073+-1.416 z=+3.58 tegn=309/550 (z=+2.90) kontroll=0  | STYRKE +12.560 poeng, seier 33.0 %, grovbud 0.00 %, avbrutt 0.0 %  | LIGA-H2H +1.94 (z=+1.10)  | ADOPTERT: godkjent: 5.0733 ± 1.4163 (z = 3.58), tegn 309/550 (z = 2.90), 2 bånd enige
+   tap: policy -0.1729  tro 1.1424 (treff 39.4 %)  verdi-RMSE 9.840  entropi 1.2782  KL=0.01921  frys p=-1 s=-1 av 9664
+   HOLDOUT (kamper): verdi sum +0.6519  runde +0.8584  hale -0.1162  tro 1.1569  STIKK -0.4826 (treff 8.4 %)
+
+=== EPOKE 7 (04:44:28) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 7 FERDIG paa 32.3 min  | PORT AVVIST snitt=+2.163+-1.081 z=+2.00 tegn=279/548 (z=+0.43) kontroll=0  | STYRKE +14.723 poeng, seier 21.0 %, grovbud 0.00 %, avbrutt 0.0 %  | LIGA-H2H +0.08 (z=+0.05)  | FORKASTET: tegntest 279/548 (z = 0.43), krever 1.5 — et snitt uten tegnet bak seg er båret av noen få kamper
+   tap: policy -0.2034  tro 1.1421 (treff 39.5 %)  verdi-RMSE 10.398  entropi 1.2659  KL=0.01992  frys p=-1 s=-1 av 9840
+   HOLDOUT (kamper): verdi sum +0.6510  runde +0.8660  hale -0.1398  tro 1.1530  STIKK -0.5274 (treff 8.6 %)
+
+=== EPOKE 8 (05:16:47) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 8 FERDIG paa 30.7 min  | PORT AVVIST snitt=+1.447+-1.024 z=+1.41 tegn=272/554 (z=-0.42) kontroll=0  | STYRKE +14.007 poeng, seier 17.2 %, grovbud 0.00 %, avbrutt 0.0 %  | LIGA-H2H +1.78 (z=+1.24)  | FORKASTET: z = 1.41, krever 2; tegntest 272/554 (z = -0.42), krever 1.5 — et snitt uten tegnet bak seg er båret av noen få kamper
+   tap: policy -0.1902  tro 1.1470 (treff 39.6 %)  verdi-RMSE 10.238  entropi 1.2385  KL=0.02140  frys p=-1 s=-1 av 9232
+   HOLDOUT (kamper): verdi sum +0.6478  runde +0.8635  hale -0.1327  tro 1.1561  STIKK -0.5205 (treff 8.9 %)
+
+=== EPOKE 9 (05:47:28) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 9 FERDIG paa 31.5 min  | PORT AVVIST snitt=+1.550+-1.037 z=+1.49 tegn=279/565 (z=-0.29) kontroll=0  | STYRKE +14.110 poeng, seier 12.0 %, grovbud 0.00 %, avbrutt 0.0 %  | LIGA-H2H +0.07 (z=+0.05)  | FORKASTET: z = 1.49, krever 2; tegntest 279/565 (z = -0.29), krever 1.5 — et snitt uten tegnet bak seg er båret av noen få kamper
+   tap: policy -0.1320  tro 1.1443 (treff 39.6 %)  verdi-RMSE 10.618  entropi 1.2304  KL=0.02300  frys p=-1 s=-1 av 9248
+   HOLDOUT (kamper): verdi sum +0.6552  runde +0.8646  hale -0.1176  tro 1.1604  STIKK -0.4987 (treff 8.5 %)
+
+=== EPOKE 10 (06:19:00) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 10 FERDIG paa 29.9 min  | PORT AVVIST snitt=+3.465+-1.032 z=+3.36 tegn=284/573 (z=-0.21) kontroll=0  | STYRKE +16.025 poeng, seier 13.0 %, grovbud 0.00 %, avbrutt 0.0 %  | LIGA-H2H +1.17 (z=+0.79)  | FORKASTET: tegntest 284/573 (z = -0.21), krever 1.5 — et snitt uten tegnet bak seg er båret av noen få kamper
+   tap: policy -0.2039  tro 1.1443 (treff 39.5 %)  verdi-RMSE 10.426  entropi 1.2305  KL=0.02350  frys p=-1 s=-1 av 8848
+   HOLDOUT (kamper): verdi sum +0.6608  runde +0.8641  hale -0.1088  tro 1.1579  STIKK -0.5218 (treff 8.6 %)
+
+=== EPOKE 11 (06:48:51) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 11 FERDIG paa 30.0 min  | PORT GODKJENT snitt=+7.090+-1.035 z=+6.85 tegn=329/573 (z=+3.55) kontroll=0  | STYRKE +19.650 poeng, seier 25.3 %, grovbud 0.00 %, avbrutt 0.0 %  | LIGA-H2H +1.76 (z=+1.18)  | ADOPTERT: godkjent: 7.0900 ± 1.0348 (z = 6.85), tegn 329/573 (z = 3.55), 2 bånd enige
+   tap: policy -0.1447  tro 1.1441 (treff 39.5 %)  verdi-RMSE 10.818  entropi 1.2147  KL=0.02528  frys p=-1 s=-1 av 8832
+   HOLDOUT (kamper): verdi sum +0.6561  runde +0.8699  hale -0.1447  tro 1.1565  STIKK -0.5147 (treff 8.7 %)
+
+=== EPOKE 12 (07:18:52) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 12 FERDIG paa 31.2 min  | PORT GODKJENT snitt=+2.473+-0.524 z=+4.72 tegn=279/459 (z=+4.62) kontroll=0  | STYRKE +22.123 poeng, seier 36.8 %, grovbud 0.00 %, avbrutt 0.0 %  | LIGA-H2H +1.25 (z=+1.32)  | ADOPTERT: godkjent: 2.4733 ± 0.5237 (z = 4.72), tegn 279/459 (z = 4.62), 2 bånd enige
+   tap: policy -0.1563  tro 1.1435 (treff 39.6 %)  verdi-RMSE 11.157  entropi 1.2090  KL=0.02644  frys p=-1 s=-1 av 9056
+   HOLDOUT (kamper): verdi sum +0.6760  runde +0.8800  hale -0.0940  tro 1.1578  STIKK -0.5626 (treff 9.5 %)
+
+=== EPOKE 13 (07:50:01) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+    -> TREN (GPU)
+    -> K2 (etter)
+    -> PORT
+EPOKE 13 FERDIG paa 32.5 min  | PORT AVVIST snitt=-1.223+-0.519 z=-2.36 tegn=201/457 (z=-2.57) kontroll=0  | STYRKE +20.900 poeng, seier 31.5 %, grovbud 0.00 %, avbrutt 0.0 %  | LIGA-H2H +1.11 (z=+1.26)  | FORKASTET: z = -2.36, krever 2; tegntest 201/457 (z = -2.57), krever 1.5 — et snitt uten tegnet bak seg er båret av noen få kamper; båndene er uenige: bånd 0 = -0.5333, bånd 1 = -1.9133
+   tap: policy -0.2277  tro 1.1436 (treff 39.1 %)  verdi-RMSE 11.529  entropi 1.1967  KL=0.02805  frys p=-1 s=-1 av 9648
+   HOLDOUT (kamper): verdi sum +0.6561  runde +0.8632  hale -0.0974  tro 1.1509  STIKK -0.5877 (treff 9.3 %)
+
+=== EPOKE 14 (08:22:32) ===
+    -> K2 (for)
+    -> SPILL
+    -> ERFARING
+Traceback (most recent call last):
+  File "verktoy/mlb-epoke.py", line 578, in <module>
+    main()
+  File "verktoy/mlb-epoke.py", line 574, in main
+    Driver(a).gå()
+  File "verktoy/mlb-epoke.py", line 308, in gå
+    tider["erfaring"], erf = self.erfaring(e, a.arbeid, kilde)
+  File "verktoy/mlb-epoke.py", line 200, in erfaring
+    return self.kjor("ERFARING", cmd, f"{self.a.logkatalog}/e{e}-erfaring-kjor.txt")[0], ut
+  File "verktoy/mlb-epoke.py", line 109, in kjor
+    raise RuntimeError(f"{navn} feilet (kode {r.returncode}). Se {logfil}")
+RuntimeError: ERFARING feilet (kode 1). Se analyse/mlb-epoke-127b/e14-erfaring-kjor.txt

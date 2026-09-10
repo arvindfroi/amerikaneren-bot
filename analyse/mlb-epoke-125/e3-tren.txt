@@ -1,0 +1,27 @@
+wsl.exe -e bash -lc cd /mnt/c/Users/arvin/Documents/Claude/Projects/amerikaneren-bot && ~/Arvind-Lora/.venv/bin/python verktoy/mlb-gradient.py --inn 'mlb-epoke-data-125/erf-s*.bin' --vekter e1-modell/v125/mlb-arbeid.bin --ut e1-modell/v125/mlb-e3.bin --epoke 3 --lr 5e-05 --pass 16 --lr-verdi 0.001 --kl-intervall 1 --kl-maal 0.03 --kl-tak 0.06 --holdout-del 10 --entropi 0.01 --batch 1024 --vekt-policy 1.0 --opt-tilstand e1-modell/v125/mlb-adam.pt --logg analyse/mlb-gradient-125.jsonl --rapport analyse/mlb-gradient-125.txt
+--- kode 0 etter 24.7 s ---
+ERFARING:
+  mlb-epoke-data-125/erf-s0.bin: 2915 rader
+  mlb-epoke-data-125/erf-s1.bin: 2840 rader
+  mlb-epoke-data-125/erf-s10.bin: 2648 rader
+  mlb-epoke-data-125/erf-s11.bin: 2938 rader
+  mlb-epoke-data-125/erf-s12.bin: 2909 rader
+  mlb-epoke-data-125/erf-s13.bin: 2948 rader
+  mlb-epoke-data-125/erf-s14.bin: 2776 rader
+  mlb-epoke-data-125/erf-s15.bin: 2788 rader
+  mlb-epoke-data-125/erf-s16.bin: 2754 rader
+  mlb-epoke-data-125/erf-s17.bin: 3083 rader
+  mlb-epoke-data-125/erf-s18.bin: 2619 rader
+  mlb-epoke-data-125/erf-s19.bin: 2892 rader
+  mlb-epoke-data-125/erf-s2.bin: 2816 rader
+  mlb-epoke-data-125/erf-s3.bin: 2830 rader
+  mlb-epoke-data-125/erf-s4.bin: 2753 rader
+  mlb-epoke-data-125/erf-s5.bin: 2823 rader
+  mlb-epoke-data-125/erf-s6.bin: 2720 rader
+  mlb-epoke-data-125/erf-s7.bin: 2709 rader
+  mlb-epoke-data-125/erf-s8.bin: 2832 rader
+  mlb-epoke-data-125/erf-s9.bin: 2718 rader
+56311 rader, 1032 trekk, 68 plasser, 2381334 parametre, enhet cuda, Adam lastet (2s)
+{"epoke": 3, "sek": 19.0, "kl": 0.011189, "logitskala": 17.73, "stoppet_paa_kl": -1, "frosset_paa": -1, "frosset_stamme_paa": -1, "kl_tak": 0.06, "batcher": 800, "kl_ved_frys": null, "kl_drift": null, "foer": {"pol": 0.00739, "ent": 0.65305, "tro": 1.13669, "treff": 0.38826, "rmse": 6.82104, "forklart": 0.24537, "forklart_runde": 0.28751, "forklart_hale": -0.10425}, "etter": {"pol": -0.0632, "ent": 0.66444, "tro": 1.11331, "treff": 0.41196, "rmse": 5.60465, "forklart": 0.49051, "forklart_runde": 0.58949, "forklart_hale": 0.06667}, "hold_foer": {"pol": -0.03039, "ent": 0.65445, "tro": 1.13846, "treff": 0.38631, "rmse": 6.7546, "forklart": 0.26364, "forklart_runde": 0.30428, "forklart_hale": -0.10264}, "hold_etter": {"pol": -0.03317, "ent": 0.66773, "tro": 1.12749, "treff": 0.39184, "rmse": 6.76494, "forklart": 0.26139, "forklart_runde": 0.3062, "forklart_hale": 0.04306}, "d_pol": -0.07059, "d_tro": -0.02338, "d_rmse": -1.21639, "d_ent": 0.01139, "ut": "e1-modell/v125/mlb-e3.bin"}
+
+--- stderr ---

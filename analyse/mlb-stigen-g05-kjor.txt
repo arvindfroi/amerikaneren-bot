@@ -1,0 +1,10 @@
+Stigen: 2 vekter x 3 motstandere, 120 giv hver
+  mlb-g05-beste mot tilfeldig  10.2202 +-1.3625 (z 7.50, 260/439) kontroll 0.0000 OK
+  mlb-g05-beste mot nevro      -3.0868 +-0.4991 (z -6.19, 157/403) kontroll 0.0000 OK
+  mlb-g05-beste mot adams      -3.4257 +-0.4816 (z -7.11, 96/329) kontroll 0.0000 OK
+  mlb-g05-e7 mot tilfeldig  10.1792 +-1.3526 (z 7.53, 256/438) kontroll 0.0000 OK
+  mlb-g05-e7 mot nevro      -3.5854 +-0.4913 (z -7.30, 137/396) kontroll 0.0000 OK
+  mlb-g05-e7 mot adams      -3.2180 +-0.4847 (z -6.64, 103/334) kontroll 0.0000 OK
+
+Stigen skrevet til analyse/mlb-stigen-g05.tsv
+LES DEN SLIK: stiger den mot «tilfeldig» men staar flatt mot «adams», laerer nettet aa slaa seg selv og ingenting annet.

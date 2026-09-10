@@ -1,0 +1,12 @@
+C:\Program Files\nodejs\node.EXE examples/mlb-spill.ts --kamper 3000 --kjerner 20 --ut mlb-epoke-data-125/e2 --maalpoeng 30 --maksrunder 60 --temperatur 1.0 --nett e1-modell/v125/mlb-arbeid.bin --froe 1340000000 --uten-k2 --beste e1-modell/v125/mlb-beste-e1.bin --tidligere e1-modell/v125/mlb-beste.bin
+--- kode 0 etter 157.3 s ---
+
+--- stderr ---
+FERDIG 2026-08-10T17:33:25.226Z
+kamper=3000 veggtid=157.1 s
+kamper/s totalt=19.09  kamper/s/kjerne=1.02
+beslutninger/kamp=405.8  rader/kamp=104.7  bytes/kamp=1398
+avbrutt paa rundetaket=0.0 %
+erfaring pÃ¥ disk=4.2 MB
+EPOKEANSLAG 5000 kamper: 4.4 min
+TI EPOKER: 0.73 timer

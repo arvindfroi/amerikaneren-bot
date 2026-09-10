@@ -1,0 +1,8 @@
+mlb-port epoke 5 startet 2026-08-10T14:43:22.017Z
+kandidat=e1-modell/g05/mlb-e5.bin forrige=e1-modell/g05/mlb-beste-e3.bin
+referanse=VANER_TEST kamper/band=300 band=[1800000000,1850000000] liga-h2h=200@1900000000 maalpoeng=30 maksrunder=60
+FERDIG 2026-08-10T14:43:54.858Z  veggtid=32.8 s  kamper=2200
+PORT (fast referanse, parret) AVVIST n=600 snitt=0.7350 se=0.5008 z=1.47 tegn=192/367 tegnZ=0.89 bånd=[0.6867,0.7833] kontroll=0.00 — z = 1.47, krever 2; tegntest 192/367 (z = 0.89), krever 1.5 — et snitt uten tegnet bak seg er båret av noen få kamper
+STYRKE kandidat 27.405 ± 0.508 poeng, seier 63.7 %  |  forrige 26.670, seier 62.7 %  |  avbrutt 0.0 %
+GROVBUD (amerikaner+solo) andel av budvalg: kandidat 0.00 % mot forrige 0.00 % (6.3 budvalg/kamp)
+LIGA-H2H (kandidat mot forrige paa ligabordet, n=200): 1.460 ± 0.970 (z=1.51), seier 32.0 % mot 25.0 %, avbrutt 0.0 %

@@ -1,0 +1,9 @@
+mlb-erfaring startet 2026-08-10T17:43:52.750Z
+inn=mlb-epoke-data-125/e4-s*.jsonl nett=e1-modell/v125/mlb-arbeid.bin ut=mlb-epoke-data-125/erf sjanse=0.2 kjerner=20
+lambda=1 gamma=0.5 maksrunder=60
+FERDIG 2026-08-10T17:44:40.288Z  veggtid=47.5 s
+kamper=3000 rader=255395 skrevet=51375 medValg=199271 (78.0 %)
+fordel: snitt=0.9284 snitt|A|=5.1638
+verdimaal: snitt=5.786 varians=58.557 MSE(V)=49.718 forklart=0.1509
+delt maal: var(runde)=49.934 var(hale)=11.056 rundens andel=81.9 %
+paa disk=219.9 MB (4280 bytes/rad)

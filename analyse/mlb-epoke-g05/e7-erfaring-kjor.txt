@@ -1,0 +1,9 @@
+C:\Program Files\nodejs\node.EXE examples/mlb-erfaring.ts --inn mlb-epoke-data-g05/e7-s*.jsonl --nett e1-modell/g05/mlb-arbeid.bin --ut mlb-epoke-data-g05/erf --kjerner 18 --sjanse 0.2 --maksrunder 60 --lambda 1.0 --gamma 0.5 --rapport analyse/mlb-epoke-g05/e7-erfaring.txt
+--- kode 0 etter 55.7 s ---
+
+--- stderr ---
+FERDIG 2026-08-10T14:53:15.787Z  veggtid=55.6 s
+kamper=3000 rader=406310 skrevet=80970 medValg=316480 (77.9 %)
+fordel: snitt=-2.8525 snitt|A|=6.9048
+verdimaal: snitt=3.463 varians=75.637 MSE(V)=82.599 forklart=-0.0920
+paa disk=345.6 MB (4268 bytes/rad)

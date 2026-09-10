@@ -1,0 +1,29 @@
+wsl.exe -e bash -lc cd /mnt/c/Users/arvin/Documents/Claude/Projects/amerikaneren-bot && ~/Arvind-Lora/.venv/bin/python verktoy/mlb-gradient.py --inn 'mlb-epoke-data-127b/erf-s*.bin' --vekter e1-modell/v127b/mlb-arbeid.bin --ut e1-modell/v127b/mlb-e11.bin --epoke 11 --lr 5e-05 --pass 16 --lr-verdi 0.001 --kl-intervall 1 --kl-maal 0.06 --kl-tak 0.12 --holdout-del 10 --entropi 0.0 --batch 1024 --entropi-fase 0.5,0.5,0.5,0.5,0.5 --entropi-gulv 0.75,0.55,0.85,0.65,0.55 --vekt-policy 1.0 --vekt-stikk 0.0 --vekt-verdi-kvantil 0.0 --opt-tilstand e1-modell/v127b/mlb-adam.pt --logg analyse/mlb-gradient-127b.jsonl --rapport analyse/mlb-gradient-127b.txt
+--- kode 0 etter 538.0 s ---
+ERFARING:
+  mlb-epoke-data-127b/erf-s0.bin: 31717 rader
+  mlb-epoke-data-127b/erf-s1.bin: 32854 rader
+  mlb-epoke-data-127b/erf-s10.bin: 28127 rader
+  mlb-epoke-data-127b/erf-s11.bin: 31478 rader
+  mlb-epoke-data-127b/erf-s12.bin: 33337 rader
+  mlb-epoke-data-127b/erf-s13.bin: 28565 rader
+  mlb-epoke-data-127b/erf-s14.bin: 32393 rader
+  mlb-epoke-data-127b/erf-s15.bin: 29864 rader
+  mlb-epoke-data-127b/erf-s16.bin: 30242 rader
+  mlb-epoke-data-127b/erf-s17.bin: 32187 rader
+  mlb-epoke-data-127b/erf-s18.bin: 36058 rader
+  mlb-epoke-data-127b/erf-s19.bin: 32510 rader
+  mlb-epoke-data-127b/erf-s2.bin: 31335 rader
+  mlb-epoke-data-127b/erf-s3.bin: 33033 rader
+  mlb-epoke-data-127b/erf-s4.bin: 31238 rader
+  mlb-epoke-data-127b/erf-s5.bin: 26029 rader
+  mlb-epoke-data-127b/erf-s6.bin: 32200 rader
+  mlb-epoke-data-127b/erf-s7.bin: 30897 rader
+  mlb-epoke-data-127b/erf-s8.bin: 30336 rader
+  mlb-epoke-data-127b/erf-s9.bin: 32729 rader
+STIKKFASIT: 627128 av 627129 rader kjent (100.0 %), snitt 4.001 stikk igjen
+FASER (rader med valg): BUD 54978  VRAK 38828  TRUMF 9699  ETTERLYS 7615  SPILL 383396
+627129 rader, 1031 trekk, 68 plasser, 2403395 parametre, enhet cuda, Adam lastet (10s)
+{"epoke": 11, "sek": 532.6, "vekt_stikk": 0.0, "vekt_verdi_kvantil": 0.0, "andel_stikk_kjent": 1.0, "kl": 0.025285, "logitskala": 11.0, "stoppet_paa_kl": -1, "frosset_paa": -1, "frosset_stamme_paa": -1, "kl_tak": 0.12, "batcher": 8832, "kl_ved_frys": null, "kl_drift": null, "foer": {"pol": -0.02678, "ent": 1.22601, "tro": 1.15748, "treff": 0.37327, "rmse": 14.25659, "forklart": 0.67386, "ent_BUD": 1.38984, "norment_BUD": 0.75298, "ulike_BUD": 9.0, "ent_VRAK": 2.32147, "norment_VRAK": 0.8693, "ulike_VRAK": 39.0, "ent_TRUMF": 1.25281, "norment_TRUMF": 0.90371, "ulike_TRUMF": 4.0, "ent_ETTERLYS": 1.91175, "norment_ETTERLYS": 0.87337, "ulike_ETTERLYS": 28.0, "ent_SPILL": 1.07502, "norment_SPILL": 0.81295, "ulike_SPILL": 52.0, "forklart_runde": 0.88684, "forklart_hale": -0.11646, "st_ce": 2.56495, "st_treff": 0.08521, "st_rmse": 3.3302, "st_forklart": -0.50926, "st_snitt": 6.0}, "etter": {"pol": -0.14467, "ent": 1.21475, "tro": 1.14407, "treff": 0.39528, "rmse": 10.8175, "forklart": 0.81223, "ent_BUD": 1.39851, "norment_BUD": 0.75997, "ulike_BUD": 9.0, "ent_VRAK": 2.29865, "norment_VRAK": 0.86073, "ulike_VRAK": 43.0, "ent_TRUMF": 1.25788, "norment_TRUMF": 0.90737, "ulike_TRUMF": 4.0, "ent_ETTERLYS": 1.87441, "norment_ETTERLYS": 0.856, "ulike_ETTERLYS": 31.0, "ent_SPILL": 1.06207, "norment_SPILL": 0.80282, "ulike_SPILL": 52.0, "forklart_runde": 0.9177, "forklart_hale": 0.39386, "st_ce": 2.56495, "st_treff": 0.08521, "st_rmse": 3.3302, "st_forklart": -0.50926, "st_snitt": 6.0}, "hold_foer": {"pol": -0.04707, "ent": 1.22516, "tro": 1.15789, "treff": 0.37449, "rmse": 13.97521, "forklart": 0.65795, "ent_BUD": 1.41404, "norment_BUD": 0.75538, "ulike_BUD": 10.0, "ent_VRAK": 2.33039, "norment_VRAK": 0.87219, "ulike_VRAK": 48.0, "ent_TRUMF": 1.24373, "norment_TRUMF": 0.89716, "ulike_TRUMF": 4.0, "ent_ETTERLYS": 1.85649, "norment_ETTERLYS": 0.86379, "ulike_ETTERLYS": 45.0, "ent_SPILL": 1.07423, "norment_SPILL": 0.80932, "ulike_SPILL": 52.0, "forklart_runde": 0.86742, "forklart_hale": -0.12521, "st_ce": 2.56495, "st_treff": 0.08734, "st_rmse": 3.35098, "st_forklart": -0.51472, "st_snitt": 6.0}, "hold_etter": {"pol": -0.04607, "ent": 1.21596, "tro": 1.15654, "treff": 0.37592, "rmse": 14.01339, "forklart": 0.65607, "ent_BUD": 1.42359, "norment_BUD": 0.76309, "ulike_BUD": 10.0, "ent_VRAK": 2.30632, "norment_VRAK": 0.86319, "ulike_VRAK": 48.0, "ent_TRUMF": 1.2583, "norment_TRUMF": 0.90767, "ulike_TRUMF": 4.0, "ent_ETTERLYS": 1.82704, "norment_ETTERLYS": 0.84981, "ulike_ETTERLYS": 45.0, "ent_SPILL": 1.06365, "norment_SPILL": 0.80117, "ulike_SPILL": 52.0, "forklart_runde": 0.8699, "forklart_hale": -0.14473, "st_ce": 2.56495, "st_treff": 0.08734, "st_rmse": 3.35098, "st_forklart": -0.51472, "st_snitt": 6.0}, "d_pol": -0.11788, "d_tro": -0.01341, "d_rmse": -3.43909, "d_ent": -0.01126, "ut": "e1-modell/v127b/mlb-e11.bin"}
+
+--- stderr ---

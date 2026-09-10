@@ -1,0 +1,33 @@
+wsl.exe -e bash -lc cd /mnt/c/Users/arvin/Documents/Claude/Projects/amerikaneren-bot && ~/Arvind-Lora/.venv/bin/python verktoy/mlb-gradient.py --inn 'mlb-epoke-data-127/erf-s*.bin' --vekter e1-modell/v127/mlb-arbeid.bin --ut e1-modell/v127/mlb-e1.bin --epoke 1 --lr 5e-05 --pass 16 --lr-verdi 0.001 --kl-intervall 1 --kl-maal 0.06 --kl-tak 0.12 --holdout-del 10 --entropi 0.01 --batch 1024 --entropi-fase 0.5,0.5,0.5,0.5,0.5 --entropi-gulv 0.75,0.55,0.85,0.65,0.55 --vekt-policy 1.0 --vekt-stikk 1.0 --vekt-verdi-kvantil 1.0 --nullstill-verdi --opt-tilstand e1-modell/v127/mlb-adam.pt --logg analyse/mlb-gradient-127.jsonl --rapport analyse/mlb-gradient-127.txt
+--- kode 0 etter 24.7 s ---
+ERFARING:
+  mlb-epoke-data-127/erf-s0.bin: 7573 rader
+  mlb-epoke-data-127/erf-s1.bin: 8347 rader
+  mlb-epoke-data-127/erf-s10.bin: 6993 rader
+  mlb-epoke-data-127/erf-s11.bin: 7277 rader
+  mlb-epoke-data-127/erf-s12.bin: 7758 rader
+  mlb-epoke-data-127/erf-s13.bin: 6805 rader
+  mlb-epoke-data-127/erf-s14.bin: 6893 rader
+  mlb-epoke-data-127/erf-s15.bin: 7187 rader
+  mlb-epoke-data-127/erf-s16.bin: 7587 rader
+  mlb-epoke-data-127/erf-s17.bin: 5874 rader
+  mlb-epoke-data-127/erf-s18.bin: 7390 rader
+  mlb-epoke-data-127/erf-s19.bin: 8329 rader
+  mlb-epoke-data-127/erf-s2.bin: 8263 rader
+  mlb-epoke-data-127/erf-s3.bin: 6985 rader
+  mlb-epoke-data-127/erf-s4.bin: 6465 rader
+  mlb-epoke-data-127/erf-s5.bin: 8772 rader
+  mlb-epoke-data-127/erf-s6.bin: 8191 rader
+  mlb-epoke-data-127/erf-s7.bin: 7724 rader
+  mlb-epoke-data-127/erf-s8.bin: 6570 rader
+  mlb-epoke-data-127/erf-s9.bin: 6444 rader
+STIKKFASIT: 147427 av 147427 rader kjent (100.0 %), snitt 3.954 stikk igjen
+FASER (rader med valg): BUD 10309  VRAK 15065  TRUMF 3710  ETTERLYS 1060  SPILL 88400
+--vekt-verdi 1.0 settes til 0: med kvantilhodet paa ER V_runde fordelingens forventning, og to hoder mot samme etikett er uidentifiserbart (Â§124).
+VERDIHODENE NULLSTILT: W = 0, kvantilene b = [-100.00 â€¦ +14.00] (forventning -24.938), b(hale) = -19.306. Gradienten inn i stammen fra verdileddene er null ved foerste steg.
+147427 rader, 1031 trekk, 68 plasser, 2403395 parametre, enhet cuda, Adam fersk (4s)
+KL 0.06125 > 0.06 paa batch 110: POLICYHODET FROSSET. Stammen trener videre paa verdi og tro (tak 0.1200).
+KL 0.12246 > tak 0.1200 paa batch 123: STAMMEN FROSSET. Policyen er naa en konstant funksjon - `kl_drift` maaler at den er det.
+{"epoke": 1, "sek": 18.9, "vekt_stikk": 1.0, "vekt_verdi_kvantil": 1.0, "andel_stikk_kjent": 1.0, "kl": 0.122461, "logitskala": 6.29, "stoppet_paa_kl": -1, "frosset_paa": 110, "frosset_stamme_paa": 123, "kl_tak": 0.12, "batcher": 2064, "kl_ved_frys": 0.122461, "kl_drift": 0.0, "foer": {"pol": -0.06959, "ent": 1.36762, "tro": 1.60597, "treff": 0.25299, "rmse": 46.45067, "forklart": -0.00045, "ent_BUD": 1.54513, "norment_BUD": 0.84137, "ulike_BUD": 7.0, "ent_VRAK": 2.42229, "norment_VRAK": 0.90609, "ulike_VRAK": 34.0, "ent_TRUMF": 1.29594, "norment_TRUMF": 0.93483, "ulike_TRUMF": 3.0, "ent_ETTERLYS": 1.97312, "norment_ETTERLYS": 0.89755, "ulike_ETTERLYS": 11.0, "ent_SPILL": 1.17562, "norment_SPILL": 0.88331, "ulike_SPILL": 52.0, "forklart_runde": -0.00055, "forklart_hale": -1e-05, "st_ce": 2.56495, "st_treff": 0.09912, "st_rmse": 3.49393, "st_forklart": -0.47981, "st_snitt": 6.0}, "etter": {"pol": -0.09276, "ent": 1.22985, "tro": 1.20835, "treff": 0.34309, "rmse": 32.12493, "forklart": 0.52149, "ent_BUD": 1.41275, "norment_BUD": 0.78567, "ulike_BUD": 7.0, "ent_VRAK": 2.23448, "norment_VRAK": 0.83584, "ulike_VRAK": 28.0, "ent_TRUMF": 1.22269, "norment_TRUMF": 0.88198, "ulike_TRUMF": 3.0, "ent_ETTERLYS": 1.83991, "norment_ETTERLYS": 0.83719, "ulike_ETTERLYS": 15.0, "ent_SPILL": 1.04276, "norment_SPILL": 0.77887, "ulike_SPILL": 52.0, "forklart_runde": 0.70537, "forklart_hale": 0.06034, "st_ce": 1.88704, "st_treff": 0.25732, "st_rmse": 1.79704, "st_forklart": 0.60854, "st_snitt": 3.95498}, "hold_foer": {"pol": -0.16637, "ent": 1.36085, "tro": 1.61032, "treff": 0.25617, "rmse": 48.96499, "forklart": -0.00186, "ent_BUD": 1.53971, "norment_BUD": 0.84436, "ulike_BUD": 7.0, "ent_VRAK": 2.403, "norment_VRAK": 0.89977, "ulike_VRAK": 35.0, "ent_TRUMF": 1.30033, "norment_TRUMF": 0.93799, "ulike_TRUMF": 3.0, "ent_ETTERLYS": 1.99392, "norment_ETTERLYS": 0.91926, "ulike_ETTERLYS": 18.0, "ent_SPILL": 1.15831, "norment_SPILL": 0.87964, "ulike_SPILL": 51.0, "forklart_runde": -0.0007, "forklart_hale": -0.00198, "st_ce": 2.56495, "st_treff": 0.09951, "st_rmse": 3.52553, "st_forklart": -0.51335, "st_snitt": 6.0}, "hold_etter": {"pol": -0.19289, "ent": 1.22359, "tro": 1.20996, "treff": 0.33633, "rmse": 33.8189, "forklart": 0.52208, "ent_BUD": 1.41235, "norment_BUD": 0.79178, "ulike_BUD": 7.0, "ent_VRAK": 2.21044, "norment_VRAK": 0.8277, "ulike_VRAK": 34.0, "ent_TRUMF": 1.21512, "norment_TRUMF": 0.87653, "ulike_TRUMF": 3.0, "ent_ETTERLYS": 1.87428, "norment_ETTERLYS": 0.8635, "ulike_ETTERLYS": 21.0, "ent_SPILL": 1.02689, "norment_SPILL": 0.77623, "ulike_SPILL": 52.0, "forklart_runde": 0.70671, "forklart_hale": 0.06326, "st_ce": 1.8869, "st_treff": 0.25184, "st_rmse": 1.80236, "st_forklart": 0.60448, "st_snitt": 3.9251}, "d_pol": -0.02317, "d_tro": -0.39762, "d_rmse": -14.32574, "d_ent": -0.13778, "ut": "e1-modell/v127/mlb-e1.bin"}
+
+--- stderr ---

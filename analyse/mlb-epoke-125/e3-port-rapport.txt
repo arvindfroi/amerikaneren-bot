@@ -1,0 +1,8 @@
+mlb-port epoke 3 startet 2026-08-10T17:40:29.953Z
+kandidat=e1-modell/v125/mlb-e3.bin forrige=e1-modell/v125/mlb-beste-e1.bin
+referanse=VANER_TEST kamper/band=300 band=[1800000000,1850000000] liga-h2h=200@1900000000 maalpoeng=30 maksrunder=60
+FERDIG 2026-08-10T17:41:16.364Z  veggtid=46.4 s  kamper=2200
+PORT (fast referanse, parret) GODKJENT n=600 snitt=1.0350 se=0.4608 z=2.25 tegn=95/161 tegnZ=2.29 bånd=[1.4300,0.6400] kontroll=0.00 — godkjent: 1.0350 ± 0.4608 (z = 2.25), tegn 95/161 (z = 2.29), 2 bånd enige
+STYRKE kandidat 25.845 ± 0.643 poeng, seier 64.2 %  |  forrige 24.810, seier 62.0 %  |  avbrutt 0.0 %
+GROVBUD (amerikaner+solo) andel av budvalg: kandidat 0.00 % mot forrige 0.00 % (5.2 budvalg/kamp)
+LIGA-H2H (kandidat mot forrige paa ligabordet, n=200): 0.465 ± 0.494 (z=0.94), seier 32.5 % mot 30.5 %, avbrutt 0.0 %

@@ -1,0 +1,8 @@
+mlb-port epoke 2 startet 2026-08-11T00:30:56.028Z
+kandidat=e1-modell/v127b/mlb-e2.bin forrige=e1-modell/v127b/mlb-beste-e1.bin
+referanse=VANER_TEST kamper/band=300 band=[1800000000,1850000000] liga-h2h=200@1900000000 maalpoeng=30 maksrunder=100
+FERDIG 2026-08-11T00:34:12.634Z  veggtid=196.6 s  kamper=2200
+PORT (fast referanse, parret) GODKJENT n=600 snitt=5.3150 se=2.3541 z=2.26 tegn=282/512 tegnZ=2.30 bånd=[3.3033,7.3267] kontroll=0.00 — godkjent: 5.3150 ± 2.3541 (z = 2.26), tegn 282/512 (z = 2.30), 2 bånd enige
+STYRKE kandidat -8.587 ± 1.832 poeng, seier 26.0 %  |  forrige -13.902, seier 22.7 %  |  avbrutt 0.0 %
+GROVBUD (amerikaner+solo) andel av budvalg: kandidat 0.04 % mot forrige 0.00 % (8.3 budvalg/kamp)
+LIGA-H2H (kandidat mot forrige paa ligabordet, n=200): 219.412 ± 19.955 (z=11.00), seier 28.0 % mot 2.5 %, avbrutt 8.5 %

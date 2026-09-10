@@ -1,0 +1,14 @@
+C:\Program Files\nodejs\node.EXE examples/mlb-erfaring.ts --inn mlb-epoke-data-127b/e14-s*.jsonl --nett e1-modell/v127b/mlb-arbeid.bin --ut mlb-epoke-data-127b/erf --kjerner 20 --sjanse 0.5 --maksrunder 100 --lambda 0.95 --gamma 0.5 --tro e1-modell/mlb-tro.bin --rapport analyse/mlb-epoke-127b/e14-erfaring.txt
+--- kode 1 etter 267.7 s ---
+
+--- stderr ---
+file:///C:/Users/arvin/Documents/Claude/Projects/amerikaneren-bot/examples/mlb-erfaring.ts:536
+          kode === 0 ? ferdig() : feil(new Error(`skard ${i} avsluttet med ${kode}`)),
+                                       ^
+
+Error: skard 2 avsluttet med 4294967295
+    at ChildProcess.<anonymous> (file:///C:/Users/arvin/Documents/Claude/Projects/amerikaneren-bot/examples/mlb-erfaring.ts:536:40)
+    at ChildProcess.emit (node:events:508:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:294:12)
+
+Node.js v24.13.0

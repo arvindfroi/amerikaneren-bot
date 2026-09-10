@@ -1,0 +1,13 @@
+{
+ "epoke": 13,
+ "beste": "e1-modell/v127b/mlb-beste-e12.bin",
+ "tidligere": [
+  "e1-modell/v127b/mlb-beste-e1.bin",
+  "e1-modell/v127b/mlb-beste-e2.bin",
+  "e1-modell/v127b/mlb-beste-e3.bin",
+  "e1-modell/v127b/mlb-beste-e5.bin",
+  "e1-modell/v127b/mlb-beste-e6.bin",
+  "e1-modell/v127b/mlb-beste-e11.bin"
+ ],
+ "adoptert": 7
+}

@@ -1,0 +1,27 @@
+wsl.exe -e bash -lc cd /mnt/c/Users/arvin/Documents/Claude/Projects/amerikaneren-bot && ~/Arvind-Lora/.venv/bin/python verktoy/mlb-gradient.py --inn 'mlb-epoke-data-126/erf-s*.bin' --vekter e1-modell/v126/mlb-arbeid.bin --ut e1-modell/v126/mlb-e2.bin --epoke 2 --lr 5e-05 --pass 16 --lr-verdi 0.001 --kl-intervall 1 --kl-maal 0.06 --kl-tak 0.12 --holdout-del 10 --entropi 0.01 --batch 1024 --entropi-fase 0.5,0.5,0.5,0.5,0.5 --entropi-gulv 0.75,0.55,0.85,0.65,0.55 --vekt-policy 1.0 --opt-tilstand e1-modell/v126/mlb-adam.pt --logg analyse/mlb-gradient-126.jsonl --rapport analyse/mlb-gradient-126.txt
+--- kode 1 etter 9.3 s ---
+ERFARING:
+  mlb-epoke-data-126/erf-s0.bin: 6766 rader
+  mlb-epoke-data-126/erf-s1.bin: 6495 rader
+  mlb-epoke-data-126/erf-s10.bin: 8453 rader
+  mlb-epoke-data-126/erf-s11.bin: 6545 rader
+  mlb-epoke-data-126/erf-s12.bin: 8277 rader
+  mlb-epoke-data-126/erf-s13.bin: 6602 rader
+  mlb-epoke-data-126/erf-s14.bin: 7254 rader
+  mlb-epoke-data-126/erf-s15.bin: 7519 rader
+  mlb-epoke-data-126/erf-s16.bin: 8637 rader
+  mlb-epoke-data-126/erf-s17.bin: 8357 rader
+  mlb-epoke-data-126/erf-s18.bin: 8696 rader
+  mlb-epoke-data-126/erf-s19.bin: 7867 rader
+  mlb-epoke-data-126/erf-s2.bin: 7229 rader
+  mlb-epoke-data-126/erf-s3.bin: 8217 rader
+  mlb-epoke-data-126/erf-s4.bin: 8067 rader
+  mlb-epoke-data-126/erf-s5.bin: 8581 rader
+  mlb-epoke-data-126/erf-s6.bin: 6354 rader
+  mlb-epoke-data-126/erf-s7.bin: 7272 rader
+  mlb-epoke-data-126/erf-s8.bin: 8193 rader
+  mlb-epoke-data-126/erf-s9.bin: 6879 rader
+FASER (rader med valg): BUD 11532  VRAK 11280  TRUMF 2951  ETTERLYS 1435  SPILL 94142
+
+--- stderr ---
+e1-modell/v126/mlb-arbeid.bin: 5 nett, ventet 7 (eller 6)

@@ -1,0 +1,8 @@
+mlb-port epoke 10 startet 2026-08-10T18:15:40.241Z
+kandidat=e1-modell/v125/mlb-e10.bin forrige=e1-modell/v125/mlb-beste-e9.bin
+referanse=VANER_TEST kamper/band=300 band=[1800000000,1850000000] liga-h2h=200@1900000000 maalpoeng=30 maksrunder=60
+FERDIG 2026-08-10T18:16:26.149Z  veggtid=45.9 s  kamper=2200
+PORT (fast referanse, parret) GODKJENT n=600 snitt=0.8133 se=0.3654 z=2.23 tegn=69/112 tegnZ=2.46 bånd=[0.9033,0.7233] kontroll=0.00 — godkjent: 0.8133 ± 0.3654 (z = 2.23), tegn 69/112 (z = 2.46), 2 bånd enige
+STYRKE kandidat 27.723 ± 0.576 poeng, seier 68.5 %  |  forrige 26.910, seier 66.7 %  |  avbrutt 0.0 %
+GROVBUD (amerikaner+solo) andel av budvalg: kandidat 0.00 % mot forrige 0.00 % (5.1 budvalg/kamp)
+LIGA-H2H (kandidat mot forrige paa ligabordet, n=200): -0.245 ± 0.526 (z=-0.47), seier 32.5 % mot 33.5 %, avbrutt 0.0 %

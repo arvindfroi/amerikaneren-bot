@@ -1,0 +1,10 @@
+C:\Program Files\nodejs\node.EXE examples/mlb-erfaring.ts --inn mlb-epoke-data-126/e1-s*.jsonl --nett e1-modell/v126/mlb-arbeid.bin --ut mlb-epoke-data-126/erf --kjerner 20 --sjanse 0.2 --maksrunder 100 --lambda 1.0 --gamma 0.5 --tro e1-modell/mlb-tro.bin --rapport analyse/mlb-epoke-126/e1-erfaring.txt
+--- kode 0 etter 217.2 s ---
+
+--- stderr ---
+FERDIG 2026-08-10T22:29:29.075Z  veggtid=217.1 s
+kamper=1200 rader=736195 skrevet=147427 medValg=592462 (80.5 %)
+fordel: snitt=-45.3125 snitt|A|=46.6948
+verdimaal: snitt=-44.439 varians=2243.542 MSE(V)=4296.335 forklart=-0.9150
+delt maal: var(runde)=1497.434 var(hale)=513.257 rundens andel=74.5 %
+paa disk=630.4 MB (4276 bytes/rad)

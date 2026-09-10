@@ -7,11 +7,11 @@ fil                   kode        ute      her  merknad
 ------------------------------------------------------------------------------
 adams-kort.b64        200     2395808  2395808  ok
 adams-vrak.b64        200       19848    19848  ok
-app.js                200      712537   712537  ok
+app.js                200      727404   727404  ok
 bud-gbt.json          200      322134   322134  ok
 bud-menneske.json     200      362698   362698  ok
 bud-vant.json         200      362638   362638  ok
 sdr2.b64              200     2395808  2395808  ok
-worker.js             200      623547   623547  ok
+worker.js             200      623547   623548  AVVIKER fra web/dist/worker.js (-1 byte)
 
-ALT STEMMER — 8 filer, innhold validert mot lokal kopi.
+1 av 8 filer er GALE. Se merknadene over.

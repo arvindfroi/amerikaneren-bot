@@ -1,0 +1,20 @@
+C:\Program Files\nodejs\node.EXE --test test/mlb-k2-selvspill.test.ts test/mlb-k2-nett.test.ts test/mlb-k2-trekk.test.ts
+--- kode 0 etter 21.6 s ---
+âœ” K2/MLB-nett: trekk â†’ nett â†’ valg er bit-identisk nÃ¥r bare skjulte hender byttes (ekstern tro AV (standard)) (7904.8105ms)
+âœ” K2/MLB-nett: trekk â†’ nett â†’ valg er bit-identisk nÃ¥r bare skjulte hender byttes (ekstern tro PÃ…) (8471.0469ms)
+âœ” K2/MLB-nett: prÃ¸ven kan FEILE â€” Ã©n lekket bit inn i trekkene blir tatt av nettet (4967.4434ms)
+âœ” K2/selvspill: valgt kode er identisk nÃ¥r BARE de skjulte hendene byttes â€” alle fire faser (285.216ms)
+âœ” K2/selvspill: prÃ¸ven kan FEILE â€” et nett som ser Ã‰N bit skal bli tatt (129.7394ms)
+âœ” K2/MLB: byggTrekk er bit-identisk nÃ¥r BARE de skjulte hendene byttes â€” i alle fire faser (312.203ms)
+âœ” K2/MLB: prÃ¸ven kan FEILE â€” Ã©n lekket bit skal bli tatt (137.5081ms)
+âœ” K2/MLB: hukommelsesblokken er KONSTANT gjennom en runde og endrer seg bare ved rundeslutt (249.7781ms)
+â„¹ tests 8
+â„¹ suites 0
+â„¹ pass 8
+â„¹ fail 0
+â„¹ cancelled 0
+â„¹ skipped 0
+â„¹ todo 0
+â„¹ duration_ms 21532.6326
+
+--- stderr ---

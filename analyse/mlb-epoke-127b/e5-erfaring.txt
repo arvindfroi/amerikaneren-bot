@@ -1,0 +1,12 @@
+mlb-erfaring startet 2026-08-11T01:56:00.793Z
+inn=mlb-epoke-data-127b/e5-s*.jsonl nett=e1-modell/v127b/mlb-arbeid.bin tro=e1-modell/mlb-tro.bin ut=mlb-epoke-data-127b/erf sjanse=0.5 kjerner=20
+lambda=0.95 gamma=0.5 maksrunder=100
+FERDIG 2026-08-11T02:00:47.671Z  veggtid=286.9 s
+kamper=1200 rader=1336099 skrevet=667214 medValg=1059080 (79.3 %)
+fordel: snitt=0.4785 snitt|A|=6.7202
+verdimaal: snitt=-17.358 varians=560.633 MSE(V)=185.450 forklart=0.6692
+delt maal: var(runde)=397.705 var(hale)=123.703 rundens andel=76.3 %
+stikkfasit: kjent=1336097 av 1336099 (100.0 %) snitt=4.144
+stikkfasit varians: total=7.5623 innenfor runden=4.9213 ANDEL INNENFOR=65.08 %
+KONTROLL Gr varians: total=397.7058 innenfor runden=0.0000 ANDEL INNENFOR=0.00 % (skal vaere 0,00 %)
+paa disk=2854.3 MB (4278 bytes/rad)

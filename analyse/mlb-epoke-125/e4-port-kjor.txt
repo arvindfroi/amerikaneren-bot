@@ -1,0 +1,9 @@
+C:\Program Files\nodejs\node.EXE examples/mlb-port.ts --kandidat e1-modell/v125/mlb-e4.bin --forrige e1-modell/v125/mlb-beste-e3.bin --kamper 300 --band 1800000000,1850000000 --ligaband 1900000000 --ligakamper 200 --kjerner 20 --maalpoeng 30 --maksrunder 60 --epoke 4 --ut analyse/mlb-epoke-125/e4-port
+--- kode 0 etter 48.7 s ---
+
+--- stderr ---
+FERDIG 2026-08-10T17:46:15.142Z  veggtid=48.5 s  kamper=2200
+PORT (fast referanse, parret) AVVIST n=600 snitt=0.3050 se=0.4234 z=0.72 tegn=70/133 tegnZ=0.61 bÃ¥nd=[-0.7100,1.3200] kontroll=0.00 â€” z = 0.72, krever 2; tegntest 70/133 (z = 0.61), krever 1.5 â€” et snitt uten tegnet bak seg er bÃ¥ret av noen fÃ¥ kamper; bÃ¥ndene er uenige: bÃ¥nd 0 = -0.7100
+STYRKE kandidat 26.150 Â± 0.621 poeng, seier 64.0 %  |  forrige 25.845, seier 64.2 %  |  avbrutt 0.0 %
+GROVBUD (amerikaner+solo) andel av budvalg: kandidat 0.00 % mot forrige 0.00 % (5.2 budvalg/kamp)
+LIGA-H2H (kandidat mot forrige paa ligabordet, n=200): 0.175 Â± 0.571 (z=0.31), seier 30.0 % mot 29.5 %, avbrutt 0.0 %

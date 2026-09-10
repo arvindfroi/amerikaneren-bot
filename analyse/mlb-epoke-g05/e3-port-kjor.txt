@@ -1,0 +1,9 @@
+C:\Program Files\nodejs\node.EXE examples/mlb-port.ts --kandidat e1-modell/g05/mlb-e3.bin --forrige e1-modell/g05/mlb-beste-e1.bin --kamper 300 --band 1800000000,1850000000 --ligaband 1900000000 --ligakamper 200 --kjerner 18 --maalpoeng 30 --maksrunder 60 --epoke 3 --ut analyse/mlb-epoke-g05/e3-port
+--- kode 0 etter 39.8 s ---
+
+--- stderr ---
+FERDIG 2026-08-10T14:33:19.343Z  veggtid=39.7 s  kamper=2200
+PORT (fast referanse, parret) GODKJENT n=600 snitt=2.5717 se=0.7077 z=3.63 tegn=240/431 tegnZ=2.36 bÃ¥nd=[2.5200,2.6233] kontroll=0.00 â€” godkjent: 2.5717 Â± 0.7077 (z = 3.63), tegn 240/431 (z = 2.36), 2 bÃ¥nd enige
+STYRKE kandidat 26.670 Â± 0.552 poeng, seier 62.7 %  |  forrige 24.098, seier 54.7 %  |  avbrutt 0.0 %
+GROVBUD (amerikaner+solo) andel av budvalg: kandidat 0.00 % mot forrige 0.00 % (6.4 budvalg/kamp)
+LIGA-H2H (kandidat mot forrige paa ligabordet, n=200): 3.430 Â± 1.368 (z=2.51), seier 26.0 % mot 28.0 %, avbrutt 0.0 %

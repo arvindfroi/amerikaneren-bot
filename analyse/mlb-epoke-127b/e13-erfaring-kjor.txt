@@ -1,0 +1,13 @@
+C:\Program Files\nodejs\node.EXE examples/mlb-erfaring.ts --inn mlb-epoke-data-127b/e13-s*.jsonl --nett e1-modell/v127b/mlb-arbeid.bin --ut mlb-epoke-data-127b/erf --kjerner 20 --sjanse 0.5 --maksrunder 100 --lambda 0.95 --gamma 0.5 --tro e1-modell/mlb-tro.bin --rapport analyse/mlb-epoke-127b/e13-erfaring.txt
+--- kode 0 etter 301.7 s ---
+
+--- stderr ---
+FERDIG 2026-08-11T06:11:31.943Z  veggtid=301.6 s
+kamper=1200 rader=1366176 skrevet=683468 medValg=1081206 (79.1 %)
+fordel: snitt=-0.5591 snitt|A|=6.8093
+verdimaal: snitt=-17.414 varians=668.312 MSE(V)=223.073 forklart=0.6662
+delt maal: var(runde)=498.938 var(hale)=145.355 rundens andel=77.4 %
+stikkfasit: kjent=1366176 av 1366176 (100.0 %) snitt=3.937
+stikkfasit varians: total=7.1821 innenfor runden=4.4709 ANDEL INNENFOR=62.25 %
+KONTROLL Gr varians: total=498.9382 innenfor runden=0.0000 ANDEL INNENFOR=0.00 % (skal vaere 0,00 %)
+paa disk=2923.9 MB (4278 bytes/rad)
