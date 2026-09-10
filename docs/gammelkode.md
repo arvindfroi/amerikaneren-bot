@@ -21,9 +21,9 @@ under har en filreferanse eller et paragrafnummer. Der jeg er usikker, står det
 | # | funn | klasse | status |
 |---|---|---|---|
 | 1 | `web/dist/worker.js` er 57 commits gammel. Duplikatkjeden `utrullet.ts` fjernet er fortsatt den som KJØRER. | målt ≠ utrullet | **RETTET** (10. aug) |
-| 2 | `web/app.ts` bygger kjeden FOR HÅND og tar flertallet av beslutningene. `byggUtrullet` fikset workeren, ikke appen. | målt ≠ utrullet | ikke etterprøvd |
+| 2 | `web/app.ts` bygger kjeden FOR HÅND og tar flertallet av beslutningene. `byggUtrullet` fikset workeren, ikke appen. | målt ≠ utrullet | **RETTET** (11. sep, `web/adamskjede.ts`) |
 | 3 | `examples/matrise.ts:100` kaller `rask` «den utrullede boten i dag». Det er den ikke. §118s hovedtall hviler på det. | målt ≠ utrullet | **RETTET** (2. sep) |
-| 4 | Hovedtråd og worker er to ulike bots over samme beslutning, og oppløsningsregelen er en **stoppeklokke**. | lokalt optimum ødelegger avtale | ikke etterprøvd |
+| 4 | Hovedtråd og worker er to ulike bots over samme beslutning, og oppløsningsregelen er en **stoppeklokke**. | lokalt optimum ødelegger avtale | **delvis** (11. sep): fristen er 4,5 s, reserven er beviselig samme kjede minus søk, og laget som spilte logges per trekk (`bottrekk`) |
 | 5 | `docs/utrulling-v5.md` sier `bud-menneske.json` ikke er med. `web/app.ts:147` laster den. | målt ≠ utrullet | **fortsatt live** |
 | 6 | Vakten mot rivaliserende spek-parsere kan **ikke feile**, og det står 14 rivaler bak den. | målt ≠ utrullet | ikke etterprøvd |
 | N14 | **Reservekjeden for budmodellen er usynlig i dataene.** Hvilken av tre modeller som faktisk kjørte sier ingen logget rad noe om. | målt ≠ utrullet | **RETTET** (10. sep) |
@@ -221,6 +221,13 @@ ingen test binder til speken.
 **Kuren er å la `besteBot()` kalle `byggUtrullet` med `søk: null`.** Det er
 ingen atferdsendring i dag; det er å fjerne den andre kopien.
 
+**RETTET 11. september.** Begge tråder bygger nå gjennom `byggAdams` i
+`web/adamskjede.ts`, som kaller `byggUtrullet` med `medSøk` som eneste
+forskjell. `test/app-lik-spek.test.ts` spiller appens OPPDELING — hovedtrådens
+kjede for alt annet, workerens for førerens kortvalg, ett delt eksemplar av
+hver — mot `lagIndre(<utrullet spek med 24 verdener og bud-menneske>)` og
+krever identiske handlinger over tre frø.
+
 ## N3. `matrise.ts` kaller feil bot «den utrullede», og §118 hviler på det
 
 ```
@@ -295,6 +302,12 @@ ligger ikke i kjeden (`utrullet.ts:151`), og `E1Agent.nyKamp` ender i
 at en kamp er slutt: `Økt.antallKamper()` blir stående på 0
 (`src/moe2/okt.ts:61-63`), og `Profilagent.nyKamp` (`profilagent.ts:347-360`)
 kjører aldri. Bryteren kan ikke slås på riktig slik workeren står.
+
+**RETTET 11. september.** Workeren har meldingstypen `nyKamp`
+(`web/sokekjerne.ts`), og `start()` i `web/app.ts` sender den ved hver ny kamp
+sammen med `nyKamp()` på hovedtrådens kjede. Den sendes bare til en worker som
+kvitterer med protokoll 2 — en eldre worker fra Val Town-pinnen ville svart
+med feil.
 
 ## N11. Fjorten rivaliserende spek-parsere — og vakten mot dem kan ikke feile
 

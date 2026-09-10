@@ -1,14 +1,16 @@
 /**
- * «Amerikaneren mot PIMC» – TV-vennlig nettspill.
+ * «Amerikaneren» – TV-vennlig nettspill mot Adams.
  *
- * Hele spillmotoren + PIMC-solveren kjører i nettleseren (null latens).
- * Mennesket sitter på sete 0 (Sør); sete 1–3 er PIMC-boter med tidsbudsjett.
- * Designet for visning via Chromecast: store kort, høy kontrast,
- * firefarget kortstokk (fargeblind-vennlig), tastaturnavigasjon og
+ * Hele spillmotoren og boten kjører i nettleseren (null latens). Mennesket
+ * sitter på sete 0 (Sør); sete 1–3 er Adams, med søket i førersetet i en Web
+ * Worker (`web/worker.ts`) og resten på hovedtråden — begge bygd av
+ * `web/adamskjede.ts`. Designet for visning via Chromecast: store kort, høy
+ * kontrast, firefarget kortstokk (fargeblind-vennlig), tastaturnavigasjon og
  * aria-live-oppleser. Hver runde og hvert menneskevalg logges til
  * datainnsamlings-endepunktet (Val Town) + localStorage som reserve.
  */
 
+// PIMC-en er bare igjen som bromodusens reserve når MesterAI-broen ikke svarer.
 import { velgHandling } from "../src/bot/bot.ts";
 import { fraKortId, kortId, type Farge, type Kort } from "../src/kort.ts";
 import {
@@ -20,16 +22,12 @@ import {
   type Handling,
   type Hendelse,
 } from "../src/motor.ts";
-import { NeatAgent } from "../src/neat/agent.ts";
-import { genomFraJson } from "../src/neat/genom.ts";
-import { E1Agent } from "../src/e1/agent.ts";
-import { Konvensjonsvakt, lesVaktflagg } from "../src/moe2/konvensjonsvakt.ts";
-import { Vrakrangerer } from "../src/moe2/vrakrang.ts";
-import { nettFraBytes } from "../src/nevro/nett.ts";
 // Fra budmodell.ts og IKKE budagent.ts: den siste importerer node:fs paa
 // toppniva, og esbuild med nettleserplattform stopper paa den.
-import { Budagent, tolkBudmodell } from "../src/moe2/budmodell.ts";
+import { tolkBudmodell } from "../src/moe2/budmodell.ts";
 import { AMERIKANER, PASS, SOLO, type Bud } from "../src/regler.ts";
+import { byggAdams, børSøke, erLovligKort, type AdamsKonfig } from "./adamskjede.ts";
+import { Søkeklient, type Arbeider, type Søkelag } from "./sokeklient.ts";
 
 // --- Oppsett ----------------------------------------------------------------
 const DATA_URL = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
@@ -53,7 +51,7 @@ const MENNESKE = 0;
  *
  * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
  */
-const BUNDELVERSJON = "v11-2026-08-10";
+const BUNDELVERSJON = "v12-2026-09-11";
 (globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
@@ -336,23 +334,6 @@ async function hentBudmodell(navn: string): Promise<unknown | null> {
   }
 }
 
-function tilBytes(b64: string): Uint8Array {
-  const rå = atob(b64.trim());
-  const bytes = new Uint8Array(rå.length);
-  for (let i = 0; i < rå.length; i++) bytes[i] = rå.charCodeAt(i);
-  return bytes;
-}
-
-/**
- * Legger rangereren utenpå boten, eller lar boten være om vektene mangler
- * eller ikke ser riktige ut.
- *
- * `Vrakrangerer` KASTER på feil bredde i stedet for å score søppel. Det er med
- * vilje: vrakvalget tas én gang per runde, så et stille feilvalg ville nesten
- * ikke syntes i statistikken – og her, i nettleseren, ville ingen sett det i
- * det hele tatt. Derfor fanger vi kastet og faller tilbake, i stedet for å la
- * det bli en bot som velger tilfeldig uten at noen merker det.
- */
 /**
  * SØK I FØRERSETET — Adams-v5. **KJØRER I WEB WORKEREN**, ikke her.
  *
@@ -378,6 +359,39 @@ const SØKVERDENER = 24;
  * 0,25 og 0,5 er ikke skillbare, så porten er robust mot terskelen.
  */
 const SØKSIGMA = 0.5;
+
+/**
+ * ============ TIDSBUDSJETTET — FEM SEKUNDER PER TREKK, RESERVEN MEDREGNET ==
+ *
+ * Eieren tillater opptil fem sekunder tenketid per trekk. Svarer ikke workeren
+ * innen `TREKKFRIST_MS`, spiller hovedtrådens søkfrie kjede — og den svarer på
+ * under ett millisekund i Node, noen få på en iPad. Med visningspausen på 250
+ * ms etter trekket ligger hele trekket under fem sekunder også når søket bommer.
+ *
+ * `SØKEFRIST_MS` er budsjettet søket SELV skal få når `Søkspek` får et
+ * tidsbudsjett (se `søkspek` i `web/adamskjede.ts`): litt under hovedtrådens
+ * frist, så et søk som stopper i tide også rekker gjennom meldingskøen.
+ *
+ * `KVITTERINGSFRIST_MS` er ikke en dom. Uteblir kvitteringen, spilles trekkene
+ * uten søk til den kommer — og kommer den aldri, startes workeren på nytt ved
+ * neste kamp (`web/sokeklient.ts`). Her sto seks sekunder som slo av søket for
+ * resten av økten.
+ */
+const TREKKFRIST_MS = 4_500;
+const SØKEFRIST_MS = 4_000;
+const KVITTERINGSFRIST_MS = 15_000;
+/** Så mange fristbrudd på rad før søket settes på pause resten av kampen. */
+const MAKS_FRISTBRUDD = 3;
+
+/** Det ENE oppsettet begge kjedene bygges fra. Se `web/adamskjede.ts`. */
+const ADAMS_KONFIG: AdamsKonfig = {
+  vaktflagg: VAKTFLAGG,
+  vrakflagg: VRAKFLAGG,
+  budterskel: BUDTERSKEL,
+  verdener: SØKVERDENER,
+  sigma: SØKSIGMA,
+  fristMs: SØKEFRIST_MS,
+};
 
 /** Rå vekter, holdt for å kunne sendes til workeren. Agenter kan ikke krysse
  *  en meldingsgrense; workeren må bygge sin egen fra de samme bytene. */
@@ -410,23 +424,6 @@ const oppløst: {
   vrak: boolean;
   tro: boolean;
 } = { kort: null, bud: null, vrak: false, tro: false };
-
-function medVrakrangerer(bot: Bot, b64: string | null): Bot {
-  if (b64 === null) {
-    console.warn("Vrakrangereren kunne ikke hentes – vraker som før.");
-    return bot;
-  }
-  try {
-    const nett = nettFraBytes(tilBytes(b64))[0];
-    if (nett === undefined) throw new Error("tomme vekter");
-    const medRang = new Vrakrangerer(bot, nett, VRAKFLAGG);
-    oppløst.vrak = true; // settes FØRST når den faktisk er bygd, ikke når fila kom
-    return medRang;
-  } catch (feil) {
-    console.warn("Vrakrangereren ble avvist:", feil);
-    return bot;
-  }
-}
 
 let botLaster: Promise<Bot> | null = null;
 function besteBot(): Promise<Bot> {
@@ -482,28 +479,27 @@ function besteBot(): Promise<Bot> {
     TROFIL === null ? Promise.resolve(null) : hentB64(TROFIL),
   ])
     .then(([b64, budRå, vrakB64, troB64]) => {
-      // Ett delt eksemplar for alle tre botsetene – slik benken kjører den.
-      const kort = new Konvensjonsvakt(
-        E1Agent.fraBytes(tilBytes(b64), {}, KORTVEKTER),
-        lesVaktflagg(VAKTFLAGG),
-      );
-      let bot: Bot = kort;
-      if (budRå === null) {
-        console.warn("Budmodellen kunne ikke lastes – spiller med NevroHjernes bud.");
-        oppløst.bud = null;
-      } else {
-        try {
-          bot = new Budagent(kort, tolkBudmodell(budRå), BUDTERSKEL);
-        } catch (feil) {
-          console.warn("Budmodellen ble avvist:", feil);
-          // Hentet, men forkastet her. Da KJØRER den ikke, og da skal den
-          // heller ikke stå i loggen som om den gjorde det.
-          oppløst.bud = null;
-        }
-      }
+      /**
+       * N2: KJEDEN BYGGES IKKE LENGER FOR HÅND.
+       *
+       * Her sto `Konvensjonsvakt` → `Budagent` → `medVrakrangerer`, skrevet en
+       * gang til ved siden av `byggUtrullet`. Nå går den gjennom `byggAdams`,
+       * den samme funksjonen workeren bruker, med `medSøk: false`. Hovedtrådens
+       * bot er dermed BEVISELIG workerens bot minus søket —
+       * `test/app-lik-spek.test.ts` spiller oppdelingen mot speken.
+       *
+       * Ett delt eksemplar for alle tre botsetene – slik benken kjører den.
+       */
+      if (budRå === null) console.warn("Budmodellen kunne ikke lastes – spiller med NevroHjernes bud.");
+      if (vrakB64 === null) console.warn("Vrakrangereren kunne ikke hentes – vraker som før.");
+      const bygd = byggAdams({ kort: b64, bud: budRå, vrak: vrakB64 }, ADAMS_KONFIG, false, oppløst.kort ?? KORTVEKTER);
+      // Hentet, men forkastet i byggingen: da KJØRER den ikke, og da skal den
+      // heller ikke stå i loggen som om den gjorde det.
+      if (!bygd.bud) oppløst.bud = null;
+      oppløst.vrak = bygd.vrak; // settes FØRST når den faktisk er bygd, ikke når fila kom
       oppløst.tro = troB64 !== null;
       råVekter = { kort: b64, bud: budRå, vrak: vrakB64, tro: troB64 };
-      return medVrakrangerer(bot, vrakB64);
+      return bygd.agent;
     })
     .catch((feil: unknown) => {
       botLaster = null; // la neste forsøk prøve på nytt
@@ -619,217 +615,116 @@ const NAVN = ["Du", "Franklin", "Lincoln", "Trump"];
 /** Karikaturen som hører til hvert sete. Se `<defs>` i `index.html`. */
 const FJES = ["", "fjes-franklin", "fjes-lincoln", "fjes-trump"];
 /**
- * Styrkenivåer for PIMC. Kortvalg (SPILL) er tidsstyrt; bud/vrak/trumf er
- * verdenstyrt med nodetak, så «øvrig» holder seg innenfor rimelig ventetid.
- * MAKS: dype eksaktsøk (terskel 9) med opptil ~3 min per kortvalg – kjør i
- * Web Worker så UI-et aldri fryser.
+ * Bromodusens reserve når MesterAI-broen ikke svarer. Det er det ENESTE som er
+ * igjen av PIMC i appen: styrkenivåene, `initPimcWorker`, `pimcHandling` og
+ * `ponder` hørte til en motstander som er fjernet, og ingen kallsti nådde dem.
  */
-const STYRKER = {
-  RASK: {
-    navn: "Rask (~1 s per trekk)",
-    spill: { verdener: 12, terskel: 6, maksEval: 240, tidsbudsjettMs: 900 },
-    øvrig: { verdener: 12, terskel: 6, maksEval: 240 },
-  },
-  STERK: {
-    navn: "Sterk (~3 s per trekk)",
-    spill: { verdener: 60, terskel: 7, nodeTak: 1_200_000, tidsbudsjettMs: 2_800, adaptivDybde: true },
-    øvrig: { verdener: 20, terskel: 6, budTerskel: 6, nodeTak: 800_000 },
-  },
-  MAKS: {
-    navn: "MAKS (~5 s per trekk, pondrer)",
-    spill: { verdener: 200, terskel: 7, nodeTak: 2_000_000, tidsbudsjettMs: 4_800, adaptivDybde: true },
-    øvrig: { verdener: 24, terskel: 7, budTerskel: 7, nodeTak: 1_000_000 },
-  },
-} as const;
-type Styrke = keyof typeof STYRKER;
-let styrke: Styrke = "MAKS";
+const BRO_RESERVE = { verdener: 12, terskel: 6, maksEval: 240, tidsbudsjettMs: 900 } as const;
 
-// --- Worker-kanal for PIMC (lange tenketider uten å fryse UI) ---------------
-let worker: Worker | null = null;
-let workerLast: Promise<Worker> | null = null;
-const venterPåSvar = new Map<number, (h: Handling) => void>();
-let nesteWorkerId = 1;
-let tenkStart = 0;
-
-/**
- * Gir workeren vektene så den kan bygge sin egen Adams med søk. Kalles én
- * gang; workeren holder agenten mellom trekk.
- */
 /**
  * ============ WORKEREN MÅ KVITTERE, OG HER ER HVORFOR ===================
  *
- * Her sto `adamsSendt = true` rett etter `postMessage`, altså «sendt» brukt
- * som om det betydde «mottatt og forstått». Det gjør det ikke, og forskjellen
- * er ikke teoretisk. Målt mot det levende endepunktet 10. august:
+ * 10. august ble det målt at den utrullede `worker.js` var en GAMMEL PIMC-worker
+ * som svarte på `adams-trekk` gjennom en ukommentert `beslutt`-gren — med
+ * forespørselens id, og med et lovlig kort valgt av PIMC. Appen kunne ikke se
+ * forskjell og logget `soek: { brukt: true }`. Førersetets kortvalg ble tatt av
+ * den svakeste boten vi har (−72,6 ± 8,5 poeng per kamp mot MesterAI, der Adams
+ * taper 5,0 ± 1,5), og loggen sa at søket ble brukt.
  *
- *     GET /worker.js   20 761 byte
- *     inneholder «init» og «pondre» — og HVERKEN «adams-init» ELLER
- *     «adams-trekk». Lokalt ligger en 598 836 byte worker som har begge.
+ * RETTELSEN var en kvittering: workeren svarer `{ klar: true }` på `adams-init`,
+ * og `adams-trekk` sendes ikke før den er kommet. Den står.
  *
- * Den utrullede `app.js` er derimot BIT-IDENTISK med `web/dist/app.js`
- * (md5 9a8ff21a…), altså v5. Appen ute er ny, workeren ute er gammel.
+ * Det som IKKE sto, var fristene rundt den — se `web/sokeklient.ts`: et
+ * `feil`-svar som aldri ble løst, en frist på 20 s i stedet for fem, og en
+ * kvitteringsfrist som slo av søket for resten av økten.
  *
- * OG DET FEILER IKKE STILLE — DET FEILER FEIL. Den gamle workerens
- * `onmessage` er en kjede av `if (m.type === …) return;` som ender i en
- * ukommentert felle: alt som ikke er «init» eller «pondre» faller gjennom til
- * `beslutt`-grenen. `adams-trekk` bærer en ekte `state`, så grenen kjører
- *
- *     agentFor(s.iTur).beslutt(s, m.maksMs)      // maksMs er undefined
- *
- * og svarer med `{ id, handling }` — samme form som et ekte søkesvar. Appen
- * kan ikke se forskjell, godtar det, og logger `soek: { brukt: true }`.
- *
- * Kortet er altså valgt av den GAMLE PIMC-agenten med tomme opsjoner (`init`
- * sendes aldri i «Vaar»-løypa), ikke av Adams med søk. PIMC taper 72,6 ± 8,5
- * poeng per kamp mot MesterAI der Adams taper 5,0 ± 1,5. Førersetets kortvalg
- * — tre av fire runder — har vært tatt av den svakeste boten vi har, og
- * loggen har sagt at søket ble brukt.
- *
- * Det er prosjektets mest gjentatte feilklasse i ny drakt: DET MÅLTE OG DET
- * UTRULLEDE VAR IKKE SAMME TING — bare at her var det ikke engang det samme
- * fra det ene meldingsfeltet til det neste.
- *
- * RETTELSEN er en kvittering. Workeren svarer `{ klar: true }` på
- * `adams-init`, og `adams-trekk` sendes ikke før den kvitteringen er kommet.
- * En eldre worker kan ikke sende `klar` — den kjenner ikke feltet — så den
- * faller ut av veien i stedet for å svare på vegne av en annen bot.
- *
- * NÅR KVITTERINGEN UTEBLIR spiller hovedtrådens søkfrie Adams, som er
- * reserven den alltid har vært. Den er svakere enn Adams med søk og MYE
- * sterkere enn PIMC, så feilmodusen peker riktig vei nå.
- *
- * MERK: dette gjør ikke søket levende igjen. Det krever at `web/dist/worker.js`
- * lastes opp — steg 2 i `docs/utrulling-v5.md`, som aldri ble utført.
+ * NÅR KVITTERINGEN UTEBLIR spiller hovedtrådens søkfrie Adams — den samme
+ * kjeden minus søket, bygd av `byggAdams`.
  */
-let adamsKlar: Promise<Worker | null> | null = null;
-/** Settes mens vi venter på kvitteringen; kalles av workerens `onmessage`. */
-let kvitter: ((ok: boolean) => void) | null = null;
+const søkeklient = new Søkeklient({
+  lagArbeider,
+  kvitteringsfristMs: KVITTERINGSFRIST_MS,
+  trekkfristMs: TREKKFRIST_MS,
+  maksFristbrudd: MAKS_FRISTBRUDD,
+  logg: (type, data) => logg(type, data),
+});
 
-async function sikreAdamsIWorker(): Promise<Worker | null> {
-  if (råVekter === null || SØKVERDENER <= 0) return null;
-  adamsKlar ??= (async (): Promise<Worker | null> => {
+/** Hvor workerkoden faktisk ble hentet fra. Logges ved kampstart. */
+let workerKilde: string | null = null;
+/** Når boten begynte å tenke. Driver sekundtelleren i «tenker …»-bobla. */
+let tenkStart = 0;
+
+/**
+ * WORKEREN HENTES FRA SAMME OPPHAV FØRST, og Val Town-proxyen er reserven.
+ *
+ * Her ble `worker.js` ALLTID hentet fra `DATA_URL`, altså fra Val Town-valen som
+ * proxyer GitHub raw PINNET til en commit. `app.js` kom fra Vercel og fulgte
+ * hver push; workeren sto på pinnen. Det er samme form som N1 — ny app, gammel
+ * worker — og det var nøyaktig slik PIMC havnet i førersetet 10. august.
+ *
+ * `dist/worker.js` ligger ved siden av `dist/app.js` og rulles ut i samme
+ * push. Proxyen står igjen som reserve, slik den gjør for `app.js` i
+ * `index.html`, og klienten tåler at den serverer en protokoll-1-worker.
+ *
+ * Val Town svarer 200 med HTML på filer den ikke har, så innholdet sjekkes:
+ * starter det med «<», eller mangler det meldingsnavnet, er det ikke workeren.
+ */
+async function hentWorkerkode(): Promise<string> {
+  for (const url of ["dist/worker.js", DATA_URL + "worker.js"]) {
     try {
-      const w = await hentWorker();
-      return await new Promise<Worker | null>((løs) => {
-        // Kvitteringen har en frist. En worker som ikke svarer på seks
-        // sekunder er enten feil worker eller ute av stand til å bygge
-        // Adams; begge deler betyr «spill uten søk», ikke «vent lenger».
-        const frist = setTimeout(() => {
-          kvitter = null;
-          console.warn(
-            "Workeren kvitterte ikke på «adams-init» innen 6 s – den er sannsynligvis en eldre " +
-              "utgave uten Adams-meldingene. Spiller med hovedtrådens søkfrie bot.",
-          );
-          løs(null);
-        }, 6_000);
-        kvitter = (ok) => { clearTimeout(frist); kvitter = null; løs(ok ? w : null); };
-        w.postMessage({
-          type: "adams-init",
-          kort: råVekter!.kort,
-          bud: råVekter!.bud,
-          vrak: råVekter!.vrak,
-          tro: råVekter!.tro,
-          vaktflagg: VAKTFLAGG,
-          vrakflagg: VRAKFLAGG,
-          budterskel: BUDTERSKEL,
-          verdener: SØKVERDENER,
-          sigma: SØKSIGMA,
-        });
-      });
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const kode = await r.text();
+      if (kode.trimStart().startsWith("<") || !kode.includes("adams-trekk")) {
+        console.warn(`«${url}» er ikke workeren (${kode.length} tegn)`);
+        continue;
+      }
+      workerKilde = url;
+      return kode;
     } catch (feil) {
-      console.warn("Kunne ikke gi workeren Adams – spiller uten søk:", feil);
-      return null;
+      console.warn(`«${url}» kunne ikke hentes:`, feil);
     }
-  })();
-  return adamsKlar;
-}
-
-/** Ber workeren om ETT kortvalg. `null` betyr «bruk hovedtrådens bot». */
-async function søkTrekk(st: GameState, sete: number): Promise<Handling | null> {
-  const w = await sikreAdamsIWorker();
-  if (w === null) return null;
-  const id = nesteWorkerId++;
-  return new Promise<Handling | null>((løs) => {
-    // Reserven er hovedtrådens søkfrie bot. Kommer ikke svaret, spiller vi
-    // som før i stedet for å la runden stoppe.
-    const tid = setTimeout(() => { venterPåSvar.delete(id); løs(null); }, 20_000);
-    venterPåSvar.set(id, (h) => { clearTimeout(tid); løs(h); });
-    w.postMessage({ type: "adams-trekk", id, state: st, sete });
-  });
-}
-
-function hentWorker(): Promise<Worker> {
-  if (worker !== null) return Promise.resolve(worker);
-  if (workerLast === null) {
-    workerLast = fetch(DATA_URL + "worker.js")
-      .then((r) => r.text())
-      .then((kode) => {
-        const w = new Worker(URL.createObjectURL(new Blob([kode], { type: "text/javascript" })));
-        w.onmessage = (e: MessageEvent<{ id: number; handling?: Handling; feil?: string; klar?: boolean }>) => {
-          // Kvitteringen på «adams-init». Den bæres av et EGET felt, ikke av
-          // at det kommer et svar i det hele tatt — en eldre worker svarer
-          // også, bare med noe helt annet. Se `sikreAdamsIWorker`.
-          if (e.data.klar !== undefined) {
-            if (e.data.klar === false) console.warn("Workeren klarte ikke bygge Adams:", e.data.feil);
-            kvitter?.(e.data.klar === true);
-            return;
-          }
-          const løs = venterPåSvar.get(e.data.id);
-          venterPåSvar.delete(e.data.id);
-          if (løs && e.data.handling) løs(e.data.handling);
-        };
-        worker = w;
-        return w;
-      });
   }
-  return workerLast;
+  throw new Error("worker.js kunne ikke hentes fra noen av kildene");
 }
 
-/** Initialiser workerens agenter for valgt styrke (pondering + adaptiv dybde). */
-async function initPimcWorker(): Promise<void> {
-  const nivå = STYRKER[styrke];
-  const w = await hentWorker();
-  w.postMessage({
-    type: "init",
-    spill: { ...nivå.spill, frø: (Math.random() * 1e9) >>> 0 },
-    øvrig: { ...nivå.øvrig, frø: (Math.random() * 1e9) >>> 0 },
-  });
+/** `Worker` bak det lille grensesnittet klienten bruker. */
+async function lagArbeider(): Promise<Arbeider> {
+  const kode = await hentWorkerkode();
+  const w = new Worker(URL.createObjectURL(new Blob([kode], { type: "text/javascript" })));
+  return {
+    postMessage: (m) => w.postMessage(m),
+    terminate: () => w.terminate(),
+    koble: (påMelding, påFeil) => {
+      w.onmessage = (e: MessageEvent<unknown>) => påMelding(e.data);
+      w.onerror = (e: ErrorEvent) => {
+        e.preventDefault();
+        påFeil(e.message || "ukjent workerfeil");
+      };
+    },
+  };
 }
 
 /**
- * Pondering hoerte til PIMC-solveren, som er fjernet som motstander.
- * NevroHjerne bruker mikrosekunder per trekk og har ingenting aa pondre paa.
- * Funksjonen staar som no-op saa kallstedene ikke maa rives ut.
+ * ============ HVILKET LAG SOM AVGJORDE HVERT BOTTREKK ====================
+ *
+ * `docs/gammelkode.md` N6: hovedtråden og workeren er to optimerere over samme
+ * beslutning, og regelen for hvem som vinner er en stoppeklokke. Analysen
+ * grupperer på `BOT_ID`, som er ÉN rad for begge. Uten å vite hvilket lag som
+ * spilte hvert kort, blandes to bots i én rad.
+ *
+ * Hvert bottrekk noteres her som `[sete, fase, lag, ms]` og skrives som ÉN
+ * `bottrekk`-rad per runde — ikke én rad per trekk, som ville vært ~40
+ * nettverkskall per runde mot en SQLite-base. Fase er B(ud), V(rak), T(rumf)
+ * eller S(pill). Lag er `nett`, `bro`, `bro-reserve` eller et `Søkelag`.
  */
-function ponder(_s: GameState, _ms: number): void {
-  /* ingen motstander bruker worker-pondering lenger */
+type Bottrekk = [sete: number, fase: string, lag: Søkelag | "nett" | "bro" | "bro-reserve", ms: number];
+let bottrekk: Bottrekk[] = [];
+const FASEKODE: Partial<Record<GameState["fase"], string>> = { BUDRUNDE: "B", VRAK: "V", VELG: "T", SPILL: "S" };
+function notérBottrekk(sete: number, fase: GameState["fase"], lag: Bottrekk[2], ms: number): void {
+  bottrekk.push([sete, FASEKODE[fase] ?? fase, lag, Math.round(ms)]);
 }
 
-/** PIMC-beslutning i workeren; faller tilbake til rask synkron ved feil. */
-async function pimcHandling(s: GameState): Promise<Handling> {
-  const nivå = STYRKER[styrke];
-  try {
-    const w = await hentWorker();
-    return await new Promise<Handling>((løs, avvis) => {
-      const id = nesteWorkerId++;
-      venterPåSvar.set(id, løs);
-      w.postMessage({ type: "beslutt", id, state: s, maksMs: nivå.spill.tidsbudsjettMs ?? 5000 });
-      setTimeout(() => {
-        if (venterPåSvar.has(id)) {
-          venterPåSvar.delete(id);
-          avvis(new Error("tidsavbrudd"));
-        }
-      }, 45_000);
-    });
-  } catch {
-    return velgHandling(s, { ...STYRKER.RASK.spill, frø: (Math.random() * 1e9) >>> 0 });
-  }
-}
-
-/**
- * Motstandertype: PIMC-solveren, et trent NEAT-nett, appens nevronett eller
- * appens fulle MesterAI.
- */
 /**
  * Bare ÉN motstander står igjen på nett: vår egen beste bot.
  *
@@ -869,7 +764,14 @@ const BOT_ID: Record<Motstander, string> = {
   // ID-EN MAA BYTTES VED HVER UTPLASSERING. Uten det blandes familiens runder
   // mot v1 og v2 i samme rad i Val Town-basen, og da kan ingen av dem maales.
   // Det var slik v1 kunne skilles fra forgjengeren og vise +4,61 poeng/runde.
-  Vaar: "Adams-v5",
+  //
+  // Adams-v5.1, 11. september: SAMME kjede og samme vekter som v5, men søket
+  // har nå en frist på 4,5 s med hovedtrådens søkfrie kjede som reserve, og
+  // workeren startes på nytt i stedet for å slås av for økten. På en treg
+  // maskin spiller v5.1 derfor flere kort uten søk enn v5 ville ventet på —
+  // en annen bot i praksis, og derfor en egen ID. Ikke «v6»: det navnet er
+  // tatt av `ADAMS_V6` i `src/moe2/agentspek.ts`, som er en annen stakk.
+  Vaar: "Adams-v5.1",
   MesterAI: "MesterAI",
 };
 /**
@@ -1182,26 +1084,48 @@ async function start(navn: string): Promise<void> {
       document.getElementById("tilbake")!.onclick = () => startskjerm();
       return;
     }
-  } else {
-    try {
-      await initPimcWorker();
-    } catch { /* faller tilbake til synkron RASK i pimcHandling */ }
   }
   state = opprettSpill({ antallSpillere: 4 }, (Date.now() ^ (Math.random() * 1e9)) >>> 0);
+  bottrekk = [];
   // Ett delt eksemplar fører alle tre setene, så nullstill det bare én gang.
   for (const a of new Set(nettAgenter ?? [])) a.nyKamp();
+  if (motstander === "Vaar" && råVekter !== null && SØKVERDENER > 0) {
+    // WORKEREN STARTES VED KAMPSTART, ikke ved første førertrekk. Da er den
+    // som regel klar før budrunden er over, og første kort venter ikke på en
+    // nedlasting. `start` gjør ingenting om den alt går.
+    søkeklient.start({
+      type: "adams-init",
+      kort: råVekter.kort,
+      bud: råVekter.bud,
+      vrak: råVekter.vrak,
+      tro: råVekter.tro,
+      ...ADAMS_KONFIG,
+    });
+    // N5: `nyKamp()` når nå workerens kjede også — og en worker som var treg
+    // eller feilet i forrige kamp, startes på nytt her.
+    søkeklient.nyKamp();
+  }
   if (motstander === "MesterAI") {
     broKø = Promise.resolve();
     void broPost({ type: "nyKamp", mesterSeter: MESTER_SETER });
     void broPost(broRundeStart());
   }
   // `modeller` er de FAKTISK oppløste filene, ikke de vi ba om. Se `oppløst`.
+  //
+  // `klar` er workerens status I DET kampen starter. Første kamp i en økt står
+  // den som regel på «laster»; `worker`-raden sier når den ble klar, og
+  // `bottrekk` per runde sier hvilket lag som faktisk spilte hvert kort.
   logg("start", {
     frø: state.frø,
     målPoeng: state.regler.målPoeng,
     motstander,
-    styrke,
     modeller: { ...oppløst },
+    bundel: BUNDELVERSJON,
+    søkverdener: SØKVERDENER,
+    søksigma: SØKSIGMA,
+    klar: søkeklient.status === "klar",
+    worker: søkeklient.status,
+    workerKilde,
   });
   fortsett();
 }
@@ -1219,7 +1143,6 @@ function gjør(h: Handling): void {
     frystStikk = { kort: stikk.stikk, vinner: stikk.vinner };
     travelt = true;
     tegn();
-    ponder(state, STIKKPAUSE - 150);
     samleStikketTilVinneren(stikk.vinner);
     setTimeout(() => {
       frystStikk = null;
@@ -1447,6 +1370,16 @@ function håndterHendelser(hendelser: readonly Hendelse[]): void {
         etterlyst: state.etterlyst === null ? null : [state.etterlyst.farge, state.etterlyst.verdi],
         makker: state.makker,
       });
+      // ÉN rad per runde med hvert bottrekk: sete, fase, lag og tenketid.
+      // `sene` er søkesvar som kom etter fristen og ble kastet (bare når > 0).
+      if (bottrekk.length > 0) {
+        logg("bottrekk", {
+          rundeNr: state.rundeNr,
+          trekk: bottrekk,
+          ...(søkeklient.sene > 0 ? { sene: søkeklient.sene } : {}),
+        });
+        bottrekk = [];
+      }
     } else if (h.type === "KAMP_SLUTT") {
       logg("kamp", { vinner: h.vinner, totalPoeng: state.totalPoeng, runder: state.rundeNr + 1 });
     }
@@ -1469,46 +1402,67 @@ function fortsett(): void {
     return;
   }
 
-  // Bot i tur. NEAT-nettene svarer momentant; PIMC tenker i workeren
-  // (opptil ~5 s ved MAKS) uten å blokkere UI-et.
+  // Bot i tur. Nettet svarer på under ett millisekund; søket i førersetet
+  // tenker i workeren, innenfor `TREKKFRIST_MS`, uten å blokkere UI-et.
   venterPåMenneske = false;
   travelt = true;
   tenkStart = performance.now();
   if (motstander === "MesterAI") {
     tegn();
-    const reserve = (): Handling =>
-      velgHandling(state, { ...STYRKER.RASK.spill, frø: (Math.random() * 1e9) >>> 0 });
+    const t0 = performance.now();
+    const fase = state.fase;
+    const reserve = (): Handling => velgHandling(state, { ...BRO_RESERVE, frø: (Math.random() * 1e9) >>> 0 });
     void broPost({ type: "beslutt", sete: aktør })
       .then((svar) => {
         travelt = false;
+        notérBottrekk(aktør, fase, svar.handling ? "bro" : "bro-reserve", performance.now() - t0);
         gjørMedPause(svar.handling ? broHandlingFra(svar.handling) : reserve(), 550);
       })
       .catch(() => {
         travelt = false;
+        notérBottrekk(aktør, fase, "bro-reserve", performance.now() - t0);
         gjørMedPause(reserve(), 550);
       });
   } else if (nettAgenter !== null) {
     // SØKET GÅR TIL WORKEREN, og bare når det er noe å hente: kortvalg der
-    // boten er spillefører. Alt annet svarer nettet på i mikrosekunder, og å
-    // sende det gjennom en meldingskø ville vært ren overhead.
-    const børSøke =
-      SØKVERDENER > 0 && state.fase === "SPILL" && aktør === state.budvinner && råVekter !== null;
-    if (børSøke) {
+    // boten er spillefører (`børSøke`, delt med paritetsprøven).
+    if (råVekter !== null && børSøke(state, aktør, SØKVERDENER)) {
       tegn();
       const t0 = performance.now();
-      void søkTrekk(state, aktør).then((h) => {
+      const spurt = state;
+      const kamp = spillId;
+      void søkeklient.trekk(spurt, aktør).then((svar) => {
+        // SVARET GJELDER STILLINGEN DET BLE REGNET PÅ. Har spillet gått videre
+        // (ny kamp), føres det ikke inn i en annen stilling.
+        if (state !== spurt || spillId !== kamp) return;
+        let lag = svar.lag;
+        let h = svar.handling;
+        if (h !== null && !erLovligKort(state, h)) {
+          console.warn("Workeren svarte med et ulovlig kort – spiller hovedtrådens valg:", h);
+          h = null;
+          lag = "feil";
+        }
+        // RESERVEN er hovedtrådens kjede: den samme boten minus søket.
+        const valgt = h ?? nettAgenter![aktør - 1]!.velgHandling(state);
+        const ms = performance.now() - t0;
         travelt = false;
-        // LOGG OM SØKET FAKTISK KJØRTE. Uten dette vet vi ikke fra basen om
-        // v5 spilte med søk eller falt stille tilbake til nettet – samme
-        // problem som førerraden som var usynlig i hver måling.
+        // LOGG HVA SOM FAKTISK SPILTE. `brukt` står igjen for gamle spørringer;
+        // `lag` sier om søket overstyrte, lot nettet stå, bommet på fristen
+        // eller feilet. `wms` er workerens egen regnetid.
         logg("soek", {
           rundeNr: state.rundeNr,
           stikk: state.stikkSpilt,
+          sete: aktør,
           brukt: h !== null,
-          ms: Math.round(performance.now() - t0),
+          lag,
+          ...(svar.utfall ? { utfall: svar.utfall } : {}),
+          ms: Math.round(ms),
+          ...(svar.wms !== undefined ? { wms: svar.wms } : {}),
           verdener: SØKVERDENER,
+          sigma: SØKSIGMA,
         });
-        gjørMedPause(h ?? nettAgenter![aktør - 1]!.velgHandling(state), 250);
+        notérBottrekk(aktør, "SPILL", lag, ms);
+        gjørMedPause(valgt, 250);
       });
       return;
     }
@@ -1518,25 +1472,18 @@ function fortsett(): void {
     // hengt side, selv når pausen er et halvt sekund.
     tegn();
     setTimeout(() => {
+      const t0 = performance.now();
+      const fase = state.fase;
       const h = nettAgenter![aktør - 1]!.velgHandling(state);
+      notérBottrekk(aktør, fase, "nett", performance.now() - t0);
       travelt = false;
       gjørMedPause(h, 550);
     }, 30);
-  } else {
-    tegn();
-    void pimcHandling(state).then((h) => {
-      travelt = false;
-      gjørMedPause(h, 250);
-    });
   }
 }
 
 function gjørMedPause(h: Handling, pauseMs: number): void {
   travelt = true;
-  // utfør er ren – regn ut neste stilling nå, så botene kan pondere i pausen.
-  try {
-    ponder(utfør(state, h).state, pauseMs - 40);
-  } catch { /* pondering er best-effort */ }
   setTimeout(() => {
     travelt = false;
     gjør(h);
