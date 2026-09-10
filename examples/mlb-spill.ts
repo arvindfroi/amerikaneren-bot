@@ -198,6 +198,15 @@ let raskKjerne = false;
  */
 let laerer: "adams" | null = null;
 
+/**
+ * ADAMS SOM MOTSTANDER (`--adams-andel p`). Andelen p av kampene spilles med
+ * kandidaten i ETT sete (roterer med kampnummeret) mot TRE Adams-v5 - det
+ * samme bordet kampbenken doemmer paa. Resten er ligaen som foer. Adams-setene
+ * samles IKKE: her er de motstandere, ikke laerere. Trukket av kampens eget
+ * froe, saa to kjoeringer gir samme bord.
+ */
+let adamsAndel = 0;
+
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   const v = process.argv[i + 1];
@@ -219,6 +228,7 @@ for (let i = 2; i < process.argv.length; i++) {
     if (v !== "adams") throw new Error(`--laerer kjenner bare «adams», fikk «${String(v)}»`);
     laerer = "adams";
   }
+  else if (a === "--adams-andel") adamsAndel = tall(v, adamsAndel, "--adams-andel");
   else if (a === "--maal") bareMål = true;
   else if (a === "--skard") {
     const d = (v ?? "0/1").split("/");
@@ -302,6 +312,7 @@ const navnAv = (sti: string): string => sti.replace(/\\/g, "/").split("/").pop()
  */
 function lagBord(kampnr: number, frø: number): Sete[] {
   if (laerer === "adams") return lærerbord(frø);
+  if (adamsAndel > 0 && lagRng(frø ^ 0x6ad4_11a1)() < adamsAndel) return adamsbord(kampnr, frø);
   const rng = lagRng(frø ^ 0x2b7c_1d55);
   const liga = new Liga(VANER_TRENING);
   const kandidat = epokeDeltaker(
@@ -372,6 +383,19 @@ function lærerbord(frø: number): Sete[] {
     egen: adamsBeslutter(regler, giving),
     samle: true,
   }));
+}
+
+/** Kandidaten i sete `kampnr % 4`, tre Adams-v5 rundt. Bare kandidaten samles. */
+function adamsbord(kampnr: number, frø: number): Sete[] {
+  if (sandkasse === null) throw new Error("--adams-andel trenger --nett: kandidaten må være et nett");
+  const regler = lagRegler({ antallSpillere: 4, målPoeng: målPoengFor(frø) });
+  const giving = kortgiving(regler);
+  const kandidatsete = kampnr % 4;
+  return [0, 1, 2, 3].map((i) =>
+    i === kandidatsete
+      ? { navn: navnAv(nettsti!), nett: sandkasse, temperatur, samle: true }
+      : { navn: `adams-v5.${i}`, nett: null, temperatur: 0, egen: adamsBeslutter(regler, giving), samle: false },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -523,7 +547,7 @@ if (skardI >= 0) {
       `nett=${nettsti ?? "tilfeldig"} froe=${frøBase} ` +
       `maksrunder=${maksRunder} beste=${bestesti ?? "(kandidaten selv)"} ` +
       `tidligere=[${tidligereStier.join(",")}] ` +
-      `laerer=${laerer === null ? "ingen (liga)" : "adams (alle fire seter, Arvinds unntak 10. sep)"} ` +
+      `laerer=${laerer === null ? "ingen (liga)" : "adams (alle fire seter, Arvinds unntak 10. sep)"} adams-andel=${adamsAndel} ` +
       `kjerne=${raskKjerne ? "kolonne (--rask-kjerne, ikke bit-identisk)" : "rad (bit-identisk)"}\n`,
   );
   if (kjørK2) k2EllerStopp();

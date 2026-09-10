@@ -150,6 +150,8 @@ class Driver:
         ]
         if self.a.rask_kjerne:
             cmd.append("--rask-kjerne")
+        if self.a.adams_andel > 0:
+            cmd += ["--adams-andel", str(self.a.adams_andel)]
         # ===================== HVEM ER 40-PROSENTEN? (§127) ==================
         #
         # `TRENINGSVEKTER` i src/mlb/liga.ts er beste 0,4 / tidligere 0,3 /
@@ -289,6 +291,7 @@ class Driver:
                 f"  vekt-stikk={a.vekt_stikk} vekt-verdi-kvantil={a.vekt_verdi_kvantil}"
                 f"  motstander={a.motstander}"
                 f"  maal={('seier ' + a.seier) if a.seier else 'poeng'}"
+                f"  adams-andel={a.adams_andel}"
                 # KJERNEN I TRENINGSDATAENE. Kolonnekjernen er ikke bit-identisk;
                 # et loep som bruker den skal vaere gjenkjennelig i den varige fila.
                 + (f"  kjerne=kolonne (--rask-kjerne)" if a.rask_kjerne else "  kjerne=rad")
@@ -544,6 +547,9 @@ def main():
     # SEIERSMAALET (src/mlb/seier.ts): seiersprediktorens vektfil. Tom = poeng,
     # som foer. Gjelder ERFARING - det er der belonningen regnes.
     p.add_argument("--seier", default="")
+    # ADAMS SOM MOTSTANDER: andelen kamper med kandidaten mot tre Adams-v5 (kampbenkens
+    # bord). 0 = bare ligaen, som foer.
+    p.add_argument("--adams-andel", type=float, default=0.0)
     p.add_argument("--batch", type=int, default=1024)
     # ===================== FROEBAANDENE, AVSATT FOER FOERSTE KAMP =========
     #

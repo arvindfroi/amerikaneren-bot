@@ -760,6 +760,10 @@ def main():
         f_ent = [0.0] * 5
         f_norm = [0.0] * 5
         f_n = [0] * 5
+        # SAMSVAR PER FASE. Under `--imitasjon` er det her det avgjoeres HVOR nettet
+        # ikke er laereren: i1 hadde 67 % samlet og vant 0,10 av kampene mot Adams,
+        # og et snitt der kortspillet er 78 % av radene kan skjule et budgap helt.
+        f_treff = [0] * 5
         f_kode = [torch.zeros(mdim, device=enhet, dtype=torch.long) for _ in range(5)]
         for i in range(0, len(idx), args.batch):
             j = idx[i : i + args.batch]
@@ -784,6 +788,7 @@ def main():
                     f_ent[f] += float(ent[mf].sum())
                     f_norm[f] += float((ent[mf] / LNL[j][mf]).sum())
                     f_n[f] += int(mf.sum())
+                    f_treff[f] += int(((argmaks == KODE[j]) & mf).sum())
                     f_kode[f] += torch.bincount(argmaks[mf], minlength=mdim)
             s["kvad"] += float(((v - G[j]) ** 2).sum())
             s["kvadG"] += float((G[j] ** 2).sum())
@@ -841,6 +846,7 @@ def main():
             ut[f"ent_{FASE_NAVN[f]}"] = f_ent[f] / nf
             ut[f"norment_{FASE_NAVN[f]}"] = f_norm[f] / nf
             ut[f"ulike_{FASE_NAVN[f]}"] = float(int((f_kode[f] > 0).sum()))
+            ut[f"pol_treff_{FASE_NAVN[f]}"] = f_treff[f] / nf
         if delt:
             # HVER DEL MED SITT EGET NEVNER. `forklart_runde` mot Var(Gr) og
             # `forklart_hale` mot Var(Gh) - deles de paa Var(G), ser den ene
