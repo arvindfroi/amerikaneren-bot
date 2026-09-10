@@ -112,6 +112,24 @@ til Adams-stakken direkte (budsøk K=240 er målt +2,0, `ADAMS-MAX-ARBEIDSPLAN`)
 | i3 | som i2, men KANONISK vrak og 16 000 kamper (frø 300 000 000 +), sjanse 0,165, fra i2 | samsvar holdout **78,9 %** (VRAK 60,6 → **85,0 %**, SPILL 75,0), verdi forklart +0,29. Stigen mot Adams +0,01 ± 0,34. **Kampbenk 0,2131** (−4,32 SE). Parret mot i2 på samme 400 frø: **−0,012 ± 0,011** (−1,1 SE), margin −3,3 ± 1,2. Ikke bedre → R1 startes IKKE på nytt. Høyere samsvar ga ikke flere seire |
 | R1–R6 | `mlb-epoke.py --seier --adams-andel 0.5`, fra i2 | **e1: 0,2331** (400 frø, −0,0169 ± 0,0084, −2,00 SE, 66 opp / 99 ned, margin −2,8 ± 1,1), 10. sep 23:01. Porten (gate 2) forkastet, KL 0,036. Kravbatteri e1 kjører. K5- og K8-radene er ugyldige for R1 — se `krav-samspill-2026-09-10.md` §3 |
 
+## DOM OVER R1 (11. sep, alle 6 epoker)
+
+| epoke | kampbenk mot tre Adams (400 frø) |
+|---|---|
+| e1 | 0,2331 (−2,00 SE) |
+| e2 | 0,2338 (−1,81 SE) |
+| e3 | 0,2200 (−3,44 SE) |
+| e4 | 0,2169 (−3,76 SE) |
+| e5 | 0,2112 (−4,74 SE) |
+| e6 | 0,2206 (−3,45 SE) |
+
+**Avbruddskriteriet er innfridd: ingen epoke over 0,25. R1 er FEILET, slik det står
+skrevet over.** Beste imitasjon (i2, 0,2250) ble ikke slått av noen epoke med
+signifikans, og e3–e6 ligger under i2. Diagnosen (gradientloggen): fordelen er mest
+støy (verdien forklarer ~0,27 på holdout, halen ~0,01) og KL-bremsen mot forrige epoke
+lar policyen drive uten retning. Videre arbeid på MLB skjer bare i R2, som har egen
+forhåndsregistrering og egen stopp (`analyse/r2-forhaandsregistrering.md`).
+
 **Lest av i1 (skrevet etter målingen, ikke en ny hypotese):** 67 % samsvar gir
 −1,17 poeng/giv på stigen men bare 0,10 av kampene. Små avvik hoper seg opp over
 en kamp til 100, så samsvarstallet alene sier lite. Derfor måles samsvaret nå PER
