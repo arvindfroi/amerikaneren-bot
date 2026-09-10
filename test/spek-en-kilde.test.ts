@@ -37,7 +37,7 @@
 
 import { strict as assert } from "node:assert";
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -78,10 +78,19 @@ function tsFiler(mappe: string): string[] {
 
 const hardkoder = (f: string): boolean => VEKTNAVN.test(readFileSync(f, "utf8"));
 
+/**
+ * Repo-relativ sti med `/` på ALLE plattformer. `relative()` gir `\` på
+ * Windows, og både unntaket for `agentspek.ts` og lista i
+ * `spek-hardkodet-tillatt.txt` er skrevet med `/`. Uten dette var begge
+ * reglene røde på laptopen treningen kjører på: SPERRE meldte kilden selv, og
+ * SKRALLE meldte alle 71 tillatte filer som «nye» — målt 2026-09-10.
+ */
+const repoSti = (f: string): string => relative(ROT, f).split(sep).join("/");
+
 test("SPERRE: bare agentspek.ts hardkoder vektnavnene i src/ og web/", () => {
   const brudd = [...tsFiler("src"), ...tsFiler("web")]
     .filter(hardkoder)
-    .map((f) => relative(ROT, f))
+    .map(repoSti)
     .filter((f) => f !== "src/moe2/agentspek.ts")
     .sort();
 
@@ -98,7 +107,7 @@ test("SPERRE: bare agentspek.ts hardkoder vektnavnene i src/ og web/", () => {
 test("SKRALLE: ingen NYE haandbygde speker i examples/ og test/", () => {
   const naa = [...tsFiler("examples"), ...tsFiler("test")]
     .filter(hardkoder)
-    .map((f) => relative(ROT, f))
+    .map(repoSti)
     .sort();
 
   const tillatt = readFileSync(resolve(ROT, "test/spek-hardkodet-tillatt.txt"), "utf8")
