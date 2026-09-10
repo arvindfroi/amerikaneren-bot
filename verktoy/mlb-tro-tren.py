@@ -218,7 +218,10 @@ def main():
     if args.hold_del > 0:
         # HOLDOUT PAA KAMP, fra samme filer: epokens data har ikke et eget froebaand,
         # og en radvis splitt ville maalt gjenkjenning av kampen.
-        hold = (numpy.abs(FROtr.astype(numpy.int64)) % args.hold_del) == 0
+        # HASH AV FROEET, ikke `froe % N`: froene er base + 7717*k og skardene k % S, saa
+        # `froe % 10` faller sammen med skardnummeret (ett skard ga 100 % holdout).
+        h = (FROtr.astype(numpy.uint64) * numpy.uint64(2654435761)) % numpy.uint64(4294967296)
+        hold = (h % numpy.uint64(args.hold_del)) == 0
         Xho, Fho, Sho = Xtr[hold], Ftr[hold], STtr[hold]
         Xtr, Ftr = Xtr[~hold], Ftr[~hold]
         dim2 = dim
