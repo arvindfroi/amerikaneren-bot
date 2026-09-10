@@ -1,14 +1,22 @@
 /**
- * BUDQ-DATA — etikettene budmodellen lærer av (K3.1, K3.2). 11. sep.
+ * BUDQ-DATA — etikettene budmodellen lærer av (K3.1, K3.2, K5). 11. sep.
  *
  *   node examples/budq-data.ts --kamper 200 --skard 0/8 --verdener 4 --ut D:/amb-grp/budq/d0/s0.jsonl
- *     [--spek <policy>] [--sjanse 0.5] [--froe 15000000] [--maksrunder 60]
+ *     [--spek <policy>] [--sjanse 0.5] [--froe 15000000] [--maksrunder 60] [--seier e1-modell/seier-g0.bin]
  *
  * For et utvalg budbeslutninger i hele kamper til 100: trekk K verdener forenlige med
  * det setet VET (`trekkVerdener`, budvekten på — de andres bud teller), og for HVERT
- * lovlige bud: tving budet nå, spill runden ferdig med policyen, og les av rundeutfallet
- * (egne poeng minus snittet av de tre andre). Alle budene får de SAMME verdenene, så
- * forskjellene mellom dem er parvise.
+ * lovlige bud: tving budet nå, spill runden ferdig med policyen, og les av utfallet.
+ * Alle budene får de SAMME verdenene, så forskjellene mellom dem er parvise.
+ *
+ * TO MÅL. Uten `--seier` er etiketten rundepoeng (egne minus snittet av de tre andre).
+ * Første kampbenk (03:55) viste at det ikke holder: BudQ slo Adams' bud med +0,17 per
+ * budbeslutning på det målet, og vant ikke én kamp mer. K1 er å VINNE KAMPEN. Med
+ * `--seier <prediktor>` er etiketten 100·ΔP(seier) for setet — sjansen etter runden
+ * minus sjansen før, lest av seiersprediktoren fra R-løpene (`src/mlb/seier.ts`); ender
+ * runden kampen, er «etter» fasiten 0 eller 1. Da er et bud som gir 20 poeng i ledelse
+ * verdt lite, og et dristig bud når man ligger langt bak verdt mer (K5). Rundepoengene
+ * skrives likevel i `qp`, så de to målene kan sammenliknes på samme rader.
  *
  * INGEN FASIT I ETIKETTEN: verdenene trekkes fra setets visning, ikke fra den virkelige
  * given. Den virkelige given brukes bare til å spille KAMPEN videre, så stillingene
@@ -31,6 +39,7 @@ import { lagRng } from "../src/kort.ts";
 import { ADAMS, lagIndre, tall } from "../src/moe2/agentspek.ts";
 import { medVerden, trekkVerdener } from "../src/moe2/sdkort.ts";
 import { BUDQ_BUD, budqTrekk } from "../src/moe2/budq.ts";
+import { Seiersprediktor } from "../src/mlb/seier.ts";
 
 const arg = (n: string, s: string): string => {
   const i = process.argv.indexOf(n);
@@ -44,6 +53,8 @@ const FRØ = tall(arg("--froe", "15000000"), 15_000_000, "froe");
 const MAKSRUNDER = tall(arg("--maksrunder", "60"), 60, "maksrunder");
 const SPEK = arg("--spek", ADAMS);
 const UT = arg("--ut", "D:/amb-grp/budq/d0/s0.jsonl");
+const SEIER = arg("--seier", "");
+const prediktor = SEIER === "" ? null : Seiersprediktor.fraFil(SEIER);
 mkdirSync(dirname(UT), { recursive: true });
 
 const kamp = [0, 1, 2, 3].map(() => lagIndre(SPEK));
@@ -58,8 +69,14 @@ function utfall(s: GameState, sete: number): number {
   return egne - andre / (d.length - 1);
 }
 
-/** Tving `bud` for `sete` nå, og spill runden ferdig med utspillingsagentene. */
-function spillUt(start: GameState, sete: number, bud: Bud): number {
+/** P(setet vinner kampen) i denne stillingen; fasiten når kampen er over. */
+function vinnersjanse(s: GameState, sete: number): number {
+  if (s.fase === "FERDIG") return s.vinner === sete ? 1 : 0;
+  return prediktor!.fordeling(s.totalPoeng, sete, s.regler.målPoeng)[0]!;
+}
+
+/** Tving `bud` for `sete` nå, spill runden ferdig, og les av begge målene. */
+function spillUt(start: GameState, sete: number, bud: Bud): { poeng: number; seier: number | null } {
   let s = utfør(start, { type: "BUD", spiller: sete, bud }).state;
   const runde = start.rundeNr;
   let vakt = 0;
@@ -68,9 +85,12 @@ function spillUt(start: GameState, sete: number, bud: Bud): number {
     if (i === null || i === undefined) break;
     s = utfør(s, utspill[i]!.velgHandling(s)).state;
   }
-  return utfall(s, sete);
+  const poeng = utfall(s, sete);
+  if (prediktor === null) return { poeng, seier: null };
+  return { poeng, seier: 100 * (vinnersjanse(s, sete) - vinnersjanse(start, sete)) };
 }
 
+const rund = (x: number): number => Math.round(x * 100) / 100;
 const velg = lagRng(9_100_000 + SI);
 let skrevet = 0;
 const t0 = Date.now();
@@ -96,8 +116,11 @@ for (let g = 0; g < KAMPER; g++) {
         const verdener = trekkVerdener(s, sete, K, lagRng((frø * 31 + skrevet * 104_729 + sete) >>> 0), undefined, undefined, 32, undefined, true);
         if (verdener.length > 0) {
           const q: Record<string, number[]> = {};
+          const qp: Record<string, number[]> = {};
           for (const b of kandidater) {
-            q[String(b)] = verdener.map((hender) => Math.round(spillUt(medVerden(s, hender, sete), sete, b) * 100) / 100);
+            const utfallene = verdener.map((hender) => spillUt(medVerden(s, hender, sete), sete, b));
+            qp[String(b)] = utfallene.map((u) => rund(u.poeng));
+            q[String(b)] = utfallene.map((u) => rund(u.seier ?? u.poeng));
           }
           appendFileSync(
             UT,
@@ -105,9 +128,11 @@ for (let g = 0; g < KAMPER; g++) {
               frø,
               runde: s.rundeNr,
               sete,
+              maal: prediktor === null ? "poeng" : "seier",
               policy: h.type === "BUD" ? String(h.bud) : null,
               x: [...budqTrekk(s, sete)].map((x) => Math.round(x * 10_000) / 10_000),
               q,
+              ...(prediktor === null ? {} : { qp }),
             }) + "\n",
           );
           skrevet++;
