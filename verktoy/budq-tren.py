@@ -35,7 +35,7 @@ BUD = ["PASS", "5", "6", "7", "8", "9", "10", "11", "12", "AMERIKANER", "SOLO"]
 INDEKS = {b: i for i, b in enumerate(BUD)}
 
 
-def les(monster):
+def les(monster, blanding=0.0):
     X, T, M, P, FRO = [], [], [], [], []
     filer = []
     for m in monster.split(","):
@@ -54,9 +54,15 @@ def les(monster):
                     continue  # siste linje kan vaere halvskrevet
                 t = numpy.zeros(len(BUD), dtype=numpy.float32)
                 m = numpy.zeros(len(BUD), dtype=numpy.float32)
+                qp = r.get("qp")
+                if blanding != 0.0 and qp is None:
+                    raise SystemExit("--blanding krever qp i radene (budq-data --seier)")
                 for b, verdier in r["q"].items():
                     if b in INDEKS and verdier:
-                        t[INDEKS[b]] = float(numpy.mean(verdier))
+                        # BLANDINGEN (11. sep): rent seiersmaal laerte vaagale bud der
+                        # seiersprediktoren ekstrapolerer (kampbenk: margin -407, 50 runder).
+                        ekstra = blanding * float(numpy.mean(qp[b])) if blanding != 0.0 else 0.0
+                        t[INDEKS[b]] = float(numpy.mean(verdier)) + ekstra
                         m[INDEKS[b]] = 1.0
                 if m.sum() < 2:
                     continue
@@ -92,9 +98,11 @@ def main():
     ap.add_argument("--hold-del", type=int, default=10)
     ap.add_argument("--froe", type=int, default=20260911)
     ap.add_argument("--rapport", default="")
+    ap.add_argument("--blanding", type=float, default=0.0,
+                    help="maal = q + blanding*qp: seiersmaal pluss en andel rundepoeng (krever qp i dataene)")
     a = ap.parse_args()
 
-    X, T, M, P, FRO, nfiler = les(a.data)
+    X, T, M, P, FRO, nfiler = les(a.data, a.blanding)
     h = (FRO.astype(numpy.uint64) * numpy.uint64(2654435761)) % numpy.uint64(4294967296)
     hold = (h % numpy.uint64(a.hold_del)) == 0
     print(f"{len(X)} budstillinger fra {nfiler} filer, {int(hold.sum())} paa holdout, "
