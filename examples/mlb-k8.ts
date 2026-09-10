@@ -61,6 +61,7 @@ import { troTrekk } from "../src/mlb/trotrekk.ts";
 import { byggTrekk } from "../src/mlb/trekk.ts";
 import { TOMT_DELVALG } from "../src/mlb/handling.ts";
 import { lesSandkasse } from "./mlb-krav-felles.ts";
+import { Hukommelse } from "../src/mlb/hukommelse.ts";
 
 const arg = (n: string, s: string): string => {
   const i = process.argv.indexOf(n);
@@ -73,6 +74,8 @@ const FRAstikk = tall(arg("--frastikk", "2"), 2, "frastikk");
 const PERSTIKK = tall(arg("--perstikk", "1"), 1, "perstikk");
 const PERGIV = tall(arg("--pergiv", "8"), 8, "pergiv");
 const DRIVER = arg("--drivere", ADAMS_MAALT);
+/** `a|b|c|d` gir hvert sete sin spek (K8.4); én spek gir alle fire den, som før. */
+const DRIVERE = DRIVER.split("|");
 const VRAKALFA = Number(arg("--vrakalfa", "2"));
 const NETTFIL = arg("--nett", "e1-modell/mlb-tro.bin");
 const UT = arg("--ut", "analyse/mlb-k8-0.jsonl");
@@ -87,6 +90,22 @@ const [SI, SN] = (arg("--skard", "0/1").split("/") as [string, string]).map(Numb
  */
 const FRØ = tall(arg("--froe", "12000000"), 12_000_000, "froe");
 
+/**
+ * K8.4 — TROEN RUNDE FOR RUNDE (11. sep). Uten `--kamp` er alt som før: stillinger fra
+ * FØRSTE runde av friske giv, der hukommelsen per konstruksjon er tom. Da kan prøven
+ * ikke se om et trohode med hukommelse (804 inn) har lært noe av den.
+ *
+ * `--kamp` spiller hele kamper til 100 med én `Hukommelse` for bordet, tar stillinger fra
+ * `--fra-runde` (0-basert, standard 1) og gir hvert trohode boka hvis det leser den.
+ * `--nett2` legger et andre trohode på NØYAKTIG de samme stillingene (kolonne `nett2`),
+ * så «med mot uten hukommelse» blir parvis. `--drivere "a|b|c|d"` gir hvert sete sin
+ * spek: et bord der motstanderne spiller ulikt er der hukommelsen har noe å lære.
+ * `--armer ingen` hopper over Monte-Carlo-armene, som er de dyre.
+ */
+const KAMP = process.argv.includes("--kamp");
+const FRA_RUNDE = tall(arg("--fra-runde", "1"), 1, "fra-runde");
+const NETT2 = arg("--nett2", "");
+
 /** Relativt sete, samme koding som `fyllSanser` og `monteTro`. */
 const rel = (sete: number, p: number, n: number): number => (p - sete + n) % n;
 
@@ -95,6 +114,7 @@ const atferd = {
   logits: (st: GameState, s2: number) => forover(nett, e1SpillTrekk(st, s2, nett.lag[0]!.inn)),
 };
 const trohode = MlbTronett.fraBytes(new Uint8Array(readFileSync(NETTFIL)));
+const trohode2 = NETT2 === "" ? null : MlbTronett.fraBytes(new Uint8Array(readFileSync(NETT2)));
 
 /**
  * NETTETS EGET TROHODE (`--sandkasse <vekter>`, 10. sep). Kravbatteriet målte
@@ -125,7 +145,7 @@ if (VRAKALFA > 0) {
 }
 const ARMVALG = arg("--armer", "");
 const VALGTE: Arm[] =
-  ARMVALG === "" ? ARMER : ARMER.filter((a) => ARMVALG.split(",").includes(a.navn));
+  ARMVALG === "" ? ARMER : ARMVALG === "ingen" ? [] : ARMER.filter((a) => ARMVALG.split(",").includes(a.navn));
 
 /** Gulv+: setene som ikke er KJENT renons i fargen. Ordrett fra tro-noyaktighet. */
 function muligeSeter(state: GameState, sete: number, farge: string): number[] {
@@ -150,19 +170,34 @@ let n = 0;
 for (let g = 0; g < GIVER; g++) {
   if (g % SN !== SI) continue;
   const frø = FRØ + g * 6151;
-  const ag = [0, 1, 2, 3].map(() => lagIndre(DRIVER));
-  let s: GameState = opprettSpill({ antallSpillere: 4 }, frø);
+  const ag = [0, 1, 2, 3].map((i) => lagIndre(DRIVERE[i % DRIVERE.length]!));
+  let s: GameState = opprettSpill(KAMP ? { antallSpillere: 4, målPoeng: 100 } : { antallSpillere: 4 }, frø);
   let vakt = 0;
   let iGiv = 0;
   let iStikk = 0;
   let sisteStikk = -1;
+  // Én bok for bordet. Bare lest med `--kamp`; ellers går `null` inn som før.
+  const bok = new Hukommelse();
+  let runde = s.rundeNr;
 
-  while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && vakt++ < 200) {
+  while (s.fase !== "FERDIG" && (KAMP || s.fase !== "RUNDE_SLUTT") && vakt++ < (KAMP ? 20_000 : 200)) {
+    if (KAMP) {
+      bok.observer(s);
+      if (s.fase === "RUNDE_SLUTT") {
+        s = utfør(s, { type: "NESTE" }).state;
+        continue;
+      }
+      if (s.rundeNr !== runde) {
+        runde = s.rundeNr;
+        iGiv = 0;
+        sisteStikk = -1;
+      }
+    }
     if (s.fase === "SPILL" && s.stikkSpilt !== sisteStikk) {
       sisteStikk = s.stikkSpilt;
       iStikk = 0;
     }
-    if (s.fase === "SPILL" && s.iTur !== null && iGiv < PERGIV && iStikk < PERSTIKK && s.stikkSpilt >= FRAstikk) {
+    if (s.fase === "SPILL" && s.iTur !== null && iGiv < PERGIV && iStikk < PERSTIKK && s.stikkSpilt >= FRAstikk && (!KAMP || s.rundeNr >= FRA_RUNDE)) {
       const sete = s.iTur;
       if (lovligeKort(s, sete).length >= 2) {
         iGiv++;
@@ -173,6 +208,7 @@ for (let g = 0; g < GIVER; g++) {
           sete,
           verdener: VERDENER,
         };
+        if (KAMP) rad.runde = s.rundeNr;
 
         // GULVENE, som er de samme for alle armene.
         let gulvTap = 0;
@@ -193,6 +229,9 @@ for (let g = 0; g < GIVER; g++) {
         rad.erBv = sete === s.budvinner ? 1 : 0;
         rad.gulv = Number((gulvTap / kort).toFixed(5));
         rad.gulvPluss = Number((gulvPlussTap / kort).toFixed(5));
+        /** Boka for et trohode som leser den, i `--kamp`. Ellers `null`, som før. */
+        const huk = (nett: MlbTronett): Float64Array | null =>
+          KAMP && nett.brukerHukommelse ? bok.vektor(sete, s.antallSpillere) : null;
 
         for (const arm of VALGTE) {
           const rng = lagRng(31_000_000 + g * 97 + s.stikkSpilt);
@@ -234,8 +273,8 @@ for (let g = 0; g < GIVER; g++) {
          * `test/mlb-k2-tro.test.ts` holder at det er en blind funksjon.
          */
         {
-          // Stillingene er fra første runde, så hukommelsen er tom per konstruksjon.
-          const f = trohode.fordeling(trohode.trekkFor(spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, null));
+          // Uten `--kamp` er stillingene fra første runde, og hukommelsen tom per konstruksjon.
+          const f = trohode.fordeling(trohode.trekkFor(spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, huk(trohode)));
           let tap = 0;
           let treff = 0;
           for (let p = 0; p < s.antallSpillere; p++) {
@@ -259,12 +298,35 @@ for (let g = 0; g < GIVER; g++) {
           rad.nett_gulvbandt = 0;
         }
 
+        // DET ANDRE TROHODET, på nøyaktig de samme kortene (K8.4): parvis med `nett`.
+        if (trohode2 !== null) {
+          const f = trohode2.fordeling(trohode2.trekkFor(spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, huk(trohode2)));
+          let tap = 0;
+          let treff = 0;
+          for (let p = 0; p < s.antallSpillere; p++) {
+            if (p === sete) continue;
+            const r = rel(sete, p, s.antallSpillere);
+            if (r < 1 || r > 3) continue;
+            for (const k of s.hender[p] ?? []) {
+              const rader = f[kortIndeks(k)]!;
+              const sum = (rader[0] ?? 0) + (rader[1] ?? 0) + (rader[2] ?? 0);
+              const pr = sum > 1e-12 ? (rader[r - 1] ?? 0) / sum : 1 / 3;
+              tap += -Math.log(Math.max(1e-12, pr));
+              let best = 0;
+              for (let i = 1; i < 3; i++) if ((rader[i] ?? 0) > (rader[best] ?? 0)) best = i;
+              if (best === r - 1) treff++;
+            }
+          }
+          rad.nett2 = Number((tap / kort).toFixed(5));
+          rad.nett2_treff = Number((treff / kort).toFixed(5));
+        }
+
         if (sandkasse !== null) {
           const trekk = byggTrekk(spillerVisning(s, sete), {
             regler: s.regler,
             giving: s.giving,
             delvalg: TOMT_DELVALG,
-            hukommelse: null,
+            hukommelse: KAMP ? bok.vektor(sete, s.antallSpillere) : null,
             tronett: trohode,
           });
           const rå = sandkasse.framover(trekk).tro;

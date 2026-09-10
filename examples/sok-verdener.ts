@@ -153,7 +153,10 @@ function treff(s: GameState, sete: number, hender: readonly (readonly number[])[
   return n === 0 ? 1 : r / n;
 }
 
-const agenter = [0, 1, 2, 3].map(() => lagIndre(ADAMS));
+// `--drivere "a|b|c|d"`: hvert sete sin spek. Et bord der motstanderne spiller ULIKT er
+// der hukommelsen har noe å lære; fire like Adams gir den nesten ingenting (+0,12 pp).
+const drivere = arg("--drivere", ADAMS).split("|");
+const agenter = [0, 1, 2, 3].map((i) => lagIndre(drivere[i % drivere.length]!));
 const velg = lagRng(4_411_000 + skardI);
 let skrevet = 0;
 for (let g = skardI; g < givere; g += skardN) {
