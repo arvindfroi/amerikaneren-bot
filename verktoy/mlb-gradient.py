@@ -306,6 +306,16 @@ def main():
     # fortsatt for grov: paa 86 k rader naadde KL **0,45** ved foerste maaling
     # etter fire batcher - femten ganger maalet. Standarden er derfor 1.
     ap.add_argument("--kl-intervall", type=int, default=1)
+    # ============ IMITASJON AV ADAMS (Arvind 10. september) ================
+    #
+    # MLB startes fra Adams-v5 i stedet for fra egen plateau: policyleddet blir
+    # kryssentropi mot KODEN laereren valgte (`examples/mlb-spill.ts --laerer
+    # adams`), ikke PPO mot en fordel. Verdi, tro, stikk og kvantiler trenes paa
+    # sine egne, perfekte etiketter som foer. KL-bremsen og entropien skal staa
+    # AV i en slik kjoering (`--kl-maal 0 --entropi 0`, ingen `--entropi-fase`):
+    # meningen er aa flytte policyen HELT til laereren, og en brems mot det er
+    # en brems mot oppgaven.
+    ap.add_argument("--imitasjon", action="store_true")
     # HOLDOUT PAA KAMP, ikke paa rad. Rader fra samme kamp deler bade kortene og
     # halen, saa en radsplitt maaler hukommelse. 0 = ingen holdout.
     ap.add_argument("--holdout-del", type=int, default=10, help="1 av N KAMPER holdes utenfor")
@@ -711,6 +721,11 @@ def main():
                 "st_treff",
                 "st_kvad",
                 "st_sum",
+                # SAMSVAR MED KODEN I RADEN: andel ekte valg der nettets argmaks
+                # er den koden som faktisk ble valgt. Under `--imitasjon` er det
+                # hvor naer laereren nettet er; i selvspill er det bare en
+                # beskrivelse av hvor ofte samplet valg == argmaks.
+                "pol_treff",
             )
         }
         nt = np_ = nv = ns = 0
@@ -746,6 +761,7 @@ def main():
                 np_ += int(valg.sum())
                 fase_j = FASEF[j]
                 argmaks = lg.argmax(dim=1)
+                s["pol_treff"] += float((argmaks == KODE[j])[valg].sum())
                 for f in range(5):
                     mf = valg & (fase_j == f)
                     if not bool(mf.any()):
@@ -796,6 +812,7 @@ def main():
 
         ut = {
             "pol": s["pol"] / max(1, np_),
+            "pol_treff": s["pol_treff"] / max(1, np_),
             "ent": s["ent"] / max(1, np_),
             "tro": s["tro"] / max(1, nt),
             "treff": s["treff"] / max(1, nt),
@@ -1012,7 +1029,15 @@ def main():
             else:
                 lg = F.log_softmax(maskerte_logits(p, M[j]), dim=1)
                 valg = MED_VALG[j]
-                if valg.any():
+                if valg.any() and args.imitasjon:
+                    # Kryssentropi mot LAERERENS kode, bare paa rader med et
+                    # ekte valg. Ingen fordel, intet PPO-klipp: raden sier hva
+                    # Adams valgte, og det er etiketten.
+                    tap_pol = F.nll_loss(lg[valg], KODE[j][valg])
+                    pr = lg.exp()
+                    ent_rad = -(pr * lg.masked_fill(~M[j], 0.0)).sum(1)
+                    tap_ent = entropitapet(ent_rad, ent_rad / LNL[j], valg, FASEF[j])
+                elif valg.any():
                     lpa = lg.gather(1, KODE[j].unsqueeze(1)).squeeze(1)
                     forhold = (lpa - lp_gammel[j]).clamp(max=20.0).exp()
                     a = An[j]

@@ -58,6 +58,18 @@ import {
   type Sete,
 } from "../src/mlb/selvspill.ts";
 import { epokeDeltaker, Liga, VANER_TRENING } from "../src/mlb/liga.ts";
+/**
+ * LÆREREN — Arvind 10. september: MLB startes fra Adams-v5, et bevisst unntak fra
+ * «ingen mester» (`docs/mlb.md` AVGJØRELSE 1b og 2). Importen ligger i `examples/`
+ * og aldri i `src/mlb/`, så herkomstvakten for selve nettet står uendret: det er
+ * TRENINGSDATAENE som bærer læreren, og bare med `--laerer adams`.
+ */
+import { lagIndre, ADAMS } from "../src/moe2/agentspek.ts";
+import { kortgiving, lagRegler, type GameRules, type Kortgiving } from "../src/regler.ts";
+import type { Handling } from "../src/motor.ts";
+import { budKode, kortKode, trumfKode } from "../src/mlb/handling.ts";
+import { visningTilState } from "../src/mlb/trekk.ts";
+import type { Beslutter } from "../src/mlb/selvspill.ts";
 
 // ---------------------------------------------------------------------------
 // Argumenter
@@ -176,6 +188,16 @@ const målPoengFor = (frø: number): number => {
  */
 let raskKjerne = false;
 
+/**
+ * LÆREREN I ALLE FIRE SETER (`--laerer adams`). Da er bordet ikke ligaen, men
+ * Adams-v5 mot seg selv, og hvert sete samles: kodene i loggen er Adams' egne
+ * valg, og `mlb-erfaring.ts` gjør dem til rader med Adams' valg som etikett.
+ * Adapteren er prøvd: Adams velger identisk på `visningTilState` som på ekte
+ * stat (9 876 beslutninger, 0 avvik), og fire adaptersetert gir eksakt samme
+ * kamp som fire Adams i motoren (8 av 8: vinner, poeng, runder).
+ */
+let laerer: "adams" | null = null;
+
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   const v = process.argv[i + 1];
@@ -193,6 +215,10 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--maksrunder") maksRunder = tall(v, maksRunder, "--maksrunder");
   else if (a === "--uten-k2") kjørK2 = false;
   else if (a === "--rask-kjerne") raskKjerne = true;
+  else if (a === "--laerer") {
+    if (v !== "adams") throw new Error(`--laerer kjenner bare «adams», fikk «${String(v)}»`);
+    laerer = "adams";
+  }
   else if (a === "--maal") bareMål = true;
   else if (a === "--skard") {
     const d = (v ?? "0/1").split("/");
@@ -275,6 +301,7 @@ const navnAv = (sti: string): string => sti.replace(/\\/g, "/").split("/").pop()
  * hadde ikke betydd det de sier.
  */
 function lagBord(kampnr: number, frø: number): Sete[] {
+  if (laerer === "adams") return lærerbord(frø);
   const rng = lagRng(frø ^ 0x2b7c_1d55);
   const liga = new Liga(VANER_TRENING);
   const kandidat = epokeDeltaker(
@@ -291,6 +318,60 @@ function lagBord(kampnr: number, frø: number): Sete[] {
     liga.leggTilTidligere(epokeDeltaker(navnAv(t.sti), t.nett, "tidligere"));
   }
   return liga.bord(kandidat, kampnr % 4, temperatur, rng);
+}
+
+/**
+ * ADAMS-V5 SOM MLB-SETE. Hele handlingen regnes ut ved FØRSTE delsteg av en
+ * beslutning og leveres som én kode per delsteg: vrak = fire kort i Adams' egen
+ * rekkefølge, velg = trumf og så etterlyst kort. Adams ser bare `visning`, gjort
+ * om til en redigert stat — prøvd å gi identiske valg som på ekte stat.
+ *
+ * Passer delsteget ikke handlingen, KASTER den. En lærer som gjetter en kode
+ * ville lært nettet noe Adams aldri gjorde.
+ */
+function adamsBeslutter(regler: GameRules, giving: Kortgiving): Beslutter {
+  const agent = lagIndre(ADAMS);
+  let plan: Handling | null = null;
+  return (p) => {
+    if (p.delvalg.vrak.length === 0 && p.delvalg.trumf === null) {
+      plan = agent.velgHandling(visningTilState(p.visning, regler, giving));
+    }
+    const h = plan;
+    if (h === null) throw new Error("Adams-læreren har ingen plan");
+    switch (p.delsteg) {
+      case "BUD":
+        if (h.type === "BUD") return budKode(h.bud);
+        break;
+      case "VRAK_KORT": {
+        const k = h.type === "VRAK" ? h.kort[p.delvalg.vrak.length] : undefined;
+        if (k !== undefined) return kortKode(k);
+        break;
+      }
+      case "VELG_TRUMF":
+        if (h.type === "VELG") return trumfKode(h.trumf);
+        break;
+      case "VELG_ETTERLYST":
+        if (h.type === "VELG" && h.etterlyst !== null) return kortKode(h.etterlyst);
+        break;
+      case "SPILL_KORT":
+        if (h.type === "SPILL") return kortKode(h.kort);
+        break;
+    }
+    throw new Error(`Adams-læreren: delsteg ${p.delsteg} passer ikke handlingen ${JSON.stringify(h)}`);
+  };
+}
+
+/** Fire Adams-seter, alle samlet. `målPoeng` følger kampens eget frø, som i `kjørSkard`. */
+function lærerbord(frø: number): Sete[] {
+  const regler = lagRegler({ antallSpillere: 4, målPoeng: målPoengFor(frø) });
+  const giving = kortgiving(regler);
+  return [0, 1, 2, 3].map((i) => ({
+    navn: `adams-v5.${i}`,
+    nett: null,
+    temperatur: 0,
+    egen: adamsBeslutter(regler, giving),
+    samle: true,
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -442,6 +523,7 @@ if (skardI >= 0) {
       `nett=${nettsti ?? "tilfeldig"} froe=${frøBase} ` +
       `maksrunder=${maksRunder} beste=${bestesti ?? "(kandidaten selv)"} ` +
       `tidligere=[${tidligereStier.join(",")}] ` +
+      `laerer=${laerer === null ? "ingen (liga)" : "adams (alle fire seter, Arvinds unntak 10. sep)"} ` +
       `kjerne=${raskKjerne ? "kolonne (--rask-kjerne, ikke bit-identisk)" : "rad (bit-identisk)"}\n`,
   );
   if (kjørK2) k2EllerStopp();
