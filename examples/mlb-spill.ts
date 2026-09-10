@@ -168,6 +168,14 @@ const målPoengFor = (frø: number): number => {
   return målPoengValg[Math.min(i, målPoengValg.length - 1)]!;
 };
 
+/**
+ * KOLONNEKJERNEN (`src/nevro/nett-kolonne.ts`), 1,94× per beslutning, IKKE
+ * bit-identisk. Treningsdata tåler numerisk støy; måling gjør det ikke — derfor
+ * av som standard, og derfor står valget i rapporten. Skardene får flagget
+ * gjennom `process.argv`, så alle kjører samme kjerne.
+ */
+let raskKjerne = false;
+
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   const v = process.argv[i + 1];
@@ -184,6 +192,7 @@ for (let i = 2; i < process.argv.length; i++) {
   else if (a === "--tidligere") tidligereStier = (v ?? "").split(",").filter((x) => x.length > 0);
   else if (a === "--maksrunder") maksRunder = tall(v, maksRunder, "--maksrunder");
   else if (a === "--uten-k2") kjørK2 = false;
+  else if (a === "--rask-kjerne") raskKjerne = true;
   else if (a === "--maal") bareMål = true;
   else if (a === "--skard") {
     const d = (v ?? "0/1").split("/");
@@ -237,6 +246,17 @@ const sandkasse = nettsti === null ? null : Sandkassenett.fraFil(nettsti);
  */
 const besteNett = bestesti === null ? null : Sandkassenett.fraFil(bestesti);
 const tidligereNett = tidligereStier.map((s) => ({ sti: s, nett: Sandkassenett.fraFil(s) }));
+
+/**
+ * ALLE NETTENE I SAMME KJERNE. Et bord der kandidaten regner i én kjerne og
+ * motstanderne i en annen ville vært et bord ingen har bedt om.
+ */
+if (raskKjerne) {
+  tronett?.brukKolonnekjerne();
+  sandkasse?.brukKolonnekjerne();
+  besteNett?.brukKolonnekjerne();
+  for (const t of tidligereNett) t.nett.brukKolonnekjerne();
+}
 
 const navnAv = (sti: string): string => sti.replace(/\\/g, "/").split("/").pop() ?? sti;
 
@@ -421,7 +441,8 @@ if (skardI >= 0) {
       + `tro=${trosti ?? "AV"} ` +
       `nett=${nettsti ?? "tilfeldig"} froe=${frøBase} ` +
       `maksrunder=${maksRunder} beste=${bestesti ?? "(kandidaten selv)"} ` +
-      `tidligere=[${tidligereStier.join(",")}]\n`,
+      `tidligere=[${tidligereStier.join(",")}] ` +
+      `kjerne=${raskKjerne ? "kolonne (--rask-kjerne, ikke bit-identisk)" : "rad (bit-identisk)"}\n`,
   );
   if (kjørK2) k2EllerStopp();
 

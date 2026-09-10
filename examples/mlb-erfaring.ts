@@ -136,10 +136,18 @@ const tall = (v: string | undefined, navn: string): number => {
   return x;
 };
 
+/**
+ * KOLONNEKJERNEN, som i `mlb-spill.ts`. Gjenspillingen regner de samme nettene
+ * som spillingen (V(s) til fordelen, trohodet til trekkene), så de to stegene
+ * skal kjøre samme kjerne. Står i rapporten.
+ */
+let raskKjerne = false;
+
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i]!;
   const v = process.argv[i + 1];
   if (a === "--inn") innMønster = v ?? innMønster;
+  else if (a === "--rask-kjerne") raskKjerne = true;
   else if (a === "--nett") nettsti = v ?? null;
   else if (a === "--tro") trosti = v ?? null;
   else if (a === "--uten-tro") trosti = null;
@@ -302,6 +310,10 @@ function kjørSkard(i: number, n: number): void {
 
   const nett = Sandkassenett.fraFil(nettsti!);
   const tronett = trosti === null ? null : MlbTronett.fraBytes(readFileSync(trosti));
+  if (raskKjerne) {
+    nett.brukKolonnekjerne();
+    tronett?.brukKolonnekjerne();
+  }
   mkdirSync(dirname(ut), { recursive: true });
   const fd = openSync(delfil(i), "w");
   {
@@ -519,7 +531,8 @@ if (skardI >= 0) {
       // λ og γ MÅ stå i den varige fila. To epoker med ulik γ gir tall som
       // ikke er sammenliknbare, og uten dem i loggen er de heller ikke
       // gjenkjennelige som ulike.
-      `lambda=${lambda} gamma=${gamma} maksrunder=${maksRunder}\n`,
+      `lambda=${lambda} gamma=${gamma} maksrunder=${maksRunder}\n` +
+      `kjerne=${raskKjerne ? "kolonne (--rask-kjerne, ikke bit-identisk)" : "rad (bit-identisk)"}\n`,
   );
   const t0 = Date.now();
   const deler: Sammendrag[] = [];

@@ -22,10 +22,13 @@
  */
 
 import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
+import { foroverKolonne } from "../nevro/nett-kolonne.ts";
 import { MLB_TRO_INN, MLB_TRO_KLASSER, MLB_TRO_KORT, MLB_TRO_UT } from "./trotrekk.ts";
 
 export class MlbTronett {
   private readonly nett: NevroNett;
+  /** Se `brukKolonnekjerne`. Av som standard, og av i all måling. */
+  private kolonne = false;
 
   constructor(nett: NevroNett) {
     const første = nett.lag[0];
@@ -46,12 +49,28 @@ export class MlbTronett {
     return new MlbTronett(nett);
   }
 
+  /**
+   * KOLONNEKJERNEN (`src/nevro/nett-kolonne.ts`): 2,67× raskere på trohodet,
+   * men IKKE bit-identisk. Bare for treningsdata (`--rask-kjerne` i
+   * `mlb-spill.ts` og `mlb-erfaring.ts`); måling bruker standardstien.
+   * Returnerer instansen, så den kan kjedes rett etter `fraBytes`.
+   */
+  brukKolonnekjerne(): this {
+    this.kolonne = true;
+    return this;
+  }
+
+  /** Hvilken kjerne som FAKTISK regner — for rapportene, så ingen må gjette. */
+  get kjerne(): "rad" | "kolonne" {
+    return this.kolonne ? "kolonne" : "rad";
+  }
+
   /** → `p[kort][klasse]`, normalisert per kort over de fire klassene. */
   fordeling(trekk: Float32Array): number[][] {
     if (trekk.length !== MLB_TRO_INN) {
       throw new Error(`MLB-trohodet ventet ${MLB_TRO_INN} trekk, fikk ${trekk.length}`);
     }
-    const rå = forover(this.nett, trekk);
+    const rå = this.kolonne ? foroverKolonne(this.nett, trekk) : forover(this.nett, trekk);
     const ut: number[][] = [];
     for (let k = 0; k < MLB_TRO_KORT; k++) {
       const b = k * MLB_TRO_KLASSER;

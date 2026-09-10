@@ -148,6 +148,8 @@ class Driver:
             "--froe", str(self.a.froe_spill + e * 20_000_000),
             "--uten-k2",
         ]
+        if self.a.rask_kjerne:
+            cmd.append("--rask-kjerne")
         # ===================== HVEM ER 40-PROSENTEN? (§127) ==================
         #
         # `TRENINGSVEKTER` i src/mlb/liga.ts er beste 0,4 / tidligere 0,3 /
@@ -197,6 +199,8 @@ class Driver:
             "--tro", self.a.tro,
             "--rapport", f"{self.a.logkatalog}/e{e}-erfaring.txt",
         ]
+        if self.a.rask_kjerne:
+            cmd.append("--rask-kjerne")
         return self.kjor("ERFARING", cmd, f"{self.a.logkatalog}/e{e}-erfaring-kjor.txt")[0], ut
 
     def tren(self, e, arbeid, erf, kandidat):
@@ -282,6 +286,9 @@ class Driver:
                 f"  lambda={a.lam} gamma={a.gamma} lr={a.lr} kamper={a.kamper}"
                 f"  vekt-stikk={a.vekt_stikk} vekt-verdi-kvantil={a.vekt_verdi_kvantil}"
                 f"  motstander={a.motstander}"
+                # KJERNEN I TRENINGSDATAENE. Kolonnekjernen er ikke bit-identisk;
+                # et loep som bruker den skal vaere gjenkjennelig i den varige fila.
+                + (f"  kjerne=kolonne (--rask-kjerne)" if a.rask_kjerne else "  kjerne=rad")
                 # ENTROPIEN SLIK DEN FAKTISK VIRKER. `--entropi` er INERT naar
                 # `--entropi-fase` er satt, og et flagg som staar i loggen uten
                 # aa virke er verre enn ingen logg: en ekstern gjennomgang leste
@@ -526,6 +533,11 @@ def main():
     p.add_argument("--vekt-verdi-kvantil", type=float, default=1.0)
     # HVEM 40-PROSENTEN ER. Se `spill()` over. `beste` er dagens oppfoersel.
     p.add_argument("--motstander", choices=("beste", "naa"), default="beste")
+    # KOLONNEKJERNEN (`src/nevro/nett-kolonne.ts`), bare i SPILL og ERFARING.
+    # Treningsdata taaler numerisk stoey (maks |d| 4e-7 paa policy-logitene, samme
+    # argmaks i 1000/1000 ekte stillinger); maaling gjoer det ikke, saa K2 og
+    # porten kjoerer alltid den bit-identiske `forover`. 1,94x per beslutning.
+    p.add_argument("--rask-kjerne", action="store_true")
     p.add_argument("--batch", type=int, default=1024)
     # ===================== FROEBAANDENE, AVSATT FOER FOERSTE KAMP =========
     #

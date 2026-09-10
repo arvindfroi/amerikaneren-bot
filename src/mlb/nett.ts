@@ -109,6 +109,7 @@ import { readFileSync } from "node:fs";
 
 import { lagRng } from "../kort.ts";
 import { forover, nettFraBytes, type NevroLag, type NevroNett } from "../nevro/nett.ts";
+import { foroverKolonne } from "../nevro/nett-kolonne.ts";
 import { HANDLING_LENGDE } from "./handling.ts";
 import { TREKK_LENGDE } from "./trekk.ts";
 import { MLB_TRO_KLASSER, MLB_TRO_KORT } from "./trotrekk.ts";
@@ -507,9 +508,10 @@ export class Sandkassenett {
     if (trekk.length !== this.inngangsLengde) {
       throw new Error(`Sandkassenettet ventet ${this.inngangsLengde} trekk, fikk ${trekk.length}`);
     }
-    const h = forover(this.stamme, trekk);
+    const f = this.kolonne ? foroverKolonne : forover;
+    const h = f(this.stamme, trekk);
     for (let i = 0; i < h.length; i++) if (h[i]! < 0) h[i] = 0;
-    const kvantil = forover(this.kvantilHode, h);
+    const kvantil = f(this.kvantilHode, h);
     /**
      * FORVENTNINGEN ER SNITTET AV KVANTILENE, og det er ikke en tilnærming: med
      * τ_i = (i + ½)/K er `(1/K)·Σ θ_i` midtpunktsregelen for `∫₀¹ F⁻¹(τ) dτ`,
@@ -520,17 +522,37 @@ export class Sandkassenett {
     for (let i = 0; i < kvantil.length; i++) kvantilSnitt += kvantil[i]!;
     kvantilSnitt /= Math.max(1, kvantil.length);
 
-    const runde = (forover(this.verdiHode, h)[0] ?? 0) + kvantilSnitt;
-    const hale = forover(this.haleHode, h)[0] ?? 0;
+    const runde = (f(this.verdiHode, h)[0] ?? 0) + kvantilSnitt;
+    const hale = f(this.haleHode, h)[0] ?? 0;
     return {
-      policy: forover(this.policyHode, h),
+      policy: f(this.policyHode, h),
       verdi: runde + hale,
       verdiRunde: runde,
       verdiHale: hale,
-      tro: forover(this.troHode, h),
-      stikk: forover(this.stikkHode, h),
+      tro: f(this.troHode, h),
+      stikk: f(this.stikkHode, h),
       verdiKvantil: kvantil,
     };
+  }
+
+  /** Se `brukKolonnekjerne`. Av som standard, og av i all måling. */
+  private kolonne = false;
+
+  /**
+   * KOLONNEKJERNEN (`src/nevro/nett-kolonne.ts`): 1,66× raskere på dette
+   * nettet, men IKKE bit-identisk. Bare for treningsdata (`--rask-kjerne` i
+   * `mlb-spill.ts` og `mlb-erfaring.ts`). Porten, stigen, kravbatteriet og
+   * `spekagent` bygger egne instanser uten den og regner med `forover`.
+   * Returnerer instansen, så den kan kjedes rett etter `fraFil`.
+   */
+  brukKolonnekjerne(): this {
+    this.kolonne = true;
+    return this;
+  }
+
+  /** Hvilken kjerne som FAKTISK regner — for rapportene, så ingen må gjette. */
+  get kjerne(): "rad" | "kolonne" {
+    return this.kolonne ? "kolonne" : "rad";
   }
 
   /** Stikkhodet lest som en fordeling over 0…12 stikk. Softmax, én gang. */
