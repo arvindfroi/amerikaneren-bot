@@ -29,12 +29,18 @@
  * BudQ), er avviket bare søkets tilfeldighet og budmodellen som ble brukt.
  */
 
-import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { opprettSpill, utfør, type GameState } from "../src/motor.ts";
+import { utfør, type GameState } from "../src/motor.ts";
 import { lagIndre } from "../src/moe2/agentspek.ts";
 import { Seiersprediktor } from "../src/mlb/seier.ts";
+/**
+ * Leseren, skardfordelingen, `spilteKort`, gjenskapingen av stillingen før runden og
+ * «kampslutt som rundeslutt» bor i `menneske-logg.ts` fra 11. sep, delt med `menneske-tro.ts`
+ * og `mlb-trodata.ts --menneske`. Radene her er byte-identiske med før (sha1 av et skard).
+ */
+import { lesMenneskelogg, MENNESKE, skardAv as skardAvN, somRundeslutt, spilteKort, stillingFør } from "./menneske-logg.ts";
 
 const arg = (n: string, s: string): string => {
   const i = process.argv.indexOf(n);
@@ -44,7 +50,6 @@ const SPEK = arg("--spek", "vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-m
 const DATA = arg("--data", "D:/amb-grp/menneske/hendelser.jsonl");
 const UT = arg("--ut", "D:/amb-grp/duplikat/roeyk/s0.jsonl");
 const [SI, SN] = arg("--skard", "0/1").split("/").map(Number) as [number, number];
-const MENNESKE = 0;
 /**
  * DE TRE ANDRE SETENE. Standard = `--spek`, men den RETTFERDIGE sammenlikningen er at de spilles av
  * den kjeden mennesket faktisk møtte (v5 fra 10. aug): da er motstanderne de samme, og bare sete 0 er
@@ -55,46 +60,10 @@ const MOTSTANDER = arg("--motstander", SPEK);
 const prediktor = Seiersprediktor.fraFil(arg("--seier", "e1-modell/seier-g0.bin"));
 mkdirSync(dirname(UT), { recursive: true });
 
-interface Hendelse {
-  id: number;
-  tid: string;
-  spillId: string;
-  spiller: string;
-  type: string;
-  data: Record<string, unknown>;
-}
-
-const spill = new Map<string, { start: Hendelse | null; runder: Hendelse[] }>();
-for (const linje of readFileSync(DATA, "utf8").split("\n")) {
-  if (linje === "") continue;
-  const h = JSON.parse(linje) as Hendelse;
-  if (h.type !== "start" && h.type !== "runde") continue;
-  const s = spill.get(h.spillId) ?? { start: null, runder: [] };
-  if (h.type === "start") s.start = h;
-  else s.runder.push(h);
-  spill.set(h.spillId, s);
-}
+const spill = lesMenneskelogg(DATA);
 
 /** Stabil skardfordeling på spill-id. */
-const skardAv = (id: string): number => {
-  let x = 2166136261;
-  for (let i = 0; i < id.length; i++) x = Math.imul(x ^ id.charCodeAt(i), 16777619) >>> 0;
-  return x % SN;
-};
-
-const FARGEKODE: Record<string, string> = { S: "S", H: "H", R: "R", K: "K" };
-/** Loggens historikk: stikk som [[spiller, farge, verdi], …]. Gir menneskets spilte kort som «S14». */
-function spilteKort(historikk: unknown, sete: number): string[] {
-  const ut: string[] = [];
-  if (!Array.isArray(historikk)) return ut;
-  for (const stikk of historikk) {
-    if (!Array.isArray(stikk)) continue;
-    for (const k of stikk) {
-      if (Array.isArray(k) && k[0] === sete) ut.push(`${FARGEKODE[String(k[1])] ?? "?"}${k[2]}`);
-    }
-  }
-  return ut;
-}
+const skardAv = (id: string): number => skardAvN(id, SN);
 
 function rolle(budvinner: unknown, makker: unknown, sete: number): string {
   if (budvinner === sete) return "fører";
@@ -174,11 +143,7 @@ for (const [id, s] of spill) {
 
     // Samme stilling: runde 0 rett fra frøet, ellers en RUNDE_SLUTT rett før og NESTE –
     // da deler motoren selv ut runden, med sin egen giverrotasjon.
-    const grunn = opprettSpill({ antallSpillere: 4, målPoeng }, frø);
-    let st: GameState =
-      rundeNr === 0
-        ? { ...grunn, totalPoeng: før }
-        : utfør({ ...grunn, fase: "RUNDE_SLUTT", iTur: null, rundeNr: rundeNr - 1, giver: (rundeNr - 1) % 4, totalPoeng: før }, { type: "NESTE" }).state;
+    let st: GameState = stillingFør(frø, målPoeng, rundeNr, før);
 
     /**
      * Kontrollen: menneskets spilte kort må finnes i gjenskapt hånd + talong. En runde som ikke
@@ -220,7 +185,7 @@ for (const [id, s] of spill) {
      * `observer`, så radene er de samme for den.
      */
     if (st.fase === "FERDIG") kampslutt++;
-    const slutt: GameState = st.fase === "FERDIG" ? { ...st, fase: "RUNDE_SLUTT", vinner: null } : st;
+    const slutt: GameState = somRundeslutt(st);
     for (const a of agenter) (a as { observer?(s: GameState): void }).observer?.(slutt);
     const bot = st.sisteRunde?.delta;
     if (bot === undefined) {

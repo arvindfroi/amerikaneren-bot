@@ -132,7 +132,8 @@ export interface Kravrad {
   /** Falsifiseringsarmen — ble den tatt? */
   readonly felle: string;
   readonly felleOk: boolean;
-  readonly innfridd: "ja" | "nei" | "stum" | "ikke målbar";
+  /** «rapportert»: en ny rad uten avtalt port (K8-menneske, 11. sep); kontrollen gjelder fortsatt. */
+  readonly innfridd: "ja" | "nei" | "stum" | "ikke målbar" | "rapportert";
   readonly kilde: string;
   readonly merknad: string;
 }

@@ -48,6 +48,16 @@
  *        KONTROLL: gulvkolonnen er ln 3. FELLE (kraft): slår gulv+. JA: andel − 2 SE ≥ 25 %
  *        (forslaget til K8.2). I tillegg `sok-verdener.ts` med søkets egne innstillinger mot
  *        appens (3 kandidater, budvekt): riktig plasserte kort, parvis per giv.
+ *   K8-menneske og K6-menneske  `menneske-tro.ts --nett <troen i speken>` (11. sep): ren
+ *        PREDIKSJON på de innspilte menneskekampene fra 10. aug, samme måltall som K8. Budrundene
+ *        loggen mangler gjenskapes med `--motstander` og kontrolleres mot loggen. KONTROLL:
+ *        nullarmen (hukommelsen null) regnet to ganger er identisk på hver rad.
+ *        K8-menneske: andelen når botene gjetter MENNESKETS kort, og for alle seter. Ingen port
+ *        (ny rad): «rapportert», eller stum om kontrollen bommer. FELLE (kraft): slår gulv+.
+ *        K6-menneske: g = andel(tro) − andel(null) per stilling; stigningen mot rundenummeret,
+ *        klynget på kamp. FELLE: boka fra en ANNEN kamp etter like mange runder må gi mindre
+ *        (tro − fremmed > 2 SE). JA: stigning − 2 SE > 0 i begge halvdelene av kampene.
+ *        Dataene er faste, så radene kjøres bare i bånd 0, som K1. Dommene: `menneske-tro-dom.ts`.
  *
  * ===================== REGLER FOR DOMMEN ================================
  *
@@ -109,10 +119,14 @@ import { dømK5R, type K5RRad } from "./k5-retning.ts";
 import { dømK4Spek, slåSammenK4, type K4SpekRapport } from "./k4-hukommelse.ts";
 import { par, type Runderad } from "./k6-vaner.ts";
 import { medBudlag, sikVerdener, søketro, troLeserMinne, utenMinne, utenSøkOveralt } from "./spek-lag.ts";
+import { MENNESKE_FRA, V5_KJEDE } from "./menneske-logg.ts";
+import { domK6Menneske, domK8Menneske, type MenneskeTroRad } from "./menneske-tro-dom.ts";
 
-/** Kjeden mennesket møtte fra 10. aug (v5, `bud-menneske`). Motstanderne i K1-duplikatet. */
-export const V5_KJEDE =
-  "vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin";
+/**
+ * Kjeden mennesket møtte fra 10. aug (v5, `bud-menneske`): motstanderne i K1-duplikatet og
+ * budgiverne når menneske-tro gjenskaper budrundene. Bor i `menneske-logg.ts` fra 11. sep.
+ */
+export { V5_KJEDE };
 /** Adams-budet, ordrett budlaget i `ADAMS`/`ADAMS_MAALT`. K3.1-duellens motstander. */
 export const ADAMS_BUDLAG = "budm:e1-modell/bud-vant.json@-3.0";
 /**
@@ -133,7 +147,7 @@ export const PASS_BUDLAG = "budm:e1-modell/bud-vant.json@99";
 export const OVERBY_BUDLAG = "budm:e1-modell/bud-vant.json@-99";
 /** Seiersprediktoren for ΔP(seier) i K3.1-duellen (samme som K1-duplikatet). */
 export const K31_SEIER = "e1-modell/seier-g0.bin";
-export const K1_FRA = "2026-08-10";
+export const K1_FRA = MENNESKE_FRA;
 /** «Veldig høyt nivå» (K8.2, forslag 11. sep): minst 25 % av veien gulv → tak. */
 export const K8_TERSKEL = 0.25;
 
@@ -294,6 +308,10 @@ export interface Størrelser {
   readonly k6Maal: number;
   readonly k6MaksRunder: number;
   readonly k8Giver: number;
+  /** K8-/K6-menneske: skiver, kamptak per skive (0 = alle) og andelen stillinger som dømmes. */
+  readonly menneskeSkard: number;
+  readonly menneskeKamper: number;
+  readonly menneskeSjanse: number;
 }
 
 /** RØYKMODUS: viser at apparatet virker. Tallene er IKKE en kravdom. */
@@ -320,6 +338,9 @@ export const KJAPP: Størrelser = {
   k6Maal: 60,
   k6MaksRunder: 4,
   k8Giver: 2,
+  menneskeSkard: 1,
+  menneskeKamper: 3,
+  menneskeSjanse: 1,
 };
 
 export function fullStørrelser(kjerner: number): Størrelser {
@@ -351,6 +372,11 @@ export function fullStørrelser(kjerner: number): Størrelser {
     k6Maal: 100,
     k6MaksRunder: 12,
     k8Giver: 120,
+    // Alle kampene fra 10. aug og alle stillinger: ~98 000 stillinger à fem foroverkjøringer
+    // (1,7 ms med tro-1) ≈ 850 prosess-sekunder, under 3 % av batteriet 11. sep.
+    menneskeSkard: kjerner,
+    menneskeKamper: 0,
+    menneskeSjanse: 1,
   };
 }
 
@@ -1145,6 +1171,111 @@ async function k8(r: Rigg): Promise<Helrad[]> {
   ];
 }
 
+async function menneske(r: Rigg): Promise<Helrad[]> {
+  const reg = new Regnskap();
+  const tro = søketro(r.spek);
+  const K8M = "predikere MENNESKETS kort (innspilte kamper)";
+  const K6M = "lære menneskets vaner i løpet av kampen (troen)";
+  if (tro === null) {
+    const tom = (krav: string, navn: string): Helrad => ({
+      krav,
+      bånd: r.bånd,
+      navn,
+      målt: "ikke kjørt",
+      kontroll: "—",
+      kontrollOk: false,
+      felle: "—",
+      felleOk: false,
+      innfridd: "ikke målbar",
+      kilde: "examples/menneske-tro.ts",
+      merknad: "Speken har ingen `~mlb=`/`~mlbu=`-tro i søket, så det finnes ikke noe trohode å måle.",
+      prosessSekunder: 0,
+      jobber: 0,
+    });
+    return [tom("K8-menneske", K8M), tom("K6-menneske", K6M)];
+  }
+  const minne = troLeserMinne(tro.sti);
+  const N = Math.max(1, Math.min(r.kjerner, r.st.menneskeSkard));
+  const filer: string[] = [];
+  const jobber: Promise<boolean>[] = [];
+  for (let i = 0; i < N; i++) {
+    const fil = nyFil(`${r.utBase}-menneske-s${i}.jsonl`);
+    filer.push(fil);
+    jobber.push(
+      reg.kjør(
+        r.kø,
+        [
+          "examples/menneske-tro.ts",
+          "--nett", tro.sti,
+          "--data", r.data,
+          "--budspek", r.motstander,
+          "--etter", K1_FRA,
+          "--sjanse", String(r.st.menneskeSjanse),
+          "--skard", `${i}/${N}`,
+          "--ut", fil,
+          ...(r.st.menneskeKamper > 0 ? ["--maks-kamper", String(r.st.menneskeKamper)] : []),
+        ],
+        `${fil}.logg`,
+      ),
+    );
+  }
+  await Promise.all(jobber);
+  // Rapporten skrives av skriptet selv til en varig fil (loggen ER rapporten), ikke leses fra et rør.
+  const domfil = `${r.utBase}-menneske-dom.txt`;
+  await reg.kjør(r.kø, ["examples/menneske-tro.ts", "--dom", ...filer], domfil);
+  const rader = filer.flatMap((f) => lesJsonl<MenneskeTroRad>(f));
+  const d8 = domK8Menneske(rader);
+  const d6 = domK6Menneske(rader, "menneske");
+  const a6 = domK6Menneske(rader, "alle");
+  const m = d8.deler.menneske;
+  const a = d8.deler.alle;
+  const p = (k: { snitt: number; se: number }, d = 2): string => `${fmt(100 * k.snitt, d)} ± ${(100 * k.se).toFixed(d)}`;
+  const stig = (s: { b: number; se: number }): string => `${fmt(100 * s.b, 3)} ± ${(100 * s.se).toFixed(3)}`;
+  const røyk = r.st.menneskeKamper > 0 ? ` RØYK: ${r.st.menneskeKamper} kamper per skive.` : "";
+  const felles = `Budrundene gjenskapt med ${r.motstander} og kontrollert mot loggen; SE klynget på kamp. Rapport: ${domfil}.`;
+  return [
+    {
+      krav: "K8-menneske",
+      bånd: r.bånd,
+      navn: K8M,
+      målt:
+        `botene om menneskets kort ${p(m.andel.tro)} % av veien gulv → tak (null ${p(m.andel.null)}, +fakta ${p(m.andel.tro_fakta)}; ` +
+        `halvdeler ${p(m.halv[0]!)} / ${p(m.halv[1]!)}; n=${m.n}); alle seter ${p(a.andel.tro)} % (null ${p(a.andel.null)}, n=${a.n} i ${a.klynger} kamper)`,
+      kontroll: `gulvkolonnen ${a.gulv.toFixed(5)} mot ln 3; null = null2 på hver rad: ${d8.ulike} ulike (må være 0)`,
+      kontrollOk: d8.kontrollOk,
+      felle: `slår gulv+? menneske ${m.tapTro.toFixed(4)} < ${m.gulvPluss.toFixed(4)}, alle ${a.tapTro.toFixed(4)} < ${a.gulvPluss.toFixed(4)}`,
+      felleOk: d8.felleOk,
+      innfridd: d8.innfridd,
+      kilde: `examples/menneske-tro.ts --nett ${tro.sti}`,
+      merknad:
+        "Ingen port: raden er ny (11. sep). Ren prediksjon på innspilte menneskekamper fra 10. aug, samme måltall som K8 " +
+        `(k8-maal.ts); halvdelene er fnv(kamp-id) % 2. ${felles}${røyk}${reg.merknad()}`,
+      prosessSekunder: Math.round(reg.sek),
+      jobber: reg.jobber,
+    },
+    {
+      krav: "K6-menneske",
+      bånd: r.bånd,
+      navn: K6M,
+      målt:
+        `stigning g ${stig(d6.stig)} pp/runde (z = ${(d6.stig.b / d6.stig.se).toFixed(2)}); halvdeler ${stig(d6.halv[0]!)} / ${stig(d6.halv[1]!)}; ` +
+        `nivå ${p(d6.nivå, 3)} pp; andre halvdel av kampen − første ${p(d6.senMotTidlig, 3)} pp; alle seter stigning ${stig(a6.stig)} (n=${d6.n} i ${d6.klynger} kamper)`,
+      kontroll: `null mot null2: ${d6.ulike} ulike rader (eksakt 0)`,
+      kontrollOk: d6.kontrollOk,
+      felle: `fremmed bok (annen kamp, like mange runder): tro − fremmed ${p(d6.fremmed, 3)} pp (må være > 2 SE); rotert ${p(d6.rotert, 3)} pp`,
+      felleOk: d6.felleOk,
+      innfridd: minne ? d6.innfridd : "ikke målbar",
+      kilde: `examples/menneske-tro.ts --nett ${tro.sti}`,
+      merknad:
+        (minne ? "" : "Trohodet leser ikke hukommelsen (660/776 inn): tro = null per konstruksjon. ") +
+        "g = andel(tro) − andel(null) når botene gjetter menneskets kort, parvis per stilling. " +
+        `Ja = stigning − 2 SE > 0 i BEGGE halvdelene av kampene, kontrollen eksakt og fella tatt. ${felles}${røyk}${reg.merknad()}`,
+      prosessSekunder: 0,
+      jobber: 0,
+    },
+  ];
+}
+
 function feilrad(krav: string, r: Rigg, grunn: string, reg?: Regnskap): Helrad {
   return {
     krav,
@@ -1163,7 +1294,7 @@ function feilrad(krav: string, r: Rigg, grunn: string, reg?: Regnskap): Helrad {
   };
 }
 
-const ALLE: Record<string, (r: Rigg) => Promise<Helrad[]>> = { k1, k2, k3, k4, k5, k6, k7, k8 };
+const ALLE: Record<string, (r: Rigg) => Promise<Helrad[]>> = { k1, k2, k3, k4, k5, k6, k7, k8, menneske };
 
 // ===========================================================================
 // 5. Kjøringen
@@ -1206,6 +1337,8 @@ export async function kjørHelbot(argv: readonly string[]): Promise<void> {
     k5Giver: over("--k5-giver", st0.k5Giver),
     k6Kamper: over("--kamper", st0.k6Kamper),
     k8Giver: over("--k8-giver", st0.k8Giver),
+    menneskeSjanse: over("--menneske-sjanse", st0.menneskeSjanse),
+    menneskeKamper: over("--menneske-kamper", st0.menneskeKamper),
   };
   const base = utenSøkOveralt(spek);
   const felles = {
@@ -1229,8 +1362,8 @@ export async function kjørHelbot(argv: readonly string[]): Promise<void> {
   const oppgaver: Promise<Helrad[]>[] = [];
   for (let b = 0; b < bånd.length; b++) {
     for (const n of navn) {
-      // Menneskedataene er faste: K1 har ingen frøbånd, bare halvdelene i dommen.
-      if (n === "k1" && b > 0) continue;
+      // Menneskedataene er faste: K1 og menneskeradene har ingen frøbånd, bare halvdelene i dommen.
+      if ((n === "k1" || n === "menneske") && b > 0) continue;
       const rigg: Rigg = {
         ...felles,
         utBase: bånd.length === 1 ? utBase : `${utBase}-b${b}`,
