@@ -132,6 +132,10 @@ let skrevet = 0;
 let feilGiv = 0;
 let hoppet = 0;
 let tidlig = 0;
+/** Runder der boten i duplikatet nådde målet (FERDIG) mens mennesket spilte videre. */
+let kampslutt = 0;
+/** Hull eller gjentak i rundefølgen: boka startes på nytt, se under. */
+let brudd = 0;
 const t0 = Date.now();
 for (const [id, s] of spill) {
   if (skardAv(id) !== SI || s.start === null) continue;
@@ -140,8 +144,21 @@ for (const [id, s] of spill) {
   const målPoeng = Number(s.start.data["målPoeng"] ?? 100);
   if (!Number.isFinite(frø)) continue;
   for (const a of agenter) a.nyKamp();
+  /** Siste runde agentene har SETT slutte i denne kampen, eller null etter en ny bok. */
+  let sett: number | null = null;
   for (const r of [...s.runder].sort((a, b) => Number(a.data.rundeNr) - Number(b.data.rundeNr))) {
     const rundeNr = Number(r.data.rundeNr);
+    /**
+     * HULL I RUNDEFØLGEN (11. sep). Mangler en runde i loggen, har ingen agent sett den
+     * slutte, og en hukommelsesleser kaster med rette i neste. Å dikte opp runden er ikke
+     * mulig, så boka startes på nytt: kortere hukommelse, aldri gal. Menneskedataene fra
+     * 10. aug har ingen hull (målt 11. sep: 0 av 273 kamper), så radene der er uendret.
+     */
+    if (sett !== null && rundeNr !== sett + 1) {
+      for (const a of agenter) a.nyKamp();
+      brudd++;
+      sett = null;
+    }
     const delta = r.data.delta as number[] | undefined;
     const total = r.data.totalPoeng as number[] | undefined;
     if (!Array.isArray(delta) || !Array.isArray(total) || delta.length !== 4) {
@@ -150,6 +167,7 @@ for (const [id, s] of spill) {
       // nytt i stedet for at kampen stopper. Hukommelsen blir kortere, aldri gal.
       for (const a of agenter) a.nyKamp();
       hoppet++;
+      sett = null;
       continue;
     }
     const før = total.map((t, p) => t - (delta[p] ?? 0));
@@ -188,13 +206,30 @@ for (const [id, s] of spill) {
       if (i === null || i === undefined) break;
       st = utfør(st, agenter[i]!.velgHandling(st)).state;
     }
-    for (const a of agenter) (a as { observer?(s: GameState): void }).observer?.(st);
+    /**
+     * KAMPSLUTT I DUPLIKATET ER EN RUNDESLUTT (11. sep).
+     *
+     * Løfter botens runde noen over målet, går motoren til FERDIG — men mennesket spilte
+     * videre, og neste runde gjenskapes fra HANS tavle. Bøkene (søketroen, `Hukommelse`,
+     * `Profilbok`) bokfører bare `RUNDE_SLUTT`, så runden forsvant, og søketroen kastet i
+     * neste runde: 10 av 20 K1-skard i batteriet 11. sep, og K1 målt på 197 av 273 kamper.
+     *
+     * Agentene får derfor SAMME tilstand med `fase: "RUNDE_SLUTT"`. Det er ingen ny
+     * informasjon (hendene er tomme, historikken er den samme; bare kampslutten tas bort,
+     * og den finnes ikke i menneskets kamp). En spek uten hukommelse leser ikke fasen i
+     * `observer`, så radene er de samme for den.
+     */
+    if (st.fase === "FERDIG") kampslutt++;
+    const slutt: GameState = st.fase === "FERDIG" ? { ...st, fase: "RUNDE_SLUTT", vinner: null } : st;
+    for (const a of agenter) (a as { observer?(s: GameState): void }).observer?.(slutt);
     const bot = st.sisteRunde?.delta;
     if (bot === undefined) {
       for (const a of agenter) a.nyKamp();
       hoppet++;
+      sett = null;
       continue;
     }
+    sett = rundeNr;
     if (!skriv) continue;
     appendFileSync(
       UT,
@@ -216,4 +251,4 @@ for (const [id, s] of spill) {
   }
   process.stdout.write(`\r  skard ${SI}/${SN}: ${skrevet} runder, ${feilGiv} med annen giv, ${tomLogg} uten spilte kort, ${hoppet} hoppet, ${((Date.now() - t0) / 1000).toFixed(0)} s   `);
 }
-console.log(`\nSkard ${SI}/${SN} ferdig: ${skrevet} runder, ${feilGiv} avvist av givkontrollen, ${tomLogg} uten spilte kort i loggen, ${hoppet} uten brukbar logg → ${UT}`);
+console.log(`\nSkard ${SI}/${SN} ferdig: ${skrevet} runder, ${feilGiv} avvist av givkontrollen, ${tomLogg} uten spilte kort i loggen, ${hoppet} uten brukbar logg, ${kampslutt} kampslutt i duplikatet vist som rundeslutt, ${brudd} brudd i rundefølgen → ${UT}`);
