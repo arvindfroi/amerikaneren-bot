@@ -36,7 +36,9 @@ createServer((req, res) => {
     res.end(html);
     return;
   }
-  const fil = resolve(WEB, "dist", sti.replace(/^\//, ""));
+  // `index.html` laster `dist/app.js` og `dist/worker.js` først (11. sep), og CSS-en
+  // `dist/f-*.woff2`; eldre stier uten `dist/` virker fortsatt.
+  const fil = resolve(WEB, "dist", sti.replace(/^\/(dist\/)?/, ""));
   if (!fil.startsWith(resolve(WEB, "dist")) || !existsSync(fil)) {
     res.writeHead(404).end("nei");
     return;
