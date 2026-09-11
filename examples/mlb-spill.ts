@@ -356,6 +356,7 @@ function lagBord(kampnr: number, frø: number): Sete[] {
  * ville lært nettet noe Adams aldri gjorde.
  */
 function adamsBeslutter(regler: GameRules, giving: Kortgiving): Beslutter {
+  vaktMotHukommelsestro();
   const agent = lagIndre(ADAMS);
   let plan: Handling | null = null;
   return (p) => {
@@ -392,6 +393,40 @@ function adamsBeslutter(regler: GameRules, giving: Kortgiving): Beslutter {
     }
     throw new Error(`Adams-læreren: delsteg ${p.delsteg} passer ikke handlingen ${JSON.stringify(h)}`);
   };
+}
+
+/**
+ * HVORFOR ADAMS-LÆREREN IKKE FÅR `observer` (11. sep) — og hva som skjer om den trenger det.
+ *
+ * `examples/kamp.ts` og `mlb-k8.ts --kamp` kaller `agent.observer(state)` ved RUNDE_SLUTT,
+ * fordi en spek med hukommelsestro (`sik:…~mlbu=<804/920>`) ellers kaster i runde 2. Her
+ * går det ikke, av to grunner som begge ligger utenfor denne fila:
+ *
+ *   1. LØKKA EIER RUNDESLUTTEN. `spillKamp` i `src/mlb/selvspill.ts` bokfører sin egen
+ *      `Hukommelse` og utfører NESTE selv. `Sete` har ingen krok for rundeslutt; et sete
+ *      med `egen` er en `Beslutter` som bare kalles når setet skal velge.
+ *   2. K2 ER STRUKTURELL DER. En beslutter får et `Beslutningspunkt` med `visning`, aldri
+ *      `GameState`, og Adams ser `visningTilState(visning)`. RUNDE_SLUTT-tilstanden, der
+ *      alle hender står i historikken, gis aldri til noen beslutter — og kan ikke gjenskapes
+ *      av visningene: det siste kortet i runden legges av en annen spiller.
+ *
+ * `ADAMS` har i dag ingen hukommelsestro, så ingenting kaster. Rettingen, om den trengs,
+ * hører hjemme i `selvspill.ts` (en `Sete.observer?` kalt ved RUNDE_SLUTT). Til da stopper
+ * `vaktMotHukommelsestro` kjøringen FØR første kamp, i stedet for at hvert skard kaster i
+ * runde 2 etter at K2-porten alt har brukt minutter.
+ */
+let hukommelsestroSjekket = false;
+function vaktMotHukommelsestro(): void {
+  if (hukommelsestroSjekket) return;
+  hukommelsestroSjekket = true;
+  for (const m of ADAMS.matchAll(/~mlbu?=([^:]+)/g)) {
+    if (MlbTronett.fraBytes(readFileSync(m[1]!)).brukerHukommelse) {
+      throw new Error(
+        `ADAMS har hukommelsestro (${m[1]}), men Adams-læreren i mlb-spill kan ikke få se ` +
+          "RUNDE_SLUTT (se kommentaren over vaktMotHukommelsestro) — den ville kastet i runde 2",
+      );
+    }
+  }
 }
 
 /** Fire Adams-seter, alle samlet. `målPoeng` følger kampens eget frø, som i `kjørSkard`. */

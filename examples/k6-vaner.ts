@@ -97,6 +97,7 @@ import { lovligeKort, opprettSpill, utfør, type GameState, type Handling } from
 import { ADAMS_MAALT, lagIndre, tall } from "../src/moe2/agentspek.ts";
 import { MIN_RUNDER, Økt } from "../src/moe2/okt.ts";
 import { dyreste } from "../src/moe2/synlig.ts";
+import { MlbTronett } from "../src/mlb/tronett.ts";
 
 /**
  * TIKKET — den kroken som gjorde «matet» til en vanlig arm.
@@ -121,8 +122,42 @@ import { dyreste } from "../src/moe2/synlig.ts";
 export interface Arm {
   readonly navn: string;
   readonly medØkt: boolean;
-  /** Kaller driveren `observer(s)` ved RUNDE_SLUTT, slik `kamp.ts` gjør? */
+  /**
+   * Kaller driveren `observer(s)` ved RUNDE_SLUTT, slik `kamp.ts` gjør?
+   *
+   * UNNTAK (11. sep): en stakk med HUKOMMELSESTRO tikkes i alle armer, se
+   * `stakkLeserHukommelse`. Den kan ikke spilles uten tikk — den kaster i runde 2.
+   */
   readonly tikk: boolean;
+}
+
+/**
+ * LESER STAKKEN HUKOMMELSE GJENNOM EN SØKETRO? (11. sep)
+ *
+ * `sik:…~mlbu=<fil>` / `~mlb=<fil>` med et 804- eller 920-trohode gir en `MlbSøketro`, og
+ * den KASTER når en ferdig runde aldri ble vist den (`src/moe2/soketro.ts`). Det er
+ * med vilje: et valgfritt kall som aldri når fram, feiler ellers ikke.
+ *
+ * For armene betyr det at «tikk» og «hukommelse» ikke kan skilles i ÉN stakk — kroken
+ * er den samme, og `profil:`-boka under søket får se runden like fullt som troens bok.
+ * Armene uten tikk (`uten-okt`, `okt-utikk`) tikker derfor en slik stakk likevel, og
+ * rapporten sier det. Uten hukommelsestro er ingenting endret: `K6_ADAMS` og
+ * `ADAMS_MAALT` har ingen, og radene er byte-identiske med før.
+ *
+ * Bredden avgjøres av FILA, ikke av speken: et 660/776-trohode leser ingen bok og
+ * trenger ingen tikk.
+ */
+const hukommelseCache = new Map<string, boolean>();
+export function stakkLeserHukommelse(spek: string): boolean {
+  let svar = hukommelseCache.get(spek);
+  if (svar === undefined) {
+    svar = false;
+    for (const m of spek.matchAll(/~mlbu?=([^:]+)/g)) {
+      if (MlbTronett.fraBytes(new Uint8Array(readFileSync(m[1]!))).brukerHukommelse) svar = true;
+    }
+    hukommelseCache.set(spek, svar);
+  }
+  return svar;
 }
 
 export const ARMER: readonly Arm[] = [
@@ -274,6 +309,8 @@ export function spillKamp(
   }
   økt?.nyKamp();
   for (const a of seter) a.nyKamp();
+  const adamsTikk = arm.tikk || stakkLeserHukommelse(opts.adams);
+  const basisTikk = arm.tikk || stakkLeserHukommelse(opts.basis);
 
   const ut: Runderad[] = [];
   let s: GameState = opprettSpill({ antallSpillere: 4, målPoeng: opts.målPoeng }, frø);
@@ -326,7 +363,10 @@ export function spillKamp(
        * i videresendingen (`okt:` → `vr:` → `amu:` → `profil:`) slår ut i
        * tallet i stedet for å bli maskert.
        */
-      if (arm.tikk) for (const a of seter) a.observer?.(s);
+      // Unntaket: en stakk med hukommelsestro tikkes i alle armer (`stakkLeserHukommelse`).
+      for (let i = 0; i < 4; i++) {
+        if (i === adamsSete ? adamsTikk : basisTikk) seter[i]!.observer?.(s);
+      }
       opts.kikk?.(økt, s);
       if (s.rundeNr + 1 >= opts.maksRunder) break;
       s = utfør(s, { type: "NESTE" }).state;
@@ -534,6 +574,17 @@ function kjør(): void {
     skriv(`Frøbånd:    ${frøBase} + k·7717`);
   }
   skriv(`MIN_RUNDER: ${MIN_RUNDER} (økten tror ikke på noe før terskelen)`);
+  // Bare når unntaket slo inn — ellers er rapporten byte-identisk med før.
+  for (const arm of armer) {
+    if (arm.tikk) continue;
+    const hvem = [
+      ...(stakkLeserHukommelse(adamsSpek) ? ["Adams"] : []),
+      ...(stakkLeserHukommelse(basisSpek) ? ["basis"] : []),
+    ];
+    if (hvem.length > 0) {
+      skriv(`NB:         arm «${arm.navn}» tikker likevel ${hvem.join(" og ")}: stakken har hukommelsestro og kaster uten tikk`);
+    }
+  }
   skriv(`Kjøretid:   ${Math.round((Date.now() - t0) / 1000)} s`);
   skriv("");
   skriv("g(k,r) = kant mot stilisert − kant mot nøytral, parret på identisk giv.");

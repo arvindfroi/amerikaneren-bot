@@ -105,6 +105,15 @@ const FRØ = tall(arg("--froe", "12000000"), 12_000_000, "froe");
 const KAMP = process.argv.includes("--kamp");
 const FRA_RUNDE = tall(arg("--fra-runde", "1"), 1, "fra-runde");
 const NETT2 = arg("--nett2", "");
+/**
+ * RUNDETAKET FOR `--kamp` (11. sep). Uten flagget spilles kampen til slutt, som før.
+ * Finnes for røykprøven: en driver med søk koster sekunder per runde, og «kaster den i
+ * runde 2?» trenger ikke tjuesju runder for å bli besvart.
+ */
+const MAKSRUNDER = process.argv.includes("--maksrunder")
+  ? tall(arg("--maksrunder", ""), 0, "maksrunder")
+  : Infinity;
+if (MAKSRUNDER !== Infinity && !KAMP) throw new Error("--maksrunder gjelder bare --kamp");
 
 /** Relativt sete, samme koding som `fyllSanser` og `monteTro`. */
 const rel = (sete: number, p: number, n: number): number => (p - sete + n) % n;
@@ -184,6 +193,17 @@ for (let g = 0; g < GIVER; g++) {
     if (KAMP) {
       bok.observer(s);
       if (s.fase === "RUNDE_SLUTT") {
+        /**
+         * DRIVERNE MÅ SE RUNDESLUTTEN OGSÅ (11. sep), ikke bare bordets bok.
+         *
+         * Løkka utfører NESTE selv og spør aldri en agent i denne fasen. En driver med
+         * hukommelsestro (`sik:…~mlbu=<804/920>`, `src/moe2/soketro.ts`) KASTET derfor i
+         * runde 2: «runde 0 ble aldri vist som RUNDE_SLUTT». Samme linje som
+         * `examples/kamp.ts`. For `ADAMS_MAALT` er kallet en no-op — ingen av lagene
+         * der fører bok — så eksisterende `--kamp`-rader er uendret.
+         */
+        for (const a of ag) a.observer?.(s);
+        if (s.rundeNr + 1 >= MAKSRUNDER) break;
         s = utfør(s, { type: "NESTE" }).state;
         continue;
       }
