@@ -63,6 +63,7 @@ import { TOMT_DELVALG } from "../src/mlb/handling.ts";
 import { lesSandkasse } from "./mlb-krav-felles.ts";
 import { Hukommelse } from "../src/mlb/hukommelse.ts";
 import { maskerFordeling } from "../src/mlb/trofakta.ts";
+import { muligeSeter, nettTap, rel } from "./k8-maal.ts";
 
 const arg = (n: string, s: string): string => {
   const i = process.argv.indexOf(n);
@@ -129,32 +130,12 @@ if (MAKSRUNDER !== Infinity && !KAMP) throw new Error("--maksrunder gjelder bare
  */
 const FAKTA = process.argv.includes("--fakta");
 
-/** Relativt sete, samme koding som `fyllSanser` og `monteTro`. */
-const rel = (sete: number, p: number, n: number): number => (p - sete + n) % n;
-
 /**
- * Log-tap og treff@1 for en nettfordeling: ordrett løkka i `nett`-armen, brukt av de NYE
- * armene. De gamle armene beholder sine egne løkker, så radene deres ikke kan flytte seg.
+ * `rel`, `nettTap` (log-tap og treff@1 for en nettfordeling: ordrett løkka i `nett`-armen, brukt
+ * av de NYE armene) og `muligeSeter` (gulv+) bor i `k8-maal.ts` fra 11. sep, så
+ * `menneske-tro.ts` måler med nøyaktig samme kode. De gamle armene beholder sine egne løkker,
+ * så radene deres ikke kan flytte seg; flyttingen er prøvd byte-identisk (sha1 før/etter).
  */
-function nettTap(f: readonly (readonly number[])[], s: GameState, sete: number, kort: number): { tap: number; treff: number } {
-  let tap = 0;
-  let treff = 0;
-  for (let p = 0; p < s.antallSpillere; p++) {
-    if (p === sete) continue;
-    const r = rel(sete, p, s.antallSpillere);
-    if (r < 1 || r > 3) continue;
-    for (const k of s.hender[p] ?? []) {
-      const rader = f[kortIndeks(k)]!;
-      const sum = (rader[0] ?? 0) + (rader[1] ?? 0) + (rader[2] ?? 0);
-      const pr = sum > 1e-12 ? (rader[r - 1] ?? 0) / sum : 1 / 3;
-      tap += -Math.log(Math.max(1e-12, pr));
-      let best = 0;
-      for (let i = 1; i < 3; i++) if ((rader[i] ?? 0) > (rader[best] ?? 0)) best = i;
-      if (best === r - 1) treff++;
-    }
-  }
-  return { tap: Number((tap / kort).toFixed(5)), treff: Number((treff / kort).toFixed(5)) };
-}
 
 const nett = lesNett(STANDARDNETT);
 const atferd = {
@@ -193,23 +174,6 @@ if (VRAKALFA > 0) {
 const ARMVALG = arg("--armer", "");
 const VALGTE: Arm[] =
   ARMVALG === "" ? ARMER : ARMVALG === "ingen" ? [] : ARMER.filter((a) => ARMVALG.split(",").includes(a.navn));
-
-/** Gulv+: setene som ikke er KJENT renons i fargen. Ordrett fra tro-noyaktighet. */
-function muligeSeter(state: GameState, sete: number, farge: string): number[] {
-  const ut: number[] = [];
-  for (let p = 0; p < state.antallSpillere; p++) {
-    if (p === sete) continue;
-    let renons = false;
-    for (const stikk of state.historikk) {
-      const ledet = stikk.kort[0];
-      if (ledet === undefined || ledet.kort.farge !== farge) continue;
-      const eget = stikk.kort.find((kp) => kp.spiller === p);
-      if (eget !== undefined && eget.kort.farge !== farge) renons = true;
-    }
-    if (!renons) ut.push(p);
-  }
-  return ut;
-}
 
 mkdirSync(dirname(UT), { recursive: true });
 let n = 0;
