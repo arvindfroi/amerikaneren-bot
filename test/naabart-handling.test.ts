@@ -145,6 +145,26 @@ test("fellene: lav er laveste lovlige kort, kortest er trumf i korteste farge, o
   }
 });
 
+test("de grove fellene: hoy er høyeste lovlige kort; verst trenger utspillingene, er K2-trygg og deterministisk", () => {
+  let ulikTaket = 0;
+  for (const [k, { s, sete, pol }] of ST.spill.entries()) {
+    const lov = lovligeHandlinger(s);
+    assert.ok(lov.fase === "SPILL");
+    const hoy = felleHandling("hoy", s, sete) as { kort: { verdi: number } };
+    assert.equal(hoy.kort.verdi, Math.max(...lov.kort.map((x) => x.verdi)));
+    assert.throws(() => felleHandling("verst", s, sete), /utspillingsagentene/);
+    const verst = felleHandling("verst", s, sete, OPTS);
+    assert.ok(kandidaterFor(s, sete).some((h) => handlingNøkkel(h) === handlingNøkkel(verst)), "verst ga et ulovlig kort");
+    assert.equal(handlingNøkkel(felleHandling("verst", s, sete, { ...OPTS, agenter: ferske() })), handlingNøkkel(verst), "verst er ikke en funksjon av stillingen");
+    for (const hender of trekkVerdener(s, sete, 2, lagRng(6_600 + k), undefined, undefined, 4)) {
+      assert.equal(handlingNøkkel(felleHandling("verst", medVerden(s, hender, sete), sete, OPTS)), handlingNøkkel(verst), "K2: verst leste skjulte kort");
+    }
+    if (handlingNøkkel(naabartHandling(s, sete, pol, OPTS).handling) !== handlingNøkkel(verst)) ulikTaket++;
+  }
+  // Fella og taket skal kunne skille lag: en «verst» som alltid valgte det taket valgte ville ikke vært en felle.
+  assert.ok(ulikTaket > 0, "verst valgte det samme som taket i hver stilling");
+});
+
 // ===========================================================================
 // tak-kart.ts
 // ===========================================================================

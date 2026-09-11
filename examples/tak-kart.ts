@@ -351,7 +351,8 @@ function runde(frø: number, vårt: number, bruk: boolean, modus: "tak" | "naaba
     const iMittVindu = h === null && modus !== "mot" && iTur === vårt && FASE !== "bud" && iVindu(s, vårt);
     if (iMittVindu && (FELLE !== null || (bruk && modus === "naabart"))) {
       const eget = ag[iTur]!.velgHandling(s);
-      h = FELLE === null ? eget : felleHandling(FELLE, s, vårt);
+      // `verst` verdsetter kortene selv med utspillingsagentene; de andre fellene leser ikke `o`.
+      h = FELLE === null ? eget : felleHandling(FELLE, s, vårt, { verdener: NAABART ?? 32, kandidater: NAABART_KAND, agenter: naabartAgenter(vårt) });
       if (bruk && modus === "naabart") {
         vurdert++;
         const v = naabartHandling(s, vårt, h, { verdener: NAABART!, kandidater: NAABART_KAND, agenter: naabartAgenter(vårt) });

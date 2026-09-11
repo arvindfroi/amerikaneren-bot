@@ -182,12 +182,24 @@ export function naabartHandling(s: GameState, sete: number, policy: Handling, o:
  *             kort i ren-runden og i den nåbare runden (paringen), og skjulte kort ikke rører det.
  * `kortest`   VELG: trumf i fargen setet har FÆRREST kort i (høyeste lovlige etterlysning),
  *             første farge ved likhet. Den verste trumfregelen som ikke ser skjulte kort.
+ * `hoy`       SPILL: høyeste lovlige kort. Stikker over makker og brenner ess og trumf.
+ * `verst`     SPILL: kortet med LAVEST snittpoeng over W verdener fra setets visning — det verste
+ *             kortet under samme informasjon. Eget frø (`FELLE_FRØ`), så fella og taket IKKE deler
+ *             verdener. Krever `o` (utspillingsagentene).
+ *
+ * HVORFOR `hoy` OG `verst` (11. sep). Moderat utvalg, W = 32: i stikk 7–11 ga `lav` +1,00 ± 0,73
+ * / +1,89 ± 0,99 (z 1,38 / 1,92, 16 giv per bånd) og `tilfeldig` +0,94 ± 0,65 / +0,63 ± 0,59. Et
+ * laveste eller tilfeldig kort koster lite i sluttspillet, så fellene slapp unna. `verst` ga +2,30
+ * ± 1,03 / +3,16 ± 1,18 (z 2,23 / 2,68) og er K7-fella. I stikk 3–5 holder `lav` på 48 giv
+ * (z 3,84 / 3,02; på 12 giv så den svak ut, z 1,95 / 0,49). En felle uten kraft gjør raden
+ * stum, ikke grønn; alle tallene står i filhodet til `krav-helbot.ts`.
  */
-export type Felle = "lav" | "tilfeldig" | "kortest";
-export const FELLER: readonly Felle[] = ["lav", "tilfeldig", "kortest"];
+export type Felle = "lav" | "tilfeldig" | "kortest" | "hoy" | "verst";
+export const FELLER: readonly Felle[] = ["lav", "tilfeldig", "kortest", "hoy", "verst"];
 const FELLE_FRØ = 20_260_912;
 
-export function felleHandling(felle: Felle, s: GameState, sete: number): Handling {
+export function felleHandling(felle: Felle, s: GameState, sete: number, o?: NaabartHandlingOpts): Handling {
+  if (felle === "verst" || felle === "hoy") return grovFelle(felle, s, sete, o);
   const kand = kandidaterFor(s, sete);
   if (felle === "kortest") {
     if (s.fase !== "VELG") throw new Error(`felle kortest gjelder VELG, ikke ${s.fase}`);
@@ -217,4 +229,34 @@ export function felleHandling(felle: Felle, s: GameState, sete: number): Handlin
     if (a.verdi < b.verdi || (a.verdi === b.verdi && FARGER.indexOf(a.farge) < FARGER.indexOf(b.farge))) beste = h;
   }
   return beste;
+}
+
+/** `hoy` og `verst`. Egen funksjon så `lav`/`tilfeldig`/`kortest` over er urørt (byte-identiske rader). */
+function grovFelle(felle: "hoy" | "verst", s: GameState, sete: number, o?: NaabartHandlingOpts): Handling {
+  if (s.fase !== "SPILL") throw new Error(`felle ${felle} gjelder SPILL, ikke ${s.fase}`);
+  const kand = kandidaterFor(s, sete);
+  if (felle === "hoy") {
+    let beste = kand[0]!;
+    for (const h of kand) {
+      if (h.type !== "SPILL" || beste.type !== "SPILL") continue;
+      const a = h.kort;
+      const b = beste.kort;
+      if (a.verdi > b.verdi || (a.verdi === b.verdi && FARGER.indexOf(a.farge) > FARGER.indexOf(b.farge))) beste = h;
+    }
+    return beste;
+  }
+  if (o === undefined) throw new Error("felle verst trenger utspillingsagentene (NaabartHandlingOpts)");
+  if (kand.length < 2 || o.verdener <= 0) return kand[0]!;
+  const vf = visningsfrø(s, sete, FELLE_FRØ);
+  const hender = trekkVerdener(s, sete, o.verdener, lagRng(vf), undefined, undefined, o.kandidater ?? 32);
+  if (hender.length === 0) return kand[0]!;
+  const sum = new Array<number>(kand.length).fill(0);
+  for (let w = 0; w < hender.length; w++) {
+    const v = medVerden(s, hender[w]! as number[][], sete);
+    const verden: GameState = { ...v, frø: (vf + Math.imul(w + 1, 0x9e3779b1)) >>> 0 };
+    for (let i = 0; i < kand.length; i++) sum[i]! += spillHandlingUt(verden, sete, kand[i]!, o.agenter);
+  }
+  let verst = 0;
+  for (let i = 1; i < kand.length; i++) if (sum[i]! < sum[verst]!) verst = i;
+  return kand[verst]!;
 }
