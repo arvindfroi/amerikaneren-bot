@@ -24,6 +24,7 @@ import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { kortIndeks, NevroAgent } from "../nevro/index.ts";
 import { fyllSanser } from "./sanser.ts";
 import { e1SpillTrekk, e1SpillTrekkMedTro, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V5, E1_SPILL_DIM_V6, E1_SPILL_DIM_V7, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9, E1_SPILL_DIM_V10 } from "./trekk.ts";
+import { e1KortBokTrekk, erKortbokBredde, E1_KORT_BOK_BREDDER, Kortbok } from "./kortbok.ts";
 
 /**
  * Leser et E1-nett fra rå bytes og verifiserer at formen stemmer med
@@ -52,10 +53,22 @@ export const LOVLIGE_BREDDER = [
   E1_SPILL_DIM_V10,
 ] as const;
 
-export function e1NettFraBytes(bytes: Uint8Array, kilde = "vektene"): NevroNett {
+/**
+ * `tillatBok` (11. sep): godta også bokbreddene (`E1_KORT_BOK_BREDDER`, `kortbok.ts`). AV som
+ * standard, med vilje: appkjeden (`web/adamskjede.ts`, `byggUtrullet`) kaller aldri `observer` ved
+ * `RUNDE_SLUTT`, og alle andre som leser et kortnett rett (`ens:`, `e1r:`, atferden i `amu:`)
+ * regner `e1SpillTrekk(…, bredde)` — for 493 er det v8 + 23 sansekolonner, altså tause søppelvalg.
+ * Bare `e1:`-grenen i speken (`lesKortnett`) slår den på.
+ */
+export function e1NettFraBytes(bytes: Uint8Array, kilde = "vektene", tillatBok = false): NevroNett {
   const nett = nettFraBytes(bytes);
   if (nett.length !== 1) throw new Error(`E1: forventet ett nett i ${kilde}, fikk ${nett.length}`);
   const første = nett[0]!.lag[0]!;
+  if (tillatBok && erKortbokBredde(første.inn)) {
+    const siste = nett[0]!.lag[nett[0]!.lag.length - 1]!;
+    if (siste.ut !== 52) throw new Error(`E1: siste lag har ${siste.ut} utganger, forventet 52`);
+    return nett[0]!;
+  }
   // ÉN LISTE, ikke en kjede av &&-ledd.
   //
   // Den forrige formen var åtte `første.inn !== X &&` på rad, og den ble glemt
@@ -68,7 +81,8 @@ export function e1NettFraBytes(bytes: Uint8Array, kilde = "vektene"): NevroNett 
   if (!LOVLIGE_BREDDER.includes(første.inn as (typeof LOVLIGE_BREDDER)[number])) {
     throw new Error(
       `E1: nettet tar ${første.inn} trekk, men trekkuttrekket gir ` +
-        LOVLIGE_BREDDER.map((d, i) => `${d} (v${i + 1})`).join(", "),
+        LOVLIGE_BREDDER.map((d, i) => `${d} (v${i + 1})`).join(", ") +
+        (erKortbokBredde(første.inn) ? ` (${første.inn} er bokbredden, som bare «e1:» i speken laster)` : ""),
     );
   }
   const siste = nett[0]!.lag[nett[0]!.lag.length - 1]!;
@@ -119,6 +133,11 @@ export interface E1Opts {
    * agent som ALT søker er den nesten gratis; for et rent nett er den ikke det.
    */
   readonly tro?: ((state: GameState, sete: number) => number[][] | null) | null;
+  /**
+   * MOTSTANDERBOKA for et nett på bokbredden (493, `kortbok.ts`). Speken gir den DELTE boka
+   * (`Spekkontekst.kortbok`); uten den får agenten sin egen. Ignoreres for alle andre bredder.
+   */
+  readonly kortbok?: Kortbok;
 }
 
 /** Filleseren `nett.ts` registrerer. Null i nettleseren. */
@@ -136,6 +155,8 @@ export class E1Agent {
   private readonly søkVerdener: number;
   private readonly trosnett: { fordeling(trekk: Float32Array): number[][] } | null;
   private readonly tro: ((state: GameState, sete: number) => number[][] | null) | null;
+  /** Null for alle bredder uten bok: da bokføres ingenting, og standardveien er urørt. */
+  private readonly kortbok: Kortbok | null;
   private teller = 0;
 
   constructor(nett: NevroNett, nevro: NevroAgent = new NevroAgent(), opts: E1Opts = {}) {
@@ -146,6 +167,7 @@ export class E1Agent {
     this.søkVerdener = opts.søkVerdener ?? 12;
     this.trosnett = opts.trosnett ?? null;
     this.tro = opts.tro ?? null;
+    this.kortbok = erKortbokBredde(this.dim) ? (opts.kortbok ?? new Kortbok()) : null;
     // FAIL-FAST. Et v9-nett uten NOEN trokilde spiller på 88 nuller, og
     // INGENTING ville sagt fra – nøyaktig hvordan blokken kunne ligge død i
     // utgangspunktet. Nå godtas begge kilder: et trosnett, eller en funksjon
@@ -172,9 +194,26 @@ export class E1Agent {
   nyKamp(): void {
     this.nevro.nyKamp();
     this.teller = 0;
+    this.kortbok?.nyKamp();
+  }
+
+  /** Leser nettet motstanderboka? Da MÅ driveren vise agenten `RUNDE_SLUTT` via `observer`. */
+  get leserHukommelse(): boolean {
+    return this.kortbok !== null;
+  }
+
+  /**
+   * Bokfør uten å bli spurt (`RUNDE_SLUTT` spørres det aldri om et trekk i). Uten bok gjør den
+   * ingenting, så en `Konvensjonsvakt` som nå videresender kallet, endrer ingen gammel bredde.
+   */
+  observer(state: GameState): void {
+    this.kortbok?.observer(state);
   }
 
   velgHandling(state: GameState): Handling {
+    // Som `BudQagent` og `MlbSøketro`: også trekkstillingene noteres. Boka rører seg bare ved
+    // RUNDE_SLUTT; utenfor fanger den den offentlige poengstillingen og rundenummeret til vakten.
+    this.kortbok?.observer(state);
     if (state.fase === "SPILL" && state.iTur !== null) {
       return { type: "SPILL", spiller: state.iTur, kort: this.velgKort(state, state.iTur) };
     }
@@ -195,6 +234,8 @@ export class E1Agent {
    * null er bredden under v9, og da finnes blokken ikke.
    */
   private trekkvektor(state: GameState, sete: number): Float32Array {
+    // Bokbredden først: 493 < 558, så grenen under ville ellers regnet den som et kjedeprefiks.
+    if (this.kortbok !== null) return e1KortBokTrekk(state, sete, this.kortbok.vektor(state, sete));
     if (this.trosnett !== null || this.dim < E1_SPILL_DIM_V9) {
       return e1SpillTrekkMedTro(state, sete, this.dim, this.trosnett);
     }
@@ -202,6 +243,16 @@ export class E1Agent {
     const t = this.tro === null ? null : this.tro(state, sete);
     if (t !== null) fyllSanser(v, state, sete, t);
     return v;
+  }
+
+  /** Nøyaktig vektoren nettet ser for `sete` nå. For data, benker og prøver. */
+  trekk(state: GameState, sete: number): Float32Array {
+    return this.trekkvektor(state, sete);
+  }
+
+  /** Alle 52 logits for `sete` — atferdsmodellen økta (`Profilbok`) måler stilen mot. */
+  logits(state: GameState, sete: number): Float32Array | number[] {
+    return forover(this.nett, this.trekkvektor(state, sete));
   }
 
   /** Argmax over LOVLIGE kort – reglene håndheves av motoren, ikke av nettet. */
