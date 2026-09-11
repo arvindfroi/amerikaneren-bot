@@ -64,7 +64,7 @@ def skriv_vekter(sti, modell):
             f.write(l.bias.detach().cpu().float().numpy().astype("<f4").tobytes())
 
 
-def les(mapper):
+def les(mapper, dim=VRAK_DIM):
     """→ (X, gruppe, verdi, frø, erNevro). `gruppe` sier hvilken stilling raden hører til."""
     X, G, V, FRO, NEV = [], [], [], [], []
     g = 0
@@ -82,7 +82,7 @@ def les(mapper):
                         continue
                     for k in kand:
                         t = k.get("t")
-                        if not t or len(t) != VRAK_DIM:
+                        if not t or len(t) != dim:
                             continue
                         X.append(t)
                         G.append(g)
@@ -110,10 +110,12 @@ def main():
     p.add_argument("--holdoutandel", type=float, default=0.1)
     p.add_argument("--froe", type=int, default=11)
     p.add_argument("--logg", default="analyse/vrak-tren.jsonl")
+    # VrakQ v2 (11. sep): 27 = de 24 trekkene + kampstillingen (egne/beste andres poeng, runde).
+    p.add_argument("--dim", type=int, default=VRAK_DIM, choices=[24, 27])
     args = p.parse_args()
 
     enhet = "cuda" if torch.cuda.is_available() else "cpu"
-    X, G, V, FRO, NEV = les([m for m in args.data.split(",") if m])
+    X, G, V, FRO, NEV = les([m for m in args.data.split(",") if m], args.dim)
     if len(X) == 0:
         raise SystemExit(f"Ingen brukbare rader i {args.data}")
     ant_grupper = int(G.max()) + 1
@@ -158,7 +160,7 @@ def main():
         return float((best[med] - valgt[med]).clamp(min=0).mean()), int(med.sum())
 
     torch.manual_seed(args.froe)
-    dims = [VRAK_DIM] + [int(x) for x in args.skjult.split(",")] + [1]
+    dims = [args.dim] + [int(x) for x in args.skjult.split(",")] + [1]
     modell = Rangnett(dims).to(enhet)
     opt = torch.optim.AdamW(modell.parameters(), lr=args.lr)
     plan = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epoker)

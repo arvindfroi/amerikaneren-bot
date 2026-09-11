@@ -42,6 +42,32 @@ import { FARGER, type Farge, type Kort } from "../kort.ts";
 import type { GameState } from "../motor.ts";
 
 export const VRAK_DIM = 24;
+/**
+ * VRAKQ V2 (11. sep, K5): de 24 trekkene + KAMPSTILLINGEN bakerst – egne poeng og beste
+ * motstanders poeng (/målPoeng) og rundenummeret (/20, klemt), nøyaktig som `budqTrekk`.
+ * Uten dem kan et vraknett trent mot seiersmålet ikke lære at samme hånd bør vrakes
+ * dristigere når man ligger bak. Et 24-nett utvidet med nullkolonner velger likt.
+ */
+export const VRAK_DIM_K = VRAK_DIM + 3;
+
+/** `vraktrekk` med kampstillingen bakerst (`VRAK_DIM_K`). Offentlig informasjon: poengtavla. */
+export function vraktrekkK(
+  state: GameState,
+  sete: number,
+  hånd: readonly Kort[],
+  vrak: readonly Kort[],
+  trumf: Farge,
+): Float32Array {
+  const v = new Float32Array(VRAK_DIM_K);
+  v.set(vraktrekk(state, sete, hånd, vrak, trumf), 0);
+  const mål = state.regler.målPoeng;
+  let beste = -Infinity;
+  for (let p = 0; p < state.antallSpillere; p++) if (p !== sete) beste = Math.max(beste, state.totalPoeng[p] ?? 0);
+  v[VRAK_DIM] = (state.totalPoeng[sete] ?? 0) / mål;
+  v[VRAK_DIM + 1] = beste / mål;
+  v[VRAK_DIM + 2] = Math.min(1, state.rundeNr / 20);
+  return v;
+}
 
 /**
  * Trekkene for hånden som blir igjen når `vrak` er kastet og `trumf` valgt.

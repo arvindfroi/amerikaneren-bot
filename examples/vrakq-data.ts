@@ -39,7 +39,7 @@ import { lagIndre, tall } from "../src/moe2/agentspek.ts";
 import { medVerden, trekkVerdener } from "../src/moe2/sdkort.ts";
 import { lesVrakflagg } from "../src/moe2/vrakpolicy.ts";
 import { vrakkandidater } from "../src/moe2/vrakrang.ts";
-import { vraktrekk } from "../src/moe2/vraktrekk.ts";
+import { vraktrekk, vraktrekkK } from "../src/moe2/vraktrekk.ts";
 import { Seiersprediktor } from "../src/mlb/seier.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
 
@@ -61,6 +61,8 @@ const UT = arg("--ut", "D:/amb-grp/vrakq/d0/s0.jsonl");
 const prediktor = Seiersprediktor.fraFil(arg("--seier", "e1-modell/seier-g0.bin"));
 const BLANDING = Number(arg("--blanding", "0.3"));
 const FLAGG = arg("--flagg", "telrd");
+/** VrakQ v2: trekkene med kampstillingen bakerst (27 i stedet for 24). Treneren må få `--dim 27`. */
+const KAMPSTILLING = process.argv.includes("--kampstilling");
 mkdirSync(dirname(UT), { recursive: true });
 
 const kamp = [0, 1, 2, 3].map(() => lagIndre(SPEK));
@@ -150,7 +152,7 @@ for (let g = 0; g < KAMPER; g++) {
             const vs = u.reduce((a, x) => a + x.vs, 0) / u.length;
             const vp = u.reduce((a, x) => a + x.vp, 0) / u.length;
             return {
-              t: Array.from(vraktrekk(s, sete, hånd, p.vrak, p.trumf), (z) => rund(z, 10_000)),
+              t: Array.from((KAMPSTILLING ? vraktrekkK : vraktrekk)(s, sete, hånd, p.vrak, p.trumf), (z) => rund(z, 10_000)),
               v: rund(vs + BLANDING * vp),
               vs: rund(vs),
               vp: rund(vp),

@@ -35,7 +35,7 @@ import { lovligeEtterlys, utfør, type GameState, type Handling } from "../motor
 import { forover, type NevroNett } from "../nevro/nett.ts";
 import { NevroAgent } from "../nevro/index.ts";
 import { lesVrakflagg, type Vrakpolicy } from "./vrakpolicy.ts";
-import { vraktrekk, VRAK_DIM } from "./vraktrekk.ts";
+import { vraktrekk, vraktrekkK, VRAK_DIM, VRAK_DIM_K } from "./vraktrekk.ts";
 
 const nøkkel = (k: Kort): string => `${k.farge}${k.verdi}`;
 
@@ -101,6 +101,7 @@ export class Vrakrangerer {
   private readonly policy: Vrakpolicy;
   private readonly nevro = new NevroAgent();
   private valgt: Farge | null = null;
+  private readonly medKampstilling: boolean;
 
   constructor(
     indre: { velgHandling(s: GameState): Handling; nyKamp(): void },
@@ -111,9 +112,11 @@ export class Vrakrangerer {
     // BREDDEN HÅNDHEVES. Et nett med feil inngang ville gitt tause søppelvalg
     // i stedet for en feilmelding, og vrakvalget er én per runde – feilen ville
     // vært nesten usynlig i statistikken.
-    if (første.inn !== VRAK_DIM) {
-      throw new Error(`Vrakrangereren tar ${VRAK_DIM} trekk, nettet har ${første.inn}`);
+    if (første.inn !== VRAK_DIM && første.inn !== VRAK_DIM_K) {
+      throw new Error(`Vrakrangereren tar ${VRAK_DIM} trekk (eller ${VRAK_DIM_K} med kampstillingen), nettet har ${første.inn}`);
     }
+    // VrakQ v2 (11. sep): 27-nettet leser kampstillingen bakerst. Bredden avgjør, ikke et flagg.
+    this.medKampstilling = første.inn === VRAK_DIM_K;
     const siste = nett.lag[nett.lag.length - 1]!;
     if (siste.ut !== 1) throw new Error(`Rangereren må ha ÉN utgang, nettet har ${siste.ut}`);
     this.indre = indre;
@@ -179,7 +182,10 @@ export class Vrakrangerer {
     let beste = par[0]!;
     let besteScore = -Infinity;
     for (const p of par) {
-      const s = forover(this.nett, vraktrekk(state, sete, hånd, p.vrak, p.trumf))[0] ?? 0;
+      const trekk = this.medKampstilling
+        ? vraktrekkK(state, sete, hånd, p.vrak, p.trumf)
+        : vraktrekk(state, sete, hånd, p.vrak, p.trumf);
+      const s = forover(this.nett, trekk)[0] ?? 0;
       if (s > besteScore) {
         besteScore = s;
         beste = p;
