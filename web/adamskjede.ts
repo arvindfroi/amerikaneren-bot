@@ -27,6 +27,8 @@ import { Sikkerorakel, type SikkerTellere } from "../src/moe2/sikkerorakel.ts";
 import { byggUtrullet, type Søkspek, type Velger } from "../src/moe2/utrullet.ts";
 import { MlbTronett } from "../src/mlb/tronett.ts";
 import { BUDQ_INN, BUDQ_UT } from "../src/moe2/budq.ts";
+// `sikkerorakel.ts` drar allerede inn `rolleorakel.ts`, så bundelen blir ikke tyngre.
+import { rolleFor, type Rolle } from "../src/moe2/rolleorakel.ts";
 
 /**
  * Meldingsprotokollen mellom hovedtråd og worker.
@@ -84,6 +86,26 @@ export interface AdamsKonfig {
   readonly eksakt?: { readonly terskel: number; readonly lagmål?: boolean; readonly tak?: number } | null;
   /** K7.2: førersøkets utspillinger løses eksakt fra så mange stikk igjen (`e<T>`). Udefinert = av. */
   readonly eksaktBlad?: number;
+  /**
+   * SØKETS ROLLER (11. sep), som `sik:<rolle>`. Udefinert = førersetet, som utrullet; tom
+   * liste = alle roller (`sik:alle`). `børSøke` må få den samme lista, ellers går
+   * makker- og forsvarstrekkene aldri til workeren.
+   */
+  readonly søkRoller?: readonly Rolle[];
+  /** `L`: lagmålet i søkets utspillinger. Udefinert = av. */
+  readonly søkLagmål?: boolean;
+  /**
+   * K4/K6 i BEGGE tråder: økta og profilen (`okt:` + `profil:`). Udefinert = av, som
+   * utrullet. Slås den på, må `nyKamp` nå begge tråder (N5) og workeren se hver
+   * `RUNDE_SLUTT` gjennom `observer` — ellers fylles aldri boka der.
+   */
+  readonly økt?: boolean;
+  /** `M`: søkets utspillinger bruker økta sin policy per motstander. Krever `økt`. */
+  readonly søkØkt?: boolean;
+  /** `D`: søkets frø per beslutning utledes av det setet ser. Udefinert = løpende strøm. */
+  readonly visningsfrø?: boolean;
+  /** `profil:sik:…` i stedet for `sik:…:profil:…` — se `UtrulletSpek.profilOverSøk`. */
+  readonly profilOverSøk?: boolean;
 }
 
 /** Rå vekter slik de kommer over nettet: base64 og JSON. */
@@ -120,9 +142,11 @@ export function tilBytes(b64: string): Uint8Array {
 }
 
 /**
- * SØKESPEKEN, ETT STED — speilet av `sik:foerer:<sigma>:<V>[k32~mlbu=<fil>]` i
+ * SØKESPEKEN, ETT STED — speilet av
+ * `sik:<foerer|alle|…>:<sigma>:<V>[k32][e<T>][L][M][D][~mlbu=<fil>]` i
  * `src/moe2/agentspek.ts`. `test/app-lik-spek.test.ts` holder den utrullede delen
- * av den lik speken.
+ * av den lik speken; de nye feltene står bare med når de er satt, så standarden er
+ * bit-identisk med før.
  */
 export function søkspek(k: AdamsKonfig, tronett: MlbTronett | null = null): Søkspek | null {
   if (k.verdener <= 0) return null;
@@ -133,6 +157,10 @@ export function søkspek(k: AdamsKonfig, tronett: MlbTronett | null = null): Sø
     ...(k.fristMs === undefined ? {} : { fristMs: k.fristMs }),
     ...(k.eksaktBlad === undefined ? {} : { eksaktBlad: k.eksaktBlad }),
     ...(tronett === null ? {} : { tronett, verdenKandidater: 32, budvekt: false }),
+    ...(k.søkRoller === undefined ? {} : { roller: k.søkRoller }),
+    ...(k.søkLagmål === true ? { lagmål: true } : {}),
+    ...(k.søkØkt === true ? { brukØkt: true } : {}),
+    ...(k.visningsfrø === true ? { visningsfrø: true } : {}),
   };
 }
 
@@ -146,6 +174,11 @@ export function søkspek(k: AdamsKonfig, tronett: MlbTronett | null = null): Sø
  * kan si hvilken bot som faktisk kjørte.
  */
 export function byggAdams(v: RåAdamsVekter, k: AdamsKonfig, medSøk: boolean, kilde = "vektene"): Bygd {
+  // En konfigurasjonsfeil, ikke en vekt som mangler: den skal ikke forkles som
+  // «vrakrangereren ble avvist» av reserven lenger ned.
+  if (k.søkØkt === true && k.økt !== true) {
+    throw new Error("byggAdams: søkØkt krever økt – uten økt ville hukommelsen stille vært av");
+  }
   const kortBytes = tilBytes(v.kort);
   let bud: Budmodell | null = null;
   if (v.bud !== null) {
@@ -212,8 +245,9 @@ export function byggAdams(v: RåAdamsVekter, k: AdamsKonfig, medSøk: boolean, k
       // Begge tråder: hovedtråden tar makker- og forsvarstrekkene, workeren førerens.
       eksakt: k.eksakt ?? null,
       // K4/K6 er BYGD, men ikke maalt i spill enda. Slås de på, må `nyKamp`
-      // nå begge tråder — og det gjør den nå (N5).
-      økt: false,
+      // nå begge tråder — og det gjør den nå (N5). Standard av, som før.
+      økt: k.økt === true,
+      ...(k.profilOverSøk === true ? { profilOverSøk: true } : {}),
     });
 
   let bygd: ReturnType<typeof byggUtrullet>;
@@ -262,8 +296,22 @@ export function finnSikkerorakel(agent: unknown): Sikkerorakel | null {
  * ren overhead. Regelen står her og ikke i `app.ts`, så paritetsprøven kan
  * bruke NØYAKTIG den.
  */
-export function børSøke(state: GameState, aktør: number, verdener: number): boolean {
-  return verdener > 0 && state.fase === "SPILL" && aktør === state.budvinner;
+export function børSøke(
+  state: GameState,
+  aktør: number,
+  verdener: number,
+  /**
+   * `AdamsKonfig.søkRoller`. Udefinert = førersetet, nøyaktig som før. Rollen er
+   * AKTØRENS EGEN, og den kjenner hun: føreren er offentlig, og om hun er makker vet hun
+   * av om hun har (hatt) det etterlyste kortet. Rutingen lekker altså ingenting skjult.
+   */
+  roller?: readonly Rolle[],
+): boolean {
+  if (roller === undefined) return verdener > 0 && state.fase === "SPILL" && aktør === state.budvinner;
+  if (!(verdener > 0 && state.fase === "SPILL")) return false;
+  if (roller.length === 0) return true;
+  const r = rolleFor(state, aktør);
+  return r !== null && roller.includes(r);
 }
 
 /** Hva søkelaget gjorde med ÉN beslutning, lest av tellerne før og etter. */
