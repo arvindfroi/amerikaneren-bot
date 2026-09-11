@@ -53,9 +53,17 @@ det disjunkte**. Fortegnet snur, altså er den ikke etablert. Den ville kostet
 
 `TROFIL = null` i `web/app.ts`. Fila trenger ikke lastes opp.
 
-## BudQ — budet som et lært valg (11. september, AV)
+## BudQ — budet som et lært valg (11. september, PÅ)
 
-Klar i koden, ikke utrullet. Slås på med `BUDQ_PÅ = true` i `web/app.ts`.
+**Rullet ut 11. september kl. 10:40 (maskintid, Tokyo) som fac2ec0**, v12-2026-09-11.
+Slått av/på med `BUDQ_PÅ` i `web/app.ts`. Utrullingen var tre ting, i denne rekkefølgen:
+fast-forward av `claude/lokal-trening-oppsett` (Vercel), `/adams-budq.b64` inn i
+valens `PROXY`-tabell, og `PINNE` flyttet til commiten. Uten PROXY-raden svarer valen
+HTML med status 200, og appen faller stille tilbake til budmodellen.
+Verifisert byte for byte etter utrullingen: Vercels `dist/app.js` og valens `app.js`,
+`worker.js` og `adams-budq.b64` er lik commiten, og `VENTET` i index.html = bundelen.
+Prøvd lokalt først med `examples/spill-lokal.ts` (vektene fra `web/dist`, logg-POST holdt
+tilbake): hel runde, `start` med `modeller.budq = true`, søket 1 ms–3,3 s under full CPU-last.
 
 - **Fil:** `web/dist/adams-budq.b64` (563 KB) = base64 av `budq-s2.bin` (sha1 91a8d6bdd8b7).
   Den må ligge der appen henter modeller (samme sted som `adams-kort.b64`).
