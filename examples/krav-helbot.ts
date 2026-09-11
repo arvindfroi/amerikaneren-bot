@@ -14,8 +14,10 @@
  *        ΔP(seier) bot − menneske per runde fra 10. aug, klyngebootstrap over kamper.
  *        KONTROLL: menneskesiden (mP, rundepoeng) er identisk i begge armene.
  *        FELLE: `nevro` i menneskets sete MÅ ligge under mennesket (< −2 SE).
- *        JA: > 2 SE og positiv i begge halvdeler av kampene (dataene er faste, så
- *        «disjunkte bånd» er to halvdeler delt på kamp-id).
+ *        JA (11. sep, avtalt med eieren): snitt ≥ +1,0 pp per runde OG z = snitt/SE ≥ 3.
+ *        Den gamle porten (> 2 SE og positiv i begge halvdeler) sa JA til +0,86 ± 0,20 i
+ *        batteriet 11. sep — målt fordel, men under det eieren kaller «henter mer ut».
+ *        Halvdelene (delt på kamp-id) står som kontekst i raden.
  *   K2   `k2-spek.ts`, tidlig (bud, vrak, velg, stikk 0–3) og sent (stikk 7+).
  *        KONTROLL: fersk agent to ganger gir samme svar. FELLE: juks:6 og den plantede
  *        jukseren tatt i hver fase. JA: 0 avvik.
@@ -148,6 +150,13 @@ export const OVERBY_BUDLAG = "budm:e1-modell/bud-vant.json@-99";
 /** Seiersprediktoren for ΔP(seier) i K3.1-duellen (samme som K1-duplikatet). */
 export const K31_SEIER = "e1-modell/seier-g0.bin";
 export const K1_FRA = MENNESKE_FRA;
+/**
+ * K1-PORTEN (11. sep, eieren og leder): duplikat-ΔP(seier) bot − menneske ≥ +1,0 pp per runde
+ * OG z ≥ 3. Begge må holde: et stort snitt med stor SE er ikke målt, og et skarpt målt lite
+ * snitt (+0,86 ± 0,20, z 4,3 i batteriet 11. sep) er ikke nok fordel.
+ */
+export const K1_TERSKEL_PP = 1.0;
+export const K1_Z = 3;
 /** «Veldig høyt nivå» (K8.2, forslag 11. sep): minst 25 % av veien gulv → tak. */
 export const K8_TERSKEL = 0.25;
 
@@ -435,10 +444,10 @@ export function domK1(spek: readonly D1[], felle: readonly D1[], B = 20_000) {
   const kontrollOk = s.length > 0 && parret === s.length && f.length === s.length && ulik === 0;
   const felleOk = Number.isFinite(kf.se) && kf.snitt < -2 * kf.se;
   const halv = [0, 1].map((b) => klyngeSnitt(s.filter((x) => fnv(x.spill) % 2 === b), (x) => x.spill, dP, B));
-  const beggeHalvdeler = halv.every((h) => h.snitt > 0);
-  const signifikant = Number.isFinite(ks.se) && ks.snitt > 2 * ks.se;
-  const innfridd: Dom = !kontrollOk || !felleOk ? "stum" : signifikant && beggeHalvdeler ? "ja" : "nei";
-  return { ks, kf, kd, halv, parret, ulik, kontrollOk, felleOk, innfridd };
+  const z = Number.isFinite(ks.se) && ks.se > 0 ? ks.snitt / ks.se : NaN;
+  const porten = ks.snitt >= K1_TERSKEL_PP && z >= K1_Z;
+  const innfridd: Dom = !kontrollOk || !felleOk ? "stum" : porten ? "ja" : "nei";
+  return { ks, kf, kd, halv, z, parret, ulik, kontrollOk, felleOk, innfridd };
 }
 
 export interface Takrad {
@@ -620,7 +629,8 @@ async function k1(r: Rigg): Promise<Helrad[]> {
       bånd: r.bånd,
       navn: "henter mer ut av menneskets kort enn mennesket (duplikat)",
       målt:
-        `ΔP(seier) bot − menneske ${fmt(d.ks.snitt, 2)} ± ${d.ks.se.toFixed(2)} pp per runde ` +
+        `ΔP(seier) bot − menneske ${fmt(d.ks.snitt, 2)} ± ${d.ks.se.toFixed(2)} pp per runde, z = ${d.z.toFixed(2)} ` +
+        `(port: ≥ ${fmt(K1_TERSKEL_PP, 1)} pp OG z ≥ ${K1_Z}) ` +
         `(${d.ks.n} runder i ${d.ks.klynger} kamper fra ${K1_FRA}); halvdeler ${fmt(d.halv[0]!.snitt, 2)} / ${fmt(d.halv[1]!.snitt, 2)}; ` +
         `rundepoeng ${fmt(d.kd.snitt, 2)} ± ${d.kd.se.toFixed(2)}`,
       kontroll: `menneskesiden identisk i begge armene: ${d.parret} parret, ${d.ulik} ulike (må være 0)`,
