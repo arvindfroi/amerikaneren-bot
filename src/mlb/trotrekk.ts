@@ -52,6 +52,8 @@ import type { SpillerVisning } from "../motor.ts";
 import { lagInn, ANTALL_INN as NEAT_INN } from "../neat/trekk.ts";
 import { kortIndeks } from "../nevro/trekk.ts";
 import { MLB_TRO_SIGNAL, signalTrekk } from "./signaltrekk.ts";
+import { MLB_STILLING, stillingTrekk } from "./stillingtrekk.ts";
+import { MLB_VALGT_BORT, valgtBortTrekk } from "./valgtbort.ts";
 
 /** rel sete 1, 2, 3, talong. Samme koding som `moe2/trosnett.ts`. */
 export const MLB_TRO_KLASSER = 4;
@@ -107,8 +109,68 @@ export const MLB_TRO_INN_H = MLB_TRO_INN + MLB_TRO_HUKOMMELSE;
  */
 export const MLB_TRO_INN_S = MLB_TRO_INN + MLB_TRO_SIGNAL;
 export const MLB_TRO_INN_HS = MLB_TRO_INN_H + MLB_TRO_SIGNAL;
+
+/**
+ * SANSER 2 (11. sep): stillingen per sete (`stillingtrekk.ts`, 36) og valgt bort, offentlig
+ * (`valgtbort.ts`, 40), BAKERST etter 920. Bare én ny bredde — 920 er det loopen trener — så
+ * et 920-nett utvidet med nullkolonner bakerst gir nøyaktig samme svar:
+ *
+ *   MLB_TRO_INN_HS2   920 + 36 + 40 = 996   (660 | hukommelse | signal | stilling | valgt bort)
+ *
+ * Begge blokkene er bygd av `SpillerVisning` alene, som resten; se toppen av hver fil.
+ */
+export const MLB_TRO_SANSER2 = MLB_STILLING + MLB_VALGT_BORT;
+export const MLB_TRO_INN_HS2 = MLB_TRO_INN_HS + MLB_TRO_SANSER2;
 /** Alle bredder trohodet kan ha. Bredden ER formatet – det finnes ikke noe versjonsfelt. */
-export const MLB_TRO_BREDDER: readonly number[] = [MLB_TRO_INN, MLB_TRO_INN_H, MLB_TRO_INN_S, MLB_TRO_INN_HS];
+export const MLB_TRO_BREDDER: readonly number[] = [MLB_TRO_INN, MLB_TRO_INN_H, MLB_TRO_INN_S, MLB_TRO_INN_HS, MLB_TRO_INN_HS2];
+
+/**
+ * BLOKKENE I HVER BREDDE, i rekkefølge. Én kilde til sannhet for varmstarten: et smalere nett
+ * utvides ved å legge hver av SINE blokker der blokken står i den bredere layouten, og null
+ * alt annet. 776 → 920 setter altså signalvektene inn på 804 (ikke 660), mens 920 → 996 bare
+ * legger nuller bakerst. `verktoy/mlb-tro-tren.py` har den samme tabellen, og
+ * `test/mlb-sanser2-utvid.test.ts` krever at de to gir byte-identiske vektfiler.
+ */
+export const MLB_TRO_LAYOUT: Readonly<Record<number, readonly (readonly [string, number])[]>> = {
+  [MLB_TRO_INN]: [["grunn", MLB_TRO_INN]],
+  [MLB_TRO_INN_H]: [["grunn", MLB_TRO_INN], ["hukommelse", MLB_TRO_HUKOMMELSE]],
+  [MLB_TRO_INN_S]: [["grunn", MLB_TRO_INN], ["signal", MLB_TRO_SIGNAL]],
+  [MLB_TRO_INN_HS]: [["grunn", MLB_TRO_INN], ["hukommelse", MLB_TRO_HUKOMMELSE], ["signal", MLB_TRO_SIGNAL]],
+  [MLB_TRO_INN_HS2]: [
+    ["grunn", MLB_TRO_INN],
+    ["hukommelse", MLB_TRO_HUKOMMELSE],
+    ["signal", MLB_TRO_SIGNAL],
+    ["stilling", MLB_STILLING],
+    ["valgtbort", MLB_VALGT_BORT],
+  ],
+};
+
+/**
+ * Kolonnekartet `fra` → `til`: [kildestart, målstart, lengde] per blokk i `fra`. Kaster om en
+ * blokk i `fra` ikke finnes i `til` (en utvidelse som MISTER en blokk er ikke en utvidelse).
+ */
+export function troKolonnekart(fra: number, til: number): [number, number, number][] {
+  const a = MLB_TRO_LAYOUT[fra];
+  const b = MLB_TRO_LAYOUT[til];
+  if (a === undefined || b === undefined) throw new Error(`Ingen trolayout for ${fra} → ${til}`);
+  const start = (layout: readonly (readonly [string, number])[], navn: string): number => {
+    let o = 0;
+    for (const [n, l] of layout) {
+      if (n === navn) return o;
+      o += l;
+    }
+    return -1;
+  };
+  const kart: [number, number, number][] = [];
+  let o = 0;
+  for (const [navn, lengde] of a) {
+    const mål = start(b, navn);
+    if (mål < 0) throw new Error(`Blokken «${navn}» i ${fra} finnes ikke i ${til}`);
+    kart.push([o, mål, lengde]);
+    o += lengde;
+  }
+  return kart;
+}
 
 /** Offsetene eksportert som ÉN kilde til sannhet, som ellers i prosjektet. */
 export const TROINNGANG = {
@@ -259,6 +321,14 @@ export function troTrekkForBredde(
 ): Float32Array {
   if (bredde === MLB_TRO_INN) return troTrekk(visning, antallStikk, målPoeng);
   if (bredde === MLB_TRO_INN_H) return troTrekkMedHukommelse(visning, antallStikk, målPoeng, hukommelse);
+  if (bredde === MLB_TRO_INN_HS2) {
+    // 920 nøyaktig som over, og de to nye sansene bakerst (se `MLB_TRO_INN_HS2`).
+    const v = new Float32Array(MLB_TRO_INN_HS2);
+    v.set(troTrekkForBredde(MLB_TRO_INN_HS, visning, antallStikk, målPoeng, hukommelse), 0);
+    v.set(stillingTrekk(visning, antallStikk, målPoeng), MLB_TRO_INN_HS);
+    v.set(valgtBortTrekk(visning), MLB_TRO_INN_HS + MLB_STILLING);
+    return v;
+  }
   if (bredde !== MLB_TRO_INN_S && bredde !== MLB_TRO_INN_HS) {
     throw new Error(`Trohodet har ingen trekkbredde ${bredde} (${MLB_TRO_BREDDER.join(", ")})`);
   }

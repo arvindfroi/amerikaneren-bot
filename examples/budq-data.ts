@@ -72,6 +72,13 @@ const SPEK = arg("--spek", ADAMS);
 const UT = arg("--ut", "D:/amb-grp/budq/d0/s0.jsonl");
 const SEIER = arg("--seier", "");
 const HUKOMMELSE = process.argv.includes("--hukommelse");
+/**
+ * `--sanser2` (11. sep): stillingen per sete (`src/mlb/stillingtrekk.ts`) bakerst etter boka,
+ * 287 → 323. Krever `--hukommelse`: blokken ligger BAK boka, så et 287-nett kan utvides med
+ * nullkolonner bakerst. Uten flagget er utdataene byte-identiske med før.
+ */
+const SANSER2 = process.argv.includes("--sanser2");
+if (SANSER2 && !HUKOMMELSE) throw new Error("--sanser2 ligger bak motstanderboka: krever --hukommelse");
 /** Én spek per sete; uten `--drivere` fire ganger `SPEK`, alle registrert (se `drivere.ts`). */
 const BORD = lesBord(process.argv, SPEK);
 const prediktor = SEIER === "" ? null : Seiersprediktor.fraFil(SEIER);
@@ -174,7 +181,7 @@ for (let g = 0; g < KAMPER; g++) {
               sete,
               maal: prediktor === null ? "poeng" : "seier",
               policy: h.type === "BUD" ? String(h.bud) : null,
-              x: [...budqTrekk(s, sete, bøker?.[sete] ?? null)].map((x) => Math.round(x * 10_000) / 10_000),
+              x: [...budqTrekk(s, sete, bøker?.[sete] ?? null, SANSER2)].map((x) => Math.round(x * 10_000) / 10_000),
               q,
               ...(prediktor === null ? {} : { qp }),
             }) + "\n",

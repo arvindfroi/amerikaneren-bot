@@ -29,12 +29,32 @@ import {
   MLB_TRO_INN,
   MLB_TRO_INN_H,
   MLB_TRO_INN_HS,
+  MLB_TRO_INN_HS2,
   MLB_TRO_INN_S,
   MLB_TRO_KLASSER,
   MLB_TRO_KORT,
   MLB_TRO_UT,
+  troKolonnekart,
   troTrekkForBredde,
 } from "./trotrekk.ts";
+
+/**
+ * VARMSTARTEN I TS (11. sep): første lag utvidet fra `nett` sin bredde til `til` etter
+ * `troKolonnekart`, nuller i alle nye kolonner, resten av nettet delt. Det samme som
+ * `verktoy/mlb-tro-tren.py --vekter` gjør; `test/mlb-sanser2-utvid.test.ts` krever at de
+ * to gir byte-identiske filer. Brukt av prøvene og røykprøven, aldri i spill.
+ */
+export function utvidTronett(nett: NevroNett, til: number): NevroNett {
+  const [første, ...resten] = nett.lag;
+  if (første === undefined) throw new Error("MLB-trohodet: tomt nett");
+  const vekter = new Float32Array(første.ut * til);
+  for (const [fra, mål, lengde] of troKolonnekart(første.inn, til)) {
+    for (let r = 0; r < første.ut; r++) {
+      vekter.set(første.vekter.subarray(r * første.inn + fra, r * første.inn + fra + lengde), r * til + mål);
+    }
+  }
+  return { lag: [{ inn: til, ut: første.ut, vekter, bias: første.bias.slice() }, ...resten] };
+}
 import { maskerFordeling, type MaskertFordeling } from "./trofakta.ts";
 
 export class MlbTronett {
@@ -54,7 +74,8 @@ export class MlbTronett {
     if (!MLB_TRO_BREDDER.includes(første.inn)) {
       throw new Error(
         `MLB-trohodet tar ${MLB_TRO_INN} (uten hukommelse), ${MLB_TRO_INN_H} (med), ` +
-          `${MLB_TRO_INN_S} eller ${MLB_TRO_INN_HS} (med signalblokk) trekk, nettet har ${første.inn}`,
+          `${MLB_TRO_INN_S} eller ${MLB_TRO_INN_HS} (med signalblokk) eller ${MLB_TRO_INN_HS2} (sanser 2) trekk, ` +
+          `nettet har ${første.inn}`,
       );
     }
     this.innBredde = første.inn;
@@ -83,12 +104,17 @@ export class MlbTronett {
 
   /** Leser dette nettet hukommelsen (K6 → K8)? Avgjøres av bredden, ikke av et flagg. */
   get brukerHukommelse(): boolean {
-    return this.innBredde === MLB_TRO_INN_H || this.innBredde === MLB_TRO_INN_HS;
+    return this.innBredde === MLB_TRO_INN_H || this.innBredde === MLB_TRO_INN_HS || this.innBredde === MLB_TRO_INN_HS2;
   }
 
   /** Leser dette nettet signalblokken (K8 kanal 5 og 2)? Også avgjort av bredden. */
   get brukerSignal(): boolean {
-    return this.innBredde === MLB_TRO_INN_S || this.innBredde === MLB_TRO_INN_HS;
+    return this.innBredde === MLB_TRO_INN_S || this.innBredde === MLB_TRO_INN_HS || this.innBredde === MLB_TRO_INN_HS2;
+  }
+
+  /** Leser dette nettet sanser 2 (stillingen per sete, valgt bort)? Bare 996. */
+  get brukerSanser2(): boolean {
+    return this.innBredde === MLB_TRO_INN_HS2;
   }
 
   /**
