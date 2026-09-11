@@ -18,6 +18,8 @@
  *      (uniform over de regelforenlige givene) på de samme stillingene, og støtten er en delmengde.
  *      FELLE: en posterior med FEIL policyer (ADAMS_MAALT for bordet) taper mot den blinde.
  *   5. DOMMENE: andelene er de avtalte brøkene, udekkede stillinger er aldri med i snittene.
+ *   6. PARVIS (agent R): før/etter på de samme stillingene gir forskjellen uten kampvariansen, og de
+ *      udekkede radene er bare med i «d tap». FELLE: udekkede rader med tak flytter «d rettferdig».
  *
  * SMC-veien (partikler > 0) er EKSPERIMENTELL og har ingen prøve her: målt 12. sep kollapset den med
  * 8 partikler (kontrollen) og 60 partikler i stikk 10 (støtten); K2-prøven med 40 partikler i stikk
@@ -35,7 +37,7 @@ import { intTilKort, kortTilInt } from "../src/solver/dds.ts";
 import { ADAMS_MAALT, lagIndre, type Spekagent } from "../src/moe2/agentspek.ts";
 import { handlingNøkkel } from "../examples/naabart-handling.ts";
 import { NaabartTro, kanoniskAgent, sannPlassering, takTap, type Loggpost, type NaabartTroOpts, type Troresultat } from "../examples/naabart-tro.ts";
-import { domK8Tak, domPerStikk, type K8TakRad } from "../examples/k8-tak-dom.ts";
+import { domK8Tak, domParvis, domPerStikk, type K8TakRad } from "../examples/k8-tak-dom.ts";
 import { LN3 } from "../examples/k8-maal.ts";
 
 const SPEK = "okt:vr:e1-modell/vrak-3.bin:telrd:profil:budq:e1-modell/budq-3.bin:vakt:abmp:e1:e1-modell/kort-3.bin";
@@ -343,4 +345,27 @@ test("dommen per stikk: udekkede stillinger telles, men er aldri i andelene; tak
   // FELLE: hadde de udekkede radene fått et tak, ville andelen i stikk 8 flyttet seg.
   const lekk = domPerStikk(rader.map((r) => (r["eksakt"] === null ? { ...r, eksakt: 0.05 } : r))).find((x) => x.stikk === 8)!;
   assert.ok(Math.abs(lekk.rettferdig.snitt - 0.5) > 0.05, "fella: udekkede rader med tak ga samme andel — prøven ser ikke en lekkasje");
+});
+
+test("parvis før/etter: forskjellen uten kampvariansen, udekkede rader bare i d tap; lekkasjefella blir tatt", () => {
+  // Nivået varierer mye mellom kampene, forskjellen er fast: parvis SE skal være 0 der nivåets SE ikke er det.
+  const rader: K8TakRad[] = [];
+  for (let f = 0; f < 6; f++) {
+    const før = LN3 - 0.1 - 0.05 * f;
+    rader.push({ frø: f, stikk: 8, gulv: LN3, nett: før, nett_ny: før - 0.06, eksakt: LN3 - 0.6, erBv: 1, rolle: 0, sann_ok: 1 });
+    // Udekket (over grensen): det nye nettet er VERRE her. Skal synes i d tap, aldri i d rettferdig.
+    rader.push({ frø: f, stikk: 3, gulv: LN3, nett: 1.0, nett_ny: 1.3, eksakt: null, erBv: 1, rolle: 0, sann_ok: 1 });
+  }
+  // Uforenlig sann giv: aldri dekket.
+  rader.push({ frø: 9, stikk: 8, gulv: LN3, nett: 0.5, nett_ny: 0.0, eksakt: 0.1, erBv: 1, rolle: 0, sann_ok: 0 });
+  const alle = domParvis(rader, "nett", "nett_ny").find((d) => d.stikk === null)!;
+  assert.equal(alle.dekket, 6);
+  assert.ok(Math.abs(alle.dRettferdig.snitt - 0.1) < 1e-9, `d rettferdig ${alle.dRettferdig.snitt}, ventet 0,06 / 0,6`);
+  assert.ok(alle.dRettferdig.se < 1e-9, `parvis SE ${alle.dRettferdig.se} med fast forskjell`);
+  assert.ok(Math.abs(alle.dNettAlle.snitt - (6 * -0.06 + 6 * 0.3 - 0.5) / 13) < 1e-9, `d tap ${alle.dNettAlle.snitt}`);
+  const nivå = domPerStikk(rader).find((d) => d.stikk === 8)!;
+  assert.ok(nivå.rettferdig.se > 0.01, `nivåets SE ${nivå.rettferdig.se} — da viser prøven ikke at parvis betyr noe`);
+  // FELLE: hadde de udekkede radene fått et tak, ville d rettferdig flyttet seg.
+  const lekk = domParvis(rader.map((r) => (r["eksakt"] === null ? { ...r, eksakt: 0.2 } : r)), "nett", "nett_ny").find((d) => d.stikk === null)!;
+  assert.ok(Math.abs(lekk.dRettferdig.snitt - 0.1) > 0.02, "fella: udekkede rader med tak ga samme d rettferdig — prøven ser ikke en lekkasje");
 });

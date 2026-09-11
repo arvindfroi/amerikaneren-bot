@@ -184,6 +184,10 @@ export function skrivDomEksakt(rader: readonly K8TakRad[]): string[] {
     ["budvinneren", (r) => r["erBv"] === 1],
     ["de andre", (r) => r["erBv"] === 0],
   ];
+  // Rollene (12. sep, agent R): makkeren vet at hun er makker, motspilleren at hun ikke er det. Bare når radene har kolonnen.
+  if (rader.some((r) => typeof r["rolle"] === "number")) {
+    grupper.push(["makkeren", (r) => r["rolle"] === 1], ["motspillerne", (r) => r["rolle"] === 2]);
+  }
   L.push(`EKSAKT RETTFERDIG TAK (gulv ln 3 = ${LN3.toFixed(4)}; andelene er over de dekkede stillingene, SE klynget på kamp)`);
   for (const [navn, filter] of grupper) {
     L.push(`  ${navn}:`);
@@ -195,6 +199,117 @@ export function skrivDomEksakt(rader: readonly K8TakRad[]): string[] {
           `${pct(d.rettferdig).padStart(16)}   ${pct(d.takAndel).padStart(12)}  | ${String(d.nRegel).padStart(7)} ${f4(d.regel).padStart(6)} ${f4(d.takRegel).padStart(6)} | ` +
           `${Number.isFinite(d.ms) ? d.ms.toFixed(0) : "–"}` +
           (d.sannBrudd + d.tomme > 0 ? `  ! sann giv uforenlig ${d.sannBrudd}, tomme ${d.tomme}` : ""),
+      );
+    }
+  }
+  return L;
+}
+
+/**
+ * FØR/ETTER PÅ DE SAMME STILLINGENE (12. sep, agent R). I `k8-tak.ts` spiller driverne og nettet
+ * bare scorer, så to nett i samme fil (`--nett a,b`) har nøyaktig de samme stillingene og det samme
+ * taket. Nivåenes SE (2–4 pp per rolle) er mest forskjell MELLOM kamper; forskjellen parvis
+ * trekker den ut:
+ *
+ *   dRettferdig  (snitt før − snitt etter) / (ln 3 − snitt tak) over de dekkede — endringen i
+ *                «nett→rettferdig» i prosentpoeng (positiv = bedre)
+ *   dNettAlle    snitt(etter − før) over ALLE radene, også de udekkede (negativ = bedre). Stikk 2–6
+ *                har ikke noe tak; et nett som vinner sent og taper tidlig skal synes her.
+ *
+ * SE fra klyngebootstrap over kamper (`frø`), med de samme trekningene for teller og nevner.
+ */
+export interface ParDom {
+  readonly stikk: number | null;
+  readonly n: number;
+  readonly dekket: number;
+  readonly klynger: number;
+  readonly før: number;
+  readonly etter: number;
+  readonly tak: number;
+  readonly dRettferdig: Andel;
+  readonly dNettAlle: Andel;
+}
+
+export function domParvis(rader: readonly K8TakRad[], før: string, etter: string, filter: (r: K8TakRad) => boolean = () => true, B = 2000): ParDom[] {
+  const valgt = rader.filter((r) => filter(r) && Number.isFinite(tallverdi(r[før])) && Number.isFinite(tallverdi(r[etter])));
+  const stikkene = [...new Set(valgt.map((r) => tallverdi(r["stikk"])).filter(Number.isFinite))].sort((a, b) => a - b);
+  const en = (stikk: number | null): ParDom => {
+    const G = stikk === null ? valgt : valgt.filter((r) => r["stikk"] === stikk);
+    type K = { n: number; d: number; før: number; etter: number; tak: number; nAlle: number; dAlle: number };
+    const kl = new Map<string, K>();
+    let dekket = 0;
+    for (const r of G) {
+      const k = String(r.frø);
+      const c = kl.get(k) ?? { n: 0, d: 0, før: 0, etter: 0, tak: 0, nAlle: 0, dAlle: 0 };
+      const a = tallverdi(r[før]);
+      const b = tallverdi(r[etter]);
+      c.nAlle++;
+      c.dAlle += b - a;
+      const t = r["sann_ok"] === 0 ? NaN : tallverdi(r["eksakt"]);
+      if (Number.isFinite(t)) {
+        c.n++;
+        c.før += a;
+        c.etter += b;
+        c.tak += t;
+        dekket++;
+      }
+      kl.set(k, c);
+    }
+    const K = [...kl.values()];
+    const mål = (ks: readonly K[]) => {
+      const n = ks.reduce((s, c) => s + c.n, 0);
+      const nA = ks.reduce((s, c) => s + c.nAlle, 0);
+      const f = ks.reduce((s, c) => s + c.før, 0) / n;
+      const e = ks.reduce((s, c) => s + c.etter, 0) / n;
+      const t = ks.reduce((s, c) => s + c.tak, 0) / n;
+      return { før: f, etter: e, tak: t, dR: (f - e) / (LN3 - t), dA: ks.reduce((s, c) => s + c.dAlle, 0) / nA };
+    };
+    const hel = mål(K);
+    const boot: ReturnType<typeof mål>[] = [];
+    if (K.length >= 2) {
+      const rng = lagRng(20_260_912);
+      for (let i = 0; i < B; i++) boot.push(mål(K.map(() => K[Math.floor(rng() * K.length)]!)));
+    }
+    const sd = (f: (x: ReturnType<typeof mål>) => number): number => {
+      const v = boot.map(f).filter(Number.isFinite);
+      if (v.length < 2) return NaN;
+      const m = v.reduce((a, x) => a + x, 0) / v.length;
+      return Math.sqrt(v.reduce((a, x) => a + (x - m) ** 2, 0) / (v.length - 1));
+    };
+    return {
+      stikk,
+      n: G.length,
+      dekket,
+      klynger: K.length,
+      før: hel.før,
+      etter: hel.etter,
+      tak: hel.tak,
+      dRettferdig: { snitt: hel.dR, se: sd((x) => x.dR) },
+      dNettAlle: { snitt: hel.dA, se: sd((x) => x.dA) },
+    };
+  };
+  return [...stikkene.map(en), en(null)];
+}
+
+export function skrivPar(rader: readonly K8TakRad[], før: string, etter: string): string[] {
+  const L: string[] = [];
+  const pp = (a: Andel): string => (Number.isFinite(a.snitt) ? `${(100 * a.snitt).toFixed(1)}±${Number.isFinite(a.se) ? (100 * a.se).toFixed(1) : "–"}` : "–");
+  const f4 = (x: number): string => (Number.isFinite(x) ? x.toFixed(4) : "–");
+  const d4 = (a: Andel): string => (Number.isFinite(a.snitt) ? `${a.snitt >= 0 ? "+" : ""}${a.snitt.toFixed(4)}±${Number.isFinite(a.se) ? a.se.toFixed(4) : "–"}` : "–");
+  const grupper: [string, (r: K8TakRad) => boolean][] = [
+    ["alle seter", () => true],
+    ["budvinneren", (r) => r["erBv"] === 1],
+    ["de andre", (r) => r["erBv"] === 0],
+  ];
+  if (rader.some((r) => typeof r["rolle"] === "number")) grupper.push(["makkeren", (r) => r["rolle"] === 1], ["motspillerne", (r) => r["rolle"] === 2]);
+  L.push(`PARVIS ${før} → ${etter} (samme stillinger; d rettferdig i pp, positiv = bedre; d tap alle rader, negativ = bedre; SE klynget på kamp)`);
+  for (const [navn, filter] of grupper) {
+    L.push(`  ${navn}:`);
+    L.push("  stikk     n  dekket    før  etter    tak   d nett→rettferdig pp   d tap (alle rader)");
+    for (const d of domParvis(rader, før, etter, filter)) {
+      L.push(
+        `  ${(d.stikk === null ? "alle" : String(d.stikk)).padStart(5)} ${String(d.n).padStart(5)} ${String(d.dekket).padStart(7)} ` +
+          `${f4(d.før).padStart(6)} ${f4(d.etter).padStart(6)} ${f4(d.tak).padStart(6)}   ${pp(d.dRettferdig).padStart(18)}   ${d4(d.dNettAlle).padStart(18)}`,
       );
     }
   }

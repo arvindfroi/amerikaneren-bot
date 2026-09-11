@@ -44,6 +44,13 @@
  *   regel, regel_n          `--regel`: den POLICY-BLINDE tellingen (bare budvinnerstillinger under grensen)
  *   sann_ok                 KONTROLL (leser de ekte hendene, egen hukommelse, rører ikke posterioren)
  *   tak<N>, tak<N>_*        `--partikler`: SMC, eksperimentell
+ *   rolle                   0 budvinner, 1 makker, 2 motspiller (12. sep, agent R; dommen deler også på den)
+ *   nett_<fil>, _treff      `--nett a.bin,b.bin`: de neste nettene på de samme stillingene
+ *
+ * FØR/ETTER (12. sep, agent R): `--nett gammel.bin,ny.bin` regner taket én gang; `--uten-tak` skriver bare
+ * nettene, og `--oppsummer tak.jsonl,nett.jsonl` slår radene sammen på (frø, runde, stikk, sete).
+ * `--par nett,nett_ny` gir forskjellen parvis per rolle og stikk (`domParvis`), `--nettkol` dømmer en
+ * annen kolonne som `nett`.
  *
  * K2: posterioren leser bare den vaskede loggen (`naabart-tro.ts`), prøvd i
  * `test/naabart-tro.test.ts` med en felle som leser den ekte given.
@@ -59,7 +66,8 @@ import { MlbTronett } from "../src/mlb/tronett.ts";
 import { Hukommelse } from "../src/mlb/hukommelse.ts";
 import { gulvene, nettTap } from "./k8-maal.ts";
 import { NaabartTro, Trominne, kanoniskAgent, sannPlassering, takTap, type Loggpost } from "./naabart-tro.ts";
-import { skrivDom, skrivDomEksakt, type K8TakRad } from "./k8-tak-dom.ts";
+import { skrivDom, skrivDomEksakt, skrivPar, type K8TakRad } from "./k8-tak-dom.ts";
+import { rolleAv } from "./myk-etikett.ts";
 
 /** Standardgrensen for den eksakte tellingen (størrelse), fra målt kostnad (filhodet). */
 export const EKSAKT_STANDARD = 1_000_000;
@@ -69,12 +77,46 @@ const arg = (n: string, s: string): string => {
   return i < 0 ? s : (process.argv[i + 1] ?? s);
 };
 
+/**
+ * FLERE NETT, SAMME STILLINGER (12. sep, agent R). `--nett a.bin,b.bin`: det første er `nett` (som før),
+ * de neste får kolonnene `nett_<filnavn uten .bin>` og `nett_<…>_treff`. Driverne spiller og nettene
+ * bare scorer, så det eksakte taket regnes én gang for alle. `--oppsummer <filer> --nettkol <kolonne>`
+ * dømmer en annen kolonne som `nett`; `--par før,etter` gir forskjellen parvis (`domParvis`).
+ */
+const nettKolonne = (fil: string): string => `nett_${(fil.split(/[\\/]/).pop() ?? fil).replace(/\.bin$/, "").replace(/[^A-Za-z0-9_-]/g, "_")}`;
+
 const OPPSUMMER = arg("--oppsummer", "");
 if (OPPSUMMER !== "") {
-  const rader = OPPSUMMER.split(",").flatMap((f) =>
-    readFileSync(f, "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l) as K8TakRad),
-  );
+  const NETTKOL = arg("--nettkol", "nett");
+  /**
+   * SLÅTT SAMMEN PÅ STILLINGEN (frø, runde, stikk, sete): en kjøring med `--uten-tak` (bare nettene) legger
+   * kolonnene sine inn i radene fra kjøringen med taket, så et nytt nett koster spillingen, ikke tellingen.
+   * `kort` og `gulv` må være like — ellers er det ikke de samme stillingene, og fila avvises.
+   */
+  const etterNøkkel = new Map<string, Record<string, unknown>>();
+  for (const f of OPPSUMMER.split(",")) {
+    for (const l of readFileSync(f, "utf8").split("\n")) {
+      if (l.trim() === "") continue;
+      const r = JSON.parse(l) as Record<string, unknown>;
+      const nøkkel = `${r["frø"]}|${r["runde"] ?? ""}|${r["stikk"]}|${r["sete"]}`;
+      const før = etterNøkkel.get(nøkkel);
+      if (før === undefined) etterNøkkel.set(nøkkel, r);
+      else {
+        if (før["kort"] !== r["kort"] || før["gulv"] !== r["gulv"]) throw new Error(`${f}: stillingen ${nøkkel} har kort/gulv ${r["kort"]}/${r["gulv"]}, ventet ${før["kort"]}/${før["gulv"]}`);
+        // Nettkolonnene fra den siste fila; alt annet bare der den første mangler det (rekkefølgen på filene er da likegyldig for taket).
+        etterNøkkel.set(nøkkel, { ...før, ...Object.fromEntries(Object.entries(r).filter(([k, v]) => /^nett/.test(k) || før[k] === undefined || (før[k] === null && v !== null))) });
+      }
+    }
+  }
+  const rå = [...etterNøkkel.values()] as K8TakRad[];
+  const rader = NETTKOL === "nett" ? rå : rå.map((r) => ({ ...r, nett: r[NETTKOL] as number, nett_treff: r[`${NETTKOL}_treff`] }));
+  if (NETTKOL !== "nett") console.log(`(kolonnen ${NETTKOL} dømt som nett)`);
   for (const l of [...skrivDomEksakt(rader), ...skrivDom(rader)]) console.log(l);
+  const PAR = arg("--par", "");
+  if (PAR !== "") {
+    const [a, b] = PAR.split(",") as [string, string];
+    for (const l of skrivPar(rå, a, b)) console.log(l);
+  }
   process.exit(0);
 }
 
@@ -95,12 +137,17 @@ if (MAKSRUNDER !== Infinity && !KAMP) throw new Error("--maksrunder gjelder bare
 const EKSAKT = Number(arg("--eksakt-grense", String(EKSAKT_STANDARD)));
 if (!(EKSAKT >= 0)) throw new Error("--eksakt-grense må være ≥ 0");
 const REGEL = process.argv.includes("--regel");
+/** Bare nettene, ingen telling og ingen kontroll: kolonnene slås sammen med en takkjøring i `--oppsummer`. */
+const UTEN_TAK = process.argv.includes("--uten-tak");
+if (UTEN_TAK && (REGEL || process.argv.includes("--partikler"))) throw new Error("--uten-tak skriver bare nettene: --regel og --partikler har ingenting å regne på");
 const PARTIKLER = arg("--partikler", "").split(",").filter((x) => x !== "").map((x) => tall(x, 0, "partikler"));
 if (PARTIKLER.some((x) => x < 1)) throw new Error("--partikler må være positive heltall");
 const TREKK = tall(arg("--trekk", "6"), 6, "trekk");
 const TERSKEL = Number(arg("--terskel", "0.5"));
 
-const trohode = MlbTronett.fraBytes(new Uint8Array(readFileSync(NETTFIL)));
+const NETTFILER = NETTFIL.split(",").filter((x) => x !== "");
+const trohoder = NETTFILER.map((fil, i) => ({ kol: i === 0 ? "nett" : nettKolonne(fil), nett: MlbTronett.fraBytes(new Uint8Array(readFileSync(fil))) }));
+if (new Set(trohoder.map((x) => x.kol)).size !== trohoder.length) throw new Error(`--nett: to nett gir samme kolonne (${trohoder.map((x) => x.kol).join(", ")})`);
 
 mkdirSync(dirname(UT), { recursive: true });
 const alleRader: K8TakRad[] = [];
@@ -176,64 +223,70 @@ for (let g = 0; g < GIVER; g++) {
         if (gl.kort === 0) break;
         rad.kort = gl.kort;
         rad.erBv = sete === s.budvinner ? 1 : 0;
+        rad.rolle = rolleAv(s, sete);
         rad.gulv = gl.gulv;
         rad.gulvPluss = gl.gulvPluss;
-        const huk = KAMP && trohode.brukerHukommelse ? bok.vektor(sete, s.antallSpillere) : null;
-        const f = trohode.fordeling(trohode.trekkFor(spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, huk));
-        const a = nettTap(f, s, sete, gl.kort);
-        rad.nett = a.tap;
-        rad.nett_treff = a.treff;
+        for (const { kol, nett: trohode } of trohoder) {
+          const huk = KAMP && trohode.brukerHukommelse ? bok.vektor(sete, s.antallSpillere) : null;
+          const f = trohode.fordeling(trohode.trekkFor(spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, huk));
+          const a = nettTap(f, s, sete, gl.kort);
+          rad[kol] = a.tap;
+          rad[`${kol}_treff`] = a.treff;
+        }
 
-        // DET EKSAKTE TAKET. Hukommelsen deles i runden per sete (rene resultater per maske).
-        const minne = minneFor(`${sete}`);
-        const ek = filterFor(`${sete}|eksakt`, () => new NaabartTro(sete, { partikler: 0, agenter: skygge, eksaktGrense: EKSAKT, minne }));
-        const kall0 = minne.kall;
-        const t0 = performance.now();
-        const e = ek.eksaktTro(logg, s);
-        rad.str = e.størrelse;
-        rad.eksakt = null;
-        if (e.r === null) rad.eksakt_tom = 1;
-        else if (e.r !== undefined) {
-          const t = takTap(e.r.fordeling, s, sete, gl.kort, 1e-12);
-          rad.eksakt = t.tap;
-          rad.eksakt_treff = t.treff;
-          rad.eksakt_n = e.r.n;
-          rad.eksakt_ms = Math.round(performance.now() - t0);
-          rad.eksakt_kall = minne.kall - kall0;
-          if (REGEL && sete === s.budvinner) {
-            const rg = filterFor(`${sete}|regel`, () => new NaabartTro(sete, { partikler: 0, agenter: skygge, eksaktGrense: EKSAKT, regel: true, minne: minneFor(`${sete}|regel`) }));
-            const r = rg.eksaktTro(logg, s).r;
-            if (r !== undefined && r !== null) {
-              rad.regel = takTap(r.fordeling, s, sete, gl.kort, 1e-12).tap;
-              rad.regel_n = r.n;
+        // `--uten-tak`: bare nettene. Kolonnene slås sammen med en takkjøring i `--oppsummer` (samme stillinger).
+        if (!UTEN_TAK) {
+          // DET EKSAKTE TAKET. Hukommelsen deles i runden per sete (rene resultater per maske).
+          const minne = minneFor(`${sete}`);
+          const ek = filterFor(`${sete}|eksakt`, () => new NaabartTro(sete, { partikler: 0, agenter: skygge, eksaktGrense: EKSAKT, minne }));
+          const kall0 = minne.kall;
+          const t0 = performance.now();
+          const e = ek.eksaktTro(logg, s);
+          rad.str = e.størrelse;
+          rad.eksakt = null;
+          if (e.r === null) rad.eksakt_tom = 1;
+          else if (e.r !== undefined) {
+            const t = takTap(e.r.fordeling, s, sete, gl.kort, 1e-12);
+            rad.eksakt = t.tap;
+            rad.eksakt_treff = t.treff;
+            rad.eksakt_n = e.r.n;
+            rad.eksakt_ms = Math.round(performance.now() - t0);
+            rad.eksakt_kall = minne.kall - kall0;
+            if (REGEL && sete === s.budvinner) {
+              const rg = filterFor(`${sete}|regel`, () => new NaabartTro(sete, { partikler: 0, agenter: skygge, eksaktGrense: EKSAKT, regel: true, minne: minneFor(`${sete}|regel`) }));
+              const r = rg.eksaktTro(logg, s).r;
+              if (r !== undefined && r !== null) {
+                rad.regel = takTap(r.fordeling, s, sete, gl.kort, 1e-12).tap;
+                rad.regel_n = r.n;
+              }
             }
           }
-        }
 
-        // SMC — EKSPERIMENTELL, bare med --partikler.
-        for (const N of PARTIKLER) {
-          const fl = filterFor(`${sete}|${N}`, () => new NaabartTro(sete, { partikler: N, agenter: skygge, trekk: TREKK, terskel: TERSKEL, eksaktGrense: EKSAKT, minne }));
-          const k0 = minne.kall;
-          const t1 = performance.now();
-          const r = fl.tro(logg, s);
-          rad[`tak${N}_ms`] = Math.round(performance.now() - t1);
-          rad[`tak${N}_kall`] = minne.kall - k0;
-          if (r === null) {
-            rad[`tak${N}`] = null;
-          } else {
-            const t = takTap(r.fordeling, s, sete, gl.kort, r.eksakt ? 1e-12 : 1 / (2 * N));
-            rad[`tak${N}`] = t.tap;
-            rad[`tak${N}_treff`] = t.treff;
-            rad[`tak${N}_gulvbandt`] = t.gulvbandt;
-            rad[`tak${N}_eksakt`] = r.eksakt ? 1 : 0;
+          // SMC — EKSPERIMENTELL, bare med --partikler.
+          for (const N of PARTIKLER) {
+            const fl = filterFor(`${sete}|${N}`, () => new NaabartTro(sete, { partikler: N, agenter: skygge, trekk: TREKK, terskel: TERSKEL, eksaktGrense: EKSAKT, minne }));
+            const k0 = minne.kall;
+            const t1 = performance.now();
+            const r = fl.tro(logg, s);
+            rad[`tak${N}_ms`] = Math.round(performance.now() - t1);
+            rad[`tak${N}_kall`] = minne.kall - k0;
+            if (r === null) {
+              rad[`tak${N}`] = null;
+            } else {
+              const t = takTap(r.fordeling, s, sete, gl.kort, r.eksakt ? 1e-12 : 1 / (2 * N));
+              rad[`tak${N}`] = t.tap;
+              rad[`tak${N}_treff`] = t.treff;
+              rad[`tak${N}_gulvbandt`] = t.gulvbandt;
+              rad[`tak${N}_eksakt`] = r.eksakt ? 1 : 0;
+            }
+            rad[`tak${N}_foryngelser`] = fl.tall.foryngelser;
+            rad[`tak${N}_aksept`] = fl.tall.forslag === 0 ? 0 : Number((fl.tall.godtatt / fl.tall.forslag).toFixed(4));
+            rad[`tak${N}_fersk`] = fl.tall.fersk === 0 ? 0 : Number((fl.tall.ferskGodtatt / fl.tall.fersk).toFixed(4));
+            rad[`tak${N}_omstart`] = fl.tall.omstart;
           }
-          rad[`tak${N}_foryngelser`] = fl.tall.foryngelser;
-          rad[`tak${N}_aksept`] = fl.tall.forslag === 0 ? 0 : Number((fl.tall.godtatt / fl.tall.forslag).toFixed(4));
-          rad[`tak${N}_fersk`] = fl.tall.fersk === 0 ? 0 : Number((fl.tall.ferskGodtatt / fl.tall.fersk).toFixed(4));
-          rad[`tak${N}_omstart`] = fl.tall.omstart;
+          // KONTROLLEN, etter posterioren og med egen hukommelse: den sanne given skal være forenlig.
+          rad.sann_ok = ek.forenlig(sannPlassering(logg[0]!.s, sete, s.budvinner)) ? 1 : 0;
         }
-        // KONTROLLEN, etter posterioren og med egen hukommelse: den sanne given skal være forenlig.
-        rad.sann_ok = ek.forenlig(sannPlassering(logg[0]!.s, sete, s.budvinner)) ? 1 : 0;
 
         appendFileSync(UT, JSON.stringify(rad) + "\n");
         alleRader.push(rad as unknown as K8TakRad);
