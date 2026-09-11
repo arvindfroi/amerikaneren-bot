@@ -1135,6 +1135,39 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       tro = new MlbSøketro(lesTronett(sti));
       budvekt = art === "mlb";
     }
+    /**
+     * «M» og «D» (11. sep), rett foran «~» og etter «L». HELE REKKEFØLGEN i feltet er
+     *
+     *     <V>[k<K>][e<T>][a<krit>][s][L][M][D][~<art>=<fil>]
+     *
+     * og den leses BAKFRA: «~» (en sti kan inneholde alt), så D, M, L, s, a<krit>,
+     * e<T>, k<K>. Store bokstaver med vilje — kriterienavnene (min, kvantil, flest) er
+     * små og inneholder både «e», «k», «s» og «a», så en liten bokstav kunne blitt lest
+     * inn i dem. Står bokstavene i feil rekkefølge, blir tallet ugyldig og speken kastes.
+     *
+     *   M  K4: motstandersetene spiller utspillingene med ØKTAS policy for det setet
+     *      (`Økt.motpartFor` på rollout-motparten), som `amu:` alltid har gjort. Krever
+     *      en økt (`okt:` over), ellers kastes det — en stille reserve til «uten
+     *      hukommelse» er nøyaktig slik K4 ble null i den hele boten.
+     *   D  frøet for hver beslutning utledes av det setet SER (`visningsfrø`), så samme
+     *      stilling gir samme valg og skjulte kort ikke kan flytte frøet.
+     */
+    let visningsfrø = false;
+    if (vFelt.endsWith("D")) {
+      visningsfrø = true;
+      vFelt = vFelt.slice(0, -1);
+    }
+    let brukØkt = false;
+    if (vFelt.endsWith("M")) {
+      brukØkt = true;
+      vFelt = vFelt.slice(0, -1);
+    }
+    if (brukØkt && ctx.økt === undefined) {
+      throw new Error(
+        `sik-spek «${indre}» ber om «M» (motstandermodellen fra økten), men det finnes ingen ` +
+          `økt – legg «okt:» ytterst. Uten den ville hukommelsen stille vært av.`,
+      );
+    }
     let verdenKombi: "snitt" | "min" | "kvantil" | "flest" = "snitt";
     // «L» aller bakerst (11. sep): LAGMÅLET i utspillingene i stedet for «egne minus
     // snittet av de tre andre», som undervurderer å hjelpe makker med en faktor tre
@@ -1177,9 +1210,13 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     if (!Number.isFinite(sigma) || !Number.isFinite(verdener) || verdener < 1) {
       throw new Error(`Ugyldig sik-spek «${indre}» - forventet sik:<rolle>:<sigma>:<verdener>:<indre>`);
     }
-    const inn = lagIndre(d.slice(3).join(":"), ctx);
-    const sikRest = utenSøk(d.slice(3).join(":"));
-    return new Sikkerorakel(inn, (sikRest === d.slice(3).join(":") ? inn : lagIndre(sikRest, ctx)) as unknown as ConstructorParameters<typeof Sikkerorakel>[1], {
+    const innSpek = d.slice(3).join(":");
+    const inn = lagIndre(innSpek, ctx);
+    const sikRest = utenSøk(innSpek);
+    const motpart = (sikRest === innSpek ? inn : lagIndre(sikRest, ctx)) as unknown as Utspiller;
+    // Samme motpart som utspillingene ellers bruker, vridd per sete — som i `amu:`.
+    const økt = ctx.økt;
+    return new Sikkerorakel(inn, motpart, {
       sigma,
       verdener,
       verdenKandidater,
@@ -1190,6 +1227,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       lagmål,
       roller: rolle === "alle" ? [] : [rolle],
       ...(eksaktBlad === undefined ? {} : { eksaktBlad }),
+      ...(brukØkt && økt !== undefined ? { motpartFor: (sete: number) => økt.motpartFor(motpart, sete) } : {}),
+      ...(visningsfrø ? { visningsfrø: true } : {}),
     });
   }
   /**

@@ -109,6 +109,20 @@ export interface ParOpts {
    * likevekt. Udefinert eller 0 = av, bit-identisk med før.
    */
   readonly eksaktBlad?: number;
+  /**
+   * K4 I SIKKERORAKELET (11. sep): én rollout-policy PER MOTSTANDER, som `motpartFor` i
+   * `amuagent.ts`. Udefinert = `motpart` i alle seter, bit-identisk med før.
+   *
+   * VÅRT EGET SETE bruker alltid `motpart`. Vi kjenner vår egen policy; å slutte den fra
+   * residualer og vri den er ren støy — det var nøyaktig feilen K6-nullarmen fant i
+   * alpha-mu («en motstandermodell modellerer MOTSTANDERE»).
+   *
+   * Kalles HØYST ÉN GANG PER SETE PER VURDERING, og svaret gjenbrukes i alle verdenene.
+   * Det er ikke bare fart: `Økt.motpartFor` leser boka, og boka endres bare ved
+   * `RUNDE_SLUTT`, som ingen utspilling når fram til. Samme vurdering ser derfor samme
+   * motstandermodell i hver verden — parringen over verdener forutsetter det.
+   */
+  readonly motpartFor?: (sete: number) => Utspiller;
 }
 
 export interface ParKandidat {
@@ -190,6 +204,27 @@ function spillFerdigEksakt(start: GameState, motpart: Utspiller, blad: number): 
 }
 
 /**
+ * RUTEREN: hvem som er i tur bestemmer hvilken policy som spiller, som i `Alphamuagent`.
+ * Utspillingene tar én `Utspiller`, så modellen per sete pakkes bak én — da trenger
+ * verken `spillFerdig` eller `spillFerdigEksakt` å vite at det finnes flere.
+ */
+function lagRuter(motpart: Utspiller, motpartFor: (sete: number) => Utspiller, egetSete: number): Utspiller {
+  const perSete = new Map<number, Utspiller>();
+  return {
+    velgHandling: (s: GameState): Handling => {
+      const p = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+      if (p === null || p === undefined || p === egetSete) return motpart.velgHandling(s);
+      let m = perSete.get(p);
+      if (m === undefined) {
+        m = motpartFor(p);
+        perSete.set(p, m);
+      }
+      return m.velgHandling(s);
+    },
+  };
+}
+
+/**
  * Vurderer hvert lovlige kort i K FELLES verdener og beholder verdien per
  * verden, så marginen mellom de to beste kan testes parvis.
  *
@@ -224,6 +259,8 @@ export function vurderPar(
   if (verdener.length === 0) return null;
   const mål = opts.mål ?? standardMål;
   const klokke = opts.klokke ?? ((): number => performance.now());
+  // Uten `motpartFor` er dette SAMME objekt som før, og utspillingene er bit-identiske.
+  const utspiller = opts.motpartFor === undefined ? motpart : lagRuter(motpart, opts.motpartFor, spiller);
 
   /**
    * VERDEN FOR VERDEN, ikke kort for kort (11. sep). Det er det som gjør fristen
@@ -242,8 +279,8 @@ export function vurderPar(
       const etter = utfør(medVerden(state, hender, spiller), h).state;
       const slutt =
         opts.eksaktBlad !== undefined && opts.eksaktBlad > 0
-          ? spillFerdigEksakt(etter, motpart, opts.eksaktBlad)
-          : spillFerdig(etter, motpart);
+          ? spillFerdigEksakt(etter, utspiller, opts.eksaktBlad)
+          : spillFerdig(etter, utspiller);
       verdier[i]!.push(mål(slutt, spiller));
     }
     brukt++;

@@ -38,9 +38,24 @@
  * `fristMs` er appens tidsbudsjett. Uten den kunne ett tregt trekk fryse bordet;
  * med den kuttes hele verdener (se `vurderPar`), så σ regnes fortsatt parvis. All
  * MÅLING går uten frist — en frist gjør valget avhengig av maskinens fart.
+ *
+ * ============ HUKOMMELSEN OG VISNINGSFRØET (11. sep) ======================
+ *
+ * `motpartFor` er K4 i dette søket. Økten (`okt:` + `profil:`) lærte i hele boten, men
+ * bare `amu:` leste den. `okt:…:profil:sik:…` hadde altså en hukommelse som fylte
+ * boka og ikke påvirket ett eneste valg — K4/K6 var null PER KONSTRUKSJON. Nå spiller
+ * hvert motstandersete utspillingene med økta sin policy for det setet, som i alpha-mu.
+ *
+ * `visningsfrø` gjør valget til en FUNKSJON AV DET SETET SER. Uten den trekkes verdenene
+ * fra én strøm per instans, så samme stilling kan gi ulike valg ved to kall — og da kan
+ * verken K2-prøven (bytt skjulte kort, se om valget står) eller K4-prøven (med og uten
+ * hukommelse) skille støy fra virkning. Med den utledes strømmen for hver beslutning av
+ * en hash av `spillerVisning(state, sete)` og instansfrøet. Visningen ER definisjonen
+ * av det setet lovlig vet, så to verdener som bare skiller seg i skjulte kort gir samme
+ * frø, samme verdener og samme valg.
  */
 
-import { type GameState, type Handling } from "../motor.ts";
+import { spillerVisning, type GameState, type Handling } from "../motor.ts";
 import { lagRng } from "../kort.ts";
 import { vurderPar } from "./sdpar.ts";
 import type { Søketro } from "./soketro.ts";
@@ -82,6 +97,59 @@ export interface SikkerOpts {
   readonly klokke?: () => number;
   /** K7.2: utspillingene løses eksakt fra så mange stikk igjen (`e<T>` i speken). Udefinert = av. */
   readonly eksaktBlad?: number;
+  /**
+   * K4: rollout-policyen for et MOTSTANDERSETE (`M` i speken, typisk
+   * `(sete) => økt.motpartFor(motpart, sete)`). Vårt eget sete bruker alltid `motpart`.
+   * Udefinert = én policy for alle, bit-identisk. Se `ParOpts.motpartFor`.
+   */
+  readonly motpartFor?: (sete: number) => Utspiller;
+  /**
+   * DETERMINISTISK, K2-TRYGT FRØ PER BESLUTNING (`D` i speken): verdenene trekkes fra
+   * `lagRng(visningsfrø(state, sete, frø))` i stedet for instansens løpende strøm. Samme
+   * stilling gir samme valg, og å bytte skjulte kort kan ikke endre frøet. Standard av:
+   * da går strømmen som før, bit for bit.
+   */
+  readonly visningsfrø?: boolean;
+}
+
+/**
+ * KANONISK TEKST FOR DET `sete` SER — og ingenting annet.
+ *
+ * Bygd av `spillerVisning`, som er motorens egen definisjon av hva som er trygt å vise
+ * én spiller. Nøklene sorteres rekursivt, så to kort som er likeverdige men laget i ulik
+ * nøkkelrekkefølge (`intTilKort` mot kortstokken) gir samme tekst. Ukjent/udefinert
+ * skrives som `u`, så feltet ikke forsvinner stille slik det gjør i `JSON.stringify`.
+ */
+export function kanoniskVisning(state: GameState, sete: number): string {
+  return kanonisk(spillerVisning(state, sete));
+}
+
+function kanonisk(x: unknown): string {
+  if (x === undefined) return "u";
+  if (x === null || typeof x !== "object") return JSON.stringify(x) ?? "u";
+  if (Array.isArray(x)) return `[${x.map(kanonisk).join(",")}]`;
+  const o = x as Record<string, unknown>;
+  return `{${Object.keys(o)
+    .sort()
+    .map((k) => `${JSON.stringify(k)}:${kanonisk(o[k])}`)
+    .join(",")}}`;
+}
+
+/**
+ * FRØET FOR ÉN BESLUTNING: FNV-1a (32 bit) over instansfrøet og den kanoniske visningen.
+ *
+ * Instansfrøet er med så to agenter med ulike `frø` fortsatt trekker ulike verdener —
+ * frøbånd skal bety det samme som før. Hashen trenger ikke være kryptografisk: den skal
+ * bare være en ren funksjon av det setet ser, og det er den per konstruksjon.
+ */
+export function visningsfrø(state: GameState, sete: number, frø: number): number {
+  const tekst = `${frø >>> 0}|${kanoniskVisning(state, sete)}`;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < tekst.length; i++) {
+    h ^= tekst.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
 }
 
 /** Tellere, så en kjøring kan vise HVOR ofte operatoren faktisk grep inn. */
@@ -122,6 +190,11 @@ export class Sikkerorakel {
   private readonly klokke: () => number;
   /** K7.2-bladet, eller null. Offentlig for loggen og prøvene. */
   readonly eksaktBlad: number | null;
+  /** K4-motstandermodellen, eller null. Offentlig for prøvene: speken skal kunne bevises koblet. */
+  readonly motpartFor: ((sete: number) => Utspiller) | null;
+  /** `D`: frøet utledes av visningen per beslutning. Offentlig for loggen og prøvene. */
+  readonly visningsfrø: boolean;
+  private readonly frø: number;
   readonly tellere: SikkerTellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, enig: 0, avkortet: 0 };
   siste: SikkerSiste | null = null;
 
@@ -135,7 +208,10 @@ export class Sikkerorakel {
     this.verdener = opts.verdener ?? 12;
     this.sigma = opts.sigma ?? 1.5;
     this.roller = opts.roller ?? [];
-    this.rng = lagRng(opts.frø ?? 20_260_804);
+    this.frø = opts.frø ?? 20_260_804;
+    this.rng = lagRng(this.frø);
+    this.motpartFor = opts.motpartFor ?? null;
+    this.visningsfrø = opts.visningsfrø === true;
     this.verdenKandidater = opts.verdenKandidater ?? 3;
     this.verdenKombi = opts.verdenKombi ?? "snitt";
     this.spillvekt = opts.spillvekt === true;
@@ -194,8 +270,10 @@ export class Sikkerorakel {
       frist: this.fristMs === null ? undefined : start + this.fristMs,
       klokke: this.klokke,
       ...(this.eksaktBlad === null ? {} : { eksaktBlad: this.eksaktBlad }),
+      ...(this.motpartFor === null ? {} : { motpartFor: this.motpartFor }),
       verdener: this.verdener,
-      rng: this.rng,
+      // Med `visningsfrø` står instansens strøm urørt; uten den er dette nøyaktig som før.
+      rng: this.visningsfrø ? lagRng(visningsfrø(state, sete, this.frø)) : this.rng,
     });
     // Ingen verden lot seg trekke, bare ett lovlig kort, eller fristen rakk ingen
     // verden: la policyen stå.

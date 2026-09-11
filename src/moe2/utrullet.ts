@@ -105,6 +105,20 @@ export type Søkspek =
       readonly fristMs?: number;
       /** K7.2: utspillingene løses eksakt fra så mange stikk igjen. Udefinert = av. */
       readonly eksaktBlad?: number;
+      /**
+       * Rollene søket griper inn i (11. sep). Udefinert = `["foerer"]`, som utrullet;
+       * TOM liste = alle roller, som `sik:alle` i speken.
+       */
+      readonly roller?: readonly Rolle[];
+      /** `L`: lagmålet i utspillingene. Udefinert = av, som utrullet. */
+      readonly lagmål?: boolean;
+      /**
+       * `M`: motstandersetene spiller utspillingene med økta sin policy. Krever
+       * `UtrulletSpek.økt === true` — ellers kastes det, som i speken.
+       */
+      readonly brukØkt?: boolean;
+      /** `D`: frøet per beslutning utledes av det setet ser. Udefinert = løpende strøm. */
+      readonly visningsfrø?: boolean;
     }
   | {
       readonly type: "amu";
@@ -162,6 +176,18 @@ export interface UtrulletSpek {
    * hatt før, og begge målte null.
    */
   readonly økt?: boolean;
+  /**
+   * HVOR PROFILEN SITTER (11. sep). Standard (udefinert/false) er under søket, med
+   * budagenten koblet til — som `…:sik:…:profil:budm:…` i speken.
+   *
+   * `true` er `…:profil:sik:…:budm:…`, formen den hele boten har: profilen rett over
+   * søket (under `eks:` og `vr:`), og UTEN budjustering. Det er ikke et valg vi tar her,
+   * det er det speken gjør — `profil:` kobler seg bare til et `settForsvarsjustering`
+   * i laget RETT under, og søkelaget har ingen. Utspillingenes motpart blir da også uten
+   * profillaget, som i speken. Uten søk sitter den på samme plass, fortsatt uten
+   * budjustering, så hovedtråden og workeren beskriver samme bot.
+   */
+  readonly profilOverSøk?: boolean;
 }
 
 /**
@@ -179,6 +205,22 @@ export function byggUtrullet(spek: UtrulletSpek): {
   eksakt: EksaktSluttspill | null;
 } {
   const økt = spek.økt === true ? new Økt() : null;
+  if (økt !== null) {
+    /**
+     * ============ ØKTA MÅ HA POLICYEN, ELLERS ER DEN STUM ===================
+     *
+     * `Profilbok` måler stilen som RESIDUALET mot nettets prediksjon, og uten en
+     * atferdsmodell er `stil()` aldri sikker og `motpartFor` identiteten for evig.
+     * Speken setter den i `e1:`-grenen; byggeren gjorde det ALDRI. Paritetsprøvene for
+     * `amu:` merket det ikke, fordi de verken når `MIN_RUNDER` eller viser agentene
+     * `RUNDE_SLUTT` — boka var tom på begge sider. Samme nett, samme trekk som speken.
+     */
+    const n = spek.kortnett;
+    økt.bok.settAtferd({
+      logits: (st: GameState, s2: number): Float32Array | number[] => forover(n, e1SpillTrekk(st, s2, n.lag[0]!.inn)),
+    });
+  }
+  const profilOverSøk = økt !== null && spek.profilOverSøk === true;
   // Søkeleddet selv, så appen kan logge `sik.siste` (hvem bestemte, verdener, σ, ms).
   let sik: Sikkerorakel | null = null;
 
@@ -201,7 +243,7 @@ export function byggUtrullet(spek: UtrulletSpek): {
   // PROFILEN LIGGER UNDER SØKET og over budgivningen, som i speken: den skal
   // se hver handling for å fylle boka, og den justerer budet gjennom
   // `settForsvarsjustering`.
-  if (økt !== null) {
+  if (økt !== null && !profilOverSøk) {
     kjede = new Profilagent(kjede, budagent, økt.bok) as unknown as Velger;
   }
 
@@ -213,15 +255,25 @@ export function byggUtrullet(spek: UtrulletSpek): {
     const motpart = kjede as unknown as ConstructorParameters<typeof Alphamuagent>[1];
     if (søk.type === "sik") {
       const tronett = søk.tronett ?? null;
+      if (søk.brukØkt === true && økt === null) {
+        throw new Error("byggUtrullet: søk.brukØkt krever økt: true – uten økt ville hukommelsen stille vært av");
+      }
       sik = new Sikkerorakel(kjede, motpart as never, {
         verdener: søk.verdener,
         sigma: søk.sigma,
-        roller: ["foerer"],
+        // Udefinert = førersetet, som utrullet. En tom liste er `sik:alle`.
+        roller: søk.roller ?? ["foerer"],
         verdenKandidater: søk.verdenKandidater,
         tro: tronett === null ? null : new MlbSøketro(tronett),
         budvekt: søk.budvekt,
         fristMs: søk.fristMs,
         ...(søk.eksaktBlad === undefined ? {} : { eksaktBlad: søk.eksaktBlad }),
+        ...(søk.lagmål === true ? { lagmål: true } : {}),
+        // Samme kobling som `M` i speken: rollout-motparten, vridd per motstandersete.
+        ...(søk.brukØkt === true && økt !== null
+          ? { motpartFor: (sete: number) => økt.motpartFor(motpart as never, sete) }
+          : {}),
+        ...(søk.visningsfrø === true ? { visningsfrø: true } : {}),
       });
       kjede = sik as unknown as Velger;
     } else {
@@ -265,6 +317,11 @@ export function byggUtrullet(spek: UtrulletSpek): {
         roller: søk.roller,
       }) as unknown as Velger;
     }
+  }
+
+  // `profil:sik:…`: profilen rett over søket, uten budjustering — se `profilOverSøk`.
+  if (økt !== null && profilOverSøk) {
+    kjede = new Profilagent(kjede, null, økt.bok) as unknown as Velger;
   }
 
   // K7.1: EKSAKT SLUTTSPILL UTENPÅ SØKET, som `eks:` mellom `vr:` og `sik:` i speken.
