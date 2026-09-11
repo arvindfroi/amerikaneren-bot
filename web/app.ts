@@ -400,7 +400,9 @@ const MAKS_FRISTBRUDD = 3;
  * nettverkskall til vektfila, og kjeden er bit for bit den som var utrullet før.
  */
 const BUDQVEKTER = "adams-budq.b64";
-const BUDQ_PÅ: boolean = false;
+// PÅ 11. september: eieren overlot beslutningen («du bestemmer»). Tallene over står; å slå av er
+// å sette denne til false — da går det ingen forespørsel etter fila, og kjeden er den gamle.
+const BUDQ_PÅ: boolean = true;
 
 /** Det ENE oppsettet begge kjedene bygges fra. Se `web/adamskjede.ts`. */
 const ADAMS_KONFIG: AdamsKonfig = {
