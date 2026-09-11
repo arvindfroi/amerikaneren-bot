@@ -174,6 +174,8 @@ Eieren spurte om alt som manglet i lista var kodet inn. Svaret var nei; dette er
 | K8 kanal 2 | bare budvinnerens eget vrak | **BYGD, dom klar** | Budvinnerblokk: trumffarge, etterlyst farge, budvinnerens viste renonser og spilte kort per farge – det de andre kan slutte vraket fra. |
 | K8 måling | – | **klar** | Trohoder med 776/920 innganger; et gammelt nett utvidet med nullkolonner gir samme tro. Omtrening med nøyaktig 10. sep-oppskriften pluss `--signal`, parret mot 12,37 %-nettet. |
 
-Fortsatt NEI: K4.3/K7.2/K8 kanal 6 som søk oppå MLB-nettet (Adams har framoverblikket i `sik`-søket,
-målt +0,05 i førersetet), og eksportvei for menneskedata (krever endring i Val Town-valen; eierens valg,
-sammen med at valens offentlige liste viser navn).
+| K7.2 | alpha-mu d4/d5 målt null; eksakt løsning ikke i planen | **BYGD, dom køet** | `sik:…:<V>e<T>`: søkets utspillinger løses eksakt i hver verden fra T stikk igjen (poengdds). Verdiene er prøvd lik likevekten regnet fra roten; av er bit-identisk. Kampbenk (app-q + `24e3`) køet etter K7.1. |
+| K4.3 / K7.2 / K8 kanal 6 for MLB | «søk ved spilletid må kobles på» | **BYGD** | Ingen ny søkekode i `src/mlb/` – herkomstprøven forbyr løseren der, og `sok.ts`-kroken er for søk i treningen (AVGJØRELSE 5). Søk ved spilletid er komposisjon: `sik:…e3L:mlb:…` og `eks:3L:mlb:…`. `test/mlb-spilletidsok.test.ts` viser at det bygger, vurderer, slår til og er K2-invariant. Gevinsten er umålt til MLB-nettet er sterkere enn Adams. |
+
+Fortsatt åpent: eksportvei for menneskedata (krever endring i Val Town-valen; eierens valg, sammen med at
+valens offentlige liste viser navn), og DOMMENE over K7.1, K7.2 og K8 kanal 5/2 – bygd er ikke innfridd.
