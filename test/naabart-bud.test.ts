@@ -157,24 +157,24 @@ test("tak-kart: W = 0 og --mot-spek lik --spek gir eksakt 0 på hver rad; --naab
 });
 
 /**
- * FELLA PÅ BOTEN UTEN SØK, IKKE PÅ ADAMS_MAALT — målt 11. sep. Ved et ADAMS_MAALT-bord var
- * passeren IKKE signifikant dårligere, verken mot det nåbare taket (+0,08 ± 1,15, W = 4) eller
- * mot Adams-budet (+0,83 ± 1,22), 16 giv: Adams byr ofte kontrakter som ryker, og da er pass
- * ikke dyrt. Mot helbotens base (budq-1) ved dens eget bord: +3,31 ± 0,66 og +3,38 ± 0,85 på
- * 12 giv, W = 16. Det er batteriets passefelle, og den er valgt her.
+ * FELLA ER EN OVERBYDER, IKKE EN PASSER — målt 11. sep. «Alltid pass» var for subtil til å være en
+ * felle: ved helbotens base-bord +1,83 ± 0,60 i bånd 0, men −0,23 ± 0,72 i bånd 1 (W = 32, 30 giv
+ * hver), og ved et ADAMS_MAALT-bord +0,08 ± 1,15 (W = 4, 16 giv). Pass koster lite når de andre
+ * byr. Overbyderen (`budm@-99`: 11, 12 eller amerikaner) ga +7,58 ± 1,17 og +12,21 ± 2,34 på
+ * 12 giv, W = 32, og boten slo den med +9,04 og +12,73. Her 6 giv, W = 16.
  */
 const BASE = "okt:vr:e1-modell/vrak-1.bin:telrd:profil:budq:e1-modell/budq-1.bin:vakt:abmp:e1:e1-modell/d7alle.bin";
 
-test("FELLE C: en budgiver som alltid passer har nåbart gap > 2 SE, og boten slår den i duellen > 2 SE", () => {
-  const k = kart("passer", [
-    "--giver", "12", "--froe", "7700000", "--spek", medBudlag(BASE, "budm:e1-modell/bud-vant.json@99"), "--andre", BASE,
+test("FELLE C: en budgiver som alltid overbyr har nåbart gap > 2 SE, og boten slår den i duellen > 2 SE", () => {
+  const k = kart("overbyr", [
+    "--giver", "6", "--froe", "57700000", "--spek", medBudlag(BASE, "budm:e1-modell/bud-vant.json@-99"), "--andre", BASE,
     "--naabart", "16", "--naabart-spek", BASE, "--mot-spek", BASE,
   ]);
   assert.equal(k.status, 0, k.stderr);
   const gap = klyngeSnitt(k.rader, (r) => String(r["frø"]), (r) => r["diffNaabart"] as number);
   const duell = klyngeSnitt(k.rader, (r) => String(r["frø"]), (r) => r["diffMot"] as number);
-  assert.ok(gap.snitt > 2 * gap.se, `passeren: nåbart gap ${gap.snitt} ± ${gap.se} — taket har ikke kraft mot en dårlig budgiver`);
-  assert.ok(duell.snitt > 2 * duell.se, `bot − passer ${duell.snitt} ± ${duell.se} — duellen ser ikke en dårlig budgiver`);
+  assert.ok(gap.snitt > 2 * gap.se, `overbyderen: nåbart gap ${gap.snitt} ± ${gap.se} — taket har ikke kraft mot en dårlig budgiver`);
+  assert.ok(duell.snitt > 2 * duell.se, `bot − overbyder ${duell.snitt} ± ${duell.se} — duellen ser ikke en dårlig budgiver`);
   const uendret = k.rader.filter((r) => r["naabartEndret"] === 0);
   assert.ok(uendret.length > 0 && uendret.length < k.rader.length, "enten byttet taket alt eller ingenting");
   assert.ok(uendret.every((r) => r["diffNaabart"] === 0), "et uendret bud ga ulikt utfall — paringen holder ikke");

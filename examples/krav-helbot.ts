@@ -28,11 +28,12 @@
  *        11. sep: helbot +10,81 ± 2,22, ADAMS_MAALT +9,91 ± 2,17 — mest skjulte kort og
  *        talong). Porten er det NÅBARE taket (`naabart-bud.ts`: argmax av snittpoeng over W
  *        verdener fra setets visning). JA: nåbart gap − 2 SE ≤ 0. KONTROLL: uendret bud ⇒
- *        eksakt 0. FELLE: `PASS_BUDLAG` (passer alltid) har nåbart gap > 2 SE. Klarsynstallet
+ *        eksakt 0. FELLE: `OVERBY_BUDLAG` (melder 11, 12 eller amerikaner) har nåbart gap
+ *        > 2 SE. Klarsynstallet og «alltid pass» (`PASS_BUDLAG`, for subtil til å være felle)
  *        står som kontekst i samme rad.
  *   K3.1-Adams  budduellen: samme giv, bord og kortspill, bare budlaget byttet til
  *        `ADAMS_BUDLAG`. Bot − Adams i poeng og ΔP(seier). JA: bot − Adams + 2 SE ≥ 0.
- *        KONTROLL: samme budfølge ⇒ eksakt 0. FELLE: boten uten søk slår passeren > 2 SE.
+ *        KONTROLL: samme budfølge ⇒ eksakt 0. FELLE: boten uten søk slår overbyderen > 2 SE.
  *   K4   `k4-hukommelse.ts --spek`. KONTROLL: nullarmen (uten hukommelse) 0 avvik.
  *        FELLE: positivkontrollen snur valg. JA: minnearmen avviker.
  *   K5   `k5-retning.ts`. KONTROLL: lik stilling eksakt 0. FELLE: PLANTET±BUD tatt hver
@@ -84,12 +85,15 @@
  *
  * K3.1 MOT DET NÅBARE TAKET (11. sep, travel maskin, hele boten ved base-bordet). Spekarmen
  * (nåbart tak W = 32 + duell + ΔP) koster ~45 prosess-s per giv: tolv runder med hele boten
- * (~2,7 s hver) og ~1 000 utspillinger uten søk. Passerarmen ~8 s. 48 giv per bånd er ~2 500
- * prosess-s per bånd, ~5 000 i alt (~4 min på 20 kjerner) oppå klarsynsarmene, som står
- * uendret. KRAFT målt på 30 giv i bånd 0: nåbart gap SE 0,65 → ~0,51 ved 48 giv («nei» over
- * ~1 poeng/runde); passefella z = 3,1 → ~3,9; duellen SE 0,46 → ~0,37 poeng og ~0,23 pp
- * ΔP(seier). W 8 → 32 på de samme 12 givene løftet taket fra −2,40 til −1,46: det er ikke
- * konvergert ved 8, derfor 32.
+ * (~2,7 s hver) og ~1 000 utspillinger uten søk. Overbyder- og passerarmen ~7 s hver. 48 giv
+ * per bånd er ~2 900 prosess-s per bånd, ~5 800 i alt (~5 min på 20 kjerner) oppå
+ * klarsynsarmene, som står uendret. KRAFT målt på 30 giv per bånd (bånd 0 / 1): nåbart gap
+ * SE 0,65 / 0,77 → ~0,51 / 0,61 ved 48 giv, altså «nei» først over ~1,0–1,2 poeng/runde;
+ * duellen SE 0,46 / 0,56 poeng og 0,29 / 0,34 pp ΔP(seier) → ~0,37 / 0,44 og ~0,23 / 0,27.
+ * Overbyderfella z = 6,5 / 5,2 allerede på 12 giv. «Alltid pass» (kontekst) koster bare
+ * +0,80 ± 0,48 samlet over 60 giv — en så subtil budfeil ser porten IKKE med disse størrelsene.
+ * W: taket steg fra W = 8 til 32 med +0,82 ± 0,90 (parret, 24 giv i begge bånd); ikke
+ * signifikant, men i riktig retning for en nedre grense, derfor 32.
  */
 
 import { spawn } from "node:child_process";
@@ -116,6 +120,17 @@ export const ADAMS_BUDLAG = "budm:e1-modell/bud-vant.json@-3.0";
  * ingen EV nå den (tallbud ≤ 2·12, amerikaner ≤ mål/2). Setet passer i hver budtur.
  */
 export const PASS_BUDLAG = "budm:e1-modell/bud-vant.json@99";
+/**
+ * OVERBYFELLA — K3.1-radenes felle (11. sep). Med terskel og forsvarsverdi −99 trekkes hvert bud
+ * med p(vinne budrunden) < 1 mot −99, så `Budagent` melder 11, 12 eller amerikaner. Målt ved
+ * helbotens base-bord, W = 32, 12 giv: nåbart gap +7,58 ± 1,17 / +12,21 ± 2,34 (bånd 0 / 1),
+ * og boten uten søk slår den med +9,04 ± 0,91 / +12,73 ± 2,38.
+ *
+ * PASSEFELLA HOLDT IKKE: +1,83 ± 0,60 i bånd 0, men −0,23 ± 0,72 i bånd 1 (30 giv hver), og i
+ * duellen +2,59 ± 0,66 / +0,08 ± 0,95. Pass koster lite ved et bord der de andre byr. Den står
+ * derfor som KONTEKST i raden («hvor subtil feil ser målingen»), ikke som felle.
+ */
+export const OVERBY_BUDLAG = "budm:e1-modell/bud-vant.json@-99";
 /** Seiersprediktoren for ΔP(seier) i K3.1-duellen (samme som K1-duplikatet). */
 export const K31_SEIER = "e1-modell/seier-g0.bin";
 export const K1_FRA = "2026-08-10";
@@ -434,13 +449,14 @@ export interface NaabartRad {
 }
 
 /**
- * K3.1 MOT DET NÅBARE TAKET (11. sep). `spek` er boten, `passer` den samme boten uten søk med
- * et budlag som alltid passer (`PASS_BUDLAG`), begge med det nåbare taket på samme giv.
+ * K3.1 MOT DET NÅBARE TAKET (11. sep). `spek` er boten, `passer` (parameternavnet er historisk)
+ * FELLA: den samme boten uten søk med et dårlig budlag — i batteriet `OVERBY_BUDLAG` — begge
+ * med det nåbare taket på samme giv.
  *
  * PORTEN ER ENSIDIG: ja = gap − 2 SE ≤ 0, «budet er ikke signifikant dårligere enn det beste
  * budet under samme informasjon». Et negativt gap er IKKE et brudd her, i motsetning til
  * klarsynstaket: med endelig W er det nåbare taket en nedre grense (argmax over støy), og en
- * god budgiver kan slå det. Kraften holdes av fella i stedet: passeren MÅ ha gap > 2 SE.
+ * god budgiver kan slå det. Kraften holdes av fella i stedet: den MÅ ha gap > 2 SE.
  * KONTROLL: hver rad der taket ikke byttet noe bud har eksakt 0 (paringen), og slike rader finnes.
  */
 export function domNaabart(spek: readonly NaabartRad[], passer: readonly NaabartRad[]) {
@@ -463,8 +479,8 @@ export function domNaabart(spek: readonly NaabartRad[], passer: readonly Naabart
  * samme kortspill (bare budlaget byttet, `medBudlag`). Tallet som leses er boten − Adams.
  *
  * Ja = boten er ikke signifikant dårligere (bot − Adams + 2 SE ≥ 0). KONTROLL: samme budfølge
- * ⇒ eksakt 0, og slike rader finnes. FELLE: i passerarmen er `--mot-spek` boten uten søk, og
- * den MÅ slå passeren med > 2 SE — ellers ser duellen ikke en dårlig budgiver.
+ * ⇒ eksakt 0, og slike rader finnes. FELLE: i fellearmen (`OVERBY_BUDLAG`) er `--mot-spek` boten
+ * uten søk, og den MÅ slå overbyderen med > 2 SE — ellers ser duellen ikke en dårlig budgiver.
  */
 export function domBudduell(spek: readonly NaabartRad[], passer: readonly NaabartRad[]) {
   const duell = klyngeSnitt(spek, (x) => x.frø, (x) => -(x.diffMot ?? NaN));
@@ -746,6 +762,7 @@ async function k31(r: Rigg): Promise<Helrad[]> {
   // Budlagene byttes FØR noen jobb startes: kaster `medBudlag` (en spek uten nøyaktig ett budlag),
   // skal klarsynsarmene ikke gå videre i køen uten at noen leser dem.
   const adams = medBudlag(r.spek, ADAMS_BUDLAG);
+  const overbyr = medBudlag(r.andre, OVERBY_BUDLAG);
   const passer = medBudlag(r.andre, PASS_BUDLAG);
   const takJobb = kjørTak(r, "k3bud", ["--fase", "bud"], r.st.budGiver, r.st.maksNoder);
   const reg = new Regnskap();
@@ -759,9 +776,10 @@ async function k31(r: Rigg): Promise<Helrad[]> {
   ];
   const armer = [
     { arm: "spek", v: ["--spek", r.spek, ...bord, "--mot-spek", adams, "--seier", K31_SEIER] },
+    { arm: "overbyr", v: ["--spek", overbyr, "--andre", r.andre, "--mot-spek", r.andre] },
     { arm: "passer", v: ["--spek", passer, "--andre", r.andre, "--mot-spek", r.andre] },
   ];
-  const filer: Record<string, string[]> = { spek: [], passer: [] };
+  const filer: Record<string, string[]> = { spek: [], overbyr: [], passer: [] };
   const jobber: Promise<boolean>[] = [];
   for (const a of armer) {
     for (let i = 0; i < N; i++) {
@@ -773,8 +791,16 @@ async function k31(r: Rigg): Promise<Helrad[]> {
   await Promise.all(jobber);
   const tak = await takJobb;
   const les = (arm: string): NaabartRad[] => filer[arm]!.flatMap((f) => lesJsonl<NaabartRad>(f));
-  const n = domNaabart(les("spek"), les("passer"));
-  const b = domBudduell(les("spek"), les("passer"));
+  const n = domNaabart(les("spek"), les("overbyr"));
+  const b = domBudduell(les("spek"), les("overbyr"));
+  // Passeren er KONTEKST, ikke felle (se PASS_BUDLAG): hvor subtil en budfeil målingen ser.
+  const pRader = les("passer");
+  const pGap = klyngeSnitt(pRader, (x) => x.frø, (x) => x.diffNaabart);
+  const pDuell = klyngeSnitt(pRader, (x) => x.frø, (x) => x.diffMot ?? NaN);
+  const pBrudd = pRader.filter(
+    (x) => (x.naabartEndret === 0 && x.diffNaabart !== 0) || (x.motLik === true && x.diffMot !== 0),
+  ).length;
+  const passerTekst = (s: { snitt: number; se: number }): string => `${fmt(s.snitt)} ± ${s.se.toFixed(4)}`;
   const t = tak.d;
   const kilde = `examples/tak-kart.ts --fase bud --uten-tak --naabart ${W} --naabart-spek <uten søk> (${N} skiver per arm); klarsyn: --gjenbruk --maks-noder ${r.st.maksNoder}`;
   return [
@@ -785,11 +811,13 @@ async function k31(r: Rigg): Promise<Helrad[]> {
       målt:
         `nåbart gap ${fmt(n.gap.snitt)} ± ${n.gap.se.toFixed(4)} poeng/runde (W=${W}, n=${n.gap.n} i ${n.gap.klynger} giv, byttet bud i ${n.byttet} rader); ` +
         `klarsyn ${fmt(t.gap.snitt)} ± ${t.gap.se.toFixed(4)} (n=${t.gap.n} i ${t.gap.klynger} giv, ${t.kappet} kappet)`,
-      kontroll: `uendret bud ⇒ eksakt 0: ${n.brudd} brudd av ${n.uendret} rader (må være 0); klarsyn, tomt vindu: ${t.kontrollOk ? "OK" : "BOMMET"}`,
-      kontrollOk: n.kontrollOk,
+      kontroll:
+        `uendret bud ⇒ eksakt 0: ${n.brudd + pBrudd} brudd av ${n.uendret} rader (må være 0); ` +
+        `klarsyn, tomt vindu: ${t.kontrollOk ? "OK" : "BOMMET"}`,
+      kontrollOk: n.kontrollOk && pBrudd === 0,
       felle:
-        `alltid pass: nåbart gap ${fmt(n.fella.snitt)} ± ${n.fella.se.toFixed(4)} (må være > 2 SE); ` +
-        `ADAMS_MAALT mot klarsyn ${fmt(t.stakk.snitt)} ± ${t.stakk.se.toFixed(4)}`,
+        `alltid overby: nåbart gap ${fmt(n.fella.snitt)} ± ${n.fella.se.toFixed(4)} (må være > 2 SE); ` +
+        `kontekst: alltid pass ${passerTekst(pGap)}; ADAMS_MAALT mot klarsyn ${fmt(t.stakk.snitt)} ± ${t.stakk.se.toFixed(4)}`,
       felleOk: n.felleOk,
       innfridd: n.innfridd,
       kilde,
@@ -813,7 +841,9 @@ async function k31(r: Rigg): Promise<Helrad[]> {
         `ΔP(seier) ${fmt(b.seier.snitt, 3)} ± ${b.seier.se.toFixed(3)} pp (n=${b.duell.n} i ${b.duell.klynger} giv)`,
       kontroll: `samme budfølge ⇒ eksakt 0: ${b.brudd} brudd av ${b.lik} rader (må være 0)`,
       kontrollOk: b.kontrollOk,
-      felle: `boten uten søk − alltid pass: ${fmt(b.fella.snitt)} ± ${b.fella.se.toFixed(4)} (må være > 2 SE)`,
+      felle:
+        `boten uten søk − alltid overby: ${fmt(b.fella.snitt)} ± ${b.fella.se.toFixed(4)} (må være > 2 SE); ` +
+        `kontekst: boten uten søk − alltid pass ${passerTekst(pDuell)}`,
       felleOk: b.felleOk,
       innfridd: b.innfridd,
       kilde: `examples/tak-kart.ts --fase bud --mot-spek <speken med ${ADAMS_BUDLAG}> --seier ${K31_SEIER}`,
