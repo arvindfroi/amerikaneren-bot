@@ -32,6 +32,15 @@ createServer((req, res) => {
     let html = readFileSync(resolve(WEB, "index.html"), "utf8");
     // Bytt den utrullede bunten mot den lokale.
     html = html.replace(new RegExp(`<script src="${DATA}app\.js"></script>`), '<script type="module" src="/app.js"></script>');
+    // En lokal prøve skal ikke havne i menneskedataene: `logg()` POST-er hver
+    // hendelse til Val Town. Og vektene (`*.b64`) skal være de LOKALE – Val
+    // Town-pinnen henger etter til utrullingen, og da prøver man ikke det man
+    // er i ferd med å rulle ut. JSON-budfilene hentes fortsatt fra Val Town.
+    const shim = `{const D=${JSON.stringify(DATA)},f=window.fetch;window.fetch=(u,o)=>{const s=String(u);` +
+      `if(!s.startsWith(D))return f(u,o);` +
+      `if(o&&o.method==="POST"){console.info("lokal: logg-POST holdt tilbake");return Promise.resolve(new Response("{}"));}` +
+      `const n=s.slice(D.length);return /^[a-z-]+\\.b64$/.test(n)?f("/dist/"+n,o):f(u,o);};}`;
+    html = html.replace("<head>", `<head><script>${shim}</script>`);
     res.writeHead(200, { "content-type": MIME[".html"]! });
     res.end(html);
     return;
