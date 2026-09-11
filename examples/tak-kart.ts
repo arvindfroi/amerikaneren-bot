@@ -57,6 +57,31 @@
  *                    for ÉN giv. Spørsmålet blir «gapet til beste svar mot et bord av
  *                    <andre>», og det står i kravrapporten. Ren-runden og takrunden får
  *                    samme bord, så paringen holder.
+ *
+ * ============ DET NÅBARE TAKET OG BUDDUELLEN (11. sep, K3.1) =============
+ *
+ * Klarsynstaket i budvinduet kan ikke nås av noen budgiver (se `naabart-bud.ts`), så
+ * K3.1-porten kunne aldri lukkes. Fire nye knotter, alle AV som standard — da er stien,
+ * radene og utskriften byte-identiske med før (sha1 på fire små kjøringer 11. sep):
+ *
+ *   --naabart W       (bare `--fase bud`) En TREDJE runde per sete: ved HVER av våre
+ *                     budturer spør setets agent som i ren-runden (samme kallfølge, så
+ *                     paringen er eksakt), og budet byttes med `naabartBud` — argmax av
+ *                     snittpoeng over W verdener fra setets visning. Radene får `naabart`,
+ *                     `diffNaabart` (= naabart − rein) og `naabartEndret` (antall byttede
+ *                     bud). KONTROLL GRATIS: `naabartEndret = 0` ⇒ `diffNaabart` eksakt 0.
+ *   --naabart-spek S  Speken ALLE FIRE seter spiller i verdenene. Standard rundens egne
+ *                     (`--spek` i vårt sete, `--andre` i de andre). `--naabart-kand K`
+ *                     setter kandidatverdenene (standard 32).
+ *   --mot-spek S      En runde per sete der vårt sete spiller S i stedet for `--spek`.
+ *                     Byttes bare budlaget i speken, er det BUDDUELLEN: samme giv, samme
+ *                     bord, samme kortspill, bare budet ulikt. Radene får `mot`, `diffMot`
+ *                     (= mot − rein) og `motLik` (samme budfølge for setet). KONTROLL:
+ *                     `motLik` ⇒ `diffMot` eksakt 0.
+ *   --seier <fil>     100·ΔP(seier) for setet over runden fra 0–0 (`src/mlb/seier.ts`), i
+ *                     `seierRein` og for hver arm som er på.
+ *   --uten-tak        Hopp over klarsynstreet (`tak` og `diff` blir null). For armer der
+ *                     bare det nåbare taket eller duellen skal leses.
  */
 
 import { appendFileSync } from "node:fs";
@@ -65,12 +90,15 @@ import {
   lovligeHandlinger,
   opprettSpill,
   utfør,
+  type Bud,
   type GameState,
   type Handling,
 } from "../src/index.ts";
 import { FARGER } from "../src/kort.ts";
 import { lovligeEtterlys } from "../src/motor.ts";
 import { lagIndre, ADAMS, tall, type Spekagent } from "../src/moe2/agentspek.ts";
+import { Seiersprediktor } from "../src/mlb/seier.ts";
+import { naabartBud } from "./naabart-bud.ts";
 
 const arg = (n: string, s: string) => {
   const i = process.argv.indexOf(n);
@@ -106,15 +134,35 @@ const MAKS_NODER_TEKST = arg("--maks-noder", "");
 const MAKS_NODER = MAKS_NODER_TEKST === "" ? Infinity : tall(MAKS_NODER_TEKST, 0, "maks-noder");
 const [SKARD_I, SKARD_N] = arg("--skard", "0/1").split("/").map((x) => tall(x, 0, "skard")) as [number, number];
 const ANDRE = arg("--andre", "");
+const NAABART_TEKST = arg("--naabart", "");
+const NAABART = NAABART_TEKST === "" ? null : tall(NAABART_TEKST, 0, "naabart");
+const NAABART_SPEK = arg("--naabart-spek", "");
+const NAABART_KAND = tall(arg("--naabart-kand", "32"), 32, "naabart-kand");
+const MOT_SPEK = arg("--mot-spek", "");
+const SEIER = arg("--seier", "");
+const UTEN_TAK = process.argv.includes("--uten-tak");
+if (NAABART !== null && FASE !== "bud") throw new Error("--naabart gjelder bare --fase bud");
+const prediktor = SEIER === "" ? null : Seiersprediktor.fraFil(SEIER);
 
-const nyeAgenter = (vårt: number) =>
-  [0, 1, 2, 3].map((p) => lagIndre(ANDRE === "" || p === vårt ? SPEK : ANDRE));
+const nyeAgenter = (vårt: number, egen: string = SPEK) =>
+  [0, 1, 2, 3].map((p) => lagIndre(p === vårt ? egen : ANDRE === "" ? SPEK : ANDRE));
 
 /**
  * Treets agenter under `--gjenbruk`, ett sett per sete når `--andre` gjør setene ulike.
  * Aldri de samme som rundens egne — se `runde`.
  */
 const pooler = new Map<number, Spekagent[]>();
+/** Utspillingsagentene i det nåbare taket: ett sett, eller ett per sete når bordet er ulikt. */
+const naabartPooler = new Map<number, Spekagent[]>();
+function naabartAgenter(vårt: number): Spekagent[] {
+  const nøkkel = NAABART_SPEK !== "" || ANDRE === "" ? 0 : vårt;
+  let pool = naabartPooler.get(nøkkel);
+  if (pool === undefined) {
+    pool = NAABART_SPEK === "" ? nyeAgenter(vårt) : [0, 1, 2, 3].map(() => lagIndre(NAABART_SPEK));
+    naabartPooler.set(nøkkel, pool);
+  }
+  return pool;
+}
 /** Forgreinede noder i det pågående taksøket, og om taket ble nådd. */
 let noder = 0;
 let kappet = false;
@@ -224,6 +272,13 @@ function poengFor(s: GameState, sete: number): number {
   return s.sisteRunde?.delta?.[sete] ?? 0;
 }
 
+/** 100·(P(seier) etter runden − P(seier) ved 0–0) for `sete`; fasiten når runden avsluttet kampen. */
+function seierFor(s: GameState, sete: number): number {
+  const før = prediktor!.fordeling(s.totalPoeng.map(() => 0), sete, s.regler.målPoeng)[0]!;
+  const etter = s.fase === "FERDIG" ? (s.vinner === sete ? 1 : 0) : prediktor!.fordeling(s.totalPoeng, sete, s.regler.målPoeng)[0]!;
+  return 100 * (etter - før);
+}
+
 /** Antall egne forgreninger vinduet tillater. */
 const BUDSJETT = FASE === "bud" ? 4 : FASE === "vrak" ? 1 : TIL - FRA + 1;
 
@@ -233,19 +288,25 @@ const BUDSJETT = FASE === "bud" ? 4 : FASE === "vrak" ? 1 : TIL - FRA + 1;
  * RUNDEN FÅR ALLTID FERSKE AGENTER, også under `--gjenbruk`. Det er paringen: ren-runden
  * og takrunden skal ta nøyaktig de samme beslutningene FØR vinduet, og for en søkende
  * spek gjør de det bare når begge starter med RNG-en på frøet.
+ *
+ * `modus` «naabart» bytter hvert av VÅRE bud med det nåbare, ETTER at setets agent er
+ * spurt som i ren-runden; «mot» lar vårt sete spille `--mot-spek`. `bud` er budfølgen per
+ * sete, for `motLik`.
  */
-function runde(frø: number, vårt: number, bruk: boolean) {
-  const ag = nyeAgenter(vårt);
+function runde(frø: number, vårt: number, bruk: boolean, modus: "tak" | "naabart" | "mot" = "tak") {
+  const ag = nyeAgenter(vårt, modus === "mot" ? MOT_SPEK : SPEK);
   let s: GameState = opprettSpill({ antallSpillere: 4 }, frø);
   let brukt = 0;
   let vakt = 0;
   let sumNoder = 0;
   let noenKappet = false;
+  let endret = 0;
+  const bud: Bud[][] = [[], [], [], []];
   while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && vakt++ < 400) {
     const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
     if (iTur === null || iTur === undefined) break;
     let h: Handling | null = null;
-    if (bruk && brukt < BUDSJETT && iVindu(s, vårt)) {
+    if (bruk && modus === "tak" && brukt < BUDSJETT && iVindu(s, vårt)) {
       noder = 0;
       kappet = false;
       h = beste(s, vårt, BUDSJETT - brukt).kort;
@@ -253,16 +314,39 @@ function runde(frø: number, vårt: number, bruk: boolean) {
       noenKappet ||= kappet;
       if (h !== null) brukt++;
     }
-    s = utfør(s, h ?? ag[iTur]!.velgHandling(s)).state;
+    if (bruk && modus === "naabart" && s.fase === "BUDRUNDE" && iTur === vårt) {
+      const eget = ag[iTur]!.velgHandling(s);
+      h = eget;
+      if (eget.type === "BUD") {
+        const v = naabartBud(s, vårt, eget.bud, { verdener: NAABART!, kandidater: NAABART_KAND, agenter: naabartAgenter(vårt) });
+        if (v.bud !== eget.bud) {
+          endret++;
+          h = { type: "BUD", spiller: vårt, bud: v.bud };
+        }
+      }
+    }
+    const handling = h ?? ag[iTur]!.velgHandling(s);
+    if (handling.type === "BUD") bud[handling.spiller]!.push(handling.bud);
+    s = utfør(s, handling).state;
   }
-  return { poeng: poengFor(s, vårt), bv: s.budvinner, s, noder: sumNoder, kappet: noenKappet };
+  return { poeng: poengFor(s, vårt), bv: s.budvinner, s, noder: sumNoder, kappet: noenKappet, endret, bud };
 }
+
+const budLik = (a: readonly Bud[], b: readonly Bud[]): boolean => a.length === b.length && a.every((x, i) => x === b[i]);
 
 let n = 0;
 let sum = 0;
 let bedre = 0;
 let antallKappet = 0;
 const perRolle: Record<string, { n: number; sum: number; traff: number }> = {};
+let nNaabart = 0;
+let sumNaabart = 0;
+let naabartEndret = 0;
+let naabartBrudd = 0;
+let nMot = 0;
+let sumMot = 0;
+let motLik = 0;
+let motBrudd = 0;
 
 for (let g = 0; g < GIVER; g++) {
   if (g % SKARD_N !== SKARD_I) continue;
@@ -275,39 +359,84 @@ for (let g = 0; g < GIVER; g++) {
    */
   const ren = GJENBRUK && ANDRE === "" ? runde(frø, 0, false) : null;
   for (let sete = 0; sete < 4; sete++) {
-    const a = ren === null ? runde(frø, sete, false) : { poeng: poengFor(ren.s, sete), bv: ren.s.budvinner };
-    const b = runde(frø, sete, true);
+    const a = ren === null ? runde(frø, sete, false) : { poeng: poengFor(ren.s, sete), bv: ren.s.budvinner, s: ren.s, bud: ren.bud };
+    const b = UTEN_TAK ? null : runde(frø, sete, true);
     if (a.bv === null) continue;
     // I budvinduet KAN budvinneren bli en annen – det er hele poenget der.
-    if (FASE !== "bud" && b.bv !== a.bv) continue;
-    const d = b.poeng - a.poeng;
-    n++;
-    sum += d;
-    if (d > 0) bedre++;
+    if (FASE !== "bud" && b !== null && b.bv !== a.bv) continue;
     const rolle = sete === a.bv ? "foerer" : "annet";
-    const r = (perRolle[rolle] ??= { n: 0, sum: 0, traff: 0 });
-    r.n++;
-    r.sum += d;
-    if (d > 0) r.traff++;
-    const rad: Record<string, unknown> = { merke: MERKE, frø, sete, rolle, rein: a.poeng, tak: b.poeng, diff: d };
-    if (Number.isFinite(MAKS_NODER)) {
-      rad["noder"] = b.noder;
-      rad["kappet"] = b.kappet;
-      if (b.kappet) antallKappet++;
+    const rad: Record<string, unknown> = { merke: MERKE, frø, sete, rolle, rein: a.poeng, tak: null, diff: null };
+    if (b !== null) {
+      const d = b.poeng - a.poeng;
+      n++;
+      sum += d;
+      if (d > 0) bedre++;
+      const r = (perRolle[rolle] ??= { n: 0, sum: 0, traff: 0 });
+      r.n++;
+      r.sum += d;
+      if (d > 0) r.traff++;
+      rad["tak"] = b.poeng;
+      rad["diff"] = d;
+      if (Number.isFinite(MAKS_NODER)) {
+        rad["noder"] = b.noder;
+        rad["kappet"] = b.kappet;
+        if (b.kappet) antallKappet++;
+      }
+    }
+    if (prediktor !== null) rad["seierRein"] = seierFor(a.s, sete);
+    if (NAABART !== null) {
+      const c = runde(frø, sete, true, "naabart");
+      const d = c.poeng - a.poeng;
+      rad["naabart"] = c.poeng;
+      rad["diffNaabart"] = d;
+      rad["naabartEndret"] = c.endret;
+      if (prediktor !== null) rad["seierNaabart"] = seierFor(c.s, sete);
+      nNaabart++;
+      sumNaabart += d;
+      if (c.endret > 0) naabartEndret++;
+      else if (d !== 0) naabartBrudd++;
+    }
+    if (MOT_SPEK !== "") {
+      const m = runde(frø, sete, false, "mot");
+      const d = m.poeng - a.poeng;
+      const lik = budLik(m.bud[sete]!, a.bud[sete]!);
+      rad["mot"] = m.poeng;
+      rad["diffMot"] = d;
+      rad["motLik"] = lik;
+      if (prediktor !== null) rad["seierMot"] = seierFor(m.s, sete);
+      nMot++;
+      sumMot += d;
+      if (lik) {
+        motLik++;
+        if (d !== 0) motBrudd++;
+      }
     }
     appendFileSync(UT, `${JSON.stringify(rad)}\n`);
   }
 }
 
-console.log(`# TAKKART ${MERKE}   n=${n}   budsjett=${BUDSJETT}`);
-console.log(`snitt poenggevinst per runde: ${(sum / n).toFixed(4)}`);
-console.log(`giver med gevinst: ${bedre} (${((100 * bedre) / n).toFixed(1)} %)`);
-for (const [k, v] of Object.entries(perRolle)) {
-  const nårTraff = v.traff > 0 ? v.sum / v.traff : 0;
+if (!UTEN_TAK) {
+  console.log(`# TAKKART ${MERKE}   n=${n}   budsjett=${BUDSJETT}`);
+  console.log(`snitt poenggevinst per runde: ${(sum / n).toFixed(4)}`);
+  console.log(`giver med gevinst: ${bedre} (${((100 * bedre) / n).toFixed(1)} %)`);
+  for (const [k, v] of Object.entries(perRolle)) {
+    const nårTraff = v.traff > 0 ? v.sum / v.traff : 0;
+    console.log(
+      `  ${k.padEnd(8)} n=${String(v.n).padStart(5)}  ${(v.sum / v.n).toFixed(4)}  traff ${v.traff} (${((100 * v.traff) / v.n).toFixed(1)} %)  naar den traff ${nårTraff.toFixed(1)}`,
+    );
+  }
+  if (Number.isFinite(MAKS_NODER)) {
+    console.log(`kappet ved ${MAKS_NODER} noder: ${antallKappet} av ${n} rader — gapet der er en NEDRE grense`);
+  }
+}
+if (NAABART !== null) {
   console.log(
-    `  ${k.padEnd(8)} n=${String(v.n).padStart(5)}  ${(v.sum / v.n).toFixed(4)}  traff ${v.traff} (${((100 * v.traff) / v.n).toFixed(1)} %)  naar den traff ${nårTraff.toFixed(1)}`,
+    `# NÅBART TAK W=${NAABART} kand=${NAABART_KAND}   n=${nNaabart}   snitt ${(sumNaabart / nNaabart).toFixed(4)}   ` +
+      `rader med byttet bud ${naabartEndret}   uendret men ulik 0: ${naabartBrudd} (MÅ være 0)`,
   );
 }
-if (Number.isFinite(MAKS_NODER)) {
-  console.log(`kappet ved ${MAKS_NODER} noder: ${antallKappet} av ${n} rader — gapet der er en NEDRE grense`);
+if (MOT_SPEK !== "") {
+  console.log(
+    `# MOT-SPEK   n=${nMot}   snitt mot − rein ${(sumMot / nMot).toFixed(4)}   samme budfølge ${motLik}   samme bud men ulik 0: ${motBrudd} (MÅ være 0)`,
+  );
 }
