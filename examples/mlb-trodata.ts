@@ -223,12 +223,18 @@ const [SI, SN] = (arg("--skard", "0/1").split("/") as [string, string]).map(Numb
 const SIGNAL = har("--signal");
 /**
  * `--sanser2` (11. sep): stillingen per sete og valgt bort (`src/mlb/stillingtrekk.ts`,
- * `src/mlb/valgtbort.ts`) bakerst etter 920, altså 996 trekk. Krever `--kamp --hukommelse
- * --signal`: det finnes bare ÉN sanser-2-bredde, og den er 920 med nuller bakerst for et
+ * `src/mlb/valgtbort.ts`) bakerst etter 920, altså 996 trekk. Krever `--hukommelse --signal`
+ * og hele kamper – `--kamp` ELLER `--menneske` (begge går gjennom `troTrekkForBredde(DIM, …)`
+ * med boka): det finnes bare ÉN sanser-2-bredde, og den er 920 med nuller bakerst for et
  * utvidet nett. Uten flagget er radene byte-identiske med før.
+ *
+ * Vakten krevde først `--kamp` alene, og da kunne menneskeradene (agent I) aldri skrives i
+ * samme bredde som selvspillet (agent K) – begge grenene var grønne hver for seg.
  */
 const SANSER2 = har("--sanser2");
-if (SANSER2 && !(KAMP && HUKOMMELSE && SIGNAL)) throw new Error("--sanser2 legger 76 trekk bak 920: krever --kamp --hukommelse --signal");
+if (SANSER2 && !((KAMP || MENNESKE) && HUKOMMELSE && SIGNAL)) {
+  throw new Error("--sanser2 legger 76 trekk bak 920: krever --hukommelse --signal og --kamp eller --menneske");
+}
 const DIM = SANSER2
   ? MLB_TRO_INN_HS2
   : SIGNAL

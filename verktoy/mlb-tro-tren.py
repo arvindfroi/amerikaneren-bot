@@ -247,6 +247,13 @@ def main():
     # R2 (10. sep): trosnettet trenes SAMMEN med policyen, paa epokens egne kamper.
     ap.add_argument("--vekter", default="", help="start fra disse vektene (appformat); tom = tilfeldig")
     ap.add_argument("--hold-del", type=int, default=0, help=">0: holdout = rader med froe %% N == 0 fra --tren")
+    # MENNESKERADENE (11. sep, agent I): finjustering paa menneskekamper ga +1,26 pp K8 mot mennesker, men
+    # minnegevinsten ble NEGATIV (-0,22 pp): hukommelsesblokken laerte aa kjenne igjen den ene hovedspilleren
+    # i stedet for vaner som gjelder paa tvers. MINNE-DROPOUT nuller blokken [660, 804) i en andel av
+    # menneskeradene i hver batch, saa nettet maa kunne spaa uten den og bare bruke den der den hjelper.
+    ap.add_argument("--tren-menneske", default="", help="MLBT-filer fra mlb-trodata --menneske (band trening)")
+    ap.add_argument("--hold-menneske", default="", help="MLBT-filer fra mlb-trodata --menneske (band holdout)")
+    ap.add_argument("--minne-dropout", type=float, default=0.0, help="andel menneskerader med hukommelsen nullet per batch")
     # BARE UTVIDELSEN (11. sep): CPU, ingen data, ingen trening. Skriver --vekter utvidet til --dim
     # med nullkolonner etter LAYOUT, saa varmstarten kan proeves uten GPU og uten et korpus.
     ap.add_argument("--bare-utvid", default="", help="skriv --vekter utvidet til --dim hit og avslutt (CPU)")
@@ -286,9 +293,28 @@ def main():
         Xho, Fho, _, Sho, dim2 = les_bin(args.hold)
     if dim != dim2:
         raise SystemExit(f"tren dim {dim} != holdout dim {dim2}")
+    # Menneskerader: samme bredde, merket saa minne-dropout bare treffer dem.
+    er_menneske = numpy.zeros(len(Xtr), dtype=bool)
+    if args.tren_menneske:
+        print("TRENING (menneske):", flush=True)
+        Xm, Fm, _, _, dim_m = les_bin(args.tren_menneske)
+        if dim_m != dim:
+            raise SystemExit(f"menneskerader dim {dim_m} != {dim}")
+        Xtr = numpy.concatenate([Xtr, Xm])
+        Ftr = numpy.concatenate([Ftr, Fm])
+        er_menneske = numpy.concatenate([er_menneske, numpy.ones(len(Xm), dtype=bool)])
+        del Xm, Fm
+    Xhm = Fhm = Shm = None
+    if args.hold_menneske:
+        print("HOLDOUT (menneske):", flush=True)
+        Xhm, Fhm, _, Shm, dim_hm = les_bin(args.hold_menneske)
+        if dim_hm != dim:
+            raise SystemExit(f"menneske-holdout dim {dim_hm} != {dim}")
+    if args.minne_dropout > 0 and dim < 804:
+        raise SystemExit(f"--minne-dropout krever hukommelsesblokken (bredde 804/920/996), dataene har {dim}")
     print(
-        f"{len(Xtr)} treningsrader, {len(Xho)} holdoutrader, {dim} trekk "
-        f"({time.time() - t0:.0f}s)",
+        f"{len(Xtr)} treningsrader ({int(er_menneske.sum())} menneske), {len(Xho)} holdoutrader"
+        f"{'' if Xhm is None else f' + {len(Xhm)} menneske'}, {dim} trekk ({time.time() - t0:.0f}s)",
         flush=True,
     )
 
@@ -304,6 +330,12 @@ def main():
     Xh = torch.from_numpy(Xho).to(enhet)
     Fh = torch.from_numpy(Fho).to(enhet).long()
     Sh = torch.from_numpy(Sho.astype(numpy.int64)).to(enhet)
+    Mt = torch.from_numpy(er_menneske).to(enhet)
+    if Xhm is not None:
+        Xhm_t = torch.from_numpy(Xhm).to(enhet)
+        Fhm_t = torch.from_numpy(Fhm).to(enhet).long()
+        Shm_t = torch.from_numpy(Shm.astype(numpy.int64)).to(enhet)
+        del Xhm, Fhm
     del Xtr, Ftr, Xho, Fho
 
     rang = torch.arange(KORT, device=enhet) % 13  # 0..12 der 12 = ess
@@ -399,10 +431,20 @@ def main():
     modell.eval()
     foer = mål(Xh, Fh, Sh)
     print(json.dumps({"tro_foer": {k: v for k, v in foer.items() if k != "perStikk"}}), flush=True)
+    foer_m = mål(Xhm_t, Fhm_t, Shm_t) if args.hold_menneske else None
+    if foer_m is not None:
+        print(json.dumps({"tro_foer_menneske": {k: v for k, v in foer_m.items() if k != "perStikk"}}), flush=True)
+
+    def poeng(hb, hm):
+        """Valgtallet: bot-holdoutens K8-tap, eller snittet med menneske-holdouten naar den finnes.
+        Et nett som blir bedre mot mennesker og verre mot botene (eller omvendt) skal ikke vinne gratis."""
+        return hb["k8"] if hm is None else 0.5 * (hb["k8"] + hm["k8"])
+
     os.makedirs(os.path.dirname(args.logg) or ".", exist_ok=True)
     logg = open(args.logg, "a", encoding="utf-8", buffering=1)
-    beste = foer["k8"] if args.vekter else float("inf")
+    beste = poeng(foer, foer_m) if args.vekter else float("inf")
     beste_rad = (0, foer) if args.vekter else None
+    beste_m = foer_m
     if args.vekter:
         # Uten dette kunne en epoke som bare ble verre etterlate en fil DAARLIGERE
         # enn den den startet fra.
@@ -414,7 +456,12 @@ def main():
         sum_tap, n_tap = 0.0, 0
         for i in range(0, n, args.batch):
             j = perm[i : i + args.batch]
-            ut = modell(Xt[j].float())
+            x = Xt[j].float()
+            if args.minne_dropout > 0:
+                slipp = Mt[j] & (torch.rand(len(j), device=enhet) < args.minne_dropout)
+                if bool(slipp.any()):
+                    x[slipp, 660:804] = 0  # hukommelsesblokken i 804/920/996
+            ut = modell(x)
             tap = tap_batch(ut, Ft[j])
             if tap is None:
                 continue
@@ -443,10 +490,15 @@ def main():
             f"honnoer {h['honnor'] * 100:.1f} %  K8-tap {h['k8']:.4f}",
             flush=True,
         )
+        hm = mål(Xhm_t, Fhm_t, Shm_t) if args.hold_menneske else None
+        if hm is not None:
+            print(f"          menneske-holdout K8-tap {hm['k8']:.4f}  treff {hm['treff'] * 100:.1f} %", flush=True)
+            logg.write(json.dumps({"epoke": e + 1, "menneske_k8": round(hm["k8"], 5), "menneske_k8_n": hm["k8_n"]}) + "\n")
         # BESTE PAA K8-TAPET, ikke paa treffet: det er tallet kravet stiller.
-        if h["k8"] < beste:
-            beste = h["k8"]
+        if poeng(h, hm) < beste:
+            beste = poeng(h, hm)
             beste_rad = (e + 1, h)
+            beste_m = hm
             skriv_vekter(args.ut, modell)
 
     # RESULTATET SKRIVES AV PROSESSEN SELV, aldri gjennom et stdout-roer.
@@ -464,6 +516,14 @@ def main():
     print(f"\nFerdig: beste holdout K8-tap {beste:.5f} -> {args.ut}", flush=True)
     print(json.dumps({"tro_etter": {"epoke": beste_rad[0], **{k: v for k, v in beste_rad[1].items() if k != "perStikk"}}}), flush=True)
     print(f"Rapport lagt til {args.rapport}", flush=True)
+    # MASKINLESBARE LINJER SIST: de foerste linjene i stdout kan forsvinne gjennom WSL-roeret, saa
+    # loekka leser bare disse (samme regel som vrak-tren og budq-tren).
+    print(f"TRO-BESTE-EPOKE {beste_rad[0]}", flush=True)
+    print(f"TRO-BOT-K8-START {foer['k8']:.5f}", flush=True)
+    print(f"TRO-BOT-K8-BESTE {beste_rad[1]['k8']:.5f}", flush=True)
+    if foer_m is not None:
+        print(f"TRO-MENNESKE-K8-START {foer_m['k8']:.5f}", flush=True)
+        print(f"TRO-MENNESKE-K8-BESTE {beste_m['k8']:.5f}", flush=True)
 
 
 if __name__ == "__main__":
