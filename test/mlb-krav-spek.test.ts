@@ -167,6 +167,45 @@ test("domK1: boten klart bedre enn mennesket og nevro klart dårligere gir ja", 
   assert.equal(d.innfridd, "ja");
 });
 
+/**
+ * Rader med EKSAKT snitt og styrt klynge-SE: kamp k får ΔP = snitt ± spredning (vekselvis), så
+ * snittet er nøyaktig `snitt` og SE ≈ spredning/√kamper. Rundene i en kamp deler verdien.
+ */
+function k1Fast(snitt: number, spredning: number, kamper = 40): D1[] {
+  const ut: D1[] = [];
+  for (let k = 0; k < kamper; k++) {
+    const v = snitt + (k % 2 === 0 ? spredning : -spredning);
+    for (let r = 0; r < 6; r++) {
+      const mP = ((k * 7 + r * 3) % 11) - 5;
+      ut.push({ spill: `kamp${k}`, tid: "2026-08-20", runde: r, menneske: 3, bot: 4, diff: 1, mP, bP: mP + v });
+    }
+  }
+  return ut;
+}
+
+/** Fellearmen på NØYAKTIG de samme rundene (samme mP, kontrollen krever det): nevro 3 pp under mennesket. */
+const k1FelleFor = (rader: readonly D1[]): D1[] => rader.map((x, i) => ({ ...x, bP: x.mP - 3 + (i % 2 === 0 ? 0.5 : -0.5) }));
+
+test("domK1: porten er ≥ +1,0 pp OG z ≥ 3 — +0,86 med z ≈ 4,3 er NEI, der den gamle porten sa ja", () => {
+  const felle = k1FelleFor(k1Fast(0, 0));
+  const d = domK1(k1Fast(0.86, 1.265), felle);
+  assert.ok(Math.abs(d.ks.snitt - 0.86) < 1e-9, `snitt ${d.ks.snitt}`);
+  assert.ok(d.z > 3.5 && d.z < 5.5, `z ${d.z} — radene er ikke det prøven sier`);
+  assert.equal(d.kontrollOk, true);
+  assert.equal(d.felleOk, true);
+  assert.equal(d.innfridd, "nei", "+0,86 pp er under terskelen på +1,0 pp uansett z");
+  // FELLA FOR PRØVEN: den gamle regelen (> 2 SE og positiv i begge halvdeler) sier ja på de samme
+  // radene. Ellers kunne «nei» over komme av noe annet enn terskelen.
+  assert.ok(d.ks.snitt > 2 * d.ks.se && d.halv.every((h) => h.snitt > 0), "den gamle porten ville også sagt nei — prøven skiller ikke reglene");
+  // Over terskelen og z ≥ 3: ja. Over terskelen men z < 3: nei.
+  const sterk = domK1(k1Fast(1.5, 1.265), felle);
+  assert.ok(sterk.z >= 3);
+  assert.equal(sterk.innfridd, "ja");
+  const usikker = domK1(k1Fast(1.2, 3.2), felle);
+  assert.ok(usikker.z < 3 && usikker.ks.snitt >= 1.0, `z ${usikker.z}`);
+  assert.equal(usikker.innfridd, "nei", "+1,2 pp med z < 3 er ikke målt godt nok");
+});
+
 test("domK1: fella som ikke taper for mennesket gjør raden stum; ulik menneskeside likeså", () => {
   assert.equal(domK1(k1Rader(1.5), k1Rader(0)).innfridd, "stum", "nevro på nivå med mennesket = målingen har ikke kraft");
   const f = k1Rader(-3).map((r, i) => (i === 7 ? { ...r, mP: r.mP + 1 } : r));

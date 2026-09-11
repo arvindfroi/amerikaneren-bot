@@ -22,7 +22,7 @@ import {
   spillOgTaOpp,
   type K4SpekRapport,
 } from "../examples/k4-hukommelse.ts";
-import { utenMinne, utenØktmotstander } from "../examples/spek-lag.ts";
+import { budqLeserMinne, utenMinne, utenØktmotstander } from "../examples/spek-lag.ts";
 
 test("K4 --spek: nullarmen avledet av A_MINNE er nøyaktig A_NULL", () => {
   assert.equal(utenMinne(A_MINNE), A_NULL, "avledningen bygger en annen nullarm enn den faste");
@@ -41,9 +41,10 @@ test(
   { skip: manglerFiler.length > 0 ? `mangler ${manglerFiler.join(", ")} (e1-modell er ikke sporet)` : false },
   () => {
     const nul = utenMinne(HELBOT_11SEP);
+    // `budq-1.bin` er et 287-nett som fører motstanderboka selv: nullarmen får `h0` (se utenMinne).
     assert.equal(
       nul,
-      "vr:e1-modell/vrak-1.bin:telrd:eks:3Lt2000:sik:alle:0.5:24k32e3LD:budq:e1-modell/budq-1.bin:vakt:abmp:e1:e1-modell/d7alle.bin",
+      "vr:e1-modell/vrak-1.bin:telrd:eks:3Lt2000:sik:alle:0.5:24k32e3LD:budq:e1-modell/budq-1.binh0:vakt:abmp:e1:e1-modell/d7alle.bin",
     );
     // Batteriet 11. sep: alle 24 K4-jobber kastet her.
     assert.doesNotThrow(() => lagIndre(nul));
@@ -52,6 +53,20 @@ test(
     const gammel = nul.replace("24k32e3LD", "24k32e3LMD");
     assert.notEqual(gammel, nul);
     assert.throws(() => lagIndre(gammel), /ber om «M»/);
+  },
+);
+
+test(
+  "utenMinne: et BudQ-nett som leser boka får h0, et som ikke gjør det står — og h0 er det eneste som skiller",
+  { skip: manglerFiler.length > 0 ? `mangler ${manglerFiler.join(", ")} (e1-modell er ikke sporet)` : false },
+  () => {
+    assert.equal(budqLeserMinne("e1-modell/budq-1.bin"), true, "budq-1.bin skal være et 287-nett");
+    // FELLA: med en leser som sier «ingen bok» står budq-laget urørt. Uten den kunne h0 komme fra
+    // noe annet enn nettets bredde, og nullarmen for et 143-nett ville fått en bryter den ikke har.
+    const uten = utenMinne(HELBOT_11SEP, undefined, () => false);
+    assert.equal(uten, utenMinne(HELBOT_11SEP).replace("budq-1.binh0:", "budq-1.bin:"));
+    // Idempotent: nullarmen av nullarmen er nullarmen (ingen «h0h0»).
+    assert.equal(utenMinne(utenMinne(HELBOT_11SEP)), utenMinne(HELBOT_11SEP));
   },
 );
 

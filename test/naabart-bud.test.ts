@@ -142,7 +142,7 @@ function kart(navn: string, args: readonly string[]): { status: number | null; s
   return { status: r.status, stderr: r.stderr, rader: tekst.split("\n").filter((l) => l !== "").map((l) => JSON.parse(l) as Record<string, unknown>) };
 }
 
-test("tak-kart: W = 0 og --mot-spek lik --spek gir eksakt 0 på hver rad; --naabart utenfor budvinduet kaster", () => {
+test("tak-kart: W = 0 og --mot-spek lik --spek gir eksakt 0 på hver rad; en felle i feil vindu kaster", () => {
   const k = kart("null", ["--giver", "2", "--spek", ADAMS_MAALT, "--naabart", "0", "--mot-spek", ADAMS_MAALT]);
   assert.equal(k.status, 0, k.stderr);
   assert.ok(k.rader.length > 0);
@@ -153,7 +153,10 @@ test("tak-kart: W = 0 og --mot-spek lik --spek gir eksakt 0 på hver rad; --naab
     assert.equal(r["diffMot"], 0, "samme spek i duellen ga et annet utfall — paringen holder ikke");
     assert.equal(r["motLik"], true);
   }
-  assert.notEqual(kart("vrak", ["--giver", "1", "--spek", ADAMS_MAALT, "--naabart", "2", "--fase", "vrak"]).status, 0);
+  // `--naabart` gjelder alle vinduer fra 11. sep (`naabart-handling.ts`). Det som SKAL kaste er en
+  // felle som ikke hører til vinduet — ellers kunne en K3.4-felle stille ha spilt kort i stedet.
+  assert.notEqual(kart("vrak", ["--giver", "1", "--spek", ADAMS_MAALT, "--naabart", "2", "--fase", "vrak", "--felle", "lav"]).status, 0);
+  assert.notEqual(kart("budfelle", ["--giver", "1", "--spek", ADAMS_MAALT, "--naabart", "2", "--felle", "kortest"]).status, 0);
 });
 
 /**

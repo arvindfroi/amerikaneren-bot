@@ -602,9 +602,15 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     // Ikke `lesNett`: den er E1-kortnettenes leser og krever en E1-bredde. BudQ-nettet
     // har sin egen (143 eller 287 inn, 11 ut), og `BudQagent` håndhever den. Et 287-nett
     // leser motstanderboka (K6.6) og trenger en driver som kaller `observer` ved RUNDE_SLUTT.
-    const budqNett = nettFraBytes(new Uint8Array(readFileSync(rest.slice(0, skille))))[0];
+    //
+    // `budq:<nettfil>h0:<indre>` (11. sep): nettet får en FERSK bok ved hvert bud, som `mlb:…h0`.
+    // Det er K4-nullarmens bryter (`utenMinne`); uten `h0` er stien bit-identisk med før.
+    let fil = rest.slice(0, skille);
+    const h0 = fil.endsWith("h0");
+    if (h0) fil = fil.slice(0, -2);
+    const budqNett = nettFraBytes(new Uint8Array(readFileSync(fil)))[0];
     if (budqNett === undefined) throw new Error(`Tomt BudQ-nett i «${indre}»`);
-    return new BudQagent(lagIndre(rest.slice(skille + 1), ctx), budqNett);
+    return new BudQagent(lagIndre(rest.slice(skille + 1), ctx), budqNett, h0 ? { hukommelse: false } : {});
   }
   if (indre.startsWith("budm:")) {
     const rest = indre.slice(5);

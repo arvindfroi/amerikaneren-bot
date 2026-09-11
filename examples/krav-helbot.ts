@@ -14,8 +14,10 @@
  *        ΔP(seier) bot − menneske per runde fra 10. aug, klyngebootstrap over kamper.
  *        KONTROLL: menneskesiden (mP, rundepoeng) er identisk i begge armene.
  *        FELLE: `nevro` i menneskets sete MÅ ligge under mennesket (< −2 SE).
- *        JA: > 2 SE og positiv i begge halvdeler av kampene (dataene er faste, så
- *        «disjunkte bånd» er to halvdeler delt på kamp-id).
+ *        JA (11. sep, avtalt med eieren): snitt ≥ +1,0 pp per runde OG z = snitt/SE ≥ 3.
+ *        Den gamle porten (> 2 SE og positiv i begge halvdeler) sa JA til +0,86 ± 0,20 i
+ *        batteriet 11. sep — målt fordel, men under det eieren kaller «henter mer ut».
+ *        Halvdelene (delt på kamp-id) står som kontekst i raden.
  *   K2   `k2-spek.ts`, tidlig (bud, vrak, velg, stikk 0–3) og sent (stikk 7+).
  *        KONTROLL: fersk agent to ganger gir samme svar. FELLE: juks:6 og den plantede
  *        jukseren tatt i hver fase. JA: 0 avvik.
@@ -31,6 +33,15 @@
  *        eksakt 0. FELLE: `OVERBY_BUDLAG` (melder 11, 12 eller amerikaner) har nåbart gap
  *        > 2 SE. Klarsynstallet og «alltid pass» (`PASS_BUDLAG`, for subtil til å være felle)
  *        står som kontekst i samme rad.
+ *   K3.4, K3.6, K7 (11. sep) dømmes heller ikke lenger mot klarsynstaket (batteriet 11. sep,
+ *        iter1: K3.4 +1,18 / +1,33, Adams +1,37 / +1,37; K3.6 +1,46 / +5,31, Adams +1,44 /
+ *        +4,98; K7 +0,31 / +0,50, Adams +0,64 / +1,55 — like langt unna for Adams). Porten er
+ *        det NÅBARE taket per beslutning i vinduet (`naabart-handling.ts`, `naabartVindu`).
+ *        JA: nåbart gap − 2 SE ≤ 0 i hvert bånd. KONTROLL: uendret handling ⇒ eksakt 0.
+ *        FELLE: `r.andre` med `--felle` i vinduet — trumf i korteste farge (K3.4), laveste
+ *        lovlige kort (K3.6), verste kort under samme informasjon (K7) — MÅ ha nåbart gap
+ *        > 2 SE. I sluttspillet var laveste og tilfeldig kort for milde (se KOSTNAD). Klarsynsgapet
+ *        og Adams (nåbart og klarsyn) står som kontekst i raden.
  *   K3.1-Adams  budduellen: samme giv, bord og kortspill, bare budlaget byttet til
  *        `ADAMS_BUDLAG`. Bot − Adams i poeng og ΔP(seier). JA: bot − Adams + 2 SE ≥ 0.
  *        KONTROLL: samme budfølge ⇒ eksakt 0. FELLE: boten uten søk slår overbyderen > 2 SE.
@@ -104,6 +115,39 @@
  * +0,80 ± 0,48 samlet over 60 giv — en så subtil budfeil ser porten IKKE med disse størrelsene.
  * W: taket steg fra W = 8 til 32 med +0,82 ± 0,90 (parret, 24 giv i begge bånd); ikke
  * signifikant, men i riktig retning for en nedre grense, derfor 32.
+ *
+ * K3.4, K3.6 OG K7 MOT DET NÅBARE TAKET (11. sep, travel maskin, W = 32, --andre uten søk,
+ * utspillingene uten søk). Moderat utvalg per bånd, prosess-s per giv (spek / felle / Adams):
+ *
+ *   K3.4  16 giv, bånd 0 / 1: gap +0,625 ± 0,597 / +1,875 ± 0,999; Adams +0,625 ± 0,597 /
+ *         +1,250 ± 0,833; felle «kortest» +9,44 ± 0,60 (z 15,7) / +5,63 ± 1,24 (z 4,5); 0 brudd.
+ *         ~21 / 0,8 / 0,8. Én beslutning per giv (budvinnerens trumf); i bånd 0 byttet taket den
+ *         i 2 av 64 rader, de SAMME to for boten og Adams, derfor like tall.
+ *   K3.6  12 giv, bånd 0 / 1: gap +0,458 ± 1,247 / +0,771 ± 1,449; Adams +1,250 ± 1,186 /
+ *         +0,042 ± 0,065; felle «lav» +2,98 ± 1,53 (z 1,95) / +0,60 ± 1,24 (z 0,49), «tilfeldig»
+ *         +0,96 ± 0,79 / −1,29 ± 1,60, «verst» +1,46 ± 1,21 (z 1,21) / +2,48 ± 1,36 (z 1,82),
+ *         «hoy» +1,79 ± 1,07 (z 1,68) / +1,90 ± 1,10 (z 1,72). ~27 / 4,7 (lav) – 14 (verst) / 6,5.
+ *         UTVIDET til 48 giv per bånd (36 giv til, frø g = 12..47 — nøyaktig givene batteriet
+ *         bruker): «lav» +2,76 ± 0,72 (z 3,84) / +1,71 ± 0,57 (z 3,02); «hoy» +1,50 ± 0,56
+ *         (z 2,67) / +2,17 ± 0,74 (z 2,92). «lav» på 12 giv i bånd 1 var et uheldig trekk.
+ *   K7    16 giv, bånd 0 / 1: gap +0,297 ± 0,296 / 0,000 ± 0,000; Adams 0 / 0 (29 av 64 rader
+ *         byttet i hvert bånd, ingen endret poengene); felle «lav» +1,00 ± 0,73 (z 1,38) / +1,89 ±
+ *         0,99 (z 1,92), «tilfeldig» +0,94 ± 0,65 / +0,63 ± 0,59, «verst» +2,30 ± 1,03 (z 2,23) /
+ *         +3,16 ± 1,18 (z 2,68), «hoy» +0,02 ± 0,02 / +1,28 ± 0,82. ~20 / 3,7 (verst) / 1,7.
+ *
+ * VALGT (fellas kraft i BEGGE bånd, SE skalert med √n fra utvalget): K3.4 60 giv, felle «kortest»
+ * (z ~30 / ~9), gapets SE ~0,31 / ~0,52 → nei over ~0,6–1,0 poeng/runde. K7 60 giv, felle
+ * «verst» (z ~4,3 / ~5,2), SE ~0,15 i bånd 0 (bånd 1 hadde bare nuller på 16 giv) → nei over
+ * ~0,3. K3.6 48 giv, felle «lav»: MÅLT på nøyaktig batteriets 48 giv z 3,84 / 3,02 (fellearmen
+ * avhenger bare av `r.andre` og W, så tallet står til bordet endres); gapets SE ~0,62 / ~0,72 →
+ * nei først over ~1,3–1,5 poeng/runde: raden ser bare grove feil i midtspillet. W = 32 i alle tre.
+ * KOSTNAD per bånd: 60·22,4 + 48·38,3 + 60·25,1 ≈ 4 700 prosess-s, ~9 400 for begge bånd, ~8 min
+ * på 20 kjerner oppå klarsynsarmene (som står uendret som kontekst).
+ *
+ * HVORFOR SPREDNINGEN ER STOR I KORTSPILLET: ett annet kort i stikk 3 sender resten av runden inn
+ * i en annen, kaotisk linje, og rundepoengene er ±20 i kontrakten. Den ekte given gir ÉN
+ * realisering per byttet beslutning. Taket bytter mange nesten-likeverdige kort (37–44 av 48
+ * rader i K3.6) fordi argmax over W = 32 bytter ved enhver strengt bedre snittverdi, som i budet.
  */
 
 import { spawn } from "node:child_process";
@@ -148,6 +192,13 @@ export const OVERBY_BUDLAG = "budm:e1-modell/bud-vant.json@-99";
 /** Seiersprediktoren for ΔP(seier) i K3.1-duellen (samme som K1-duplikatet). */
 export const K31_SEIER = "e1-modell/seier-g0.bin";
 export const K1_FRA = MENNESKE_FRA;
+/**
+ * K1-PORTEN (11. sep, eieren og leder): duplikat-ΔP(seier) bot − menneske ≥ +1,0 pp per runde
+ * OG z ≥ 3. Begge må holde: et stort snitt med stor SE er ikke målt, og et skarpt målt lite
+ * snitt (+0,86 ± 0,20, z 4,3 i batteriet 11. sep) er ikke nok fordel.
+ */
+export const K1_TERSKEL_PP = 1.0;
+export const K1_Z = 3;
 /** «Veldig høyt nivå» (K8.2, forslag 11. sep): minst 25 % av veien gulv → tak. */
 export const K8_TERSKEL = 0.25;
 
@@ -300,6 +351,15 @@ export interface Størrelser {
    */
   readonly budNaabartGiver: number;
   readonly budVerdener: number;
+  /**
+   * K3.4, K3.6 OG K7 MOT DET NÅBARE TAKET (11. sep): giv per bånd i spek-, felle- og Adams-armen,
+   * og W (verdener per beslutning, felles for de tre vinduene). Klarsynsarmene (`vrakGiver`,
+   * `midtGiver`, `takGiver`) står uendret og gir konteksten.
+   */
+  readonly vrakNaabartGiver: number;
+  readonly midtNaabartGiver: number;
+  readonly k7NaabartGiver: number;
+  readonly spillVerdener: number;
   readonly k4Giv: number;
   readonly k4MålRunde: number;
   readonly k4Forkamper: number;
@@ -330,6 +390,10 @@ export const KJAPP: Størrelser = {
   k7Noder: 1,
   budNaabartGiver: 1,
   budVerdener: 2,
+  vrakNaabartGiver: 1,
+  midtNaabartGiver: 1,
+  k7NaabartGiver: 1,
+  spillVerdener: 2,
   k4Giv: 1,
   k4MålRunde: 2,
   k4Forkamper: 0,
@@ -364,6 +428,11 @@ export function fullStørrelser(kjerner: number): Størrelser {
     // Satt etter målingen 11. sep (se KOSTNAD i filhodet): W = 32, 48 giv per bånd.
     budNaabartGiver: 48,
     budVerdener: 32,
+    // Satt etter utvalget 11. sep (se KOSTNAD i filhodet): fellas kraft i begge bånd bestemmer K3.6.
+    vrakNaabartGiver: 60,
+    midtNaabartGiver: 48,
+    k7NaabartGiver: 60,
+    spillVerdener: 32,
     k4Giv: 12,
     k4MålRunde: 7,
     k4Forkamper: 0,
@@ -435,10 +504,10 @@ export function domK1(spek: readonly D1[], felle: readonly D1[], B = 20_000) {
   const kontrollOk = s.length > 0 && parret === s.length && f.length === s.length && ulik === 0;
   const felleOk = Number.isFinite(kf.se) && kf.snitt < -2 * kf.se;
   const halv = [0, 1].map((b) => klyngeSnitt(s.filter((x) => fnv(x.spill) % 2 === b), (x) => x.spill, dP, B));
-  const beggeHalvdeler = halv.every((h) => h.snitt > 0);
-  const signifikant = Number.isFinite(ks.se) && ks.snitt > 2 * ks.se;
-  const innfridd: Dom = !kontrollOk || !felleOk ? "stum" : signifikant && beggeHalvdeler ? "ja" : "nei";
-  return { ks, kf, kd, halv, parret, ulik, kontrollOk, felleOk, innfridd };
+  const z = Number.isFinite(ks.se) && ks.se > 0 ? ks.snitt / ks.se : NaN;
+  const porten = ks.snitt >= K1_TERSKEL_PP && z >= K1_Z;
+  const innfridd: Dom = !kontrollOk || !felleOk ? "stum" : porten ? "ja" : "nei";
+  return { ks, kf, kd, halv, z, parret, ulik, kontrollOk, felleOk, innfridd };
 }
 
 export interface Takrad {
@@ -472,6 +541,8 @@ export interface NaabartRad {
   readonly motLik?: boolean;
   readonly seierRein?: number;
   readonly seierMot?: number;
+  /** Bare i `--fase vrak|spill`: beslutninger i vinduet taket vurderte for setet. */
+  readonly naabartBeslutninger?: number;
 }
 
 /**
@@ -620,7 +691,8 @@ async function k1(r: Rigg): Promise<Helrad[]> {
       bånd: r.bånd,
       navn: "henter mer ut av menneskets kort enn mennesket (duplikat)",
       målt:
-        `ΔP(seier) bot − menneske ${fmt(d.ks.snitt, 2)} ± ${d.ks.se.toFixed(2)} pp per runde ` +
+        `ΔP(seier) bot − menneske ${fmt(d.ks.snitt, 2)} ± ${d.ks.se.toFixed(2)} pp per runde, z = ${d.z.toFixed(2)} ` +
+        `(port: ≥ ${fmt(K1_TERSKEL_PP, 1)} pp OG z ≥ ${K1_Z}) ` +
         `(${d.ks.n} runder i ${d.ks.klynger} kamper fra ${K1_FRA}); halvdeler ${fmt(d.halv[0]!.snitt, 2)} / ${fmt(d.halv[1]!.snitt, 2)}; ` +
         `rundepoeng ${fmt(d.kd.snitt, 2)} ± ${d.kd.se.toFixed(2)}`,
       kontroll: `menneskesiden identisk i begge armene: ${d.parret} parret, ${d.ulik} ulike (må være 0)`,
@@ -882,19 +954,118 @@ async function k31(r: Rigg): Promise<Helrad[]> {
   ];
 }
 
+/**
+ * K3.4, K3.6 OG K7 MOT DET NÅBARE TAKET (11. sep). Ett vindu, fire armer, én rad.
+ *
+ *   spek    `--spek` ved bordet `r.andre`, nåbart tak (W verdener fra setets visning per beslutning
+ *           i vinduet, utspilt av `r.andre` i alle fire seter). Det som dømmes.
+ *   felle   `r.andre` med `--felle` i vinduet (korteste trumffarge / laveste kort / verste kort), samme tak.
+ *           KRAFTPRØVEN: den MÅ ha nåbart gap > 2 SE, ellers er raden stum.
+ *   adams   `ADAMS_MAALT` ved samme bord, samme tak. KONTEKST: hvor Adams står i samme vindu.
+ *   klarsyn `kjørTak` uendret (spek, ADAMS_MAALT, tomt vindu). KONTEKST, ingen dom lenger.
+ *
+ * Dommen er `domNaabart` (ensidig, uendret handling ⇒ eksakt 0), den samme som K3.1.
+ */
+async function naabartVindu(
+  r: Rigg,
+  krav: string,
+  merke: string,
+  navn: string,
+  vindu: readonly string[],
+  felle: "lav" | "kortest" | "verst" | "hoy",
+  giver: number,
+  klarsynGiver: number,
+  klarsynNoder: number,
+): Promise<Helrad> {
+  const takJobb = kjørTak(r, merke, vindu, klarsynGiver, klarsynNoder);
+  const reg = new Regnskap();
+  const W = r.st.spillVerdener;
+  const N = skardtall(r, giver);
+  const bord = r.andre === r.spek ? [] : ["--andre", r.andre];
+  const felles = [
+    "examples/tak-kart.ts", ...vindu, "--uten-tak", "--gjenbruk",
+    "--giver", String(giver), "--froe", String(r.frø), "--naabart", String(W), "--naabart-spek", r.andre,
+  ];
+  const armer = [
+    { arm: "spek", v: ["--spek", r.spek, ...bord] },
+    { arm: "felle", v: ["--spek", r.andre, "--andre", r.andre, "--felle", felle] },
+    { arm: "adams", v: ["--spek", ADAMS_MAALT, "--andre", r.andre] },
+  ];
+  const filer: Record<string, string[]> = { spek: [], felle: [], adams: [] };
+  const jobber: Promise<boolean>[] = [];
+  for (const a of armer) {
+    for (let i = 0; i < N; i++) {
+      const fil = nyFil(`${r.utBase}-${merke}naabart-${a.arm}-s${i}.jsonl`);
+      filer[a.arm]!.push(fil);
+      jobber.push(reg.kjør(r.kø, [...felles, "--merke", a.arm, "--ut", fil, "--skard", `${i}/${N}`, ...a.v], `${fil}.logg`));
+    }
+  }
+  await Promise.all(jobber);
+  const tak = await takJobb;
+  const les = (arm: string): NaabartRad[] => filer[arm]!.flatMap((f) => lesJsonl<NaabartRad>(f));
+  const d = domNaabart(les("spek"), les("felle"));
+  const aRader = les("adams");
+  const adams = klyngeSnitt(aRader, (x) => x.frø, (x) => x.diffNaabart);
+  const aBrudd = aRader.filter((x) => x.naabartEndret === 0 && x.diffNaabart !== 0).length;
+  const beslutninger = (rs: readonly NaabartRad[]): number => rs.reduce((s, x) => s + (x.naabartBeslutninger ?? 0), 0);
+  const t = tak.d;
+  const pm = (s: { snitt: number; se: number }): string => `${fmt(s.snitt)} ± ${s.se.toFixed(4)}`;
+  const fellenavn = {
+    lav: "laveste lovlige kort i vinduet",
+    hoy: "høyeste lovlige kort i vinduet",
+    verst: "verste kort under samme informasjon (argmin over W verdener)",
+    kortest: "trumf i korteste farge",
+  }[felle];
+  return {
+    krav,
+    bånd: r.bånd,
+    navn,
+    målt:
+      `nåbart gap ${pm(d.gap)} poeng/runde (W=${W}, n=${d.gap.n} i ${d.gap.klynger} giv, ${beslutninger(les("spek"))} beslutninger, byttet i ${d.byttet} rader); ` +
+      `klarsyn ${pm(t.gap)} (n=${t.gap.n} i ${t.gap.klynger} giv, ${t.kappet} kappet); ` +
+      `Adams: nåbart ${pm(adams)}, klarsyn ${pm(t.stakk)}`,
+    kontroll:
+      `uendret handling ⇒ eksakt 0: ${d.brudd + aBrudd} brudd av ${d.uendret} rader (må være 0); ` +
+      `klarsyn, tomt vindu: ${t.kontrollOk ? "OK" : "BOMMET"}`,
+    kontrollOk: d.kontrollOk && aBrudd === 0,
+    felle: `${fellenavn}: nåbart gap ${pm(d.fella)} (må være > 2 SE)`,
+    felleOk: d.felleOk,
+    innfridd: d.innfridd,
+    kilde:
+      `examples/tak-kart.ts ${vindu.join(" ")} --uten-tak --naabart ${W} --naabart-spek <uten søk> (${N} skiver per arm); ` +
+      `klarsyn: --gjenbruk --maks-noder ${klarsynNoder}`,
+    merknad:
+      "Ja = nåbart gap − 2 SE ≤ 0 (klynget på giv): valgene i vinduet er ikke signifikant dårligere enn det beste valget under " +
+      "SAMME informasjon (W verdener fra setets visning per beslutning, argmax av snittpoeng, se examples/naabart-handling.ts). " +
+      `Ensidig fordi taket med endelig W er en nedre grense. Oppløsning: et gap over ${fmt(2 * d.gap.se, 2)} ville vært nei. ` +
+      `Utspillingene i verdenene spilles av ${r.andre} i alle fire seter. Klarsynstaket og Adams er kontekst; ` +
+      `det gamle kravet |gap| ≤ 2 SE mot klarsyn ga ${t.innfridd}.` +
+      reg.merknad() +
+      tak.reg.merknad(),
+    prosessSekunder: Math.round(reg.sek + tak.reg.sek),
+    jobber: reg.jobber + tak.reg.jobber,
+  };
+}
+
 async function k3(r: Rigg): Promise<Helrad[]> {
   const [bud, vrak, midt] = await Promise.all([
     // Et spek uten nøyaktig ett budlag (MLB) kan ikke duellere: raden blir en feilrad, K3.4/K3.6 står.
     k31(r).catch((e: unknown) => [feilrad("K3.1", r, e instanceof Error ? e.message : String(e))]),
-    takvindu(r, "K3.4", "k3vrak", "trumfvalget nær taket", ["--fase", "vrak"], r.st.vrakGiver, r.st.maksNoder),
-    takvindu(r, "K3.6", "k3midt", "midtspillet (stikk 3–5) nær taket", ["--fase", "spill", "--fra", "3", "--til", "5"], r.st.midtGiver, r.st.midtNoder),
+    naabartVindu(r, "K3.4", "k3vrak", "trumfvalget nær det nåbare taket", ["--fase", "vrak"], "kortest", r.st.vrakNaabartGiver, r.st.vrakGiver, r.st.maksNoder),
+    naabartVindu(
+      r, "K3.6", "k3midt", "midtspillet (stikk 3–5) nær det nåbare taket", ["--fase", "spill", "--fra", "3", "--til", "5"], "lav",
+      r.st.midtNaabartGiver, r.st.midtGiver, r.st.midtNoder,
+    ),
   ]);
   return [...bud, vrak, midt];
 }
 
 async function k7(r: Rigg): Promise<Helrad[]> {
   return [
-    await takvindu(r, "K7", "k7", "sluttspillet (siste fem stikk) nær taket", ["--fase", "spill", "--fra", "7", "--til", "11"], r.st.takGiver, r.st.k7Noder),
+    await naabartVindu(
+      r, "K7", "k7", "sluttspillet (siste fem stikk) nær det nåbare taket", ["--fase", "spill", "--fra", "7", "--til", "11"], "verst",
+      r.st.k7NaabartGiver, r.st.takGiver, r.st.k7Noder,
+    ),
   ];
 }
 
@@ -1333,6 +1504,10 @@ export async function kjørHelbot(argv: readonly string[]): Promise<void> {
     k7Noder: over("--k7-noder", st0.k7Noder),
     budNaabartGiver: over("--bud-naabart-giver", st0.budNaabartGiver),
     budVerdener: over("--bud-verdener", st0.budVerdener),
+    vrakNaabartGiver: over("--vrak-naabart-giver", st0.vrakNaabartGiver),
+    midtNaabartGiver: over("--midt-naabart-giver", st0.midtNaabartGiver),
+    k7NaabartGiver: over("--k7-naabart-giver", st0.k7NaabartGiver),
+    spillVerdener: over("--spill-verdener", st0.spillVerdener),
     k4Giv: over("--k4-giv", st0.k4Giv),
     k5Giver: over("--k5-giver", st0.k5Giver),
     k6Kamper: over("--kamper", st0.k6Kamper),
