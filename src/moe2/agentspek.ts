@@ -585,7 +585,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     const skille = rest.indexOf(":");
     if (skille < 0) throw new Error(`Ugyldig budq-spek «${indre}» – forventet budq:<nettfil>:<indre>`);
     // Ikke `lesNett`: den er E1-kortnettenes leser og krever en E1-bredde. BudQ-nettet
-    // har sin egen (143 inn, 11 ut), og `BudQagent` håndhever den.
+    // har sin egen (143 eller 287 inn, 11 ut), og `BudQagent` håndhever den. Et 287-nett
+    // leser motstanderboka (K6.6) og trenger en driver som kaller `observer` ved RUNDE_SLUTT.
     const budqNett = nettFraBytes(new Uint8Array(readFileSync(rest.slice(0, skille))))[0];
     if (budqNett === undefined) throw new Error(`Tomt BudQ-nett i «${indre}»`);
     return new BudQagent(lagIndre(rest.slice(skille + 1), ctx), budqNett);

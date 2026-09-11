@@ -27,6 +27,16 @@
  *
  * EKSPERTITERASJON: `--spek` er policyen som spiller resten av runden. Start med
  * `ADAMS`; når et BudQ-nett finnes, spill med `budq:<fil>:…` og tren på nytt.
+ *
+ * MOTSTANDERBOKA (K6.6): `--hukommelse` skriver `x` med 287 tall — de 143 pluss
+ * MLB-hukommelsen for det registrerte setet (`budqTrekk(s, sete, bok)`), bokført av
+ * kampens ferdige runder. Uten flagget er utdataene byte-identiske med før.
+ *
+ * OBSERVER. Alle kamp- og utspillingsagenter ser HVER tilstand i kampen, også
+ * `RUNDE_SLUTT`, gjennom `observer`. Før ble den aldri kalt: et 287-BudQ-nett i `--spek`
+ * ville budt med tom bok, og et hukommelsesleddet trohode i speken ville kastet i neste
+ * runde. Utspillingene selv (hypotetiske verdener) vises ALDRI — de når bare fram til
+ * `RUNDE_SLUTT`, og en tenkt runde skal ikke bokføres som om den var spilt.
  */
 
 import { appendFileSync, mkdirSync } from "node:fs";
@@ -40,6 +50,7 @@ import { ADAMS, lagIndre, tall } from "../src/moe2/agentspek.ts";
 import { medVerden, trekkVerdener } from "../src/moe2/sdkort.ts";
 import { BUDQ_BUD, budqTrekk } from "../src/moe2/budq.ts";
 import { Seiersprediktor } from "../src/mlb/seier.ts";
+import { Hukommelse } from "../src/mlb/hukommelse.ts";
 
 const arg = (n: string, s: string): string => {
   const i = process.argv.indexOf(n);
@@ -54,11 +65,20 @@ const MAKSRUNDER = tall(arg("--maksrunder", "60"), 60, "maksrunder");
 const SPEK = arg("--spek", ADAMS);
 const UT = arg("--ut", "D:/amb-grp/budq/d0/s0.jsonl");
 const SEIER = arg("--seier", "");
+const HUKOMMELSE = process.argv.includes("--hukommelse");
 const prediktor = SEIER === "" ? null : Seiersprediktor.fraFil(SEIER);
 mkdirSync(dirname(UT), { recursive: true });
 
 const kamp = [0, 1, 2, 3].map(() => lagIndre(SPEK));
 const utspill = [0, 1, 2, 3].map(() => lagIndre(SPEK));
+const alleAgenter = [...kamp, ...utspill];
+
+/**
+ * Motstanderboka per sete, nullstilt per kamp. Hvert sete får sin egen, som en
+ * `BudQagent` i setet ville hatt; de ser de samme offentlige tilstandene, og `vektor`
+ * roterer til setets relative motstandere.
+ */
+let bøker: Hukommelse[] | null = null;
 
 /** Rundeutfallet for `sete`: egne poeng minus snittet av de tre andre. 0 om ingen runde ble spilt. */
 function utfall(s: GameState, sete: number): number {
@@ -99,8 +119,15 @@ for (let g = 0; g < KAMPER; g++) {
   const frø = FRØ + g * 7717;
   let s: GameState = opprettSpill({ antallSpillere: 4, målPoeng: 100 }, frø);
   for (const a of kamp) a.nyKamp();
+  // Utspillingsagentene er også «i kampen» nå som de observerer den: ny kamp, ny bok.
+  for (const a of utspill) a.nyKamp();
+  bøker = HUKOMMELSE ? [0, 1, 2, 3].map(() => new Hukommelse()) : null;
   let vakt = 0;
   while (s.fase !== "FERDIG" && s.rundeNr < MAKSRUNDER && vakt++ < 40_000) {
+    // HVER tilstand, også RUNDE_SLUTT; se hodet. Før trekket, så en bok som leser
+    // poengstillingen ved rundestart har den før første beslutning.
+    for (const a of alleAgenter) a.observer?.(s);
+    if (bøker !== null) for (const b of bøker) b.observer(s);
     if (s.fase === "RUNDE_SLUTT") {
       s = utfør(s, { type: "NESTE" }).state;
       continue;
@@ -130,7 +157,7 @@ for (let g = 0; g < KAMPER; g++) {
               sete,
               maal: prediktor === null ? "poeng" : "seier",
               policy: h.type === "BUD" ? String(h.bud) : null,
-              x: [...budqTrekk(s, sete)].map((x) => Math.round(x * 10_000) / 10_000),
+              x: [...budqTrekk(s, sete, bøker?.[sete] ?? null)].map((x) => Math.round(x * 10_000) / 10_000),
               q,
               ...(prediktor === null ? {} : { qp }),
             }) + "\n",

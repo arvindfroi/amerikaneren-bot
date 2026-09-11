@@ -5,9 +5,25 @@ BUDQ — TRENER Q(stilling, bud) PAA UTSPILLINGSETIKETTENE (K3.1, K3.2). 11. sep
     <venv>/bin/python verktoy/budq-tren.py \
         --data "/mnt/d/amb-grp/budq/d0/s*.jsonl" --ut /mnt/d/amb-grp/budq/budq-v1.bin
 
-Radene kommer fra `examples/budq-data.ts`: trekk (143), og for hvert lovlige bud K
-utspillingsverdier fra verdener trukket fra setets visning. Maalet per (rad, bud) er
-snittet over verdenene; maska sier hvilke bud som var lovlige.
+Radene kommer fra `examples/budq-data.ts`: trekk (143, eller 287 med `--hukommelse`:
+motstanderboka bakerst), og for hvert lovlige bud K utspillingsverdier fra verdener
+trukket fra setets visning. Maalet per (rad, bud) er snittet over verdenene; maska sier
+hvilke bud som var lovlige.
+
+BREDDEN leses av radene (alle maa ha samme), eller settes med `--dim 143|287`; da hoppes
+rader med annen bredde over og telles.
+
+VARMSTART (K6.6, 11. sep): `--vekter <appformat>` starter fra et ferdig nett. Et 143-nett
+til 287 utvides med NULLKOLONNER i foerste lag, saa startnettet velger bit-identisk med
+143-nettet (motstanderboka har ingen virkning foer dataene gir den en), og starten er
+selv en kandidat ("epoke 0") - resultatet er aldri daarligere enn starten paa holdout.
+Bruk samme `--skala` og `--skjult` som startnettet ble trent med.
+
+    bash /d/amb-k8/py-wsl.sh verktoy/budq-tren.py --data "/mnt/d/amb-grp/budq/h0/s*.jsonl" \
+        --vekter /mnt/d/amb-agB/e1-modell/budq-s2.bin --ut /mnt/d/amb-grp/budq/budq-h1.bin
+
+MASKINLESBART paa SLUTTEN (stdout fra WSL mister tidlige linjer): `MODELL-GEVINST-HOLDOUT`,
+`START-GEVINST-HOLDOUT`, `MODELL-DIM` osv., én per linje.
 
 HVA SOM MAALES PAA HOLDOUT (hele kamper, hash av froeet):
 
@@ -35,8 +51,15 @@ BUD = ["PASS", "5", "6", "7", "8", "9", "10", "11", "12", "AMERIKANER", "SOLO"]
 INDEKS = {b: i for i, b in enumerate(BUD)}
 
 
-def les(monster, blanding=0.0):
+BREDDER = (143, 287)
+
+
+def les(monster, blanding=0.0, dim=0):
+    """dim=0: bredden leses av foerste rad, og en annen bredde senere er en feil (to
+    datasett blandet i stillhet ville gitt et nett som leser boka halve tiden)."""
     X, T, M, P, FRO = [], [], [], [], []
+    lest_bredde = dim == 0
+    feil_bredde = 0
     filer = []
     for m in monster.split(","):
         filer += sorted(glob.glob(m))
@@ -66,12 +89,45 @@ def les(monster, blanding=0.0):
                         m[INDEKS[b]] = 1.0
                 if m.sum() < 2:
                     continue
+                bredde = len(r["x"])
+                if dim == 0:
+                    dim = bredde
+                    if dim not in BREDDER:
+                        raise SystemExit(f"Ukjent trekkbredde {dim} i {sti} (ventet {BREDDER})")
+                if bredde != dim:
+                    if lest_bredde:
+                        raise SystemExit(f"Blandede trekkbredder: {dim} og {bredde} ({sti}). Velg med --dim.")
+                    feil_bredde += 1
+                    continue
                 X.append(numpy.asarray(r["x"], dtype=numpy.float32))
                 T.append(t)
                 M.append(m)
                 P.append(INDEKS.get(str(r.get("policy")), -1))
                 FRO.append(int(r["frø"]))
-    return numpy.stack(X), numpy.stack(T), numpy.stack(M), numpy.asarray(P), numpy.asarray(FRO, dtype=numpy.int64), len(filer)
+    if not X:
+        raise SystemExit(f"Ingen brukbare rader i «{monster}» (bredde {dim or 'ukjent'}, {feil_bredde} med annen bredde)")
+    return (numpy.stack(X), numpy.stack(T), numpy.stack(M), numpy.asarray(P),
+            numpy.asarray(FRO, dtype=numpy.int64), len(filer), dim, feil_bredde)
+
+
+def les_vekter(sti):
+    """Appformatet (`skriv_vekter`) tilbake til [(W, b)], radvis W (ut x inn). Som vrak-tren.py."""
+    with open(sti, "rb") as f:
+        data = f.read()
+    _, n = struct.unpack_from("<ii", data, 0)
+    o = 8
+    lag = []
+    for _ in range(n):
+        inn, ut = struct.unpack_from("<ii", data, o)
+        o += 8
+        w = numpy.frombuffer(data, dtype="<f4", count=inn * ut, offset=o).reshape(ut, inn).copy()
+        o += 4 * inn * ut  # offset er i BYTES, float32 er fire
+        b = numpy.frombuffer(data, dtype="<f4", count=ut, offset=o).copy()
+        o += 4 * ut
+        lag.append((w, b))
+    if o != len(data):
+        raise SystemExit(f"{sti}: leste {o} av {len(data)} byte - formatet er forskjoevet")
+    return lag
 
 
 def skriv_vekter(sti, lag):
@@ -100,18 +156,44 @@ def main():
     ap.add_argument("--rapport", default="")
     ap.add_argument("--blanding", type=float, default=0.0,
                     help="maal = q + blanding*qp: seiersmaal pluss en andel rundepoeng (krever qp i dataene)")
+    ap.add_argument("--dim", type=int, default=0, choices=[0, 143, 287],
+                    help="trekkbredde; 0 = les av radene (143 uten, 287 med budq-data --hukommelse)")
+    ap.add_argument("--vekter", default="",
+                    help="start fra dette nettet (appformat); et 143-nett til 287 utvides med nullkolonner")
     a = ap.parse_args()
 
-    X, T, M, P, FRO, nfiler = les(a.data, a.blanding)
+    X, T, M, P, FRO, nfiler, dim, hoppet = les(a.data, a.blanding, a.dim)
     h = (FRO.astype(numpy.uint64) * numpy.uint64(2654435761)) % numpy.uint64(4294967296)
     hold = (h % numpy.uint64(a.hold_del)) == 0
     print(f"{len(X)} budstillinger fra {nfiler} filer, {int(hold.sum())} paa holdout, "
-          f"{int((~hold).sum())} i trening, {X.shape[1]} trekk", flush=True)
+          f"{int((~hold).sum())} i trening, {dim} trekk"
+          + (f" ({hoppet} rader med annen bredde hoppet over)" if hoppet else ""), flush=True)
+    if int(hold.sum()) == 0 or int((~hold).sum()) == 0:
+        raise SystemExit("Holdout eller trening er tom - flere kamper (froe) eller en annen --hold-del")
 
     enhet = "cuda" if torch.cuda.is_available() else "cpu"
     torch.manual_seed(a.froe)
-    dims = [X.shape[1]] + [int(x) for x in a.skjult.split(",")] + [len(BUD)]
+    dims = [dim] + [int(x) for x in a.skjult.split(",")] + [len(BUD)]
     lag = nn.ModuleList([nn.Linear(dims[i], dims[i + 1]) for i in range(len(dims) - 1)]).to(enhet)
+    start_inn = None
+    if a.vekter:
+        # VARMSTART (K6.6). Nullkolonnene er hele poenget: Q er uendret ved start, og
+        # motstanderboka faar bare vekt der gradienten finner noe i den.
+        gamle = les_vekter(a.vekter)
+        if len(gamle) != len(lag):
+            raise SystemExit(f"--vekter har {len(gamle)} lag, modellen {len(lag)} (--skjult maa matche)")
+        with torch.no_grad():
+            for i, (l, (w, b)) in enumerate(zip(lag, gamle)):
+                ut, inn = w.shape
+                if ut != l.out_features or inn > l.in_features or (i > 0 and inn != l.in_features):
+                    raise SystemExit(f"lag {i}: vektene er {inn}->{ut}, modellen {l.in_features}->{l.out_features}")
+                ny = torch.zeros_like(l.weight)
+                ny[:, :inn] = torch.from_numpy(w).to(enhet)
+                l.weight.copy_(ny)
+                l.bias.copy_(torch.from_numpy(b).to(enhet))
+        start_inn = gamle[0][0].shape[1]
+        print(f"START FRA {a.vekter}"
+              + (f" (utvidet {start_inn} -> {dim} med nullkolonner)" if start_inn < dim else ""), flush=True)
 
     def fram(x):
         for i, l in enumerate(lag):
@@ -147,10 +229,16 @@ def main():
         fordeling = numpy.bincount(valg.cpu().numpy(), minlength=len(BUD)) / len(valg)
         return mse, float(d.mean()), se, float((tak - q_pol)[gyldig].mean()), enig, fordeling
 
-    mse0, g0, se0, tak0, enig0, _ = maal()
+    mse0, g0, se0, tak0, enig0, ford0 = maal()
     print(f"start: mse {mse0:.3f}  gevinst {g0:+.3f} ± {se0:.3f}  tak {tak0:+.3f}", flush=True)
     beste = -1e9
     beste_rad = None
+    if a.vekter:
+        # Starten er selv en kandidat: blir ingen epoke bedre paa holdout, skrives
+        # startnettet (nullutvidet) - aldri et daarligere nett enn det vi startet fra.
+        beste = g0
+        beste_rad = (0, mse0, g0, se0, tak0, enig0, ford0)
+        skriv_vekter(a.ut, lag)
     n = len(Xt)
     for e in range(a.epoker):
         perm = torch.randperm(n, device=enhet)
@@ -182,7 +270,22 @@ def main():
     if a.rapport:
         with open(a.rapport, "a", encoding="utf-8") as f:
             f.write(tekst)
-    print(json.dumps({"budq": {"epoke": e, "mse": mse, "gevinst": g, "se": se, "tak": tak, "enig": enig}}), flush=True)
+    print(json.dumps({"budq": {"epoke": e, "mse": mse, "gevinst": g, "se": se, "tak": tak, "enig": enig,
+                               "dim": dim, "start": a.vekter or None, "start_gevinst": g0}}), flush=True)
+    # MASKINLESBART, HELT TIL SLUTT: stdout fra WSL mister de tidlige linjene.
+    for navn, verdi in (
+        ("MODELL-DIM", dim),
+        ("MODELL-EPOKE", e),
+        ("MODELL-GEVINST-HOLDOUT", f"{g:.4f}"),
+        ("MODELL-SE-HOLDOUT", f"{se:.4f}"),
+        ("MODELL-TAK-HOLDOUT", f"{tak:.4f}"),
+        ("MODELL-MSE-HOLDOUT", f"{mse:.4f}"),
+        ("MODELL-ENIG-HOLDOUT", f"{enig:.4f}"),
+        ("START-GEVINST-HOLDOUT", f"{g0:.4f}"),
+        ("START-FRA", (a.vekter + (f" ({start_inn}->{dim})" if start_inn is not None and start_inn < dim else "")) if a.vekter else "tilfeldig"),
+        ("MODELL-UT", a.ut),
+    ):
+        print(f"{navn} {verdi}", flush=True)
 
 
 if __name__ == "__main__":

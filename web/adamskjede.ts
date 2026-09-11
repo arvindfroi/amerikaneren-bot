@@ -26,7 +26,7 @@ import { tolkBudmodell, type Budmodell } from "../src/moe2/budmodell.ts";
 import { Sikkerorakel, type SikkerTellere } from "../src/moe2/sikkerorakel.ts";
 import { byggUtrullet, type Søkspek, type Velger } from "../src/moe2/utrullet.ts";
 import { MlbTronett } from "../src/mlb/tronett.ts";
-import { BUDQ_INN, BUDQ_UT } from "../src/moe2/budq.ts";
+import { BUDQ_INN, BUDQ_INN_H, BUDQ_UT } from "../src/moe2/budq.ts";
 
 /**
  * Meldingsprotokollen mellom hovedtråd og worker.
@@ -188,7 +188,16 @@ export function byggAdams(v: RåAdamsVekter, k: AdamsKonfig, medSøk: boolean, k
       try {
         const n = nettFraBytes(tilBytes(v.budq))[0] ?? null;
         const siste = n?.lag[n.lag.length - 1];
-        if (n === null || n.lag[0]?.inn !== BUDQ_INN || siste?.ut !== BUDQ_UT) {
+        /**
+         * APPEN BLIR PÅ 143 (K6.6, 11. sep). Et 287-nett leser motstanderboka, og boka
+         * fylles bare når kjeden ser `RUNDE_SLUTT` gjennom `observer`. I `web/app.ts` får
+         * bare WORKEREN den (`søkeklient.rundeSlutt`); hovedtrådens `nettAgenter`, som tar
+         * budet, kalles aldri ved rundeslutt. Boka ville stått tom hele kampen — et annet
+         * nett enn det som ble målt. Slippes først inn når hovedtråden kaller `observer`.
+         */
+        if (n !== null && n.lag[0]?.inn === BUDQ_INN_H) {
+          console.warn(`BudQ-nettet leser motstanderboka (${BUDQ_INN_H} inn), men hovedtråden får aldri RUNDE_SLUTT – byr med budmodellen`);
+        } else if (n === null || n.lag[0]?.inn !== BUDQ_INN || siste?.ut !== BUDQ_UT) {
           console.warn(`BudQ-nettet har feil form (ventet ${BUDQ_INN} inn, ${BUDQ_UT} ut) – byr med budmodellen`);
         } else {
           budqNett = n;
