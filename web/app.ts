@@ -28,6 +28,7 @@ import { tolkBudmodell } from "../src/moe2/budmodell.ts";
 import { AMERIKANER, PASS, SOLO, type Bud } from "../src/regler.ts";
 import { byggAdams, børSøke, erLovligKort, type AdamsKonfig } from "./adamskjede.ts";
 import { Søkeklient, type Arbeider, type Søkelag } from "./sokeklient.ts";
+import { Tenkeklokke, type Synlighet, type Tenketid } from "./tempo.ts";
 
 // --- Oppsett ----------------------------------------------------------------
 const DATA_URL = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
@@ -51,7 +52,7 @@ const MENNESKE = 0;
  *
  * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
  */
-const BUNDELVERSJON = "v12-2026-09-11";
+const BUNDELVERSJON = "v13-2026-09-11";
 (globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
@@ -902,7 +903,34 @@ let state: GameState;
 let spillId = "";
 let spillerNavn = "";
 let venterPåMenneske = false;
-let sistTur = 0; // tidsstempel for reaksjonstid-logging
+/**
+ * TENKETIDEN (11. sep) — se `web/tempo.ts`. Erstatter `sistTur`, som målte det
+ * samme `ms` uten å skille ut tid med skjult fane eller vindu uten fokus.
+ *
+ * Startes i `fortsett()` når menneskets kontroller er tegnet, stoppes når
+ * handlingen sendes. Leses BARE av `logg()`: ingen bot, verken her eller i
+ * workeren, får menneskets tenketid under spillet (K2).
+ */
+const tenkeklokke = new Tenkeklokke(() => performance.now());
+const synlighet = (): Synlighet => ({ skjult: document.visibilityState === "hidden", fokus: document.hasFocus() });
+document.addEventListener("visibilitychange", () => tenkeklokke.endre(synlighet()));
+addEventListener("blur", () => tenkeklokke.endre(synlighet()));
+addEventListener("focus", () => tenkeklokke.endre(synlighet()));
+/**
+ * Menneskets beslutninger i denne runden, i den rekkefølgen de ble sendt.
+ * Skrives som `tempo` i `runde`-raden. Fase-koden er den samme som i
+ * `bottrekk` (B/V/T/S); `stikk` står bare ved kortspill og peker inn i
+ * `historikk`.
+ */
+type Tempopost = { fase: string; stikk?: number } & Partial<Tenketid>;
+let rundeTempo: Tempopost[] = [];
+
+/** Stopper klokka for en menneskebeslutning og noterer den for runden. */
+function tenketid(fase: string, stikk?: number): Tenketid | Record<string, never> {
+  const t = tenkeklokke.stopp();
+  rundeTempo.push({ fase, ...(stikk !== undefined ? { stikk } : {}), ...(t ?? {}) });
+  return t ?? {};
+}
 let vrakValg: Kort[] = [];
 let velgTrumfValg: Farge | null = null;
 /**
@@ -1115,6 +1143,7 @@ async function start(navn: string): Promise<void> {
   }
   state = opprettSpill({ antallSpillere: 4 }, (Date.now() ^ (Math.random() * 1e9)) >>> 0);
   bottrekk = [];
+  rundeTempo = [];
   // Ett delt eksemplar fører alle tre setene, så nullstill det bare én gang.
   for (const a of new Set(nettAgenter ?? [])) a.nyKamp();
   if (motstander === "Vaar" && råVekter !== null && SØKVERDENER > 0) {
@@ -1360,6 +1389,7 @@ function håndterHendelser(hendelser: readonly Hendelse[]): void {
         if (frystStikk === null && !travelt) tegn();
       }, SMELTETID);
     } else if (h.type === "NY_RUNDE") {
+      rundeTempo = [];
       lagmodus = "ingen";
       smeltetVist = false;
       sistBudTatt = -1;
@@ -1403,6 +1433,10 @@ function håndterHendelser(hendelser: readonly Hendelse[]): void {
         // (`valg-bud`) og vinnerbudet: botenes bud og pass var borte, og hukommelsens
         // budavvik (K6.6) kunne ikke gjenskapes fra loggen. Offentlig informasjon.
         budrunde: { sisteBud: state.budrunde.sisteBud.slice(), passet: state.budrunde.passet.slice() },
+        // MENNESKETS TENKETID (11. sep), én post per beslutning i sendt rekkefølge:
+        // `{ fase, stikk?, ms, skjultMs?, ufokusMs?, angre? }`. BARE mennesket — botenes
+        // regnetid står i `bottrekk` og skal aldri kunne leses som menneskelig tempo.
+        tempo: rundeTempo,
       });
       // ÉN rad per runde med hvert bottrekk: sete, fase, lag og tenketid.
       // `sene` er søkesvar som kom etter fristen og ble kastet (bare når > 0).
@@ -1434,8 +1468,10 @@ function fortsett(): void {
   const aktør = lov.fase === "VRAK" || lov.fase === "VELG" ? state.budvinner! : lov.spiller;
   if (aktør === MENNESKE) {
     venterPåMenneske = true;
-    sistTur = performance.now();
     tegn();
+    // ETTER tegningen: nå står kontrollene framme. Ikke ved forrige spillers
+    // handling — da ville stikkpausen og botpausen blitt menneskets tenketid.
+    tenkeklokke.start(synlighet());
     return;
   }
 
@@ -1532,14 +1568,16 @@ function gjørMedPause(h: Handling, pauseMs: number): void {
 }
 
 // --- Menneskehandlinger -----------------------------------------------------
+// `ms` står der den alltid har stått; `skjultMs`, `ufokusMs` og `angre` er nye og
+// står bare med når de er > 0. Se `web/tempo.ts`.
 function menneskeBud(bud: Bud): void {
-  logg("valg-bud", { rundeNr: state.rundeNr, bud, ms: Math.round(performance.now() - sistTur) });
+  logg("valg-bud", { rundeNr: state.rundeNr, bud, ...tenketid("B") });
   venterPåMenneske = false;
   gjør({ type: "BUD", spiller: MENNESKE, bud });
 }
 
 function menneskeVrak(): void {
-  logg("valg-vrak", { rundeNr: state.rundeNr, antall: vrakValg.length, ms: Math.round(performance.now() - sistTur) });
+  logg("valg-vrak", { rundeNr: state.rundeNr, antall: vrakValg.length, ...tenketid("V") });
   venterPåMenneske = false;
   const kort = vrakValg;
   vrakValg = [];
@@ -1547,7 +1585,7 @@ function menneskeVrak(): void {
 }
 
 function menneskeVelg(trumf: Farge, etterlyst: Kort | null): void {
-  logg("valg-trumf", { rundeNr: state.rundeNr, trumf, etterlyst, ms: Math.round(performance.now() - sistTur) });
+  logg("valg-trumf", { rundeNr: state.rundeNr, trumf, etterlyst, ...tenketid("T") });
   venterPåMenneske = false;
   velgTrumfValg = null;
   velgEtterlysValg = null;
@@ -1555,7 +1593,7 @@ function menneskeVelg(trumf: Farge, etterlyst: Kort | null): void {
 }
 
 function menneskeSpill(kort: Kort): void {
-  logg("valg-kort", { rundeNr: state.rundeNr, stikk: state.stikkSpilt, kort, ms: Math.round(performance.now() - sistTur) });
+  logg("valg-kort", { rundeNr: state.rundeNr, stikk: state.stikkSpilt, kort, ...tenketid("S", state.stikkSpilt) });
   venterPåMenneske = false;
   si(`Du spilte ${kortTale(kort)}.`);
   gjør({ type: "SPILL", spiller: MENNESKE, kort });
@@ -3553,8 +3591,10 @@ function koble(): void {
       const kort: Kort = { farge: b.dataset["farge"] as Farge, verdi: Number(b.dataset["verdi"]) as Kort["verdi"] };
       if (lov.fase === "VRAK" && venterPåMenneske) {
         const i = vrakValg.findIndex((v) => v.farge === kort.farge && v.verdi === kort.verdi);
-        if (i >= 0) vrakValg.splice(i, 1);
-        else if (vrakValg.length < lov.antall) vrakValg.push(kort);
+        if (i >= 0) {
+          vrakValg.splice(i, 1);
+          tenkeklokke.angre(); // et avhuket kort hukes av igjen
+        } else if (vrakValg.length < lov.antall) vrakValg.push(kort);
         tegn();
       } else if (lov.fase === "SPILL" && venterPåMenneske) {
         menneskeSpill(kort);
@@ -3573,9 +3613,9 @@ function koble(): void {
     velgOk.onclick = () => menneskeVelg(velgTrumfValg!, velgEtterlysValg);
   }
   const velgAngre = document.getElementById("velg-angre");
-  if (velgAngre) velgAngre.onclick = () => { velgEtterlysValg = null; tegn(); };
+  if (velgAngre) velgAngre.onclick = () => { velgEtterlysValg = null; tenkeklokke.angre(); tegn(); };
   const velgTilbake = document.getElementById("velg-tilbake");
-  if (velgTilbake) velgTilbake.onclick = () => { velgTrumfValg = null; velgEtterlysValg = null; tegn(); };
+  if (velgTilbake) velgTilbake.onclick = () => { velgTrumfValg = null; velgEtterlysValg = null; tenkeklokke.angre(); tegn(); };
   const neste = document.getElementById("neste");
   if (neste) {
     neste.focus();
