@@ -60,3 +60,32 @@ Per epoke, med **epokens eget trosnett** (`D:\amb-imit\maal-r2.sh`, som leser
 Arbeidskopi `D:\amb-r2` på commiten med KL-ankeret. Start:
 `powershell -File D:\amb-imit\start-r2.ps1` (etter at R1 er ferdig, så de to ikke
 deler CPU). Dommer: `bash /d/amb-imit/maal-r2.sh 1 6`.
+
+## DOM OVER R2 (11. sep, alle 6 epoker, 7,9 timer)
+
+Kampbenken PARRET mot i2 på de samme 400 frøene, med epokens eget trosnett:
+
+| epoke | port (gate 2, stigen) | kampbenk mot i2 | tegntest frø |
+|---|---|---|---|
+| e1 | avvist (z +0,42) | −0,0256 ± 0,0086 (−2,98 SE) | 60 / 109 |
+| e2 | avvist (z −1,52) | −0,0125 ± 0,0090 (−1,38 SE) | 75 / 105 |
+| e3 | avvist (z −0,11) | −0,0213 ± 0,0084 (−2,52 SE) | 62 / 102 |
+| e4 | avvist (z +0,99) | −0,0150 ± 0,0086 (−1,75 SE) | 67 / 99 |
+| e5 | avvist (z +1,09) | −0,0169 ± 0,0088 (−1,91 SE) | 73 / 107 |
+| e6 | avvist (z +1,12) | +0,0025 ± 0,0089 (+0,28 SE) | 84 / 89 |
+
+**Stoppkriteriet er innfridd: ingen epoke er bedre enn i2 med ≥ 2 SE parret. R2 er
+FEILET, slik det står skrevet over.** Trosnettet ble godtatt hver epoke (holdout K8-tap
+0,955 → 0,918 over e1–e2) og seiersprediktoren fra e2, men policyen ble ikke sterkere
+enn imitasjonen den startet fra; seks epoker med anker mot i2 endte på i2.
+
+**Avvik fra planen, skrevet ned:** kravbatteriet ble kjørt for e1 (delvis) og stoppet
+under e2, og `maal-r2.sh` ble erstattet av `maal-r2-lett.sh` fra e3 — bare kampbenken.
+Grunnen var eierens kurs 11. sep (trening foran benking); batteriet tok mange kjerner
+fra selve løpet. Dommen over hviler på kampbenken, som var stoppregelens mål, så
+avviket endrer ikke utfallet.
+
+**Neste steg, slik planen sa:** kraften flyttes til Adams-stakken. Budet som et lært
+valg (`src/moe2/budq.ts`, BudQ) er den formen «budsøket på Adams-stakken» fikk: det er
+replikert over `ADAMS` i to disjunkte frøbånd (~+0,03 i vinnerandel) og over appens
+kjede på samme frø (+0,075 ± 0,013). Se `analyse/natt-2026-09-11.md`.
