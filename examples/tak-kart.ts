@@ -29,6 +29,34 @@
  * KOSTNAD. Forgreiningen er bare VÅR, så treet er ~b^v blader der v er antall
  * egne beslutninger i vinduet. Tre stikk med snitt 2–3 lovlige kort er noen
  * titalls utspillinger per beslutning.
+ *
+ * ============ HELE BOTEN I KARTET: TRE OPT-IN-KNOTTER (11. sep) ==========
+ *
+ * Med en søkende spek (`sik:alle:…`) er hvert blad en runde der fire seter søker, og
+ * kartet ble uframkommelig. Knottene under er AV som standard, og da er stien og
+ * hver rad byte-identisk med før.
+ *
+ *   --gjenbruk       Fire agenter for hele treet, nullstilt med `nyKamp()` der den
+ *                    gamle koden bygde fire nye (`lagIndre` per node). I tillegg
+ *                    spilles REN-runden (uten taklinje) én gang per giv i stedet for
+ *                    én gang per sete: den avhenger ikke av setet, bare av hvem som
+ *                    leser poengene. For en deterministisk spek er begge delene
+ *                    bit-identiske med standardstien — `test/tak-kart-gjenbruk.test.ts`
+ *                    holder det. For en søkende spek er de IKKE det: `Sikkerorakel`
+ *                    nullstiller ikke RNG-en i `nyKamp()`, så utspillingene i treet
+ *                    trekker en annen (like gyldig) strøm. Paringen FØR vinduet er
+ *                    uendret, fordi hver runde fortsatt får ferske agenter. Med agent
+ *                    A sitt deterministiske per-beslutning-frø forsvinner forskjellen.
+ *   --maks-noder N   Tak på forgreinede noder per taksøk. Over taket spiller vårt
+ *                    sete sin egen policy videre. Taket er da en NEDRE grense for det
+ *                    ekte taket, og gapet likeså: «gapet er null» kan ikke leses fra et
+ *                    kappet tre, «gapet er stort» kan. Radene får `noder` og `kappet`.
+ *   --skard i/N      Bare giv g med g mod N = i, for parallelle prosesser.
+ *   --andre <spek>   De TRE andre setene spiller denne speken, vårt sete `--spek`. Målt i
+ *                    røyk: et budvindu med fire søkende seter kostet 190 prosess-sekunder
+ *                    for ÉN giv. Spørsmålet blir «gapet til beste svar mot et bord av
+ *                    <andre>», og det står i kravrapporten. Ren-runden og takrunden får
+ *                    samme bord, så paringen holder.
  */
 
 import { appendFileSync } from "node:fs";
@@ -42,7 +70,7 @@ import {
 } from "../src/index.ts";
 import { FARGER } from "../src/kort.ts";
 import { lovligeEtterlys } from "../src/motor.ts";
-import { lagIndre, ADAMS, tall } from "../src/moe2/agentspek.ts";
+import { lagIndre, ADAMS, tall, type Spekagent } from "../src/moe2/agentspek.ts";
 
 const arg = (n: string, s: string) => {
   const i = process.argv.indexOf(n);
@@ -73,8 +101,23 @@ const MERKE = arg("--merke", `${FASE}-${FRA}-${TIL}`);
  * `--fra 10 --til 10 --giver 250` reproduserer arkivet rad for rad.
  */
 const SPEK = arg("--spek", ADAMS);
+const GJENBRUK = process.argv.includes("--gjenbruk");
+const MAKS_NODER_TEKST = arg("--maks-noder", "");
+const MAKS_NODER = MAKS_NODER_TEKST === "" ? Infinity : tall(MAKS_NODER_TEKST, 0, "maks-noder");
+const [SKARD_I, SKARD_N] = arg("--skard", "0/1").split("/").map((x) => tall(x, 0, "skard")) as [number, number];
+const ANDRE = arg("--andre", "");
 
-const nyeAgenter = () => [0, 1, 2, 3].map(() => lagIndre(SPEK));
+const nyeAgenter = (vårt: number) =>
+  [0, 1, 2, 3].map((p) => lagIndre(ANDRE === "" || p === vårt ? SPEK : ANDRE));
+
+/**
+ * Treets agenter under `--gjenbruk`, ett sett per sete når `--andre` gjør setene ulike.
+ * Aldri de samme som rundens egne — se `runde`.
+ */
+const pooler = new Map<number, Spekagent[]>();
+/** Forgreinede noder i det pågående taksøket, og om taket ble nådd. */
+let noder = 0;
+let kappet = false;
 
 /** Er dette en av VÅRE beslutninger inne i vinduet vi måler? */
 function iVindu(s: GameState, vårt: number): boolean {
@@ -126,7 +169,25 @@ function alternativer(s: GameState, vårt: number): Handling[] {
 
 /** Maks poeng for `vårt` fra denne stillingen, med `budsjett` egne forgreninger igjen. */
 function beste(state: GameState, vårt: number, budsjett: number): { poeng: number; kort: Handling | null } {
-  const ag = nyeAgenter();
+  /**
+   * GJENBRUKEN ER TRYGG AV EN STRUKTURELL GRUNN: en node bruker agentene sine BARE i
+   * løkka under, før den forgreiner seg. Når barna er ferdige, rører den dem aldri
+   * igjen. Ett sett nullstilt her er derfor det samme som et nytt sett her — så langt
+   * `nyKamp()` er det samme som en ny agent.
+   */
+  let ag: Spekagent[];
+  if (GJENBRUK) {
+    const nøkkel = ANDRE === "" ? 0 : vårt;
+    let pool = pooler.get(nøkkel);
+    if (pool === undefined) {
+      pool = nyeAgenter(vårt);
+      pooler.set(nøkkel, pool);
+    }
+    for (const a of pool) a.nyKamp();
+    ag = pool;
+  } else {
+    ag = nyeAgenter(vårt);
+  }
   let s = state;
   let vakt = 0;
 
@@ -140,6 +201,12 @@ function beste(state: GameState, vårt: number, budsjett: number): { poeng: numb
   if (s.fase === "FERDIG" || s.fase === "RUNDE_SLUTT" || budsjett <= 0 || !iVindu(s, vårt)) {
     return { poeng: poengFor(s, vårt), kort: null };
   }
+  if (noder >= MAKS_NODER) {
+    // TAKET PÅ TREET: herfra spiller vårt sete sin egen policy. Nedre grense, se hodet.
+    kappet = true;
+    return beste(s, vårt, 0);
+  }
+  noder++;
 
   let bestP = -Infinity;
   let bestK: Handling | null = null;
@@ -160,34 +227,55 @@ function poengFor(s: GameState, sete: number): number {
 /** Antall egne forgreninger vinduet tillater. */
 const BUDSJETT = FASE === "bud" ? 4 : FASE === "vrak" ? 1 : TIL - FRA + 1;
 
-/** Spiller en runde der `vårt` sete bruker taklinja inne i vinduet. */
+/**
+ * Spiller en runde der `vårt` sete bruker taklinja inne i vinduet.
+ *
+ * RUNDEN FÅR ALLTID FERSKE AGENTER, også under `--gjenbruk`. Det er paringen: ren-runden
+ * og takrunden skal ta nøyaktig de samme beslutningene FØR vinduet, og for en søkende
+ * spek gjør de det bare når begge starter med RNG-en på frøet.
+ */
 function runde(frø: number, vårt: number, bruk: boolean) {
-  const ag = nyeAgenter();
+  const ag = nyeAgenter(vårt);
   let s: GameState = opprettSpill({ antallSpillere: 4 }, frø);
   let brukt = 0;
   let vakt = 0;
+  let sumNoder = 0;
+  let noenKappet = false;
   while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && vakt++ < 400) {
     const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
     if (iTur === null || iTur === undefined) break;
     let h: Handling | null = null;
     if (bruk && brukt < BUDSJETT && iVindu(s, vårt)) {
+      noder = 0;
+      kappet = false;
       h = beste(s, vårt, BUDSJETT - brukt).kort;
+      sumNoder += noder;
+      noenKappet ||= kappet;
       if (h !== null) brukt++;
     }
     s = utfør(s, h ?? ag[iTur]!.velgHandling(s)).state;
   }
-  return { poeng: poengFor(s, vårt), bv: s.budvinner };
+  return { poeng: poengFor(s, vårt), bv: s.budvinner, s, noder: sumNoder, kappet: noenKappet };
 }
 
 let n = 0;
 let sum = 0;
 let bedre = 0;
+let antallKappet = 0;
 const perRolle: Record<string, { n: number; sum: number; traff: number }> = {};
 
 for (let g = 0; g < GIVER; g++) {
+  if (g % SKARD_N !== SKARD_I) continue;
   const frø = FRØ + g * 7717;
+  /**
+   * REN-RUNDEN ÉN GANG PER GIV under `--gjenbruk`. Uten taklinja er `vårt` bare leseren
+   * av poengtavla, så fire gjennomspillinger av samme runde med ferske agenter er fire
+   * identiske tilstander. Med `--andre` sitter speken bare i vårt sete, og da er ren-runden
+   * setets egen.
+   */
+  const ren = GJENBRUK && ANDRE === "" ? runde(frø, 0, false) : null;
   for (let sete = 0; sete < 4; sete++) {
-    const a = runde(frø, sete, false);
+    const a = ren === null ? runde(frø, sete, false) : { poeng: poengFor(ren.s, sete), bv: ren.s.budvinner };
     const b = runde(frø, sete, true);
     if (a.bv === null) continue;
     // I budvinduet KAN budvinneren bli en annen – det er hele poenget der.
@@ -201,10 +289,13 @@ for (let g = 0; g < GIVER; g++) {
     r.n++;
     r.sum += d;
     if (d > 0) r.traff++;
-    appendFileSync(
-      UT,
-      `${JSON.stringify({ merke: MERKE, frø, sete, rolle, rein: a.poeng, tak: b.poeng, diff: d })}\n`,
-    );
+    const rad: Record<string, unknown> = { merke: MERKE, frø, sete, rolle, rein: a.poeng, tak: b.poeng, diff: d };
+    if (Number.isFinite(MAKS_NODER)) {
+      rad["noder"] = b.noder;
+      rad["kappet"] = b.kappet;
+      if (b.kappet) antallKappet++;
+    }
+    appendFileSync(UT, `${JSON.stringify(rad)}\n`);
   }
 }
 
@@ -216,4 +307,7 @@ for (const [k, v] of Object.entries(perRolle)) {
   console.log(
     `  ${k.padEnd(8)} n=${String(v.n).padStart(5)}  ${(v.sum / v.n).toFixed(4)}  traff ${v.traff} (${((100 * v.traff) / v.n).toFixed(1)} %)  naar den traff ${nårTraff.toFixed(1)}`,
   );
+}
+if (Number.isFinite(MAKS_NODER)) {
+  console.log(`kappet ved ${MAKS_NODER} noder: ${antallKappet} av ${n} rader — gapet der er en NEDRE grense`);
 }
