@@ -7,9 +7,10 @@
  */
 
 import { strict as assert } from "node:assert";
+import { existsSync } from "node:fs";
 import { test } from "node:test";
 
-import { ADAMS_MAALT } from "../src/moe2/agentspek.ts";
+import { ADAMS_MAALT, lagIndre } from "../src/moe2/agentspek.ts";
 import {
   A_MINNE,
   A_NULL,
@@ -21,11 +22,52 @@ import {
   spillOgTaOpp,
   type K4SpekRapport,
 } from "../examples/k4-hukommelse.ts";
-import { utenMinne } from "../examples/spek-lag.ts";
+import { utenMinne, utenØktmotstander } from "../examples/spek-lag.ts";
 
 test("K4 --spek: nullarmen avledet av A_MINNE er nøyaktig A_NULL", () => {
   assert.equal(utenMinne(A_MINNE), A_NULL, "avledningen bygger en annen nullarm enn den faste");
   assert.equal(A_NULL, BASE_DET);
+});
+
+/** Hele boten slik batteriet kjørte den 11. sep (D:/amb-grp/loop/iter0/krav.txt). */
+const HELBOT_11SEP =
+  "okt:vr:e1-modell/vrak-1.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:24k32e3LMD~mlbu=e1-modell/tro-1.bin:" +
+  "budq:e1-modell/budq-1.bin:vakt:abmp:e1:e1-modell/d7alle.bin";
+const HELBOT_FILER = ["vrak-1.bin", "tro-1.bin", "budq-1.bin", "d7alle.bin"].map((f) => `e1-modell/${f}`);
+const manglerFiler = HELBOT_FILER.filter((f) => !existsSync(f));
+
+test(
+  "utenMinne: helbotens nullarm BYGGER — «M» følger okt: ut, og en avledning som lar «M» stå blir tatt",
+  { skip: manglerFiler.length > 0 ? `mangler ${manglerFiler.join(", ")} (e1-modell er ikke sporet)` : false },
+  () => {
+    const nul = utenMinne(HELBOT_11SEP);
+    assert.equal(
+      nul,
+      "vr:e1-modell/vrak-1.bin:telrd:eks:3Lt2000:sik:alle:0.5:24k32e3LD:budq:e1-modell/budq-1.bin:vakt:abmp:e1:e1-modell/d7alle.bin",
+    );
+    // Batteriet 11. sep: alle 24 K4-jobber kastet her.
+    assert.doesNotThrow(() => lagIndre(nul));
+    // FELLA: avledningen slik den var (troen ut, «M» igjen) SKAL kaste ved bygging — ellers
+    // kunne prøven over vært grønn fordi byggingen ikke sjekker «M» lenger.
+    const gammel = nul.replace("24k32e3LD", "24k32e3LMD");
+    assert.notEqual(gammel, nul);
+    assert.throws(() => lagIndre(gammel), /ber om «M»/);
+  },
+);
+
+test("utenØktmotstander: tar bare «M» bakerst (foran «D»), og også når troen ikke leser boka", () => {
+  assert.equal(utenØktmotstander("24k32e3LMD"), "24k32e3LD");
+  assert.equal(utenØktmotstander("24k32e3LM"), "24k32e3L");
+  assert.equal(utenØktmotstander("24k32e3LD"), "24k32e3LD");
+  assert.equal(utenØktmotstander("12aminD"), "12aminD");
+  // Økta forsvinner uansett hva troen leser, så «M» må ut også her.
+  assert.equal(
+    utenMinne("okt:sik:alle:0.5:2k2MD~mlb=x.bin:e1:e1-modell/d7alle.bin", () => false),
+    "sik:alle:0.5:2k2D~mlb=x.bin:e1:e1-modell/d7alle.bin",
+  );
+  assert.equal(utenMinne("okt:sik:alle:0.5:2k2M:e1:e1-modell/d7alle.bin", () => false), "sik:alle:0.5:2k2:e1:e1-modell/d7alle.bin");
+  // En spek uten «M» er urørt (samme streng som før fiksen).
+  assert.equal(utenMinne(ADAMS_MAALT), ADAMS_MAALT);
 });
 
 test("K4 --spek: standardkallet er uendret — tomt `ekstra` gir samme opptak som før", () => {

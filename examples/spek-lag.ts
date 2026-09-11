@@ -167,6 +167,17 @@ export function troLeserMinne(sti: string): boolean {
 }
 
 /**
+ * Verdensfeltet i `sik:` (delen FORAN «~») uten «M». `lagIndre` leser feltet bakfra —
+ * `…[L][M][D]` — så «D» skrelles av først og settes på igjen. Store bokstaver med vilje i
+ * parseren: kriterienavnene er små, så en «M» bakerst kan bare være øktknotten.
+ */
+export function utenØktmotstander(vFelt: string): string {
+  const medD = vFelt.endsWith("D");
+  const kropp = medD ? vFelt.slice(0, -1) : vFelt;
+  return (kropp.endsWith("M") ? kropp.slice(0, -1) : kropp) + (medD ? "D" : "");
+}
+
+/**
  * DEN SAMME BOTEN UTEN HUKOMMELSE — K4-nullarmen.
  *
  * Hukommelsen bor tre steder i hele boten, og en nullarm som bare fjerner ett av
@@ -180,6 +191,17 @@ export function troLeserMinne(sti: string): boolean {
  * finnes ingen annen måte å skru av boka på fra speken. Nullarmen søker da med
  * budvekten alene — en annen tro, men ingen hukommelse. `--null-spek` finnes for
  * den som har en bedre nullarm.
+ *
+ * ============ «M» I SØKEFELTET FØLGER ØKTA UT (11. sep) =====================
+ *
+ * `sik:…24k32e3LMD~…`: «M» lar motstandersetene i utspillingene spille ØKTAS policy.
+ * Den er hukommelse av samme slag som `okt:`, og uten `okt:` har den ingenting å lese —
+ * `lagIndre` kaster da («ber om M … men det finnes ingen økt»). Første utgave tok ut
+ * `okt:` og lot «M» stå, og hele K4-nullarmen krasjet i batteriet 11. sep. I K6 krasjet
+ * den IKKE: `k6-vaner --armer okt` gir setet en egen økt uansett spek, så «nullspeken»
+ * søkte med øktas motstandermodell — den var ikke uten minne, og dd målte bare
+ * `profil:` og troen, ikke «M». «M» tas derfor ut uansett hva troen leser; «D» (frøet
+ * fra visningen) står.
  */
 export function utenMinne(spek: string, leserMinne: (sti: string) => boolean = troLeserMinne): string {
   const d = delLag(spek);
@@ -189,11 +211,12 @@ export function utenMinne(spek: string, leserMinne: (sti: string) => boolean = t
       if (l.navn !== "sik:") return l;
       const f = l.felt[2] ?? "";
       const t = f.indexOf("~");
-      if (t < 0) return l;
+      const vFelt = utenØktmotstander(t < 0 ? f : f.slice(0, t));
+      if (t < 0) return { navn: l.navn, felt: [l.felt[0]!, l.felt[1]!, vFelt] };
       const sti = f.slice(t + 1).split("=")[1] ?? "";
-      if (!leserMinne(sti)) return l;
-      // «L» (lagmålet) står FORAN «~» (`24k32e3L~mlbu=…`), så den følger med i f.slice(0, t).
-      return { navn: l.navn, felt: [l.felt[0]!, l.felt[1]!, f.slice(0, t)] };
+      // «L» (lagmålet) står FORAN «~» (`24k32e3L~mlbu=…`), så den følger med i vFelt.
+      if (!leserMinne(sti)) return { navn: l.navn, felt: [l.felt[0]!, l.felt[1]!, vFelt + f.slice(t)] };
+      return { navn: l.navn, felt: [l.felt[0]!, l.felt[1]!, vFelt] };
     });
   let terminal = d.terminal;
   if (terminal.startsWith("mlb:")) {
