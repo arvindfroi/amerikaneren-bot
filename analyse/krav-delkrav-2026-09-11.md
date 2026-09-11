@@ -177,5 +177,6 @@ Eieren spurte om alt som manglet i lista var kodet inn. Svaret var nei; dette er
 | K7.2 | alpha-mu d4/d5 målt null; eksakt løsning ikke i planen | **BYGD, dom køet** | `sik:…:<V>e<T>`: søkets utspillinger løses eksakt i hver verden fra T stikk igjen (poengdds). Verdiene er prøvd lik likevekten regnet fra roten; av er bit-identisk. Kampbenk (app-q + `24e3`) køet etter K7.1. |
 | K4.3 / K7.2 / K8 kanal 6 for MLB | «søk ved spilletid må kobles på» | **BYGD** | Ingen ny søkekode i `src/mlb/` – herkomstprøven forbyr løseren der, og `sok.ts`-kroken er for søk i treningen (AVGJØRELSE 5). Søk ved spilletid er komposisjon: `sik:…e3L:mlb:…` og `eks:3L:mlb:…`. `test/mlb-spilletidsok.test.ts` viser at det bygger, vurderer, slår til og er K2-invariant. Gevinsten er umålt til MLB-nettet er sterkere enn Adams. |
 
-Fortsatt åpent: eksportvei for menneskedata (krever endring i Val Town-valen; eierens valg, sammen med at
-valens offentlige liste viser navn), og DOMMENE over K7.1, K7.2 og K8 kanal 5/2 – bygd er ikke innfridd.
+| K1.3 / K6-data | ingen eksportvei; skriptene leste en dump fra 23. jul–1. aug | **BYGD** | Valen har sidevisning (`?format=json&etter=<id>&grense=<n>`, samme offentlige data – eieren: ikke sensitivt). `examples/menneske-eksport.ts` henter hele historikken: 97 145 hendelser, lik tellingen i databasen. Navn byttes mot saltet pseudonym før noe skrives; saltet ligger utenfor repoet. |
+
+Fortsatt åpent: DOMMENE over K7.1 og K7.2 (kampbenk mot appens kjede) – bygd er ikke innfridd.
