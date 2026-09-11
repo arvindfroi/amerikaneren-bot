@@ -158,7 +158,14 @@ def les_vekter(sti, modell):
             w = numpy.frombuffer(f.read(inn * ut * 4), dtype="<f4").reshape(ut, inn)
             b = numpy.frombuffer(f.read(ut * 4), dtype="<f4")
             with torch.no_grad():
-                if utvid:
+                if utvid and inn == 776 and l.in_features == 920:
+                    # 776 = 660 | signal, men 920 = 660 | hukommelse (144) | signal. Å legge
+                    # nullkolonnene BAKERST ville latt signalvektene lese hukommelsesblokken
+                    # (agent C målte 0 av 40 like fordelinger); de settes derfor inn på 660.
+                    l.weight.zero_()
+                    l.weight[:, :660].copy_(torch.from_numpy(w[:, :660].copy()))
+                    l.weight[:, 804:].copy_(torch.from_numpy(w[:, 660:].copy()))
+                elif utvid:
                     l.weight.zero_()
                     l.weight[:, :inn].copy_(torch.from_numpy(w.copy()))
                 else:
