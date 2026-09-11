@@ -36,6 +36,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 VRAK_DIM = 24
+# Kallet (etterlysningen) som lært valg: `etterlystTrekk` i src/moe2/vraktrekk.ts.
+# Bredden er med vilje ulik 24 og 27, så et kallnett aldri kan lastes som vraknett.
+ETTERLYST_DIM = 25
 
 
 class Rangnett(nn.Module):
@@ -82,8 +85,13 @@ def les_vekter(sti):
     return lag
 
 
-def les(mapper, dim=VRAK_DIM):
-    """→ (X, gruppe, verdi, frø, erNevro). `gruppe` sier hvilken stilling raden hører til."""
+def les(mapper, dim=VRAK_DIM, gruppetype="vrak"):
+    """→ (X, gruppe, verdi, frø, erNevro). `gruppe` sier hvilken stilling raden hører til.
+
+    `gruppetype` velger linjene: vrakgruppene har ingen `type` (formatet fra før), kallgruppene
+    fra `vrakq-data.ts --etterlyst` har `"type":"etterlyst"`. De ligger i samme filer, og en
+    vraktrening skal aldri se et kall (eller omvendt) – derfor filtreres det FØR gruppen telles.
+    """
     X, G, V, FRO, NEV = [], [], [], [], []
     g = 0
     for mappe in mapper:
@@ -93,6 +101,8 @@ def les(mapper, dim=VRAK_DIM):
                     try:
                         r = json.loads(linje)
                     except Exception:
+                        continue
+                    if (r.get("type") or "vrak") != gruppetype:
                         continue
                     kand = r.get("kand") or []
                     # Én kandidat gir ingen rangering å lære av.
@@ -129,17 +139,27 @@ def main():
     p.add_argument("--froe", type=int, default=11)
     p.add_argument("--logg", default="analyse/vrak-tren.jsonl")
     # VrakQ v2 (11. sep): 27 = de 24 trekkene + kampstillingen (egne/beste andres poeng, runde).
-    p.add_argument("--dim", type=int, default=VRAK_DIM, choices=[24, 27])
+    # K3.5/K3.8 (11. sep): 25 = kalltrekkene (`ETTERLYST_DIM` i src/moe2/vraktrekk.ts).
+    p.add_argument("--dim", type=int, default=None, choices=[24, ETTERLYST_DIM, 27])
+    # Hvilke grupper som trenes: vrak (standard, som før) eller kallet (`--etterlyst`-dataene).
+    # Samme tap, samme giv-deling og samme angerreferanse (`nevro: 1` = policyens kall).
+    p.add_argument("--type", default="vrak", choices=["vrak", "etterlyst"])
     # VRAKQ (11. sep): runde 1 trent fra null slo ikke vrakrangereren som er ute (anger 2,15 mot 2,05).
     # Start fra de vektene i stedet: nettet begynner DER, og flytter seg bare der dataene sier noe.
     # Et 24-nett til --dim 27 utvides med nullkolonner (kampstillingen starter uten virkning).
     p.add_argument("--vekter", default="", help="start fra disse vektene (appformat); tom = tilfeldig")
     args = p.parse_args()
 
+    if args.dim is None:
+        args.dim = ETTERLYST_DIM if args.type == "etterlyst" else VRAK_DIM
+    # Feil bredde for typen ville bare gitt null brukbare rader og en forvirrende feilmelding.
+    if (args.type == "etterlyst") != (args.dim == ETTERLYST_DIM):
+        raise SystemExit(f"--type {args.type} passer ikke med --dim {args.dim} (kallet er {ETTERLYST_DIM}, vraket 24/27)")
+
     enhet = "cuda" if torch.cuda.is_available() else "cpu"
-    X, G, V, FRO, NEV = les([m for m in args.data.split(",") if m], args.dim)
+    X, G, V, FRO, NEV = les([m for m in args.data.split(",") if m], args.dim, args.type)
     if len(X) == 0:
-        raise SystemExit(f"Ingen brukbare rader i {args.data}")
+        raise SystemExit(f"Ingen brukbare rader ({args.type}, dim {args.dim}) i {args.data}")
     ant_grupper = int(G.max()) + 1
     print(f"Enhet: {enhet}. {len(X)} kandidater i {ant_grupper} stillinger", flush=True)
 
@@ -296,6 +316,8 @@ def main():
     # ETTER at treningen var ferdig og vektene lagret - verste slaget: alt
     # arbeidet gjort, og likevel en traceback som ser ut som en feilet kjoering.
     print(f"\nFerdig: beste hold-anger {beste:.4f} poeng -> {args.ut}", flush=True)
+    # Hva som ble trent, ETTER treningen – linjene foer foerste epoke kan forsvinne i WSL-roeret.
+    print(f"GRUPPER {args.type} dim {args.dim}: {ant_grupper} stillinger, {len(X)} kandidater", flush=True)
     print(f"MODELL-ANGER-HOLDOUT {beste:.4f}", flush=True)
     # Også her, ETTER treningen: utskriftene før første epoke kom ikke gjennom WSL-røret i push-runden
     # (bare det som ble skrevet etter treningen overlevde), og porten fikk en tom referanse.
