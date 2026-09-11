@@ -383,6 +383,25 @@ const KVITTERINGSFRIST_MS = 15_000;
 /** Så mange fristbrudd på rad før søket settes på pause resten av kampen. */
 const MAKS_FRISTBRUDD = 3;
 
+/**
+ * ============ BUDQ — BUDET SOM ET LÆRT VALG (11. september) ==============
+ *
+ * `src/moe2/budq.ts`: Q(stilling, bud) lært fra utspillinger, argmax over de lovlige
+ * budene, i stedet for budmodellen og terskelen over. MÅLT på kampbenken, 400 frø per bånd:
+ *
+ *   appens kjede (søk som fører) med BudQ mot dagens, samme frø   +0,075 ± 0,013 (5,8 SE)
+ *   søkfri appkjede med BudQ mot søkfri appkjede, frø 740M         +0,058 ± 0,009
+ *   det samme, frø 750M                                            +0,049 ± 0,009
+ *
+ * Vinner oftere, taper med ~4 poeng mer når den taper. LÆRT MOT ADAMS-MOTSTANDERE, ikke
+ * mot mennesker — effekten mot familien kan bare måles etter utrulling.
+ *
+ * AV til eieren har sett tallene og sagt ja. Når `BUDQ_PÅ` er `false`, går det ikke ett
+ * nettverkskall til vektfila, og kjeden er bit for bit den som var utrullet før.
+ */
+const BUDQVEKTER = "adams-budq.b64";
+const BUDQ_PÅ: boolean = false;
+
 /** Det ENE oppsettet begge kjedene bygges fra. Se `web/adamskjede.ts`. */
 const ADAMS_KONFIG: AdamsKonfig = {
   vaktflagg: VAKTFLAGG,
@@ -391,11 +410,12 @@ const ADAMS_KONFIG: AdamsKonfig = {
   verdener: SØKVERDENER,
   sigma: SØKSIGMA,
   fristMs: SØKEFRIST_MS,
+  budqPå: BUDQ_PÅ,
 };
 
 /** Rå vekter, holdt for å kunne sendes til workeren. Agenter kan ikke krysse
  *  en meldingsgrense; workeren må bygge sin egen fra de samme bytene. */
-let råVekter: { kort: string; bud: unknown; vrak: string | null; tro: string | null } | null = null;
+let råVekter: { kort: string; bud: unknown; vrak: string | null; tro: string | null; budq: string | null } | null = null;
 
 /**
  * ============ HVILKE FILER SOM FAKTISK VANT RESERVEKJEDEN ================
@@ -423,7 +443,9 @@ const oppløst: {
   bud: string | null;
   vrak: boolean;
   tro: boolean;
-} = { kort: null, bud: null, vrak: false, tro: false };
+  /** BudQ byr (se `BUDQ_PÅ`). Settes først når nettet faktisk sitter i kjeden. */
+  budq: boolean;
+} = { kort: null, bud: null, vrak: false, tro: false, budq: false };
 
 let botLaster: Promise<Bot> | null = null;
 function besteBot(): Promise<Bot> {
@@ -477,8 +499,11 @@ function besteBot(): Promise<Bot> {
     //
     // Feiler den, søker boten uvektet som før; ingen enkeltdel tar ned resten.
     TROFIL === null ? Promise.resolve(null) : hentB64(TROFIL),
+    // BUDQ. Hentes bare når den er slått på; av betyr ingen nettverkskall og samme kjede
+    // som før. Feiler hentingen, byr boten med budmodellen — ingen enkeltdel tar ned resten.
+    BUDQ_PÅ ? hentB64(BUDQVEKTER) : Promise.resolve(null),
   ])
-    .then(([b64, budRå, vrakB64, troB64]) => {
+    .then(([b64, budRå, vrakB64, troB64, budqB64]) => {
       /**
        * N2: KJEDEN BYGGES IKKE LENGER FOR HÅND.
        *
@@ -492,13 +517,14 @@ function besteBot(): Promise<Bot> {
        */
       if (budRå === null) console.warn("Budmodellen kunne ikke lastes – spiller med NevroHjernes bud.");
       if (vrakB64 === null) console.warn("Vrakrangereren kunne ikke hentes – vraker som før.");
-      const bygd = byggAdams({ kort: b64, bud: budRå, vrak: vrakB64 }, ADAMS_KONFIG, false, oppløst.kort ?? KORTVEKTER);
+      const bygd = byggAdams({ kort: b64, bud: budRå, vrak: vrakB64, budq: budqB64 }, ADAMS_KONFIG, false, oppløst.kort ?? KORTVEKTER);
       // Hentet, men forkastet i byggingen: da KJØRER den ikke, og da skal den
       // heller ikke stå i loggen som om den gjorde det.
       if (!bygd.bud) oppløst.bud = null;
       oppløst.vrak = bygd.vrak; // settes FØRST når den faktisk er bygd, ikke når fila kom
       oppløst.tro = troB64 !== null;
-      råVekter = { kort: b64, bud: budRå, vrak: vrakB64, tro: troB64 };
+      oppløst.budq = bygd.budq;
+      råVekter = { kort: b64, bud: budRå, vrak: vrakB64, tro: troB64, budq: budqB64 };
       return bygd.agent;
     })
     .catch((feil: unknown) => {
@@ -1099,6 +1125,8 @@ async function start(navn: string): Promise<void> {
       bud: råVekter.bud,
       vrak: råVekter.vrak,
       tro: råVekter.tro,
+      // Samme BudQ-nett som hovedtråden, ellers byr søkets utspillinger som en annen bot.
+      budq: råVekter.budq,
       ...ADAMS_KONFIG,
     });
     // N5: `nyKamp()` når nå workerens kjede også — og en worker som var treg

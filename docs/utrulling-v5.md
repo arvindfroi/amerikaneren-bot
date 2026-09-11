@@ -53,6 +53,19 @@ det disjunkte**. Fortegnet snur, altså er den ikke etablert. Den ville kostet
 
 `TROFIL = null` i `web/app.ts`. Fila trenger ikke lastes opp.
 
+## BudQ — budet som et lært valg (11. september, AV)
+
+Klar i koden, ikke utrullet. Slås på med `BUDQ_PÅ = true` i `web/app.ts`.
+
+- **Fil:** `web/dist/adams-budq.b64` (563 KB) = base64 av `budq-s2.bin` (sha1 91a8d6bdd8b7).
+  Den må ligge der appen henter modeller (samme sted som `adams-kort.b64`).
+- **Hva som endres:** `budm:bud-menneske.json@-3.0` byttes mot `budq:` i BEGGE tråder
+  (`byggAdams` med `budqPå`). Søket, vakten og kortnettet er uendret.
+- **Målt:** appens kjede med BudQ mot dagens på samme 400 frø +0,075 ± 0,013 i vinnerandel;
+  søkfritt i to disjunkte bånd +0,058 og +0,049. Lært mot Adams, ikke mot mennesker.
+- **Sjekk etter utrulling:** `start`-raden skal ha `modeller.budq = true`; `bottrekk`/`runde`
+  viser budene. Følg menneskenes vinnerandel og marginen (BudQ taper med ~4 poeng mer når den taper).
+
 ## Rekkefølgen
 
 > **OMSKREVET 10. august.** Steg 2 sa «last opp», og det var feil premiss:

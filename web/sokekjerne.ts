@@ -33,6 +33,12 @@ export type Initmelding = {
   readonly vrak: string | null;
   /** MLB-trohodet som base64. Leses bare når `troISøk` er satt (se `AdamsKonfig`). */
   readonly tro: string | null;
+  /**
+   * BudQ-nettet som base64. Leses bare når `budqPå` er satt. Workeren MÅ få det samme
+   * nettet som hovedtråden: søkets utspillinger byr som boten, og ellers måler søket en
+   * annen kjede enn den som spiller.
+   */
+  readonly budq?: string | null;
 } & AdamsKonfig;
 
 export type TilWorker =
@@ -87,7 +93,7 @@ export function lagSøkekjerne(
       // hentet dem – ingen dobbel nedlasting av sju megabyte.
       const t0 = performance.now();
       try {
-        const bygd = byggAdams({ kort: m.kort, bud: m.bud, vrak: m.vrak, tro: m.tro }, m, true);
+        const bygd = byggAdams({ kort: m.kort, bud: m.bud, vrak: m.vrak, tro: m.tro, budq: m.budq ?? null }, m, true);
         adams = bygd.agent;
         sik = bygd.sik;
         /**
