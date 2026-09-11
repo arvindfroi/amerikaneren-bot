@@ -423,7 +423,9 @@ async function k1(r: Rigg): Promise<Helrad[]> {
       jobber.push(
         reg.kjør(
           r.kø,
-          ["examples/duplikat-menneske.ts", "--spek", sp, "--motstander", r.motstander, "--data", r.data, "--skard", `${i}/${N}`, "--ut", fil],
+          // `--etter K1_FRA`: bare rundene fra 10. aug blir rader (og kamper helt før spilles ikke) –
+          // uten den spilte batteriet alle 4 448 rundene for et utvalg domsraden uansett kaster.
+          ["examples/duplikat-menneske.ts", "--spek", sp, "--motstander", r.motstander, "--data", r.data, "--etter", K1_FRA, "--skard", `${i}/${N}`, "--ut", fil],
           `${fil}.logg`,
         ),
       );

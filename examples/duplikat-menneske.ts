@@ -121,13 +121,21 @@ const sjanse = (total: readonly number[], mål: number, budvinner: unknown, makk
   if (v !== null) return v === MENNESKE ? 1 : 0;
   return prediktor.fordeling([...total], MENNESKE, mål)[0]!;
 };
+/**
+ * `--etter <ISO-dato>`: bare runder fra og med datoen blir RADER (K1 måles fra 10. aug). Kamper som
+ * ligger helt før datoen spilles ikke; tidligere runder i en kamp som krysser datoen spilles, men
+ * skrives ikke – se hukommelsen under.
+ */
+const ETTER = arg("--etter", "");
 let tomLogg = 0;
 let skrevet = 0;
 let feilGiv = 0;
 let hoppet = 0;
+let tidlig = 0;
 const t0 = Date.now();
 for (const [id, s] of spill) {
   if (skardAv(id) !== SI || s.start === null) continue;
+  if (ETTER !== "" && !s.runder.some((r) => r.tid >= ETTER)) continue;
   const frø = Number(s.start.data["frø"]);
   const målPoeng = Number(s.start.data["målPoeng"] ?? 100);
   if (!Number.isFinite(frø)) continue;
@@ -137,6 +145,10 @@ for (const [id, s] of spill) {
     const delta = r.data.delta as number[] | undefined;
     const total = r.data.totalPoeng as number[] | undefined;
     if (!Array.isArray(delta) || !Array.isArray(total) || delta.length !== 4) {
+      // Stillingen kan ikke gjenskapes. En bot som leser hukommelsen (budq 287, trosnett 804/920 i
+      // søket) kaster hvis den møter en senere runde uten å ha sett denne slutte – så boka startes på
+      // nytt i stedet for at kampen stopper. Hukommelsen blir kortere, aldri gal.
+      for (const a of agenter) a.nyKamp();
       hoppet++;
       continue;
     }
@@ -150,16 +162,24 @@ for (const [id, s] of spill) {
         ? { ...grunn, totalPoeng: før }
         : utfør({ ...grunn, fase: "RUNDE_SLUTT", iTur: null, rundeNr: rundeNr - 1, giver: (rundeNr - 1) % 4, totalPoeng: før }, { type: "NESTE" }).state;
 
-    // Kontrollen: menneskets spilte kort må finnes i gjenskapt hånd + talong.
+    /**
+     * Kontrollen: menneskets spilte kort må finnes i gjenskapt hånd + talong. En runde som ikke
+     * består (eller mangler spilte kort i loggen, eller ligger før `--etter`) blir IKKE en rad – men
+     * den SPILLES likevel med boten, så hukommelsen i kampen ser hver runde slutte i rekkefølge.
+     * Før 11. sep hoppet løkka over dem, og en hukommelsesleser kastet i neste runde.
+     */
     const tilgjengelig = new Set([...(st.hender[MENNESKE] ?? []), ...st.talong].map((k) => `${k.farge}${k.verdi}`));
     const spilt = spilteKort(r.data.historikk, MENNESKE);
+    let skriv = true;
     if (spilt.length === 0) {
       tomLogg++;
-      continue;
-    }
-    if (spilt.some((k) => !tilgjengelig.has(k))) {
+      skriv = false;
+    } else if (spilt.some((k) => !tilgjengelig.has(k))) {
       feilGiv++;
-      continue;
+      skriv = false;
+    } else if (ETTER !== "" && r.tid < ETTER) {
+      tidlig++;
+      skriv = false;
     }
 
     let vakt = 0;
@@ -171,9 +191,11 @@ for (const [id, s] of spill) {
     for (const a of agenter) (a as { observer?(s: GameState): void }).observer?.(st);
     const bot = st.sisteRunde?.delta;
     if (bot === undefined) {
+      for (const a of agenter) a.nyKamp();
       hoppet++;
       continue;
     }
+    if (!skriv) continue;
     appendFileSync(
       UT,
       JSON.stringify({
