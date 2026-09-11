@@ -34,6 +34,18 @@ K8-tapet her er en FORHAANDSVISNING, ikke dommen. Dommen faller i
 Holdout er et EGET froebaand, avsatt foer foerste rad ble generert
 (`examples/mlb-trodata.ts`). Ikke en radvis deling: to stillinger fra samme giv
 deler hele kortfordelingen, saa en radvis deling ville lekket fasiten rett inn.
+
+====================== MYKE ETIKETTER OG ROLLER (12. sep) ================
+
+Versjon 2-filer (`mlb-trodata.ts --myk`) har posteriorens marginaler der den eksakte
+tellingen var naabar (`examples/myk-etikett.ts`), og et rollefelt. Maalet paa de radene
+er kryssentropien mot fordelingen; alle andre rader trenes paa én-hot som foer, i samme
+batch. `--etikett hard` er kontrollarmen paa de samme radene, `--myk-vekt` vekten paa de
+myke radene, `--rolle-vekt` vekten per rolle (budvinner, makker, motspiller). Rollen leses
+av trekkene (184/280) i versjon 1. Dommen er uendret: én-hot-K8 paa holdout (naa ogsaa per
+rolle, og «mot posterioren» der holdout har myke etiketter) og det rettferdige taket i
+`examples/k8-tak.ts`. Uten versjon 2-filer og uten de nye flaggene: samme kodevei som foer.
+`test/myk-etikett.test.ts` holder tapet mot en TS-referanse (`--bare-tap`).
 """
 
 import argparse
@@ -53,14 +65,35 @@ KLASSER = 4  # rel sete 1, 2, 3, talong
 HODE = 12  # "MLBT" + versjon + dim
 
 
-def les_bin(monster):
-    """Leser MLBT-postene til (X fp16, F int8, FRO int32, STIKK int16)."""
+# ROLLEN (12. sep, agent R). `lagInn` (src/neat/trekk.ts) har ER_BUDVINNER paa 184 og ER_HEMMELIG_MAKKER
+# paa 280 i ALLE bredder (NEAT-prefikset), saa rollen kan leses av versjon 1-filer uten et nytt felt.
+# Versjon 2 har feltet i tillegg, og de to MAA vaere enige: ellers er rollevekten og rollerapporten om
+# noe annet enn det setet saa.
+TREKK_ER_BUDVINNER = 184
+TREKK_ER_MAKKER = 280
+ROLLER = ["budvinner", "makker", "motspiller"]
+MYK_UT = KORT * KLASSER
+
+
+def rolle_fra_trekk(t):
+    bv = t[:, TREKK_ER_BUDVINNER] > 0.5
+    mk = (t[:, TREKK_ER_MAKKER] > 0.5) & ~bv
+    return numpy.where(bv, 0, numpy.where(mk, 1, 2)).astype(numpy.int8)
+
+
+def les_mlbt(monster):
+    """Leser MLBT versjon 1 og 2 til en dict: X fp16, F int8, FRO int32, ST int16, ROLLE int8, MYK bool,
+    P f32 (N, 52, 4) eller None (ingen versjon 2-fil), dim.
+
+    Versjon 2 (`mlb-trodata --myk`, 12. sep): posten har i tillegg rolle i8, myk u8 og 208 x f32 -
+    posteriorens marginaler der den eksakte tellingen var naabar (`examples/myk-etikett.ts`).
+    """
     filer = []
     for m in monster.split(","):
         filer += sorted(glob.glob(m))
     if not filer:
         raise SystemExit(f"Fant ingen filer for «{monster}»")
-    Xs, Fs, FROs, STs = [], [], [], []
+    Xs, Fs, FROs, STs, ROs, MYs, Ps = [], [], [], [], [], [], []
     dim = None
     for sti in filer:
         with open(sti, "rb") as fh:
@@ -69,7 +102,7 @@ def les_bin(monster):
                 raise SystemExit(f"{sti}: ikke en MLBT-fil")
             (versjon,) = struct.unpack("<i", fh.read(4))
             (d,) = struct.unpack("<i", fh.read(4))
-            if versjon != 1:
+            if versjon not in (1, 2):
                 raise SystemExit(f"{sti}: ukjent versjon {versjon}")
             # BREDDEN MAA VAERE EN. Blandes to bredder, hoppes halve korpuset
             # over i stillhet - samme felle som i sd-tren og tro-tren.
@@ -77,29 +110,75 @@ def les_bin(monster):
                 dim = d
             elif d != dim:
                 raise SystemExit(f"{sti}: dim {d}, ventet {dim}")
-            dt = numpy.dtype(
-                [
-                    ("t", "<f4", (dim,)),
-                    ("f", "i1", (KORT,)),
-                    ("fro", "<i4"),
-                    ("stikk", "<i2"),
-                    ("sete", "<i2"),
-                ]
-            )
-            a = numpy.fromfile(fh, dtype=dt)
+            felt = [
+                ("t", "<f4", (dim,)),
+                ("f", "i1", (KORT,)),
+                ("fro", "<i4"),
+                ("stikk", "<i2"),
+                ("sete", "<i2"),
+            ]
+            if versjon == 2:
+                felt += [("rolle", "i1"), ("myk", "u1"), ("p", "<f4", (MYK_UT,))]
+            a = numpy.fromfile(fh, dtype=numpy.dtype(felt))
+        rolle = rolle_fra_trekk(a["t"])
+        if versjon == 2:
+            ulik = int((a["rolle"] != rolle).sum())
+            if ulik:
+                raise SystemExit(f"{sti}: rollefeltet og trekkene (184/280) er uenige i {ulik} rader")
+            myk = a["myk"] == 1
+            p = a["p"].reshape(-1, KORT, KLASSER)
+            # STOETTEN ER DE USETTE KORTENE (samme sjekk som myk-etikett.ts): sum 1 der f > 0, 0 ellers,
+            # og nuller i radene uten myk etikett. En forskjoevet post ville feilet her, ikke i treningen.
+            s = p.sum(axis=2)
+            usett = a["f"] > 0
+            feil = myk[:, None] & ((usett & (numpy.abs(s - 1) > 1e-4)) | (~usett & (s > 1e-6)))
+            if bool(feil.any()) or bool((~myk[:, None] & (s != 0)).any()):
+                raise SystemExit(f"{sti}: myke etiketter summerer ikke til 1 paa de usette kortene ({int(feil.any(axis=1).sum())} rader)")
+            Ps.append(numpy.ascontiguousarray(p))
+        else:
+            myk = numpy.zeros(len(a), dtype=bool)
+            Ps.append(None)
         Xs.append(a["t"].astype(numpy.float16))
         Fs.append(a["f"])
         FROs.append(a["fro"])
         STs.append(a["stikk"])
-        print(f"  {sti}: {len(a)} rader", flush=True)
+        ROs.append(rolle)
+        MYs.append(myk)
+        print(f"  {sti}: {len(a)} rader" + (f" (versjon 2, {int(myk.sum())} med myk etikett)" if versjon == 2 else ""), flush=True)
         del a
-    return (
-        numpy.concatenate(Xs),
-        numpy.concatenate(Fs),
-        numpy.concatenate(FROs),
-        numpy.concatenate(STs),
-        dim,
-    )
+    P = None
+    if any(p is not None for p in Ps):
+        P = numpy.concatenate([p if p is not None else numpy.zeros((len(x), KORT, KLASSER), numpy.float32) for p, x in zip(Ps, Xs)])
+    return {
+        "X": numpy.concatenate(Xs),
+        "F": numpy.concatenate(Fs),
+        "FRO": numpy.concatenate(FROs),
+        "ST": numpy.concatenate(STs),
+        "ROLLE": numpy.concatenate(ROs),
+        "MYK": numpy.concatenate(MYs),
+        "P": P,
+        "dim": dim,
+    }
+
+
+def les_bin(monster):
+    """Den gamle formen (X fp16, F int8, FRO int32, STIKK int16, dim), for kallere uten roller og myke etiketter."""
+    d = les_mlbt(monster)
+    return d["X"], d["F"], d["FRO"], d["ST"], d["dim"]
+
+
+def rolletabell(ROLLE, ST, MYK=None):
+    """Rader per rolle x stikk (og hvor mange med myk etikett) - tekstlinjer."""
+    L = []
+    n = max(1, len(ROLLE))
+    for r, navn in enumerate(ROLLER):
+        m = ROLLE == r
+        per = [int((m & (ST == s)).sum()) for s in range(12)]
+        L.append(f"  {navn:10s} {int(m.sum()):7d} rader ({100 * m.sum() / n:.1f} %)  per stikk 0-11: {per}")
+        if MYK is not None and MYK.any():
+            pm = [int((m & MYK & (ST == s)).sum()) for s in range(12)]
+            L.append(f"  {'':10s} {int((m & MYK).sum()):7d} med myk etikett      per stikk 0-11: {pm}")
+    return L
 
 
 class Tronett(nn.Module):
@@ -258,7 +337,34 @@ def main():
     # med nullkolonner etter LAYOUT, saa varmstarten kan proeves uten GPU og uten et korpus.
     ap.add_argument("--bare-utvid", default="", help="skriv --vekter utvidet til --dim hit og avslutt (CPU)")
     ap.add_argument("--dim", type=int, default=0, help="maalbredden for --bare-utvid")
+    # MYKE ETIKETTER (12. sep, agent R). Én-hot «hvor laa kortet» er ett trekk fra posterioren; loekka
+    # overtilpasser etter én epoke. Versjon 2-filer (`mlb-trodata --myk`) har posteriorens marginaler der
+    # den var naabar, og da er maalet kryssentropien mot FORDELINGEN (-sum p log q per usett kort) - samme
+    # minimum, uten stoeyen. Rader uten myk etikett trenes paa én-hot som foer, i samme batch.
+    ap.add_argument("--etikett", default="myk", choices=["myk", "hard"], help="myk: posterioren der fila har den; hard: alltid én-hot (kontrollarmen)")
+    ap.add_argument("--myk-vekt", type=float, default=1.0, help="vekt per kort i rader med myk etikett, relativt til én-hot-rader")
+    # ROLLEVEKT: budvinneren naar bare 15,7 % av veien mot det rettferdige taket (de andre 44,2 %), og hun
+    # er 31 % av radene. Vekten ganges inn per rad; K8 per rolle rapporteres alltid.
+    ap.add_argument("--rolle-vekt", default="1,1,1", help="vekt per rolle: budvinner,makker,motspiller")
+    ap.add_argument("--bare-les", action="store_true", help="CPU: les --tren, skriv rader per rolle x stikk og myk dekning, avslutt")
+    ap.add_argument("--bare-tap", action="store_true", help="CPU: treningstapet for --vekter paa --tren (med --etikett, --myk-vekt, --rolle-vekt), avslutt")
+    # VALG AV EPOKE: «beste» paa holdout (som foer; med --vekter teller startvektene som epoke 0) eller «siste».
+    # A/B-armer paa en holdout fra et annet bord enn dommen (k8-tak.ts) kan ellers alle ende som startvektene,
+    # og sammenlikningen maaler da ingenting.
+    ap.add_argument("--velg", default="beste", choices=["beste", "siste"], help="hvilken epoke som skrives til --ut")
     args = ap.parse_args()
+    rolle_vekt = [float(x) for x in args.rolle_vekt.split(",")]
+    if len(rolle_vekt) != 3 or any(not (v >= 0) for v in rolle_vekt):
+        raise SystemExit(f"--rolle-vekt maa vaere tre tall >= 0 (budvinner,makker,motspiller), fikk «{args.rolle_vekt}»")
+    if not (args.myk_vekt >= 0):
+        raise SystemExit("--myk-vekt maa vaere >= 0")
+
+    if args.bare_les:
+        d = les_mlbt(args.tren)
+        print(f"{len(d['X'])} rader, {d['dim']} trekk, {int(d['MYK'].sum())} med myk etikett", flush=True)
+        for l in rolletabell(d["ROLLE"], d["ST"], d["MYK"]):
+            print(l, flush=True)
+        return
 
     if args.bare_utvid:
         if not args.vekter or args.dim <= 0:
@@ -277,33 +383,54 @@ def main():
     enhet = "cuda" if torch.cuda.is_available() else "cpu"
     t0 = time.time()
     print("TRENING:", flush=True)
-    Xtr, Ftr, FROtr, STtr, dim = les_bin(args.tren)
-    if args.hold_del > 0:
+    dtr = les_mlbt(args.tren)
+    Xtr, Ftr, FROtr, STtr, dim = dtr["X"], dtr["F"], dtr["FRO"], dtr["ST"], dtr["dim"]
+    Rtr, Ktr, Ptr = dtr["ROLLE"], dtr["MYK"], dtr["P"]
+    del dtr
+    if args.bare_tap:
+        # BARE TAPET: holdout er treningsradene selv (ingen deling, ingen fil), bare for aa ha noe i Xho.
+        Xho, Fho, Sho, Rho, Kho, Pho = Xtr, Ftr, STtr, Rtr, Ktr, Ptr
+        dim2 = dim
+    elif args.hold_del > 0:
         # HOLDOUT PAA KAMP, fra samme filer: epokens data har ikke et eget froebaand,
         # og en radvis splitt ville maalt gjenkjenning av kampen.
         # HASH AV FROEET, ikke `froe % N`: froene er base + 7717*k og skardene k % S, saa
         # `froe % 10` faller sammen med skardnummeret (ett skard ga 100 % holdout).
         h = (FROtr.astype(numpy.uint64) * numpy.uint64(2654435761)) % numpy.uint64(4294967296)
         hold = (h % numpy.uint64(args.hold_del)) == 0
-        Xho, Fho, Sho = Xtr[hold], Ftr[hold], STtr[hold]
-        Xtr, Ftr = Xtr[~hold], Ftr[~hold]
+        Xho, Fho, Sho, Rho, Kho = Xtr[hold], Ftr[hold], STtr[hold], Rtr[hold], Ktr[hold]
+        Pho = None if Ptr is None else Ptr[hold]
+        Xtr, Ftr, STtr, Rtr, Ktr = Xtr[~hold], Ftr[~hold], STtr[~hold], Rtr[~hold], Ktr[~hold]
+        Ptr = None if Ptr is None else Ptr[~hold]
         dim2 = dim
     else:
         print("HOLDOUT:", flush=True)
-        Xho, Fho, _, Sho, dim2 = les_bin(args.hold)
+        dho = les_mlbt(args.hold)
+        Xho, Fho, Sho, dim2 = dho["X"], dho["F"], dho["ST"], dho["dim"]
+        Rho, Kho, Pho = dho["ROLLE"], dho["MYK"], dho["P"]
+        del dho
     if dim != dim2:
         raise SystemExit(f"tren dim {dim} != holdout dim {dim2}")
     # Menneskerader: samme bredde, merket saa minne-dropout bare treffer dem.
     er_menneske = numpy.zeros(len(Xtr), dtype=bool)
     if args.tren_menneske:
         print("TRENING (menneske):", flush=True)
-        Xm, Fm, _, _, dim_m = les_bin(args.tren_menneske)
+        dm = les_mlbt(args.tren_menneske)
+        Xm, Fm, dim_m = dm["X"], dm["F"], dm["dim"]
         if dim_m != dim:
             raise SystemExit(f"menneskerader dim {dim_m} != {dim}")
+        if dm["P"] is not None:
+            raise SystemExit("menneskerader med myke etiketter: menneskets policy er ukjent, posterioren finnes ikke")
         Xtr = numpy.concatenate([Xtr, Xm])
         Ftr = numpy.concatenate([Ftr, Fm])
+        # Rolle, stikk og myk-flagget foelger radene, saa rollevekten og rolletabellen ogsaa gjelder menneskeradene.
+        STtr = numpy.concatenate([STtr, dm["ST"]])
+        Rtr = numpy.concatenate([Rtr, dm["ROLLE"]])
+        Ktr = numpy.concatenate([Ktr, dm["MYK"]])
+        if Ptr is not None:
+            Ptr = numpy.concatenate([Ptr, numpy.zeros((len(Xm), KORT, KLASSER), numpy.float32)])
         er_menneske = numpy.concatenate([er_menneske, numpy.ones(len(Xm), dtype=bool)])
-        del Xm, Fm
+        del Xm, Fm, dm
     Xhm = Fhm = Shm = None
     if args.hold_menneske:
         print("HOLDOUT (menneske):", flush=True)
@@ -331,6 +458,34 @@ def main():
     Fh = torch.from_numpy(Fho).to(enhet).long()
     Sh = torch.from_numpy(Sho.astype(numpy.int64)).to(enhet)
     Mt = torch.from_numpy(er_menneske).to(enhet)
+
+    # ROLLENE OG DE MYKE ETIKETTENE (12. sep, agent R).
+    print("RADER PER ROLLE, trening:", flush=True)
+    for l in rolletabell(Rtr, STtr, Ktr):
+        print(l, flush=True)
+    print("RADER PER ROLLE, holdout:", flush=True)
+    for l in rolletabell(Rho, Sho, Kho):
+        print(l, flush=True)
+    bruk_myk = args.etikett == "myk" and Ptr is not None and bool(Ktr.any())
+    if bruk_myk and args.tapsform != "ce4":
+        raise SystemExit("myke etiketter trenes bare med --tapsform ce4 (posterioren har talongklassen; kond betinger den bort)")
+    if Ptr is not None:
+        print(f"MYKE ETIKETTER: {int(Ktr.sum())} av {len(Ktr)} treningsrader; " + (f"brukt, vekt {args.myk_vekt}" if bruk_myk else "IKKE brukt (--etikett hard)"), flush=True)
+    # RADVEKTEN: rollevekten, ganget med --myk-vekt der etiketten er myk. Alle 1 og ingen myke = det gamle
+    # tapet paa den gamle kodeveien (F.cross_entropy), saa en loekke uten de nye flaggene trener som foer.
+    rv = numpy.array(rolle_vekt, dtype=numpy.float32)[Rtr.astype(numpy.int64)]
+    if bruk_myk:
+        rv = numpy.where(Ktr, rv * numpy.float32(args.myk_vekt), rv).astype(numpy.float32)
+    ny_tapsvei = bruk_myk or bool((rv != 1).any())
+    Wt = torch.from_numpy(rv).to(enhet)
+    Kt = torch.from_numpy(Ktr if bruk_myk else numpy.zeros(len(Ktr), dtype=bool)).to(enhet)
+    Pt = torch.from_numpy(Ptr).to(enhet) if bruk_myk else None
+    Rh = torch.from_numpy(Rho.astype(numpy.int64)).to(enhet)
+    # K8 MOT POSTERIOREN paa holdout-radene som har den: forventet én-hot-K8 under posterioren (lavere varians).
+    har_myk_hold = Pho is not None and bool(Kho.any())
+    Kh = torch.from_numpy(Kho).to(enhet) if har_myk_hold else None
+    Ph = torch.from_numpy(Pho).to(enhet) if har_myk_hold else None
+    del Ptr, Pho
     if Xhm is not None:
         Xhm_t = torch.from_numpy(Xhm).to(enhet)
         Fhm_t = torch.from_numpy(Fhm).to(enhet).long()
@@ -359,7 +514,7 @@ def main():
     opt = torch.optim.AdamW(modell.parameters(), lr=args.lr)
     plan = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epoker)
 
-    def tap_batch(ut, mal):
+    def tap_batch(ut, mal, w=None, k=None, p=None):
         """Tapet modellen trenes paa.
 
         `ce4` er den fulle 4-klassemodellen; `kond` er K8-formen direkte
@@ -372,21 +527,55 @@ def main():
             return None
         t = (mal - 1).clamp(min=0)
         if args.tapsform == "ce4":
-            return F.cross_entropy(ut[maske], t[maske], reduction="mean")
+            if not ny_tapsvei:
+                return F.cross_entropy(ut[maske], t[maske], reduction="mean")
+            # MYK OG VEKTET (agent R): per kort -log q[sann] (én-hot) eller -sum_k p_k log q_k (myk), vektet
+            # per rad og delt paa vektsummen - med alle vekter 1 og ingen myke er det F.cross_entropy over.
+            logq = F.log_softmax(ut.float(), dim=2)
+            per = -logq.gather(2, t.unsqueeze(2)).squeeze(2)
+            if p is not None:
+                per = torch.where(k.unsqueeze(1), -(p * logq).sum(dim=2), per)
+            vekt = maske.float() * w.unsqueeze(1)
+            nevner = vekt.sum()
+            return None if float(nevner) == 0 else (per * vekt).sum() / nevner
         m3 = maske & (mal <= 3)
         if m3.sum() == 0:
             return None
-        return F.cross_entropy(ut[m3][:, :3], t[m3], reduction="mean")
+        if not ny_tapsvei:
+            return F.cross_entropy(ut[m3][:, :3], t[m3], reduction="mean")
+        per = -F.log_softmax(ut[:, :, :3].float(), dim=2).gather(2, t.clamp(max=2).unsqueeze(2)).squeeze(2)
+        vekt = m3.float() * w.unsqueeze(1)
+        nevner = vekt.sum()
+        return None if float(nevner) == 0 else (per * vekt).sum() / nevner
+
+    if args.bare_tap:
+        # BARE TAPET (CPU, for prøven): hele --tren i én batch, saa snittet er det samme uttrykket som i treningen.
+        if not args.vekter:
+            raise SystemExit("--bare-tap krever --vekter")
+        modell.eval()
+        with torch.no_grad():
+            tap = tap_batch(modell(Xt.float()), Ft, Wt, Kt, Pt)
+        print(f"TRO-TAP {float(tap):.8f}", flush=True)
+        return
 
     @torch.no_grad()
-    def mål(X, Fa, S=None):
-        """CE4, treff, honnoertreff og K8-tap - alt paa samme rader."""
+    def mål(X, Fa, S=None, R=None, K=None, P=None):
+        """CE4, treff, honnoertreff og K8-tap - alt paa samme rader.
+
+        Med R (rolle): K8 per rolle og per rolle x stikk. Med K/P (myke etiketter paa holdout): «k8_myk»,
+        forventet én-hot-K8 under posterioren paa de radene - sum_c sum_k<3 p_ck (-log q3_ck) / sum_c sum_k<3 p_ck,
+        samme brøk som K8 med kortene paa haand vektet med sannsynligheten for at de er der. Lavere varians enn
+        én-hot paa de samme radene; dommen er fortsatt én-hot-K8 og det rettferdige taket i `k8-tak.ts`.
+        """
         sum4, n4 = 0.0, 0
         treff, tot = 0, 0
         treff_h, tot_h = 0, 0
         sumk8, nk8 = 0.0, 0
+        summyk, nmyk = 0.0, 0.0
         # K8-tap per stikk, saa vi ser om det vokser utover i runden slik §117 saa.
         perStikk = {}
+        perRolle = {}
+        perRolleStikk = {}
         for i in range(0, len(X), args.batch):
             x = X[i : i + args.batch].float()
             mal = Fa[i : i + args.batch]
@@ -416,6 +605,25 @@ def main():
                         sel = m3 & (st == v)
                         a, b = perStikk.get(v, (0.0, 0))
                         perStikk[v] = (a + float((-valgt[sel]).sum()), b + int(sel.sum()))
+                if R is not None:
+                    rr = R[i : i + args.batch].unsqueeze(1).expand_as(mal)
+                    for r in torch.unique(rr[m3]).tolist():
+                        selr = m3 & (rr == r)
+                        a, b = perRolle.get(r, (0.0, 0))
+                        perRolle[r] = (a + float((-valgt[selr]).sum()), b + int(selr.sum()))
+                        if S is not None:
+                            for v in torch.unique(st[selr]).tolist():
+                                sel = selr & (st == v)
+                                a, b = perRolleStikk.get((r, v), (0.0, 0))
+                                perRolleStikk[(r, v)] = (a + float((-valgt[sel]).sum()), b + int(sel.sum()))
+            if K is not None:
+                kb = K[i : i + args.batch]
+                if bool(kb.any()):
+                    p3 = P[i : i + args.batch][:, :, :3].float()
+                    lq3 = F.log_softmax(ut[:, :, :3].float(), dim=2)
+                    rad = (kb.unsqueeze(1) & maske).float()
+                    summyk += float((-(p3 * lq3).sum(dim=2) * rad).sum())
+                    nmyk += float((p3.sum(dim=2) * rad).sum())
         return {
             "ce4": sum4 / max(1, n4),
             "treff": treff / max(1, tot),
@@ -423,14 +631,22 @@ def main():
             "k8": sumk8 / max(1, nk8),
             "k8_n": nk8,
             "perStikk": {int(k): round(v[0] / max(1, v[1]), 5) for k, v in sorted(perStikk.items())},
+            "perRolle": {int(k): round(v[0] / max(1, v[1]), 5) for k, v in sorted(perRolle.items())},
+            "perRolle_n": {int(k): v[1] for k, v in sorted(perRolle.items())},
+            "perRolleStikk": {f"{k[0]}|{k[1]}": round(v[0] / max(1, v[1]), 5) for k, v in sorted(perRolleStikk.items())},
+            "k8_myk": (summyk / nmyk) if nmyk > 0 else None,
+            "k8_myk_n": round(nmyk, 1),
         }
 
     # STARTVEKTENE MAALES FOERST (R2). De er grunnlinjen: et trosnett som ikke
     # slaar dem paa epokens egen holdout skal ikke erstatte dem, og driveren leser
     # «tro_foer»/«tro_etter» for aa avgjoere det.
     modell.eval()
-    foer = mål(Xh, Fh, Sh)
-    print(json.dumps({"tro_foer": {k: v for k, v in foer.items() if k != "perStikk"}}), flush=True)
+    foer = mål(Xh, Fh, Sh, Rh, Kh, Ph)
+    kort_dom = lambda d: {k: v for k, v in d.items() if k not in ("perStikk", "perRolleStikk")}  # noqa: E731
+    rolle_tekst = lambda d: "  ".join(f"{ROLLER[r]} {d['perRolle'].get(r, float('nan')):.4f}" for r in range(3))  # noqa: E731
+    print(json.dumps({"tro_foer": kort_dom(foer)}), flush=True)
+    print(f"START K8 per rolle: {rolle_tekst(foer)}" + ("" if foer["k8_myk"] is None else f"  | mot posterioren {foer['k8_myk']:.4f}"), flush=True)
     foer_m = mål(Xhm_t, Fhm_t, Shm_t) if args.hold_menneske else None
     if foer_m is not None:
         print(json.dumps({"tro_foer_menneske": {k: v for k, v in foer_m.items() if k != "perStikk"}}), flush=True)
@@ -462,7 +678,7 @@ def main():
                 if bool(slipp.any()):
                     x[slipp, 660:804] = 0  # hukommelsesblokken i 804/920/996
             ut = modell(x)
-            tap = tap_batch(ut, Ft[j])
+            tap = tap_batch(ut, Ft[j], Wt[j], Kt[j], None if Pt is None else Pt[j])
             if tap is None:
                 continue
             opt.zero_grad(set_to_none=True)
@@ -472,7 +688,7 @@ def main():
             n_tap += 1
         plan.step()
         modell.eval()
-        h = mål(Xh, Fh, Sh)
+        h = mål(Xh, Fh, Sh, Rh, Kh, Ph)
         rad = {
             "epoke": e + 1,
             "tapsform": args.tapsform,
@@ -482,6 +698,8 @@ def main():
             "hold_honnor": round(h["honnor"], 5),
             "hold_k8": round(h["k8"], 5),
             "hold_k8_n": h["k8_n"],
+            "hold_k8_rolle": h["perRolle"],
+            "hold_k8_myk": None if h["k8_myk"] is None else round(h["k8_myk"], 5),
         }
         logg.write(json.dumps(rad) + "\n")
         print(
@@ -490,12 +708,13 @@ def main():
             f"honnoer {h['honnor'] * 100:.1f} %  K8-tap {h['k8']:.4f}",
             flush=True,
         )
+        print(f"          per rolle: {rolle_tekst(h)}" + ("" if h["k8_myk"] is None else f"  | mot posterioren {h['k8_myk']:.4f}"), flush=True)
         hm = mål(Xhm_t, Fhm_t, Shm_t) if args.hold_menneske else None
         if hm is not None:
             print(f"          menneske-holdout K8-tap {hm['k8']:.4f}  treff {hm['treff'] * 100:.1f} %", flush=True)
             logg.write(json.dumps({"epoke": e + 1, "menneske_k8": round(hm["k8"], 5), "menneske_k8_n": hm["k8_n"]}) + "\n")
         # BESTE PAA K8-TAPET, ikke paa treffet: det er tallet kravet stiller.
-        if poeng(h, hm) < beste:
+        if poeng(h, hm) < beste or args.velg == "siste":
             beste = poeng(h, hm)
             beste_rad = (e + 1, h)
             beste_m = hm
@@ -512,15 +731,26 @@ def main():
         f.write(f"beste epoke {e}: CE4 {h['ce4']:.5f}  treff {h['treff'] * 100:.2f} %  ")
         f.write(f"honnoer {h['honnor'] * 100:.2f} %  K8-tap {h['k8']:.5f} (n={h['k8_n']})\n")
         f.write(f"K8-tap per stikk: {h['perStikk']}\n")
+        f.write(f"K8-tap per rolle: {rolle_tekst(h)} (kort {h['perRolle_n']})\n")
+        f.write(f"K8-tap per rolle|stikk: {h['perRolleStikk']}\n")
+        if h["k8_myk"] is not None:
+            f.write(f"K8 mot posterioren (holdoutrader med myk etikett): {h['k8_myk']:.5f}\n")
+        f.write(f"etikett {args.etikett}, myk-vekt {args.myk_vekt}, rolle-vekt {args.rolle_vekt}\n")
         f.write(f"vekter -> {args.ut}\n")
     print(f"\nFerdig: beste holdout K8-tap {beste:.5f} -> {args.ut}", flush=True)
-    print(json.dumps({"tro_etter": {"epoke": beste_rad[0], **{k: v for k, v in beste_rad[1].items() if k != "perStikk"}}}), flush=True)
+    print(json.dumps({"tro_etter": {"epoke": beste_rad[0], **kort_dom(beste_rad[1])}}), flush=True)
     print(f"Rapport lagt til {args.rapport}", flush=True)
     # MASKINLESBARE LINJER SIST: de foerste linjene i stdout kan forsvinne gjennom WSL-roeret, saa
     # loekka leser bare disse (samme regel som vrak-tren og budq-tren).
     print(f"TRO-BESTE-EPOKE {beste_rad[0]}", flush=True)
     print(f"TRO-BOT-K8-START {foer['k8']:.5f}", flush=True)
     print(f"TRO-BOT-K8-BESTE {beste_rad[1]['k8']:.5f}", flush=True)
+    rtall = lambda d: " ".join("%.5f" % d["perRolle"].get(r, float("nan")) for r in range(3))  # noqa: E731
+    print(f"TRO-BOT-K8-ROLLE-START {rtall(foer)}", flush=True)
+    print(f"TRO-BOT-K8-ROLLE-BESTE {rtall(beste_rad[1])}", flush=True)
+    if foer["k8_myk"] is not None:
+        print(f"TRO-BOT-K8-MYK-START {foer['k8_myk']:.5f}", flush=True)
+        print(f"TRO-BOT-K8-MYK-BESTE {beste_rad[1]['k8_myk']:.5f}", flush=True)
     if foer_m is not None:
         print(f"TRO-MENNESKE-K8-START {foer_m['k8']:.5f}", flush=True)
         print(f"TRO-MENNESKE-K8-BESTE {beste_m['k8']:.5f}", flush=True)

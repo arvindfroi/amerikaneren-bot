@@ -122,9 +122,34 @@
  *
  * `--kamp`, `--giver`, `--fra`, `--drivere`, `--rotasjon` og `--spek` avvises med `--menneske`:
  * ingen agent spiller et kort her. Uten flagget er alt byte-identisk med før (sha1 før/etter).
+ *
+ * ===================== --myk: POSTERIOREN SOM ETIKETT (12. sep) ==========
+ *
+ *   node examples/mlb-trodata.ts --kamp --hukommelse --signal --sanser2 --myk --spek "<pol>" \
+ *     --drivere "@|A|@|B" --rotasjon --band trening --kamper 450 --skard 0/6 --ut <fil>
+ *
+ * Én-hot «hvor lå kortet» er ett trekk fra posterioren, og løkkas trotrening overtilpasser etter
+ * én epoke. Med `--myk` får hver rad der den EKSAKTE posterioren er nåbar (`examples/myk-etikett.ts`,
+ * størrelse ≤ `--myk-grense`, standard 1e6) posteriorens marginaler over de fire klassene som
+ * etikett i tillegg til én-hot. Inngangene er uendret (K2); etiketten leser den vaskede loggen og
+ * policydefinisjonene.
+ *
+ * TO ENDRINGER I SPILLET, begge nødvendige for at posterioren skal være taket for bordet:
+ *   KANONISKE AGENTER  alle seter spiller `kanoniskAgent` (hånd, talong og vrak sortert, frø 0).
+ *                      Uten det bryter speken likhet etter skjult håndorden og den sanne given er
+ *                      uforenlig (agent P: 5 av 24 kamper). Kampene med `--myk` skiller seg derfor
+ *                      fra kampene uten i likhetsbrudd — samme bord, ikke samme bytes.
+ *   SKYGGEAGENTER      fire egne agenter fra de samme spekene (per slot, rotert som bordet) ser hver
+ *                      ekte tilstand via `observer` og spiller aldri; de definerer likelihooden.
+ *
+ * FORMATET er VERSJON 2 bare med `--myk`: etter (trekk, etikett, frø, stikk, sete) kommer `rolle`
+ * (i8: 0 budvinner, 1 makker, 2 motspiller), `myk` (u8: 1 = posterioren står der) og 208 × f32
+ * (nuller når `myk` er 0). Uten flagget er fila versjon 1 og byte-identisk med før;
+ * `verktoy/mlb-tro-tren.py` leser begge. Dekningen per rolle × stikk (myk / over grensen /
+ * uforenlig / tom, og ms) skrives av prosessen selv til `<ut>.myk.json`.
  */
 
-import { closeSync, mkdirSync, openSync, writeSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, writeFileSync, writeSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
@@ -141,6 +166,8 @@ import {
   troTrekkForBredde,
 } from "../src/mlb/trotrekk.ts";
 import { bordTekst, lesBord, slot, tilSeter } from "./drivere.ts";
+import { kanoniskAgent, type Loggpost } from "./naabart-tro.ts";
+import { MYK_GRENSE, MYK_UT, MykEtiketter, rolleAv, type MykUtfall } from "./myk-etikett.ts";
 import {
   kamprunder,
   lesMenneskelogg,
@@ -241,16 +268,24 @@ const DIM = SANSER2
   ? HUKOMMELSE ? MLB_TRO_INN_HS : MLB_TRO_INN_S
   : HUKOMMELSE ? MLB_TRO_INN_H : MLB_TRO_INN;
 
+/** `--myk` (se toppen): posterioren som etikett der den er nåbar, versjon 2. Bare hele kamper med agenter. */
+const MYK = har("--myk");
+if (MYK && !KAMP) throw new Error("--myk krever --kamp: skyggeagentene og loggen følger kampen (og --menneske har ingen kjente policyer)");
+if (har("--myk-grense") && !MYK) throw new Error("--myk-grense gjelder bare --myk");
+const MYK_GRENSE_ARG = tall(arg("--myk-grense", String(MYK_GRENSE)), MYK_GRENSE);
+if (MYK && !(MYK_GRENSE_ARG >= 0)) throw new Error("--myk-grense må være ≥ 0");
+
 mkdirSync(dirname(UT), { recursive: true });
 const fd = openSync(UT, "w");
 {
   const hode = Buffer.alloc(12);
   hode.write("MLBT", 0, "ascii");
-  hode.writeInt32LE(1, 4);
+  hode.writeInt32LE(MYK ? 2 : 1, 4);
   hode.writeInt32LE(DIM, 8);
   writeSync(fd, hode);
 }
-const POST = DIM * 4 + 52 + 4 + 2 + 2;
+/** Versjon 2 (`--myk`): + rolle i8 + myk u8 + 208 × f32. */
+const POST = DIM * 4 + 52 + 4 + 2 + 2 + (MYK ? 1 + 1 + MYK_UT * 4 : 0);
 /** Skriv i klumper: én `writeSync` per rad ga 3× lengre kjøretid enn spillingen. */
 const KLUMP = 512;
 const buf = Buffer.alloc(POST * KLUMP);
@@ -262,7 +297,7 @@ const tøm = (): void => {
 
 let skrevet = 0;
 /** Én post: trekk, etikett, frø, stikk, sete. Felles for begge løkkene, så formatet er ett. */
-const skrivRad = (t: Float32Array, f: ArrayLike<number>, frø: number, stikk: number, sete: number): void => {
+const skrivRad = (t: Float32Array, f: ArrayLike<number>, frø: number, stikk: number, sete: number, myk?: { rolle: number; p: Float32Array | null }): void => {
   let o = iKlump * POST;
   for (let i = 0; i < DIM; i++) {
     buf.writeFloatLE(t[i]!, o);
@@ -273,6 +308,13 @@ const skrivRad = (t: Float32Array, f: ArrayLike<number>, frø: number, stikk: nu
   buf.writeInt32LE(frø | 0, o);
   buf.writeInt16LE(stikk, o + 4);
   buf.writeInt16LE(sete, o + 6);
+  if (MYK) {
+    if (myk === undefined) throw new Error("--myk: raden mangler rolle og etikett");
+    buf.writeInt8(myk.rolle, o + 8);
+    buf.writeUInt8(myk.p === null ? 0 : 1, o + 9);
+    // Bufferet gjenbrukes mellom klumpene: nullene skrives, de arves ikke.
+    for (let i = 0; i < MYK_UT; i++) buf.writeFloatLE(myk.p === null ? 0 : myk.p[i]!, o + 10 + i * 4);
+  }
   if (++iKlump === KLUMP) tøm();
   skrevet++;
 };
@@ -288,7 +330,9 @@ type Agent = { velgHandling(s: GameState): Handling; nyKamp(): void; observer?(s
 /** Én spek per sete; uten `--drivere` fire ganger `SPEK`, alle registrert (se `drivere.ts`). */
 const BORD = lesBord(process.argv, SPEK);
 // Per SLOT, i samme rekkefølge som før (slot = sete uten `--rotasjon`). `observer`/`nyKamp` går til alle.
-const agenter: Agent[] = BORD.spek.map((x) => lagIndre(x));
+// `--myk`: KANONISKE agenter ved bordet og egne skyggeagenter per slot (se toppen). Uten flagget som før.
+const agenter: Agent[] = BORD.spek.map((x) => (MYK ? kanoniskAgent(lagIndre(x)) : lagIndre(x)));
+const skygge = MYK ? BORD.spek.map((x) => kanoniskAgent(lagIndre(x))) : [];
 if (BORD.blandet) console.log(`Bord (giv/kamp 0): ${bordTekst(BORD, 0)}${BORD.rotasjon ? "  [roterer per giv/kamp]" : ""}`);
 
 let rng = 8_675_309 + SI * 7919;
@@ -375,17 +419,40 @@ if (MENNESKE) {
   let runder = 0;
   let kamper = 0;
   let kappet = 0;
+  /** DEKNINGEN med `--myk`, per rolle × stikk (se `myk-etikett.ts` for utfallene). */
+  type Dekning = { rolle: number; stikk: number; rader: number; myk: number; over: number; uforenlig: number; tom: number; ms: number; msMyk: number; kall: number };
+  const dekning = new Map<string, Dekning>();
+  const tellMyk = (rolle: number, stikk: number, utfall: MykUtfall, ms: number, kall: number): void => {
+    const nøkkel = `${rolle}|${stikk}`;
+    const d = dekning.get(nøkkel) ?? { rolle, stikk, rader: 0, myk: 0, over: 0, uforenlig: 0, tom: 0, ms: 0, msMyk: 0, kall: 0 };
+    d.rader++;
+    d[utfall]++;
+    d.ms += ms;
+    if (utfall === "myk") d.msMyk += ms;
+    d.kall += kall;
+    dekning.set(nøkkel, d);
+  };
   for (let k = FRA + SI; k < KAMPER; k += SN) {
     const frø = kb.base + k * kb.steg;
     let s: GameState = opprettSpill({ antallSpillere: 4, målPoeng: MÅLPOENG }, frø);
     for (const a of agenter) a.nyKamp();
+    for (const a of skygge) a.nyKamp();
     const seter = tilSeter(BORD, agenter, k);
+    // Skyggeagentene sitter der bordets agenter sitter (samme rotasjon): de definerer likelihooden per sete.
+    const myk = MYK ? new MykEtiketter(tilSeter(BORD, skygge, k), MYK_GRENSE_ARG) : null;
+    let logg: Loggpost[] = [];
     // Én bok for bordet, ny per kamp: hukommelsen er KAMPENS, aldri korpusets.
     const bok = new Hukommelse();
     let vakt = 0;
     while (s.fase !== "FERDIG" && vakt++ < 500_000) {
       bok.observer(s);
       for (const a of agenter) a.observer?.(s);
+      for (const a of skygge) a.observer?.(s);
+      // Ny runde (også når alle passet): loggen og filtrene starter på nytt i givens første budstilling.
+      if (myk !== null && logg.length > 0 && s.rundeNr !== logg[0]!.s.rundeNr) {
+        logg = [];
+        myk.nyRunde();
+      }
       if (s.fase === "RUNDE_SLUTT") {
         if (s.rundeNr + 1 >= MAKSRUNDER) {
           kappet++;
@@ -401,18 +468,28 @@ if (MENNESKE) {
           // K2: visningen alene, og boka — som bare kjenner FERDIGE runder.
           const huk = medBok ? bok.vektor(sete, s.antallSpillere) : null;
           const t = troTrekkForBredde(DIM, spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, huk);
-          skrivRad(t, f, frø, s.stikkSpilt, sete);
+          if (myk === null) skrivRad(t, f, frø, s.stikkSpilt, sete);
+          else {
+            // Etiketten leser den vaskede loggen og skyggeagentene; inngangen over er urørt (K2).
+            const rolle = rolleAv(s, sete);
+            const e = myk.etikett(logg, s, sete, f);
+            tellMyk(rolle, s.stikkSpilt, e.utfall, e.ms, e.kall);
+            skrivRad(t, f, frø, s.stikkSpilt, sete, { rolle, p: e.p });
+          }
         }
       }
       const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
       if (iTur === null || iTur === undefined) break;
-      s = utfør(s, seter[iTur]!.velgHandling(s)).state;
+      const h = seter[iTur]!.velgHandling(s);
+      if (myk !== null) logg.push({ s, h });
+      s = utfør(s, h).state;
     }
     runder += s.rundeNr + 1;
     kamper++;
     const sek = (Date.now() - t0) / 1000;
+    const nMyk = [...dekning.values()].reduce((a, d) => a + d.myk, 0);
     process.stdout.write(
-      `  skard ${SI}: ${kamper} kamper, ${runder} runder, ${skrevet} rader, ${(skrevet / Math.max(1, sek)).toFixed(0)}/s\r`,
+      `  skard ${SI}: ${kamper} kamper, ${runder} runder, ${skrevet} rader${MYK ? ` (${nMyk} myke)` : ""}, ${(skrevet / Math.max(1, sek)).toFixed(0)}/s\r`,
     );
   }
   tøm();
@@ -421,4 +498,27 @@ if (MENNESKE) {
     `\nSkard ${SI} ferdig: ${kamper} kamper (${kappet} stoppet på rundetaket ${MAKSRUNDER}), ${runder} runder, ` +
       `${skrevet} rader (${DIM} trekk${medBok ? ", med hukommelse" : ""}${SIGNAL ? ", med signalblokk" : ""}) -> ${UT}`,
   );
+  if (MYK) {
+    // DEKNINGEN SKRIVES AV PROSESSEN SELV (langkjøringer): per rolle × stikk, og bordet den gjelder.
+    const rader = [...dekning.values()].sort((a, b) => a.rolle - b.rolle || a.stikk - b.stikk);
+    const sum = (f: (d: Dekning) => number): number => rader.reduce((a, d) => a + f(d), 0);
+    const sek = (Date.now() - t0) / 1000;
+    writeFileSync(
+      `${UT}.myk.json`,
+      JSON.stringify({ bord: bordTekst(BORD, FRA + SI), grense: MYK_GRENSE_ARG, kamper, rader: skrevet, myk: sum((d) => d.myk), over: sum((d) => d.over), uforenlig: sum((d) => d.uforenlig), tom: sum((d) => d.tom), sek, msMyk: sum((d) => d.msMyk), msAlle: sum((d) => d.ms), perRolleStikk: rader }, null, 1),
+    );
+    const navn = ["budvinner", "makker", "motspiller"];
+    for (let r = 0; r < 3; r++) {
+      const R = rader.filter((d) => d.rolle === r);
+      const n = R.reduce((a, d) => a + d.rader, 0);
+      const m = R.reduce((a, d) => a + d.myk, 0);
+      const u = R.reduce((a, d) => a + d.uforenlig, 0);
+      const ms = R.reduce((a, d) => a + d.msMyk, 0);
+      console.log(
+        `  myk ${navn[r]!.padEnd(10)} ${String(m).padStart(6)} av ${String(n).padStart(6)} rader (${((100 * m) / Math.max(1, n)).toFixed(1)} %), uforenlig ${u}, ` +
+          `${(ms / Math.max(1, m)).toFixed(0)} ms per myk; per stikk ${R.filter((d) => d.myk > 0).map((d) => `${d.stikk}:${d.myk}/${d.rader}`).join(" ")}`,
+      );
+    }
+    console.log(`  myk: ${sum((d) => d.myk)} av ${skrevet} rader, ${(sum((d) => d.ms) / 1000).toFixed(0)} s i etikettene av ${sek.toFixed(0)} s -> ${UT}.myk.json`);
+  }
 }
