@@ -25,6 +25,7 @@ import { kortIndeks, NevroAgent } from "../nevro/index.ts";
 import { fyllSanser } from "./sanser.ts";
 import { e1SpillTrekk, e1SpillTrekkMedTro, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V5, E1_SPILL_DIM_V6, E1_SPILL_DIM_V7, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9, E1_SPILL_DIM_V10 } from "./trekk.ts";
 import { e1KortBokTrekk, erKortbokBredde, E1_KORT_BOK_BREDDER, Kortbok } from "./kortbok.ts";
+import { Hukommelse } from "../mlb/hukommelse.ts";
 
 /**
  * Leser et E1-nett fra rå bytes og verifiserer at formen stemmer med
@@ -138,6 +139,14 @@ export interface E1Opts {
    * (`Spekkontekst.kortbok`); uten den får agenten sin egen. Ignoreres for alle andre bredder.
    */
   readonly kortbok?: Kortbok;
+  /**
+   * `false` (`e1:<fil>h0` i speken, 12. sep): et bokbredt nett får ALLTID en fersk bok for
+   * stillingen det spørres om — bit for bit det en agent som nettopp fikk `nyKamp()` ser, altså
+   * 144 nuller i bokblokken. Stillingen og valgt bort (sansene) står: de er stillingen, ikke
+   * hukommelse. K4/K6-nullarmens bryter (`utenMinne`), som `budq:<fil>h0`. Uten den bar nullarmen
+   * kortlagets bok videre, og «uten hukommelse» ville målt hukommelse. Ignoreres for andre bredder.
+   */
+  readonly hukommelse?: boolean;
 }
 
 /** Filleseren `nett.ts` registrerer. Null i nettleseren. */
@@ -155,8 +164,10 @@ export class E1Agent {
   private readonly søkVerdener: number;
   private readonly trosnett: { fordeling(trekk: Float32Array): number[][] } | null;
   private readonly tro: ((state: GameState, sete: number) => number[][] | null) | null;
-  /** Null for alle bredder uten bok: da bokføres ingenting, og standardveien er urørt. */
+  /** Null for alle bredder uten bok, og for bokbredden med `h0`: da bokføres ingenting. */
   private readonly kortbok: Kortbok | null;
+  /** Nettet tar bokbredden (493). Skilt fra `kortbok`, som er null under `h0`. */
+  private readonly bokbredde: boolean;
   private teller = 0;
 
   constructor(nett: NevroNett, nevro: NevroAgent = new NevroAgent(), opts: E1Opts = {}) {
@@ -167,7 +178,8 @@ export class E1Agent {
     this.søkVerdener = opts.søkVerdener ?? 12;
     this.trosnett = opts.trosnett ?? null;
     this.tro = opts.tro ?? null;
-    this.kortbok = erKortbokBredde(this.dim) ? (opts.kortbok ?? new Kortbok()) : null;
+    this.bokbredde = erKortbokBredde(this.dim);
+    this.kortbok = this.bokbredde && opts.hukommelse !== false ? (opts.kortbok ?? new Kortbok()) : null;
     // FAIL-FAST. Et v9-nett uten NOEN trokilde spiller på 88 nuller, og
     // INGENTING ville sagt fra – nøyaktig hvordan blokken kunne ligge død i
     // utgangspunktet. Nå godtas begge kilder: et trosnett, eller en funksjon
@@ -236,6 +248,13 @@ export class E1Agent {
   private trekkvektor(state: GameState, sete: number): Float32Array {
     // Bokbredden først: 493 < 558, så grenen under ville ellers regnet den som et kjedeprefiks.
     if (this.kortbok !== null) return e1KortBokTrekk(state, sete, this.kortbok.vektor(state, sete));
+    if (this.bokbredde) {
+      // `h0`: fersk bok per spørsmål, som `BudQagent` — `observer` utenfor RUNDE_SLUTT noterer bare
+      // stillingen, så dette er boka til en agent som aldri har sett en runde slutte.
+      const fersk = new Hukommelse();
+      fersk.observer(state);
+      return e1KortBokTrekk(state, sete, fersk.vektor(sete, state.antallSpillere));
+    }
     if (this.trosnett !== null || this.dim < E1_SPILL_DIM_V9) {
       return e1SpillTrekkMedTro(state, sete, this.dim, this.trosnett);
     }

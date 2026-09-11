@@ -109,6 +109,11 @@ export class Rolleorakel {
     this.indre.nyKamp();
   }
 
+  /** Videresender bokføringskroken (12. sep) — se `Budagent.observer`. */
+  observer(state: GameState): void {
+    (this.indre as { observer?(s: GameState): void }).observer?.(state);
+  }
+
   velgHandling(state: GameState): Handling {
     if (state.fase === "SPILL" && state.iTur !== null) {
       const sete = state.iTur;

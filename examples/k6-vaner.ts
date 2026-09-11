@@ -98,6 +98,7 @@ import { ADAMS_MAALT, lagIndre, tall } from "../src/moe2/agentspek.ts";
 import { MIN_RUNDER, Økt } from "../src/moe2/okt.ts";
 import { dyreste } from "../src/moe2/synlig.ts";
 import { MlbTronett } from "../src/mlb/tronett.ts";
+import { kortnettLeserMinne } from "./spek-lag.ts";
 
 /**
  * TIKKET — den kroken som gjorde «matet» til en vanlig arm.
@@ -154,6 +155,11 @@ export function stakkLeserHukommelse(spek: string): boolean {
     svar = false;
     for (const m of spek.matchAll(/~mlbu?=([^:]+)/g)) {
       if (MlbTronett.fraBytes(new Uint8Array(readFileSync(m[1]!))).brukerHukommelse) svar = true;
+    }
+    // Kortnettet med motstanderbok (`e1:<493>`, 12. sep) kaster på samme måte (`Kortbok`); med `h0`
+    // har det ingen bok og trenger ingen tikk. Et 273-nett gir `false`, så gamle rader står.
+    for (const m of spek.matchAll(/(?:^|:)e1:([^:@]+)$/g)) {
+      if (!m[1]!.endsWith("h0") && kortnettLeserMinne(m[1]!)) svar = true;
     }
     hukommelseCache.set(spek, svar);
   }

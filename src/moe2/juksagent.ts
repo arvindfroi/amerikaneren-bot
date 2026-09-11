@@ -80,6 +80,11 @@ export class Juksagent implements Innagent {
     this.indre.nyKamp?.();
   }
 
+  /** Videresender bokføringskroken (12. sep) — se `Budagent.observer`. */
+  observer(state: GameState): void {
+    (this.indre as { observer?(s: GameState): void }).observer?.(state);
+  }
+
   velgHandling(state: GameState): Handling {
     const h = this.indre.velgHandling(state);
     if (h.type !== "SPILL") return h;

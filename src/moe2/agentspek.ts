@@ -1497,10 +1497,21 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      * Uten `@`: `e1:<fil>@<tro>` er sanseblokken (≥ 558), som ikke har noen bokvariant.
      */
     if (!rest.includes("@")) {
-      const kn = lesKortnett(rest);
+      /**
+       * `e1:<fil>h0` (12. sep): bokbredt nett med FERSK bok ved hvert kortvalg — K4/K6-nullarmens
+       * bryter (`utenMinne`), som `budq:<fil>h0`. Ingen delt bok opprettes, og ingen `observer` trengs.
+       * KASTER på et nett uten bok: der er `h0` ingenting, og en nullarm som trodde den skrudde av
+       * noe, ville målt en bryter som ikke finnes. Uten `h0` er stien bit-identisk med før.
+       */
+      const h0 = rest.endsWith("h0");
+      const kn = lesKortnett(h0 ? rest.slice(0, -2) : rest);
+      if (h0 && !erKortbokBredde(kn.lag[0]!.inn)) {
+        throw new Error(`«${indre}»: h0 skrur av kortlagets motstanderbok, men nettet er ${kn.lag[0]!.inn} bredt og har ingen`);
+      }
       if (erKortbokBredde(kn.lag[0]!.inn)) {
-        const kortbok = (ctx.kortbok ??= new Kortbok());
-        const agent = new E1Agent(kn, undefined, { kortbok });
+        const agent = h0
+          ? new E1Agent(kn, undefined, { hukommelse: false })
+          : new E1Agent(kn, undefined, { kortbok: (ctx.kortbok ??= new Kortbok()) });
         if (ctx.økt !== undefined && !ctx.økt.bok.harAtferd()) {
           ctx.økt.bok.settAtferd({ logits: (st: GameState, s2: number) => agent.logits(st, s2) });
         }
