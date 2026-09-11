@@ -140,7 +140,7 @@ def hurtigbuffer_navn(filer: list[tuple[int, str]]) -> str:
     return os.path.join(BUFFERMAPPE, f"korpus-{h.hexdigest()[:16]}.npz")
 
 
-def les(mapper: list[str], klipp: int = 0):
+def les(mapper: list[str], klipp: int = 0, bruk_buffer: bool = True):
     """Alle `*.jsonl` i `mapper` → (X, V, M, FRO, KILDE, SIG).
 
     KILDE er indeksen inn i `mapper`, så en kjøring kan velge sin egen
@@ -164,7 +164,7 @@ def les(mapper: list[str], klipp: int = 0):
 
     global TREKK_DIM
     buffer = hurtigbuffer_navn(filer)
-    if os.path.exists(buffer):
+    if bruk_buffer and os.path.exists(buffer):
         t0 = time.time()
         d = numpy.load(buffer)
         TREKK_DIM = int(d["X"].shape[1])
@@ -322,6 +322,8 @@ def les(mapper: list[str], klipp: int = 0):
     # SKRIV BUFFERET. JSON-parsing av et millionkorpus tar minutter og gjentas
     # for hver arm, hver ablasjon og hver replikering. Det er den storste
     # enkeltkostnaden i treningen og den eneste som er ren sloesing.
+    if not bruk_buffer:
+        return ut
     try:
         os.makedirs(BUFFERMAPPE, exist_ok=True)
         numpy.savez(
@@ -585,7 +587,9 @@ def main() -> None:
     p.add_argument("--data", default="sd-data,sd-data2", help="alle mapper som skal leses inn")
     p.add_argument(
         "--holdoutmappe",
-        default="sd-data2",
+        # None, ikke "sd-data2": `--vekter` tar da foerste --data-mappe. Uten --vekter settes
+        # den til "sd-data2" rett etter parse_args, som foer.
+        default=None,
         help="holdouten trekkes BARE herfra, så kandidater som ikke har sett denne mappen "
         "(f.eks. sd-r1) kan måles på nøyaktig samme utvalg",
     )
@@ -679,7 +683,48 @@ def main() -> None:
         default="",
         help="skriv holdout-linjene til denne mappen og avslutt (rask vei, ingen parsing)",
     )
+    # ============ KORTNETTET I ADAMS MAX-LOEKKA (11. sep) ============================
+    #
+    # `--vekter` er ÉN kjoering uten `--kjor`: finjuster forrige iterasjons kortnett paa
+    # soekets etiketter (`examples/kort-data.ts`) og avslutt med linjene loekka doemmer
+    # etter, BAKERST (tidlige linjer forsvinner i WSL-roeret):
+    #
+    #     MODELL-ANGER-HOLDOUT x    angeren til nettet som ble skrevet til --ut
+    #     POLICY-ANGER-HOLDOUT y    angeren til --policy (standard --vekter) paa SAMME holdout
+    #
+    # EPOKE 0 ER ET SJEKKPUNKT. Startvektene skrives til --ut foer foerste epoke, og en epoke
+    # lagres bare om den er STRENGT bedre. Da er modell <= policy per konstruksjon naar
+    # policyen er startnettet, og `modell < policy` i loekka betyr at treningen faktisk flyttet
+    # nettet mot soeket. `--epoker 0` skriver startnettet byte for byte
+    # (`test/kort-data.test.ts`). Uten --vekter er alt som foer.
+    p.add_argument("--vekter", default="", help="ÉN kjoering: finjuster fra denne vektfila (appformat)")
+    p.add_argument("--ut", default="", help="vektfila --vekter-kjoeringen skriver")
+    p.add_argument("--policy", default="", help="referansenettet for POLICY-ANGER-HOLDOUT (standard --vekter)")
+    p.add_argument("--enhet", default="", choices=["", "cpu", "cuda"], help="tving enhet (standard: cuda om mulig)")
+    p.add_argument("--ingenbuffer", action="store_true", help="ikke les eller skriv npz-bufferet")
+    p.add_argument("--minrader", type=int, default=1000, help="faerre leste rader stopper kjoeringen")
     args = p.parse_args()
+
+    vekter_modus = bool(args.vekter)
+    if vekter_modus:
+        if args.kjor:
+            raise SystemExit("--vekter er én kjoering; bruk --start med --kjor for flere")
+        if not args.ut.endswith(".bin"):
+            raise SystemExit("--vekter krever --ut <fil>.bin")
+        if args.start:
+            raise SystemExit("--vekter ER starten; ikke oppgi --start i tillegg")
+        args.start = args.vekter
+        args.policy = args.policy or args.vekter
+        vekter_data = [m for m in args.data.split(",") if m]
+        if args.holdoutmappe is None:
+            args.holdoutmappe = vekter_data[0] if vekter_data else ""
+        start_lag = les_vekter(args.vekter)
+        skjult = ",".join(str(W.shape[0]) for W, _ in start_lag[:-1])
+        args.utmappe = os.path.dirname(args.ut) or "."
+        args.kjor = [f"{os.path.basename(args.ut)[:-4]}:{','.join(vekter_data)}:{skjult}"]
+    elif args.holdoutmappe is None:
+        args.holdoutmappe = "sd-data2"
+    sluttlinjer: list[str] = []
 
     # Rask vei: bare skrive ut benken. Den skal kunne kjøres uten GPU og uten
     # å lese hele treningssettet på nytt.
@@ -687,7 +732,7 @@ def main() -> None:
         dump_holdout(args.holdoutmappe, args.dumpholdout, args.holdoutfroe, args.holdoutandel)
         return
 
-    enhet = "cuda" if torch.cuda.is_available() else "cpu"
+    enhet = args.enhet or ("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Enhet: {enhet}" + (f" ({torch.cuda.get_device_name(0)})" if enhet == "cuda" else ""))
 
     mapper = [m for m in args.data.split(",") if m]
@@ -712,9 +757,9 @@ def main() -> None:
                     f"--data {mapper}. Legg den til i --data."
                 )
 
-    X, V, M, FRO, KILDE, SIG = les(mapper, args.klipp)
+    X, V, M, FRO, KILDE, SIG = les(mapper, args.klipp, not args.ingenbuffer)
     n = X.shape[0]
-    if n < 1000:
+    if n < args.minrader:
         raise SystemExit(f"For lite data ({n} stillinger)")
 
     # --- OVERLAPPSRAPPORT ---------------------------------------------------
@@ -1124,6 +1169,44 @@ def main() -> None:
         beste = float("inf")
         beste_epoke = 0
         siden = 0
+        if vekter_modus:
+            if hold_idx.numel() == 0:
+                raise SystemExit("Tom holdout: for faa kamper (frø) for --holdoutandel - porten har ingenting aa doemme paa")
+            # REFERANSEN: --policy (standard startnettet) paa NOEYAKTIG denne holdouten, med samme
+            # anger som modellen. Formen leses av fila, saa en policy med andre skjulte lag kan maales.
+            pol_lag = les_vekter(args.policy)
+            if pol_lag[0][0].shape[1] != bredde:
+                raise SystemExit(f"--policy {args.policy} tar {pol_lag[0][0].shape[1]} trekk, dataene har {bredde}")
+            pol = E1Nett([bredde] + [W.shape[0] for W, _ in pol_lag]).to(enhet)
+            with torch.no_grad():
+                for l, (W, b) in zip(pol.lag, pol_lag):
+                    l.weight.copy_(torch.from_numpy(W))
+                    l.bias.copy_(torch.from_numpy(b))
+            pol.eval()
+            _, pol_treff, pol_anger = maal_i_biter(pol, Xk, Vg, Mg, args.tau, hold_idx)
+            del pol
+            # START-AVVIK: torch-nettet mot en ren numpy-framoverregning av vektfila. Et lag lastet
+            # skjevt (feil akse, feil rekkefoelge) krasjer ikke - det gir bare et daarlig nett.
+            n_sjekk = min(4096, hold_idx.numel())
+            x = Xk[hold_idx[:n_sjekk]].detach().cpu().numpy().astype(numpy.float64)
+            start_np = les_vekter(args.start)
+            for i, (W, b) in enumerate(start_np):
+                x = x @ W.T.astype(numpy.float64) + b.astype(numpy.float64)
+                if i < len(start_np) - 1:
+                    x = numpy.maximum(x, 0.0)
+            modell.eval()
+            with torch.no_grad():
+                y = modell(Xk[hold_idx[:n_sjekk]]).detach().cpu().numpy().astype(numpy.float64)
+            start_avvik = float(numpy.abs(y - x).max())
+            _, _, start_anger = maal_i_biter(modell, Xk, Vg, Mg, args.tau, hold_idx)
+            print(
+                f"START: hold-anger {start_anger:.4f}, policy {pol_anger:.4f} (treff {100 * pol_treff:.1f} %), "
+                f"avvik mot vektfila {start_avvik:.2e}",
+                flush=True,
+            )
+            # EPOKE 0 ER ET SJEKKPUNKT: startvektene skrives, og en epoke maa slaa dem strengt.
+            beste = start_anger
+            skriv_vekter(ut, modell)
         for epoke in range(args.epoker):
             modell.train()
             perm = torch.randperm(tren_idx.numel(), device=enhet)
@@ -1174,6 +1257,15 @@ def main() -> None:
                 print(f"tidlig stopp: {args.taal} epoker uten framgang (beste {beste:.4f})")
                 break
         print(f"{navn} ferdig: beste hold-anger {beste:.4f} på epoke {beste_epoke} → {ut}")
+        if vekter_modus:
+            sluttlinjer += [
+                f"RADER tren {tren_idx.numel()} holdout {hold_idx.numel()} holdoutkamper {len(hold_froe)}",
+                f"BESTE-EPOKE {beste_epoke}",
+                f"START-AVVIK {start_avvik:.2e}",
+                f"POLICY-TREFF-HOLDOUT {pol_treff:.4f}",
+                f"MODELL-ANGER-HOLDOUT {beste:.4f}",
+                f"POLICY-ANGER-HOLDOUT {pol_anger:.4f}",
+            ]
         logg.write(
             json.dumps(
                 {
@@ -1191,6 +1283,9 @@ def main() -> None:
         torch.cuda.empty_cache() if enhet == "cuda" else None
 
     logg.close()
+    # BAKERST, etter alt annet: linjene foer foerste epoke kom ikke gjennom WSL-roeret i push-runden.
+    for linje in sluttlinjer:
+        print(linje, flush=True)
 
 
 if __name__ == "__main__":
