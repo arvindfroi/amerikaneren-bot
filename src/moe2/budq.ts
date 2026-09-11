@@ -38,6 +38,8 @@ import { forover, type NevroNett } from "../nevro/nett.ts";
 import { budTrekk, BUD_DIM_V2 } from "./budtrekk.ts";
 // Retningen moe2 → mlb er lov (som `agentspek.ts`); mlb importerer aldri herfra.
 import { Hukommelse, HUKOMMELSE_LENGDE_4 } from "../mlb/hukommelse.ts";
+import { MLB_STILLING, stillingTrekk } from "../mlb/stillingtrekk.ts";
+import { spillerVisning } from "../motor.ts";
 
 /** Budene nettet har en utgang for, i utgangsrekkefølge. Fire spillere: tallbud 5–12. */
 export const BUDQ_BUD: readonly Bud[] = [PASS, 5, 6, 7, 8, 9, 10, 11, 12, AMERIKANER, SOLO];
@@ -48,6 +50,16 @@ export const BUDQ_INN = BUD_DIM_V2 + 3;
 export const BUDQ_HUKOMMELSE = HUKOMMELSE_LENGDE_4;
 /** 143 + motstanderboka = 287. */
 export const BUDQ_INN_H = BUDQ_INN + BUDQ_HUKOMMELSE;
+/**
+ * SANS A, STILLINGEN PER SETE (11. sep): `src/mlb/stillingtrekk.ts` bakerst etter boka,
+ * 287 + 36 = 323. Eieren: «en på 95 byr annerledes enn en på 40, og da betyr budet hans noe
+ * annet». De tre kampstillingstallene over sier bare hvor JEG og den beste står; blokken sier
+ * hvem som kan gå ut på hvilket bud. Bygd av `spillerVisning(state, sete)` og ingenting annet,
+ * så K2 er strukturell også her. Bare bak boka: loopen trener 287, og 287 → 323 er nuller bakerst.
+ */
+export const BUDQ_STILLING = MLB_STILLING;
+export const BUDQ_INN_HS2 = BUDQ_INN_H + BUDQ_STILLING;
+export const BUDQ_BREDDER: readonly number[] = [BUDQ_INN, BUDQ_INN_H, BUDQ_INN_HS2];
 
 export function budqIndeks(b: Bud): number {
   const i = BUDQ_BUD.indexOf(b);
@@ -61,9 +73,17 @@ export function budqIndeks(b: Bud): number {
  *
  * Uten bok er vektoren nøyaktig den gamle (143), så data og nett fra før står.
  */
-export function budqTrekk(state: GameState, sete: number, hukommelse: Hukommelse | null = null): Float32Array {
+export function budqTrekk(
+  state: GameState,
+  sete: number,
+  hukommelse: Hukommelse | null = null,
+  sanser2 = false,
+): Float32Array {
   if (state.antallSpillere !== 4) throw new Error("BudQ er bygd for fire spillere");
-  const v = new Float32Array(hukommelse === null ? BUDQ_INN : BUDQ_INN_H);
+  if (sanser2 && hukommelse === null) throw new Error("BudQ sanser 2 (323) ligger bak boka og krever en hukommelse");
+  const v = new Float32Array(hukommelse === null ? BUDQ_INN : sanser2 ? BUDQ_INN_HS2 : BUDQ_INN_H);
+  // K2: stillingsblokken ser bare det setet ser. Legges først inn her så resten under er urørt.
+  if (sanser2) v.set(stillingTrekk(spillerVisning(state, sete), state.giving.antallStikk, state.regler.målPoeng), BUDQ_INN_H);
   v.set(budTrekk(state, sete, BUD_DIM_V2), 0);
   const mål = state.regler.målPoeng;
   let beste = -Infinity;
@@ -86,19 +106,22 @@ export class BudQagent {
    * sparing: et gammelt nett skal ikke engang bokføre, så standardveien er urørt.
    */
   private hukommelse: Hukommelse | null;
+  /** 323-nettet leser stillingsblokken bakerst (sans A). Avgjort av bredden, som boka. */
+  private readonly sanser2: boolean;
 
   constructor(indre: Innagent, nett: NevroNett) {
     const første = nett.lag[0];
     const siste = nett.lag[nett.lag.length - 1];
-    if (første === undefined || (første.inn !== BUDQ_INN && første.inn !== BUDQ_INN_H)) {
-      throw new Error(`BudQ-nettet må ta ${BUDQ_INN} eller ${BUDQ_INN_H} trekk, har ${første?.inn}`);
+    if (første === undefined || !BUDQ_BREDDER.includes(første.inn)) {
+      throw new Error(`BudQ-nettet må ta ${BUDQ_INN} eller ${BUDQ_INN_H} (eller ${BUDQ_INN_HS2}, sanser 2) trekk, har ${første?.inn}`);
     }
     if (siste === undefined || siste.ut !== BUDQ_UT) {
       throw new Error(`BudQ-nettet må ha ${BUDQ_UT} utganger, har ${siste?.ut}`);
     }
     this.indre = indre;
     this.nett = nett;
-    this.hukommelse = første.inn === BUDQ_INN_H ? new Hukommelse() : null;
+    this.hukommelse = første.inn === BUDQ_INN ? null : new Hukommelse();
+    this.sanser2 = første.inn === BUDQ_INN_HS2;
   }
 
   /** Leser nettet motstanderboka? Da MÅ driveren vise agenten `RUNDE_SLUTT` via `observer`. */
@@ -123,9 +146,9 @@ export class BudQagent {
     (this.indre as { observer?(s: GameState): void }).observer?.(state);
   }
 
-  /** Nøyaktig vektoren nettet ser for `sete` nå (143 eller 287). For data, benker og prøver. */
+  /** Nøyaktig vektoren nettet ser for `sete` nå (143, 287 eller 323). For data, benker og prøver. */
   trekk(state: GameState, sete: number): Float32Array {
-    return budqTrekk(state, sete, this.hukommelse);
+    return budqTrekk(state, sete, this.hukommelse, this.sanser2);
   }
 
   /** Q for hvert bud i `BUDQ_BUD`-rekkefølge. For benker og prøver. */
