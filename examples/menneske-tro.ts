@@ -60,6 +60,26 @@
  *
  * Fem foroverkjøringer per stilling (tro, null, null2, fremmed, rotert). Med tro-1 (920 inn)
  * 1,7 ms hver; gjenskapingen av alle 2641 rundene tar under ett sekund.
+ *
+ * ===================== MÅLT 11. sep: tro-1 på alle 273 kampene fra 10. aug ===
+ *
+ * 2640 av 2641 runder gjenskapt (4 med ett budavvik, 86 kampslutt vist som rundeslutt, 1 budrunde
+ * avvist), 97 178 stillinger, ~12 min prosesstid på 4 skiver. Kontrollen: 0 ulike plasser null/null2.
+ * Andel av veien gulv → tak, SE klynget på kamp:
+ *
+ *   K8 botene om menneskets kort   tro 18,07 ± 0,53 %  null 18,00 ± 0,53  +fakta 18,18  gulv+ 10,96
+ *                                  halvdel 0 / 1: 18,82 ± 0,75 / 17,22 ± 0,77
+ *   K8 alle seter                  tro 19,85 ± 0,18 %  null 19,85 ± 0,19  +fakta 20,00  gulv+ 8,85
+ *   K6 botene om menneskets kort   nivå +0,077 ± 0,014 pp; stigning +0,003 ± 0,003 pp/runde (z = 1,27);
+ *                                  halvdel 0 / 1 z = 1,21 / 0,45 → NEI. Fella tro − fremmed +0,029 ±
+ *                                  0,011 pp (tatt), men fremmed − null stiger også (z = 2,14): noe av
+ *                                  det lille som vokser, er bare at blokken fylles.
+ *   K6 alle seter                  nivå −0,001 ± 0,005 pp, stigning −0,001 ± 0,001 → stum (fella slapp unna)
+ *
+ * Hukommelsen i tro-1 er altså nesten stum mot mennesker: under en tidel av et prosentpoeng.
+ * Stillingsutvalget her er alle stikk. Med K8-radens utvalg (stikk ≥ 2, 81 782 stillinger): botene
+ * om menneskets kort 20,43 ± 0,59 %, alle seter 22,42 ± 0,21 %. K8-raden har i tillegg
+ * selvspillsdrivere, så tallene er ikke direkte sammenliknbare med 12,34 %.
  */
 
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
