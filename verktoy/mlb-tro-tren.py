@@ -146,6 +146,39 @@ def les_dims(sti):
     return dims
 
 
+# BLOKKENE I HVER TROBREDDE, i rekkefoelge (11. sep). Samme tabell som `MLB_TRO_LAYOUT` i
+# `src/mlb/trotrekk.ts`; `test/mlb-sanser2-utvid.test.ts` krever at `--bare-utvid` her og
+# `utvidTronett` i TS gir BYTE-IDENTISKE vektfiler.
+LAYOUT = {
+    660: [("grunn", 660)],
+    804: [("grunn", 660), ("hukommelse", 144)],
+    776: [("grunn", 660), ("signal", 116)],
+    920: [("grunn", 660), ("hukommelse", 144), ("signal", 116)],
+    996: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40)],
+}
+
+
+def kolonnekart(fra, til):
+    """[(kildestart, maalstart, lengde)] per blokk i `fra`, plassert der blokken staar i `til`.
+
+    En ukjent bredde gir prefikset, som foer tabellen fantes. En blokk som MANGLER i `til`
+    stopper: en utvidelse som mister en blokk er ikke en utvidelse.
+    """
+    if fra not in LAYOUT or til not in LAYOUT:
+        return [(0, 0, fra)]
+    start, o = {}, 0
+    for navn, lengde in LAYOUT[til]:
+        start[navn] = o
+        o += lengde
+    kart, o = [], 0
+    for navn, lengde in LAYOUT[fra]:
+        if navn not in start:
+            raise SystemExit(f"blokken «{navn}» i {fra} finnes ikke i {til}")
+        kart.append((o, start[navn], lengde))
+        o += lengde
+    return kart
+
+
 def les_vekter(sti, modell):
     """Leser appformatet tilbake. R2 starter hver epoke fra forrige epokes trosnett."""
     with open(sti, "rb") as f:
@@ -158,16 +191,14 @@ def les_vekter(sti, modell):
             w = numpy.frombuffer(f.read(inn * ut * 4), dtype="<f4").reshape(ut, inn)
             b = numpy.frombuffer(f.read(ut * 4), dtype="<f4")
             with torch.no_grad():
-                if utvid and inn == 776 and l.in_features == 920:
-                    # 776 = 660 | signal, men 920 = 660 | hukommelse (144) | signal. Å legge
-                    # nullkolonnene BAKERST ville latt signalvektene lese hukommelsesblokken
-                    # (agent C målte 0 av 40 like fordelinger); de settes derfor inn på 660.
+                if utvid:
+                    # UTVIDET INNGANG: hver blokk der den staar i den brede layouten, null ellers.
+                    # 776 = 660 | signal, men 920 = 660 | hukommelse (144) | signal: aa legge nullene
+                    # BAKERST ville latt signalvektene lese hukommelsesblokken (agent C maalte 0 av 40
+                    # like fordelinger). 920 -> 996 (sanser 2) er nuller bakerst, 804 -> 996 et hull paa 804.
                     l.weight.zero_()
-                    l.weight[:, :660].copy_(torch.from_numpy(w[:, :660].copy()))
-                    l.weight[:, 804:].copy_(torch.from_numpy(w[:, 660:].copy()))
-                elif utvid:
-                    l.weight.zero_()
-                    l.weight[:, :inn].copy_(torch.from_numpy(w.copy()))
+                    for fra, til, lengde in kolonnekart(inn, l.in_features):
+                        l.weight[:, til : til + lengde].copy_(torch.from_numpy(w[:, fra : fra + lengde].copy()))
                 else:
                     l.weight.copy_(torch.from_numpy(w.copy()))
                 l.bias.copy_(torch.from_numpy(b.copy()))
@@ -216,7 +247,25 @@ def main():
     # R2 (10. sep): trosnettet trenes SAMMEN med policyen, paa epokens egne kamper.
     ap.add_argument("--vekter", default="", help="start fra disse vektene (appformat); tom = tilfeldig")
     ap.add_argument("--hold-del", type=int, default=0, help=">0: holdout = rader med froe %% N == 0 fra --tren")
+    # BARE UTVIDELSEN (11. sep): CPU, ingen data, ingen trening. Skriver --vekter utvidet til --dim
+    # med nullkolonner etter LAYOUT, saa varmstarten kan proeves uten GPU og uten et korpus.
+    ap.add_argument("--bare-utvid", default="", help="skriv --vekter utvidet til --dim hit og avslutt (CPU)")
+    ap.add_argument("--dim", type=int, default=0, help="maalbredden for --bare-utvid")
     args = ap.parse_args()
+
+    if args.bare_utvid:
+        if not args.vekter or args.dim <= 0:
+            raise SystemExit("--bare-utvid krever --vekter og --dim")
+        dims = les_dims(args.vekter)
+        if args.dim < dims[0]:
+            raise SystemExit(f"{args.vekter} tar {dims[0]} trekk, --dim {args.dim} er smalere")
+        fra = dims[0]
+        dims[0] = args.dim
+        modell = Tronett(dims)
+        les_vekter(args.vekter, modell)
+        skriv_vekter(args.bare_utvid, modell)
+        print(f"UTVIDET {args.vekter} {fra} -> {args.dim}: {args.bare_utvid}", flush=True)
+        return
 
     enhet = "cuda" if torch.cuda.is_available() else "cpu"
     t0 = time.time()

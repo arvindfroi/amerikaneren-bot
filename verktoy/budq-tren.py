@@ -51,7 +51,8 @@ BUD = ["PASS", "5", "6", "7", "8", "9", "10", "11", "12", "AMERIKANER", "SOLO"]
 INDEKS = {b: i for i, b in enumerate(BUD)}
 
 
-BREDDER = (143, 287)
+# 323 = 287 + stillingen per sete (sans A, `src/mlb/stillingtrekk.ts`), bakerst: 287 -> 323 er nuller bakerst.
+BREDDER = (143, 287, 323)
 
 
 def les(monster, blanding=0.0, dim=0):
@@ -141,9 +142,29 @@ def skriv_vekter(sti, lag):
             f.write(l.bias.detach().cpu().float().numpy().astype("<f4").tobytes())
 
 
+def varmstart(lag, gamle, enhet):
+    """Legger `gamle` inn i `lag` med NULLKOLONNER bakerst i foerste lag (143 -> 287 -> 323).
+
+    Alle breddene er prefikser av hverandre (bok bak 143, stilling bak boka), saa nullene
+    bakerst gir samme Q ved start. Returnerer startnettets inngangsbredde.
+    """
+    if len(gamle) != len(lag):
+        raise SystemExit(f"--vekter har {len(gamle)} lag, modellen {len(lag)} (--skjult maa matche)")
+    with torch.no_grad():
+        for i, (l, (w, b)) in enumerate(zip(lag, gamle)):
+            ut, inn = w.shape
+            if ut != l.out_features or inn > l.in_features or (i > 0 and inn != l.in_features):
+                raise SystemExit(f"lag {i}: vektene er {inn}->{ut}, modellen {l.in_features}->{l.out_features}")
+            ny = torch.zeros_like(l.weight)
+            ny[:, :inn] = torch.from_numpy(w).to(enhet)
+            l.weight.copy_(ny)
+            l.bias.copy_(torch.from_numpy(b).to(enhet))
+    return gamle[0][0].shape[1]
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data", required=True)
+    ap.add_argument("--data", default="")
     ap.add_argument("--ut", required=True)
     ap.add_argument("--skjult", default="256,256")
     ap.add_argument("--epoker", type=int, default=60)
@@ -156,11 +177,27 @@ def main():
     ap.add_argument("--rapport", default="")
     ap.add_argument("--blanding", type=float, default=0.0,
                     help="maal = q + blanding*qp: seiersmaal pluss en andel rundepoeng (krever qp i dataene)")
-    ap.add_argument("--dim", type=int, default=0, choices=[0, 143, 287],
-                    help="trekkbredde; 0 = les av radene (143 uten, 287 med budq-data --hukommelse)")
+    ap.add_argument("--dim", type=int, default=0, choices=[0, 143, 287, 323],
+                    help="trekkbredde; 0 = les av radene (143 uten, 287 med budq-data --hukommelse, 323 med --sanser2)")
     ap.add_argument("--vekter", default="",
-                    help="start fra dette nettet (appformat); et 143-nett til 287 utvides med nullkolonner")
+                    help="start fra dette nettet (appformat); et smalere nett utvides med nullkolonner bakerst")
+    # BARE UTVIDELSEN (11. sep): CPU, ingen data, ingen trening. --vekter utvidet til --dim skrives til --ut,
+    # med noeyaktig den varmstarten treningen bruker - saa den kan proeves uten GPU og uten et korpus.
+    ap.add_argument("--bare-utvid", action="store_true", help="utvid --vekter til --dim, skriv --ut og avslutt (CPU)")
     a = ap.parse_args()
+
+    if a.bare_utvid:
+        if not a.vekter or a.dim == 0:
+            raise SystemExit("--bare-utvid krever --vekter og --dim")
+        gamle = les_vekter(a.vekter)
+        dims = [a.dim] + [w.shape[0] for w, _ in gamle]
+        lag = nn.ModuleList([nn.Linear(dims[i], dims[i + 1]) for i in range(len(dims) - 1)])
+        fra = varmstart(lag, gamle, "cpu")
+        skriv_vekter(a.ut, lag)
+        print(f"UTVIDET {a.vekter} {fra} -> {a.dim}: {a.ut}", flush=True)
+        return
+    if not a.data:
+        raise SystemExit("--data mangler")
 
     X, T, M, P, FRO, nfiler, dim, hoppet = les(a.data, a.blanding, a.dim)
     h = (FRO.astype(numpy.uint64) * numpy.uint64(2654435761)) % numpy.uint64(4294967296)
@@ -179,19 +216,7 @@ def main():
     if a.vekter:
         # VARMSTART (K6.6). Nullkolonnene er hele poenget: Q er uendret ved start, og
         # motstanderboka faar bare vekt der gradienten finner noe i den.
-        gamle = les_vekter(a.vekter)
-        if len(gamle) != len(lag):
-            raise SystemExit(f"--vekter har {len(gamle)} lag, modellen {len(lag)} (--skjult maa matche)")
-        with torch.no_grad():
-            for i, (l, (w, b)) in enumerate(zip(lag, gamle)):
-                ut, inn = w.shape
-                if ut != l.out_features or inn > l.in_features or (i > 0 and inn != l.in_features):
-                    raise SystemExit(f"lag {i}: vektene er {inn}->{ut}, modellen {l.in_features}->{l.out_features}")
-                ny = torch.zeros_like(l.weight)
-                ny[:, :inn] = torch.from_numpy(w).to(enhet)
-                l.weight.copy_(ny)
-                l.bias.copy_(torch.from_numpy(b).to(enhet))
-        start_inn = gamle[0][0].shape[1]
+        start_inn = varmstart(lag, les_vekter(a.vekter), enhet)
         print(f"START FRA {a.vekter}"
               + (f" (utvidet {start_inn} -> {dim} med nullkolonner)" if start_inn < dim else ""), flush=True)
 

@@ -112,6 +112,7 @@ import {
   MLB_TRO_INN,
   MLB_TRO_INN_H,
   MLB_TRO_INN_HS,
+  MLB_TRO_INN_HS2,
   MLB_TRO_INN_S,
   troTrekkForBredde,
 } from "../src/mlb/trotrekk.ts";
@@ -176,7 +177,17 @@ const [SI, SN] = (arg("--skard", "0/1").split("/") as [string, string]).map(Numb
  * 776-korpus inneholder nøyaktig de samme stillingene som 660-korpuset.
  */
 const SIGNAL = har("--signal");
-const DIM = SIGNAL
+/**
+ * `--sanser2` (11. sep): stillingen per sete og valgt bort (`src/mlb/stillingtrekk.ts`,
+ * `src/mlb/valgtbort.ts`) bakerst etter 920, altså 996 trekk. Krever `--kamp --hukommelse
+ * --signal`: det finnes bare ÉN sanser-2-bredde, og den er 920 med nuller bakerst for et
+ * utvidet nett. Uten flagget er radene byte-identiske med før.
+ */
+const SANSER2 = har("--sanser2");
+if (SANSER2 && !(KAMP && HUKOMMELSE && SIGNAL)) throw new Error("--sanser2 legger 76 trekk bak 920: krever --kamp --hukommelse --signal");
+const DIM = SANSER2
+  ? MLB_TRO_INN_HS2
+  : SIGNAL
   ? HUKOMMELSE ? MLB_TRO_INN_HS : MLB_TRO_INN_S
   : HUKOMMELSE ? MLB_TRO_INN_H : MLB_TRO_INN;
 
@@ -268,7 +279,7 @@ if (!KAMP) {
   console.log(`\nSkard ${SI} ferdig: ${skrevet} rader (${DIM} trekk${SIGNAL ? ", med signalblokk" : ""}) -> ${UT}`);
 } else {
   const kb = KAMP_BÅND[BAND]!;
-  const medBok = DIM === MLB_TRO_INN_H || DIM === MLB_TRO_INN_HS;
+  const medBok = DIM === MLB_TRO_INN_H || DIM === MLB_TRO_INN_HS || DIM === MLB_TRO_INN_HS2;
   let runder = 0;
   let kamper = 0;
   let kappet = 0;
