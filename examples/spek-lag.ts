@@ -126,6 +126,27 @@ export function utenSøkOveralt(spek: string): string {
   return settSammen({ lag, terminal });
 }
 
+/** Lag som BYR: nøyaktig ett av dem avgjør budrunden i en spek. */
+export const BUDLAG = new Set(["budq:", "budm:"]);
+
+/**
+ * DEN SAMME BOTEN MED ET ANNET BUDLAG — budduellen i K3.1 (11. sep).
+ *
+ * `budlag` er ett lag med sitt felt, f.eks. `budm:e1-modell/bud-vant.json@-3.0`. Laget byttes
+ * PÅ SIN PLASS i kjeden, så alt over (økt, vrak, eksakt, profil, søk) og alt under (vakt,
+ * kortnettet) er de samme objekttypene med de samme feltene: bare budet kan bli ulikt.
+ * KASTER når speken har null eller flere budlag — da finnes det ikke ÉN plass å bytte på.
+ */
+export function medBudlag(spek: string, budlag: string): string {
+  const ny = delLag(`${budlag}:e1:x`).lag;
+  if (ny.length !== 1 || !BUDLAG.has(ny[0]!.navn)) throw new Error(`«${budlag}» er ikke ett budlag (budq:/budm:)`);
+  const d = delLag(spek);
+  const plass = d.lag.flatMap((l, i) => (BUDLAG.has(l.navn) ? [i] : []));
+  if (plass.length !== 1) throw new Error(`«${spek}» har ${plass.length} budlag — medBudlag trenger nøyaktig ett`);
+  const lag = d.lag.map((l, i) => (i === plass[0] ? ny[0]! : l));
+  return settSammen({ lag, terminal: d.terminal });
+}
+
 /** Troen søket bruker, lest ut av `sik:`-feltet (`24k32e3L~mlbu=<fil>`). */
 export interface Søketrospek {
   readonly art: "mlb" | "mlbu";

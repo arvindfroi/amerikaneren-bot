@@ -24,6 +24,15 @@
  *        KONTROLL: tomt vindu eksakt 0. FELLE: ADAMS_MAALT i samme vindu har gap > 2 SE
  *        (ellers har målingen ikke kraft). JA: |gap| ≤ 2 SE og treet ALDRI kappet — et
  *        kappet tre gir en nedre grense, så «nei» kan leses og «ja» ikke.
+ *   K3.1 (11. sep) dømmes IKKE lenger mot klarsynstaket, som ingen budgiver kan nå (batteriet
+ *        11. sep: helbot +10,81 ± 2,22, ADAMS_MAALT +9,91 ± 2,17 — mest skjulte kort og
+ *        talong). Porten er det NÅBARE taket (`naabart-bud.ts`: argmax av snittpoeng over W
+ *        verdener fra setets visning). JA: nåbart gap − 2 SE ≤ 0. KONTROLL: uendret bud ⇒
+ *        eksakt 0. FELLE: `PASS_BUDLAG` (passer alltid) har nåbart gap > 2 SE. Klarsynstallet
+ *        står som kontekst i samme rad.
+ *   K3.1-Adams  budduellen: samme giv, bord og kortspill, bare budlaget byttet til
+ *        `ADAMS_BUDLAG`. Bot − Adams i poeng og ΔP(seier). JA: bot − Adams + 2 SE ≥ 0.
+ *        KONTROLL: samme budfølge ⇒ eksakt 0. FELLE: boten uten søk slår passeren > 2 SE.
  *   K4   `k4-hukommelse.ts --spek`. KONTROLL: nullarmen (uten hukommelse) 0 avvik.
  *        FELLE: positivkontrollen snur valg. JA: minnearmen avviker.
  *   K5   `k5-retning.ts`. KONTROLL: lik stilling eksakt 0. FELLE: PLANTET±BUD tatt hver
@@ -72,6 +81,15 @@
  *
  * K3, K4 og K7: de tre andre setene spiller `--andre` (standard speken uten søk). Det er et
  * valg, og det står i rapporten: gapet og hukommelsen måles mot et bord som ikke søker.
+ *
+ * K3.1 MOT DET NÅBARE TAKET (11. sep, travel maskin, hele boten ved base-bordet). Spekarmen
+ * (nåbart tak W = 32 + duell + ΔP) koster ~45 prosess-s per giv: tolv runder med hele boten
+ * (~2,7 s hver) og ~1 000 utspillinger uten søk. Passerarmen ~8 s. 48 giv per bånd er ~2 500
+ * prosess-s per bånd, ~5 000 i alt (~4 min på 20 kjerner) oppå klarsynsarmene, som står
+ * uendret. KRAFT målt på 30 giv i bånd 0: nåbart gap SE 0,65 → ~0,51 ved 48 giv («nei» over
+ * ~1 poeng/runde); passefella z = 3,1 → ~3,9; duellen SE 0,46 → ~0,37 poeng og ~0,23 pp
+ * ΔP(seier). W 8 → 32 på de samme 12 givene løftet taket fra −2,40 til −1,46: det er ikke
+ * konvergert ved 8, derfor 32.
  */
 
 import { spawn } from "node:child_process";
@@ -86,11 +104,20 @@ import { dømK2, slåSammenK2, type K2Fase, type K2Rapport } from "./k2-spek.ts"
 import { dømK5R, type K5RRad } from "./k5-retning.ts";
 import { dømK4Spek, slåSammenK4, type K4SpekRapport } from "./k4-hukommelse.ts";
 import { par, type Runderad } from "./k6-vaner.ts";
-import { sikVerdener, søketro, troLeserMinne, utenMinne, utenSøkOveralt } from "./spek-lag.ts";
+import { medBudlag, sikVerdener, søketro, troLeserMinne, utenMinne, utenSøkOveralt } from "./spek-lag.ts";
 
 /** Kjeden mennesket møtte fra 10. aug (v5, `bud-menneske`). Motstanderne i K1-duplikatet. */
 export const V5_KJEDE =
   "vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin";
+/** Adams-budet, ordrett budlaget i `ADAMS`/`ADAMS_MAALT`. K3.1-duellens motstander. */
+export const ADAMS_BUDLAG = "budm:e1-modell/bud-vant.json@-3.0";
+/**
+ * PASSEFELLA: `Budagent` byr bare når EV > terskelen, og med terskel og forsvarsverdi 99 kan
+ * ingen EV nå den (tallbud ≤ 2·12, amerikaner ≤ mål/2). Setet passer i hver budtur.
+ */
+export const PASS_BUDLAG = "budm:e1-modell/bud-vant.json@99";
+/** Seiersprediktoren for ΔP(seier) i K3.1-duellen (samme som K1-duplikatet). */
+export const K31_SEIER = "e1-modell/seier-g0.bin";
 export const K1_FRA = "2026-08-10";
 /** «Veldig høyt nivå» (K8.2, forslag 11. sep): minst 25 % av veien gulv → tak. */
 export const K8_TERSKEL = 0.25;
@@ -238,6 +265,12 @@ export interface Størrelser {
   readonly maksNoder: number;
   readonly midtNoder: number;
   readonly k7Noder: number;
+  /**
+   * K3.1 MOT DET NÅBARE TAKET (11. sep): giv per bånd i spek- og passerarmen, og W (verdener per
+   * budbeslutning). Uavhengig av `budGiver`, som nå bare styrer klarsynstallet i konteksten.
+   */
+  readonly budNaabartGiver: number;
+  readonly budVerdener: number;
   readonly k4Giv: number;
   readonly k4MålRunde: number;
   readonly k4Forkamper: number;
@@ -262,6 +295,8 @@ export const KJAPP: Størrelser = {
   maksNoder: 1,
   midtNoder: 1,
   k7Noder: 1,
+  budNaabartGiver: 1,
+  budVerdener: 2,
   k4Giv: 1,
   k4MålRunde: 2,
   k4Forkamper: 0,
@@ -290,6 +325,9 @@ export function fullStørrelser(kjerner: number): Størrelser {
     maksNoder: 12,
     midtNoder: 100,
     k7Noder: 250,
+    // Satt etter målingen 11. sep (se KOSTNAD i filhodet): W = 32, 48 giv per bånd.
+    budNaabartGiver: 48,
+    budVerdener: 32,
     k4Giv: 12,
     k4MålRunde: 7,
     k4Forkamper: 0,
@@ -382,6 +420,65 @@ export function domTak(spek: readonly Takrad[], stakk: readonly Takrad[], tom: r
   // Et kappet tre er en NEDRE grense: «gapet er null» kan ikke leses fra det.
   else innfridd = kappet > 0 ? "stum" : "ja";
   return { gap, stakk: st, kappet, kontrollOk, felleOk, innfridd };
+}
+
+/** En rad fra `tak-kart.ts --naabart … [--mot-spek …] [--seier …]`. */
+export interface NaabartRad {
+  readonly frø: number;
+  readonly diffNaabart: number;
+  readonly naabartEndret: number;
+  readonly diffMot?: number;
+  readonly motLik?: boolean;
+  readonly seierRein?: number;
+  readonly seierMot?: number;
+}
+
+/**
+ * K3.1 MOT DET NÅBARE TAKET (11. sep). `spek` er boten, `passer` den samme boten uten søk med
+ * et budlag som alltid passer (`PASS_BUDLAG`), begge med det nåbare taket på samme giv.
+ *
+ * PORTEN ER ENSIDIG: ja = gap − 2 SE ≤ 0, «budet er ikke signifikant dårligere enn det beste
+ * budet under samme informasjon». Et negativt gap er IKKE et brudd her, i motsetning til
+ * klarsynstaket: med endelig W er det nåbare taket en nedre grense (argmax over støy), og en
+ * god budgiver kan slå det. Kraften holdes av fella i stedet: passeren MÅ ha gap > 2 SE.
+ * KONTROLL: hver rad der taket ikke byttet noe bud har eksakt 0 (paringen), og slike rader finnes.
+ */
+export function domNaabart(spek: readonly NaabartRad[], passer: readonly NaabartRad[]) {
+  const gap = klyngeSnitt(spek, (x) => x.frø, (x) => x.diffNaabart);
+  const fella = klyngeSnitt(passer, (x) => x.frø, (x) => x.diffNaabart);
+  const alle = [...spek, ...passer];
+  const uendret = alle.filter((x) => x.naabartEndret === 0).length;
+  const brudd = alle.filter((x) => x.naabartEndret === 0 && x.diffNaabart !== 0).length;
+  const byttet = spek.filter((x) => x.naabartEndret > 0).length;
+  const kontrollOk = spek.length > 0 && uendret > 0 && brudd === 0;
+  const felleOk = Number.isFinite(fella.se) && fella.snitt > 2 * fella.se;
+  let innfridd: Dom;
+  if (!kontrollOk || !felleOk || gap.n === 0 || !Number.isFinite(gap.se)) innfridd = "stum";
+  else innfridd = gap.snitt - 2 * gap.se > 0 ? "nei" : "ja";
+  return { gap, fella, uendret, brudd, byttet, kontrollOk, felleOk, innfridd };
+}
+
+/**
+ * K3.1-ADAMS: BUDDUELLEN. `diffMot` = Adams-budet − botens bud på samme giv, samme bord og
+ * samme kortspill (bare budlaget byttet, `medBudlag`). Tallet som leses er boten − Adams.
+ *
+ * Ja = boten er ikke signifikant dårligere (bot − Adams + 2 SE ≥ 0). KONTROLL: samme budfølge
+ * ⇒ eksakt 0, og slike rader finnes. FELLE: i passerarmen er `--mot-spek` boten uten søk, og
+ * den MÅ slå passeren med > 2 SE — ellers ser duellen ikke en dårlig budgiver.
+ */
+export function domBudduell(spek: readonly NaabartRad[], passer: readonly NaabartRad[]) {
+  const duell = klyngeSnitt(spek, (x) => x.frø, (x) => -(x.diffMot ?? NaN));
+  const seier = klyngeSnitt(spek, (x) => x.frø, (x) => (x.seierRein ?? NaN) - (x.seierMot ?? NaN));
+  const fella = klyngeSnitt(passer, (x) => x.frø, (x) => x.diffMot ?? NaN);
+  const alle = [...spek, ...passer];
+  const lik = spek.filter((x) => x.motLik === true).length;
+  const brudd = alle.filter((x) => x.motLik === true && x.diffMot !== 0).length;
+  const kontrollOk = duell.n > 0 && lik > 0 && brudd === 0;
+  const felleOk = Number.isFinite(fella.se) && fella.snitt > 2 * fella.se;
+  let innfridd: Dom;
+  if (!kontrollOk || !felleOk || !Number.isFinite(duell.se)) innfridd = "stum";
+  else innfridd = duell.snitt + 2 * duell.se < 0 ? "nei" : "ja";
+  return { duell, seier, fella, lik, brudd, kontrollOk, felleOk, innfridd };
 }
 
 export interface K8Rad {
@@ -559,15 +656,8 @@ async function k2(r: Rigg): Promise<Helrad[]> {
   ];
 }
 
-async function takvindu(
-  r: Rigg,
-  krav: string,
-  merke: string,
-  navn: string,
-  vindu: readonly string[],
-  giver: number,
-  maksNoder: number,
-): Promise<Helrad> {
+/** Takvinduets tre armer, kjørt og dømt. Skilt ut så K3.1 kan bære klarsynstallet som kontekst. */
+async function kjørTak(r: Rigg, merke: string, vindu: readonly string[], giver: number, maksNoder: number) {
   const reg = new Regnskap();
   const N = skardtall(r, giver);
   /**
@@ -609,13 +699,25 @@ async function takvindu(
   }
   await Promise.all(jobber);
   const les = (arm: string): Takrad[] => filer[arm]!.flatMap((f) => lesJsonl<Takrad>(f));
-  const d = domTak(les("spek"), les("stakk"), les("tomtvindu"));
+  return { d: domTak(les("spek"), les("stakk"), les("tomtvindu")), reg, antallTom: les("tomtvindu").length };
+}
+
+async function takvindu(
+  r: Rigg,
+  krav: string,
+  merke: string,
+  navn: string,
+  vindu: readonly string[],
+  giver: number,
+  maksNoder: number,
+): Promise<Helrad> {
+  const { d, reg, antallTom } = await kjørTak(r, merke, vindu, giver, maksNoder);
   return {
     krav,
     bånd: r.bånd,
     navn,
     målt: `${fmt(d.gap.snitt)} ± ${d.gap.se.toFixed(4)} poeng/runde igjen til taket (n=${d.gap.n} i ${d.gap.klynger} giv, ${d.kappet} kappet)`,
-    kontroll: `tomt vindu: alle ${les("tomtvindu").length} rader eksakt 0?`,
+    kontroll: `tomt vindu: alle ${antallTom} rader eksakt 0?`,
     kontrollOk: d.kontrollOk,
     felle: `ADAMS_MAALT i samme vindu og giv: ${fmt(d.stakk.snitt)} ± ${d.stakk.se.toFixed(4)} (må være > 2 SE)`,
     felleOk: d.felleOk,
@@ -630,12 +732,108 @@ async function takvindu(
   };
 }
 
+/**
+ * K3.1 MOT DET NÅBARE TAKET, OG BUDDUELLEN MOT ADAMS (11. sep). To rader.
+ *
+ *   spek    `--spek` ved bordet `r.andre`: nåbart tak (W verdener fra setets visning, utspilt
+ *           av `r.andre` i alle fire seter) + duell mot `medBudlag(spek, ADAMS_BUDLAG)` + ΔP.
+ *   passer  `medBudlag(r.andre, PASS_BUDLAG)` ved samme bord, samme tak, duell mot `r.andre`.
+ *           FELLA for begge radene: taket og duellen MÅ se en budgiver som alltid passer.
+ *
+ * Klarsynsarmene (`kjørTak`, uendret) går samtidig og står som kontekst i K3.1-raden.
+ */
+async function k31(r: Rigg): Promise<Helrad[]> {
+  // Budlagene byttes FØR noen jobb startes: kaster `medBudlag` (en spek uten nøyaktig ett budlag),
+  // skal klarsynsarmene ikke gå videre i køen uten at noen leser dem.
+  const adams = medBudlag(r.spek, ADAMS_BUDLAG);
+  const passer = medBudlag(r.andre, PASS_BUDLAG);
+  const takJobb = kjørTak(r, "k3bud", ["--fase", "bud"], r.st.budGiver, r.st.maksNoder);
+  const reg = new Regnskap();
+  const G = r.st.budNaabartGiver;
+  const W = r.st.budVerdener;
+  const N = skardtall(r, G);
+  const bord = r.andre === r.spek ? [] : ["--andre", r.andre];
+  const felles = [
+    "examples/tak-kart.ts", "--fase", "bud", "--uten-tak", "--gjenbruk",
+    "--giver", String(G), "--froe", String(r.frø), "--naabart", String(W), "--naabart-spek", r.andre,
+  ];
+  const armer = [
+    { arm: "spek", v: ["--spek", r.spek, ...bord, "--mot-spek", adams, "--seier", K31_SEIER] },
+    { arm: "passer", v: ["--spek", passer, "--andre", r.andre, "--mot-spek", r.andre] },
+  ];
+  const filer: Record<string, string[]> = { spek: [], passer: [] };
+  const jobber: Promise<boolean>[] = [];
+  for (const a of armer) {
+    for (let i = 0; i < N; i++) {
+      const fil = nyFil(`${r.utBase}-k3naabart-${a.arm}-s${i}.jsonl`);
+      filer[a.arm]!.push(fil);
+      jobber.push(reg.kjør(r.kø, [...felles, "--merke", a.arm, "--ut", fil, "--skard", `${i}/${N}`, ...a.v], `${fil}.logg`));
+    }
+  }
+  await Promise.all(jobber);
+  const tak = await takJobb;
+  const les = (arm: string): NaabartRad[] => filer[arm]!.flatMap((f) => lesJsonl<NaabartRad>(f));
+  const n = domNaabart(les("spek"), les("passer"));
+  const b = domBudduell(les("spek"), les("passer"));
+  const t = tak.d;
+  const kilde = `examples/tak-kart.ts --fase bud --uten-tak --naabart ${W} --naabart-spek <uten søk> (${N} skiver per arm); klarsyn: --gjenbruk --maks-noder ${r.st.maksNoder}`;
+  return [
+    {
+      krav: "K3.1",
+      bånd: r.bånd,
+      navn: "budet nær det nåbare taket",
+      målt:
+        `nåbart gap ${fmt(n.gap.snitt)} ± ${n.gap.se.toFixed(4)} poeng/runde (W=${W}, n=${n.gap.n} i ${n.gap.klynger} giv, byttet bud i ${n.byttet} rader); ` +
+        `klarsyn ${fmt(t.gap.snitt)} ± ${t.gap.se.toFixed(4)} (n=${t.gap.n} i ${t.gap.klynger} giv, ${t.kappet} kappet)`,
+      kontroll: `uendret bud ⇒ eksakt 0: ${n.brudd} brudd av ${n.uendret} rader (må være 0); klarsyn, tomt vindu: ${t.kontrollOk ? "OK" : "BOMMET"}`,
+      kontrollOk: n.kontrollOk,
+      felle:
+        `alltid pass: nåbart gap ${fmt(n.fella.snitt)} ± ${n.fella.se.toFixed(4)} (må være > 2 SE); ` +
+        `ADAMS_MAALT mot klarsyn ${fmt(t.stakk.snitt)} ± ${t.stakk.se.toFixed(4)}`,
+      felleOk: n.felleOk,
+      innfridd: n.innfridd,
+      kilde,
+      merknad:
+        "Ja = nåbart gap − 2 SE ≤ 0 (klynget på giv): budet er ikke signifikant dårligere enn det beste budet under SAMME " +
+        "informasjon (W verdener fra setets visning, argmax av snittpoeng, se examples/naabart-bud.ts). Ensidig fordi taket med " +
+        `endelig W er en nedre grense. Oppløsning: et gap over ${fmt(2 * n.gap.se, 2)} ville vært nei. Utspillingene i verdenene ` +
+        `spilles av ${r.andre} i alle fire seter (hele boten koster ~2,7 s per runde). Klarsynstaket er kontekst og ingen dom ` +
+        `lenger (det gamle kravet |gap| ≤ 2 SE ga ${t.innfridd}): det meste av det er informasjon ingen budgiver har.` +
+        reg.merknad() +
+        tak.reg.merknad(),
+      prosessSekunder: Math.round(reg.sek + tak.reg.sek),
+      jobber: reg.jobber + tak.reg.jobber,
+    },
+    {
+      krav: "K3.1-Adams",
+      bånd: r.bånd,
+      navn: "budet mot Adams-budet (duell, samme kortspill)",
+      målt:
+        `bot − Adams-bud ${fmt(b.duell.snitt)} ± ${b.duell.se.toFixed(4)} poeng/runde, ` +
+        `ΔP(seier) ${fmt(b.seier.snitt, 3)} ± ${b.seier.se.toFixed(3)} pp (n=${b.duell.n} i ${b.duell.klynger} giv)`,
+      kontroll: `samme budfølge ⇒ eksakt 0: ${b.brudd} brudd av ${b.lik} rader (må være 0)`,
+      kontrollOk: b.kontrollOk,
+      felle: `boten uten søk − alltid pass: ${fmt(b.fella.snitt)} ± ${b.fella.se.toFixed(4)} (må være > 2 SE)`,
+      felleOk: b.felleOk,
+      innfridd: b.innfridd,
+      kilde: `examples/tak-kart.ts --fase bud --mot-spek <speken med ${ADAMS_BUDLAG}> --seier ${K31_SEIER}`,
+      merknad:
+        `Samme giv, samme bord (${r.andre}), samme kortspill: bare budlaget i vårt sete er byttet (medBudlag). ` +
+        `Ja = bot − Adams + 2 SE ≥ 0. ΔP(seier) fra 0–0. Jobbene og kostnaden står i K3.1-raden.`,
+      prosessSekunder: 0,
+      jobber: 0,
+    },
+  ];
+}
+
 async function k3(r: Rigg): Promise<Helrad[]> {
-  return Promise.all([
-    takvindu(r, "K3.1", "k3bud", "budrunden nær taket", ["--fase", "bud"], r.st.budGiver, r.st.maksNoder),
+  const [bud, vrak, midt] = await Promise.all([
+    // Et spek uten nøyaktig ett budlag (MLB) kan ikke duellere: raden blir en feilrad, K3.4/K3.6 står.
+    k31(r).catch((e: unknown) => [feilrad("K3.1", r, e instanceof Error ? e.message : String(e))]),
     takvindu(r, "K3.4", "k3vrak", "trumfvalget nær taket", ["--fase", "vrak"], r.st.vrakGiver, r.st.maksNoder),
     takvindu(r, "K3.6", "k3midt", "midtspillet (stikk 3–5) nær taket", ["--fase", "spill", "--fra", "3", "--til", "5"], r.st.midtGiver, r.st.midtNoder),
   ]);
+  return [...bud, vrak, midt];
 }
 
 async function k7(r: Rigg): Promise<Helrad[]> {
@@ -972,6 +1170,8 @@ export async function kjørHelbot(argv: readonly string[]): Promise<void> {
     maksNoder: over("--maks-noder", st0.maksNoder),
     midtNoder: over("--midt-noder", st0.midtNoder),
     k7Noder: over("--k7-noder", st0.k7Noder),
+    budNaabartGiver: over("--bud-naabart-giver", st0.budNaabartGiver),
+    budVerdener: over("--bud-verdener", st0.budVerdener),
     k4Giv: over("--k4-giv", st0.k4Giv),
     k5Giver: over("--k5-giver", st0.k5Giver),
     k6Kamper: over("--kamper", st0.k6Kamper),

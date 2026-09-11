@@ -22,10 +22,13 @@ import {
   domK1,
   domK6,
   domK8,
+  domBudduell,
+  domNaabart,
   domTak,
   sprikende,
   type D1,
   type K8Rad,
+  type NaabartRad,
   type Takrad,
 } from "../examples/krav-helbot.ts";
 import type { Runderad } from "../examples/k6-vaner.ts";
@@ -91,6 +94,53 @@ test("domTak: tomt vindu ulik 0, svak felle eller negativt gap gjør raden stum"
   assert.equal(domTak(liten, sterkStakk, tak([0, 0, 1, 0, 0, 0])).innfridd, "stum");
   assert.equal(domTak(liten, tak([0.1, -0.1, 0, 0.2, -0.2, 0]), nuller).innfridd, "stum");
   assert.equal(domTak(tak([-3, -2, -3, -2, -3, -2]), sterkStakk, nuller).innfridd, "stum");
+});
+
+// ===========================================================================
+// K3.1: det nåbare taket og budduellen
+// ===========================================================================
+
+const nb = (differ: number[], endret: (i: number) => number = (i) => (i % 2 === 0 ? 1 : 0), mot?: number[]): NaabartRad[] =>
+  differ.map((d, i) => ({
+    frø: i % 6,
+    diffNaabart: endret(i) === 0 ? 0 : d,
+    naabartEndret: endret(i),
+    diffMot: mot === undefined ? 0 : mot[i]!,
+    motLik: mot === undefined ? true : mot[i] === 0 && i % 3 === 0,
+    seierRein: 1,
+    seierMot: 1,
+  }));
+const sterkPasser = nb([3, 4, 3.5, 4.5, 3, 4, 3, 4, 3.5, 4.5, 3, 4], () => 1, [3, 4, 3.5, 4.5, 3, 4, 3, 4, 3.5, 4.5, 3, 4]);
+
+test("domNaabart: ensidig port — likt eller under taket er ja, signifikant over er nei", () => {
+  assert.equal(domNaabart(nb([0.4, -0.2, 0.8, 0, -0.6, 0.2, 0.4, -0.2, 0.8, 0, -0.6, 0.2]), sterkPasser).innfridd, "ja");
+  assert.equal(
+    domNaabart(nb([-3, -2, -3, -2, -3, -2, -3, -2, -3, -2, -3, -2]), sterkPasser).innfridd,
+    "ja",
+    "et nåbart tak UNDER boten er W-støy (nedre grense), ikke en ødelagt måling",
+  );
+  // Ett uendret bud (rad 0) holder kontrollen i live; resten byttet og tapte.
+  assert.equal(domNaabart(nb([3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2], (i) => (i === 0 ? 0 : 1)), sterkPasser).innfridd, "nei");
+});
+
+test("domNaabart: brutt paring, ingen uendrede rader eller en passer taket ikke ser gjør raden stum", () => {
+  const ok = nb([0.4, -0.2, 0.8, 0, -0.6, 0.2, 0.4, -0.2, 0.8, 0, -0.6, 0.2]);
+  const brutt = ok.map((r, i) => (i === 1 ? { ...r, diffNaabart: 1 } : r));
+  assert.equal(domNaabart(brutt, sterkPasser).innfridd, "stum", "uendret bud med ulikt utfall = paringen holder ikke");
+  assert.equal(domNaabart(nb([0.1, -0.1, 0.1, -0.1, 0.1, -0.1], () => 1), nb([0, 0, 0, 0, 0, 0], () => 1)).innfridd, "stum");
+  assert.equal(domNaabart(ok, nb([0.2, -0.2, 0.1, 0, -0.1, 0.1], () => 1)).innfridd, "stum", "passeren slapp unna — taket har ikke kraft");
+});
+
+test("domBudduell: bot − Adams signifikant under 0 er nei; lik budfølge med ulikt utfall er stum", () => {
+  const mot = (vals: number[]): number[] => vals.map((v, i) => (i % 3 === 0 ? 0 : v));
+  const likt = nb(new Array(12).fill(0), () => 0, mot([0.5, -0.5, 1, 0, -1, 0.5, 0.5, -0.5, 1, 0, -1, 0.5]));
+  assert.equal(domBudduell(likt, sterkPasser).innfridd, "ja");
+  // diffMot = Adams − bot > 0 overalt: Adams er bedre.
+  const adamsBedre = nb(new Array(12).fill(0), () => 0, mot([3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2]));
+  assert.equal(domBudduell(adamsBedre, sterkPasser).innfridd, "nei");
+  const brutt = likt.map((r, i) => (i === 3 ? { ...r, diffMot: 2 } : r));
+  assert.equal(domBudduell(brutt, sterkPasser).innfridd, "stum");
+  assert.equal(domBudduell(likt, nb([0, 0, 0, 0, 0, 0], () => 1, [0.1, -0.1, 0, 0.1, -0.1, 0])).innfridd, "stum", "boten uten søk slo ikke passeren");
 });
 
 // ===========================================================================
