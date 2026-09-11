@@ -65,7 +65,14 @@ Verifisert byte for byte etter utrullingen: Vercels `dist/app.js` og valens `app
 Prøvd lokalt først med `examples/spill-lokal.ts` (vektene fra `web/dist`, logg-POST holdt
 tilbake): hel runde, `start` med `modeller.budq = true`, søket 1 ms–3,3 s under full CPU-last.
 
-- **Fil:** `web/dist/adams-budq.b64` (563 KB) = base64 av `budq-s2.bin` (sha1 91a8d6bdd8b7).
+- **Fil:** `web/dist/adams-budq.b64` (563 KB) = base64 av **`budq-s4a.bin` (sha1 242a4dbd8e5c) fra
+  11. september ca. 13:35**; før det `budq-s2.bin` (sha1 91a8d6bdd8b7). s4a er trent på d2+d3+d5
+  (129 730 budstillinger, d5 med budq-s3 som policy og 12 verdener). Byttet etter den forhåndssatte
+  regelen: parret mot s2 i den søkfrie appkjeden +0,0206 ± 0,0100 (frø 740M) og +0,0094 ± 0,0101
+  (750M), samlet +0,0150 ± 0,0071 (z 2,1); sluttmarginen lavere (≈ −3). Duplikat mot menneskerundene
+  (s4a i menneskets sete, v5 rundt bordet): ΔP(seier) +0,50 ± 0,19 pp per runde fra 10. aug mot s2s +0,44.
+  Samme filnavn og samme form (143 → 256 → 256 → 11), så appen og valens PROXY-rad er uendret –
+  bare pinnen flyttes.
   Den må ligge der appen henter modeller (samme sted som `adams-kort.b64`).
 - **Hva som endres:** `budm:bud-menneske.json@-3.0` byttes mot `budq:` i BEGGE tråder
   (`byggAdams` med `budqPå`). Søket, vakten og kortnettet er uendret.
