@@ -276,6 +276,35 @@ export function medVerden(s: GameState, hender: readonly number[][], observator:
     .filter((c: number) => !brukt.has(c))
     .map(intTilKort);
 
+  /**
+   * ============ OG VRAKET MÅ FØLGE VERDENEN (11. sep) ========================
+   *
+   * Samme lekkasje én linje lenger ned, for de tre som IKKE er budvinner: `s.vrak` ble
+   * stående fra den virkelige tilstanden mens hendene var verdenens. Vraket er bare sett
+   * av budvinneren (`spillerVisning.dittVrak`), men i utspillingen spiller budvinnerens
+   * policy med det — `synlig.ts` legger `s.vrak` i hennes kjente kort, og
+   * konvensjonsvakten leser dem. En forsvarers søk lot altså budvinneren spille som om
+   * hun hadde de EKTE byttekortene, og verdiene per kort flyttet seg når bare vraket
+   * ble byttet.
+   *
+   * FUNNET av `test/kort-data.test.ts` (K2 med vraket byttet: 1 av 24 sammenlikninger
+   * med troen i søket skilte). Isolert i to steg: trovekten og verdenene var like,
+   * `vurderPar` var det ikke.
+   *
+   * For en observatør som ikke er budvinner er vraket i verdenen de kortene som er til
+   * overs — verken på en hånd, på bordet eller spilt — og talongen er tatt opp. For
+   * budvinneren (som ser vraket) og før VRAK (tomt vrak) er dette bit for bit som før.
+   */
+  if (s.vrak.length > 0 && observator !== s.budvinner) {
+    const iVerden = new Set<number>();
+    for (const h of nye) for (const k of h) iVerden.add(kortTilInt(k));
+    for (const stikk of s.historikk) for (const kp of stikk.kort) iVerden.add(kortTilInt(kp.kort));
+    for (const kp of s.bord) iVerden.add(kortTilInt(kp.kort));
+    const vrak = alleKortInt()
+      .filter((c: number) => !iVerden.has(c))
+      .map(intTilKort);
+    return { ...s, hender: nye, makker, vrak, talong: [] };
+  }
   return { ...s, hender: nye, makker, talong };
 }
 
