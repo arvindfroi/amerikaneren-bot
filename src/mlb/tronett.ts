@@ -25,29 +25,35 @@ import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { foroverKolonne } from "../nevro/nett-kolonne.ts";
 import type { SpillerVisning } from "../motor.ts";
 import {
+  MLB_TRO_BREDDER,
   MLB_TRO_INN,
   MLB_TRO_INN_H,
+  MLB_TRO_INN_HS,
+  MLB_TRO_INN_S,
   MLB_TRO_KLASSER,
   MLB_TRO_KORT,
   MLB_TRO_UT,
-  troTrekk,
-  troTrekkMedHukommelse,
+  troTrekkForBredde,
 } from "./trotrekk.ts";
 
 export class MlbTronett {
   private readonly nett: NevroNett;
   /** Se `brukKolonnekjerne`. Av som standard, og av i all måling. */
   private kolonne = false;
-  /** `MLB_TRO_INN` (uten hukommelse) eller `MLB_TRO_INN_H` (med, K6 → K8). */
+  /**
+   * `MLB_TRO_INN` (660), `MLB_TRO_INN_H` (804, hukommelse K6 → K8), eller de samme
+   * med signalblokken bakerst (776 / 920, K8 kanal 5 og 2).
+   */
   readonly innBredde: number;
 
   constructor(nett: NevroNett) {
     const første = nett.lag[0];
     const siste = nett.lag[nett.lag.length - 1];
     if (første === undefined || siste === undefined) throw new Error("MLB-trohodet: tomt nett");
-    if (første.inn !== MLB_TRO_INN && første.inn !== MLB_TRO_INN_H) {
+    if (!MLB_TRO_BREDDER.includes(første.inn)) {
       throw new Error(
-        `MLB-trohodet tar ${MLB_TRO_INN} (uten hukommelse) eller ${MLB_TRO_INN_H} (med) trekk, nettet har ${første.inn}`,
+        `MLB-trohodet tar ${MLB_TRO_INN} (uten hukommelse), ${MLB_TRO_INN_H} (med), ` +
+          `${MLB_TRO_INN_S} eller ${MLB_TRO_INN_HS} (med signalblokk) trekk, nettet har ${første.inn}`,
       );
     }
     this.innBredde = første.inn;
@@ -76,13 +82,18 @@ export class MlbTronett {
 
   /** Leser dette nettet hukommelsen (K6 → K8)? Avgjøres av bredden, ikke av et flagg. */
   get brukerHukommelse(): boolean {
-    return this.innBredde === MLB_TRO_INN_H;
+    return this.innBredde === MLB_TRO_INN_H || this.innBredde === MLB_TRO_INN_HS;
+  }
+
+  /** Leser dette nettet signalblokken (K8 kanal 5 og 2)? Også avgjort av bredden. */
+  get brukerSignal(): boolean {
+    return this.innBredde === MLB_TRO_INN_S || this.innBredde === MLB_TRO_INN_HS;
   }
 
   /**
-   * TREKKENE FOR NETTOPP DETTE NETTET: med hukommelsen bakerst hvis nettet leser den,
-   * ellers `troTrekk` alene — bit-identisk med før. Alle som bygger trotrekk skal gå
-   * gjennom denne, så en ny bredde ikke må huskes på hvert kallsted.
+   * TREKKENE FOR NETTOPP DETTE NETTET, etter bredden: 660 og 804 bit-identisk med før,
+   * 776 og 920 med signalblokken bakerst. Alle som bygger trotrekk skal gå gjennom
+   * denne, så en ny bredde ikke må huskes på hvert kallsted.
    */
   trekkFor(
     visning: SpillerVisning,
@@ -90,9 +101,7 @@ export class MlbTronett {
     målPoeng: number,
     hukommelse: Float64Array | null,
   ): Float32Array {
-    return this.brukerHukommelse
-      ? troTrekkMedHukommelse(visning, antallStikk, målPoeng, hukommelse)
-      : troTrekk(visning, antallStikk, målPoeng);
+    return troTrekkForBredde(this.innBredde, visning, antallStikk, målPoeng, hukommelse);
   }
 
   /** Hvilken kjerne som FAKTISK regner — for rapportene, så ingen må gjette. */

@@ -56,7 +56,7 @@ import { opprettSpill, utfør, type GameState, type Handling } from "../src/inde
 import { spillerVisning } from "../src/motor.ts";
 import { lagIndre, ADAMS_MAALT } from "../src/moe2/agentspek.ts";
 import { troFasit } from "../src/mlb/fasit.ts";
-import { MLB_TRO_INN, troTrekk } from "../src/mlb/trotrekk.ts";
+import { MLB_TRO_INN, MLB_TRO_INN_S, troTrekkForBredde } from "../src/mlb/trotrekk.ts";
 
 const arg = (n: string, s: string): string => {
   const i = process.argv.indexOf(n);
@@ -83,6 +83,13 @@ const SJANSE = tall(arg("--sjanse", "0.5"), 0.5);
 const SPEK = arg("--spek", ADAMS_MAALT);
 const UT = arg("--ut", `mlb-tro-data/${BAND}-0.bin`);
 const [SI, SN] = (arg("--skard", "0/1").split("/") as [string, string]).map(Number) as [number, number];
+/**
+ * `--signal` (11. sep, K8 kanal 5 og 2): signalblokken bakerst, 660 → 776 trekk. Uten
+ * flagget er radene byte-identiske med før. Frøbåndene og utvalget er de samme, så et
+ * 776-korpus inneholder nøyaktig de samme stillingene som 660-korpuset.
+ */
+const SIGNAL = process.argv.includes("--signal");
+const DIM = SIGNAL ? MLB_TRO_INN_S : MLB_TRO_INN;
 
 mkdirSync(dirname(UT), { recursive: true });
 const fd = openSync(UT, "w");
@@ -90,10 +97,10 @@ const fd = openSync(UT, "w");
   const hode = Buffer.alloc(12);
   hode.write("MLBT", 0, "ascii");
   hode.writeInt32LE(1, 4);
-  hode.writeInt32LE(MLB_TRO_INN, 8);
+  hode.writeInt32LE(DIM, 8);
   writeSync(fd, hode);
 }
-const POST = MLB_TRO_INN * 4 + 52 + 4 + 2 + 2;
+const POST = DIM * 4 + 52 + 4 + 2 + 2;
 /** Skriv i klumper: én `writeSync` per rad ga 3× lengre kjøretid enn spillingen. */
 const KLUMP = 512;
 const buf = Buffer.alloc(POST * KLUMP);
@@ -127,9 +134,9 @@ for (let g = FRA + SI; g < GIVER; g += SN) {
       let noe = false;
       for (let i = 0; i < 52; i++) if (f[i]! > 0) noe = true;
       if (noe) {
-        const t = troTrekk(spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng);
+        const t = troTrekkForBredde(DIM, spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, null);
         let o = iKlump * POST;
-        for (let i = 0; i < MLB_TRO_INN; i++) {
+        for (let i = 0; i < DIM; i++) {
           buf.writeFloatLE(t[i]!, o);
           o += 4;
         }
@@ -153,4 +160,4 @@ for (let g = FRA + SI; g < GIVER; g += SN) {
 }
 tøm();
 closeSync(fd);
-console.log(`\nSkard ${SI} ferdig: ${skrevet} rader (${MLB_TRO_INN} trekk) -> ${UT}`);
+console.log(`\nSkard ${SI} ferdig: ${skrevet} rader (${DIM} trekk${SIGNAL ? ", med signalblokk" : ""}) -> ${UT}`);

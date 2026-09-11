@@ -51,6 +51,7 @@ import { FARGER, type Kort } from "../kort.ts";
 import type { SpillerVisning } from "../motor.ts";
 import { lagInn, ANTALL_INN as NEAT_INN } from "../neat/trekk.ts";
 import { kortIndeks } from "../nevro/trekk.ts";
+import { MLB_TRO_SIGNAL, signalTrekk } from "./signaltrekk.ts";
 
 /** rel sete 1, 2, 3, talong. Samme koding som `moe2/trosnett.ts`. */
 export const MLB_TRO_KLASSER = 4;
@@ -95,6 +96,19 @@ export const MLB_TRO_INN = NEAT_INN + TRO_BLOKK;
  */
 export const MLB_TRO_HUKOMMELSE = 144;
 export const MLB_TRO_INN_H = MLB_TRO_INN + MLB_TRO_HUKOMMELSE;
+
+/**
+ * SIGNALBLOKKEN (K8 kanal 5 og 2, 11. sep): `src/mlb/signaltrekk.ts`, lagt BAKERST
+ * etter det nettet allerede leser. To bredder, så begge dagens nett kan utvides med
+ * nullkolonner og gi nøyaktig samme svar:
+ *
+ *   MLB_TRO_INN_S   660 + 116   uten hukommelse
+ *   MLB_TRO_INN_HS  804 + 116   med hukommelse
+ */
+export const MLB_TRO_INN_S = MLB_TRO_INN + MLB_TRO_SIGNAL;
+export const MLB_TRO_INN_HS = MLB_TRO_INN_H + MLB_TRO_SIGNAL;
+/** Alle bredder trohodet kan ha. Bredden ER formatet – det finnes ikke noe versjonsfelt. */
+export const MLB_TRO_BREDDER: readonly number[] = [MLB_TRO_INN, MLB_TRO_INN_H, MLB_TRO_INN_S, MLB_TRO_INN_HS];
 
 /** Offsetene eksportert som ÉN kilde til sannhet, som ellers i prosjektet. */
 export const TROINNGANG = {
@@ -228,5 +242,32 @@ export function troTrekkMedHukommelse(
     }
     for (let i = 0; i < MLB_TRO_HUKOMMELSE; i++) v[MLB_TRO_INN + i] = hukommelse[i]!;
   }
+  return v;
+}
+
+/**
+ * TREKKENE FOR EN GITT BREDDE — den ene veien alle skal gå (via `MlbTronett.trekkFor`
+ * og `examples/mlb-trodata.ts --signal`). 660 og 804 er bit-identiske med før; 776 og
+ * 920 legger signalblokken bakerst.
+ */
+export function troTrekkForBredde(
+  bredde: number,
+  visning: SpillerVisning,
+  antallStikk: number,
+  målPoeng: number,
+  hukommelse: Float64Array | null,
+): Float32Array {
+  if (bredde === MLB_TRO_INN) return troTrekk(visning, antallStikk, målPoeng);
+  if (bredde === MLB_TRO_INN_H) return troTrekkMedHukommelse(visning, antallStikk, målPoeng, hukommelse);
+  if (bredde !== MLB_TRO_INN_S && bredde !== MLB_TRO_INN_HS) {
+    throw new Error(`Trohodet har ingen trekkbredde ${bredde} (${MLB_TRO_BREDDER.join(", ")})`);
+  }
+  const grunn =
+    bredde === MLB_TRO_INN_HS
+      ? troTrekkMedHukommelse(visning, antallStikk, målPoeng, hukommelse)
+      : troTrekk(visning, antallStikk, målPoeng);
+  const v = new Float32Array(bredde);
+  v.set(grunn, 0);
+  v.set(signalTrekk(visning), grunn.length);
   return v;
 }

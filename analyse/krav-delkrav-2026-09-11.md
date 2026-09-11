@@ -159,3 +159,21 @@ som forskning; trening foran benking; menneskekravene (K1, K6) sjekkes etter utr
 Fortsatt NEI: K4.3/K7.2/K8 kanal 6 (søk oppå MLB-nettet), K7.1 (eksakt sluttspill i spill),
 K8 kanal 2 og 5. Menneskedata: 3 251 runder med full historikk ligger i Val Town, men det
 finnes ingen eksportvei — eksisterende skript leser en lokal dump fra 23. jul–1. aug.
+
+---
+
+## Oppdatering formiddag 11. sep (maskintid, Tokyo)
+
+Eieren spurte om alt som manglet i lista var kodet inn. Svaret var nei; dette er gjort siden.
+
+| # | før | nå | hva som ble gjort |
+|---|---|---|---|
+| K3.1 / K3.2 / K5.4 | BudQ bygd, ikke utrullet | **UTRULLET** | BudQ-s2 på nettsiden fra 10:40 (fac2ec0); første ekte kamp 10:55 logget `modeller.budq = true`, søk 0,55–0,97 s. |
+| K7.1 | eksakt sluttspill ikke brukt i spill; `eksakt.ts` målt negativ | **BYGD, dom køet** | To feil rettet: makkeren lekket før avsløring (K2) og det etterlyste kortet kunne ligge hos budvinneren. Løser byttet til spillernes poeng (`poengdds`) med klasseutvidelse, lagmål. `eks:` i appens bygger for alle roller. 3 stikk igjen: maks 288 ms. Kampbenk mot appens kjede startes når d5 er ferdig. |
+| K8 kanal 5 | bare implisitt via historikken | **BYGD, dom klar** | `src/mlb/signaltrekk.ts`: per sete og farge utspill og høyde, fulgte under (og taket det ikke slo), tok over, kastet; trumfet. Bygd av offentlig informasjon alene (K2 bit-identisk prøvd). |
+| K8 kanal 2 | bare budvinnerens eget vrak | **BYGD, dom klar** | Budvinnerblokk: trumffarge, etterlyst farge, budvinnerens viste renonser og spilte kort per farge – det de andre kan slutte vraket fra. |
+| K8 måling | – | **klar** | Trohoder med 776/920 innganger; et gammelt nett utvidet med nullkolonner gir samme tro. Omtrening med nøyaktig 10. sep-oppskriften pluss `--signal`, parret mot 12,37 %-nettet. |
+
+Fortsatt NEI: K4.3/K7.2/K8 kanal 6 som søk oppå MLB-nettet (Adams har framoverblikket i `sik`-søket,
+målt +0,05 i førersetet), og eksportvei for menneskedata (krever endring i Val Town-valen; eierens valg,
+sammen med at valens offentlige liste viser navn).
