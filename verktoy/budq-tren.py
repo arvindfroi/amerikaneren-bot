@@ -2,7 +2,7 @@
 """
 BUDQ — TRENER Q(stilling, bud) PAA UTSPILLINGSETIKETTENE (K3.1, K3.2). 11. sep.
 
-    ~/Arvind-Lora/.venv/bin/python verktoy/budq-tren.py \
+    <venv>/bin/python verktoy/budq-tren.py \
         --data "/mnt/d/amb-grp/budq/d0/s*.jsonl" --ut /mnt/d/amb-grp/budq/budq-v1.bin
 
 Radene kommer fra `examples/budq-data.ts`: trekk (143), og for hvert lovlige bud K

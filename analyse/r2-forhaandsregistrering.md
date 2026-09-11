@@ -14,7 +14,7 @@ ventet å slå inn ved e6. R1 skal rapporteres som FEILET slik det står skrevet
 R2 er ikke en omforhandling av det. Den er en NY arm, med to grunner som ikke
 fantes da R1 ble registrert:
 
-1. **Arvind, 10. sep:** «klarer du å trene alt samtidig? man klarer ikke å gå med
+1. **Eieren, 10. sep:** «klarer du å trene alt samtidig? man klarer ikke å gå med
    1 ben». I R1 lærte policyen alene; trosnettet (K8) og belønningen sto fast,
    trent på Adams. `analyse/krav-samspill-2026-09-10.md` beskriver koblingene.
 2. **Diagnosen av R1** (gradientlogg e1–e4): KL ~0,03 per epoke, entropi flat,
