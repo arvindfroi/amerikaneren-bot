@@ -333,6 +333,11 @@ def main():
     ap.add_argument("--tren-menneske", default="", help="MLBT-filer fra mlb-trodata --menneske (band trening)")
     ap.add_argument("--hold-menneske", default="", help="MLBT-filer fra mlb-trodata --menneske (band holdout)")
     ap.add_argument("--minne-dropout", type=float, default=0.0, help="andel menneskerader med hukommelsen nullet per batch")
+    # SYMMETRISK MINNE-DROPOUT (12. sep). Med dropout bare paa menneskeradene ble «hukommelsesblokken er null» en
+    # MENNESKE/BOT-INDIKATOR: med 1,0 var den null i alle menneskerader og aldri i botradene, og i innspilte
+    # menneskekamper (der boka er fylt) spaadde nettet som mot en bot. Maalt: K6-menneske stigning z −5,4, nivå
+    # −0,29 pp, og en fremmed bok slo kampens egen. Samme andel paa botradene gjoer null-minne uinformativt om kilden.
+    ap.add_argument("--minne-dropout-bot", type=float, default=0.0, help="andel BOTrader med hukommelsen nullet per batch")
     # BARE UTVIDELSEN (11. sep): CPU, ingen data, ingen trening. Skriver --vekter utvidet til --dim
     # med nullkolonner etter LAYOUT, saa varmstarten kan proeves uten GPU og uten et korpus.
     ap.add_argument("--bare-utvid", default="", help="skriv --vekter utvidet til --dim hit og avslutt (CPU)")
@@ -673,8 +678,9 @@ def main():
         for i in range(0, n, args.batch):
             j = perm[i : i + args.batch]
             x = Xt[j].float()
-            if args.minne_dropout > 0:
-                slipp = Mt[j] & (torch.rand(len(j), device=enhet) < args.minne_dropout)
+            if args.minne_dropout > 0 or args.minne_dropout_bot > 0:
+                andel = torch.where(Mt[j], args.minne_dropout, args.minne_dropout_bot)
+                slipp = torch.rand(len(j), device=enhet) < andel
                 if bool(slipp.any()):
                     x[slipp, 660:804] = 0  # hukommelsesblokken i 804/920/996
             ut = modell(x)
