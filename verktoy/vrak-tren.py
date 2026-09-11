@@ -64,6 +64,24 @@ def skriv_vekter(sti, modell):
             f.write(l.bias.detach().cpu().float().numpy().astype("<f4").tobytes())
 
 
+def les_vekter(sti):
+    """Appformatet (`skriv_vekter`) tilbake til [(W, b)], radvis W (ut x inn)."""
+    with open(sti, "rb") as f:
+        data = f.read()
+    _, n = struct.unpack_from("<ii", data, 0)
+    o = 8
+    lag = []
+    for _ in range(n):
+        inn, ut = struct.unpack_from("<ii", data, o)
+        o += 8
+        w = numpy.frombuffer(data, dtype="<f4", count=inn * ut, offset=o).reshape(ut, inn).copy()
+        o += 4 * inn * ut  # offset er i BYTES, float32 er fire
+        b = numpy.frombuffer(data, dtype="<f4", count=ut, offset=o).copy()
+        o += 4 * ut
+        lag.append((w, b))
+    return lag
+
+
 def les(mapper, dim=VRAK_DIM):
     """→ (X, gruppe, verdi, frø, erNevro). `gruppe` sier hvilken stilling raden hører til."""
     X, G, V, FRO, NEV = [], [], [], [], []
@@ -112,6 +130,10 @@ def main():
     p.add_argument("--logg", default="analyse/vrak-tren.jsonl")
     # VrakQ v2 (11. sep): 27 = de 24 trekkene + kampstillingen (egne/beste andres poeng, runde).
     p.add_argument("--dim", type=int, default=VRAK_DIM, choices=[24, 27])
+    # VRAKQ (11. sep): runde 1 trent fra null slo ikke vrakrangereren som er ute (anger 2,15 mot 2,05).
+    # Start fra de vektene i stedet: nettet begynner DER, og flytter seg bare der dataene sier noe.
+    # Et 24-nett til --dim 27 utvides med nullkolonner (kampstillingen starter uten virkning).
+    p.add_argument("--vekter", default="", help="start fra disse vektene (appformat); tom = tilfeldig")
     args = p.parse_args()
 
     enhet = "cuda" if torch.cuda.is_available() else "cpu"
@@ -162,6 +184,20 @@ def main():
     torch.manual_seed(args.froe)
     dims = [args.dim] + [int(x) for x in args.skjult.split(",")] + [1]
     modell = Rangnett(dims).to(enhet)
+    if args.vekter:
+        gamle = les_vekter(args.vekter)
+        if len(gamle) != len(modell.lag):
+            raise SystemExit(f"--vekter har {len(gamle)} lag, modellen {len(modell.lag)} (--skjult maa matche)")
+        with torch.no_grad():
+            for i, (l, (w, b)) in enumerate(zip(modell.lag, gamle)):
+                ut, inn = w.shape
+                if ut != l.out_features or inn > l.in_features or (i > 0 and inn != l.in_features):
+                    raise SystemExit(f"lag {i}: vektene er {inn}->{ut}, modellen {l.in_features}->{l.out_features}")
+                ny = torch.zeros_like(l.weight)
+                ny[:, :inn] = torch.from_numpy(w)
+                l.weight.copy_(ny)
+                l.bias.copy_(torch.from_numpy(b))
+        print(f"START FRA {args.vekter}" + (f" (utvidet {gamle[0][0].shape[1]} -> {args.dim} med nullkolonner)" if gamle[0][0].shape[1] < args.dim else ""), flush=True)
     opt = torch.optim.AdamW(modell.parameters(), lr=args.lr)
     plan = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epoker)
 
@@ -222,6 +258,8 @@ def main():
         f"holdout {n_hold:.4f} ({ant_hold})",
         flush=True,
     )
+    # Maskinlesbar, for skriptene som avgjoer om et nett skal benkes.
+    print(f"POLICY-ANGER-HOLDOUT {n_hold:.4f}", flush=True)
 
     beste = float("inf")
     for e in range(args.epoker):
@@ -258,6 +296,7 @@ def main():
     # ETTER at treningen var ferdig og vektene lagret - verste slaget: alt
     # arbeidet gjort, og likevel en traceback som ser ut som en feilet kjoering.
     print(f"\nFerdig: beste hold-anger {beste:.4f} poeng -> {args.ut}", flush=True)
+    print(f"MODELL-ANGER-HOLDOUT {beste:.4f}", flush=True)
     print(
         "ANGEREN ER TALLET SOM BETYR NOE. Treffraten sier hvor ofte modellen\n"
         "velger nøyaktig beste kandidat; angeren sier hva feilvalgene KOSTER.\n"
