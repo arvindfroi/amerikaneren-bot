@@ -35,7 +35,15 @@ import { lovligeEtterlys, utfør, type GameState, type Handling } from "../motor
 import { forover, type NevroNett } from "../nevro/nett.ts";
 import { NevroAgent } from "../nevro/index.ts";
 import { lesVrakflagg, type Vrakpolicy } from "./vrakpolicy.ts";
-import { vraktrekk, vraktrekkK, VRAK_DIM, VRAK_DIM_K } from "./vraktrekk.ts";
+import {
+  ETTERLYST_DIM,
+  etterlystKandidater,
+  etterlystTrekk,
+  vraktrekk,
+  vraktrekkK,
+  VRAK_DIM,
+  VRAK_DIM_K,
+} from "./vraktrekk.ts";
 
 const nøkkel = (k: Kort): string => `${k.farge}${k.verdi}`;
 
@@ -102,12 +110,28 @@ export class Vrakrangerer {
   private readonly nevro = new NevroAgent();
   private valgt: Farge | null = null;
   private readonly medKampstilling: boolean;
+  /**
+   * K3.5/K3.8: det lærte kallet. `null` = håndregelen «høyeste lovlige», bit-identisk med
+   * før; appen og alle eksisterende speker bygger uten, og da er ingenting endret.
+   */
+  private readonly etterlystnett: NevroNett | null;
 
   constructor(
     indre: { velgHandling(s: GameState): Handling; nyKamp(): void },
     nett: NevroNett,
     flagg = "telrd",
+    etterlystnett: NevroNett | null = null,
   ) {
+    if (etterlystnett !== null) {
+      // Samme håndhevelse som for vraknettet: feil bredde ville gitt tause søppelkall.
+      const inn = etterlystnett.lag[0]?.inn;
+      if (inn !== ETTERLYST_DIM) {
+        throw new Error(`Etterlystnettet tar ${ETTERLYST_DIM} trekk, nettet har ${inn}`);
+      }
+      const ut = etterlystnett.lag[etterlystnett.lag.length - 1]!.ut;
+      if (ut !== 1) throw new Error(`Etterlystnettet må ha ÉN utgang, nettet har ${ut}`);
+    }
+    this.etterlystnett = etterlystnett;
     const første = nett.lag[0]!;
     // BREDDEN HÅNDHEVES. Et nett med feil inngang ville gitt tause søppelvalg
     // i stedet for en feilmelding, og vrakvalget er én per runde – feilen ville
@@ -147,9 +171,24 @@ export class Vrakrangerer {
     if (state.fase === "VELG" && state.budvinner !== null && this.valgt !== null) {
       const trumf = this.valgt;
       this.valgt = null;
+      if (this.etterlystnett !== null) {
+        // LÆRT KALL: argmax over det kappede settet, høyeste først. Ved likhet vinner den
+        // første – et nett som ikke skiller kandidatene faller dermed tilbake på regelen.
+        const kand = etterlystKandidater(state, trumf);
+        let beste: typeof kand[number] | null = null;
+        let besteScore = -Infinity;
+        for (const k of kand) {
+          const s = forover(this.etterlystnett, etterlystTrekk(state, state.budvinner, trumf, k))[0] ?? 0;
+          if (s > besteScore) {
+            besteScore = s;
+            beste = k;
+          }
+        }
+        return { type: "VELG", spiller: state.budvinner, trumf, etterlyst: beste };
+      }
       const kand = lovligeEtterlys(state, trumf);
       // Høyeste lovlige. Målt 4. august: nest høyeste koster −0,911, tredje
-      // −1,641. Regelen er riktig og skal stå.
+      // −1,641. Blant FASTE nivåer er regelen riktig; uten etterlystnett står den.
       return {
         type: "VELG",
         spiller: state.budvinner,

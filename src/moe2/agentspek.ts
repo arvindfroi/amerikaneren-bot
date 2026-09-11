@@ -564,15 +564,30 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
    * Rå `nettFraBytes`, ikke E1-laderen: rangereren tar 24 trekk mens laderen
    * håndhever kortnettets bredde, og den avvisningen er riktig – den fanget
    * meg da jeg først prøvde. `Vrakrangerer` sjekker bredden selv.
+   *
+   * `vr:<vektfil>@<etterlystfil>:<flagg>:<indre>` (K3.5/K3.8, 11. sep) – samme lag, men
+   * kallet (etterlysningen) velges av et lært nett (`ETTERLYST_DIM` inn, én ut) i stedet for
+   * regelen «høyeste lovlige». `@` følger `budm:<fil>@<parameter>`; ingen eksisterende spek
+   * har `@` i vr-feltet, så `vr:<fil>:<flagg>:` parses uendret og spiller bit-identisk.
    */
   if (indre.startsWith("vr:")) {
     const rest = indre.slice(3);
     const a = rest.indexOf(":");
     const b = rest.indexOf(":", a + 1);
     if (a < 0 || b < 0) throw new Error(`Ugyldig vr-spek «${indre}»`);
-    const nett = nettFraBytes(new Uint8Array(readFileSync(rest.slice(0, a))))[0];
-    if (nett === undefined) throw new Error(`Tomme vekter i «${rest.slice(0, a)}»`);
-    return new Vrakrangerer(lagIndre(rest.slice(b + 1), ctx), nett, rest.slice(a + 1, b));
+    const hode = rest.slice(0, a);
+    const at = hode.indexOf("@");
+    const vrakfil = at < 0 ? hode : hode.slice(0, at);
+    const nett = nettFraBytes(new Uint8Array(readFileSync(vrakfil)))[0];
+    if (nett === undefined) throw new Error(`Tomme vekter i «${vrakfil}»`);
+    let etterlystnett = null;
+    if (at >= 0) {
+      const efil = hode.slice(at + 1);
+      if (efil === "") throw new Error(`Tom etterlystfil etter «@» i «${indre}»`);
+      etterlystnett = nettFraBytes(new Uint8Array(readFileSync(efil)))[0] ?? null;
+      if (etterlystnett === null) throw new Error(`Tomme vekter i «${efil}»`);
+    }
+    return new Vrakrangerer(lagIndre(rest.slice(b + 1), ctx), nett, rest.slice(a + 1, b), etterlystnett);
   }
   /**
    * `budq:<nettfil>:<indre>` — BUDET SOM ET LÆRT VALG (K3.1, 11. sep).
