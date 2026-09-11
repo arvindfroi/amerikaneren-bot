@@ -82,6 +82,27 @@
  *                     `seierRein` og for hver arm som er på.
  *   --uten-tak        Hopp over klarsynstreet (`tak` og `diff` blir null). For armer der
  *                     bare det nåbare taket eller duellen skal leses.
+ *
+ * ============ DET NÅBARE TAKET I TRUMFVALGET OG KORTSPILLET (11. sep, K3.4/K3.6/K7) ====
+ *
+ * Klarsynstaket i `--fase vrak` og `--fase spill` har samme feil som det hadde i budet: det
+ * leser hvordan hver linje faktisk endte. Batteriet 11. sep (iter1) ga Adams like stort gap
+ * som hele boten i alle tre vinduene. To utvidelser, begge AV som standard — da er stien,
+ * radene og utskriften byte-identiske med før (sha1 på fire små kjøringer 11. sep, også
+ * `--fase bud --naabart`):
+ *
+ *   --naabart W       gjelder nå også `--fase vrak` og `--fase spill`. Ved HVER av våre
+ *                     beslutninger INNE I VINDUET spørres setets agent som i ren-runden, og
+ *                     handlingen byttes med `naabartHandling` (`naabart-handling.ts`): argmax av
+ *                     snittpoeng over W verdener fra setets visning. Radene får de samme feltene
+ *                     som i budet, pluss `naabartBeslutninger` (antall vurderte beslutninger).
+ *                     KONTROLLEN er den samme: `naabartEndret = 0` ⇒ `diffNaabart` eksakt 0.
+ *   --felle F         Vårt sete spiller FELLA inne i vinduet (etter å ha spurt agenten, så
+ *                     paringen står): `lav` eller `tilfeldig` i `--fase spill`, `kortest` i
+ *                     `--fase vrak` (se `felleHandling`). Gjelder ren-runden, klarsynsrunden og
+ *                     den nåbare runden, ikke `--mot-spek`. Med `--naabart` er det porten sin
+ *                     KRAFTPRØVE: en bevisst dårlig regel MÅ ha nåbart gap > 2 SE. Utspillingene
+ *                     i verdenene spilles uten fella (`--naabart-spek`).
  */
 
 import { appendFileSync } from "node:fs";
@@ -99,6 +120,7 @@ import { lovligeEtterlys } from "../src/motor.ts";
 import { lagIndre, ADAMS, tall, type Spekagent } from "../src/moe2/agentspek.ts";
 import { Seiersprediktor } from "../src/mlb/seier.ts";
 import { naabartBud } from "./naabart-bud.ts";
+import { FELLER, felleHandling, handlingNøkkel, naabartHandling, type Felle } from "./naabart-handling.ts";
 
 const arg = (n: string, s: string) => {
   const i = process.argv.indexOf(n);
@@ -141,7 +163,12 @@ const NAABART_KAND = tall(arg("--naabart-kand", "32"), 32, "naabart-kand");
 const MOT_SPEK = arg("--mot-spek", "");
 const SEIER = arg("--seier", "");
 const UTEN_TAK = process.argv.includes("--uten-tak");
-if (NAABART !== null && FASE !== "bud") throw new Error("--naabart gjelder bare --fase bud");
+const FELLE_TEKST = arg("--felle", "");
+const FELLE: Felle | null = FELLE_TEKST === "" ? null : (FELLE_TEKST as Felle);
+if (FELLE !== null && !FELLER.includes(FELLE)) throw new Error(`--felle må være én av ${FELLER.join(", ")}, fikk «${FELLE_TEKST}»`);
+if (FELLE !== null && (FASE === "bud" || (FELLE === "kortest") !== (FASE === "vrak"))) {
+  throw new Error(`--felle ${FELLE} passer ikke til --fase ${FASE} (kortest: vrak; lav/tilfeldig: spill)`);
+}
 const prediktor = SEIER === "" ? null : Seiersprediktor.fraFil(SEIER);
 
 const nyeAgenter = (vårt: number, egen: string = SPEK) =>
@@ -301,6 +328,7 @@ function runde(frø: number, vårt: number, bruk: boolean, modus: "tak" | "naaba
   let sumNoder = 0;
   let noenKappet = false;
   let endret = 0;
+  let vurdert = 0;
   const bud: Bud[][] = [[], [], [], []];
   while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && vakt++ < 400) {
     const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
@@ -314,7 +342,29 @@ function runde(frø: number, vårt: number, bruk: boolean, modus: "tak" | "naaba
       noenKappet ||= kappet;
       if (h !== null) brukt++;
     }
-    if (bruk && modus === "naabart" && s.fase === "BUDRUNDE" && iTur === vårt) {
+    /**
+     * FELLA OG DET NÅBARE TAKET I VRAK/SPILL. Agenten spørres FØRST, som i ren-runden, så en
+     * søkende spek med tro eller hukommelse ser nøyaktig samme kallfølge i begge runder til den
+     * første byttede handlingen. Fella erstatter så policyens valg, og det nåbare taket kan
+     * igjen erstatte fellas. Budvinduet går sin gamle vei under (byte-identisk).
+     */
+    const iMittVindu = h === null && modus !== "mot" && iTur === vårt && FASE !== "bud" && iVindu(s, vårt);
+    if (iMittVindu && (FELLE !== null || (bruk && modus === "naabart"))) {
+      const eget = ag[iTur]!.velgHandling(s);
+      h = FELLE === null ? eget : felleHandling(FELLE, s, vårt);
+      if (bruk && modus === "naabart") {
+        vurdert++;
+        const v = naabartHandling(s, vårt, h, { verdener: NAABART!, kandidater: NAABART_KAND, agenter: naabartAgenter(vårt) });
+        if (handlingNøkkel(v.handling) !== handlingNøkkel(h)) {
+          endret++;
+          h = v.handling;
+        }
+      }
+    }
+    // `FASE === "bud"`: da `--naabart` ble åpnet for vrak/spill, byttet denne grenen også BUDENE i
+    // de vinduene (røyk 11. sep: `naabartEndret` 2 med én vurdert trumfbeslutning, og en ikke-
+    // budvinner som fikk trumfvalget). Prøvd i `test/naabart-handling.test.ts`.
+    if (bruk && modus === "naabart" && FASE === "bud" && s.fase === "BUDRUNDE" && iTur === vårt) {
       const eget = ag[iTur]!.velgHandling(s);
       h = eget;
       if (eget.type === "BUD") {
@@ -329,7 +379,7 @@ function runde(frø: number, vårt: number, bruk: boolean, modus: "tak" | "naaba
     if (handling.type === "BUD") bud[handling.spiller]!.push(handling.bud);
     s = utfør(s, handling).state;
   }
-  return { poeng: poengFor(s, vårt), bv: s.budvinner, s, noder: sumNoder, kappet: noenKappet, endret, bud };
+  return { poeng: poengFor(s, vårt), bv: s.budvinner, s, noder: sumNoder, kappet: noenKappet, endret, vurdert, bud };
 }
 
 const budLik = (a: readonly Bud[], b: readonly Bud[]): boolean => a.length === b.length && a.every((x, i) => x === b[i]);
@@ -343,6 +393,7 @@ let nNaabart = 0;
 let sumNaabart = 0;
 let naabartEndret = 0;
 let naabartBrudd = 0;
+let naabartVurdert = 0;
 let nMot = 0;
 let sumMot = 0;
 let motLik = 0;
@@ -357,7 +408,8 @@ for (let g = 0; g < GIVER; g++) {
    * identiske tilstander. Med `--andre` sitter speken bare i vårt sete, og da er ren-runden
    * setets egen.
    */
-  const ren = GJENBRUK && ANDRE === "" ? runde(frø, 0, false) : null;
+  // Med `--felle` spiller vårt sete fella også i ren-runden, så den er setets egen.
+  const ren = GJENBRUK && ANDRE === "" && FELLE === null ? runde(frø, 0, false) : null;
   for (let sete = 0; sete < 4; sete++) {
     const a = ren === null ? runde(frø, sete, false) : { poeng: poengFor(ren.s, sete), bv: ren.s.budvinner, s: ren.s, bud: ren.bud };
     const b = UTEN_TAK ? null : runde(frø, sete, true);
@@ -390,8 +442,10 @@ for (let g = 0; g < GIVER; g++) {
       rad["naabart"] = c.poeng;
       rad["diffNaabart"] = d;
       rad["naabartEndret"] = c.endret;
+      if (FASE !== "bud") rad["naabartBeslutninger"] = c.vurdert;
       if (prediktor !== null) rad["seierNaabart"] = seierFor(c.s, sete);
       nNaabart++;
+      naabartVurdert += c.vurdert;
       sumNaabart += d;
       if (c.endret > 0) naabartEndret++;
       else if (d !== 0) naabartBrudd++;
@@ -434,6 +488,7 @@ if (NAABART !== null) {
     `# NÅBART TAK W=${NAABART} kand=${NAABART_KAND}   n=${nNaabart}   snitt ${(sumNaabart / nNaabart).toFixed(4)}   ` +
       `rader med byttet bud ${naabartEndret}   uendret men ulik 0: ${naabartBrudd} (MÅ være 0)`,
   );
+  if (FASE !== "bud") console.log(`# NÅBART ${MERKE}: ${naabartVurdert} beslutninger vurdert i vinduet${FELLE === null ? "" : `, felle ${FELLE}`}`);
 }
 if (MOT_SPEK !== "") {
   console.log(
