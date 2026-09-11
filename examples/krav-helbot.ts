@@ -1053,7 +1053,10 @@ async function k3(r: Rigg): Promise<Helrad[]> {
     k31(r).catch((e: unknown) => [feilrad("K3.1", r, e instanceof Error ? e.message : String(e))]),
     naabartVindu(r, "K3.4", "k3vrak", "trumfvalget nær det nåbare taket", ["--fase", "vrak"], "kortest", r.st.vrakNaabartGiver, r.st.vrakGiver, r.st.maksNoder),
     naabartVindu(
-      r, "K3.6", "k3midt", "midtspillet (stikk 3–5) nær det nåbare taket", ["--fase", "spill", "--fra", "3", "--til", "5"], "lav",
+      // FELLA ER «verst», ikke «lav» (12. sep): «laveste lovlige kort» slapp unna i bånd 0 på nett 3
+      // (+0,99 ± 0,67 over 48 giv) — i midtspillet er lavt ofte riktig. «verst» (argmin over de samme W
+      // verdenene) holder i K7 (+2,9 / +3,1) og er grov nok til å vise at raden kan se en dårlig spiller.
+      r, "K3.6", "k3midt", "midtspillet (stikk 3–5) nær det nåbare taket", ["--fase", "spill", "--fra", "3", "--til", "5"], "verst",
       r.st.midtNaabartGiver, r.st.midtGiver, r.st.midtNoder,
     ),
   ]);
