@@ -2,7 +2,7 @@
  * KORT-DATA — kortvalgene merket av SØKET i den hele boten (ekspertiterasjon for kortnettet, 11. sep).
  *
  *   node examples/kort-data.ts --spek <helbot> --kamper 400 --skard 0/20 --ut D:/amb-grp/loop/iterK/kort/s0.jsonl
- *     [--drivere "@|A|@|B" --rotasjon] [--sjanse 1] [--froe 500000000] [--maksrunder 60] [--bredde 273]
+ *     [--drivere "@|A|@|B" --rotasjon] [--sjanse 1] [--froe 500000000] [--maksrunder 60] [--bredde 273|493]
  *
  * HVORFOR. Løkka trener bud, vrak, kall og tro hver iterasjon, men kortnettet (`e1:e1-modell/d7alle.bin`,
  * nederst under `vakt:abmp`) har stått siden 3. august. Det er prioren alt annet bygger på: utspillingene
@@ -29,6 +29,13 @@
  *
  * FORMATET er det `verktoy/sd-tren.py` leser (som sd-orakel/e1-orakel): `t`, `v` og `frø`. `frø` er
  * KAMPFRØET, så sd-trens holdout (hash av frø) deler på kamp: ingen kamp i både trening og holdout.
+ * `stikk` leser sd-tren til angeren per fase (TIDLIG 0–2, MIDT 3–6, SENT 7–11).
+ *
+ * BOKBREDDEN (`--bredde 493`, 11. sep): trekkene er `e1KortBokTrekk` (`src/e1/kortbok.ts`) — de
+ * samme 273 først, så motstanderboka, stillingen og valgt bort — med SAMME etiketter. Boka er en
+ * egen `Hukommelse` per kamp, matet hver virkelige tilstand som agentene (også `RUNDE_SLUTT`), altså
+ * bit for bit boka et 493-nett i speken ville sett. Et 493-nett i speken gir bredden av seg selv.
+ * Uten flagget og med et 273-nett er ingen bok laget, og radene er byte-identiske med før.
  *
  * OBSERVER: alle agentinstansene ser hver virkelige tilstand, også RUNDE_SLUTT og sluttilstanden. Uten
  * det står økta stum og hukommelsestroen kaster i runde 2. Utspillingene inne i søket vises aldri.
@@ -49,6 +56,8 @@ import { settParlytter, type Parhendelse } from "../src/moe2/sikkerorakel.ts";
 import type { ParResultat } from "../src/moe2/sdpar.ts";
 import { rolleFor } from "../src/moe2/rolleorakel.ts";
 import { e1SpillTrekkMedTro, E1_SPILL_DIM_V9 } from "../src/e1/trekk.ts";
+import { e1KortBokTrekk, erKortbokBredde } from "../src/e1/kortbok.ts";
+import { Hukommelse } from "../src/mlb/hukommelse.ts";
 import { nettFraBytes } from "../src/nevro/nett.ts";
 import { kortIndeks } from "../src/nevro/index.ts";
 import { bordTekst, lesBord, slot, tilSeter } from "./drivere.ts";
@@ -75,8 +84,21 @@ export function kortnettBredde(spek: string): number {
  * DET SOM MÅ VÆRE K2-INVARIANT: trekkene og søkets verdi per lovlig kort. Eksportert for prøven, som
  * bytter skjulte kort og krever samme svar — og som fanger en variant som kikker.
  */
-export function kortEtikett(state: GameState, sete: number, par: ParResultat, dim: number): { t: number[]; v: Record<string, number> } {
-  const t = Array.from(e1SpillTrekkMedTro(state, sete, dim, null));
+export function kortEtikett(
+  state: GameState,
+  sete: number,
+  par: ParResultat,
+  dim: number,
+  bok: Hukommelse | null = null,
+): { t: number[]; v: Record<string, number> } {
+  let t: number[];
+  if (erKortbokBredde(dim)) {
+    // En tom bok her ville skrevet 144 nuller som ser ut som «første runde» i hver rad.
+    if (bok === null) throw new Error(`Bredde ${dim} leser motstanderboka, men ingen bok er gitt`);
+    t = Array.from(e1KortBokTrekk(state, sete, bok.vektor(sete, state.antallSpillere)));
+  } else {
+    t = Array.from(e1SpillTrekkMedTro(state, sete, dim, null));
+  }
   const v: Record<string, number> = {};
   for (const k of par.kandidater) v[String(kortIndeks(k.kort))] = rund4(k.snitt);
   return { t, v };
@@ -131,10 +153,13 @@ function kjør(): void {
     let s: GameState = opprettSpill({ antallSpillere: 4, målPoeng: 100 }, frø);
     for (const a of kamp) a.nyKamp();
     const seter = tilSeter(BORD, kamp, g);
+    // Boka er kampens: ny per kamp, og bare for bokbredden (standardveien lager ingen).
+    const bok = erKortbokBredde(BREDDE) ? new Hukommelse() : null;
     let sist: GameState | null = null;
     let vakt = 0;
     while (s.fase !== "FERDIG" && s.rundeNr < MAKSRUNDER && vakt++ < 40_000) {
       for (const a of kamp) a.observer?.(s);
+      bok?.observer(s);
       sist = s;
       if (s.fase === "RUNDE_SLUTT") {
         s = utfør(s, { type: "NESTE" }).state;
@@ -173,7 +198,7 @@ function kjør(): void {
               sigma: rund4(f.par.sigma),
               p: h.type === "SPILL" ? kortIndeks(h.kort) : null,
               b: kortIndeks(f.par.beste.kort),
-              ...kortEtikett(s, sete, f.par, BREDDE),
+              ...kortEtikett(s, sete, f.par, BREDDE, bok),
             }) + "\n",
           );
           skrevet++;
@@ -181,7 +206,10 @@ function kjør(): void {
       }
       s = utfør(s, h).state;
     }
-    if (sist !== s) for (const a of kamp) a.observer?.(s);
+    if (sist !== s) {
+      for (const a of kamp) a.observer?.(s);
+      bok?.observer(s);
+    }
     process.stdout.write(`\r  skard ${SI}/${SN}: kamp ${g}, ${skrevet} kortvalg, ${((Date.now() - t0) / 1000).toFixed(0)} s   `);
   }
   settParlytter(null);

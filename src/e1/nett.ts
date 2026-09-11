@@ -17,8 +17,9 @@ import { readFileSync } from "node:fs";
 import { e1NettFraBytes, E1Agent, settE1Filleser } from "./agent.ts";
 import type { NevroNett } from "../nevro/nett.ts";
 
-export function lesE1Nett(fil: string): NevroNett {
-  return e1NettFraBytes(new Uint8Array(readFileSync(fil)), fil);
+/** `tillatBok`: se `e1NettFraBytes`. Bare `lesKortnett` i speken slår den på. */
+export function lesE1Nett(fil: string, tillatBok = false): NevroNett {
+  return e1NettFraBytes(new Uint8Array(readFileSync(fil)), fil, tillatBok);
 }
 
 settE1Filleser(lesE1Nett);

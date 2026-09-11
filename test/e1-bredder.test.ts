@@ -39,6 +39,7 @@ import {
 } from "../src/e1/trekk.ts";
 import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
+import { E1_KORT_BOK_BREDDER, E1_KORT_BOK_DIM } from "../src/e1/kortbok.ts";
 
 const ROT = join(import.meta.dirname, "..");
 
@@ -56,6 +57,25 @@ test("LOVLIGE_BREDDER inneholder nøyaktig konstantene i trekk.ts", () => {
     E1_SPILL_DIM_V10,
   ];
   assert.deepEqual([...LOVLIGE_BREDDER], ventet);
+});
+
+/**
+ * BOKBREDDEN (493 = 273 | hukommelse | stilling | valgt bort, `src/e1/kortbok.ts`) er IKKE et
+ * prefiks av kjeden, så den må stå UTENFOR `LOVLIGE_BREDDER` (ellers ville prefiksprøven under og
+ * `sd-tren.py --klipp` lest kolonne 273 som minneblokk), UNDER sanseblokken (ellers ville hver
+ * «≥ 558»-vakt krevd en tro) og i sd-tren.py sin egen liste — den eneste koblingen ingen typesjekk ser.
+ */
+test("bokbredden står i sin egen liste: utenfor kjeden, under 558, og lik KORTBOK_DIM i sd-tren.py", () => {
+  for (const d of E1_KORT_BOK_BREDDER) {
+    assert.ok(!(LOVLIGE_BREDDER as readonly number[]).includes(d), `${d} kolliderer med en kjedebredde`);
+    assert.ok(d < E1_SPILL_DIM_V9, `${d} ville blitt lest som et nett med sanseblokk`);
+  }
+  assert.deepEqual([...E1_KORT_BOK_BREDDER], [E1_KORT_BOK_DIM]);
+  const kilde = readFileSync(join(ROT, "verktoy", "sd-tren.py"), "utf8");
+  const m = /^KORTBOK_DIM\s*=\s*\(([^)]*)\)/m.exec(kilde);
+  assert.ok(m !== null, "fant ikke KORTBOK_DIM i sd-tren.py");
+  const fraPython = m[1]!.split(",").map((x) => x.trim()).filter((x) => x.length > 0).map(Number);
+  assert.deepEqual(fraPython, [...E1_KORT_BOK_BREDDER], "sd-tren.py og src/e1/kortbok.ts er ikke enige om bokbreddene");
 });
 
 test("breddene er strengt voksende – hver blokk legger seg OPPÅ den forrige", () => {

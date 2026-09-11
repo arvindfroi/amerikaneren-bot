@@ -18,6 +18,7 @@ import { readFileSync } from "node:fs";
 
 import type { GameState, Handling } from "../index.ts";
 import { E1Agent, lesE1Nett } from "../e1/nett.ts";
+import { erKortbokBredde, Kortbok } from "../e1/kortbok.ts";
 import { Vrakrangerer } from "./vrakrang.ts";
 import { nettFraBytes } from "../nevro/nett.ts";
 import { NevroAgent } from "../nevro/index.ts";
@@ -60,6 +61,23 @@ const nettbuf = new Map<string, ReturnType<typeof lesE1Nett>>();
 export const lesNett = (fil: string): ReturnType<typeof lesE1Nett> => {
   if (!nettbuf.has(fil)) nettbuf.set(fil, lesE1Nett(fil));
   return nettbuf.get(fil)!;
+};
+
+/**
+ * KORTNETTET I «e1:» — som `lesNett`, men godtar også bokbredden (493, `src/e1/kortbok.ts`).
+ *
+ * Egen leser og egen buffer for bokbreddene, så `lesNett` fortsatt KASTER på et 493-nett: alle
+ * andre som leser et kortnett rett (`ens:`, `e1r:`, atferden i `amu:`, eksemplene) regner
+ * `e1SpillTrekk(…, bredde)`, og for 493 ville det vært tause søppelvalg. Kjedebreddene havner i
+ * `nettbuf` som før.
+ */
+const kortbokbuf = new Map<string, ReturnType<typeof lesE1Nett>>();
+export const lesKortnett = (fil: string): ReturnType<typeof lesE1Nett> => {
+  const kjent = nettbuf.get(fil) ?? kortbokbuf.get(fil);
+  if (kjent !== undefined) return kjent;
+  const n = lesE1Nett(fil, true);
+  (erKortbokBredde(n.lag[0]!.inn) ? kortbokbuf : nettbuf).set(fil, n);
+  return n;
 };
 
 /**
@@ -530,6 +548,12 @@ export function utenSøk(spek: string): string {
  */
 export interface Spekkontekst {
   økt?: Økt;
+  /**
+   * Motstanderboka til kortnett på bokbredden (11. sep, `src/e1/kortbok.ts`). Opprettes av den
+   * første `e1:<493>` i treet og DELES av alle under samme kontekst — søkets utspillingsmotpart kan
+   * være en egen instans, og den skal se den samme boka som nettet som spiller.
+   */
+  kortbok?: Kortbok;
 }
 
 export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
@@ -1462,6 +1486,27 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
   }
   if (indre.startsWith("e1:")) {
     const rest = indre.slice(3);
+    /**
+     * ============ KORTNETTET MED MOTSTANDERBOKA (493), 11. sep ===========
+     *
+     * Velges av BREDDEN, som BudQ og troen: `e1:kort-K.bin` er 273 eller 493, og speken er den
+     * samme. Grenen står FØRST fordi atferdsblokken under leser nettet med `lesNett`, som kaster
+     * på 493 — og fordi atferden her må regne med boka: `Profilbok` måler stilen som residualet
+     * mot nettets prediksjon, og et 493-nett uten bok ville predikert noe annet enn det spiller.
+     * Boka er kontekstens (`ctx.kortbok`), så en utspillingsmotpart bygd for seg ser den samme.
+     * Uten `@`: `e1:<fil>@<tro>` er sanseblokken (≥ 558), som ikke har noen bokvariant.
+     */
+    if (!rest.includes("@")) {
+      const kn = lesKortnett(rest);
+      if (erKortbokBredde(kn.lag[0]!.inn)) {
+        const kortbok = (ctx.kortbok ??= new Kortbok());
+        const agent = new E1Agent(kn, undefined, { kortbok });
+        if (ctx.økt !== undefined && !ctx.økt.bok.harAtferd()) {
+          ctx.økt.bok.settAtferd({ logits: (st: GameState, s2: number) => agent.logits(st, s2) });
+        }
+        return agent;
+      }
+    }
     /**
      * ============ OEKTEN FAAR NETTET HER, DER DET LASTES ===============
      *

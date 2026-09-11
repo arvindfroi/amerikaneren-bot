@@ -908,6 +908,16 @@ export class Konvensjonsvakt implements Innagent {
     this.indre.nyKamp?.();
   }
 
+  /**
+   * Videresender bokføringskroken (11. sep). Vakten sto uten, så `observer` stoppet HER, rett over
+   * kortlaget: `budq:` og `sik:` videresendte pliktskyldigst til en vakt som svelget kallet. Et
+   * kortnett med motstanderbok (`e1:<493>`, `src/e1/kortbok.ts`) ville da aldri sett `RUNDE_SLUTT`.
+   * Kortnett uten bok har ingen bok å fylle, så de gamle breddene spiller bit-identisk.
+   */
+  observer(state: GameState): void {
+    (this.indre as { observer?(s: GameState): void }).observer?.(state);
+  }
+
   velgHandling(state: GameState): Handling {
     const h = this.indre.velgHandling(state);
     if (h.type !== "SPILL") return h;

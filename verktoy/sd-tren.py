@@ -84,8 +84,32 @@ import torch.nn.functional as F
 # koblingen mellom TypeScript og Python som ingen typesjekk dekker, og den
 # driftet to ganger 4.-5. august foer testen fantes.
 LOVLIGE_DIM = (273, 340, 356, 364, 376, 428, 458, 470, 558, 714)
+# KORTNETTET MED MOTSTANDERBOKA (11. sep, `src/e1/kortbok.ts`): 273 | hukommelse 144 | stilling 36 |
+# valgt bort 40 = 493. IKKE et prefiks av kjeden over - kolonne 273 er bok her og minneblokk (v2)
+# der - og derfor en EGEN liste. Det eneste lovlige prefikset (--klipp, varmstart, --policy) er 273:
+# et 340-nett startet paa 493-rader ville lest boka som minneblokk uten aa feile.
+# `test/e1-bredder.test.ts` holder lista i takt med `E1_KORT_BOK_BREDDER`.
+KORTBOK_DIM = (493,)
 TREKK_DIM = None  # settes av `finn_dim()` ved innlesing
 KORT = 52
+# ANGEREN PER FASE (11. sep): K7 (de fem siste stikkene) ble VERRE etter foerste ekspertiterasjon
+# mens totalangeren ble bedre. Porten maa derfor kunne se sluttspillet for seg. Fasen er `stikk`
+# (stikk spilt foer beslutningen) i kort-data-radene; rader uten feltet teller ikke i noen fase.
+FASER = (("TIDLIG", 0, 2), ("MIDT", 3, 6), ("SENT", 7, 11))
+
+
+def prefiks_lovlig(smal: int, bred: int) -> bool:
+    """Er de `smal` foerste kolonnene i en rad paa `bred` NOEYAKTIG et `smal`-nett sine trekk?
+
+    Kjeden er strengt prefiks-utvidende (e1-bredder-proeven), saa der er svaret ja for alt smalere.
+    Bokbredden er det ikke: der er bare grunnen (273) et prefiks. Avgjoeres av DATAENES bredde, saa
+    et kutt (`:417` i --kjor) av 493-rader fortsatt foelger bokregelen.
+    """
+    if smal == bred:
+        return True
+    if TREKK_DIM in KORTBOK_DIM:
+        return smal == 273
+    return smal < bred
 
 
 # --- Innlesing --------------------------------------------------------------
@@ -173,7 +197,9 @@ def les(mapper: list[str], klipp: int = 0, bruk_buffer: bool = True):
             f"({time.time() - t0:.0f}s)",
             flush=True,
         )
-        return d["X"], d["V"], d["M"], d["FRO"], d["KILDE"], d["SIG"]
+        # Buffere fra foer fasene fantes har ingen STIKK: da teller ingen rad i noen fase.
+        stikk = d["STIKK"] if "STIKK" in d.files else numpy.full(d["X"].shape[0], -1, dtype=numpy.int8)
+        return d["X"], d["V"], d["M"], d["FRO"], d["KILDE"], d["SIG"], stikk
 
     t0 = time.time()
     tak = 0
@@ -227,6 +253,12 @@ def les(mapper: list[str], klipp: int = 0, bruk_buffer: bool = True):
                     "Aa PADDE opp er en loegn - bruk en lavere --klipp, eller "
                     "del settene."
                 )
+            # Bokrader (493) er ikke et kjedeprefiks: bare grunnen (273) kan klippes ut.
+            if b in KORTBOK_DIM and klipp != 273:
+                raise SystemExit(
+                    f"--klipp {klipp} paa bokrader ({b}): kolonne 273 og utover er motstanderboka, "
+                    "ikke kjedens blokker. Bare --klipp 273 er et prefiks."
+                )
         TREKK_DIM = klipp
         print(f"KLIPPER til {TREKK_DIM}. Bredder funnet: {bredder}", flush=True)
     else:
@@ -239,13 +271,13 @@ def les(mapper: list[str], klipp: int = 0, bruk_buffer: bool = True):
                 "eller bruk --klipp <bredde> for aa KLIPPE ned til en felles."
             )
         TREKK_DIM = next(iter(bredder))
-    if TREKK_DIM not in LOVLIGE_DIM:
-        raise SystemExit(f"Ukjent trekkbredde {TREKK_DIM}, forventet en av {LOVLIGE_DIM}")
+    if TREKK_DIM not in LOVLIGE_DIM and TREKK_DIM not in KORTBOK_DIM:
+        raise SystemExit(f"Ukjent trekkbredde {TREKK_DIM}, forventet en av {LOVLIGE_DIM} eller bokbredden {KORTBOK_DIM}")
     # .get, ikke [], og med 364 med: oppslaget ville ellers kastet KeyError
     # ETTER at hele datasettet er lest inn - altsaa minutter kastet bort paa en
     # manglende ordbokoppfoering. Nettopp den klassen feil (hardkodet bredde)
     # er kommentert som «stum felle» over.
-    navn_dim = {273: "v1", 340: "v2 minneblokk", 356: "v3 telleblokk", 364: "v4 auksjonsblokk", 376: "v5 planblokk", 428: "v6 troblokk", 458: "v7 verdiblokk", 470: "v8 doedeblokk", 558: "v9 sanseblokk", 714: "v10 hvem-la-hva"}.get(
+    navn_dim = {273: "v1", 340: "v2 minneblokk", 356: "v3 telleblokk", 364: "v4 auksjonsblokk", 376: "v5 planblokk", 428: "v6 troblokk", 458: "v7 verdiblokk", 470: "v8 doedeblokk", 558: "v9 sanseblokk", 714: "v10 hvem-la-hva", 493: "bok: 273 | hukommelse | stilling | valgt bort"}.get(
         TREKK_DIM, "ukjent"
     )
     print(f"Trekkbredde: {TREKK_DIM} ({navn_dim})", flush=True)
@@ -256,6 +288,8 @@ def les(mapper: list[str], klipp: int = 0, bruk_buffer: bool = True):
     FRO = numpy.zeros(tak, dtype=numpy.int64)
     KILDE = numpy.zeros(tak, dtype=numpy.int8)
     SIG = numpy.zeros(tak, dtype=numpy.uint64)
+    # Stikk spilt foer beslutningen (kort-data `stikk`), -1 der raden ikke har feltet.
+    STIKK = numpy.full(tak, -1, dtype=numpy.int8)
 
     sett: set[int] = set()
     klippet = 0
@@ -300,7 +334,7 @@ def les(mapper: list[str], klipp: int = 0, bruk_buffer: bool = True):
                 if n >= X.shape[0]:
                     ny = int(X.shape[0] * 1.2) + 4096
                     print(f"  (utvider {X.shape[0]} → {ny} rader; filene vokser)", flush=True)
-                    X, V, M, FRO, KILDE, SIG = (voks(a, ny) for a in (X, V, M, FRO, KILDE, SIG))
+                    X, V, M, FRO, KILDE, SIG, STIKK = (voks(a, ny) for a in (X, V, M, FRO, KILDE, SIG, STIKK))
                 X[n] = t
                 for k, val in v.items():
                     i = int(k)
@@ -309,6 +343,8 @@ def les(mapper: list[str], klipp: int = 0, bruk_buffer: bool = True):
                 FRO[n] = r["frø"]
                 KILDE[n] = kilde
                 SIG[n] = s
+                st = r.get("stikk")
+                STIKK[n] = st if isinstance(st, int) and 0 <= st < 128 else -1
                 n += 1
         print(f"  {fil}: {n - foer} stillinger (totalt {n})", flush=True)
 
@@ -318,7 +354,7 @@ def les(mapper: list[str], klipp: int = 0, bruk_buffer: bool = True):
         + f" ({time.time() - t0:.0f}s)",
         flush=True,
     )
-    ut = (X[:n], V[:n], M[:n], FRO[:n], KILDE[:n], SIG[:n])
+    ut = (X[:n], V[:n], M[:n], FRO[:n], KILDE[:n], SIG[:n], STIKK[:n])
     # SKRIV BUFFERET. JSON-parsing av et millionkorpus tar minutter og gjentas
     # for hver arm, hver ablasjon og hver replikering. Det er den storste
     # enkeltkostnaden i treningen og den eneste som er ren sloesing.
@@ -327,7 +363,7 @@ def les(mapper: list[str], klipp: int = 0, bruk_buffer: bool = True):
     try:
         os.makedirs(BUFFERMAPPE, exist_ok=True)
         numpy.savez(
-            buffer, X=ut[0], V=ut[1], M=ut[2], FRO=ut[3], KILDE=ut[4], SIG=ut[5]
+            buffer, X=ut[0], V=ut[1], M=ut[2], FRO=ut[3], KILDE=ut[4], SIG=ut[5], STIKK=ut[6]
         )
         print(f"Buffer skrevet: {buffer}", flush=True)
     except OSError as e:
@@ -757,7 +793,7 @@ def main() -> None:
                     f"--data {mapper}. Legg den til i --data."
                 )
 
-    X, V, M, FRO, KILDE, SIG = les(mapper, args.klipp, not args.ingenbuffer)
+    X, V, M, FRO, KILDE, SIG, STIKK = les(mapper, args.klipp, not args.ingenbuffer)
     n = X.shape[0]
     if n < args.minrader:
         raise SystemExit(f"For lite data ({n} stillinger)")
@@ -861,6 +897,11 @@ def main() -> None:
     Mg = torch.from_numpy(M).to(enhet)
     del X, V, M
     hold_idx = torch.from_numpy(hold_idx_np).to(enhet)
+    # Holdoutradene per fase (FASER, etter stikk spilt). En tom fase gir nan i sluttlinjene, ikke en krasj.
+    fase_idx = {}
+    for fnavn, fa, fb in FASER:
+        st = STIKK[hold_idx_np]
+        fase_idx[fnavn] = torch.from_numpy(hold_idx_np[(st >= fa) & (st <= fb)]).to(enhet)
 
     os.makedirs(os.path.dirname(args.logg) or ".", exist_ok=True)
     logg = open(args.logg, "a", encoding="utf-8", buffering=1)
@@ -982,6 +1023,12 @@ def main() -> None:
                 mål = tuple(modell.lag[i].weight.shape)
                 if mål != W.shape:
                     utvider = i == 0 and mål[0] == W.shape[0] and mål[1] > W.shape[1]
+                    if utvider and not prefiks_lovlig(W.shape[1], mål[1]):
+                        raise SystemExit(
+                            f"{args.start} tar {W.shape[1]} trekk, men de {W.shape[1]} foerste kolonnene i "
+                            f"{TREKK_DIM}-radene er ikke et prefiks av dem (bokbredden: bare 273). "
+                            "Nullutvidelsen ville lagt nettets vekter paa trekk som betyr noe annet."
+                        )
                     if not utvider:
                         raise SystemExit(
                             f"{args.start} lag {i} er {W.shape}, {navn} venter {mål}. "
@@ -1175,8 +1222,15 @@ def main() -> None:
             # REFERANSEN: --policy (standard startnettet) paa NOEYAKTIG denne holdouten, med samme
             # anger som modellen. Formen leses av fila, saa en policy med andre skjulte lag kan maales.
             pol_lag = les_vekter(args.policy)
-            if pol_lag[0][0].shape[1] != bredde:
-                raise SystemExit(f"--policy {args.policy} tar {pol_lag[0][0].shape[1]} trekk, dataene har {bredde}")
+            pol_bredde = pol_lag[0][0].shape[1]
+            if pol_bredde != bredde:
+                # Et 273-nett som policy paa bokrader (forrige iterasjons kort-K.bin foer 493 kom):
+                # nullutvidet er det NOEYAKTIG nettet som spilte, saa angeren er dens egen.
+                if not (TREKK_DIM in KORTBOK_DIM and pol_bredde < bredde and prefiks_lovlig(pol_bredde, bredde)):
+                    raise SystemExit(f"--policy {args.policy} tar {pol_bredde} trekk, dataene har {bredde}")
+                W0p, b0p = pol_lag[0]
+                pol_lag[0] = (numpy.concatenate([W0p, numpy.zeros((W0p.shape[0], bredde - pol_bredde), dtype=W0p.dtype)], axis=1), b0p)
+                print(f"  policy {args.policy}: {pol_bredde} -> {bredde} med nullkolonner bakerst", flush=True)
             pol = E1Nett([bredde] + [W.shape[0] for W, _ in pol_lag]).to(enhet)
             with torch.no_grad():
                 for l, (W, b) in zip(pol.lag, pol_lag):
@@ -1184,6 +1238,14 @@ def main() -> None:
                     l.bias.copy_(torch.from_numpy(b))
             pol.eval()
             _, pol_treff, pol_anger = maal_i_biter(pol, Xk, Vg, Mg, args.tau, hold_idx)
+
+            def anger_per_fase(nett):
+                return {
+                    fnavn: (maal_i_biter(nett, Xk, Vg, Mg, args.tau, idx)[2] if idx.numel() > 0 else float("nan"))
+                    for fnavn, idx in fase_idx.items()
+                }
+
+            pol_fase = anger_per_fase(pol)
             del pol
             # START-AVVIK: torch-nettet mot en ren numpy-framoverregning av vektfila. Et lag lastet
             # skjevt (feil akse, feil rekkefoelge) krasjer ikke - det gir bare et daarlig nett.
@@ -1191,6 +1253,9 @@ def main() -> None:
             x = Xk[hold_idx[:n_sjekk]].detach().cpu().numpy().astype(numpy.float64)
             start_np = les_vekter(args.start)
             for i, (W, b) in enumerate(start_np):
+                if i == 0 and W.shape[1] < x.shape[1]:
+                    # Nullutvidet start (273 -> 493): de nye kolonnene ganges med null, altsaa er det de 273 foerste.
+                    x = x[:, : W.shape[1]]
                 x = x @ W.T.astype(numpy.float64) + b.astype(numpy.float64)
                 if i < len(start_np) - 1:
                     x = numpy.maximum(x, 0.0)
@@ -1258,11 +1323,29 @@ def main() -> None:
                 break
         print(f"{navn} ferdig: beste hold-anger {beste:.4f} på epoke {beste_epoke} → {ut}")
         if vekter_modus:
+            # ANGEREN PER FASE for nettet som faktisk ble SKREVET (beste epoke, ellers startvektene):
+            # «modell» i minnet er siste epoke, ikke noedvendigvis den lagrede.
+            skrevet_lag = les_vekter(ut)
+            skrevet = E1Nett([bredde] + [W.shape[0] for W, _ in skrevet_lag]).to(enhet)
+            with torch.no_grad():
+                for l, (W, b) in zip(skrevet.lag, skrevet_lag):
+                    l.weight.copy_(torch.from_numpy(W))
+                    l.bias.copy_(torch.from_numpy(b))
+            skrevet.eval()
+            mod_fase = anger_per_fase(skrevet)
+            del skrevet
             sluttlinjer += [
                 f"RADER tren {tren_idx.numel()} holdout {hold_idx.numel()} holdoutkamper {len(hold_froe)}",
+                "FASE-RADER-HOLDOUT " + " ".join(f"{fnavn.lower()} {int(fase_idx[fnavn].numel())}" for fnavn, _, _ in FASER),
                 f"BESTE-EPOKE {beste_epoke}",
                 f"START-AVVIK {start_avvik:.2e}",
                 f"POLICY-TREFF-HOLDOUT {pol_treff:.4f}",
+            ]
+            sluttlinjer += [f"MODELL-ANGER-HOLDOUT-{fnavn} {mod_fase[fnavn]:.4f}" for fnavn, _, _ in FASER]
+            sluttlinjer += [f"POLICY-ANGER-HOLDOUT-{fnavn} {pol_fase[fnavn]:.4f}" for fnavn, _, _ in FASER]
+            # TOTALEN SIST, med vilje: loekka leser «grep '^MODELL-ANGER-HOLDOUT' | tail -1», som ogsaa
+            # treffer -SENT. Staar fasene bakerst, doemmer den gamle porten paa sluttspillet i stillhet.
+            sluttlinjer += [
                 f"MODELL-ANGER-HOLDOUT {beste:.4f}",
                 f"POLICY-ANGER-HOLDOUT {pol_anger:.4f}",
             ]
