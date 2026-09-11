@@ -512,6 +512,11 @@ export function utenSøk(spek: string): string {
       // felt hoppes over. Ingen eksisterende spek inneholder «sum:», så linja
       // kan ikke endre noe som er målt.
       s = s.slice(4).split(":").slice(1).join(":");
+    } else if (s.startsWith("eks:")) {
+      // eks:<terskel>[L][t<tak>]:<indre> – full enumerasjon er et søk, og en
+      // rollout-motpart som enumererer i hver utspilling ville gange kostnaden med
+      // antall verdener. Ett felt uten kolon hoppes over, som `delEksaktSpek`.
+      s = s.slice(4).split(":").slice(1).join(":");
     } else {
       return s;
     }

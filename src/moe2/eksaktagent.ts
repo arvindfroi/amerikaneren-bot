@@ -18,8 +18,8 @@
  * god modellen er. Enumerasjonen har ingen av dem – den dekker rommet komplett
  * og løser hver verden eksakt.
  *
- * HVA DEN LIKEVEL IKKE ER. Å ta snittet av DD-verdier over verdener er PIMC med
- * KOMPLETT verdensliste. Hver verden løses som om alle parter – også vi selv,
+ * HVA DEN LIKEVEL IKKE ER. Å ta snittet av løsningsverdier over verdener er PIMC
+ * med KOMPLETT verdensliste. Hver verden løses som om alle parter – også vi selv,
  * senere i runden – fikk vite hvilken verden det var. Den virkelig optimale
  * strategien må spille samme kort i to verdener den ikke kan skille. Tallet er
  * altså den EKSAKTE PIMC-verdien, og beviselig optimalt bare der ingen
@@ -33,19 +33,24 @@
  * bruke den ville gjort «eksakt» til et ord uten innhold. Andelen der
  * enumerasjonen faktisk slo til RAPPORTERES av målingene.
  *
- * SPESIFIKASJON: «eks:<terskel>:<indre kandidat>», f.eks.
- *   eks:3:vakt:at:e1:e1-modell/sd-r2.bin   eksakt de siste 3 stikkene
- *   eks:4:vakt:at:e1:e1-modell/sd-r2.bin   de siste 4
+ * SPESIFIKASJON: «eks:<terskel>[L][t<tak>]:<indre kandidat>», f.eks.
+ *   eks:3:vakt:at:e1:e1-modell/sd-r2.bin     eksakt de siste 3 stikkene, mål diff
+ *   eks:4L:…                                 de siste 4, lagmålet (makkeren teller med)
+ *   eks:5Lt20000:…                           de siste 5, lagmål, tak 20 000 konfigurasjoner
  *
  * Terskelen står YTTERST med vilje: fra terskelen og ut skal enumerasjonen
  * bestemme, også der konvensjonsvakten ville overstyrt. Vakten er en
  * tommelfingerregel for stillinger vi ikke kan regne ut; her KAN vi regne dem
  * ut. Utenfor terskelen er kandidaten bit for bit dagens beste.
+ *
+ * 11. SEP (K7.1): løseren er `poengdds` (hvert sete maksimerer egne poeng) i stedet
+ * for budlagets stikk, og `lesInformasjon` lekker ikke lenger makkeren før han er
+ * avslørt. Tallene fra §56 er målt FØR begge endringene.
  */
 
 import { likeKort, type Kort } from "../kort.ts";
 import { lovligeKort, type GameState, type Handling } from "../motor.ts";
-import { eksaktKortverdier, lesInformasjon, tellKonfigurasjoner } from "../solver/eksakt.ts";
+import { eksaktKortverdier, lesInformasjon, tellKonfigurasjoner, type Målform } from "../solver/eksakt.ts";
 import type { Innagent } from "./konvensjonsvakt.ts";
 
 /** Taket på klassekonfigurasjoner. Over det avstår agenten. */
@@ -56,19 +61,27 @@ export interface Eksaktvalg {
   readonly terskel: number;
   /** Tak på klassekonfigurasjoner per beslutning. */
   readonly maksKonfigurasjoner: number;
+  /** Utfallsmålet kortene rangeres etter. Udefinert = `diff`, som før. */
+  readonly mål?: Målform;
 }
 
-/** Deler «eks:<terskel>:<resten>» i terskel og indre kandidatspesifikasjon. */
+/** Deler «eks:<terskel>[L][t<tak>]:<resten>» i valg og indre kandidatspesifikasjon. */
 export function delEksaktSpek(spec: string): { valg: Eksaktvalg; indre: string } | null {
   if (!spec.startsWith("eks:")) return null;
   const rest = spec.slice(4);
   const skille = rest.indexOf(":");
   if (skille <= 0) throw new Error(`Eksaktspesifikasjonen mangler indre kandidat: «${spec}»`);
-  const terskel = Number(rest.slice(0, skille));
-  if (!Number.isInteger(terskel) || terskel < 1) {
-    throw new Error(`Ugyldig terskel i «${spec}» – oppgi et helt antall stikk ≥ 1`);
+  const m = /^(\d+)(L)?(?:t(\d+))?$/.exec(rest.slice(0, skille));
+  const terskel = m === null ? Number.NaN : Number(m[1]);
+  if (m === null || !Number.isInteger(terskel) || terskel < 1) {
+    throw new Error(`Ugyldig terskel i «${spec}» – oppgi et helt antall stikk ≥ 1, eventuelt L og t<tak>`);
   }
-  return { valg: { terskel, maksKonfigurasjoner: STANDARD_TAK }, indre: rest.slice(skille + 1) };
+  const tak = m[3] === undefined ? STANDARD_TAK : Number(m[3]);
+  if (!Number.isInteger(tak) || tak < 1) throw new Error(`Ugyldig tak i «${spec}»`);
+  const valg: Eksaktvalg = m[2] === "L"
+    ? { terskel, maksKonfigurasjoner: tak, mål: "lag" }
+    : { terskel, maksKonfigurasjoner: tak };
+  return { valg, indre: rest.slice(skille + 1) };
 }
 
 /** Tellere som holder metoden ærlig: hvor ofte slo den til, og hvor ofte ikke? */
@@ -118,7 +131,10 @@ export function eksaktKort(
   }
 
   const t0 = telling ? performance.now() : 0;
-  const svar = eksaktKortverdier(s, sete, { maksKonfigurasjoner: valg.maksKonfigurasjoner });
+  const svar = eksaktKortverdier(s, sete, {
+    maksKonfigurasjoner: valg.maksKonfigurasjoner,
+    ...(valg.mål === undefined ? {} : { mål: valg.mål }),
+  });
   if (svar === null || svar.vurderinger.length === 0 || !svar.enumerasjon.full) {
     if (telling) telling.avstått++;
     return null;
@@ -151,6 +167,14 @@ export class EksaktSluttspill implements Innagent {
 
   nyKamp(): void {
     this.indre.nyKamp?.();
+  }
+
+  /**
+   * Videre til det indre laget. Ligger søket med MLB-troen under, MÅ det se hver
+   * tilstand, også RUNDE_SLUTT – ellers kaster søketroen i neste runde.
+   */
+  observer(s: GameState): void {
+    (this.indre as { observer?(s: GameState): void }).observer?.(s);
   }
 
   velgHandling(state: GameState): Handling {

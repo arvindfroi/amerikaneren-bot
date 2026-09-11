@@ -56,6 +56,7 @@
  * å adoptere på en hypotese.
  */
 
+import { EksaktSluttspill, STANDARD_TAK } from "./eksaktagent.ts";
 import type { GameState, Handling } from "../motor.ts";
 import type { NevroNett } from "../nevro/nett.ts";
 import { forover } from "../nevro/nett.ts";
@@ -138,6 +139,18 @@ export interface UtrulletSpek {
   readonly vrakflagg?: string;
   readonly søk?: Søkspek | null;
   /**
+   * K7.1 (11. sep): eksakt sluttspill, `eks:<terskel>[L][t<tak>]` i speken. Legges
+   * UTENPÅ søket og under vrakrangereren: fra terskelen og ut bestemmer enumerasjonen
+   * i ALLE roller, også der søket ville overstyrt. Udefinert/null = av, som før.
+   */
+  readonly eksakt?: {
+    readonly terskel: number;
+    /** Lagmålet (`L`): makkerens poeng teller med. */
+    readonly lagmål?: boolean;
+    /** Tak på klassekonfigurasjoner. Udefinert = `STANDARD_TAK`. */
+    readonly tak?: number;
+  } | null;
+  /**
    * K4 + K6: økthukommelsen og motstandermodellen.
    *
    * De henger sammen og skrus derfor av og på SAMMEN: `Profilagent` fyller
@@ -156,7 +169,13 @@ export interface UtrulletSpek {
  * på den mellom kamper — det er DEN som skiller «én økt» fra «historie», og
  * hele grunnen til at boka ikke rører disk.
  */
-export function byggUtrullet(spek: UtrulletSpek): { agent: Velger; økt: Økt | null; sik: Sikkerorakel | null } {
+export function byggUtrullet(spek: UtrulletSpek): {
+  agent: Velger;
+  økt: Økt | null;
+  sik: Sikkerorakel | null;
+  /** K7.1-laget, for tellerne. `null` når det er av. */
+  eksakt: EksaktSluttspill | null;
+} {
   const økt = spek.økt === true ? new Økt() : null;
   // Søkeleddet selv, så appen kan logge `sik.siste` (hvem bestemte, verdener, σ, ms).
   let sik: Sikkerorakel | null = null;
@@ -245,11 +264,24 @@ export function byggUtrullet(spek: UtrulletSpek): { agent: Velger; økt: Økt | 
     }
   }
 
+  // K7.1: EKSAKT SLUTTSPILL UTENPÅ SØKET, som `eks:` mellom `vr:` og `sik:` i speken.
+  // Fra terskelen og ut bestemmer enumerasjonen i alle roller; blir rommet større enn
+  // taket, avstår den og søket/nettet under bestemmer som før.
+  let eksakt: EksaktSluttspill | null = null;
+  if (spek.eksakt !== undefined && spek.eksakt !== null) {
+    eksakt = new EksaktSluttspill(kjede as never, {
+      terskel: spek.eksakt.terskel,
+      maksKonfigurasjoner: spek.eksakt.tak ?? STANDARD_TAK,
+      ...(spek.eksakt.lagmål === true ? { mål: "lag" as const } : {}),
+    });
+    kjede = eksakt as unknown as Velger;
+  }
+
   // VRAKRANGEREN YTTERST, som `vr:` i speken. Vraket og trumfvalget er en annen
   // beslutning med sin egen modell, og den skal ikke gjennom søket.
   if (spek.vraknett !== null && spek.vraknett !== undefined) {
     kjede = new Vrakrangerer(kjede, spek.vraknett, spek.vrakflagg ?? "telrd") as unknown as Velger;
   }
 
-  return { agent: kjede, økt, sik };
+  return { agent: kjede, økt, sik, eksakt };
 }

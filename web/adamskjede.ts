@@ -75,6 +75,13 @@ export interface AdamsKonfig {
    * holder.
    */
   readonly budqPå?: boolean;
+  /**
+   * EKSAKT SLUTTSPILL (K7.1, 11. sep): full enumerasjon av verdenene fra `terskel`
+   * stikk igjen, løst med poengløseren – i ALLE roller, i begge tråder. AV som
+   * standard til kampbenken har dømt den. Taket holder den innenfor tenketiden: blir
+   * rommet større, avstår laget og kjeden spiller som før.
+   */
+  readonly eksakt?: { readonly terskel: number; readonly lagmål?: boolean; readonly tak?: number } | null;
 }
 
 /** Rå vekter slik de kommer over nettet: base64 og JSON. */
@@ -199,6 +206,8 @@ export function byggAdams(v: RåAdamsVekter, k: AdamsKonfig, medSøk: boolean, k
       vraknett: vn,
       vrakflagg: k.vrakflagg,
       søk: medSøk ? søkspek(k, tronett) : null,
+      // Begge tråder: hovedtråden tar makker- og forsvarstrekkene, workeren førerens.
+      eksakt: k.eksakt ?? null,
       // K4/K6 er BYGD, men ikke maalt i spill enda. Slås de på, må `nyKamp`
       // nå begge tråder — og det gjør den nå (N5).
       økt: false,

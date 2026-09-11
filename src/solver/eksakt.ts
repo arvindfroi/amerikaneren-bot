@@ -44,8 +44,9 @@
  */
 
 import { FARGER, type Kort } from "../kort.ts";
-import type { GameState } from "../motor.ts";
+import { lovligeKort, type GameState } from "../motor.ts";
 import { kortTilInt, rotVerdier, intTilKort } from "./dds.ts";
+import { poengRotVerdier } from "./poengdds.ts";
 import { byggDDOppsett, infererRenonce, type Verden } from "./sampler.ts";
 
 /** En mottaker av usette kort: en motspiller, eller vraket (spiller = −1). */
@@ -64,9 +65,9 @@ export interface Informasjon {
   readonly bøtter: readonly Bøtte[];
   /** Observatørens egen hånd (kort-int). */
   readonly egen: readonly number[];
-  /** Det etterlyste kortet, dersom det ennå er usett (må ligge hos en LEVENDE bøtte). */
+  /** Det etterlyste kortet, dersom det ennå er usett (må ligge hos en LEVENDE bøtte som ikke er budvinnerens). */
   readonly etterlystUsett: number | null;
-  /** Makkeren, når han er avslørt. Null = ukjent (solo, eller stikk 1). */
+  /** Makkeren når han er avslørt, eller observatøren selv når hun har det etterlyste kortet. Null = ukjent. */
   readonly makker: number | null;
   readonly budvinner: number | null;
   readonly observator: number;
@@ -107,12 +108,20 @@ export function lesInformasjon(state: GameState, observator: number): Informasjo
       ? etterlystInt
       : null;
 
+  /**
+   * K2: MAKKEREN ER BARE KJENT NÅR HAN ER AVSLØRT. Motoren setter `state.makker` i
+   * VELG, før kortet er spilt; å lese den direkte ga hvert sete svaret gratis (rettet
+   * 11. sep). Setet som selv HAR det etterlyste kortet vet det likevel – egen hånd.
+   */
+  let makker: number | null = state.makkerAvslørt ? state.makker : null;
+  if (makker === null && etterlystInt !== null && egen.includes(etterlystInt)) makker = observator;
+
   return {
     usett,
     bøtter,
     egen,
     etterlystUsett,
-    makker: state.makker,
+    makker,
     budvinner: state.budvinner,
     observator,
   };
@@ -185,7 +194,9 @@ export function tellVerdener(info: Informasjon): number {
       if (caps[b]! === 0) continue;
       const bøtte = info.bøtter[b]!;
       if (bøtte.forbud.has(f)) continue;
-      if (måLeve && bøtte.spiller === -1) continue;
+      // Det etterlyste kortet ligger hos en LEVENDE hånd, og aldri budvinnerens – ellers
+      // blir budvinneren sin egen makker og verdenen scores etter feil regler (sampler.ts).
+      if (måLeve && (bøtte.spiller === -1 || bøtte.spiller === info.budvinner)) continue;
       caps[b]!--;
       sum += rek(i + 1, caps);
       caps[b]!++;
@@ -334,7 +345,8 @@ export function enumerer(
       }
       const bøtte = info.bøtter[b]!;
       const lovlig =
-        !bøtte.forbud.has(klasse.farge) && !(klasse.måLeve && bøtte.spiller === -1);
+        !bøtte.forbud.has(klasse.farge) &&
+        !(klasse.måLeve && (bøtte.spiller === -1 || bøtte.spiller === info.budvinner));
       const maks = lovlig ? Math.min(igjen, caps[b]!) : 0;
       for (let n = 0; n <= maks; n++) {
         rad[b] = n;
@@ -363,13 +375,36 @@ export function tellKonfigurasjoner(info: Informasjon, maks = Infinity): Enumera
 
 // --- Verdi ------------------------------------------------------------------
 
-/** Hvilket utfallsmål kandidatkortene rangeres etter. */
-export type Målform = "diff" | "egen";
+/**
+ * Hvilket utfallsmål kandidatkortene rangeres etter.
+ *
+ *   diff  egne rundepoeng minus snittet av de tre andre – benkens størrelse
+ *   egen  rå egne rundepoeng
+ *   lag   eget lags snitt minus det andre lagets snitt, som `lagMål` i
+ *         moe2/sdkort.ts: makkerens poeng teller MED, ikke mot. Det var det som
+ *         snudde søket fra negativt til positivt i makker- og forsvarssetet (§103).
+ *
+ * Konstantledd som er likt for alle kandidatkort i én verden (poengene fra før
+ * runden) påvirker ikke argmaks, så rundepoeng er nok.
+ */
+export type Målform = "diff" | "egen" | "lag";
+
+/**
+ * Løseren som regner ut hver verden.
+ *
+ *   poeng  `poengdds.ts`: hvert sete maksimerer sine EGNE poeng – forsvarerne
+ *          egne stikk, budlaget trinnet hjemme/bet. Standard fra 11. sep.
+ *   dd     `dds.ts`: budlagets stikk som toparts nullsum, forsvarernes stikk delt
+ *          likt. Beholdt som kontroll: det var den `eks:3`/`eks:4` ble målt med
+ *          (§56: −0,343 / −0,753), før de to lekkasjene i `lesInformasjon` ble rettet.
+ */
+export type Løserform = "poeng" | "dd";
 
 export interface EksaktOpts {
   /** Tak på antall konfigurasjoner; over det er enumerasjonen ikke full. */
   readonly maksKonfigurasjoner?: number;
   readonly mål?: Målform;
+  readonly løser?: Løserform;
 }
 
 export interface EksaktVurdering {
@@ -386,12 +421,12 @@ export interface EksaktSvar {
 }
 
 /**
- * Rundepoeng for hvert sete gitt budlagets sluttstikk.
+ * Rundepoeng for hvert sete gitt budlagets sluttstikk (bare `dd`-løseren).
  *
  * Forsvarernes stikk deles LIKT mellom dem. Det er en tilnærming: dobbelt
  * dummy gir lagets total, ikke fordelingen innad i forsvaret, og +1 per eget
- * stikk er den eneste posten som avhenger av fordelingen. Samme tilnærming som
- * `egenPoeng` i neat/hybrid.ts bruker.
+ * stikk er den eneste posten som avhenger av fordelingen. `poeng`-løseren har
+ * ikke denne tilnærmingen.
  */
 function rundepoeng(lagStikk: number, declLag: readonly boolean[], s: GameState): number[] {
   const T = s.giving.antallStikk;
@@ -424,30 +459,86 @@ function rundepoeng(lagStikk: number, declLag: readonly boolean[], s: GameState)
   return delta;
 }
 
-/**
- * Utfallsmålet: egne rundepoeng minus snittet av de andres – samme differanse
- * som benken og SD-fasiten bruker (`standardMål` i moe2/sdkort.ts). `egen`
- * gir råpoeng i stedet, som `egenPoeng` i neat/hybrid.ts.
- */
-function måltall(
-  lagStikk: number,
+/** Utfallsmålet sett fra `observator`, gitt rundepoeng per sete og lagene i verdenen. */
+function målFraPoeng(
+  delta: readonly number[],
   declLag: readonly boolean[],
-  s: GameState,
   observator: number,
   form: Målform,
 ): number {
-  const delta = rundepoeng(lagStikk, declLag, s);
+  const N = delta.length;
   const egne = delta[observator] ?? 0;
   if (form === "egen") return egne;
-  const N = s.antallSpillere;
-  const sum = delta.reduce((a, b) => a + b, 0);
-  return egne - (sum - egne) / Math.max(1, N - 1);
+  if (form === "diff") {
+    const sum = delta.reduce((a, b) => a + b, 0);
+    return egne - (sum - egne) / Math.max(1, N - 1);
+  }
+  let mine = 0;
+  let nMine = 0;
+  let deres = 0;
+  let nDeres = 0;
+  for (let p = 0; p < N; p++) {
+    if (declLag[p] === declLag[observator]) {
+      mine += delta[p] ?? 0;
+      nMine++;
+    } else {
+      deres += delta[p] ?? 0;
+      nDeres++;
+    }
+  }
+  return (nMine === 0 ? 0 : mine / nMine) - (nDeres === 0 ? 0 : deres / nDeres);
+}
+
+/**
+ * Utvider løserens representanter til hele ekvivalensklassen.
+ *
+ * `poengRotVerdier` gir bare det HØYESTE kortet i hver rekke av egne kort som er
+ * naboer blant kortene i spill (alle fire hender + bordet), samme regel som
+ * `klasserIFarge` i dds.ts. Hvilke kort som er naboer avhenger av VERDENEN. Uten
+ * utvidelsen ville et lavt kort mangle nettopp i verdenene der det deler klasse
+ * med et høyere, og snittet dets ville blitt tatt over en skjev delmengde.
+ */
+function utvidRepresentanter(
+  rep: ReadonlyMap<number, number>,
+  lovlige: readonly number[],
+  hender: readonly (readonly number[])[],
+  bord: readonly { readonly kort: number }[],
+  observator: number,
+): Map<number, number> {
+  const iSpill = new Set<number>();
+  for (const h of hender) for (const c of h) iSpill.add(c);
+  for (const b of bord) iSpill.add(b.kort);
+  const egne = new Set(hender[observator] ?? []);
+  const ut = new Map<number, number>();
+  for (const c of lovlige) {
+    const direkte = rep.get(c);
+    if (direkte !== undefined) {
+      ut.set(c, direkte);
+      continue;
+    }
+    // Oppover i fargen: kort ute av spillet hoppes over, et motstanderkort eller
+    // bordkort bryter rekka, og første egne kort med verdi er representanten.
+    const f = Math.floor(c / 13);
+    for (let r = (c % 13) + 1; r <= 12; r++) {
+      const k = f * 13 + r;
+      if (!iSpill.has(k)) continue;
+      if (!egne.has(k)) break;
+      const v = rep.get(k);
+      if (v !== undefined) {
+        ut.set(c, v);
+        break;
+      }
+    }
+  }
+  return ut;
 }
 
 /**
  * DEN EKSAKTE VURDERINGEN: hvert lovlige kort får sitt vektede snitt over ALLE
- * verdener forenlige med spillerens informasjon, der hver verden er løst
- * eksakt med dobbelt dummy.
+ * verdener forenlige med spillerens informasjon, der hver verden er løst eksakt.
+ *
+ * Kaster hvis et lovlig kort står uten verdi i en verden – da er klasseutvidelsen
+ * feil, og et snitt over resten ville vært en stille skjevhet.
  *
  * Returnerer null når spillet ikke er i gang eller ingen verden er forenlig
  * (skal ikke kunne skje – informasjonsbildet er per konstruksjon konsistent
@@ -458,9 +549,14 @@ export function eksaktKortverdier(
   spiller: number,
   opts: EksaktOpts = {},
 ): EksaktSvar | null {
-  if (state.fase !== "SPILL" || state.budvinner === null || state.melding === null) return null;
+  const budvinner = state.budvinner;
+  const melding = state.melding;
+  if (state.fase !== "SPILL" || budvinner === null || melding === null) return null;
   const info = lesInformasjon(state, spiller);
   const form = opts.mål ?? "diff";
+  const løser = opts.løser ?? "poeng";
+  const lovlige = lovligeKort(state, spiller).map(kortTilInt);
+  const bord = state.bord.map((kp) => ({ spiller: kp.spiller, kort: kortTilInt(kp.kort) }));
 
   const sum = new Map<number, number>();
   let vektSum = 0;
@@ -471,9 +567,42 @@ export function eksaktKortverdier(
       const declLag = lagDeclLag(state, info, hender);
       const verden: Verden = { hender, declLag, makkerVerden: null, vrakVerden: [] };
       const oppsett = byggDDOppsett(state, verden);
-      for (const rv of rotVerdier(oppsett)) {
-        const v = måltall(rv.lagStikk, declLag, state, spiller, form);
-        sum.set(rv.kort, (sum.get(rv.kort) ?? 0) + vekt * v);
+      let verdier: Map<number, number>;
+      if (løser === "dd") {
+        verdier = new Map();
+        for (const rv of rotVerdier(oppsett)) {
+          verdier.set(rv.kort, målFraPoeng(rundepoeng(rv.lagStikk, declLag, state), declLag, spiller, form));
+        }
+      } else {
+        let makker: number | null = null;
+        for (let p = 0; p < declLag.length; p++) if (declLag[p] && p !== budvinner) makker = p;
+        const svar = poengRotVerdier({
+          N: oppsett.N,
+          trump: oppsett.trump,
+          hender,
+          iTur: oppsett.iTur,
+          bord,
+          stikkFør: state.stikkVunnet.slice(),
+          ferdigeStikk: state.stikkSpilt,
+          totalStikk: oppsett.totalStikk,
+          budvinner,
+          makker,
+          melding,
+          målPoeng: state.regler.målPoeng,
+          // Treets egne seter: `lag` finnes ikke i løseren. `diff` er det som gir
+          // budlaget grunn til overstikk (se poengdds.ts); rangeringen under bruker `form`.
+          mål: form === "egen" ? "egen" : "diff",
+        });
+        const rep = new Map<number, number>();
+        for (const v of svar.verdier) rep.set(v.kort, målFraPoeng(v.poeng, declLag, spiller, form));
+        verdier = utvidRepresentanter(rep, lovlige, hender, bord, spiller);
+      }
+      for (const c of lovlige) {
+        const v = verdier.get(c);
+        if (v === undefined) {
+          throw new Error(`eksakt: ${beskrivKort(c)} fikk ingen verdi i en verden – klasseutvidelsen er feil`);
+        }
+        sum.set(c, (sum.get(c) ?? 0) + vekt * v);
       }
       vektSum += vekt;
     },
