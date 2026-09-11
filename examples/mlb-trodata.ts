@@ -98,6 +98,30 @@
  * `@`-setene skriver rader: troen skal læres av kandidatens stol, om motstandere som
  * faktisk har ulike vaner (K6 → K8). `--rotasjon` flytter setene én plass per giv/kamp.
  * Se `examples/drivere.ts`. Uten flagget er radene byte-identiske med før.
+ *
+ * ===================== --menneske: INNSPILTE MENNESKEKAMPER (11. sep) ====
+ *
+ *   node examples/mlb-trodata.ts --menneske D:/amb-grp/menneske/hendelser.jsonl --band trening \
+ *     --hukommelse --signal --ut mlb-tro-data/menneske920/trening-0.bin [--etter 2026-08-10] [--budspek <v5>]
+ *
+ * Trohodet og hukommelsen er trent bare på selvspill, og et trohode trent mot én motstandertype
+ * falt fra 12,34 % til 5,09 % av veien gulv → tak mot en annen. Rader fra ~273 menneskekamper
+ * (fra 10. aug) er det nærmeste vi har treningsdata MOT MENNESKER.
+ *
+ * Kampene gås runde for runde av `menneske-logg.ts`, som gjør hver loggført runde om til ekte
+ * tilstander og KONTROLLERER dem (budvinner og kontrakt, lovlige trekk, loggens poeng). Løkka
+ * er da den samme som i `--kamp`: én bok for bordet ser hver tilstand (kampslutt vist som
+ * rundeslutt), og hver SPILL-stilling med ukjente kort skrives med sjansen `--sjanse` — alle
+ * fire seter, også menneskets. Samme radformat og samme bredder (660/776/804/920), så
+ * `verktoy/mlb-tro-tren.py` leser fila uendret.
+ *
+ * BÅNDENE er `menneskeBånd(kamp-id)`: hver fjerde kamp er holdout, avsatt på id før første rad.
+ * `--band trening` og `--band holdout` er derfor disjunkte på KAMP, og `menneske-tro.ts --band
+ * holdout` dømmer et nett trent på trening. `frø` i posten er kampens frø fra Val Town (tilfeldig
+ * 32-bit, `frø | 0` kan bli negativt) — bruk båndene, ikke `--hold-del`, på disse radene.
+ *
+ * `--kamp`, `--giver`, `--fra`, `--drivere`, `--rotasjon` og `--spek` avvises med `--menneske`:
+ * ingen agent spiller et kort her. Uten flagget er alt byte-identisk med før (sha1 før/etter).
  */
 
 import { closeSync, mkdirSync, openSync, writeSync } from "node:fs";
@@ -116,6 +140,17 @@ import {
   troTrekkForBredde,
 } from "../src/mlb/trotrekk.ts";
 import { bordTekst, lesBord, slot, tilSeter } from "./drivere.ts";
+import {
+  kamprunder,
+  lesMenneskelogg,
+  MENNESKE_FRA,
+  menneskeBånd,
+  nyTeller,
+  skardAv,
+  somRundeslutt,
+  tellerTekst,
+  V5_KJEDE,
+} from "./menneske-logg.ts";
 
 const arg =(n: string, s: string): string => {
   const i = process.argv.indexOf(n);
@@ -143,7 +178,16 @@ export const KAMP_BÅND: Record<string, { base: number; steg: number; maks: numb
  */
 const KAMP = har("--kamp");
 const HUKOMMELSE = har("--hukommelse");
-if (HUKOMMELSE && !KAMP) throw new Error("--hukommelse krever --kamp: med én runde per giv er boka tom i hver rad");
+/** `--menneske <hendelser.jsonl>`: rader fra innspilte menneskekamper (se toppen). */
+const MENNESKE_DATA = arg("--menneske", "");
+const MENNESKE = MENNESKE_DATA !== "";
+if (MENNESKE && KAMP) throw new Error("--menneske og --kamp utelukker hverandre: menneskekampene er alt hele kamper");
+if (MENNESKE) {
+  for (const n of ["--giver", "--fra", "--drivere", "--rotasjon", "--spek"]) {
+    if (har(n)) throw new Error(`${n} gjelder ikke --menneske: ingen agent spiller et kort der`);
+  }
+}
+if (HUKOMMELSE && !KAMP && !MENNESKE) throw new Error("--hukommelse krever --kamp: med én runde per giv er boka tom i hver rad");
 for (const n of ["--kamper", "--maksrunder", "--maalpoeng"]) {
   if (har(n) && !KAMP) throw new Error(`${n} gjelder bare --kamp`);
 }
@@ -168,7 +212,7 @@ if (KAMP) {
 /** Andel spillestillinger som skrives. 1 gir sterkt korrelerte naborader. */
 const SJANSE = tall(arg("--sjanse", "0.5"), 0.5);
 const SPEK = arg("--spek", ADAMS_MAALT);
-const UT = arg("--ut", KAMP ? `mlb-tro-data/kamp-${BAND}-0.bin` : `mlb-tro-data/${BAND}-0.bin`);
+const UT = arg("--ut", MENNESKE ? `mlb-tro-data/menneske-${BAND}-0.bin` : KAMP ? `mlb-tro-data/kamp-${BAND}-0.bin` : `mlb-tro-data/${BAND}-0.bin`);
 const [SI, SN] = (arg("--skard", "0/1").split("/") as [string, string]).map(Number) as [number, number];
 /**
  * `--signal` (11. sep, K8 kanal 5 og 2): signalblokken bakerst, 660 → 776 trekk. Uten
@@ -237,7 +281,49 @@ const tilfeldig = (): number => {
 };
 
 const t0 = Date.now();
-if (!KAMP) {
+if (MENNESKE) {
+  const ETTER = arg("--etter", MENNESKE_FRA);
+  const budgivere = [0, 1, 2, 3].map(() => lagIndre(arg("--budspek", V5_KJEDE)));
+  const medBok = DIM === MLB_TRO_INN_H || DIM === MLB_TRO_INN_HS;
+  const teller = nyTeller();
+  let kamper = 0;
+  for (const [id, kamp] of lesMenneskelogg(MENNESKE_DATA)) {
+    if (kamp.start === null || skardAv(id, SN) !== SI || menneskeBånd(id) !== BAND) continue;
+    if (ETTER !== "" && !kamp.runder.some((r) => r.tid >= ETTER)) continue;
+    const frø = Number(kamp.start.data["frø"]);
+    kamper++;
+    // Én bok for bordet, ny per kamp — og ny der loggen har et hull eller en runde ble avvist.
+    let bok = new Hukommelse();
+    for (const steg of kamprunder(kamp, budgivere, teller)) {
+      if (steg.nyBok) bok = new Hukommelse();
+      if (steg.runde === null) continue;
+      // Runder før `--etter` spilles gjennom boka, men blir ikke rader.
+      const skriv = ETTER === "" || steg.hendelse.tid >= ETTER;
+      for (const s0 of steg.runde.tilstander) {
+        const s = somRundeslutt(s0);
+        bok.observer(s);
+        if (skriv && s.fase === "SPILL" && s.iTur !== null && tilfeldig() < SJANSE) {
+          const sete = s.iTur;
+          const f = troFasit(s, sete);
+          if (harUkjente(f)) {
+            // K2: visningen alene, og boka — som bare kjenner FERDIGE runder.
+            const huk = medBok ? bok.vektor(sete, s.antallSpillere) : null;
+            const t = troTrekkForBredde(DIM, spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, huk);
+            skrivRad(t, f, frø, s.stikkSpilt, sete);
+          }
+        }
+      }
+    }
+    const sek = (Date.now() - t0) / 1000;
+    process.stdout.write(`  skard ${SI}: ${kamper} menneskekamper, ${skrevet} rader, ${(skrevet / Math.max(1, sek)).toFixed(0)}/s\r`);
+  }
+  tøm();
+  closeSync(fd);
+  console.log(
+    `\nSkard ${SI} ferdig: ${kamper} menneskekamper i båndet ${BAND}, ${tellerTekst(teller)}, ` +
+      `${skrevet} rader (${DIM} trekk${medBok ? ", med hukommelse" : ""}${SIGNAL ? ", med signalblokk" : ""}) -> ${UT}`,
+  );
+} else if (!KAMP) {
   for (let g = FRA + SI; g < GIVER; g += SN) {
     const frø = bånd.base + g * bånd.steg;
     let s: GameState = opprettSpill({ antallSpillere: 4 }, frø);
