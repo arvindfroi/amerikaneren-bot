@@ -170,6 +170,15 @@ for (let g = skardI; g < givere; g += skardN) {
   let vakt = 0;
   while (s.fase !== "FERDIG" && vakt++ < 20_000) {
     bok.observer(s);
+    /**
+     * DRIVERNE SER HVER TILSTAND OGSÅ (12. sep), ikke bare bordets bok. Løkka utfører NESTE selv, og
+     * i `--kamp` fikk ingen driver se en runde slutte: kravbatteriets K8 kjører denne fila med
+     * helbotens drivere, og et kortnett med motstanderbok (`e1:<493>`, `Kortbok`) kastet i runde 1.
+     * BudQ 287/323 og `profil:` i driverne kastet ikke — de spilte STILLE på tomme bøker, så
+     * `--kamp`-radene for slike drivere endres av denne linja (feilen rettet). Drivere uten bok
+     * (`ADAMS`, standard) er uendret: kallet er en no-op for dem.
+     */
+    for (const a of agenter) a.observer?.(s);
     if (s.fase === "RUNDE_SLUTT") {
       if (!kampmodus) break;
       s = utfør(s, { type: "NESTE" }).state;

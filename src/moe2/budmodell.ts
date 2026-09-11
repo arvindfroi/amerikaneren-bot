@@ -284,6 +284,15 @@ export class Budagent implements Innagent {
     this.indre.nyKamp();
   }
 
+  /**
+   * Videresender bokføringskroken (12. sep), som `Konvensjonsvakt`: laget svelget kallet, og et
+   * kortnett med motstanderbok under (`e1:<493>`) ville aldri sett `RUNDE_SLUTT` og kastet i runde 1.
+   * Uten bok under er kallet en no-op, så gamle speker spiller bit-identisk.
+   */
+  observer(state: GameState): void {
+    (this.indre as { observer?(s: GameState): void }).observer?.(state);
+  }
+
   velgHandling(state: GameState): Handling {
     if (state.fase !== "BUDRUNDE" || state.iTur === null) return this.indre.velgHandling(state);
     const lov = lovligeHandlinger(state);

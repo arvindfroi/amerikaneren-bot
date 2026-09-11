@@ -19,8 +19,9 @@
  * `test/k2-spek.test.ts` bygger hver form for å holde dem sammen.
  */
 
-import { readFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync, readSync } from "node:fs";
 
+import { erKortbokBredde } from "../src/e1/kortbok.ts";
 import { MlbTronett } from "../src/mlb/tronett.ts";
 import { nettFraBytes } from "../src/nevro/nett.ts";
 import { BUDQ_INN } from "../src/moe2/budq.ts";
@@ -195,6 +196,27 @@ export function budqLeserMinne(sti: string): boolean {
 }
 
 /**
+ * Leser kortnettets bredde fra HODET (tre int32: deler, lag, inn) og svarer på om det tar
+ * motstanderboka (493, `src/e1/kortbok.ts`). `h0` bakerst skrelles av, som i `budqLeserMinne`.
+ *
+ * En fil som ikke finnes gir `false`, og det er ikke stille: nullarmen bærer da `e1:<fil>` urørt,
+ * og `lagIndre` kaster på den samme manglende fila når armen bygges. Hodet alene fordi en 273-fil
+ * er 1,8 MB og nullarmen avledes i hvert kall.
+ */
+export function kortnettLeserMinne(sti: string): boolean {
+  const fil = sti.endsWith("h0") ? sti.slice(0, -2) : sti;
+  if (!existsSync(fil)) return false;
+  const fd = openSync(fil, "r");
+  try {
+    const b = Buffer.alloc(12);
+    if (readSync(fd, b, 0, 12, 0) < 12) return false;
+    return erKortbokBredde(b.readInt32LE(8));
+  } finally {
+    closeSync(fd);
+  }
+}
+
+/**
  * Verdensfeltet i `sik:` (delen FORAN «~») uten «M». `lagIndre` leser feltet bakfra —
  * `…[L][M][D]` — så «D» skrelles av først og settes på igjen. Store bokstaver med vilje i
  * parseren: kriterienavnene er små, så en «M» bakerst kan bare være øktknotten.
@@ -239,11 +261,20 @@ export function utenØktmotstander(vFelt: string): string {
  * Gjenskapt isolert på samme giv (1/15 før, se commit). Det var ikke RNG — nullspeken har «D»
  * og budet søker ikke — men en hukommelse nullarmen ikke skulle ha. Laget får `h0` (fersk bok
  * ved hvert bud, `agentspek.ts`) når nettet leser boka; et 143-nett står urørt.
+ *
+ * ============ OG KORTNETTETS BOK (12. sep) =================================
+ *
+ * Et femte sted: `e1:<493-nett>` leser motstanderboka bakerst i kortvalget (`src/e1/kortbok.ts`)
+ * og fører den i speken (`Spekkontekst.kortbok`). Uten en bryter bar nullarmen den videre, som BudQ
+ * før: K4 «uten hukommelse» ville avveket så snart nettet lærte å bruke boka, og K6-nullspeken
+ * ville utnyttet vaner gjennom kortvalget. Terminalen får `h0` (fersk bok ved hvert kortvalg) når
+ * nettet er bokbredt; et 273-nett står urørt, og `e1:<fil>@<tro>` (sanseblokken) har ingen bok.
  */
 export function utenMinne(
   spek: string,
   leserMinne: (sti: string) => boolean = troLeserMinne,
   budqMinne: (sti: string) => boolean = budqLeserMinne,
+  kortMinne: (sti: string) => boolean = kortnettLeserMinne,
 ): string {
   const d = delLag(spek);
   const lag = d.lag
@@ -269,6 +300,9 @@ export function utenMinne(
     const kropp = tilde < 0 ? terminal : terminal.slice(0, tilde);
     const tro = tilde < 0 ? "" : terminal.slice(tilde);
     terminal = (kropp.endsWith("h0") ? kropp : `${kropp}h0`) + tro;
+  } else if (terminal.startsWith("e1:") && !terminal.includes("@")) {
+    const fil = terminal.slice(3);
+    if (!fil.endsWith("h0") && kortMinne(fil)) terminal = `e1:${fil}h0`;
   }
   return settSammen({ lag, terminal });
 }

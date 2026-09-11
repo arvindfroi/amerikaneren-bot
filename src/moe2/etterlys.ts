@@ -49,6 +49,11 @@ export class Etterlysvelger {
     this.indre.nyKamp();
   }
 
+  /** Videresender bokføringskroken (12. sep) — se `Budagent.observer`. */
+  observer(state: GameState): void {
+    (this.indre as { observer?(s: GameState): void }).observer?.(state);
+  }
+
   velgHandling(state: GameState): Handling {
     const h = this.indre.velgHandling(state);
     // BARE etterlysningen endres. Trumfen kommer fra det indre laget, så en
