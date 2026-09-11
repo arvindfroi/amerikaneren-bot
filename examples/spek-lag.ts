@@ -22,6 +22,8 @@
 import { readFileSync } from "node:fs";
 
 import { MlbTronett } from "../src/mlb/tronett.ts";
+import { nettFraBytes } from "../src/nevro/nett.ts";
+import { BUDQ_INN } from "../src/moe2/budq.ts";
 
 /** Lag med fast antall kolonfelt etter prefikset. Terminaler står ikke her. */
 const FELT: Record<string, number> = {
@@ -187,6 +189,11 @@ export function troLeserMinne(sti: string): boolean {
   return MlbTronett.fraBytes(new Uint8Array(readFileSync(sti))).brukerHukommelse === true;
 }
 
+/** Leser BudQ-nettet og svarer på om det tar motstanderboka som inngang (287/323, ikke 143). */
+export function budqLeserMinne(sti: string): boolean {
+  return (nettFraBytes(new Uint8Array(readFileSync(sti.endsWith("h0") ? sti.slice(0, -2) : sti)))[0]?.lag[0]?.inn ?? BUDQ_INN) !== BUDQ_INN;
+}
+
 /**
  * Verdensfeltet i `sik:` (delen FORAN «~») uten «M». `lagIndre` leser feltet bakfra —
  * `…[L][M][D]` — så «D» skrelles av først og settes på igjen. Store bokstaver med vilje i
@@ -223,12 +230,29 @@ export function utenØktmotstander(vFelt: string): string {
  * søkte med øktas motstandermodell — den var ikke uten minne, og dd målte bare
  * `profil:` og troen, ikke «M». «M» tas derfor ut uansett hva troen leser; «D» (frøet
  * fra visningen) står.
+ *
+ * ============ OG BUDQ-NETTETS EGEN BOK (11. sep) ============================
+ *
+ * Et fjerde sted: `budq:<287-nett>` leser MLB-motstanderboka bakerst i budtrekkene og fører
+ * den selv (`BudQagent`). Nullarmen bar den videre, og K4 bånd 1 i batteriet 11. sep ble STUM:
+ * «nullarm uten hukommelse: 1/174» (giv 57715434, runde 8 BUDRUNDE: fersk B9, mett B10).
+ * Gjenskapt isolert på samme giv (1/15 før, se commit). Det var ikke RNG — nullspeken har «D»
+ * og budet søker ikke — men en hukommelse nullarmen ikke skulle ha. Laget får `h0` (fersk bok
+ * ved hvert bud, `agentspek.ts`) når nettet leser boka; et 143-nett står urørt.
  */
-export function utenMinne(spek: string, leserMinne: (sti: string) => boolean = troLeserMinne): string {
+export function utenMinne(
+  spek: string,
+  leserMinne: (sti: string) => boolean = troLeserMinne,
+  budqMinne: (sti: string) => boolean = budqLeserMinne,
+): string {
   const d = delLag(spek);
   const lag = d.lag
     .filter((l) => !MINNELAG.has(l.navn))
     .map((l) => {
+      if (l.navn === "budq:") {
+        const fil = l.felt[0] ?? "";
+        return fil.endsWith("h0") || !budqMinne(fil) ? l : { navn: l.navn, felt: [`${fil}h0`] };
+      }
       if (l.navn !== "sik:") return l;
       const f = l.felt[2] ?? "";
       const t = f.indexOf("~");

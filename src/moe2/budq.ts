@@ -109,7 +109,17 @@ export class BudQagent {
   /** 323-nettet leser stillingsblokken bakerst (sans A). Avgjort av bredden, som boka. */
   private readonly sanser2: boolean;
 
-  constructor(indre: Innagent, nett: NevroNett) {
+  /**
+   * `false` (`budq:<fil>h0` i speken): nettet leser boka, men den er ALLTID en fersk bok for
+   * stillingen det spørres om — nøyaktig det en agent som nettopp fikk `nyKamp()` ser. K4-
+   * nullarmen trenger det: `utenMinne` tok ut `okt:`/`profil:` og troen, men et 287-nett bar
+   * sin egen motstanderbok videre, og nullarmen «uten hukommelse» avvek 1 av 174 i batteriet
+   * 11. sep (bånd 1, giv 57715434, runde 8: fersk B9, mett B10). Det var hukommelse, ikke støy.
+   */
+  private readonly minne: boolean;
+
+  constructor(indre: Innagent, nett: NevroNett, opts: { readonly hukommelse?: boolean } = {}) {
+    this.minne = opts.hukommelse !== false;
     const første = nett.lag[0];
     const siste = nett.lag[nett.lag.length - 1];
     if (første === undefined || !BUDQ_BREDDER.includes(første.inn)) {
@@ -142,12 +152,19 @@ export class BudQagent {
    * `src/mlb/spekagent.ts` beskriver. Driveren må kalle den på hver tilstand.
    */
   observer(state: GameState): void {
-    this.hukommelse?.observer(state);
+    if (this.minne) this.hukommelse?.observer(state);
     (this.indre as { observer?(s: GameState): void }).observer?.(state);
   }
 
   /** Nøyaktig vektoren nettet ser for `sete` nå (143, 287 eller 323). For data, benker og prøver. */
   trekk(state: GameState, sete: number): Float32Array {
+    if (this.hukommelse !== null && !this.minne) {
+      // Fersk bok per spørsmål: `observer` utenfor RUNDE_SLUTT bokfører ingenting, den noterer
+      // bare stillingen, så dette er bit for bit boka til en agent som aldri har sett en runde.
+      const fersk = new Hukommelse();
+      fersk.observer(state);
+      return budqTrekk(state, sete, fersk, this.sanser2);
+    }
     return budqTrekk(state, sete, this.hukommelse, this.sanser2);
   }
 
@@ -159,7 +176,7 @@ export class BudQagent {
   velgHandling(state: GameState): Handling {
     // Som `Sandkasseagent`: også trekkstillingene bokføres (idempotent; boka rører seg
     // bare ved RUNDE_SLUTT, og fanger ellers bare den offentlige poengstillingen).
-    this.hukommelse?.observer(state);
+    if (this.minne) this.hukommelse?.observer(state);
     if (state.fase !== "BUDRUNDE" || state.iTur === null) return this.indre.velgHandling(state);
     const lov = lovligeHandlinger(state);
     if (lov.fase !== "BUDRUNDE") return this.indre.velgHandling(state);

@@ -181,6 +181,39 @@ test("fella: en sterkt koblet bokkolonne endrer bud etter første ferdige runde,
   assert.ok(endret > 0, "boka endret ingen bud - nettet leser den ikke");
 });
 
+/**
+ * K4-NULLARMEN (11. sep): `budq:<fil>h0` skal velge nøyaktig som en agent som nettopp fikk `nyKamp()`,
+ * i hver budstilling i en kamp der boka ellers ville vært full. Batteriet 11. sep så «nullarm uten
+ * hukommelse: 1/174» fordi nullarmen bar denne boka videre.
+ */
+test("h0: et 287-nett uten bok velger som en fersk agent også etter ferdige runder — og fella med bok gjør det ikke", () => {
+  const nett = fellenett(tilfeldigNett(BUDQ_INN, 15));
+  const med = new BudQagent(lagIndre("nevro"), nett);
+  const uten = new BudQagent(lagIndre("nevro"), nett, { hukommelse: false });
+  let n = 0;
+  let fylt = 0;
+  let medAvvik = 0;
+  kjør(4_400_005, 5, (s) => {
+    med.observer(s);
+    uten.observer(s);
+    if (!erBudtur(s)) return;
+    const sete = s.iTur!;
+    const fersk = new BudQagent(lagIndre("nevro"), nett);
+    fersk.observer(s);
+    assert.deepEqual([...uten.trekk(s, sete)], [...fersk.trekk(s, sete)], "h0-agenten så en annen bok enn en fersk agent");
+    assert.equal(harBok(uten.trekk(s, sete)), false);
+    assert.deepEqual(uten.velgHandling(s), fersk.velgHandling(s));
+    n++;
+    if (harBok(med.trekk(s, sete))) {
+      fylt++;
+      if (JSON.stringify(med.velgHandling(s)) !== JSON.stringify(uten.velgHandling(s))) medAvvik++;
+    }
+  });
+  assert.ok(n >= 8 && fylt > 0, `oppsettet: ${n} budstillinger, ${fylt} med full bok`);
+  // FELLA: agenten MED bok avviker fra h0. Ellers kunne likheten over vært grønn fordi boka aldri ble lest.
+  assert.ok(medAvvik > 0, "boka endret ingen bud — h0-prøven beviser ingenting");
+});
+
 test("K2: skjulte hender endrer verken trekk (med bok) eller valg; kontrollen ser byttet", () => {
   const c = new BudQagent(lagIndre("nevro"), fellenett(tilfeldigNett(BUDQ_INN, 14)));
   let stillinger = 0;
