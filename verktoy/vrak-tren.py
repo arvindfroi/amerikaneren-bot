@@ -297,6 +297,9 @@ def main():
     # arbeidet gjort, og likevel en traceback som ser ut som en feilet kjoering.
     print(f"\nFerdig: beste hold-anger {beste:.4f} poeng -> {args.ut}", flush=True)
     print(f"MODELL-ANGER-HOLDOUT {beste:.4f}", flush=True)
+    # Også her, ETTER treningen: utskriftene før første epoke kom ikke gjennom WSL-røret i push-runden
+    # (bare det som ble skrevet etter treningen overlevde), og porten fikk en tom referanse.
+    print(f"POLICY-ANGER-HOLDOUT {n_hold:.4f}", flush=True)
     print(
         "ANGEREN ER TALLET SOM BETYR NOE. Treffraten sier hvor ofte modellen\n"
         "velger nøyaktig beste kandidat; angeren sier hva feilvalgene KOSTER.\n"
