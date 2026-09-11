@@ -7,6 +7,9 @@
  *   node examples/mlb-krav.ts --vekter tilfeldig7310001 --uten-tro --kjapp \
  *     --bare k4,k5,k6        # bare noen krav, små tall
  *
+ *   node examples/mlb-krav.ts --spek "<hele boten>" --kjerner 12 --ut analyse/krav-helbot
+ *                            # HELE BOTEN mot K1–K8, se examples/krav-helbot.ts
+ *
  * ===================== HVORFOR FILA FINNES ==============================
  *
  * Arvind: «kravene 2-8 må være godkjent for at Adams max skal ut.»
@@ -793,4 +796,14 @@ function kjør(): void {
 }
 
 const inngang = process.argv[1];
-if (inngang !== undefined && import.meta.url === pathToFileURL(inngang).href) kjør();
+if (inngang !== undefined && import.meta.url === pathToFileURL(inngang).href) {
+  /**
+   * `--spek` er HELE-BOTEN-MODUSEN (`krav-helbot.ts`), lastet først her. MLB-stien over
+   * er uendret og laster den aldri.
+   */
+  if (process.argv.includes("--spek")) {
+    void import("./krav-helbot.ts").then((m) => m.kjørHelbot(process.argv.slice(2)));
+  } else {
+    kjør();
+  }
+}

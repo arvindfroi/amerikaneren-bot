@@ -76,6 +76,7 @@ import { MAKS_UTSLAG, type Profilbok } from "../src/moe2/profilagent.ts";
 import { alphaMu } from "../src/moe2/alphamu.ts";
 import { standardMål, trekkVerdener, type Utspiller } from "../src/moe2/sdkort.ts";
 import { lagRng } from "../src/kort.ts";
+import { harLag, harSøk, utenMinne } from "./spek-lag.ts";
 
 /**
  * DEN DETERMINISTISKE KJERNEN. Budmodellen uten `sok` (som trekker verdener),
@@ -202,13 +203,25 @@ export function spillOgTaOpp(
    * ingenting har skjedd - og kaller det en feil.
    */
   vaneSete?: number,
+  /**
+   * HELE BOTEN (11. sep, `--spek`). Begge feltene er AV som standard, og da er
+   * stien bit-identisk med før.
+   *
+   *   andre         speken i de TRE andre setene. Hukommelsen skal lære et bord,
+   *                 ikke søke; fire søkende seter koster fire ganger så mye uten å
+   *                 endre hva prøve A spør om.
+   *   observerTikk  tikk gjennom `observer(s)` når agenten har den, i stedet for
+   *                 `velgHandling(s)` ved RUNDE_SLUTT. Søketroen (`sik:…~mlbu=`)
+   *                 fyller boka si bare gjennom tilstander den faktisk får se.
+   */
+  ekstra: { readonly andre?: string; readonly observerTikk?: boolean } = {},
 ): Opptak {
   const stakker = [0, 1, 2, 3].map((p) => {
-    const st = lagStakk(spek, medØkt);
+    const st = lagStakk(p === fokus || ekstra.andre === undefined ? spek : ekstra.andre, medØkt);
     if (p !== vaneSete) return st;
     // Bare KORTVALGET vris. Bud, vrak og trumf tas av samme agent som de
     // andre, saa det eneste som skiller setet er vanen.
-    const vane = lagTrumftrekker(spek);
+    const vane = lagTrumftrekker(ekstra.andre ?? spek);
     return {
       ...st,
       agent: {
@@ -238,6 +251,11 @@ export function spillOgTaOpp(
         if (taOpp && s.rundeNr >= målRunde) break;
         if (tikk) {
           for (const st of stakker) {
+            const obs = (st.agent as { observer?(x: GameState): void }).observer;
+            if (ekstra.observerTikk === true && obs !== undefined) {
+              obs.call(st.agent, s);
+              continue;
+            }
             // Agenten kan velge å ikke ha noe å si ved rundeslutt; poenget er
             // at profillaget SER tilstanden. Feiler et lag under, er det ikke
             // prøven som skal dø.
@@ -323,6 +341,9 @@ export function prøveA(opts: {
   tikk: boolean;
   fokus?: number;
   forkamper?: number;
+  /** Se `spillOgTaOpp`: de tre andre setenes spek, og tikk gjennom `observer`. Av = som før. */
+  andre?: string;
+  observerTikk?: boolean;
 }): MinneMål {
   const fokus = opts.fokus ?? 0;
   const ut: MinneMål = {
@@ -350,6 +371,11 @@ export function prøveA(opts: {
       opts.tikk,
       fokus,
       opts.forkamper ?? 0,
+      undefined,
+      {
+        ...(opts.andre === undefined ? {} : { andre: opts.andre }),
+        ...(opts.observerTikk === undefined ? {} : { observerTikk: opts.observerTikk }),
+      },
     );
     if (o.nådd < opts.målRunde || o.stillinger.length === 0) continue;
     ut.giv++;
@@ -901,6 +927,60 @@ export function øktNåesGjennom(spek: string, frø = 4_100_000, runder = 4): nu
   return sum;
 }
 
+/**
+ * ER SPEKEN DETERMINISTISK? — forutsetningen prøve A hviler på, målt og ikke antatt.
+ *
+ * Prøve A sammenlikner en METT agent (sju runder bak seg) med en FERSK. Har speken et
+ * søk med vedvarende RNG (`sik:`, `amu:`, budsøket), er RNG-posisjonen flyttet av de sju
+ * rundene, og «fersk mot mett» måler RNG-posisjon like gjerne som hukommelse. Nullarmen
+ * vil da vise avvik, og raden blir STUM — riktig, men uten å si hvorfor.
+ *
+ * Denne funksjonen sier hvorfor: ÉN agent, kalt TO ganger på rad på samme tilstand, i
+ * fokussetets egne budrunde-, vrak- og kortstillinger. Er svarene ulike, er agenten ikke
+ * en funksjon av tilstanden. Null ulikheter på et lite utvalg er ikke et bevis — derfor
+ * rapporteres også om speken HAR søkelag (`harSøk`). Kuren er agent A sitt
+ * deterministiske per-beslutning-frø for `sik`.
+ *
+ * VELG hoppes over med vilje: `Vrakrangerer` bruker den lagrede trumfen i første kall
+ * og faller gjennom i det andre. Det er flerstegstilstand, ikke tilfeldighet.
+ */
+export function erDeterministisk(
+  spek: string,
+  giv = 2,
+  frøBase = 4_700_000,
+  fokus = 0,
+): { kall: number; ulike: number; eksempler: string[] } {
+  const ut = { kall: 0, ulike: 0, eksempler: [] as string[] };
+  for (let g = 0; g < giv; g++) {
+    const agent = lagIndre(spek) as Spekagent;
+    const miljø = [0, 1, 2, 3].map(() => lagIndre(ADAMS_MAALT) as Spekagent);
+    agent.nyKamp();
+    for (const m of miljø) m.nyKamp();
+    let s: GameState = opprettSpill({ antallSpillere: 4 }, frøBase + g * 7717);
+    let vakt = 0;
+    while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && vakt++ < 400) {
+      const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+      if (iTur === null || iTur === undefined) break;
+      let h: Handling;
+      if (iTur === fokus && s.fase !== "VELG") {
+        h = agent.velgHandling(s);
+        const igjen = agent.velgHandling(s);
+        ut.kall++;
+        if (navn(h) !== navn(igjen)) {
+          ut.ulike++;
+          if (ut.eksempler.length < 4) {
+            ut.eksempler.push(`froe ${frøBase + g * 7717} ${s.fase} stikk ${s.stikkSpilt}: ${navn(h)} så ${navn(igjen)}`);
+          }
+        }
+      } else {
+        h = (iTur === fokus ? agent : miljø[iTur]!).velgHandling(s);
+      }
+      s = utfør(s, h).state;
+    }
+  }
+  return ut;
+}
+
 // ======================= PRØVE B — FRAMOVERBLIKKET =========================
 
 export interface FramMål {
@@ -1035,7 +1115,7 @@ export function prøveB(opts: {
 const erHovedmodul =
   process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
 
-if (erHovedmodul) {
+if (erHovedmodul && !process.argv.includes("--spek")) {
   let giv = 6;
   /**
    * EGET GIVTALL FOR PRØVE B, fordi de to prøvene har helt ulik flaskehals.
@@ -1488,3 +1568,269 @@ if (erHovedmodul) {
   writeFileSync(ut, `${l.join("\n")}\n`);
   process.stderr.write(`\nSkrevet til ${ut}\n`);
 }
+
+// ======================= HELE BOTEN (--spek, 11. sep) =======================
+
+/**
+ * PRØVE A PÅ EN VILKÅRLIG SPEK.
+ *
+ *   node examples/k4-hukommelse.ts --spek "<hele boten>" [--null-spek <spek>] \
+ *     [--andre <spek>] --giv 6 --maalrunde 7 --ut analyse/k4-spek.txt --json analyse/k4-spek.json
+ *
+ * Uten `--spek` er fila uendret: armene over er FASTE (`A_NULL`, `A_MINNE`), og det er
+ * de tallene `krav-status.md` siterer. Med `--spek` er armene:
+ *
+ *   NULL    `--null-spek`, eller speken med hukommelsen skrudd av (`utenMinne`: uten
+ *           `okt:`/`profil:`, `h0` på `mlb:`, uten søketro som leser boka). MÅ gi 0 avvik.
+ *   MINNE   speken selv. Avvik > 0 = hukommelsen endrer valg (K4.1).
+ *
+ * og kontrolldelen: `erDeterministisk` (to kall på samme tilstand), positivkontrollen
+ * (`prøveAForsterket`, uavhengig av speken — kan prøven SE en snudd beslutning?) og
+ * `øktNåesGjennom` når speken har `okt:`.
+ *
+ * ============ STOKASTISK SØK GJØR PRØVE A STUM, OG DET SKAL STÅ ==========
+ *
+ * Mett agent har sju runder med RNG-trekk bak seg, fersk har ingen. Med `sik:` i speken
+ * kan nullarmen derfor avvike uten noen hukommelse, og raden blir STUM. Det er riktig
+ * dom: prøven kan ikke skille RNG fra hukommelse. Advarselen sier hvorfor, og kuren er
+ * agent A sitt deterministiske per-beslutning-frø for `sik` — ikke en løsere terskel her.
+ *
+ * `--del null,minne,kontroll` lar kravbatteriet dele armene på flere prosesser; skivene
+ * slås sammen med `slåSammenK4`.
+ */
+export interface K4Armrad {
+  readonly navn: "NULL" | "MINNE";
+  readonly spek: string;
+  readonly giv: number;
+  readonly n: number;
+  readonly avvik: number;
+  readonly avvikBud: number;
+  readonly avvikSpill: number;
+  readonly bokførte: readonly number[];
+  readonly eksempler: readonly string[];
+}
+
+export type K4Del = "null" | "minne" | "kontroll";
+
+export interface K4SpekRapport {
+  readonly spek: string;
+  readonly nullSpek: string;
+  readonly andre: string | null;
+  readonly opts: { readonly giv: number; readonly frøBase: number; readonly målRunde: number; readonly forkamper: number };
+  readonly determinisme: {
+    readonly kall: number;
+    readonly ulike: number;
+    readonly søkelag: boolean;
+    readonly eksempler: readonly string[];
+  } | null;
+  readonly armer: readonly K4Armrad[];
+  readonly positivkontroll: readonly ForsterkPunkt[] | null;
+  readonly struktur: number | null;
+  readonly sekunder: number;
+}
+
+export function kjørK4Spek(o: {
+  readonly spek: string;
+  readonly nullSpek: string;
+  readonly andre: string | null;
+  readonly giv: number;
+  readonly frøBase: number;
+  readonly målRunde: number;
+  readonly forkamper: number;
+  readonly deler: readonly K4Del[];
+}): K4SpekRapport {
+  const t0 = Date.now();
+  const arm = (navn: "NULL" | "MINNE", spek: string): K4Armrad => {
+    const m = prøveA({
+      spek,
+      // Har speken `okt:`, bygges den med VÅR økt (lagIndre er idempotent på den), så boka kan leses.
+      medØkt: harLag(spek, "okt:"),
+      giv: o.giv,
+      frøBase: o.frøBase,
+      målRunde: o.målRunde,
+      tikk: true,
+      forkamper: o.forkamper,
+      observerTikk: true,
+      ...(o.andre === null ? {} : { andre: o.andre }),
+    });
+    return {
+      navn,
+      spek,
+      giv: m.giv,
+      n: m.n,
+      avvik: m.avvik,
+      avvikBud: m.avvikBud,
+      avvikSpill: m.avvikSpill,
+      bokførte: m.bokførte,
+      eksempler: m.eksempler,
+    };
+  };
+  const armer: K4Armrad[] = [];
+  if (o.deler.includes("null")) armer.push(arm("NULL", o.nullSpek));
+  if (o.deler.includes("minne")) armer.push(arm("MINNE", o.spek));
+  const kontroll = o.deler.includes("kontroll");
+  const det = kontroll ? erDeterministisk(o.spek, 2, o.frøBase + 300_000) : null;
+  return {
+    spek: o.spek,
+    nullSpek: o.nullSpek,
+    andre: o.andre,
+    opts: { giv: o.giv, frøBase: o.frøBase, målRunde: o.målRunde, forkamper: o.forkamper },
+    determinisme: det === null ? null : { ...det, søkelag: harSøk(o.spek) },
+    armer,
+    positivkontroll: kontroll
+      ? prøveAForsterket({
+          // Seks giv som i standardkjøringen: der snudde 1 budpoeng 2 av 87 valg. Færre gir
+          // fella for få anledninger, og den er billig (ingen søk).
+          giv: Math.max(1, Math.min(o.giv, 6)),
+          frøBase: o.frøBase,
+          målRunde: o.målRunde,
+          forkamper: 2,
+          nivåer: [1, 8],
+          modus: "flat",
+        })
+      : null,
+    struktur: kontroll && harLag(o.spek, "okt:") ? øktNåesGjennom(o.spek) : null,
+    sekunder: Math.round((Date.now() - t0) / 1000),
+  };
+}
+
+/** Slår sammen skiver: armene summeres per navn, kontrolldelen tas fra skiva som har den. */
+export function slåSammenK4(rs: readonly K4SpekRapport[]): K4SpekRapport {
+  if (rs.length === 0) throw new Error("slåSammenK4: ingen rapporter");
+  const armer = new Map<string, K4Armrad>();
+  for (const r of rs) {
+    for (const a of r.armer) {
+      const f = armer.get(a.navn);
+      armer.set(
+        a.navn,
+        f === undefined
+          ? a
+          : {
+              ...f,
+              giv: f.giv + a.giv,
+              n: f.n + a.n,
+              avvik: f.avvik + a.avvik,
+              avvikBud: f.avvikBud + a.avvikBud,
+              avvikSpill: f.avvikSpill + a.avvikSpill,
+              bokførte: f.bokførte.map((x, i) => Math.max(x, a.bokførte[i] ?? 0)),
+              eksempler: [...f.eksempler, ...a.eksempler].slice(0, 8),
+            },
+      );
+    }
+  }
+  return {
+    ...rs[0]!,
+    opts: { ...rs[0]!.opts, giv: rs.reduce((s, r) => s + (r.armer.length > 0 ? r.opts.giv : 0), 0) },
+    determinisme: rs.find((r) => r.determinisme !== null)?.determinisme ?? null,
+    armer: [...armer.values()],
+    positivkontroll: rs.find((r) => r.positivkontroll !== null)?.positivkontroll ?? null,
+    struktur: rs.find((r) => r.struktur !== null)?.struktur ?? null,
+    sekunder: rs.reduce((s, r) => s + r.sekunder, 0),
+  };
+}
+
+export function dømK4Spek(r: K4SpekRapport): {
+  kontrollOk: boolean;
+  felleOk: boolean;
+  andel: number;
+  nullAndel: number;
+  dom: "ja" | "nei" | "stum";
+  grunn: string;
+} {
+  const nul = r.armer.find((a) => a.navn === "NULL");
+  const min = r.armer.find((a) => a.navn === "MINNE");
+  const andel = min === undefined || min.n === 0 ? NaN : min.avvik / min.n;
+  const nullAndel = nul === undefined || nul.n === 0 ? NaN : nul.avvik / nul.n;
+  const kontrollOk = nul !== undefined && nul.n > 0 && nul.avvik === 0;
+  const felleOk = (r.positivkontroll ?? []).some((p) => p.avvik > 0);
+  const støy = r.determinisme !== null && (r.determinisme.ulike > 0 || r.determinisme.søkelag);
+  const base = { kontrollOk, felleOk, andel, nullAndel };
+  if (!kontrollOk) {
+    return {
+      ...base,
+      dom: "stum",
+      grunn:
+        nul === undefined || nul.n === 0
+          ? "nullarmen fikk ingen stillinger"
+          : `nullarmen (uten hukommelse) avvek i ${nul.avvik} av ${nul.n}` +
+            (støy
+              ? " — speken er ikke deterministisk (søkelag med vandrende RNG): fersk mot mett måler RNG-posisjon. Trenger agent A sitt per-beslutning-frø."
+              : " — noe annet enn hukommelsen skiller fersk fra mett agent"),
+    };
+  }
+  if (!felleOk) return { ...base, dom: "stum", grunn: "positivkontrollen snudde ingen valg — prøven kan ikke se hukommelse" };
+  if (min === undefined || min.n === 0) return { ...base, dom: "stum", grunn: "minnearmen fikk ingen stillinger" };
+  return min.avvik > 0
+    ? { ...base, dom: "ja", grunn: `hukommelsen endret ${min.avvik} av ${min.n} valg, nullarmen 0` }
+    : { ...base, dom: "nei", grunn: `hukommelsen endret ingen av ${min.n} valg` };
+}
+
+function kjørSpekModus(): void {
+  const arg = (n: string, s: string): string => {
+    const i = process.argv.indexOf(n);
+    return i < 0 ? s : (process.argv[i + 1] ?? s);
+  };
+  const spek = arg("--spek", "");
+  if (spek === "") throw new Error("--spek mangler verdi");
+  const nullArg = arg("--null-spek", "");
+  const andre = arg("--andre", "");
+  const deler = arg("--del", "null,minne,kontroll")
+    .split(",")
+    .filter((x) => x !== "") as K4Del[];
+  const ut = arg("--ut", "analyse/k4-spek.txt");
+  const json = arg("--json", `${ut.replace(/\.txt$/, "")}.json`);
+  const r = kjørK4Spek({
+    spek,
+    nullSpek: nullArg === "" ? utenMinne(spek) : nullArg,
+    andre: andre === "" ? null : andre,
+    giv: tall(arg("--giv", "6"), 6, "--giv"),
+    frøBase: tall(arg("--froe", "4400000"), 4_400_000, "--froe"),
+    målRunde: tall(arg("--maalrunde", "7"), 7, "--maalrunde"),
+    forkamper: tall(arg("--forkamper", "0"), 0, "--forkamper"),
+    deler,
+  });
+  const d = dømK4Spek(r);
+  const l: string[] = [];
+  l.push(`# K4 PRØVE A — hele boten`);
+  l.push(`spek:      ${r.spek}`);
+  l.push(`nullarm:   ${r.nullSpek}`);
+  l.push(`andre:     ${r.andre ?? "(samme spek i alle seter)"}`);
+  l.push(`giv ${r.opts.giv}, froe ${r.opts.frøBase}, maalrunde ${r.opts.målRunde + 1}, forkamper ${r.opts.forkamper}`);
+  l.push("");
+  if (r.determinisme !== null) {
+    const x = r.determinisme;
+    if (x.ulike > 0 || x.søkelag) {
+      l.push(`ADVARSEL: speken er ${x.ulike > 0 ? `IKKE deterministisk (${x.ulike} av ${x.kall} dobbeltkall ga ulikt svar)` : `ikke vist deterministisk (0 av ${x.kall} ulike, men den har søkelag med vandrende RNG)`}.`);
+      l.push(`  Fersk mot mett agent måler da RNG-posisjon like gjerne som hukommelse. Prøve A krever`);
+      l.push(`  et deterministisk per-beslutning-frø (agent A, sik). Nullarmen avgjør om det slo ut.`);
+      for (const e of x.eksempler) l.push(`  ${e}`);
+    } else {
+      l.push(`determinisme: 0 av ${x.kall} dobbeltkall ulike, ingen søkelag`);
+    }
+    l.push("");
+  }
+  l.push(`| arm | giv | n | avvik | bud | spill | bokført maks per sete |`);
+  l.push(`|---|---|---|---|---|---|---|`);
+  for (const a of r.armer) {
+    l.push(`| ${a.navn} | ${a.giv} | ${a.n} | ${a.avvik} | ${a.avvikBud} | ${a.avvikSpill} | ${a.bokførte.join("/")} |`);
+  }
+  if (r.positivkontroll !== null) {
+    l.push("");
+    l.push(`positivkontroll (flat forskyvning, BASE_DET): ${r.positivkontroll.map((p) => `${p.forsterk} → ${p.avvik}/${p.n}`).join(", ")}`);
+  }
+  if (r.struktur !== null) l.push(`økten når gjennom speken: ${r.struktur} bokførte runder etter 4 runder`);
+  l.push("");
+  const hel = (["null", "minne", "kontroll"] as const).every((x) => deler.includes(x));
+  l.push(
+    hel
+      ? `DOM ${d.dom.toUpperCase()}: ${d.grunn}`
+      : `DELRAPPORT (--del ${deler.join(",")}): dommen felles etter slåSammenK4 i kravbatteriet.`,
+  );
+  mkdirSync(dirname(ut), { recursive: true });
+  writeFileSync(ut, `${l.join("\n")}\n`);
+  mkdirSync(dirname(json), { recursive: true });
+  writeFileSync(json, `${JSON.stringify({ ...r, ...d }, null, 1)}\n`);
+  process.stderr.write(`${l.join("\n")}\n\nSkrevet til ${ut} og ${json}\n`);
+}
+
+if (erHovedmodul && process.argv.includes("--spek")) kjørSpekModus();
