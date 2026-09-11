@@ -57,7 +57,7 @@
 
 import { spillerVisning, type GameState, type Handling } from "../motor.ts";
 import { lagRng } from "../kort.ts";
-import { vurderPar } from "./sdpar.ts";
+import { vurderPar, type ParResultat } from "./sdpar.ts";
 import type { Søketro } from "./soketro.ts";
 import { lagMål, type Utspiller } from "./sdkort.ts";
 import { rolleFor, type Rolle } from "./rolleorakel.ts";
@@ -172,6 +172,37 @@ export interface SikkerSiste {
   readonly ms: number;
 }
 
+/**
+ * ============ PARLYTTEREN (11. sep): SØKETS VERDIER UT, UTEN Å RØRE VALGET ============
+ *
+ * `vurderPar` regner en verdi per lovlig kort på hver beslutning den hele boten tar, og porten
+ * under kaster alt annet enn σ og beste kort. Det er nøyaktig etiketten kortnettet trenger for
+ * ekspertiterasjon (`examples/kort-data.ts`): søket merker, nettet lærer, og det bedre nettet
+ * blir basen søket bygger på.
+ *
+ * MODULNIVÅ OG IKKE EN OPSJON, med vilje. Speken bygger orakelet dypt inne i `okt:` → `vr:` →
+ * `eks:` → `profil:`, og `okt:` returnerer en lukning uten felt å gå gjennom. En opsjon ville
+ * krevd en ny bokstav i spekspråket — og en spek i loggen som ikke er den som spilte.
+ *
+ * VALGET KAN IKKE ENDRES: lytteren kalles etter `vurderPar` og før porten, får lesegrensesnitt,
+ * og returverdien brukes ikke. Uten lytter er kallet `null?.(…)`, som ikke engang evaluerer
+ * argumentet — bit-identisk (sha1 på to runder helbot i fire seter, før og etter, 11. sep).
+ *
+ * Bare når søket faktisk vurderte (`par !== null`): ett lovlig kort, ingen verden eller en frist
+ * som ikke rakk én verden gir ingen etikett — «ingen data» er ikke «alle kort like gode».
+ */
+export interface Parhendelse {
+  readonly sik: Sikkerorakel;
+  readonly state: GameState;
+  readonly sete: number;
+  readonly par: ParResultat;
+}
+let parlytter: ((h: Parhendelse) => void) | null = null;
+/** Sett lytteren, eller fjern den med `null`. Én per prosess; generatoren eier den. */
+export function settParlytter(f: ((h: Parhendelse) => void) | null): void {
+  parlytter = f;
+}
+
 export class Sikkerorakel {
   private readonly indre: { velgHandling(s: GameState): Handling; nyKamp(): void };
   private readonly motpart: Utspiller;
@@ -194,6 +225,8 @@ export class Sikkerorakel {
   readonly motpartFor: ((sete: number) => Utspiller) | null;
   /** `D`: frøet utledes av visningen per beslutning. Offentlig for loggen og prøvene. */
   readonly visningsfrø: boolean;
+  /** `L`: utspillingene måles med lagmålet. Offentlig for kortdataene, som skriver hvilket mål verdiene har. */
+  readonly lagmål: boolean;
   private readonly frø: number;
   readonly tellere: SikkerTellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, enig: 0, avkortet: 0 };
   siste: SikkerSiste | null = null;
@@ -219,6 +252,7 @@ export class Sikkerorakel {
     this.budvekt = opts.budvekt ?? true;
     // Udefinert, ikke `standardMål`: da velger `vurderPar` selv, og standardstien er urørt.
     this.mål = opts.lagmål === true ? lagMål : undefined;
+    this.lagmål = opts.lagmål === true;
     this.fristMs = opts.fristMs ?? null;
     this.klokke = opts.klokke ?? ((): number => performance.now());
     this.eksaktBlad = opts.eksaktBlad ?? null;
@@ -283,6 +317,8 @@ export class Sikkerorakel {
     }
     this.tellere.vurdert++;
     if (par.n < this.verdener) this.tellere.avkortet++;
+    // Før porten og før det indre valget; uten lytter evalueres ikke engang argumentet.
+    parlytter?.({ sik: this, state, sete, par });
 
     if (par.sigma < this.sigma) {
       this.siste = { lag: "nett", n: par.n, sigma: par.sigma, ms: this.klokke() - start };
