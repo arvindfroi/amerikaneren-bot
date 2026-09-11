@@ -54,6 +54,22 @@
  * prosess-sekunder: K1 5 · K2 26 · K3.1 190 · K3.4 82 · K3.6 179 · K4 28 · K5 11 · K6 44 ·
  * K7 76 · K8 4. Takradene var da kjørt med søk i alle fire seter; nå har de `--andre`.
  *
+ * TAKRADENE ETTER BATTERIET 11. SEP (1515 s vegg, 30 185 prosess-s, 20 kjerner). Ett felles
+ * `--maks-noder 12` kappet 157/160 trær i K7 og 34–35/48 i K3.6, og fella slapp unna i K7
+ * (begge bånd), K3.6 (bånd 0) og K3.4 (bånd 0). Målt 11. sep på en travel maskin, én giv:
+ *
+ *   vindu   spekarm per giv          tre ukappet ved   ADAMS_MAALT-fella, z i bånd 0 / 1
+ *   K3.4    40 s (1 node)            alltid            30 giv 1,83/2,79 · 60 giv 3,04/3,07
+ *   K7      24 s kappet = 24 s ukappet  ≤ 206 noder    40 giv 1,46/1,53 · 120 giv 2,62/4,11
+ *   K3.6    147 s kappet, 374 s ukappet  ≤ 82 noder    12 giv 1,18/2,54 · 40 giv 2,93/4,01
+ *
+ * Fella i tak-armen er nesten gratis (≤ 5 s per giv ukappet); spekarmen og tomtvindu-armen
+ * betaler. Derfor K3.4 60 giv, K7 120 giv med tak 250 (kan ikke kappe) — ~+13 000 prosess-s
+ * over begge bånd, innenfor ~40 min på 20 kjerner. K3.6 kjøres UKAPPET (tak 100) på 12 giv:
+ * 40 giv ville kostet ~24 000 prosess-s til, utenfor budsjettet, så K3.6 er trolig fortsatt
+ * STUM i bånd 0 (fella), nå av manglende kraft og ikke av kappede trær. `--midtgiver 40`
+ * gir dommen for den som har tida.
+ *
  * K3, K4 og K7: de tre andre setene spiller `--andre` (standard speken uten søk). Det er et
  * valg, og det står i rapporten: gapet og hukommelsen måles mot et bord som ikke søker.
  */
@@ -205,7 +221,23 @@ export interface Størrelser {
   readonly vrakGiver: number;
   readonly midtGiver: number;
   readonly takGiver: number;
+  /**
+   * TAK PÅ FORGREINEDE NODER PER TAKSØK (`tak-kart.ts --maks-noder`), ett per vindu (11. sep).
+   *
+   * En node er en av VÅRE beslutninger inne i vinduet med budsjett igjen; over taket spiller
+   * setet sin egen policy, og raden er en nedre grense (`kappet`). Ett felles tak på 12 kappet
+   * 157 av 160 trær i K7 og 34–35 av 48 i K3.6, og radene ble STUMME av konstruksjon.
+   *
+   *   maksNoder  budvinduet (K3.1) og trumfvalget (K3.4). Trumfvalget har ÉN node; budvinduet
+   *              kappet 0 av 64 med 12.
+   *   midtNoder  stikk 3–5 (K3.6): tre beslutninger med ≤ 9·8 barn, ≤ 1 + 9 + 72 = 82 noder.
+   *   k7Noder    stikk 7–11 (K7): fem beslutninger fra fem kort, ≤ 1 + 5 + 20 + 60 + 120 = 206
+   *              noder. 250 kan derfor aldri kappe, og målt koster det ikke mer enn 12: bladene
+   *              spilles av bordet uten søk, mens et kappet tre lar SØKET spille resten.
+   */
   readonly maksNoder: number;
+  readonly midtNoder: number;
+  readonly k7Noder: number;
   readonly k4Giv: number;
   readonly k4MålRunde: number;
   readonly k4Forkamper: number;
@@ -228,6 +260,8 @@ export const KJAPP: Størrelser = {
   midtGiver: 1,
   takGiver: 1,
   maksNoder: 1,
+  midtNoder: 1,
+  k7Noder: 1,
   k4Giv: 1,
   k4MålRunde: 2,
   k4Forkamper: 0,
@@ -247,11 +281,15 @@ export function fullStørrelser(kjerner: number): Størrelser {
     k2PerGiv: 2,
     // Takkartet er den dyreste delen: hvert blad er en runde. Tallene er satt etter røyken
     // 11. sep (se KOSTNAD i filhodet), med de andre setene uten søk.
+    // Giv etter FELLAS kraft, ikke armens (11. sep, se KOSTNAD i filhodet): ADAMS_MAALT
+    // ukappet i begge frøbånd trenger ~60 giv i trumfvalget og ~120 i sluttspillet for z > 2.
     budGiver: 8,
-    vrakGiver: 30,
+    vrakGiver: 60,
     midtGiver: 12,
-    takGiver: 40,
+    takGiver: 120,
     maksNoder: 12,
+    midtNoder: 100,
+    k7Noder: 250,
     k4Giv: 12,
     k4MålRunde: 7,
     k4Forkamper: 0,
@@ -528,6 +566,7 @@ async function takvindu(
   navn: string,
   vindu: readonly string[],
   giver: number,
+  maksNoder: number,
 ): Promise<Helrad> {
   const reg = new Regnskap();
   const N = skardtall(r, giver);
@@ -559,7 +598,7 @@ async function takvindu(
             "--merke", a.arm,
             "--ut", fil,
             "--gjenbruk",
-            "--maks-noder", String(r.st.maksNoder),
+            "--maks-noder", String(maksNoder),
             "--skard", `${i}/${N}`,
             ...a.v,
           ],
@@ -581,7 +620,7 @@ async function takvindu(
     felle: `ADAMS_MAALT i samme vindu og giv: ${fmt(d.stakk.snitt)} ± ${d.stakk.se.toFixed(4)} (må være > 2 SE)`,
     felleOk: d.felleOk,
     innfridd: d.innfridd,
-    kilde: `examples/tak-kart.ts ${vindu.join(" ")} --gjenbruk --maks-noder ${r.st.maksNoder}`,
+    kilde: `examples/tak-kart.ts ${vindu.join(" ")} --gjenbruk --maks-noder ${maksNoder}`,
     merknad:
       "Ja = |gap| ≤ 2 SE (klynget på giv) OG ingen kappede trær; et kappet tre er en nedre grense. " +
       "Med søk i speken trekker treet en annen RNG-strøm enn policyrunden (se tak-kart.ts), til agent A sitt frø finnes." +
@@ -593,15 +632,15 @@ async function takvindu(
 
 async function k3(r: Rigg): Promise<Helrad[]> {
   return Promise.all([
-    takvindu(r, "K3.1", "k3bud", "budrunden nær taket", ["--fase", "bud"], r.st.budGiver),
-    takvindu(r, "K3.4", "k3vrak", "trumfvalget nær taket", ["--fase", "vrak"], r.st.vrakGiver),
-    takvindu(r, "K3.6", "k3midt", "midtspillet (stikk 3–5) nær taket", ["--fase", "spill", "--fra", "3", "--til", "5"], r.st.midtGiver),
+    takvindu(r, "K3.1", "k3bud", "budrunden nær taket", ["--fase", "bud"], r.st.budGiver, r.st.maksNoder),
+    takvindu(r, "K3.4", "k3vrak", "trumfvalget nær taket", ["--fase", "vrak"], r.st.vrakGiver, r.st.maksNoder),
+    takvindu(r, "K3.6", "k3midt", "midtspillet (stikk 3–5) nær taket", ["--fase", "spill", "--fra", "3", "--til", "5"], r.st.midtGiver, r.st.midtNoder),
   ]);
 }
 
 async function k7(r: Rigg): Promise<Helrad[]> {
   return [
-    await takvindu(r, "K7", "k7", "sluttspillet (siste fem stikk) nær taket", ["--fase", "spill", "--fra", "7", "--til", "11"], r.st.takGiver),
+    await takvindu(r, "K7", "k7", "sluttspillet (siste fem stikk) nær taket", ["--fase", "spill", "--fra", "7", "--til", "11"], r.st.takGiver, r.st.k7Noder),
   ];
 }
 
@@ -931,6 +970,8 @@ export async function kjørHelbot(argv: readonly string[]): Promise<void> {
     midtGiver: over("--midtgiver", st0.midtGiver),
     takGiver: over("--takgiver", st0.takGiver),
     maksNoder: over("--maks-noder", st0.maksNoder),
+    midtNoder: over("--midt-noder", st0.midtNoder),
+    k7Noder: over("--k7-noder", st0.k7Noder),
     k4Giv: over("--k4-giv", st0.k4Giv),
     k5Giver: over("--k5-giver", st0.k5Giver),
     k6Kamper: over("--kamper", st0.k6Kamper),
