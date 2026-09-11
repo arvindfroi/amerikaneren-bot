@@ -91,6 +91,13 @@
  *
  * Standarden (uten `--kamp`) er byte-identisk med før: samme giv, samme utvalg, samme
  * rader. `test/mlb-trodata-kamp.test.ts` holder begge.
+ *
+ * ===================== POPULASJONEN (`--drivere`, 11. sep) ==============
+ *
+ * `--drivere "A|B|C|D"` gir hvert sete sin spek, `@` = kandidaten (`--spek`), og BARE
+ * `@`-setene skriver rader: troen skal læres av kandidatens stol, om motstandere som
+ * faktisk har ulike vaner (K6 → K8). `--rotasjon` flytter setene én plass per giv/kamp.
+ * Se `examples/drivere.ts`. Uten flagget er radene byte-identiske med før.
  */
 
 import { closeSync, mkdirSync, openSync, writeSync } from "node:fs";
@@ -108,8 +115,9 @@ import {
   MLB_TRO_INN_S,
   troTrekkForBredde,
 } from "../src/mlb/trotrekk.ts";
+import { bordTekst, lesBord, slot, tilSeter } from "./drivere.ts";
 
-const arg = (n: string, s: string): string => {
+const arg =(n: string, s: string): string => {
   const i = process.argv.indexOf(n);
   return i < 0 ? s : (process.argv[i + 1] ?? s);
 };
@@ -216,7 +224,11 @@ const harUkjente = (f: ArrayLike<number>): boolean => {
 };
 
 type Agent = { velgHandling(s: GameState): Handling; nyKamp(): void; observer?(s: GameState): void };
-const agenter: Agent[] = [0, 1, 2, 3].map(() => lagIndre(SPEK));
+/** Én spek per sete; uten `--drivere` fire ganger `SPEK`, alle registrert (se `drivere.ts`). */
+const BORD = lesBord(process.argv, SPEK);
+// Per SLOT, i samme rekkefølge som før (slot = sete uten `--rotasjon`). `observer`/`nyKamp` går til alle.
+const agenter: Agent[] = BORD.spek.map((x) => lagIndre(x));
+if (BORD.blandet) console.log(`Bord (giv/kamp 0): ${bordTekst(BORD, 0)}${BORD.rotasjon ? "  [roterer per giv/kamp]" : ""}`);
 
 let rng = 8_675_309 + SI * 7919;
 const tilfeldig = (): number => {
@@ -230,9 +242,11 @@ if (!KAMP) {
     const frø = bånd.base + g * bånd.steg;
     let s: GameState = opprettSpill({ antallSpillere: 4 }, frø);
     for (const a of agenter) a.nyKamp();
+    const seter = tilSeter(BORD, agenter, g);
     let vakt = 0;
     while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && vakt++ < 400) {
-      if (s.fase === "SPILL" && s.iTur !== null && tilfeldig() < SJANSE) {
+      // Opptaket sjekkes FØR trekningen: uten `--drivere` er det alltid sant, og rng-strømmen som før.
+      if (s.fase === "SPILL" && s.iTur !== null && BORD.opptak[slot(BORD, s.iTur, g)] && tilfeldig() < SJANSE) {
         const sete = s.iTur;
         const f = troFasit(s, sete);
         if (harUkjente(f)) {
@@ -242,7 +256,7 @@ if (!KAMP) {
       }
       const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
       if (iTur === null || iTur === undefined) break;
-      s = utfør(s, agenter[iTur]!.velgHandling(s)).state;
+      s = utfør(s, seter[iTur]!.velgHandling(s)).state;
     }
     if (g % 200 === SI % 200) {
       const sek = (Date.now() - t0) / 1000;
@@ -262,6 +276,7 @@ if (!KAMP) {
     const frø = kb.base + k * kb.steg;
     let s: GameState = opprettSpill({ antallSpillere: 4, målPoeng: MÅLPOENG }, frø);
     for (const a of agenter) a.nyKamp();
+    const seter = tilSeter(BORD, agenter, k);
     // Én bok for bordet, ny per kamp: hukommelsen er KAMPENS, aldri korpusets.
     const bok = new Hukommelse();
     let vakt = 0;
@@ -276,7 +291,7 @@ if (!KAMP) {
         s = utfør(s, { type: "NESTE" }).state;
         continue;
       }
-      if (s.fase === "SPILL" && s.iTur !== null && tilfeldig() < SJANSE) {
+      if (s.fase === "SPILL" && s.iTur !== null && BORD.opptak[slot(BORD, s.iTur, k)] && tilfeldig() < SJANSE) {
         const sete = s.iTur;
         const f = troFasit(s, sete);
         if (harUkjente(f)) {
@@ -288,7 +303,7 @@ if (!KAMP) {
       }
       const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
       if (iTur === null || iTur === undefined) break;
-      s = utfør(s, agenter[iTur]!.velgHandling(s)).state;
+      s = utfør(s, seter[iTur]!.velgHandling(s)).state;
     }
     runder += s.rundeNr + 1;
     kamper++;

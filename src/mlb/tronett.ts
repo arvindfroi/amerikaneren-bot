@@ -35,6 +35,7 @@ import {
   MLB_TRO_UT,
   troTrekkForBredde,
 } from "./trotrekk.ts";
+import { maskerFordeling, type MaskertFordeling } from "./trofakta.ts";
 
 export class MlbTronett {
   private readonly nett: NevroNett;
@@ -131,5 +132,17 @@ export class MlbTronett {
       ut.push(rad);
     }
     return ut;
+  }
+
+  /**
+   * «VET» OVER «TROR» (K8, 11. sep): `fordeling`, med plasseringene setet VET er umulige
+   * nullet og hver usett rad renormalisert (`trofakta.ts`). Opt-in: `fordeling` over er
+   * uendret og bit-identisk med før, og det er den treningen og alle gamle rader bruker.
+   *
+   * `visning` MÅ være den samme som trekkene er bygd av. Faktaene leser bare den, så K2
+   * holder av samme grunn som for trekkene: signaturen slipper ikke `GameState` inn.
+   */
+  fordelingMedFakta(trekk: Float32Array, visning: SpillerVisning): MaskertFordeling {
+    return maskerFordeling(this.fordeling(trekk), visning);
   }
 }

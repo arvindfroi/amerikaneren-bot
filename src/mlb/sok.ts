@@ -71,6 +71,25 @@ import { FARGER, VERDIER, type Kort } from "../kort.ts";
 import type { SpillerVisning } from "../motor.ts";
 import type { Beslutningspunkt } from "./selvspill.ts";
 import { setteKort } from "./trotrekk.ts";
+import { TALONGKLASSE, trofakta, type Trofakta } from "./trofakta.ts";
+
+/**
+ * VALG FOR TREKKINGEN (11. sep). Tomt = nøyaktig som før, bit for bit.
+ *
+ * `fakta` HÅNDHEVER DET SETET VET (`trofakta.ts`): en plassering reglene utelukker får
+ * vekt 0 og regnes ikke som ledig i den uniforme reserven. Uten den stoler trekkeren på
+ * at troen selv har null masse der — og en softmax har aldri det, så et sete som ikke
+ * fulgte spar kunne fått en spar i verdenen. Den gamle trekkeren (`solver/sampler.ts`)
+ * har alltid håndhevet renonsene; denne gjorde det ikke.
+ *
+ * Med `fakta` legges også de MEST BUNDNE kortene først (flest umulige plasser, stabil
+ * sortering etter stokkingen), som i `solver/sampler.ts`: tas et kort med én lovlig plass
+ * sist, er plassen ofte alt fylt, og verdenen går ikke opp.
+ */
+export interface Trekkvalg {
+  /** `true` regner faktaene av visningen; en ferdig `Trofakta` gjenbrukes. */
+  readonly fakta?: boolean | Trofakta;
+}
 
 /**
  * KORTINDEKSEN BAKLENGS. `nevro/trekk.ts` har `kortIndeks`, men ingen invers,
@@ -159,6 +178,7 @@ export function trekkVerden(
   visning: SpillerVisning,
   tro: readonly (readonly number[])[],
   rng: () => number,
+  valg: Trekkvalg = {},
 ): Verden | null {
   const n = visning.antallKort.length;
   const sett = setteKort(visning);
@@ -178,12 +198,22 @@ export function trekkVerden(
     usett[j] = t;
   }
 
+  // FAKTAENE (se `Trekkvalg`). Av: `umulig` svarer alltid nei, og ingen rng trekkes ekstra.
+  const fakta = valg.fakta === undefined || valg.fakta === false ? null : valg.fakta === true ? trofakta(visning) : valg.fakta;
+  const talongPlass = ledig.length - 1;
+  const umulig = (kort: number, k: number): boolean =>
+    fakta !== null && fakta.umulig[kort * 4 + (k === talongPlass ? TALONGKLASSE : k)] === 1;
+  if (fakta !== null) {
+    const bundet = (kort: number): number => ledig.reduce((a, _, k) => a + (umulig(kort, k) ? 1 : 0), 0);
+    usett.sort((a, b) => bundet(b) - bundet(a));
+  }
+
   const plass: number[] = new Array<number>(52).fill(-1);
   for (const kort of usett) {
     const rad = tro[kort] ?? [];
     let sum = 0;
     const vekt = ledig.map((rest, k) => {
-      const w = rest > 0 ? Math.max(0, rad[k] ?? 0) : 0;
+      const w = rest > 0 && !umulig(kort, k) ? Math.max(0, rad[k] ?? 0) : 0;
       sum += w;
       return w;
     });
@@ -228,10 +258,13 @@ export function trekkVerdener(
   tro: readonly (readonly number[])[],
   antall: number,
   rng: () => number,
+  valg: Trekkvalg = {},
 ): Verden[] {
+  // Faktaene regnes ÉN gang for stillingen, ikke én gang per forsøk.
+  const v0: Trekkvalg = valg.fakta === true ? { fakta: trofakta(visning) } : valg;
   const ut: Verden[] = [];
   for (let forsøk = 0; forsøk < antall * 4 && ut.length < antall; forsøk++) {
-    const v = trekkVerden(visning, tro, rng);
+    const v = trekkVerden(visning, tro, rng, v0);
     if (v !== null) ut.push(v);
   }
   return ut;

@@ -54,6 +54,13 @@
  * (kampens, utspillernes og policyreferansens) hver virkelige tilstand, også RUNDE_SLUTT og
  * sluttilstanden. Utspillingene i tenkte verdener videresendes IKKE: en hukommelse som
  * bokførte tenkte runder ville fått etiketter som avhenger av kandidatrekkefølgen.
+ *
+ * ================ POPULASJONEN (`--drivere`, `--rotasjon`, 11. sep) ================
+ *
+ * `--drivere "A|B|C|D"` gir hvert sete sin spek; `@` er kandidaten (`--spek`), og bare
+ * vrakstillinger der BUDVINNEREN er et `@`-sete merkes. Policyreferansen er kandidaten, og
+ * utspillingene bruker de samme spekene per sete som kampen. Se `examples/drivere.ts`. Uten
+ * flagget er alt byte-identisk med før.
  */
 
 import { appendFileSync, mkdirSync } from "node:fs";
@@ -69,6 +76,7 @@ import { vrakkandidater } from "../src/moe2/vrakrang.ts";
 import { etterlystKandidater, etterlystTrekk, vraktrekk, vraktrekkK } from "../src/moe2/vraktrekk.ts";
 import { Seiersprediktor } from "../src/mlb/seier.ts";
 import { NevroAgent } from "../src/nevro/index.ts";
+import { bordTekst, lesBord, slot, tilSeter } from "./drivere.ts";
 
 /** Det løkka trenger av en agent. `observer` er valgfri, som i `Spekagent`. */
 export interface Kampagent {
@@ -78,7 +86,7 @@ export interface Kampagent {
 }
 
 /** Et (trumf, vrak)-par, og – når det kommer fra en agent – kallet agenten gjorde etter. */
-interface Par {
+export interface Par {
   trumf: Farge;
   vrak: Kort[];
   etterlyst?: Kort | null;
@@ -142,7 +150,7 @@ function parFra(agent: Kampagent, s: GameState, sete: number): Par | null {
  * Tving paret (og kallet), spill runden ferdig med utspillerne, og les av begge målene for
  * budvinneren. `etterlyst` udefinert = regelen «høyeste lovlige», nøyaktig som vrakgruppene.
  */
-function spillUt(
+export function spillUt(
   utspill: readonly Kampagent[],
   prediktor: Seiersprediktor,
   start: GameState,
@@ -193,13 +201,19 @@ function kjør(): void {
   const ETTERLYSTPAR = tall(arg("--etterlystpar", "1"), 1, "etterlystpar");
   mkdirSync(dirname(UT), { recursive: true });
 
-  const kamp = [0, 1, 2, 3].map(() => lagIndre(SPEK));
-  const utspill = [0, 1, 2, 3].map(() => lagIndre(SPEK));
+  /** Én spek per sete; uten `--drivere` fire ganger `SPEK`, alle registrert (se `drivere.ts`). */
+  const BORD = lesBord(process.argv, SPEK);
+  // Per SLOT, i samme rekkefølge som før (slot = sete uten `--rotasjon`).
+  const kamp = BORD.spek.map((x) => lagIndre(x));
+  const utspill = BORD.spek.map((x) => lagIndre(x));
   /** Egen instans for å lese POLICYENS par (vrak + trumfen den velger etter), uten å røre kampen. */
   const policyRef = lagIndre(SPEK);
   const nevroRef = new NevroAgent();
   const pol = lesVrakflagg(FLAGG);
   const lyttere: Kampagent[] = [...kamp, ...utspill, policyRef];
+  /** Utspillerne stokket til seter for kampen som spilles nå. Uten rotasjon: samme objekter, samme rekkefølge. */
+  let utspillSeter: Kampagent[] = utspill;
+  if (BORD.blandet) console.log(`Bord (kamp 0): ${bordTekst(BORD, 0)}${BORD.rotasjon ? "  [roterer per kamp]" : ""}`);
 
   const velg = lagRng(9_300_000 + SI);
   let skrevet = 0;
@@ -233,7 +247,7 @@ function kjør(): void {
     let vrakverdier: number[] | null = null;
     if (par.length >= 2) {
       const kand = par.map((p) => {
-        const u = verdener.map((hender) => spillUt(utspill, prediktor, medVerden(s, hender, sete), sete, p));
+        const u = verdener.map((hender) => spillUt(utspillSeter, prediktor, medVerden(s, hender, sete), sete, p));
         const vs = u.reduce((a, x) => a + x.vs, 0) / u.length;
         const vp = u.reduce((a, x) => a + x.vp, 0) / u.length;
         return {
@@ -271,7 +285,7 @@ function kjør(): void {
       if (referanse !== null && !kall.some((k) => kortnøkkel(k) === kortnøkkel(referanse))) kall.push(referanse);
       if (kall.length < 2) continue;
       const kand = kall.map((k) => {
-        const u = verdener.map((hender) => spillUt(utspill, prediktor, medVerden(s, hender, sete), sete, p, k));
+        const u = verdener.map((hender) => spillUt(utspillSeter, prediktor, medVerden(s, hender, sete), sete, p, k));
         const vs = u.reduce((a, x) => a + x.vs, 0) / u.length;
         const vp = u.reduce((a, x) => a + x.vp, 0) / u.length;
         return {
@@ -308,8 +322,10 @@ function kjør(): void {
     const frø = FRØ + g * 7717;
     const s: GameState = opprettSpill({ antallSpillere: 4, målPoeng: 100 }, frø);
     for (const a of kamp) a.nyKamp();
-    spillKamp(s, kamp, lyttere, MAKSRUNDER, (x, sete) => {
-      if (velg() < SJANSE) merk(x, sete, frø);
+    utspillSeter = tilSeter(BORD, utspill, g);
+    spillKamp(s, tilSeter(BORD, kamp, g), lyttere, MAKSRUNDER, (x, sete) => {
+      // Opptaket FØR trekningen: uten `--drivere` alltid sant, og rng-strømmen som før.
+      if (BORD.opptak[slot(BORD, sete, g)] && velg() < SJANSE) merk(x, sete, frø);
     });
     process.stdout.write(`\r  skard ${SI}/${SN}: kamp ${g}, ${skrevet} vrakstillinger${etterlystTekst()}, ${((Date.now() - t0) / 1000).toFixed(0)} s   `);
   }

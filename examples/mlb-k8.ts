@@ -62,6 +62,7 @@ import { byggTrekk } from "../src/mlb/trekk.ts";
 import { TOMT_DELVALG } from "../src/mlb/handling.ts";
 import { lesSandkasse } from "./mlb-krav-felles.ts";
 import { Hukommelse } from "../src/mlb/hukommelse.ts";
+import { maskerFordeling } from "../src/mlb/trofakta.ts";
 
 const arg = (n: string, s: string): string => {
   const i = process.argv.indexOf(n);
@@ -115,8 +116,45 @@ const MAKSRUNDER = process.argv.includes("--maksrunder")
   : Infinity;
 if (MAKSRUNDER !== Infinity && !KAMP) throw new Error("--maksrunder gjelder bare --kamp");
 
+/**
+ * «VET» MOT «TROR» (`--fakta`, 11. sep). Nettarmene over måler en softmax som aldri er null,
+ * også på plasseringer setet VET er umulige: et sete som ikke fulgte farge, budvinneren for
+ * det kalte kortet, osv. `gulvPluss` bruker renonsene; nettet har ikke fått det.
+ *
+ * Med flagget skrives i tillegg `nett_fakta` (og `nett2_fakta` med `--nett2`): SAMME fordeling
+ * og SAMME kort, med de umulige klassene nullet og raden renormalisert (`src/mlb/trofakta.ts`)
+ * før renormaliseringen over de tre setene. Kolonnene slutter på `_treff`, så
+ * `analyse/mlb-k8-dom.mjs` tar dem som armer uten endring. `*_tilbakefall` teller kort der alt
+ * var umulig; sanne fakta gjør det tallet til 0. Uten flagget er radene byte-identiske.
+ */
+const FAKTA = process.argv.includes("--fakta");
+
 /** Relativt sete, samme koding som `fyllSanser` og `monteTro`. */
 const rel = (sete: number, p: number, n: number): number => (p - sete + n) % n;
+
+/**
+ * Log-tap og treff@1 for en nettfordeling: ordrett løkka i `nett`-armen, brukt av de NYE
+ * armene. De gamle armene beholder sine egne løkker, så radene deres ikke kan flytte seg.
+ */
+function nettTap(f: readonly (readonly number[])[], s: GameState, sete: number, kort: number): { tap: number; treff: number } {
+  let tap = 0;
+  let treff = 0;
+  for (let p = 0; p < s.antallSpillere; p++) {
+    if (p === sete) continue;
+    const r = rel(sete, p, s.antallSpillere);
+    if (r < 1 || r > 3) continue;
+    for (const k of s.hender[p] ?? []) {
+      const rader = f[kortIndeks(k)]!;
+      const sum = (rader[0] ?? 0) + (rader[1] ?? 0) + (rader[2] ?? 0);
+      const pr = sum > 1e-12 ? (rader[r - 1] ?? 0) / sum : 1 / 3;
+      tap += -Math.log(Math.max(1e-12, pr));
+      let best = 0;
+      for (let i = 1; i < 3; i++) if ((rader[i] ?? 0) > (rader[best] ?? 0)) best = i;
+      if (best === r - 1) treff++;
+    }
+  }
+  return { tap: Number((tap / kort).toFixed(5)), treff: Number((treff / kort).toFixed(5)) };
+}
 
 const nett = lesNett(STANDARDNETT);
 const atferd = {
@@ -316,6 +354,15 @@ for (let g = 0; g < GIVER; g++) {
           // Nettet trenger aldri gulvet. Feltet skrives likevel, så rapporten
           // kan behandle armene likt i stedet for å ha et unntak.
           rad.nett_gulvbandt = 0;
+          if (FAKTA) {
+            // Samme fordeling, med det setet VET lagt over. Faktaene leser bare visningen.
+            const m = maskerFordeling(f, spillerVisning(s, sete));
+            const a = nettTap(m.fordeling, s, sete, kort);
+            rad.nett_fakta = a.tap;
+            rad.nett_fakta_treff = a.treff;
+            rad.nett_fakta_gulvbandt = 0;
+            rad.nett_fakta_tilbakefall = m.tilbakefall;
+          }
         }
 
         // DET ANDRE TROHODET, på nøyaktig de samme kortene (K8.4): parvis med `nett`.
@@ -339,6 +386,13 @@ for (let g = 0; g < GIVER; g++) {
           }
           rad.nett2 = Number((tap / kort).toFixed(5));
           rad.nett2_treff = Number((treff / kort).toFixed(5));
+          if (FAKTA) {
+            const m = maskerFordeling(f, spillerVisning(s, sete));
+            const a = nettTap(m.fordeling, s, sete, kort);
+            rad.nett2_fakta = a.tap;
+            rad.nett2_fakta_treff = a.treff;
+            rad.nett2_fakta_tilbakefall = m.tilbakefall;
+          }
         }
 
         if (sandkasse !== null) {

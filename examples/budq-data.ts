@@ -37,6 +37,11 @@
  * ville budt med tom bok, og et hukommelsesleddet trohode i speken ville kastet i neste
  * runde. Utspillingene selv (hypotetiske verdener) vises ALDRI — de når bare fram til
  * `RUNDE_SLUTT`, og en tenkt runde skal ikke bokføres som om den var spilt.
+ *
+ * POPULASJONEN (`--drivere "A|B|C|D"`, `--rotasjon`, 11. sep): én spek per sete, `@` =
+ * kandidaten (`--spek`), og bare `@`-setene får budstillinger. Utspillingene bruker de samme
+ * spekene per sete som kampen, så Q er verdien mot DETTE bordet. Se `examples/drivere.ts`.
+ * Uten flagget er alt byte-identisk med før.
  */
 
 import { appendFileSync, mkdirSync } from "node:fs";
@@ -51,6 +56,7 @@ import { medVerden, trekkVerdener } from "../src/moe2/sdkort.ts";
 import { BUDQ_BUD, budqTrekk } from "../src/moe2/budq.ts";
 import { Seiersprediktor } from "../src/mlb/seier.ts";
 import { Hukommelse } from "../src/mlb/hukommelse.ts";
+import { bordTekst, lesBord, slot, tilSeter } from "./drivere.ts";
 
 const arg = (n: string, s: string): string => {
   const i = process.argv.indexOf(n);
@@ -66,12 +72,18 @@ const SPEK = arg("--spek", ADAMS);
 const UT = arg("--ut", "D:/amb-grp/budq/d0/s0.jsonl");
 const SEIER = arg("--seier", "");
 const HUKOMMELSE = process.argv.includes("--hukommelse");
+/** Én spek per sete; uten `--drivere` fire ganger `SPEK`, alle registrert (se `drivere.ts`). */
+const BORD = lesBord(process.argv, SPEK);
 const prediktor = SEIER === "" ? null : Seiersprediktor.fraFil(SEIER);
 mkdirSync(dirname(UT), { recursive: true });
 
-const kamp = [0, 1, 2, 3].map(() => lagIndre(SPEK));
-const utspill = [0, 1, 2, 3].map(() => lagIndre(SPEK));
+// Per SLOT, i samme rekkefølge som før (slot = sete uten `--rotasjon`).
+const kamp = BORD.spek.map((x) => lagIndre(x));
+const utspill = BORD.spek.map((x) => lagIndre(x));
 const alleAgenter = [...kamp, ...utspill];
+/** Slotene stokket til seter for kampen som spilles nå. Uten rotasjon: de samme objektene i samme rekkefølge. */
+let kampSeter = kamp;
+let utspillSeter = utspill;
 
 /**
  * Motstanderboka per sete, nullstilt per kamp. Hvert sete får sin egen, som en
@@ -103,7 +115,8 @@ function spillUt(start: GameState, sete: number, bud: Bud): { poeng: number; sei
   while (s.fase !== "FERDIG" && s.fase !== "RUNDE_SLUTT" && s.rundeNr === runde && vakt++ < 400) {
     const i = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
     if (i === null || i === undefined) break;
-    s = utfør(s, utspill[i]!.velgHandling(s)).state;
+    // Setets EGEN spek i utspillingen også: Q skal være verdien mot bordet som faktisk sitter der.
+    s = utfør(s, utspillSeter[i]!.velgHandling(s)).state;
   }
   const poeng = utfall(s, sete);
   if (prediktor === null) return { poeng, seier: null };
@@ -114,6 +127,7 @@ const rund = (x: number): number => Math.round(x * 100) / 100;
 const velg = lagRng(9_100_000 + SI);
 let skrevet = 0;
 const t0 = Date.now();
+if (BORD.blandet) console.log(`Bord (kamp 0): ${bordTekst(BORD, 0)}${BORD.rotasjon ? "  [roterer per kamp]" : ""}`);
 for (let g = 0; g < KAMPER; g++) {
   if (g % SN !== SI) continue;
   const frø = FRØ + g * 7717;
@@ -121,6 +135,8 @@ for (let g = 0; g < KAMPER; g++) {
   for (const a of kamp) a.nyKamp();
   // Utspillingsagentene er også «i kampen» nå som de observerer den: ny kamp, ny bok.
   for (const a of utspill) a.nyKamp();
+  kampSeter = tilSeter(BORD, kamp, g);
+  utspillSeter = tilSeter(BORD, utspill, g);
   bøker = HUKOMMELSE ? [0, 1, 2, 3].map(() => new Hukommelse()) : null;
   let vakt = 0;
   while (s.fase !== "FERDIG" && s.rundeNr < MAKSRUNDER && vakt++ < 40_000) {
@@ -134,9 +150,10 @@ for (let g = 0; g < KAMPER; g++) {
     }
     const sete = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
     if (sete === null || sete === undefined) break;
-    const h = kamp[sete]!.velgHandling(s);
+    const h = kampSeter[sete]!.velgHandling(s);
 
-    if (s.fase === "BUDRUNDE" && velg() < SJANSE) {
+    // Opptaket sjekkes FØR trekningen: uten `--drivere` er det alltid sant, og rng-strømmen som før.
+    if (s.fase === "BUDRUNDE" && BORD.opptak[slot(BORD, sete, g)] && velg() < SJANSE) {
       const lov = lovligeHandlinger(s);
       const kandidater = lov.fase === "BUDRUNDE" ? lov.bud.filter((b) => BUDQ_BUD.includes(b)) : [];
       if (kandidater.length >= 2) {
