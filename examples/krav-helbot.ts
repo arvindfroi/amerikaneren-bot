@@ -743,13 +743,15 @@ async function takvindu(
  * Klarsynsarmene (`kjørTak`, uendret) går samtidig og står som kontekst i K3.1-raden.
  */
 async function k31(r: Rigg): Promise<Helrad[]> {
+  // Budlagene byttes FØR noen jobb startes: kaster `medBudlag` (en spek uten nøyaktig ett budlag),
+  // skal klarsynsarmene ikke gå videre i køen uten at noen leser dem.
+  const adams = medBudlag(r.spek, ADAMS_BUDLAG);
+  const passer = medBudlag(r.andre, PASS_BUDLAG);
   const takJobb = kjørTak(r, "k3bud", ["--fase", "bud"], r.st.budGiver, r.st.maksNoder);
   const reg = new Regnskap();
   const G = r.st.budNaabartGiver;
   const W = r.st.budVerdener;
   const N = skardtall(r, G);
-  const adams = medBudlag(r.spek, ADAMS_BUDLAG);
-  const passer = medBudlag(r.andre, PASS_BUDLAG);
   const bord = r.andre === r.spek ? [] : ["--andre", r.andre];
   const felles = [
     "examples/tak-kart.ts", "--fase", "bud", "--uten-tak", "--gjenbruk",
