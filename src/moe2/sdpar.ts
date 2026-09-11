@@ -35,7 +35,9 @@
 
 import { lovligeKort, utfør, type GameState, type Handling } from "../motor.ts";
 import type { Verden } from "../solver/sampler.ts";
-import type { Kort } from "../kort.ts";
+import { kortTilInt } from "../solver/dds.ts";
+import { poengRotVerdier } from "../solver/poengdds.ts";
+import { FARGER, type Kort } from "../kort.ts";
 import { medVerden, standardMål, trekkVerdener, type Utspiller } from "./sdkort.ts";
 import { lagHvemLaVekt } from "./hvemla-slutning.ts";
 
@@ -100,6 +102,13 @@ export interface ParOpts {
   readonly verdener: number;
   readonly rng: () => number;
   readonly mål?: (sluttState: GameState, spiller: number) => number;
+  /**
+   * K7.2 (11. sep): løs resten av runden EKSAKT i hver verden fra `eksaktBlad` stikk
+   * igjen (`poengdds`: hvert sete maksimerer egne poeng) i stedet for å la motparten
+   * spille den ferdig. Da er verdien søket rangerer på, i sluttspillet, verdenens
+   * likevekt. Udefinert eller 0 = av, bit-identisk med før.
+   */
+  readonly eksaktBlad?: number;
 }
 
 export interface ParKandidat {
@@ -136,6 +145,48 @@ function spillFerdig(start: GameState, motpart: Utspiller): GameState {
     s = utfør(s, motpart.velgHandling(s)).state;
   }
   return s;
+}
+
+/**
+ * K7.2: motparten spiller til `blad` stikk igjen, og poengløseren tar resten i verdenen.
+ *
+ * Verdenen er åpen for løseren – det er PIMC, som resten av søket: hver verden løses som
+ * om alle visste hvilken den var. Tilstanden som returneres har `totalPoeng` lagt til
+ * likevektens rundepoeng, som er alt `standardMål` og `lagMål` leser. Kan løseren ikke
+ * brukes (ingen kontrakt, tom hånd), spilles runden ferdig som før.
+ */
+function spillFerdigEksakt(start: GameState, motpart: Utspiller, blad: number): GameState {
+  let s = start;
+  let vakt = 0;
+  while (s.fase === "SPILL" && s.giving.antallStikk - s.stikkSpilt > blad && vakt++ < 20_000) {
+    s = utfør(s, motpart.velgHandling(s)).state;
+  }
+  if (s.fase !== "SPILL" || s.iTur === null || s.budvinner === null || s.melding === null) {
+    return spillFerdig(s, motpart);
+  }
+  const hender = s.hender.map((h) => h.map(kortTilInt));
+  if (hender.some((h) => h.length === 0)) return spillFerdig(s, motpart);
+  const svar = poengRotVerdier({
+    N: s.antallSpillere,
+    trump: s.trumf ? FARGER.indexOf(s.trumf) : 0,
+    hender,
+    iTur: s.iTur,
+    bord: s.bord.map((kp) => ({ spiller: kp.spiller, kort: kortTilInt(kp.kort) })),
+    stikkFør: s.stikkVunnet.slice(),
+    ferdigeStikk: s.stikkSpilt,
+    totalStikk: s.giving.antallStikk,
+    budvinner: s.budvinner,
+    makker: s.makker,
+    melding: s.melding,
+    målPoeng: s.regler.målPoeng,
+    mål: "diff",
+  });
+  // Setet i tur spiller sitt beste kort; første av like gode, som løserens egen konvensjon.
+  let beste = svar.verdier[0];
+  for (const v of svar.verdier) if (beste === undefined || v.verdi > beste.verdi) beste = v;
+  if (beste === undefined) return spillFerdig(s, motpart);
+  const poeng = beste.poeng;
+  return { ...s, totalPoeng: s.totalPoeng.map((t, p) => t + (poeng[p] ?? 0)) };
 }
 
 /**
@@ -189,7 +240,11 @@ export function vurderPar(
     for (let i = 0; i < lovlige.length; i++) {
       const h: Handling = { type: "SPILL", spiller, kort: lovlige[i]! };
       const etter = utfør(medVerden(state, hender, spiller), h).state;
-      verdier[i]!.push(mål(spillFerdig(etter, motpart), spiller));
+      const slutt =
+        opts.eksaktBlad !== undefined && opts.eksaktBlad > 0
+          ? spillFerdigEksakt(etter, motpart, opts.eksaktBlad)
+          : spillFerdig(etter, motpart);
+      verdier[i]!.push(mål(slutt, spiller));
     }
     brukt++;
   }

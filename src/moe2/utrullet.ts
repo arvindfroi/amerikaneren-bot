@@ -103,6 +103,8 @@ export type Søkspek =
       readonly budvekt?: boolean;
       /** Tidsbudsjett per beslutning i ms. Udefinert = ingen frist (all måling). */
       readonly fristMs?: number;
+      /** K7.2: utspillingene løses eksakt fra så mange stikk igjen. Udefinert = av. */
+      readonly eksaktBlad?: number;
     }
   | {
       readonly type: "amu";
@@ -219,6 +221,7 @@ export function byggUtrullet(spek: UtrulletSpek): {
         tro: tronett === null ? null : new MlbSøketro(tronett),
         budvekt: søk.budvekt,
         fristMs: søk.fristMs,
+        ...(søk.eksaktBlad === undefined ? {} : { eksaktBlad: søk.eksaktBlad }),
       });
       kjede = sik as unknown as Velger;
     } else {

@@ -80,6 +80,8 @@ export interface SikkerOpts {
   readonly fristMs?: number;
   /** Klokka fristen og `siste.ms` måles med. Standard `performance.now()`. */
   readonly klokke?: () => number;
+  /** K7.2: utspillingene løses eksakt fra så mange stikk igjen (`e<T>` i speken). Udefinert = av. */
+  readonly eksaktBlad?: number;
 }
 
 /** Tellere, så en kjøring kan vise HVOR ofte operatoren faktisk grep inn. */
@@ -118,6 +120,8 @@ export class Sikkerorakel {
   private readonly mål: ((s: GameState, spiller: number) => number) | undefined;
   private readonly fristMs: number | null;
   private readonly klokke: () => number;
+  /** K7.2-bladet, eller null. Offentlig for loggen og prøvene. */
+  readonly eksaktBlad: number | null;
   readonly tellere: SikkerTellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, enig: 0, avkortet: 0 };
   siste: SikkerSiste | null = null;
 
@@ -141,6 +145,10 @@ export class Sikkerorakel {
     this.mål = opts.lagmål === true ? lagMål : undefined;
     this.fristMs = opts.fristMs ?? null;
     this.klokke = opts.klokke ?? ((): number => performance.now());
+    this.eksaktBlad = opts.eksaktBlad ?? null;
+    if (this.eksaktBlad !== null && !(Number.isInteger(this.eksaktBlad) && this.eksaktBlad >= 1)) {
+      throw new Error(`Sikkerorakel: eksaktBlad må være et helt antall stikk ≥ 1, fikk ${this.eksaktBlad}`);
+    }
     // Feil ved bygging, ikke ved første trekk midt i en kamp.
     if (this.spillvekt && this.tro !== null) {
       throw new Error("Sikkerorakel: spillvekt og trovekt leser det samme beviset - velg én");
@@ -185,6 +193,7 @@ export class Sikkerorakel {
       mål: this.mål,
       frist: this.fristMs === null ? undefined : start + this.fristMs,
       klokke: this.klokke,
+      ...(this.eksaktBlad === null ? {} : { eksaktBlad: this.eksaktBlad }),
       verdener: this.verdener,
       rng: this.rng,
     });

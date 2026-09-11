@@ -1159,6 +1159,17 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       verdenKombi = k;
       vFelt = vFelt.slice(0, aPos);
     }
+    // «e<T>» (11. sep, K7.2): utspillingene løses EKSAKT i verdenen fra T stikk igjen.
+    // Leses etter «a<kriterium>» (som kan inneholde e, «flest») og før «k<kandidater>».
+    let eksaktBlad: number | undefined;
+    const ePos = vFelt.indexOf("e");
+    if (ePos >= 0) {
+      eksaktBlad = Number(vFelt.slice(ePos + 1));
+      if (!Number.isInteger(eksaktBlad) || eksaktBlad < 1) {
+        throw new Error(`Ugyldig e<T> i «${indre}» - T er et helt antall stikk ≥ 1`);
+      }
+      vFelt = vFelt.slice(0, ePos);
+    }
     const kPos = vFelt.indexOf("k");
     const verdener = Number(kPos < 0 ? vFelt : vFelt.slice(0, kPos));
     const verdenKandidater = kPos < 0 ? 3 : Number(vFelt.slice(kPos + 1));
@@ -1177,6 +1188,7 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       budvekt,
       lagmål,
       roller: rolle === "alle" ? [] : [rolle],
+      ...(eksaktBlad === undefined ? {} : { eksaktBlad }),
     });
   }
   /**

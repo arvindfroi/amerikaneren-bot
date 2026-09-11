@@ -82,6 +82,8 @@ export interface AdamsKonfig {
    * rommet større, avstår laget og kjeden spiller som før.
    */
   readonly eksakt?: { readonly terskel: number; readonly lagmål?: boolean; readonly tak?: number } | null;
+  /** K7.2: førersøkets utspillinger løses eksakt fra så mange stikk igjen (`e<T>`). Udefinert = av. */
+  readonly eksaktBlad?: number;
 }
 
 /** Rå vekter slik de kommer over nettet: base64 og JSON. */
@@ -129,6 +131,7 @@ export function søkspek(k: AdamsKonfig, tronett: MlbTronett | null = null): Sø
     verdener: k.verdener,
     sigma: k.sigma,
     ...(k.fristMs === undefined ? {} : { fristMs: k.fristMs }),
+    ...(k.eksaktBlad === undefined ? {} : { eksaktBlad: k.eksaktBlad }),
     ...(tronett === null ? {} : { tronett, verdenKandidater: 32, budvekt: false }),
   };
 }
