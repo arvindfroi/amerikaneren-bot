@@ -1,0 +1,38 @@
+K1 SOM DUPLIKAT — boten i menneskets sete, samme kort og samme poengtavle
+================================================================================================
+kilder   analyse/kanal2-k1-uten-k1-spek-s0.jsonl analyse/kanal2-k1-uten-k1-spek-s1.jsonl analyse/kanal2-k1-uten-k1-spek-s2.jsonl analyse/kanal2-k1-uten-k1-spek-s3.jsonl
+SE: klyngebootstrap over kamper, B=20000
+
+VINNERSJANSE: 100·ΔP(seier) per runde for sete 0 – det K1 handler om; positiv = boten henter mer ut av de samme kortene
+  utvalg                          runder kamper   menneske     bot      bot − menneske
+  alle                            2641   273     −0,26    +0,73     +0,99 ± 0,19  z +5,2
+  fra 10. aug (Adams-v5)          2641   273     −0,26    +0,73     +0,99 ± 0,19  z +5,2
+
+  etter menneskets rolle
+    mennesket fører               1032   244     +2,28    +3,34     +1,06 ± 0,34  z +3,1
+    mennesket makker               519   184     +0,11    +0,26     +0,16 ± 0,31  z +0,5
+    mennesket forsvar             1090   223     −2,85    −1,52     +1,32 ± 0,30  z +4,4
+
+  etter spiller (pseudonym), minst 50 runder
+    957f6f6c3a62                  2298   211     −0,12    +0,79     +0,90 ± 0,21  z +4,3
+    91d880320b67                   281    30     −0,58    +0,73     +1,31 ± 0,52  z +2,5
+
+RUNDEPOENG per runde for sete 0; positiv = boten henter mer ut av de samme kortene
+  utvalg                          runder kamper   menneske     bot      bot − menneske
+  alle                            2641   273     +2,32    +3,58     +1,26 ± 0,27  z +4,6
+  fra 10. aug (Adams-v5)          2641   273     +2,32    +3,58     +1,26 ± 0,27  z +4,6
+
+  etter menneskets rolle
+    mennesket fører               1032   244     +2,42    +6,28     +3,86 ± 0,61  z +6,3
+    mennesket makker               519   184     +5,06    +3,97     −1,08 ± 0,46  z −2,4
+    mennesket forsvar             1090   223     +0,92    +0,84     −0,08 ± 0,23  z −0,3
+
+  etter spiller (pseudonym), minst 50 runder
+    957f6f6c3a62                  2298   211     +2,68    +3,73     +1,05 ± 0,29  z +3,6
+    91d880320b67                   281    30     +1,52    +2,95     +1,44 ± 0,74  z +1,9
+
+DOMMEN
+================================================================================================
+  ΔP(seier) +0,99 ± 0,19 prosentpoeng per runde (z +5,2, 2641 runder i 273 kamper)
+  Boten henter signifikant MER ut av de samme kortene enn mennesket.
+  Forbehold: motstanderne i menneskets runde var botene som var ute DA; i duplikatet er alle fire --spek.

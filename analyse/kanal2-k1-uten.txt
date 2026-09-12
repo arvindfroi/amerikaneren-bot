@@ -1,0 +1,24 @@
+HELE BOTEN MOT KRAVENE K1–K8
+
+Spek:         okt:vr:e1-modell/vrak-8.bin@e1-modell/etterlyst-8.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-8.bin:budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin
+Uten søk:     okt:vr:e1-modell/vrak-8.bin@e1-modell/etterlyst-8.bin:telrd:profil:budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin
+Uten minne:   vr:e1-modell/vrak-8.bin@e1-modell/etterlyst-8.bin:telrd:eks:3Lt2000:sik:alle:0.5:48k32e3LD:budq:e1-modell/budq-8.binh0:vakt:abmp:e1:e1-modell/kort-8.binh0
+K1-motstander vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin
+K6-basis:     vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-vant.json@-3.0:vakt:abmpf:e1:e1-modell/d7alle.bin
+Drivere:      okt:vr:e1-modell/vrak-8.bin@e1-modell/etterlyst-8.bin:telrd:profil:budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin   (K2, K5, K8)
+K4 andre:     okt:vr:e1-modell/vrak-8.bin@e1-modell/etterlyst-8.bin:telrd:profil:budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin
+Størrelser:   {"k1Skard":4,"k1Bare":null,"k2Giver":24,"k2Verdener":4,"k2PerGiv":2,"budGiver":8,"vrakGiver":60,"midtGiver":12,"takGiver":120,"maksNoder":12,"midtNoder":100,"k7Noder":250,"budNaabartGiver":48,"budVerdener":32,"vrakNaabartGiver":60,"midtNaabartGiver":48,"k7NaabartGiver":60,"spillVerdener":32,"k4Giv":12,"k4MålRunde":7,"k4Forkamper":0,"k5Giver":200,"k6Kamper":24,"k6Maal":100,"k6MaksRunder":12,"k8Giver":120,"menneskeSkard":4,"menneskeKamper":0,"menneskeSjanse":1}
+Frøbånd:      7700000  — ETT BÅND (--to-band for replikasjon)
+Kjerner:      4
+Kjøretid:     8832 s vegg, 29518 prosess-sekunder
+
+--- K1 — henter mer ut av menneskets kort enn mennesket (duplikat) ---
+  MÅLT       ΔP(seier) bot − menneske +0.99 ± 0.19 pp per runde, z = 5.21 (port: ≥ +1.0 pp OG z ≥ 3) (2641 runder i 273 kamper fra 2026-08-10); halvdeler +0.83 / +1.18; rundepoeng +1.26 ± 0.27
+  KONTROLL   menneskesiden identisk i begge armene: 2641 parret, 0 ulike (må være 0)   [OK]
+  FELLE      nevro i menneskets sete: ΔP -1.02 ± 0.20 (må være < −2 SE)   [TATT]
+  INNFRIDD   NEI
+  KOSTNAD    29518 prosess-sekunder i 9 jobber
+  Kilde      examples/duplikat-menneske.ts --motstander v5-kjeden; analyse/kanal2-k1-uten-k1-dom.txt
+  Merknad    K1.1 (< 5 % seire) avgjøres ikke her: duplikatet spør om boten henter mer ut av NØYAKTIG de samme kortene og poengtavlene. Motstanderne i duplikatet er v5-kjeden mennesket møtte; SE er klynget på kamp.
+
+0 av 1 rader lukket porten sin.

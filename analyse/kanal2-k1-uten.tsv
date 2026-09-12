@@ -1,0 +1,2 @@
+krav	band	navn	maalt	kontroll	kontroll_ok	felle	felle_ok	innfridd	prosess_s	jobber	kilde
+K1	0	henter mer ut av menneskets kort enn mennesket (duplikat)	ΔP(seier) bot − menneske +0.99 ± 0.19 pp per runde, z = 5.21 (port: ≥ +1.0 pp OG z ≥ 3) (2641 runder i 273 kamper fra 2026-08-10); halvdeler +0.83 / +1.18; rundepoeng +1.26 ± 0.27	menneskesiden identisk i begge armene: 2641 parret, 0 ulike (må være 0)	OK	nevro i menneskets sete: ΔP -1.02 ± 0.20 (må være < −2 SE)	TATT	nei	29518	9	examples/duplikat-menneske.ts --motstander v5-kjeden; analyse/kanal2-k1-uten-k1-dom.txt
