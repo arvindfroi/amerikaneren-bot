@@ -153,7 +153,8 @@ import { closeSync, mkdirSync, openSync, writeFileSync, writeSync } from "node:f
 import { dirname } from "node:path";
 
 import { opprettSpill, utfør, type GameState, type Handling } from "../src/index.ts";
-import { spillerVisning } from "../src/motor.ts";
+import { spillerVisning, type SpillerVisning } from "../src/motor.ts";
+import { byttVisning, kanoniskBytte } from "../src/mlb/fargebytte.ts";
 import { lagIndre, ADAMS_MAALT } from "../src/moe2/agentspek.ts";
 import { troFasit } from "../src/mlb/fasit.ts";
 import { Hukommelse } from "../src/mlb/hukommelse.ts";
@@ -275,6 +276,38 @@ if (MYK && !KAMP) throw new Error("--myk krever --kamp: skyggeagentene og loggen
 if (har("--myk-grense") && !MYK) throw new Error("--myk-grense gjelder bare --myk");
 const MYK_GRENSE_ARG = tall(arg("--myk-grense", String(MYK_GRENSE)), MYK_GRENSE);
 if (MYK && !(MYK_GRENSE_ARG >= 0)) throw new Error("--myk-grense må være ≥ 0");
+
+/**
+ * `--kanonisk` (12. sep): DØP OM FARGENE før trekkene bygges. Trumf blir farge 0,
+ * så de tre andre etter en OFFENTLIG nøkkel (`kanoniskBytte`, src/mlb/fargebytte.ts).
+ * Nettet ser da «trumf og de tre andre», ikke «ruter knekt», og slipper å lære av
+ * data at spillet ikke bryr seg om fargenavn.
+ *
+ * HVORFOR HER OG IKKE PÅ ET FERDIG KORPUS: nøkkelen leser hvilke kort som er spilt
+ * ÅPENT — historikk pluss bord. Trekkvektorens `SETT`-blokk (52) er historikk + bord
+ * + EGET VRAK slått sammen, så den offentlige nøkkelen kan IKKE regnes ut av en
+ * ferdig rad. Den må regnes av `SpillerVisning`, altså her.
+ *
+ * ETIKETTEN følger med samme permutasjon: klassen er et relativt sete, og et
+ * fargebytte flytter ingen kort mellom hender (`test/agX-fargesymmetri.test.ts`).
+ *
+ * Uten flagget er hver rad byte-identisk med før — `kanonisk` gir da visningen og
+ * etiketten tilbake urørt.
+ */
+const KANONISK = har("--kanonisk");
+if (KANONISK && MYK) {
+  // Den myke etiketten er 208 flyttall per rad som måtte permutert i takt. Det er
+  // gjørbart og uprøvd, og en stille feil der peker posterioren på feil kort.
+  throw new Error("--kanonisk og --myk er ikke prøvd sammen: posterioren må permuteres i takt");
+}
+/** Visningen og etiketten i kanonisk form — eller urørt uten flagget. */
+const kanonisk = (vis: SpillerVisning, f: Int8Array): { vis: SpillerVisning; f: Int8Array } => {
+  if (!KANONISK) return { vis, f };
+  const p = kanoniskBytte(vis);
+  const f2 = new Int8Array(52);
+  for (let i = 0; i < 52; i++) f2[p[Math.floor(i / 13)]! * 13 + (i % 13)] = f[i]!;
+  return { vis: byttVisning(vis, p), f: f2 };
+};
 
 /**
  * ===================== SONDEFLAGGENE (12. sep) ==========================
@@ -447,8 +480,9 @@ if (MENNESKE) {
         const sete = s.iTur;
         const f = troFasit(s, sete);
         if (harUkjente(f)) {
-          const t = troTrekkForBredde(DIM, spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, null);
-          skrivRad(t, f, frø, s.stikkSpilt, sete);
+          const kf = kanonisk(spillerVisning(s, sete), f);
+          const t = troTrekkForBredde(DIM, kf.vis, s.giving.antallStikk, s.regler.målPoeng, null);
+          skrivRad(t, kf.f, frø, s.stikkSpilt, sete);
         }
       }
       const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
@@ -517,11 +551,12 @@ if (MENNESKE) {
         if (harUkjente(f)) {
           // K2: visningen alene, og boka — som bare kjenner FERDIGE runder.
           const huk = medBok ? bok.vektor(sete, s.antallSpillere) : null;
-          const vis = spillerVisning(s, sete);
+          const kf = kanonisk(spillerVisning(s, sete), f);
+          const vis = kf.vis;
           const t = troTrekkForBredde(DIM, vis, s.giving.antallStikk, s.regler.målPoeng, huk);
           // Sonde B: rekka bygges av NØYAKTIG samme visning som trekkene, så K2 arves i stedet for å loves.
           const sekv = SEKVENS ? sekvensTrekk(vis) : undefined;
-          if (myk === null) skrivRad(t, f, frø, s.stikkSpilt, sete, undefined, sekv);
+          if (myk === null) skrivRad(t, kf.f, frø, s.stikkSpilt, sete, undefined, sekv);
           else {
             // Etiketten leser den vaskede loggen og skyggeagentene; inngangen over er urørt (K2).
             const rolle = rolleAv(s, sete);
