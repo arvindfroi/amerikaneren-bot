@@ -51,6 +51,7 @@ import { Økt } from "./okt.ts";
 import { Sandkassenett } from "../mlb/nett.ts";
 import { Sandkasseagent } from "../mlb/spekagent.ts";
 import { MlbTronett } from "../mlb/tronett.ts";
+import { Menneskeklone, delKlonespek } from "./menneskeklon.ts";
 
 /**
  * Nettene leses ÉN gang og deles. `E1Agent` holder ingen tilstand mellom
@@ -1610,6 +1611,16 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       søkFaser: ["VRAK", "VELG"],
       søkVerdener: 12,
     });
+  }
+  /**
+   * `menn:<budfil>@<vrakfil>@<kallfil>@<kortfil>` — MENNESKEKLONEN (12. sep, `menneskeklon.ts`).
+   *
+   * Mennesket som en agent, så K1 kan måles som det eieren faktisk ba om: et RACE til 100, ikke
+   * et duplikat per runde. TERMINAL form som `ens:` — klonen har et hode for hver fase mennesket
+   * har et valg i, så det finnes ikke noe indre lag å falle igjennom til.
+   */
+  if (indre.startsWith("menn:")) {
+    return new Menneskeklone(delKlonespek(indre.slice(5))) as unknown as Spekagent;
   }
   if (indre.startsWith("ens:")) {
     const rest = indre.slice(4);
