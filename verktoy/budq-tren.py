@@ -52,7 +52,8 @@ INDEKS = {b: i for i, b in enumerate(BUD)}
 
 
 # 323 = 287 + stillingen per sete (sans A, `src/mlb/stillingtrekk.ts`), bakerst: 287 -> 323 er nuller bakerst.
-BREDDER = (143, 287, 323)
+# 367 = 323 + auksjonens rekkefoelge (sans C, `src/mlb/auksjonsrekke.ts`, 12. sep), ogsaa bakerst.
+BREDDER = (143, 287, 323, 367)
 
 
 def les(monster, blanding=0.0, dim=0):

@@ -24,7 +24,8 @@ import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { kortIndeks, NevroAgent } from "../nevro/index.ts";
 import { fyllSanser } from "./sanser.ts";
 import { e1SpillTrekk, e1SpillTrekkMedTro, E1_SPILL_DIM, E1_SPILL_DIM_V2, E1_SPILL_DIM_V3, E1_SPILL_DIM_V4, E1_SPILL_DIM_V5, E1_SPILL_DIM_V6, E1_SPILL_DIM_V7, E1_SPILL_DIM_V8, E1_SPILL_DIM_V9, E1_SPILL_DIM_V10 } from "./trekk.ts";
-import { e1KortBokTrekk, erKortbokBredde, E1_KORT_BOK_BREDDER, Kortbok } from "./kortbok.ts";
+// `E1_KORT_BOK_BREDDER` leses gjennom `erKortbokBredde` (se `tillatBok` under), ikke direkte.
+import { e1KortBokTrekk, erKortbokBredde, Kortbok } from "./kortbok.ts";
 import { Hukommelse } from "../mlb/hukommelse.ts";
 
 /**

@@ -476,7 +476,11 @@ if (MENNESKE) {
   console.log(`\nSkard ${SI} ferdig: ${skrevet} rader (${DIM} trekk${SIGNAL ? ", med signalblokk" : ""}) -> ${UT}`);
 } else {
   const kb = KAMP_BÅND[BAND]!;
-  const medBok = DIM === MLB_TRO_INN_H || DIM === MLB_TRO_INN_HS || DIM === MLB_TRO_INN_HS2;
+  // NB: HVER ny bredde må stå her. Sto HS3 ikke i lista, ble `huk` null, og et 1040-korpus
+  // fikk NULLER i hukommelsesblokken uten at noe feilet — de 996 første trekkene var da
+  // ULIKE et 996-korpus fra samme frø. Målt 12. sep: første avvik i post 27.
+  const medBok =
+    DIM === MLB_TRO_INN_H || DIM === MLB_TRO_INN_HS || DIM === MLB_TRO_INN_HS2 || DIM === MLB_TRO_INN_HS3;
   let runder = 0;
   let kamper = 0;
   let kappet = 0;

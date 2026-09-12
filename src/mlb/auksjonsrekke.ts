@@ -76,7 +76,7 @@
  */
 
 import type { SpillerVisning } from "../motor.ts";
-import { budRang, MINSTE_TALLBUD, PASS, SOLO } from "../regler.ts";
+import { AMERIKANER, MINSTE_TALLBUD, PASS, SOLO, type Bud } from "../regler.ts";
 
 export const AUKSJON_PER_SETE = 10;
 export const AUKSJON_FELLES = 4;
@@ -105,8 +105,27 @@ const OMGANGER = 3;
  * de klemmes til 1. Ikke rekkas egen lengde — se hodet.
  */
 const MAKS_STEG = 12;
-/** Solo er det høyeste budet som finnes, så hoppene ligger i [0, 1]. */
-const MAKS_RANG = budRang(SOLO);
+
+/**
+ * HOPPENE MÅLES I NIVÅ, IKKE I `budRang`.
+ *
+ * `budRang` gir Amerikaner 1000 og Solo 2000 — riktig for å SAMMENLIKNE to bud, ubrukelig som
+ * skala. Delt på 2000 blir «5 → 7» til 0,001, og en trekkolonne som aldri forlater tredje
+ * desimal er død ved siden av naboene sine: radene lagres i fp16 (`mlb-trodata.ts`), og et nett
+ * som skal bruke den må først lære seg en vekt på tusen. Nivået legger Amerikaner og Solo rett
+ * OVER det høyeste tallbudet, så «5 → 7» er 0,18 og «11 → Solo» 0,36. Rekkefølgen mellom budene
+ * er den samme; bare avstandene er blitt lesbare.
+ */
+const AMERIKANER_NIVÅ = 14;
+const SOLO_NIVÅ = 15;
+/** Elleve nivåer = hele veien fra under minste tallbud (4) til Solo (15), altså hopp i [0, 1]. */
+const HOPPSKALA = SOLO_NIVÅ - (MINSTE_TALLBUD - 1);
+
+function nivå(bud: Exclude<Bud, typeof PASS>): number {
+  if (bud === AMERIKANER) return AMERIKANER_NIVÅ;
+  if (bud === SOLO) return SOLO_NIVÅ;
+  return bud;
+}
 
 /** Offsetene eksportert som ÉN kilde til sannhet, som ellers i prosjektet. */
 export const AUKSJONINNGANG = {
@@ -148,7 +167,7 @@ export function auksjonsrekkeTrekk(visning: SpillerVisning): Float32Array {
    * Det høyeste budet som sto FØR meldingen som behandles nå. Starter under minste tallbud,
    * så det første budet i en auksjon får hoppet sitt målt fra bunnen og ikke fra null.
    */
-  let forrigeRang = MINSTE_TALLBUD - 1;
+  let forrigeNivå = MINSTE_TALLBUD - 1;
   let antallBud = 0;
   let lederPos = -1;
 
@@ -168,8 +187,8 @@ export function auksjonsrekkeTrekk(visning: SpillerVisning): Float32Array {
       continue;
     }
 
-    const rang = budRang(steg.bud);
-    const hopp = Math.max(0, Math.min(1, (rang - forrigeRang) / MAKS_RANG));
+    const n = nivå(steg.bud);
+    const hopp = Math.max(0, Math.min(1, (n - forrigeNivå) / HOPPSKALA));
     if (v[o + BØD] !== 1) {
       v[o + BØD] = 1;
       v[o + FØRSTE_POS] = pos(i);
@@ -178,7 +197,7 @@ export function auksjonsrekkeTrekk(visning: SpillerVisning): Float32Array {
     }
     v[o + ANTALL_BUD] = Math.min(1, (v[o + ANTALL_BUD]! * 4 + 1) / 4);
     if (hopp > v[o + STØRSTE_HOPP]!) v[o + STØRSTE_HOPP] = hopp;
-    forrigeRang = rang;
+    forrigeNivå = n;
     antallBud++;
     lederPos = i;
   }

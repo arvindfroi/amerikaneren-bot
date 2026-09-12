@@ -30,6 +30,7 @@ import {
   MLB_TRO_INN_H,
   MLB_TRO_INN_HS,
   MLB_TRO_INN_HS2,
+  MLB_TRO_INN_HS3,
   MLB_TRO_INN_S,
   MLB_TRO_KLASSER,
   MLB_TRO_KORT,
@@ -74,7 +75,8 @@ export class MlbTronett {
     if (!MLB_TRO_BREDDER.includes(første.inn)) {
       throw new Error(
         `MLB-trohodet tar ${MLB_TRO_INN} (uten hukommelse), ${MLB_TRO_INN_H} (med), ` +
-          `${MLB_TRO_INN_S} eller ${MLB_TRO_INN_HS} (med signalblokk) eller ${MLB_TRO_INN_HS2} (sanser 2) trekk, ` +
+          `${MLB_TRO_INN_S} eller ${MLB_TRO_INN_HS} (med signalblokk), ${MLB_TRO_INN_HS2} (sanser 2) ` +
+          `eller ${MLB_TRO_INN_HS3} (auksjonsrekka) trekk, ` +
           `nettet har ${første.inn}`,
       );
     }
@@ -102,19 +104,41 @@ export class MlbTronett {
     return this;
   }
 
-  /** Leser dette nettet hukommelsen (K6 → K8)? Avgjøres av bredden, ikke av et flagg. */
+  /**
+   * Leser dette nettet hukommelsen (K6 → K8)? Avgjøres av bredden, ikke av et flagg.
+   *
+   * HVER NY BREDDE MÅ INN I DISSE TRE. En bredde som mangler her får `null` der den skulle
+   * hatt en bok, og da er blokken NULLER uten at noe feiler — nøyaktig feilen `--auksjon`
+   * hadde i `examples/mlb-trodata.ts` (`medBok`) da den ble skrevet: et 1040-korpus var
+   * ulikt et 996-korpus i de 996 FØRSTE trekkene.
+   */
   get brukerHukommelse(): boolean {
-    return this.innBredde === MLB_TRO_INN_H || this.innBredde === MLB_TRO_INN_HS || this.innBredde === MLB_TRO_INN_HS2;
+    return (
+      this.innBredde === MLB_TRO_INN_H ||
+      this.innBredde === MLB_TRO_INN_HS ||
+      this.innBredde === MLB_TRO_INN_HS2 ||
+      this.innBredde === MLB_TRO_INN_HS3
+    );
   }
 
   /** Leser dette nettet signalblokken (K8 kanal 5 og 2)? Også avgjort av bredden. */
   get brukerSignal(): boolean {
-    return this.innBredde === MLB_TRO_INN_S || this.innBredde === MLB_TRO_INN_HS || this.innBredde === MLB_TRO_INN_HS2;
+    return (
+      this.innBredde === MLB_TRO_INN_S ||
+      this.innBredde === MLB_TRO_INN_HS ||
+      this.innBredde === MLB_TRO_INN_HS2 ||
+      this.innBredde === MLB_TRO_INN_HS3
+    );
   }
 
-  /** Leser dette nettet sanser 2 (stillingen per sete, valgt bort)? Bare 996. */
+  /** Leser dette nettet sanser 2 (stillingen per sete, valgt bort)? 996 og oppover. */
   get brukerSanser2(): boolean {
-    return this.innBredde === MLB_TRO_INN_HS2;
+    return this.innBredde === MLB_TRO_INN_HS2 || this.innBredde === MLB_TRO_INN_HS3;
+  }
+
+  /** Leser dette nettet auksjonens rekkefølge (sans C)? Bare 1040. */
+  get brukerAuksjon(): boolean {
+    return this.innBredde === MLB_TRO_INN_HS3;
   }
 
   /**

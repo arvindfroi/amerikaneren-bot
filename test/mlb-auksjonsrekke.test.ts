@@ -29,7 +29,7 @@ import { fileURLToPath } from "node:url";
 import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { spillerVisning, type SpillerVisning } from "../src/motor.ts";
 import { lagRng, type Kort } from "../src/kort.ts";
-import { AMERIKANER, PASS, SOLO } from "../src/regler.ts";
+import { AMERIKANER, PASS, SOLO, type Bud } from "../src/regler.ts";
 import { lagIndre } from "../src/moe2/agentspek.ts";
 import { medVerden } from "../src/moe2/sdkort.ts";
 // `kortTilInt` bor i solveren, ikke i sdkort — sdkort importerer den derfra selv.
@@ -122,17 +122,28 @@ test("motoren: rekka går uredigert med i spillerVisning — auksjonen er offent
 // ---------------------------------------------------------------------------
 
 test("semantikk: krypern og hopperen skilles — antall hevninger, største hopp, og passet-etter-bud", () => {
-  // Åpneren kryper 5 → 7 → 9; neste sete hopper rett til 11 og åpneren passer etter å ha budt.
-  const s = auksjon(4_400_005, [5, PASS, PASS, PASS]);
-  const åpner = (s.giver + 1) % 4;
-  // Bygg en full auksjon for hånd via motoren, med to seter i sving.
+  // a KRYPER 5 → 7 og passer så; b HOPPER 6 → 11. c og d er ute med én gang.
+  // Meldingene må følge turen (`utfør` krever det, og krevde det da denne prøven først ble
+  // skrevet feil), så planen ligger per sete og turen bestemmer hvem som melder når.
   let t: GameState = opprettSpill({ antallSpillere: 4 }, 4_400_006);
   const a = t.iTur!;
   const b = (a + 1) % 4;
-  for (const [sete, bud] of [[a, 5], [b, 6], [a, 7], [b, 11], [a, PASS]] as const) {
-    if (t.fase !== "BUDRUNDE") break;
-    t = utfør(t, { type: "BUD", spiller: sete, bud }).state;
+  const plan = new Map<number, Bud[]>([
+    [a, [5, 7, PASS]],
+    [b, [6, 11]],
+    [(a + 2) % 4, [PASS]],
+    [(a + 3) % 4, [PASS]],
+  ]);
+  for (let vakt = 0; t.fase === "BUDRUNDE" && t.iTur !== null && vakt < 20; vakt++) {
+    const bud = plan.get(t.iTur)?.shift();
+    if (bud === undefined) break;
+    t = utfør(t, { type: "BUD", spiller: t.iTur, bud }).state;
   }
+  // 5, 6, pass, pass, 7, 11, pass — sju meldinger, FIRE bud, og b står igjen alene.
+  assert.deepEqual(
+    t.budrunde.rekke.map((x) => x.bud),
+    [5, 6, PASS, PASS, 7, 11, PASS],
+  );
   const v = auksjonsrekkeTrekk(spillerVisning(t, a));
   const meg = celle(v, 0); // rel 0 = a selv
   const nabo = celle(v, ((b - a) + 4) % 4);
@@ -143,15 +154,20 @@ test("semantikk: krypern og hopperen skilles — antall hevninger, største hopp
   assert.equal(meg[AU.PASSET_ETTER_BUD], 1, "a passet ETTER å ha budt");
   assert.equal(nabo[AU.PASSET_ETTER_BUD], 0);
   assert.equal(nabo[AU.ANTALL_BUD], 0.5);
-  // Hopperen har det STØRSTE spranget (7 → 11), krypern det minste.
-  assert.ok(nabo[AU.STØRSTE_HOPP]! > meg[AU.STØRSTE_HOPP]!, "hopperen skal ha større sprang enn krypern");
+  // Hopperen har det STØRSTE spranget (7 → 11 = fire nivåer), krypern bare ett om gangen.
+  // Tallene er nivåskalaen (`HOPPSKALA` = 11, fra 4 til Solo på 15), ikke `budRang`: med rangen
+  // ville de vært 0,002 og 0,0005 — under støygulvet ved siden av trekk som ligger på 1, og da
+  // måler prøven at kolonnen er der, ikke at den er brukbar.
+  assert.equal(meg[AU.STØRSTE_HOPP], Math.fround(1 / 11), "krypern hever ett nivå om gangen");
+  assert.equal(nabo[AU.STØRSTE_HOPP], Math.fround(4 / 11), "hopperen tar fire nivåer i ett byks");
+  assert.equal(meg[AU.FØRSTE_HOPP], Math.fround(1 / 11), "a åpnet på 5, ett nivå over bunnen");
+  assert.equal(nabo[AU.FØRSTE_HOPP], Math.fround(1 / 11), "b åpnet forsiktig, på 6");
   // a åpnet auksjonen, altså FØR lederen (b, som holder 11).
   assert.equal(meg[AU.FØR_LEDEREN], 1);
   assert.equal(meg[AU.ETTER_LEDEREN], 0);
   assert.deepEqual([nabo[AU.FØR_LEDEREN], nabo[AU.ETTER_LEDEREN]], [0, 0], "lederen selv har 0 i begge");
-  assert.equal(v[AU.FELLES + AU.LENGDE], 5 / 12);
-  assert.equal(v[AU.FELLES + AU.BUDANDEL], 4 / 5);
-  void åpner;
+  assert.equal(v[AU.FELLES + AU.LENGDE], Math.fround(7 / 12));
+  assert.equal(v[AU.FELLES + AU.BUDANDEL], Math.fround(4 / 7), "fire av sju meldinger var bud");
 });
 
 test("semantikk: «bød aldri» er skillbart fra «bød på plass 0» — ellers koder vi to ting likt", () => {
@@ -473,8 +489,77 @@ test("budq-data: uten --auksjon er utdataene byte-identiske, og med flagget er d
   }
   assert.equal(sha1(igjen), sha1(uten), "budq-data er ikke deterministisk — sha1-prøven måler ingenting");
   assert.notEqual(sha1(med), sha1(uten), "--auksjon endret ingenting — flagget er dødt");
-  // FELLA: sha1-sammenlikningen må KUNNE slå ut. Et annet antall kamper gir en annen fil.
+  // FELLA: sha1-sammenlikningen må KUNNE slå ut. Et annet frø gir et annet korpus.
+  // IKKE et nytt `--kamper`: `arg()` i budq-data tar FØRSTE forekomst, og `felles` har det alt —
+  // et flagg nummer to er dødt, og nettopp derfor var denne fella blind første gang.
   const annen = `${ROT}/${MAPPE}/budq-annen.jsonl`;
-  assert.equal(kjør([...felles, "--kamper", "3", "--ut", annen]).status, 0);
+  assert.equal(kjør([...felles, "--froe", "15000777", "--ut", annen]).status, 0);
   assert.notEqual(sha1(annen), sha1(uten), "sha1 skiller ikke to ulike korpus — prøven er blind");
+});
+
+/**
+ * MLBT versjon 1 (`verktoy/mlb-tro-tren.py`, `les_mlbt`): "MLBT" + i32 versjon + i32 dim, så
+ * pakkede poster à `dim` f32 trekk + 52 i8 fasit + i32 frø + i16 stikk + i16 sete.
+ */
+const HALE = 52 + 4 + 2 + 2;
+function lesMlbt(sti: string): { dim: number; post: number; antall: number; data: Buffer } {
+  const b = readFileSync(sti);
+  assert.equal(b.subarray(0, 4).toString("latin1"), "MLBT", `${sti} er ikke en MLBT-fil`);
+  assert.equal(b.readInt32LE(4), 1, "MLBT-versjonen er ikke 1");
+  const dim = b.readInt32LE(8);
+  const post = dim * 4 + HALE;
+  const data = b.subarray(12);
+  assert.equal(data.length % post, 0, "fila er ikke et helt antall poster");
+  return { dim, post, antall: data.length / post, data };
+}
+
+/**
+ * DEN DYRESTE FEILEN I HELE DENNE JOBBEN, og den eneste prøven som kunne tatt den.
+ *
+ * `--auksjon` skal legge 44 trekk BAKERST og ikke røre noe annet. Enhetsprøven over
+ * («de 996 første må stå urørt i 1040») går på ÉN visning og var grønn hele tiden — men
+ * generatoren valgte hukommelsen på bredden (`medBok`, `mlb-trodata.ts`), og 1040 sto ikke i
+ * lista. Et 1040-korpus fikk da NULLER i hukommelsesblokken: 144 av de 996 «urørte» trekkene
+ * var borte, ingenting feilet, og målingen ville sammenliknet auksjonsrekka mot en tapt bok.
+ * Første avvik lå i post 27 — ikke i post 0, så selv en øyekontroll av starten hadde bestått.
+ */
+test("mlb-trodata: et 1040-korpus er BYTE-IDENTISK med et 996-korpus i de 996 første trekkene", { timeout: 900_000 }, () => {
+  const felles = ["examples/mlb-trodata.ts", "--kamp", "--kamper", "3", "--maksrunder", "5", "--hukommelse", "--signal", "--sanser2"];
+  const u996 = `${ROT}/${MAPPE}/tro996.bin`;
+  const u1040 = `${ROT}/${MAPPE}/tro1040.bin`;
+  const uAnnen = `${ROT}/${MAPPE}/tro1040-annen.bin`;
+  assert.equal(kjør([...felles, "--ut", u996]).status, 0);
+  assert.equal(kjør([...felles, "--auksjon", "--ut", u1040]).status, 0);
+  // FELLA: et korpus fra ANDRE kamper må IKKE bestå den samme sammenlikningen.
+  assert.equal(kjør([...felles, "--auksjon", "--fra", "1", "--ut", uAnnen]).status, 0);
+
+  const a = lesMlbt(u996);
+  const b = lesMlbt(u1040);
+  assert.equal(a.dim, MLB_TRO_INN_HS2);
+  assert.equal(b.dim, MLB_TRO_INN_HS3);
+  assert.equal(a.antall, b.antall, "ulikt antall rader — da er det ikke de samme stillingene");
+  assert.ok(a.antall >= 50, `for få rader (${a.antall})`);
+
+  const lik = (x: typeof a, y: typeof b): number => {
+    let avvik = 0;
+    for (let i = 0; i < Math.min(x.antall, y.antall); i++) {
+      const px = x.data.subarray(i * x.post, (i + 1) * x.post);
+      const py = y.data.subarray(i * y.post, (i + 1) * y.post);
+      if (!px.subarray(0, x.dim * 4).equals(py.subarray(0, x.dim * 4))) avvik++;
+      else if (!px.subarray(x.dim * 4).equals(py.subarray(y.dim * 4))) avvik++;
+    }
+    return avvik;
+  };
+  assert.equal(lik(a, b), 0, "--auksjon endret noe i de 996 første trekkene eller i fasiten");
+
+  // Og den nye blokken må faktisk ha innhold, ellers beviser likheten ingenting.
+  let ikkeTom = 0;
+  for (let i = 0; i < b.antall; i++) {
+    const ny = b.data.subarray(i * b.post + a.dim * 4, (i + 1) * b.post - HALE);
+    if (ny.some((x) => x !== 0)) ikkeTom++;
+  }
+  assert.ok(ikkeTom > b.antall / 2, `auksjonsblokken er tom i ${b.antall - ikkeTom} av ${b.antall} rader`);
+
+  const annen = lesMlbt(uAnnen);
+  assert.ok(lik(a, annen) > 0, "prøven ser ikke forskjell på to ULIKE korpus — den kan ikke feile");
 });
