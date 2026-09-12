@@ -153,3 +153,9 @@ analyse/lik-per-sete/
 
 # agX: trente armer fra fargesymmetri-maalingen (vekter, som e1-modell/ ellers)
 analyse/agX-tro-*.bin
+
+# agKA: korpusparet til kanoniseringsmaalingen (~2,5 GB: de SAMME stillingene i
+# absolutt og kanonisk form) og de trente armene. Gjenskapes av
+# verktoy/agKA-gen.sh; det varige sporet er analyse/agKA-*.txt.
+kk/
+analyse/agKA-tro-*.bin

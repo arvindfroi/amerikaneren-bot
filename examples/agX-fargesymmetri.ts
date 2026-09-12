@@ -2,7 +2,7 @@
  * HVOR MYE BRYTER NETTENE FARGESYMMETRIEN I DAG?
  *
  *   node examples/agX-fargesymmetri.ts --kamper 12 --tro e1-modell/tro-7.bin \
- *     --kort e1-modell/kort-7.bin --ut analyse/agX-fargesymmetri.jsonl
+ *     --kort e1-modell/kort-7.bin [--kanonisk] --ut analyse/agX-fargesymmetri.jsonl
  *
  * Spillet er invariant under enhver ombytting av fargene som lar TRUMF og det
  * ETTERLYSTE kortets farge stå (`src/mlb/fargebytte.ts`). Et nett som hadde lært
@@ -30,6 +30,19 @@
  * SMULE. Målingen er dermed en ØVRE GRENSE for hva symmetrien kunne spart — og
  * tallet under er så stort at grensen ikke er det som avgjør.
  *
+ * ===================== `--kanonisk`: RESTEN ETTER KANONISERING ==========
+ *
+ * Med flagget leses BEGGE stillingene — originalen og den byttede — gjennom
+ * `kanoniskBytte` før nettet ser dem. Da er dette ikke lenger et mål på hva
+ * nettet har lært, men på hva KANONISERINGEN SELV etterlater: er nøkkelen
+ * entydig, faller de to stillingene på nøyaktig samme navn, trekkvektorene blir
+ * bit-identiske og hvert tall under er EKSAKT null. Et tall over null her er
+ * derfor ikke «nettet er litt usymmetrisk» — det er kanoniseringen som ikke
+ * skiller, og de eneste stedene den ikke kan er de publikt uskillelige fargene
+ * (`uavgjort > 0`, siste linje i sammendraget). Faller det ut restledd i
+ * stillinger med `uavgjort = 0`, er kanoniseringen ufullstendig, og det er en
+ * FEIL å lete opp — ikke en egenskap ved spillet.
+ *
  * ===================== SE, IKKE «ANTALL RADER» ==========================
  *
  * Naborader i samme kamp er sterkt korrelerte. Overskriften rapporteres derfor med
@@ -56,7 +69,10 @@ import {
   byttTilstand,
   byttVisning,
   erIdentitet,
+  IDENTITET,
+  invers,
   kanoniskBytte,
+  komponer,
   KORT_INN,
   lovligeBytter,
   uavgjorteFarger,
@@ -75,6 +91,8 @@ const MÅLPOENG = tall(arg("--maalpoeng", "100"), 100, "maalpoeng");
 const TRO = arg("--tro", "e1-modell/tro-7.bin");
 const KORT = arg("--kort", "e1-modell/kort-7.bin");
 const UT = arg("--ut", "analyse/agX-fargesymmetri.jsonl");
+/** Se hodet: måler restleddet ETTER kanonisering i stedet for nettets eget brudd. */
+const KANONISK = process.argv.includes("--kanonisk");
 
 const tronett = MlbTronett.fraBytes(new Uint8Array(readFileSync(TRO)));
 const kortnett = nettFraBytes(new Uint8Array(readFileSync(KORT)))[0];
@@ -92,6 +110,9 @@ const tv = (a: readonly number[], b: readonly number[]): number => {
   for (let i = 0; i < a.length; i++) s += Math.abs(a[i]! - b[i]!);
   return s / 2;
 };
+
+/** Kortindeksen etter et fargebytte: valøren står, fargen flytter. */
+const pi = (i: number, p: Fargebytte): number => p[Math.floor(i / 13)]! * 13 + (i % 13);
 
 const argmaks = (a: readonly number[]): number => {
   let beste = 0;
@@ -166,8 +187,18 @@ for (let g = 0; g < KAMPER; g++) {
          * kamp med full bok, ikke bare i første runde.
          */
         const minne = bok.vektor(sete, s.antallSpillere);
-        const før = tronett.fordeling(tronett.trekkFor(visning, s.giving.antallStikk, MÅLPOENG, minne));
-        const kortFør = kortfordeling(s, sete, null);
+        /**
+         * `c0` er RAMMEN stillingen leses i: identiteten uten `--kanonisk` (og da
+         * er alt under ord for ord den gamle målingen), ellers det kanoniske
+         * byttet. Alle indekser holdes i ORIGINALRAMMEN og flyttes med `pi` der de
+         * skal slås opp — ellers blander vi to nummereringer i samme sum.
+         */
+        const c0 = KANONISK ? kanoniskBytte(visning) : IDENTITET;
+        const c0inv = invers(c0);
+        const før = tronett.fordeling(
+          tronett.trekkFor(byttVisning(visning, c0), s.giving.antallStikk, MÅLPOENG, minne),
+        );
+        const kortFør = kortfordeling(s, sete, c0);
         const usett = [...Array(52).keys()].filter((i) => !setteKort(visning).has(i));
 
         let troTv = 0;
@@ -175,25 +206,32 @@ for (let g = 0; g < KAMPER; g++) {
         let kortTv = 0;
         let kortBytte = 0;
         for (const p of bytter) {
+          /**
+           * Med kanonisering kanoniseres den BYTTEDE stillingen på nytt, så veien
+           * fra originalen er `p` fulgt av dens egen nøkkel. Skiller nøkkelen de
+           * to fargene, er `tot` nøyaktig `c0`: samme navn, samme vektor, null.
+           */
+          const tot = KANONISK ? komponer(p, kanoniskBytte(byttVisning(visning, p))) : p;
           const etter = tronett.fordeling(
-            tronett.trekkFor(byttVisning(visning, p), s.giving.antallStikk, MÅLPOENG, minne),
+            tronett.trekkFor(byttVisning(visning, tot), s.giving.antallStikk, MÅLPOENG, minne),
           );
           for (const i of usett) {
-            // Kortet i indeks `i` ligger etter byttet i `p[farge]·13 + valør`.
-            const j = p[Math.floor(i / 13)]! * 13 + (i % 13);
-            troTv += tv(før[i]!, etter[j]!);
-            if (argmaks(før[i]!) !== argmaks(etter[j]!)) troArg++;
+            // Kortet i indeks `i` ligger i hver ramme på `ramme[farge]·13 + valør`.
+            const j0 = pi(i, c0);
+            const j = pi(i, tot);
+            troTv += tv(før[j0]!, etter[j]!);
+            if (argmaks(før[j0]!) !== argmaks(etter[j]!)) troArg++;
           }
-          const kortEtter = kortfordeling(s, sete, p);
+          const kortEtter = kortfordeling(s, sete, tot);
           let sum = 0;
           for (const [i, q] of kortFør) {
-            const j = p[Math.floor(i / 13)]! * 13 + (i % 13);
+            const j = pi(pi(i, c0inv), tot);
             sum += Math.abs(q - (kortEtter.get(j) ?? 0));
           }
           kortTv += sum / 2;
           const valgFør = [...kortFør.entries()].sort((a, b) => b[1] - a[1])[0]![0];
           const valgEtter = [...kortEtter.entries()].sort((a, b) => b[1] - a[1])[0]![0];
-          if (p[Math.floor(valgFør / 13)]! * 13 + (valgFør % 13) !== valgEtter) kortBytte++;
+          if (pi(pi(valgFør, c0inv), tot) !== valgEtter) kortBytte++;
         }
         const n = bytter.length;
         const rad: Rad = {
@@ -245,7 +283,11 @@ function celle(velg: (r: Rad) => number, utvalg: Rad[]): { snitt: number; se: nu
 
 const f4 = (x: number): string => (Number.isFinite(x) ? x.toFixed(4) : "  –   ");
 const L: string[] = [];
-L.push(`FARGESYMMETRI — ${rader.length} stillinger fra ${KAMPER} kamper (frø ${FRØ}), tro ${TRO}, kort ${KORT}`);
+// Uten flagget er linja ord for ord den gamle, så de to kjøringene kan legges ved siden av hverandre.
+L.push(
+  `FARGESYMMETRI — ${rader.length} stillinger fra ${KAMPER} kamper (frø ${FRØ}), tro ${TRO}, kort ${KORT}` +
+    (KANONISK ? "  [KANONISERT: restleddet etter kanonisering, ikke nettets eget brudd]" : ""),
+);
 L.push(`Bytter per stilling: snitt ${(rader.reduce((a, r) => a + r.bytter, 0) / Math.max(1, rader.length)).toFixed(2)}`);
 L.push("");
 for (const [navn, velg] of [
