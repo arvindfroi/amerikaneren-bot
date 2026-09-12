@@ -32,6 +32,7 @@ import {
   MLB_TRO_INN_HS,
   MLB_TRO_INN_HS2,
   MLB_TRO_INN_HS2A,
+  MLB_TRO_INN_HS2O,
   MLB_TRO_INN_HS2T,
   MLB_TRO_INN_HS2TA,
   MLB_TRO_INN_S,
@@ -80,8 +81,8 @@ export class MlbTronett {
       throw new Error(
         `MLB-trohodet tar ${MLB_TRO_INN} (uten hukommelse), ${MLB_TRO_INN_H} (med), ` +
           `${MLB_TRO_INN_S} eller ${MLB_TRO_INN_HS} (med signalblokk), ${MLB_TRO_INN_HS2} (sanser 2), ` +
-          `${MLB_TRO_INN_HS2T} (tempo), ${MLB_TRO_INN_HS2A} (auksjonsrekka) ` +
-          `eller ${MLB_TRO_INN_HS2TA} (begge) trekk, ` +
+          `${MLB_TRO_INN_HS2T} (tempo), ${MLB_TRO_INN_HS2A} (auksjonsrekka), ` +
+          `${MLB_TRO_INN_HS2TA} (begge) eller ${MLB_TRO_INN_HS2O} (overraskelse) trekk, ` +
           `nettet har ${første.inn}`,
       );
     }
@@ -147,6 +148,11 @@ export class MlbTronett {
   /** Leser dette nettet auksjonens rekkefølge (sans C)? 1040 og 1072. */
   get brukerAuksjon(): boolean {
     return this.harBlokk("auksjon");
+  }
+
+  /** Leser dette nettet overraskelsen i de siste kortvalgene (K8 kanal 5)? 1044. */
+  get brukerOverraskelse(): boolean {
+    return this.harBlokk("overraskelse");
   }
 
   /**

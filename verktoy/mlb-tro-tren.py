@@ -243,6 +243,10 @@ LAYOUT = {
     1028: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40), ("tempo", 32)],
     1040: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40), ("auksjon", 44)],
     1072: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40), ("tempo", 32), ("auksjon", 44)],
+    # OVERRASKELSEN I ET KORTVALG (13. sep, K8 kanal 5): `src/mlb/overraskelse.ts`, 48 bakerst
+    # etter 996. BARE denne ene nye bredden - kombinasjonene med tempo og auksjon er ikke
+    # definert, se `MLB_TRO_INN_HS2O` i `src/mlb/trotrekk.ts`. 996 -> 1044 er nuller bakerst.
+    1044: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40), ("overraskelse", 48)],
 }
 
 

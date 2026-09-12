@@ -119,7 +119,7 @@ test("stigen: fire bredder over 996, og 1040 → 1072 FLYTTER auksjonen fordi te
   assert.equal(MLB_TEMPO, 32);
   assert.equal(MLB_AUKSJON, 44);
   assert.deepEqual([MLB_TRO_INN_HS2, MLB_TRO_INN_HS2T, MLB_TRO_INN_HS2A, MLB_TRO_INN_HS2TA], [996, 1028, 1040, 1072]);
-  assert.deepEqual([...MLB_TRO_BREDDER], [660, 804, 776, 920, 996, 1028, 1040, 1072]);
+  assert.deepEqual([...MLB_TRO_BREDDER], [660, 804, 776, 920, 996, 1028, 1040, 1072, 1044]);
 
   // De fem 996-blokkene står på nøyaktig samme plass i hver eneste bredde over.
   for (const til of [MLB_TRO_INN_HS2T, MLB_TRO_INN_HS2A, MLB_TRO_INN_HS2TA]) {

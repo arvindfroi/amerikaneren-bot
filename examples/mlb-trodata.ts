@@ -164,6 +164,7 @@ import {
   MLB_TRO_INN_HS,
   MLB_TRO_INN_HS2,
   MLB_TRO_INN_HS2A,
+  MLB_TRO_INN_HS2O,
   MLB_TRO_INN_HS2T,
   MLB_TRO_INN_HS2TA,
   MLB_TRO_INN_S,
@@ -298,12 +299,29 @@ if (TEMPO && !(MENNESKE && SANSER2)) {
 const AUKSJON = har("--auksjon");
 if (AUKSJON && !SANSER2) throw new Error("--auksjon legger 44 trekk bak 996: krever --sanser2");
 /**
+ * `--overraskelse` (13. sep, K8 kanal 5): hvor overraskende de siste offentlige kortvalgene var
+ * under motorens egen trekkordning (`src/mlb/overraskelse.ts`), 48 trekk bakerst — 1044. Krever
+ * `--sanser2`. Uten flagget er radene byte-identiske med før.
+ *
+ * UTELUKKER `--tempo` og `--auksjon`, fordi de kombinerte breddene ikke er DEFINERT (se
+ * `MLB_TRO_INN_HS2O`). Uten denne vakten hadde `--overraskelse --tempo` gitt DIM = 1028 og
+ * skrevet et korpus der overraskelsesblokken rett og slett ikke er med — et helt korpus generert
+ * for ingenting, uten en eneste feilmelding. Det er `medBok`-fella i en ny drakt.
+ */
+const OVERRASKELSE = har("--overraskelse");
+if (OVERRASKELSE && !SANSER2) throw new Error("--overraskelse legger 48 trekk bak 996: krever --sanser2");
+if (OVERRASKELSE && (TEMPO || AUKSJON)) {
+  throw new Error("--overraskelse er ikke definert sammen med --tempo eller --auksjon: bredden 996+48 finnes, kombinasjonene ikke");
+}
+/**
  * BREDDEN ER SUMMEN AV FLAGGENE, ikke det siste flagget som ble satt. De to sansene fra 12. sep
  * er uavhengige: 996, 1028 (tempo), 1040 (auksjon) og 1072 (begge) er alle lovlige, og ingen av
  * dem rører de 996 første trekkene. Skrevet som en kjede der tempo står FØRST i begge grenene,
  * så rekkefølgen her er den samme som blokkenes rekkefølge i `MLB_TRO_LAYOUT`.
  */
-const DIM = TEMPO
+const DIM = OVERRASKELSE
+  ? MLB_TRO_INN_HS2O
+  : TEMPO
   ? AUKSJON ? MLB_TRO_INN_HS2TA : MLB_TRO_INN_HS2T
   : AUKSJON
   ? MLB_TRO_INN_HS2A

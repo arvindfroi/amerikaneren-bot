@@ -164,7 +164,7 @@ test("breddene: 996 = 920 + 36 + 40, 323 = 287 + 36, og alle gamle bredder står
   // Over 996 ligger de to uavhengige sansene fra 12. sep: tempo (32) og auksjon (44), hver for
   // seg og sammen. Se `test/mlb-tempo.test.ts`, `test/mlb-auksjonsrekke.test.ts` og stigen i
   // `test/mlb-sanser-stigen.test.ts`.
-  assert.deepEqual([...MLB_TRO_BREDDER], [660, 804, 776, 920, 996, 1028, 1040, 1072]);
+  assert.deepEqual([...MLB_TRO_BREDDER], [660, 804, 776, 920, 996, 1028, 1040, 1072, 1044]);
   assert.deepEqual(troKolonnekart(920, 996), [[0, 0, 660], [660, 660, 144], [804, 804, 116]]);
   assert.deepEqual(troKolonnekart(776, 920), [[0, 0, 660], [660, 804, 116]], "776 → 920 setter signalet på 804");
   assert.throws(() => troKolonnekart(776, 804), /signal.*finnes ikke/);

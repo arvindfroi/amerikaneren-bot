@@ -228,7 +228,7 @@ test("breddene: 1040 = 996 + 44, og kolonnekartet legger auksjonen BAKERST", () 
   assert.equal(MLB_AUKSJON, 44);
   assert.equal(MLB_TRO_INN_HS2A, 1040);
   assert.equal(BUDQ_INN_HS3, 367);
-  assert.deepEqual([...MLB_TRO_BREDDER], [660, 804, 776, 920, 996, 1028, 1040, 1072]);
+  assert.deepEqual([...MLB_TRO_BREDDER], [660, 804, 776, 920, 996, 1028, 1040, 1072, 1044]);
   assert.deepEqual(troKolonnekart(996, 1040), [[0, 0, 660], [660, 660, 144], [804, 804, 116], [920, 920, 36], [956, 956, 40]]);
   assert.throws(() => troKolonnekart(1040, 996), /auksjon.*finnes ikke/);
 });

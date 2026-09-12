@@ -52,6 +52,7 @@ import type { SpillerVisning } from "../motor.ts";
 import { lagInn, ANTALL_INN as NEAT_INN } from "../neat/trekk.ts";
 import { kortIndeks } from "../nevro/trekk.ts";
 import { MLB_AUKSJON, auksjonsrekkeTrekk } from "./auksjonsrekke.ts";
+import { MLB_OVERRASKELSE, overraskelseTrekk } from "./overraskelse.ts";
 import { MLB_TRO_SIGNAL, signalTrekk } from "./signaltrekk.ts";
 import { MLB_STILLING, stillingTrekk } from "./stillingtrekk.ts";
 import { MLB_TEMPO, tempofaseAv, tempoTrekk, type Tempobok } from "./tempotrekk.ts";
@@ -156,6 +157,23 @@ export const MLB_TRO_AUKSJON = MLB_AUKSJON;
 export const MLB_TRO_INN_HS2T = MLB_TRO_INN_HS2 + MLB_TEMPO;
 export const MLB_TRO_INN_HS2A = MLB_TRO_INN_HS2 + MLB_TRO_AUKSJON;
 export const MLB_TRO_INN_HS2TA = MLB_TRO_INN_HS2 + MLB_TEMPO + MLB_TRO_AUKSJON;
+
+/**
+ * OVERRASKELSEN I ET KORTVALG (13. sep, K8 kanal 5): `src/mlb/overraskelse.ts` (48) bakerst
+ * etter 996 — altså 1044.
+ *
+ *   MLB_TRO_INN_HS2O   996 + 48 = 1044   (… | overraskelse)
+ *
+ * BARE ÉN NY BREDDE, og det er med vilje. Med tempo og auksjon som to uavhengige akser over
+ * 996 ville en tredje akse gitt åtte bredder, hvorav sju utrente. Løkka trener 996, og det
+ * som skal måles her er 996 mot 996 + overraskelse. Kombinasjonene med tempo og auksjon er
+ * derfor IKKE definert; de kan legges til når noen faktisk trenger dem, og da hører blokken
+ * hjemme BAKERST (etter auksjonen), slik at 1044 → den bredden flytter blokken på NAVN —
+ * samme mekanikk som 1040 → 1072 flytter auksjonen. `troKolonnekart(1044, 1072)` kaster i
+ * dag, og det er riktig svar: 1072 har ingen overraskelsesblokk å ta imot.
+ */
+export const MLB_TRO_OVERRASKELSE = MLB_OVERRASKELSE;
+export const MLB_TRO_INN_HS2O = MLB_TRO_INN_HS2 + MLB_TRO_OVERRASKELSE;
 /** Alle bredder trohodet kan ha. Bredden ER formatet – det finnes ikke noe versjonsfelt. */
 export const MLB_TRO_BREDDER: readonly number[] = [
   MLB_TRO_INN,
@@ -166,6 +184,7 @@ export const MLB_TRO_BREDDER: readonly number[] = [
   MLB_TRO_INN_HS2T,
   MLB_TRO_INN_HS2A,
   MLB_TRO_INN_HS2TA,
+  MLB_TRO_INN_HS2O,
 ];
 
 /**
@@ -198,6 +217,7 @@ export const MLB_TRO_LAYOUT: Readonly<Record<number, readonly (readonly [string,
   [MLB_TRO_INN_HS2A]: [...HS2_BLOKKER, ["auksjon", MLB_TRO_AUKSJON]],
   // Tempo FØR auksjon — se `MLB_TRO_INN_HS2TA`. 1040 → 1072 flytter derfor auksjonen 996 → 1028.
   [MLB_TRO_INN_HS2TA]: [...HS2_BLOKKER, ["tempo", MLB_TEMPO], ["auksjon", MLB_TRO_AUKSJON]],
+  [MLB_TRO_INN_HS2O]: [...HS2_BLOKKER, ["overraskelse", MLB_TRO_OVERRASKELSE]],
 };
 
 /**
@@ -391,7 +411,12 @@ export function troTrekkForBredde(
     v.set(valgtBortTrekk(visning), MLB_TRO_INN_HS + MLB_STILLING);
     return v;
   }
-  if (bredde === MLB_TRO_INN_HS2T || bredde === MLB_TRO_INN_HS2A || bredde === MLB_TRO_INN_HS2TA) {
+  if (
+    bredde === MLB_TRO_INN_HS2T ||
+    bredde === MLB_TRO_INN_HS2A ||
+    bredde === MLB_TRO_INN_HS2TA ||
+    bredde === MLB_TRO_INN_HS2O
+  ) {
     /**
      * 996 nøyaktig som over, og de nye blokkene bakerst i LAYOUTENS rekkefølge.
      *
@@ -406,6 +431,7 @@ export function troTrekkForBredde(
     for (const [navn, lengde] of MLB_TRO_LAYOUT[bredde] ?? []) {
       if (navn === "tempo") v.set(tempoTrekk(visning, tempo, tempofaseAv(visning.fase) ?? "S"), o);
       else if (navn === "auksjon") v.set(auksjonsrekkeTrekk(visning), o);
+      else if (navn === "overraskelse") v.set(overraskelseTrekk(visning), o);
       o += lengde;
     }
     return v;
