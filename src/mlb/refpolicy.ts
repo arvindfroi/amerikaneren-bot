@@ -47,6 +47,26 @@
  * samme frihet, og den settes av kalibreringssveipet over: T som minimerer NLL på de faktiske
  * kortene. RANG, FRIHET og TVUNGET er temperaturfrie uansett.
  *
+ * ===================== RESULTATET: OGSÅ NULL, OG DET ER ET SVAR =========
+ *
+ * Målt 13. sep, samme oppsett som første forsøk (152 831 treningsrader, 22 976 holdoutrader,
+ * BIT-IDENTISKE rader i begge armer, tre frø):
+ *
+ *     996 (uten)   0,95790 / 0,95772 / 0,95889   snitt 0,95817
+ *     1044 (med)   0,95885 / 0,95842 / 0,95737   snitt 0,95821
+ *
+ * Forskjellen er +0,00004 nat/kort mot et spenn mellom frø på 0,0012–0,0015. Ingen effekt.
+ *
+ * DET VIKTIGE ER SAMMENLIKNINGEN, ikke tallet. Nettreferansen er en MYE bedre spillermodell
+ * enn den grådige: NLL 1,3287 mot 1,6679 på de faktiske kortene, topp1 43,2 % mot 39,3 %. De
+ * to gir samme holdout til fjerde desimal (0,95819 mot 0,95821). Diagnosen fra første forsøk —
+ * «referansen er for forutsigbar» — er dermed PRØVD OG FORKASTET. Ligger det noe igjen i denne
+ * kanalen, ligger det i KODINGEN (48 aggregater over et vindu på 12 kort) eller i at trohodet
+ * alt henter det samme ut av `valgtbort`, hvem-la-hva og kortrangene — ikke i referansen.
+ *
+ * Kostnaden, for den som vurderer å bruke den til noe annet: ~1,44 ms per rad mot 21,5 µs for
+ * den grådige, altså ~9 foroverganger per rad. Full logg: `D:\amb-grp\loop\overraskelse2.md`.
+ *
  * ===================== K2: HVA SKYGGEVISNINGEN INNEHOLDER ===============
  *
  * Bygd fra `SpillerVisning` ALENE, pluss kandidatmengden (som er utledet av visningen).
