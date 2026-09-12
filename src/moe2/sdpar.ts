@@ -91,6 +91,17 @@ export interface ParOpts {
   /** Budvekten på kandidatverdenene. Standard på; av når troen selv leser budet. */
   readonly budvekt?: boolean;
   /**
+   * LIKELIHOOD-VEKTEN (12. sep): hvor godt verdenen gjenskaper de andres OBSERVERTE
+   * handlinger under en antatt policy — se `likvekt.ts`.
+   *
+   * LEGGES TIL `trovekt`, den erstatter den ikke. De to leser ulike ting: trohodet sier hvor
+   * kortene PLEIER å ligge gitt stillingen, likelihooden hvilke giver som ville fått dem til
+   * å spille slik de gjorde. Additivt i log er derfor riktig, og det er samme regel som
+   * budvekten og troen alt følger i `trekkVerdenBelief` («tre uavhengige kilder, samme
+   * skala»). Udefinert = av, og da er kallet under bit for bit som før.
+   */
+  readonly likvekt?: (v: Verden) => number;
+  /**
    * FRISTEN, i `klokke()`-millisekunder. Utspillingen går VERDEN FOR VERDEN, og en
    * verden som ikke rakk fristen tas ikke med for NOEN kandidat — marginen er
    * fortsatt parvis over nøyaktig de samme verdenene. Udefinert = ingen frist, og
@@ -245,13 +256,22 @@ export function vurderPar(
     throw new Error("vurderPar: spillvekt og trovekt leser det samme beviset - velg én");
   }
 
+  /**
+   * VEKTEN PÅ KANDIDATVERDENENE. Uten `likvekt` er dette NØYAKTIG uttrykket som sto her, og
+   * samme funksjonsobjekt går videre — ingen ny lukning, ingen ny gren, bit-identisk.
+   */
+  const grunnvekt = opts.trovekt ?? (opts.spillvekt === true ? lagHvemLaVekt(state, spiller) : undefined);
+  const lik = opts.likvekt;
+  const vekt =
+    lik === undefined ? grunnvekt : (v: Verden): number => (grunnvekt === undefined ? 0 : grunnvekt(v)) + lik(v);
+
   const verdener = trekkVerdener(
     state,
     spiller,
     opts.verdener,
     opts.rng,
     undefined,
-    opts.trovekt ?? (opts.spillvekt === true ? lagHvemLaVekt(state, spiller) : undefined),
+    vekt,
     opts.verdenKandidater,
     undefined,
     opts.budvekt ?? true,

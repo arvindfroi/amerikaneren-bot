@@ -158,19 +158,38 @@ export interface Søketrospek {
   readonly kandidater: number;
 }
 
+/**
+ * `sik:`-feltet delt i verdenstallet og «~»-PARENE bak det (12. sep).
+ *
+ * Feltet kan ha FLERE tilde-felt nå: `24k32e3L~mlbu=<fil>~lik=selv`. En parser som tok alt
+ * bak den første tilden og delte på «=» ga stien `<fil>~lik` — og K8-raden i kravbatteriet
+ * ville lest et trohode som ikke finnes. Samme oppdeling som `lagIndre` gjør, ett sted.
+ */
+export function tildefelt(f: string): { vFelt: string; par: { art: string; verdi: string }[] } {
+  const t = f.indexOf("~");
+  if (t < 0) return { vFelt: f, par: [] };
+  return {
+    vFelt: f.slice(0, t),
+    par: f
+      .slice(t + 1)
+      .split("~")
+      .map((x) => {
+        const i = x.indexOf("=");
+        return { art: i < 0 ? x : x.slice(0, i), verdi: i < 0 ? "" : x.slice(i + 1) };
+      }),
+  };
+}
+
 export function søketro(spek: string): Søketrospek | null {
   for (const l of delLag(spek).lag) {
     if (l.navn !== "sik:") continue;
-    const f = l.felt[2] ?? "";
-    const t = f.indexOf("~");
-    const vFelt = t < 0 ? f : f.slice(0, t);
+    const { vFelt, par } = tildefelt(l.felt[2] ?? "");
     const m = /^(\d+)(?:k(\d+))?/.exec(vFelt);
     const verdener = m === null ? 12 : Number(m[1]);
     const kandidater = m?.[2] === undefined ? 3 : Number(m[2]);
-    if (t < 0) return null;
-    const [art, sti] = f.slice(t + 1).split("=");
-    if ((art !== "mlb" && art !== "mlbu") || sti === undefined || sti === "") return null;
-    return { art, sti, verdener, kandidater };
+    const tro = par.find((p) => p.art === "mlb" || p.art === "mlbu");
+    if (tro === undefined || tro.verdi === "") return null;
+    return { art: tro.art as "mlb" | "mlbu", sti: tro.verdi, verdener, kandidater };
   }
   return null;
 }
@@ -285,14 +304,18 @@ export function utenMinne(
         return fil.endsWith("h0") || !budqMinne(fil) ? l : { navn: l.navn, felt: [`${fil}h0`] };
       }
       if (l.navn !== "sik:") return l;
-      const f = l.felt[2] ?? "";
-      const t = f.indexOf("~");
-      const vFelt = utenØktmotstander(t < 0 ? f : f.slice(0, t));
-      if (t < 0) return { navn: l.navn, felt: [l.felt[0]!, l.felt[1]!, vFelt] };
-      const sti = f.slice(t + 1).split("=")[1] ?? "";
+      const { vFelt: rå, par } = tildefelt(l.felt[2] ?? "");
       // «L» (lagmålet) står FORAN «~» (`24k32e3L~mlbu=…`), så den følger med i vFelt.
-      if (!leserMinne(sti)) return { navn: l.navn, felt: [l.felt[0]!, l.felt[1]!, vFelt + f.slice(t)] };
-      return { navn: l.navn, felt: [l.felt[0]!, l.felt[1]!, vFelt] };
+      const vFelt = utenØktmotstander(rå);
+      /**
+       * BARE TROEN MED BOK TAS UT. «~lik=» er ikke hukommelse: likelihooden leser DENNE
+       * rundens offentlige handlinger og spiller dem om i verdenen — ingenting krysser
+       * runder eller kamper. Tok nullarmen den også, ville K4/K6 målt likelihood-vekten i
+       * tillegg til hukommelsen, og hele differansen vært feilmerket.
+       */
+      const beholdt = par.filter((p) => !((p.art === "mlb" || p.art === "mlbu") && leserMinne(p.verdi)));
+      const hale = beholdt.map((p) => `~${p.art}=${p.verdi}`).join("");
+      return { navn: l.navn, felt: [l.felt[0]!, l.felt[1]!, vFelt + hale] };
     });
   let terminal = d.terminal;
   if (terminal.startsWith("mlb:")) {
