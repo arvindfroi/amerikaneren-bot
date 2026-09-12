@@ -1328,13 +1328,27 @@ def main() -> None:
                 # Ikke prefikset MODELL-/POLICY-: loekka griper `^MODELL-ANGER-HOLDOUT`, og en
                 # epokelinje med det prefikset ville blitt lest som sluttdommen.
                 print("  fase-anger " + " ".join(f"{f.lower()} {v:.4f}" for f, v in fase_naa.items()), flush=True)
-            if ho_anger < beste:
+            # ============ UTVALGET DOEMMER PAA BEGGE TALLENE (12. sep) ==============
+            #
+            # Agent Z: porten i loekka krever total anger OG SENT-anger bedre enn policyen, men
+            # utvalget saa bare totalen. Iterasjon 5 og 6 lagret epoker som strauk paa SENT
+            # (0.8447/0.8504 med SENT 0.3147/0.3098, og 0.8147/0.8221 med SENT 0.2891/0.2872),
+            # mens epoke 2 i iterasjon 6 BESTO begge (0.8171, SENT 0.2789). Det godkjente nettet
+            # fantes hver gang; utvalget kastet det. Naa maa en epoke slaa den beste totalen OG
+            # policyens SENT for aa bli skrevet.
+            #
+            # `fase_naa` er tom uten `--vekter` (ingen policy aa maale mot) - da er dette den
+            # gamle kodeveien, uendret.
+            sent_ok = (not fase_naa) or fase_naa["SENT"] <= pol_fase["SENT"]
+            if ho_anger < beste and sent_ok:
                 beste = ho_anger
                 beste_epoke = epoke + 1
                 siden = 0
                 skriv_vekter(ut, modell)
                 rad["lagret"] = True
             else:
+                if ho_anger < beste and not sent_ok:
+                    rad["forkastet_sent"] = round(fase_naa["SENT"], 5)
                 siden += 1
             logg.write(json.dumps(rad, ensure_ascii=False) + "\n")
             if siden >= args.taal:
