@@ -165,6 +165,7 @@ import {
   MLB_TRO_INN_S,
   troTrekkForBredde,
 } from "../src/mlb/trotrekk.ts";
+import { SEKV_FELT, SEKV_LENGDE, SEKV_MAKS, sekvensTrekk } from "../src/mlb/sekvens.ts";
 import { bordTekst, lesBord, slot, tilSeter } from "./drivere.ts";
 import { kanoniskAgent, type Loggpost } from "./naabart-tro.ts";
 import { MYK_GRENSE, MYK_UT, MykEtiketter, rolleAv, type MykUtfall } from "./myk-etikett.ts";
@@ -275,6 +276,31 @@ if (har("--myk-grense") && !MYK) throw new Error("--myk-grense gjelder bare --my
 const MYK_GRENSE_ARG = tall(arg("--myk-grense", String(MYK_GRENSE)), MYK_GRENSE);
 if (MYK && !(MYK_GRENSE_ARG >= 0)) throw new Error("--myk-grense må være ≥ 0");
 
+/**
+ * ===================== SONDEFLAGGENE (12. sep) ==========================
+ *
+ * Måleoppdraget: er flaskehalsen for K8 en MANGLENDE SANS, eller at boten ikke klarer å bruke
+ * sansene den alt har? Begge flaggene under skriver EGNE filer ved siden av korpuset, og rører
+ * ikke én byte i `UT`. Det er ikke en høflighet — løkka leser korpuset hver iterasjon, og en
+ * sonde som endret det, ville byttet ut treningsdataene til produksjonen mens den målte dem.
+ * `test/mlb-sekvens.test.ts` krever sha1-likhet med og uten flaggene.
+ *
+ *   --bordmerke  `<ut>.bord.json`: hvem satt i hvilken SLOT, rotasjonen, og båndets base/steg.
+ *                Etiketten «hvilken motstandertype satt i relativt sete r» er dermed en
+ *                funksjon av (frø, sete) ALENE — kampnummeret er `(frø − base) / steg`, og
+ *                slotten i setet er `(sete + kamp) mod 4`. Ingen rad trenger et eget felt, og
+ *                etiketten kan ikke lekke inn i trekkene fordi den ikke er i fila med dem.
+ *   --sekvens    `<ut>.sekv.bin`: den ordnede kortrekka per rad (`src/mlb/sekvens.ts`), i
+ *                NØYAKTIG samme radrekkefølge som korpuset. Til sonde B, som spør om
+ *                rekkefølgen bærer noe aggregatene ikke har.
+ */
+const BORDMERKE = har("--bordmerke");
+const SEKVENS = har("--sekvens");
+for (const n of ["--bordmerke", "--sekvens"]) {
+  // Begge hviler på kampnummeret og på at boka er kampens: uten `--kamp` finnes ingen av delene.
+  if (har(n) && !KAMP) throw new Error(`${n} krever --kamp: sonden merker kamper, ikke enkeltgiv`);
+}
+
 mkdirSync(dirname(UT), { recursive: true });
 const fd = openSync(UT, "w");
 {
@@ -290,14 +316,30 @@ const POST = DIM * 4 + 52 + 4 + 2 + 2 + (MYK ? 1 + 1 + MYK_UT * 4 : 0);
 const KLUMP = 512;
 const buf = Buffer.alloc(POST * KLUMP);
 let iKlump = 0;
+/** `--sekvens`: «MLBS», versjon, maks steg, felt per steg — og så n (i16) + 48 × 4 × i16 per rad. */
+const SEKV_POST = 2 + SEKV_LENGDE * 2;
+const sekvFd = SEKVENS ? openSync(`${UT}.sekv.bin`, "w") : -1;
+if (SEKVENS) {
+  const hode = Buffer.alloc(16);
+  hode.write("MLBS", 0, "ascii");
+  hode.writeInt32LE(1, 4);
+  hode.writeInt32LE(SEKV_MAKS, 8);
+  hode.writeInt32LE(SEKV_FELT, 12);
+  writeSync(sekvFd, hode);
+}
+const sekvBuf = SEKVENS ? Buffer.alloc(SEKV_POST * KLUMP) : Buffer.alloc(0);
 const tøm = (): void => {
-  if (iKlump > 0) writeSync(fd, buf, 0, POST * iKlump);
+  if (iKlump > 0) {
+    writeSync(fd, buf, 0, POST * iKlump);
+    // Samme `iKlump`, samme tømming: radene i de to filene kan ikke komme ut av takt.
+    if (SEKVENS) writeSync(sekvFd, sekvBuf, 0, SEKV_POST * iKlump);
+  }
   iKlump = 0;
 };
 
 let skrevet = 0;
 /** Én post: trekk, etikett, frø, stikk, sete. Felles for begge løkkene, så formatet er ett. */
-const skrivRad = (t: Float32Array, f: ArrayLike<number>, frø: number, stikk: number, sete: number, myk?: { rolle: number; p: Float32Array | null }): void => {
+const skrivRad = (t: Float32Array, f: ArrayLike<number>, frø: number, stikk: number, sete: number, myk?: { rolle: number; p: Float32Array | null }, sekv?: { n: number; v: Int16Array }): void => {
   let o = iKlump * POST;
   for (let i = 0; i < DIM; i++) {
     buf.writeFloatLE(t[i]!, o);
@@ -314,6 +356,14 @@ const skrivRad = (t: Float32Array, f: ArrayLike<number>, frø: number, stikk: nu
     buf.writeUInt8(myk.p === null ? 0 : 1, o + 9);
     // Bufferet gjenbrukes mellom klumpene: nullene skrives, de arves ikke.
     for (let i = 0; i < MYK_UT; i++) buf.writeFloatLE(myk.p === null ? 0 : myk.p[i]!, o + 10 + i * 4);
+  }
+  if (SEKVENS) {
+    if (sekv === undefined) throw new Error("--sekvens: raden mangler handlingsrekka");
+    let o2 = iKlump * SEKV_POST;
+    sekvBuf.writeInt16LE(sekv.n, o2);
+    o2 += 2;
+    // Bufferet gjenbrukes mellom klumpene: fyllverdiene skrives, de arves ikke.
+    for (let i = 0; i < SEKV_LENGDE; i++) sekvBuf.writeInt16LE(sekv.v[i]!, o2 + i * 2);
   }
   if (++iKlump === KLUMP) tøm();
   skrevet++;
@@ -467,8 +517,11 @@ if (MENNESKE) {
         if (harUkjente(f)) {
           // K2: visningen alene, og boka — som bare kjenner FERDIGE runder.
           const huk = medBok ? bok.vektor(sete, s.antallSpillere) : null;
-          const t = troTrekkForBredde(DIM, spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, huk);
-          if (myk === null) skrivRad(t, f, frø, s.stikkSpilt, sete);
+          const vis = spillerVisning(s, sete);
+          const t = troTrekkForBredde(DIM, vis, s.giving.antallStikk, s.regler.målPoeng, huk);
+          // Sonde B: rekka bygges av NØYAKTIG samme visning som trekkene, så K2 arves i stedet for å loves.
+          const sekv = SEKVENS ? sekvensTrekk(vis) : undefined;
+          if (myk === null) skrivRad(t, f, frø, s.stikkSpilt, sete, undefined, sekv);
           else {
             // Etiketten leser den vaskede loggen og skyggeagentene; inngangen over er urørt (K2).
             const rolle = rolleAv(s, sete);
@@ -494,6 +547,36 @@ if (MENNESKE) {
   }
   tøm();
   closeSync(fd);
+  if (SEKVENS) closeSync(sekvFd);
+  /**
+   * SONDEMERKET: skrevet av prosessen som FAKTISK spilte kampene, ikke gjenskapt av en leser.
+   * `spek` er per SLOT; slotten som satt i sete `s` i kamp `k` er `(s + k) mod 4` med rotasjon,
+   * og kampnummeret er `(frø − base) / steg`. Etiketten til sonde A følger av de to alene.
+   */
+  if (BORDMERKE) {
+    writeFileSync(
+      `${UT}.bord.json`,
+      JSON.stringify(
+        {
+          kandidat: SPEK,
+          spek: BORD.spek,
+          opptak: BORD.opptak,
+          rotasjon: BORD.rotasjon,
+          blandet: BORD.blandet,
+          band: BAND,
+          base: kb.base,
+          steg: kb.steg,
+          fra: FRA,
+          kamper: KAMPER,
+          skard: [SI, SN],
+          rader: skrevet,
+          sekvens: SEKVENS ? { maks: SEKV_MAKS, felt: SEKV_FELT } : null,
+        },
+        null,
+        1,
+      ),
+    );
+  }
   console.log(
     `\nSkard ${SI} ferdig: ${kamper} kamper (${kappet} stoppet på rundetaket ${MAKSRUNDER}), ${runder} runder, ` +
       `${skrevet} rader (${DIM} trekk${medBok ? ", med hukommelse" : ""}${SIGNAL ? ", med signalblokk" : ""}) -> ${UT}`,
