@@ -1,0 +1,74 @@
+Enhet: cuda (NVIDIA GeForce RTX 5080 Laptop GPU)
+Teller 223485 linjer i 20 filer (81s)
+KLIPPER til 273. Bredder funnet: {493: 20}
+Trekkbredde: 273 (v1)
+  /mnt/d/amb-grp/loop/iter6/kort/s0.jsonl: 9767 stillinger (totalt 9767)
+  /mnt/d/amb-grp/loop/iter6/kort/s1.jsonl: 13073 stillinger (totalt 22840)
+  /mnt/d/amb-grp/loop/iter6/kort/s10.jsonl: 15239 stillinger (totalt 38079)
+  /mnt/d/amb-grp/loop/iter6/kort/s11.jsonl: 9159 stillinger (totalt 47238)
+  /mnt/d/amb-grp/loop/iter6/kort/s12.jsonl: 9690 stillinger (totalt 56928)
+  /mnt/d/amb-grp/loop/iter6/kort/s13.jsonl: 13384 stillinger (totalt 70312)
+  /mnt/d/amb-grp/loop/iter6/kort/s14.jsonl: 8759 stillinger (totalt 79071)
+  /mnt/d/amb-grp/loop/iter6/kort/s15.jsonl: 10033 stillinger (totalt 89104)
+  /mnt/d/amb-grp/loop/iter6/kort/s16.jsonl: 12951 stillinger (totalt 102055)
+  /mnt/d/amb-grp/loop/iter6/kort/s17.jsonl: 9538 stillinger (totalt 111593)
+  /mnt/d/amb-grp/loop/iter6/kort/s18.jsonl: 9681 stillinger (totalt 121274)
+  /mnt/d/amb-grp/loop/iter6/kort/s19.jsonl: 14330 stillinger (totalt 135604)
+  /mnt/d/amb-grp/loop/iter6/kort/s2.jsonl: 9568 stillinger (totalt 145172)
+  /mnt/d/amb-grp/loop/iter6/kort/s3.jsonl: 9519 stillinger (totalt 154691)
+  /mnt/d/amb-grp/loop/iter6/kort/s4.jsonl: 13340 stillinger (totalt 168031)
+  /mnt/d/amb-grp/loop/iter6/kort/s5.jsonl: 8589 stillinger (totalt 176620)
+  /mnt/d/amb-grp/loop/iter6/kort/s6.jsonl: 11447 stillinger (totalt 188067)
+  /mnt/d/amb-grp/loop/iter6/kort/s7.jsonl: 14700 stillinger (totalt 202767)
+  /mnt/d/amb-grp/loop/iter6/kort/s8.jsonl: 11145 stillinger (totalt 213912)
+  /mnt/d/amb-grp/loop/iter6/kort/s9.jsonl: 9573 stillinger (totalt 223485)
+Leste 223485 stillinger, hoppet over 0 dubletter og 0 ugyldige, KLIPPET 223485 bredere rader ned til 273 (317s)
+
+=== OVERLAPP ===
+{
+  "mapper": {
+    "/mnt/d/amb-grp/loop/iter6/kort": {
+      "stillinger": 223485,
+      "givere": 500
+    }
+  },
+  "overlapp": {},
+  "froebaand": {
+    "/mnt/d/amb-grp/loop/iter6/kort": [
+      560000000,
+      563850783
+    ]
+  }
+}
+
+Giv-deling: 63 av 500 givere i /mnt/d/amb-grp/loop/iter6/kort → holdout (30549 stillinger). Ingen giver i to deler.
+  finjusterer fra e1-modell/kort-7.bin (lr 0.0001)
+
+=== kort-agZ-k273: /mnt/d/amb-grp/loop/iter6/kort, 273 → 512 → 384 → 256 → 52 (449204 parametre) – trening 192936, holdout 30549 ===
+START: hold-anger 0.8221, policy 0.8221 (treff 55.9 %), avvik mot vektfila 1.65e-06
+epoke 1/6: tren-tap 1.4079 hold-tap 1.4103 (gap +0.0024)  tren-anger 0.8093 hold-anger 0.8201 hold-treff 55.9 %
+  fase-anger tidlig 1.2345 midt 1.0640 sent 0.2820
+epoke 2/6: tren-tap 1.4075 hold-tap 1.4124 (gap +0.0049)  tren-anger 0.7993 hold-anger 0.8172 hold-treff 56.1 %
+  fase-anger tidlig 1.2269 midt 1.0628 sent 0.2807
+epoke 3/6: tren-tap 1.4062 hold-tap 1.4127 (gap +0.0066)  tren-anger 0.7891 hold-anger 0.8166 hold-treff 56.1 %
+  fase-anger tidlig 1.2240 midt 1.0570 sent 0.2871
+epoke 4/6: tren-tap 1.4065 hold-tap 1.4143 (gap +0.0077)  tren-anger 0.7839 hold-anger 0.8185 hold-treff 56.1 %
+  fase-anger tidlig 1.2278 midt 1.0599 sent 0.2865
+epoke 5/6: tren-tap 1.4066 hold-tap 1.4149 (gap +0.0083)  tren-anger 0.7809 hold-anger 0.8181 hold-treff 56.2 %
+  fase-anger tidlig 1.2256 midt 1.0598 sent 0.2871
+epoke 6/6: tren-tap 1.4066 hold-tap 1.4151 (gap +0.0084)  tren-anger 0.7806 hold-anger 0.8159 hold-treff 56.2 %
+  fase-anger tidlig 1.2218 midt 1.0578 sent 0.2858
+kort-agZ-k273 ferdig: beste hold-anger 0.8159 på epoke 6 → e1-modell/kort-agZ-k273.bin
+RADER tren 192936 holdout 30549 holdoutkamper 63
+FASE-RADER-HOLDOUT tidlig 7854 midt 11454 sent 11241
+BESTE-EPOKE 6
+START-AVVIK 1.65e-06
+POLICY-TREFF-HOLDOUT 0.5591
+MODELL-ANGER-HOLDOUT-TIDLIG 1.2218
+MODELL-ANGER-HOLDOUT-MIDT 1.0578
+MODELL-ANGER-HOLDOUT-SENT 0.2858
+POLICY-ANGER-HOLDOUT-TIDLIG 1.2457
+POLICY-ANGER-HOLDOUT-MIDT 1.0568
+POLICY-ANGER-HOLDOUT-SENT 0.2872
+MODELL-ANGER-HOLDOUT 0.8159
+POLICY-ANGER-HOLDOUT 0.8221
