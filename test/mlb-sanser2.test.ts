@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
 import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { spillerVisning, stikkvinner, type SpillerVisning } from "../src/motor.ts";
 import { lagRng, type Farge, type Kort } from "../src/kort.ts";
-import { AMERIKANER, SOLO } from "../src/regler.ts";
+import { AMERIKANER, PASS, SOLO } from "../src/regler.ts";
 import { lagIndre } from "../src/moe2/agentspek.ts";
 import { Hukommelse } from "../src/mlb/hukommelse.ts";
 import { MLB_STILLING, STILLINGINNGANG as SA, stillingTrekk } from "../src/mlb/stillingtrekk.ts";
@@ -161,8 +161,10 @@ test("breddene: 996 = 920 + 36 + 40, 323 = 287 + 36, og alle gamle bredder står
   assert.equal(MLB_VALGT_BORT, 40);
   assert.equal(MLB_TRO_INN_HS2, 996);
   assert.equal(BUDQ_INN_HS2, 323);
-  // 1028 = 996 + tempoblokken (12. sep, `test/mlb-tempo.test.ts`).
-  assert.deepEqual([...MLB_TRO_BREDDER], [660, 804, 776, 920, 996, 1028]);
+  // Over 996 ligger de to uavhengige sansene fra 12. sep: tempo (32) og auksjon (44), hver for
+  // seg og sammen. Se `test/mlb-tempo.test.ts`, `test/mlb-auksjonsrekke.test.ts` og stigen i
+  // `test/mlb-sanser-stigen.test.ts`.
+  assert.deepEqual([...MLB_TRO_BREDDER], [660, 804, 776, 920, 996, 1028, 1040, 1072]);
   assert.deepEqual(troKolonnekart(920, 996), [[0, 0, 660], [660, 660, 144], [804, 804, 116]]);
   assert.deepEqual(troKolonnekart(776, 920), [[0, 0, 660], [660, 804, 116]], "776 → 920 setter signalet på 804");
   assert.throws(() => troKolonnekart(776, 804), /signal.*finnes ikke/);
@@ -184,7 +186,13 @@ const BASIS: SpillerVisning = {
   totalPoeng: [0, 0, 0, 0],
   rundeNr: 1,
   giver: 3,
-  budrunde: { passet: [false, true, true, true], høyeste: { spiller: 0, bud: 8 }, sisteBud: [8, null, null, null] },
+  budrunde: {
+    passet: [false, true, true, true],
+    høyeste: { spiller: 0, bud: 8 },
+    sisteBud: [8, null, null, null],
+    // Rekka som gir nøyaktig aggregatene over: sete 0 bød 8, de tre andre passet.
+    rekke: [{ sete: 0, bud: 8 }, { sete: 1, bud: PASS }, { sete: 2, bud: PASS }, { sete: 3, bud: PASS }],
+  },
   budvinner: 0,
   melding: { type: "tall", bud: 8 },
   trumf: "S",
@@ -279,7 +287,12 @@ test("B, solo: lagene kjent fra start, kastet under motpartens trumf, og bordet 
     {
       ...BASIS,
       deg: 1,
-      budrunde: { passet: [false, true, true, true], høyeste: { spiller: 0, bud: SOLO }, sisteBud: [SOLO, null, null, null] },
+      budrunde: {
+        passet: [false, true, true, true],
+        høyeste: { spiller: 0, bud: SOLO },
+        sisteBud: [SOLO, null, null, null],
+        rekke: [{ sete: 1, bud: PASS }, { sete: 2, bud: PASS }, { sete: 3, bud: PASS }, { sete: 0, bud: SOLO }],
+      },
       melding: { type: "solo", bud: 0 },
       etterlyst: null,
     },
@@ -316,7 +329,12 @@ test("A: poeng, rang, avstand, budbehov og hvem som kan gå ut på hva — i bud
     melding: null,
     trumf: null,
     etterlyst: null,
-    budrunde: { passet: [false, false, false, false], høyeste: { spiller: 2, bud: AMERIKANER }, sisteBud: [null, 7, AMERIKANER, 12] },
+    budrunde: {
+      passet: [false, false, false, false],
+      høyeste: { spiller: 2, bud: AMERIKANER },
+      sisteBud: [null, 7, AMERIKANER, 12],
+      rekke: [{ sete: 1, bud: 7 }, { sete: 3, bud: 12 }, { sete: 2, bud: AMERIKANER }],
+    },
   };
   const a = stillingTrekk(bud, 12, 100);
   const s0 = celle(a, 1, 0, P);

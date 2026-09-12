@@ -100,7 +100,7 @@ function stillinger(frø: number, antall: number, maksRunder = 3): { s: GameStat
 test("breddene: 32 i blokken, 1028 = 996 + 32, og 996 → 1028 er nuller bakerst", () => {
   assert.equal(MLB_TEMPO, 32);
   assert.equal(MLB_TRO_INN_HS2T, 1028);
-  assert.deepEqual([...MLB_TRO_BREDDER], [660, 804, 776, 920, 996, 1028]);
+  assert.deepEqual([...MLB_TRO_BREDDER], [660, 804, 776, 920, 996, 1028, 1040, 1072]);
   // Hver blokk i 996 står der den sto: utvidelsen legger BARE nuller bakerst.
   assert.deepEqual(troKolonnekart(996, 1028), [[0, 0, 660], [660, 660, 144], [804, 804, 116], [920, 920, 36], [956, 956, 40]]);
   // En utvidelse som mister en blokk er ikke en utvidelse.

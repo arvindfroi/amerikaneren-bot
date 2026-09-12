@@ -52,7 +52,8 @@ INDEKS = {b: i for i, b in enumerate(BUD)}
 
 
 # 323 = 287 + stillingen per sete (sans A, `src/mlb/stillingtrekk.ts`), bakerst: 287 -> 323 er nuller bakerst.
-BREDDER = (143, 287, 323)
+# 367 = 323 + auksjonens rekkefoelge (sans C, `src/mlb/auksjonsrekke.ts`, 12. sep), ogsaa bakerst.
+BREDDER = (143, 287, 323, 367)
 
 
 def les(monster, blanding=0.0, dim=0):
@@ -177,8 +178,9 @@ def main():
     ap.add_argument("--rapport", default="")
     ap.add_argument("--blanding", type=float, default=0.0,
                     help="maal = q + blanding*qp: seiersmaal pluss en andel rundepoeng (krever qp i dataene)")
-    ap.add_argument("--dim", type=int, default=0, choices=[0, 143, 287, 323],
-                    help="trekkbredde; 0 = les av radene (143 uten, 287 med budq-data --hukommelse, 323 med --sanser2)")
+    ap.add_argument("--dim", type=int, default=0, choices=[0, 143, 287, 323, 367],
+                    help="trekkbredde; 0 = les av radene (143 uten, 287 med budq-data --hukommelse, "
+                         "323 med --sanser2, 367 med --auksjon)")
     ap.add_argument("--vekter", default="",
                     help="start fra dette nettet (appformat); et smalere nett utvides med nullkolonner bakerst")
     # BARE UTVIDELSEN (11. sep): CPU, ingen data, ingen trening. --vekter utvidet til --dim skrives til --ut,

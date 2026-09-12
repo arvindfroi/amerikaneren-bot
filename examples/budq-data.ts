@@ -79,6 +79,14 @@ const HUKOMMELSE = process.argv.includes("--hukommelse");
  */
 const SANSER2 = process.argv.includes("--sanser2");
 if (SANSER2 && !HUKOMMELSE) throw new Error("--sanser2 ligger bak motstanderboka: krever --hukommelse");
+/**
+ * `--auksjon` (12. sep): auksjonens rekkefølge (`src/mlb/auksjonsrekke.ts`) bakerst etter
+ * stillingsblokken, 323 → 367. Krever `--sanser2` av samme grunn som den krever `--hukommelse`:
+ * blokken ligger BAK de andre, så et 323-nett kan utvides med nullkolonner bakerst. Uten
+ * flagget er utdataene byte-identiske med før (`test/mlb-auksjonsrekke.test.ts`, sha1).
+ */
+const AUKSJON = process.argv.includes("--auksjon");
+if (AUKSJON && !SANSER2) throw new Error("--auksjon ligger bak stillingsblokken: krever --sanser2");
 /** Én spek per sete; uten `--drivere` fire ganger `SPEK`, alle registrert (se `drivere.ts`). */
 const BORD = lesBord(process.argv, SPEK);
 const prediktor = SEIER === "" ? null : Seiersprediktor.fraFil(SEIER);
@@ -181,7 +189,7 @@ for (let g = 0; g < KAMPER; g++) {
               sete,
               maal: prediktor === null ? "poeng" : "seier",
               policy: h.type === "BUD" ? String(h.bud) : null,
-              x: [...budqTrekk(s, sete, bøker?.[sete] ?? null, SANSER2)].map((x) => Math.round(x * 10_000) / 10_000),
+              x: [...budqTrekk(s, sete, bøker?.[sete] ?? null, SANSER2, AUKSJON)].map((x) => Math.round(x * 10_000) / 10_000),
               q,
               ...(prediktor === null ? {} : { qp }),
             }) + "\n",

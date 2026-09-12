@@ -163,8 +163,11 @@ import {
   MLB_TRO_INN_H,
   MLB_TRO_INN_HS,
   MLB_TRO_INN_HS2,
+  MLB_TRO_INN_HS2A,
   MLB_TRO_INN_HS2T,
+  MLB_TRO_INN_HS2TA,
   MLB_TRO_INN_S,
+  MLB_TRO_LAYOUT,
   troTrekkForBredde,
 } from "../src/mlb/trotrekk.ts";
 import { Tempobok } from "../src/mlb/tempotrekk.ts";
@@ -268,11 +271,9 @@ if (SANSER2 && !((KAMP || MENNESKE) && HUKOMMELSE && SIGNAL)) {
   throw new Error("--sanser2 legger 76 trekk bak 920: krever --hukommelse --signal og --kamp eller --menneske");
 }
 /**
- * `--tempo` (12. sep): TENKETIDEN til de andre setene bakerst etter 996, altså 1028 trekk
+ * `--tempo` (12. sep): TENKETIDEN til de andre setene bakerst etter 996, 32 trekk
  * (`src/mlb/tempotrekk.ts`). Krever `--menneske` og `--sanser2`: tidene finnes BARE i
- * menneskeloggen — selvspill har ingen — og det finnes bare én tempobredde, 1028, slik at
- * et 996-nett utvidet med nullkolonner gir nøyaktig samme svar. Uten flagget er radene
- * byte-identiske med før.
+ * menneskeloggen — selvspill har ingen. Uten flagget er radene byte-identiske med før.
  *
  * BOKA BÆRER BARE FERDIGE RUNDER, nøyaktig som `Hukommelse`: en rad i runde r ser tidene
  * fra runde < r. Det er strengere enn det som er lovlig — et menneske ved bordet ser jo
@@ -285,13 +286,43 @@ const TEMPO = har("--tempo");
 if (TEMPO && !(MENNESKE && SANSER2)) {
   throw new Error("--tempo legger 32 trekk bak 996: krever --sanser2, og --menneske (bare menneskeloggen har tider)");
 }
+/**
+ * `--auksjon` (12. sep): auksjonens rekkefølge (`src/mlb/auksjonsrekke.ts`) bakerst, 44 trekk.
+ * Krever `--sanser2` (og dermed `--hukommelse --signal` og hele kamper). Uten flagget er radene
+ * byte-identiske med før — `test/mlb-auksjonsrekke.test.ts` sha1-prøver det.
+ *
+ * NB for menneskerader: loggen bærer IKKE rekkefølgen (se `menneske-logg.ts`), så auksjonen i en
+ * gjenskapt menneskerunde er syntetisk — budgivernes vaner, ikke menneskets. `--auksjon --menneske`
+ * er derfor lovlig, men det er ikke det samme datasettet som `--auksjon --kamp`.
+ */
+const AUKSJON = har("--auksjon");
+if (AUKSJON && !SANSER2) throw new Error("--auksjon legger 44 trekk bak 996: krever --sanser2");
+/**
+ * BREDDEN ER SUMMEN AV FLAGGENE, ikke det siste flagget som ble satt. De to sansene fra 12. sep
+ * er uavhengige: 996, 1028 (tempo), 1040 (auksjon) og 1072 (begge) er alle lovlige, og ingen av
+ * dem rører de 996 første trekkene. Skrevet som en kjede der tempo står FØRST i begge grenene,
+ * så rekkefølgen her er den samme som blokkenes rekkefølge i `MLB_TRO_LAYOUT`.
+ */
 const DIM = TEMPO
-  ? MLB_TRO_INN_HS2T
+  ? AUKSJON ? MLB_TRO_INN_HS2TA : MLB_TRO_INN_HS2T
+  : AUKSJON
+  ? MLB_TRO_INN_HS2A
   : SANSER2
   ? MLB_TRO_INN_HS2
   : SIGNAL
   ? HUKOMMELSE ? MLB_TRO_INN_HS : MLB_TRO_INN_S
   : HUKOMMELSE ? MLB_TRO_INN_H : MLB_TRO_INN;
+
+/**
+ * LESER DENNE BREDDEN BOKA? Slått opp i layouten, aldri i en håndholdt liste av bredder.
+ *
+ * Lista sto to steder (menneskegrenen og kampgrenen) og var UENIGE: kampgrenen hadde 996,
+ * menneskegrenen stoppet på 920. `--menneske --sanser2` skrev derfor 996-rader med en NULLET
+ * hukommelsesblokk — 144 av de 996 trekkene borte, ingen feilmelding, og et menneskekorpus som
+ * ikke kunne blandes med selvspillkorpuset det skulle utfylle. `--tempo` arvet feilen (1028 sto
+ * i ingen av listene). Med fire bredder over 996 er det ikke lenger en liste å vedlikeholde.
+ */
+const MED_BOK = (MLB_TRO_LAYOUT[DIM] ?? []).some(([n]) => n === "hukommelse");
 
 /** `--myk` (se toppen): posterioren som etikett der den er nåbar, versjon 2. Bare hele kamper med agenter. */
 const MYK = har("--myk");
@@ -451,7 +482,7 @@ const t0 = Date.now();
 if (MENNESKE) {
   const ETTER = arg("--etter", MENNESKE_FRA);
   const budgivere = [0, 1, 2, 3].map(() => lagIndre(arg("--budspek", V5_KJEDE)));
-  const medBok = DIM === MLB_TRO_INN_H || DIM === MLB_TRO_INN_HS;
+  const medBok = MED_BOK;
   const teller = nyTeller();
   let kamper = 0;
   /** `--tempo`: hvor mye loggen FAKTISK bar, skrevet ut så ingen tror korpuset er fullt av tider. */
@@ -539,7 +570,9 @@ if (MENNESKE) {
   console.log(`\nSkard ${SI} ferdig: ${skrevet} rader (${DIM} trekk${SIGNAL ? ", med signalblokk" : ""}) -> ${UT}`);
 } else {
   const kb = KAMP_BÅND[BAND]!;
-  const medBok = DIM === MLB_TRO_INN_H || DIM === MLB_TRO_INN_HS || DIM === MLB_TRO_INN_HS2;
+  // Se `MED_BOK`: lista som sto her var én bredde bak, og et korpus med en nullet
+  // hukommelsesblokk ser helt riktig ut. Målt 12. sep: første avvik i post 27.
+  const medBok = MED_BOK;
   let runder = 0;
   let kamper = 0;
   let kappet = 0;
