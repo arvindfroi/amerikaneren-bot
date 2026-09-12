@@ -53,6 +53,7 @@ import { lagInn, ANTALL_INN as NEAT_INN } from "../neat/trekk.ts";
 import { kortIndeks } from "../nevro/trekk.ts";
 import { MLB_AUKSJON, auksjonsrekkeTrekk } from "./auksjonsrekke.ts";
 import { MLB_OVERRASKELSE, overraskelseTrekk } from "./overraskelse.ts";
+import { aktivReferanse } from "./refpolicy.ts";
 import { MLB_TRO_SIGNAL, signalTrekk } from "./signaltrekk.ts";
 import { MLB_STILLING, stillingTrekk } from "./stillingtrekk.ts";
 import { MLB_TEMPO, tempofaseAv, tempoTrekk, type Tempobok } from "./tempotrekk.ts";
@@ -431,7 +432,10 @@ export function troTrekkForBredde(
     for (const [navn, lengde] of MLB_TRO_LAYOUT[bredde] ?? []) {
       if (navn === "tempo") v.set(tempoTrekk(visning, tempo, tempofaseAv(visning.fase) ?? "S"), o);
       else if (navn === "auksjon") v.set(auksjonsrekkeTrekk(visning), o);
-      else if (navn === "overraskelse") v.set(overraskelseTrekk(visning), o);
+      // ANDRE FORSØK (13. sep): referansepolicyen er et ARGUMENT, og generatoren bruker den
+      // aktive (`AMB_OVERRASKELSE_REF`, standard nettreferansen). Et kall uten policy gir
+      // fortsatt den grådige ordningen, så første forsøks tall kan gjenskapes.
+      else if (navn === "overraskelse") v.set(overraskelseTrekk(visning, antallStikk, målPoeng, aktivReferanse()), o);
       o += lengde;
     }
     return v;

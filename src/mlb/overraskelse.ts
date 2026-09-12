@@ -21,7 +21,20 @@
  * her scores valget mot den OFFENTLIGE alternativmengden i stedet. Det er den ærlige
  * tilskuerversjonen av det samme spørsmålet, ikke det samme tallet.
  *
- * ===================== REFERANSEPOLICYEN ER MOTORENS EGEN ORDNING ========
+ * ===================== ANDRE FORSØK: REFERANSEN ER BYTTET UT (13. sep) ===
+ *
+ * Første forsøk målte NULL — holdout 0,95817 uten mot 0,95819 med, snitt over tre frø, mot et
+ * spenn mellom frø på 0,0012. Diagnosen var referansepolicyen, ikke håndverket: den grådige
+ * ordningen under er så forutsigbar at overraskelsen den måler nesten er en funksjon av
+ * kortrangene, og dem ser nettet allerede.
+ *
+ * Policyen er derfor gjort til et ARGUMENT (`src/mlb/refpolicy.ts`). Alt annet står: samme 48
+ * trekk, samme ekvivalensklasser, samme vindu, samme layout, samme klemming. Da er målingen en
+ * ren sammenlikning av to referanser. Standarden i generatoren er nettreferansen
+ * (`aktivReferanse()`); den grådige står igjen som `GRÅDIG` og er fortsatt standarden for et
+ * kall med ett argument, slik at første forsøks tall kan gjenskapes.
+ *
+ * ===================== REFERANSEPOLICYEN I FØRSTE FORSØK ================
  *
  * Ingen ny håndskrevet heuristikk. `genererOgOrdne` (`src/solver/dds.ts`) er søkets egen
  * deterministiske trekkordning — «vinn så billig som mulig, ellers kast billigst, men ikke
@@ -110,6 +123,7 @@
 
 import { FARGER, type Kort } from "../kort.ts";
 import type { KortPåBord, SpillerVisning } from "../motor.ts";
+import { GRÅDIG, GRÅDIG_GRUPPE, GRÅDIG_TEMP, type Referansepolicy } from "./refpolicy.ts";
 
 export const OVERRASKELSE_PER_SETE = 14;
 /** Bare relativt sete 1, 2, 3 — se toppen. Sete 0 har ingen plass her. */
@@ -149,10 +163,13 @@ const F_ANDEL_TVUNGET = 5;
  * nok til at snittene betyr noe uten at blokken vokser.
  */
 export const OVERRASKELSE_VINDU = 12;
-/** Softmax-temperaturen. Den ENE frie konstanten i fila — se toppen. */
-export const OVERRASKELSE_TEMP = 4;
+/**
+ * Softmax-temperaturen i den GRÅDIGE referansen. Bor i `refpolicy.ts` sammen med regelen den
+ * hører til, og re-eksporteres her så første forsøks prøver og tall står uendret.
+ */
+export const OVERRASKELSE_TEMP = GRÅDIG_TEMP;
 /** Straffen for å bryte policyens gruppe. Én hel rangstige = minste verdi som bevarer ordningen. */
-export const OVERRASKELSE_GRUPPE = 13;
+export const OVERRASKELSE_GRUPPE = GRÅDIG_GRUPPE;
 /** −log π klemmes mot dette. Et gruppebrudd koster 13/4 ≈ 3,25 nat, og et bredt valg ~2,5 til. */
 export const OVERRASKELSE_LOGTAK = 8;
 /** Entropien deles på log 13: en helt flat fordeling over en hel farge er 1. */
@@ -190,8 +207,6 @@ export const OVERRASKELSEINNGANG = {
 
 const fargeAv = (k: Kort): number => FARGER.indexOf(k.farge);
 const indeks = (k: Kort): number => fargeAv(k) * 13 + (k.verdi - 2);
-/** Samme rang som `rangAv` i `dds.ts`: kortindeks mod 13, altså 0 for toer og 12 for ess. */
-const rangAv = (c: number): number => c % 13;
 
 /** Slår `ny` det som holder stikket? Samme regel som `slårKort` i motoren og `slår` i dds. */
 function slår(ny: Kort, holder: Kort, ledFarge: number, trumf: number): boolean {
@@ -204,21 +219,8 @@ function slår(ny: Kort, holder: Kort, ledFarge: number, trumf: number): boolean
   return ny.verdi > holder.verdi;
 }
 
-/** Slår kortindeksen `c` det som holder stikket? Samme regel, på indeks i stedet for `Kort`. */
-function slårIndeks(c: number, holder: number, ledFarge: number, trumf: number): boolean {
-  const nf = Math.floor(c / 13);
-  const hf = Math.floor(holder / 13);
-  const nt = nf === trumf;
-  const ht = hf === trumf;
-  if (nt !== ht) return nt;
-  if (nt) return rangAv(c) > rangAv(holder);
-  if (nf !== ledFarge) return false;
-  if (hf !== ledFarge) return true;
-  return rangAv(c) > rangAv(holder);
-}
-
 /** Ett scoret valg, slik en tilskuer kunne regnet det ut. */
-interface Valg {
+export interface Valg {
   /** −log π(det spilte kortets ekvivalensklasse), i nat. */
   readonly logp: number;
   /** Entropien i π, i nat. */
@@ -235,7 +237,18 @@ interface Valg {
  * Før trumfen er valgt finnes ingen policy å måle mot, og blokken er null — den ærlige
  * verdien, og nøyaktig det et smalere nett ser der den nye blokken skulle stått.
  */
-export function overraskelseTrekk(visning: SpillerVisning): Float32Array {
+export function overraskelseTrekk(
+  visning: SpillerVisning,
+  antallStikk: number = 12,
+  målPoeng: number = 100,
+  policy: Referansepolicy = GRÅDIG,
+  /**
+   * SONDEKROKEN: fylles med de scorede valgene per absolutt sete, om den er gitt. Sondene
+   * (`_probe-ref2.ts`) måler referansene på NØYAKTIG de tallene blokka bygges av — en egen
+   * kopi av løkka i sonden ville målt en annen policy enn den som havner i korpuset.
+   */
+  utValg?: Valg[][],
+): Float32Array {
   const v = new Float32Array(MLB_OVERRASKELSE);
   const n = visning.antallKort.length;
   if (n !== 4) throw new Error(`Overraskelsesblokken er bygd for fire spillere, fikk ${n}`);
@@ -428,26 +441,46 @@ export function overraskelseTrekk(visning: SpillerVisning): Float32Array {
         continue;
       }
 
-      // --- Policyen: motorens egen ordning, softmax-et ----------------------
+      /**
+       * --- Policyen scorer klassene; SOFTMAXEN ER FELLES --------------------
+       *
+       * Referansen leverer ett poeng per klasse, alt delt på SIN temperatur. Alt etterpå —
+       * softmax, entropi, rang, klemming — er felles for alle referanser. Det er hele grunnen
+       * til at de to armene kan sammenliknes: bare poengfunksjonen skiller dem.
+       */
       const makkerVinner = j > 0 && kjentMakker(a, holder.spiller, i);
-      const holderIndeks = indeks(holder.kort);
-      for (let q = 0; q < antKlasser; q++) {
-        const x = rep[q]!;
-        if (j === 0) {
-          nøkkel.push(12 - rangAv(x)); // høyt kort først
-        } else {
-          const vinner = slårIndeks(x, holderIndeks, ledFarge, trumf);
-          const vil = makkerVinner ? !vinner : vinner;
-          nøkkel.push((vil ? 0 : OVERRASKELSE_GRUPPE) + rangAv(x));
-        }
-      }
-      let minste = Infinity;
-      for (let q = 0; q < antKlasser; q++) minste = Math.min(minste, nøkkel[q]!);
+      nøkkel.length = antKlasser;
+      // Håndstørrelsen DA valget ble tatt: det hun har nå, pluss det hun har spilt siden.
+      let håndStørrelse = visning.antallKort[a] ?? 0;
+      for (let x = 0; x < 52; x++) if (spiltAv[x] === a && spiltVed[x]! >= i) håndStørrelse++;
+      policy.poeng(
+        {
+          visning,
+          sete: a,
+          stikk: s,
+          pos: j,
+          ledFarge: j === 0 ? -1 : ledFarge,
+          holder: j === 0 ? -1 : indeks(holder.kort),
+          makkerVinner,
+          trumf,
+          antallStikk,
+          målPoeng,
+          stikkene,
+          kandidater: kandidat,
+          håndStørrelse,
+          makkerKjent: i > avsløring,
+          makker,
+        },
+        rep,
+        nøkkel,
+      );
+      let størst = -Infinity;
+      for (let q = 0; q < antKlasser; q++) størst = Math.max(størst, nøkkel[q]!);
       let sum = 0;
       // `w` gjenbrukes ikke mellom valg: antall klasser varierer, og en gammel hale ville telt med.
       const w: number[] = [];
       for (let q = 0; q < antKlasser; q++) {
-        const e = Math.exp(-(nøkkel[q]! - minste) / OVERRASKELSE_TEMP);
+        const e = Math.exp(nøkkel[q]! - størst);
         w.push(e);
         sum += e;
       }
@@ -455,12 +488,14 @@ export function overraskelseTrekk(visning: SpillerVisning): Float32Array {
       let pValgt = 0;
       let entropi = 0;
       let rang = 0;
-      const nøkkelValgt = nøkkel[rep.indexOf(valgtKlasse)] ?? 0;
+      const poengValgt = nøkkel[rep.indexOf(valgtKlasse)] ?? 0;
       for (let q = 0; q < antKlasser; q++) {
         const p = w[q]! / sum;
         if (p > 0) entropi -= p * Math.log(p);
         if (rep[q] === valgtKlasse) pValgt = p;
-        if (nøkkel[q]! < nøkkelValgt) rang++;
+        // HØYERE poeng = mer sannsynlig, altså foran i rangeringen (den grådige nøkkelen
+        // gikk andre veien; `GRÅDIG` snur den selv, så denne linja er felles).
+        if (nøkkel[q]! > poengValgt) rang++;
       }
       perSete[a]!.push({
         logp: pValgt > 0 ? -Math.log(pValgt) : OVERRASKELSE_LOGTAK,
@@ -471,6 +506,9 @@ export function overraskelseTrekk(visning: SpillerVisning): Float32Array {
       oppdaterHolder();
     }
   }
+
+  // Sondekroken: de rå valgene, før klemming og aggregering (se signaturen).
+  if (utValg !== undefined) for (let p = 0; p < n; p++) utValg[p] = perSete[p]!;
 
   // --- Fyll blokken ---------------------------------------------------------
   const klem = (x: number): number => Math.max(0, Math.min(1, x));
