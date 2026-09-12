@@ -1,0 +1,27 @@
+FARGESYMMETRI — 3529 stillinger fra 12 kamper (frø 770000000), tro analyse/agX-tro-B2.bin, kort e1-modell/kort-7.bin
+Bytter per stilling: snitt 5.00
+
+TRO  TV per usett kort    0.0906 ± 0.0006  (klynget på kamp, 3529 stillinger)
+TRO  argmaks-skifte       0.2839 ± 0.0033  (klynget på kamp, 3529 stillinger)
+KORT TV over lovlige      0.0722 ± 0.0010  (klynget på kamp, 3529 stillinger)
+KORT valgt kort skifter   0.3742 ± 0.0067  (klynget på kamp, 3529 stillinger)
+
+PER ROLLE:
+  foerer   n= 1006  troTV 0.0862±0.0012  troARG 0.3807±0.0041  kortTV 0.0889±0.0016  kortVALG 0.3638±0.0109
+  makker   n=  791  troTV 0.0940±0.0010  troARG 0.2462±0.0036  kortTV 0.0607±0.0014  kortVALG 0.4180±0.0127
+  forsvar  n= 1732  troTV 0.0916±0.0007  troARG 0.2449±0.0023  kortTV 0.0678±0.0010  kortVALG 0.3603±0.0086
+
+PER STIKK:
+  stikk  0  n=  250  troTV 0.0370±0.0009  troARG 0.3636±0.0089  kortTV 0.0310±0.0013  kortVALG 0.2744±0.0214
+  stikk  1  n=  316  troTV 0.0514±0.0006  troARG 0.3106±0.0068  kortTV 0.0526±0.0018  kortVALG 0.4013±0.0202
+  stikk  2  n=  333  troTV 0.0678±0.0009  troARG 0.3248±0.0062  kortTV 0.0660±0.0022  kortVALG 0.4246±0.0202
+  stikk  3  n=  336  troTV 0.0812±0.0008  troARG 0.3346±0.0056  kortTV 0.0701±0.0026  kortVALG 0.4482±0.0205
+  stikk  4  n=  335  troTV 0.0922±0.0008  troARG 0.3220±0.0054  kortTV 0.0751±0.0024  kortVALG 0.4203±0.0190
+  stikk  5  n=  329  troTV 0.1014±0.0008  troARG 0.3025±0.0053  kortTV 0.0770±0.0022  kortVALG 0.4298±0.0204
+  stikk  6  n=  323  troTV 0.1066±0.0010  troARG 0.2842±0.0054  kortTV 0.0782±0.0023  kortVALG 0.4632±0.0203
+  stikk  7  n=  328  troTV 0.1105±0.0009  troARG 0.2726±0.0058  kortTV 0.0789±0.0021  kortVALG 0.3982±0.0192
+  stikk  8  n=  331  troTV 0.1132±0.0011  troARG 0.2392±0.0060  kortTV 0.0828±0.0025  kortVALG 0.3625±0.0188
+  stikk  9  n=  320  troTV 0.1158±0.0013  troARG 0.2129±0.0066  kortTV 0.0901±0.0029  kortVALG 0.3056±0.0175
+  stikk 10  n=  328  troTV 0.1066±0.0017  troARG 0.1720±0.0075  kortTV 0.0827±0.0031  kortVALG 0.1616±0.0144
+
+KANONISERING: 871 av 3529 stillinger (24.7 %) har minst ett par frie farger som er PUBLIKT uskillelige — der faller kanoniseringen tilbake på den faste fargerekkefølgen, og restasymmetrien blir stående.
