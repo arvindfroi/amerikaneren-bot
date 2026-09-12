@@ -439,28 +439,35 @@ def main():
     # ===================== DEN PARREDE DOMMEN =====================
     # Negativ forskjell = rekka HJELPER (K8 er et tap). Alt leses mot den parrede SE-en.
     resultat["parret"] = {}
-    if "agg" in valgt:
-        for navn in navn_armer:
-            if navn == "agg":
+
+    # HVILKE PAR. Alt maales foerst mot (a), som er produksjonens inngang i dag.
+    par_liste = [(navn, "agg") for navn in navn_armer if navn != "agg" and "agg" in valgt]
+    # ORDEN MOT KAPASITET - den avgjoerende sammenlikningen. (b) - (a) blander to ting: rekka OG
+    # de 853 568 ekstra vektene rekkeleseren bringer med seg. (b) - (d) holder vektene faste og
+    # lar BARE rekka variere. En differanse av to punktanslag ville ikke hatt noen SE; denne
+    # bootstrappes paa de samme radene som alt annet, saa den kan leses mot en spredning.
+    if "agg+" in valgt and "agg+rekke" in valgt:
+        par_liste.append(("agg+rekke", "agg+"))
+
+    for mal, ref in par_liste:
+        d, se = parret_bootstrap(valgt[ref]["sum"], valgt[ref]["ant"], valgt[mal]["sum"], valgt[mal]["ant"], KL)
+        post = {"diff": round(d, 5), "se": round(se, 5), "z": round(d / se, 2) if se and se == se and se > 0 else None,
+                "per_rolle": {}, "per_stikk": {}}
+        for r in range(3):
+            m = RO == r
+            if not bool(m.any()):
                 continue
-            d, se = parret_bootstrap(valgt["agg"]["sum"], valgt["agg"]["ant"], valgt[navn]["sum"], valgt[navn]["ant"], KL)
-            post = {"diff": round(d, 5), "se": round(se, 5), "z": round(d / se, 2) if se and se == se and se > 0 else None,
-                    "per_rolle": {}, "per_stikk": {}}
-            for r in range(3):
-                m = RO == r
-                if not bool(m.any()):
-                    continue
-                dd, ss = parret_bootstrap(valgt["agg"]["sum"][m], valgt["agg"]["ant"][m], valgt[navn]["sum"][m], valgt[navn]["ant"][m], KL[m])
-                post["per_rolle"][ROLLER[r]] = {"diff": round(dd, 5), "se": round(ss, 5)}
-            for s_ in range(13):
-                m = ST == s_
-                if not bool(m.any()) or valgt["agg"]["ant"][m].sum() == 0:
-                    continue
-                dd, ss = parret_bootstrap(valgt["agg"]["sum"][m], valgt["agg"]["ant"][m], valgt[navn]["sum"][m], valgt[navn]["ant"][m], KL[m])
-                post["per_stikk"][str(s_)] = {"diff": round(dd, 5), "se": round(ss, 5)}
-            resultat["parret"]["%s - agg" % navn] = post
-            print("\nPARRET %s - agg: %.5f +/- %.5f nat  (negativt = rekka hjelper)" % (navn, d, se), flush=True)
-            skriv_json()
+            dd, ss = parret_bootstrap(valgt[ref]["sum"][m], valgt[ref]["ant"][m], valgt[mal]["sum"][m], valgt[mal]["ant"][m], KL[m])
+            post["per_rolle"][ROLLER[r]] = {"diff": round(dd, 5), "se": round(ss, 5)}
+        for s_ in range(13):
+            m = ST == s_
+            if not bool(m.any()) or valgt[ref]["ant"][m].sum() == 0:
+                continue
+            dd, ss = parret_bootstrap(valgt[ref]["sum"][m], valgt[ref]["ant"][m], valgt[mal]["sum"][m], valgt[mal]["ant"][m], KL[m])
+            post["per_stikk"][str(s_)] = {"diff": round(dd, 5), "se": round(ss, 5)}
+        resultat["parret"]["%s - %s" % (mal, ref)] = post
+        print("\nPARRET %s - %s: %.5f +/- %.5f nat  (negativt = rekka hjelper)" % (mal, ref, d, se), flush=True)
+        skriv_json()
 
     skriv_json()
     # RAPPORTEN SKRIVES AV PROSESSEN SELV (langkjoeringer skal ikke leve i et stdout-roer).

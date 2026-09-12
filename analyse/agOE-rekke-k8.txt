@@ -12,3 +12,18 @@ trening 91875 rader, holdout 29125 rader i 90 kamper, 3 froe per arm, opptil 60 
   PARRET agg+ - agg         0.00061 +/- 0.00039 nat (negativt = rekka hjelper)
   PARRET agg+rekke - agg    0.00115 +/- 0.00051 nat (negativt = rekka hjelper)
   PARRET rekke - agg        0.00776 +/- 0.00093 nat (negativt = rekka hjelper)
+
+=== agOE: baerer den ordnede kortrekka noe paa K8? (2026-09-12 18:18) ===
+trening 91875 rader, holdout 29125 rader i 90 kamper, 3 froe per arm, opptil 60 epoker
+  agg          K8 0.99715 +/- 0.00171  (epoke 4, 2308560 parametre, froe [0.99834, 0.99933, 0.99715])
+      per rolle: budvinner 1.08401 +/- 0.00132  makker 0.94736 +/- 0.00314  motspiller 0.95077 +/- 0.00195
+  agg+         K8 0.99776 +/- 0.00174  (epoke 4, 3167280 parametre, froe [0.99966, 1.00009, 0.99776])
+      per rolle: budvinner 1.08599 +/- 0.00137  makker 0.94902 +/- 0.00291  motspiller 0.94971 +/- 0.00196
+  agg+rekke    K8 0.99810 +/- 0.00174  (epoke 4, 3161920 parametre, froe [0.99954, 1.00375, 0.9981])
+      per rolle: budvinner 1.08769 +/- 0.00139  makker 0.94786 +/- 0.00300  motspiller 0.94969 +/- 0.00196
+  rekke        K8 1.00427 +/- 0.00180  (epoke 9, 853568 parametre, froe [1.00427, 1.00663, 1.00746])
+      per rolle: budvinner 1.08715 +/- 0.00096  makker 0.95854 +/- 0.00354  motspiller 0.95911 +/- 0.00234
+  PARRET agg+ - agg         0.00061 +/- 0.00039 nat (negativt = rekka hjelper)
+  PARRET agg+rekke - agg    0.00095 +/- 0.00047 nat (negativt = rekka hjelper)
+  PARRET rekke - agg        0.00712 +/- 0.00093 nat (negativt = rekka hjelper)
+  PARRET agg+rekke - agg+   0.00034 +/- 0.00051 nat (negativt = rekka hjelper)
