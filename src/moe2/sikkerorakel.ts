@@ -57,6 +57,7 @@
 
 import { spillerVisning, type GameState, type Handling } from "../motor.ts";
 import { lagRng } from "../kort.ts";
+import type { Verden } from "../solver/sampler.ts";
 import { vurderPar, type ParResultat } from "./sdpar.ts";
 import type { Søketro } from "./soketro.ts";
 import { lagMål, type Utspiller } from "./sdkort.ts";
@@ -110,6 +111,15 @@ export interface SikkerOpts {
    * da går strømmen som før, bit for bit.
    */
   readonly visningsfrø?: boolean;
+  /**
+   * LIKELIHOOD-VEKTEN (`~lik=` i speken, 12. sep): vektfunksjonen for DENNE beslutningen,
+   * eller null når vinduet ikke har én observert handling fra et annet sete. Bygges av
+   * kalleren — se `lagLikvekt` i `likvekt.ts`.
+   *
+   * Samme form som `tro.vektFor`, og med vilje: begge er «en vekt per beslutning», og de
+   * LEGGES SAMMEN i `vurderPar`. Udefinert = av, bit-identisk.
+   */
+  readonly likFor?: (state: GameState, sete: number) => ((v: Verden) => number) | null;
 }
 
 /**
@@ -225,6 +235,8 @@ export class Sikkerorakel {
   readonly motpartFor: ((sete: number) => Utspiller) | null;
   /** `D`: frøet utledes av visningen per beslutning. Offentlig for loggen og prøvene. */
   readonly visningsfrø: boolean;
+  /** `~lik=`: likelihood-vekten, eller null. Offentlig for prøvene: speken skal kunne bevises koblet. */
+  readonly likFor: ((state: GameState, sete: number) => ((v: Verden) => number) | null) | null;
   /** `L`: utspillingene måles med lagmålet. Offentlig for kortdataene, som skriver hvilket mål verdiene har. */
   readonly lagmål: boolean;
   private readonly frø: number;
@@ -245,6 +257,7 @@ export class Sikkerorakel {
     this.rng = lagRng(this.frø);
     this.motpartFor = opts.motpartFor ?? null;
     this.visningsfrø = opts.visningsfrø === true;
+    this.likFor = opts.likFor ?? null;
     this.verdenKandidater = opts.verdenKandidater ?? 3;
     this.verdenKombi = opts.verdenKombi ?? "snitt";
     this.spillvekt = opts.spillvekt === true;
@@ -299,6 +312,7 @@ export class Sikkerorakel {
       verdenKombi: this.verdenKombi,
       spillvekt: this.spillvekt,
       trovekt: this.tro === null ? undefined : (this.tro.vektFor(state, sete) ?? undefined),
+      likvekt: this.likFor === null ? undefined : (this.likFor(state, sete) ?? undefined),
       budvekt: this.budvekt,
       mål: this.mål,
       frist: this.fristMs === null ? undefined : start + this.fristMs,

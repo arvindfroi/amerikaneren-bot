@@ -28,8 +28,10 @@ import { Sumvelger } from "./sumvelger.ts";
 import { lagSumledd, type Sumvekter } from "./sumledd.ts";
 import { Ensemble, type EnsembleModus } from "./ensemble.ts";
 import { Rolleorakel, type Rolle } from "./rolleorakel.ts";
-import { Sikkerorakel } from "./sikkerorakel.ts";
+import { Sikkerorakel, type SikkerOpts } from "./sikkerorakel.ts";
 import { MlbSøketro } from "./soketro.ts";
+import { lagLikvekt } from "./likvekt.ts";
+import type { Verden } from "../solver/sampler.ts";
 import { BudQagent } from "./budq.ts";
 import { Rolleruter } from "./rolleruter.ts";
 import { Vrakvelger } from "./vrakvelg.ts";
@@ -1166,20 +1168,58 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      */
     let tro: MlbSøketro | undefined;
     let budvekt = true;
+    /**
+     * ============ «~lik=»: LIKELIHOOD-VEKTEN (12. sep) =====================
+     *
+     *   ~lik=selv[,t<temp>][,v<vindu>]      motstanderne antas å spille SOM OSS uten søk
+     *   ~lik=@<fil>[,t<temp>][,v<vindu>]    ... eller speken som står i <fil>
+     *
+     * `selv` er den ærlige standarden i spill: vi kjenner ikke motstandernes policy, og vår
+     * egen er det beste anslaget vi har. `@<fil>` finnes for å MÅLE taket — hva vekten er
+     * verdt når motstanderen faktisk ER den speken. Speken hentes fra fil fordi den
+     * inneholder kolon, og kolon er feltskilleren her.
+     *
+     * KOMMA og ikke bokstaver rett bak verdien: en filsti kan slutte på «t2», og en
+     * halesnutt-parser ville tatt den som temperatur i stillhet. Feltene leses derfor som
+     * `~<art>=<verdi>`-PAR delt på «~», og verdien deles på komma. Det er også grunnen til
+     * at troen nå leses i samme løkke: `~mlbu=<fil>~lik=selv` må gi stien `<fil>`, ikke
+     * `<fil>~lik`. Uten «~lik=» er hele denne grenen bit-identisk med før.
+     */
+    let likKilde: string | null = null;
+    let likTemp = 0;
+    let likVindu = 1;
     const tPos = vFelt.indexOf("~");
     if (tPos >= 0) {
-      const troFelt = vFelt.slice(tPos + 1);
+      const felter = vFelt.slice(tPos + 1).split("~");
       vFelt = vFelt.slice(0, tPos);
-      const likPos = troFelt.indexOf("=");
-      const art = likPos < 0 ? "" : troFelt.slice(0, likPos);
-      const sti = likPos < 0 ? "" : troFelt.slice(likPos + 1);
-      if ((art !== "mlb" && art !== "mlbu") || sti === "") {
-        throw new Error(`Ukjent trokilde «${troFelt}» i «${indre}» - forventet mlb=<fil> eller mlbu=<fil>`);
+      for (const f of felter) {
+        const likPos = f.indexOf("=");
+        const art = likPos < 0 ? "" : f.slice(0, likPos);
+        const verdi = likPos < 0 ? "" : f.slice(likPos + 1);
+        if (art === "mlb" || art === "mlbu") {
+          if (verdi === "") throw new Error(`Tom trokilde i «${indre}» - forventet ${art}=<fil>`);
+          // ÉN SØKETRO PER AGENT: nettet deles, boka gjør ikke det — den er denne kampens.
+          // Et trohode med hukommelse får boka fylt gjennom `observer` (kampbenken kaller den).
+          tro = new MlbSøketro(lesTronett(verdi));
+          budvekt = art === "mlb";
+        } else if (art === "lik") {
+          const [kilde, ...knotter] = verdi.split(",");
+          if (kilde === undefined || kilde === "") {
+            throw new Error(`Tom «~lik=» i «${indre}» - forventet lik=selv eller lik=@<fil>`);
+          }
+          likKilde = kilde;
+          for (const k of knotter) {
+            const x = Number(k.slice(1));
+            if (k.startsWith("t") && Number.isFinite(x) && x >= 0) likTemp = x;
+            else if (k.startsWith("v") && Number.isInteger(x) && x >= 0) likVindu = x;
+            else throw new Error(`Ukjent knott «${k}» i «~lik=${verdi}» - forventet t<temp> eller v<vindu>`);
+          }
+        } else {
+          throw new Error(
+            `Ukjent ~-felt «${f}» i «${indre}» - forventet trokilde mlb=<fil>/mlbu=<fil> eller lik=<selv|@fil>`,
+          );
+        }
       }
-      // ÉN SØKETRO PER AGENT: nettet deles, boka gjør ikke det — den er denne kampens.
-      // Et trohode med hukommelse får boka fylt gjennom `observer` (kampbenken kaller den).
-      tro = new MlbSøketro(lesTronett(sti));
-      budvekt = art === "mlb";
     }
     /**
      * «M» og «D» (11. sep), rett foran «~» og etter «L». HELE REKKEFØLGEN i feltet er
@@ -1259,7 +1299,35 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     const innSpek = d.slice(3).join(":");
     const inn = lagIndre(innSpek, ctx);
     const sikRest = utenSøk(innSpek);
-    const motpart = (sikRest === innSpek ? inn : lagIndre(sikRest, ctx)) as unknown as Utspiller;
+    const motpartAgent = sikRest === innSpek ? inn : lagIndre(sikRest, ctx);
+    const motpart = motpartAgent as unknown as Utspiller;
+    /**
+     * POLICYEN LIKELIHOODEN ANTAR. `selv` er ROLLOUT-MOTPARTEN SELV — samme objekt, ikke en
+     * kopi. Det er ikke sparing: ruller søket ut én motstander mens vekten scorer
+     * observasjonene under en annen, måler de to lagene ulike spillere (den feilen A6 hadde,
+     * se `okt.ts`). Deling er trygg fordi kjeden er tilstandsløs i SPILL — samme forutsetning
+     * `vurderPar` alt hviler på når den bytter rekkefølge på verdener og kort.
+     *
+     * En spek fra fil MÅ være søkfri: et søk i likelihooden ville startet et nytt søk per
+     * observasjon per kandidatverden. Samme grunn som `utenSøk` finnes i det hele tatt.
+     */
+    let likFor: SikkerOpts["likFor"];
+    if (likKilde !== null) {
+      let likAgent = motpartAgent;
+      if (likKilde !== "selv") {
+        if (!likKilde.startsWith("@")) {
+          throw new Error(`Ukjent «~lik=${likKilde}» i «${indre}» - forventet «selv» eller «@<fil>»`);
+        }
+        const tekst = readFileSync(likKilde.slice(1), "utf8").trim();
+        if (tekst === "") throw new Error(`«~lik=${likKilde}»: fila er tom`);
+        if (utenSøk(tekst) !== tekst) {
+          throw new Error(`«~lik=${likKilde}»: speken søker («${tekst}») - likelihooden ville søkt per observasjon`);
+        }
+        likAgent = lagIndre(tekst);
+      }
+      likFor = (s, sete): ((v: Verden) => number) | null =>
+        lagLikvekt(s, sete, () => likAgent, { temp: likTemp, vindu: likVindu });
+    }
     // Samme motpart som utspillingene ellers bruker, vridd per sete — som i `amu:`.
     const økt = ctx.økt;
     return new Sikkerorakel(inn, motpart, {
@@ -1275,6 +1343,7 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       ...(eksaktBlad === undefined ? {} : { eksaktBlad }),
       ...(brukØkt && økt !== undefined ? { motpartFor: (sete: number) => økt.motpartFor(motpart, sete) } : {}),
       ...(visningsfrø ? { visningsfrø: true } : {}),
+      ...(likFor === undefined ? {} : { likFor }),
     });
   }
   /**

@@ -232,6 +232,20 @@ export const lagMål = (s: GameState, spiller: number): number => {
  * BUDRUNDE-fasen; VRAK, VELG og SPILL er trygge, for der er talongen alt
  * fordelt.
  */
+/**
+ * Kortene som IKKE er i `brukt`, som `Kort`. Residualet, med andre ord.
+ *
+ * SKILT UT 12. sep fordi `medVerden` hadde den to ganger og `likvekt.ts` trenger nøyaktig
+ * samme regel: talongen og vraket i en verden er det som blir til overs. En tredje kopi av
+ * den utregningen er samme feilklasse som `i >> 4` mot `floor(c / 13)` — den feiler ingen
+ * steder, den gir bare andre kort.
+ */
+export function usetteKort(brukt: ReadonlySet<number>): Kort[] {
+  return alleKortInt()
+    .filter((c: number) => !brukt.has(c))
+    .map(intTilKort);
+}
+
 export function medVerden(s: GameState, hender: readonly number[][], observator: number): GameState {
   const nye = s.hender.map((h, p) => (p === observator ? h : hender[p]!.map(intTilKort)));
   let makker = s.makker;
@@ -272,9 +286,7 @@ export function medVerden(s: GameState, hender: readonly number[][], observator:
   for (const stikk of s.historikk) for (const kp of stikk.kort) brukt.add(kortTilInt(kp.kort));
   for (const kp of s.bord) brukt.add(kortTilInt(kp.kort));
   for (const k of s.vrak) brukt.add(kortTilInt(k));
-  const talong = alleKortInt()
-    .filter((c: number) => !brukt.has(c))
-    .map(intTilKort);
+  const talong = usetteKort(brukt);
 
   /**
    * ============ OG VRAKET MÅ FØLGE VERDENEN (11. sep) ========================
@@ -300,9 +312,7 @@ export function medVerden(s: GameState, hender: readonly number[][], observator:
     for (const h of nye) for (const k of h) iVerden.add(kortTilInt(k));
     for (const stikk of s.historikk) for (const kp of stikk.kort) iVerden.add(kortTilInt(kp.kort));
     for (const kp of s.bord) iVerden.add(kortTilInt(kp.kort));
-    const vrak = alleKortInt()
-      .filter((c: number) => !iVerden.has(c))
-      .map(intTilKort);
+    const vrak = usetteKort(iVerden);
     return { ...s, hender: nye, makker, vrak, talong: [] };
   }
   return { ...s, hender: nye, makker, talong };

@@ -143,17 +143,16 @@ import { rel } from "./k8-maal.ts";
  * skiller seg fra K8-radens drivere bare i likhetsbrudd, og den sanne given er da alltid forenlig
  * (`sann_ok`). `observer` får den ekte stillingen: bøkene fører bare offentlige ting.
  */
-const etterKort = (a: Kort, b: Kort): number => kortTilInt(a) - kortTilInt(b);
-export function kanonisk(s: GameState): GameState {
-  return { ...s, frø: 0, hender: s.hender.map((h) => h.slice().sort(etterKort)), talong: s.talong.slice().sort(etterKort), vrak: s.vrak.slice().sort(etterKort) };
-}
-export function kanoniskAgent(a: Spekagent): Spekagent {
-  return {
-    velgHandling: (s: GameState) => a.velgHandling(kanonisk(s)),
-    nyKamp: () => a.nyKamp(),
-    ...(a.observer === undefined ? {} : { observer: (s: GameState) => a.observer!(s) }),
-  };
-}
+/**
+ * FLYTTET TIL `src/moe2/kanonisk.ts` (12. sep) og re-eksportert her, ordrett samme kode.
+ *
+ * Grunnen er at LIKELIHOOD-VEKTEN i søket (`src/moe2/likvekt.ts`) trenger nøyaktig samme
+ * kanonisering: den scorer verdener på om motstandernes policyer ville gjort det bordet så,
+ * og det er den samme definisjonen taket her måler mot. To utgaver ville betydd at taket og
+ * søket målte hver sin policy — og de gamle importene av `kanoniskAgent` (k8-tak.ts,
+ * mlb-trodata.ts, prøvene) skal ikke måtte vite hvor den bor.
+ */
+export { kanonisk, kanoniskAgent } from "../src/moe2/kanonisk.ts";
 
 /** Instansfrøet. Frøbånd i målingen kommer fra givene, ikke herfra. */
 export const TRO_FRØ = 20_260_913;

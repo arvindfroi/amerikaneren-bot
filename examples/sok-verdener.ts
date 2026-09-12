@@ -28,6 +28,28 @@
  * agent ser. Armer gis som `navn|kandidater|budvekt(0/1)|fil` (fil `-` = uten tro):
  *
  *   --armer "app|3|1|-,uten|32|0|D:/amb-grp/r2roeyk/tro-uten.bin,huk|32|0|D:/amb-grp/r2roeyk/tro-huk.bin"
+ *
+ * ============================== LIKELIHOOD-ARMEN (12. sep) ================
+ *
+ * Et femte felt gir armen en LIKELIHOOD-VEKT (`src/moe2/likvekt.ts`): verdenene vektes også
+ * etter hvor godt de gjenskaper de andres OBSERVERTE kort under en antatt policy.
+ *
+ *   `navn|kand|budvekt|trofil|<policy>[|temp[|vindu]]`
+ *
+ * `<policy>` er `-` (av), `selv` (drivernes egen spek uten søk — det ærlige anslaget i
+ * spill) eller en hel spek (den inneholder kolon, men verken komma eller loddrett strek, så
+ * den går rett inn i feltet). `selv` mot et bord som spiller den samme speken er TAKET for
+ * denne vekten; en annen spek måler hva den koster når anslaget er feil.
+ *
+ * ============================== OG K8 PÅ VERDENSSETTET ====================
+ *
+ * «Riktig plasserte kort» teller bare treff@1. Kolonnen `<arm>_k8` scorer i tillegg
+ * FORDELINGEN verdenssettet impliserer (andelen av verdenene som legger hvert kort hos hvert
+ * sete) med K8-måltallet fra `k8-maal.ts` — samme log-tap trohodet dømmes på, så armene kan
+ * sammenliknes med trohodet alene og med det rettferdige taket (`k8-tak.ts`). Endelig V gir
+ * gulv 1/(2V) på hver klasse før normaliseringen, samme konvensjon som SMC-armen i
+ * `naabart-tro.ts`: uten gulv straffer log-tapet et sett på V verdener for å ha null masse
+ * der sannheten ligger, og tallet måler da utvalgsstørrelsen i stedet for utvalget.
  */
 
 import { appendFileSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
@@ -37,10 +59,14 @@ import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { lagRng } from "../src/kort.ts";
 import { kortIndeks } from "../src/nevro/trekk.ts";
 import { intTilKort } from "../src/solver/dds.ts";
-import { lagIndre, ADAMS } from "../src/moe2/agentspek.ts";
+import { lagIndre, utenSøk, ADAMS } from "../src/moe2/agentspek.ts";
 import { trekkVerdener } from "../src/moe2/sdkort.ts";
 import { lagTrovektFraVisning } from "../src/moe2/troprior.ts";
+import { lagLikvekt } from "../src/moe2/likvekt.ts";
+import type { Kanoniserbar } from "../src/moe2/kanonisk.ts";
 import { rolleFor } from "../src/moe2/rolleorakel.ts";
+import type { Verden } from "../src/solver/sampler.ts";
+import { andelGulvTak, gulvene, nettTap, rel } from "./k8-maal.ts";
 import { MlbTronett } from "../src/mlb/tronett.ts";
 import { Hukommelse } from "../src/mlb/hukommelse.ts";
 
@@ -49,7 +75,7 @@ const arg = (navn: string, standard: string): string => {
   return i < 0 ? standard : process.argv[i + 1]!;
 };
 
-const FASTE = new Set(["giv", "runde", "stikk", "rolle"]);
+const FASTE = new Set(["giv", "runde", "stikk", "rolle", "kort", "gulv", "gulvPluss"]);
 
 const les = arg("--les", "");
 if (les !== "") {
@@ -62,29 +88,43 @@ if (les !== "") {
   for (const f of filer) {
     for (const l of readFileSync(f, "utf8").split("\n")) if (l.trim() !== "") rader.push(JSON.parse(l));
   }
-  const armer = Object.keys(rader[0] ?? {}).filter((k) => !FASTE.has(k) && !k.endsWith("_ms"));
+  const armer = Object.keys(rader[0] ?? {}).filter(
+    (k) => !FASTE.has(k) && !k.endsWith("_ms") && !k.endsWith("_k8"),
+  );
   const grunn = armer.includes("app") ? "app" : armer[0]!;
   const oppsummer = (filter: (r: Record<string, number | string>) => boolean, merke: string): void => {
     const utvalg = rader.filter(filter);
     console.log(`\n${merke}: ${utvalg.length} stillinger`);
     if (utvalg.length === 0) return;
-    for (const a of armer) {
-      const snitt = utvalg.reduce((s, r) => s + (r[a] as number), 0) / utvalg.length;
-      const ms = utvalg.reduce((s, r) => s + (r[`${a}_ms`] as number), 0) / utvalg.length;
-      // Parvis mot grunnarmen, gruppert per giv/kamp.
+    /** Parvis mot grunnarmen på kolonnen `kol`, gruppert per giv/kamp. */
+    const parvis = (kol: string, grunnkol: string): { m: number; se: number } => {
       const g = new Map<string, [number, number]>();
       for (const r of utvalg) {
         const k = String(r.giv);
         const [s0, n0] = g.get(k) ?? [0, 0];
-        g.set(k, [s0 + (r[a] as number) - (r[grunn] as number), n0 + 1]);
+        g.set(k, [s0 + (r[kol] as number) - (r[grunnkol] as number), n0 + 1]);
       }
       const par = [...g.values()];
       const N = par.reduce((x, [, n]) => x + n, 0);
       const m = par.reduce((x, [s]) => x + s, 0) / N;
       const G = par.length;
       const se = Math.sqrt((G / Math.max(1, G - 1)) * par.reduce((acc, [s, n]) => acc + (s - m * n) ** 2, 0)) / N;
+      return { m, se };
+    };
+    for (const a of armer) {
+      const snitt = utvalg.reduce((s, r) => s + (r[a] as number), 0) / utvalg.length;
+      const ms = utvalg.reduce((s, r) => s + (r[`${a}_ms`] as number), 0) / utvalg.length;
+      const t = parvis(a, grunn);
       console.log(
-        `  ${a.padEnd(8)} treff ${(snitt * 100).toFixed(2)} %   mot ${grunn} ${m >= 0 ? "+" : ""}${(m * 100).toFixed(2)} ± ${(se * 100).toFixed(2)} pp   trekning ${ms.toFixed(1)} ms`,
+        `  ${a.padEnd(8)} treff ${(snitt * 100).toFixed(2)} %   mot ${grunn} ${t.m >= 0 ? "+" : ""}${(t.m * 100).toFixed(2)} ± ${(t.se * 100).toFixed(2)} pp   trekning ${ms.toFixed(1)} ms`,
+      );
+      // K8 PÅ SELVE VERDENSSETTET, når kolonnen finnes (eldre filer har den ikke).
+      if (utvalg[0]?.[`${a}_k8`] === undefined) continue;
+      const k8 = utvalg.reduce((s, r) => s + (r[`${a}_k8`] as number), 0) / utvalg.length;
+      const d = parvis(`${a}_k8`, `${grunn}_k8`);
+      console.log(
+        `  ${" ".repeat(8)} K8   ${k8.toFixed(4)} nat/kort (${(100 * andelGulvTak(k8)).toFixed(1)} % av veien gulv→klarsyn)   ` +
+          `mot ${grunn} ${d.m >= 0 ? "+" : ""}${d.m.toFixed(4)} ± ${d.se.toFixed(4)}`,
       );
     }
   };
@@ -104,6 +144,10 @@ interface Arm {
   readonly kand: number;
   readonly budvekt: boolean;
   readonly nett: MlbTronett | null;
+  /** Policyen likelihood-vekten antar, eller null. `selv` er alt slått opp til drivernes spek. */
+  readonly lik: Kanoniserbar | null;
+  readonly temp: number;
+  readonly vindu: number;
 }
 
 const nettbuf = new Map<string, MlbTronett>();
@@ -121,12 +165,28 @@ const armspek = arg(
   "--armer",
   `app|3|1|-,bud32|32|1|-,mlb32|32|1|${mlbFil},mlbu32|32|0|${mlbFil},mlbu8|8|0|${mlbFil}`,
 );
+// `--drivere` leses FØR armene: `selv` i en arm betyr drivernes egen spek uten søk.
+const drivere = arg("--drivere", ADAMS).split("|");
 const ARMER: Arm[] = armspek.split(",").map((del) => {
-  const [navn, kand, bud, fil] = del.split("|");
+  const [navn, kand, bud, fil, lik, temp, vindu] = del.split("|");
   if (navn === undefined || kand === undefined || bud === undefined || fil === undefined || FASTE.has(navn)) {
-    throw new Error(`Ugyldig arm «${del}» — forventet navn|kandidater|budvekt|fil`);
+    throw new Error(`Ugyldig arm «${del}» — forventet navn|kandidater|budvekt|fil[|policy[|temp[|vindu]]]`);
   }
-  return { navn, kand: Number(kand), budvekt: bud === "1", nett: fil === "-" ? null : lesNett(fil) };
+  /**
+   * `selv` slås opp til DRIVERNES spek uten søk, ikke til `ADAMS`. En likelihood som antar en
+   * annen bot enn den som sitter ved bordet måler noe annet enn den sier — samme feilklasse
+   * som en budprior for feil motpart (`lærtForenlighet` i sampler.ts).
+   */
+  const spek = lik === undefined || lik === "-" ? null : lik === "selv" ? utenSøk(drivere[0]!) : lik;
+  return {
+    navn,
+    kand: Number(kand),
+    budvekt: bud === "1",
+    nett: fil === "-" ? null : lesNett(fil),
+    lik: spek === null ? null : lagIndre(spek),
+    temp: temp === undefined || temp === "" ? 0 : Number(temp),
+    vindu: vindu === undefined || vindu === "" ? 1 : Number(vindu),
+  };
 });
 
 const kampmodus = process.argv.includes("--kamp");
@@ -139,6 +199,33 @@ const fraRunde = Number(arg("--fra-runde", kampmodus ? "1" : "0"));
 const sjanse = Number(arg("--sjanse", kampmodus ? "0.1" : "0.3"));
 const ut = arg("--ut", "D:/amb-grp/sokv/s0.jsonl");
 mkdirSync(dirname(ut), { recursive: true });
+
+/**
+ * FORDELINGEN VERDENSSETTET IMPLISERER: `f[kort][klasse]`, klasse 0–2 = rel. sete 1–3.
+ *
+ * Gulvet 1/(2V) på hver klasse er ikke pynt. Uten det gir et sett på V verdener log-tap
+ * −ln 0 = ∞ (kappet til 27,6 av `nettTap`) hver gang ingen av verdenene traff, og tallet
+ * måler da hvor mange verdener vi trakk i stedet for hvor gode de var. Samme konvensjon som
+ * SMC-armen i `naabart-tro.ts`. `nettTap` renormaliserer over de tre setene selv.
+ */
+function fordelingFra(
+  verdener: readonly (readonly (readonly number[])[])[],
+  s: GameState,
+  sete: number,
+): number[][] {
+  const V = verdener.length;
+  const gulv = 1 / (2 * Math.max(1, V));
+  const f: number[][] = Array.from({ length: 52 }, () => [gulv, gulv, gulv, 0]);
+  for (const w of verdener) {
+    for (let p = 0; p < s.antallSpillere; p++) {
+      if (p === sete) continue;
+      const r = rel(sete, p, s.antallSpillere);
+      if (r < 1 || r > 3) continue;
+      for (const c of w[p] ?? []) f[kortIndeks(intTilKort(c))]![r - 1]! += 1 / V;
+    }
+  }
+  return f;
+}
 
 /** Andel av motstandernes håndkort verdenen legger hos riktig spiller. */
 function treff(s: GameState, sete: number, hender: readonly (readonly number[])[]): number {
@@ -153,9 +240,9 @@ function treff(s: GameState, sete: number, hender: readonly (readonly number[])[
   return n === 0 ? 1 : r / n;
 }
 
-// `--drivere "a|b|c|d"`: hvert sete sin spek. Et bord der motstanderne spiller ULIKT er
-// der hukommelsen har noe å lære; fire like Adams gir den nesten ingenting (+0,12 pp).
-const drivere = arg("--drivere", ADAMS).split("|");
+// `--drivere "a|b|c|d"`: hvert sete sin spek (lest over armene, som bruker den til `selv`).
+// Et bord der motstanderne spiller ULIKT er der hukommelsen har noe å lære; fire like Adams
+// gir den nesten ingenting (+0,12 pp).
 const agenter = [0, 1, 2, 3].map((i) => lagIndre(drivere[i % drivere.length]!));
 const velg = lagRng(4_411_000 + skardI);
 let skrevet = 0;
@@ -190,16 +277,32 @@ for (let g = skardI; g < givere; g += skardN) {
       const rad: Record<string, unknown> = { giv: g, runde: s.rundeNr, stikk: s.stikkSpilt, rolle: rolleFor(s, sete) };
       const frø = (g * 1_000_003 + s.rundeNr * 7919 + s.stikkSpilt * 97 + sete) >>> 0;
       const huk = bok.vektor(sete, s.antallSpillere);
+      const gl = gulvene(s, sete);
+      rad.kort = gl.kort;
+      rad.gulv = gl.gulv;
+      rad.gulvPluss = gl.gulvPluss;
       for (const a of ARMER) {
         const t0 = performance.now();
-        const vekt =
+        const tro =
           a.nett === null
             ? undefined
             : (lagTrovektFraVisning(a.nett, s, sete, a.nett.brukerHukommelse ? huk : null) ?? undefined);
+        /**
+         * TROEN OG LIKELIHOODEN LEGGES SAMMEN i log — nøyaktig som `vurderPar` gjør det, så
+         * denne målingen går gjennom den samme sammensetningen søket bruker og ikke en kopi.
+         */
+        const lik = a.lik === null ? null : lagLikvekt(s, sete, () => a.lik!, { temp: a.temp, vindu: a.vindu });
+        const vekt =
+          lik === null
+            ? tro
+            : (v: Verden): number => (tro === undefined ? 0 : tro(v)) + lik(v);
         const verdener = trekkVerdener(s, sete, V, lagRng(frø), undefined, vekt, a.kand, undefined, a.budvekt);
         rad[`${a.navn}_ms`] = Number((performance.now() - t0).toFixed(2));
         rad[a.navn] =
           verdener.length === 0 ? 0 : Number((verdener.reduce((x, w) => x + treff(s, sete, w), 0) / verdener.length).toFixed(5));
+        if (gl.kort > 0 && verdener.length > 0) {
+          rad[`${a.navn}_k8`] = nettTap(fordelingFra(verdener, s, sete), s, sete, gl.kort).tap;
+        }
       }
       appendFileSync(ut, JSON.stringify(rad) + "\n");
       skrevet++;
