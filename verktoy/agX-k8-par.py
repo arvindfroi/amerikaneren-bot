@@ -61,6 +61,13 @@ def main():
     ap.add_argument("--par", action="append", default=[], help="B-A: differansen B minus A, kan gjentas")
     ap.add_argument("--ut", default="analyse/agX-k8-par.txt")
     ap.add_argument("--fasit", action="append", default=[], help="navn=k8 treneren rapporterte (fella)")
+    ap.add_argument(
+        "--hold-for",
+        action="append",
+        default=[],
+        help="navn=sti: eget holdoutkorpus for dette nettet (f.eks. kanoniske rader). "
+        "Radene MAA vaere de samme stillingene i samme rekkefoelge som --hold.",
+    )
     ap.add_argument("--toleranse", type=float, default=2e-4)
     ap.add_argument("--batch", type=int, default=4096)
     args = ap.parse_args()
@@ -79,8 +86,46 @@ def main():
     Xt = torch.from_numpy(X).to(enhet)
     Ft = torch.from_numpy(Fa.astype(numpy.int64)).to(enhet)
 
-    def per_kort_tap(sti):
+    hold_for = {}
+    for h in args.hold_for:
+        k, v = h.split("=", 1)
+        hold_for[k] = v
+    ekstra = {}
+
+    def tensorer(navn):
+        """Radene dette nettet skal leses paa. Kanoniske nett ser kanoniske rader.
+
+        FELLA: et kanonisk korpus er de SAMME stillingene med andre fargenavn. Er de
+        ikke rad-for-rad de samme givene, stikkene og setene - og med like mange
+        usette kort per rad - er «parvis» en loegn, og differansen sammenlikner to
+        ulike utvalg i stedet for to nett.
+        """
+        if navn not in hold_for:
+            return Xt, Ft
+        if navn not in ekstra:
+            sti = hold_for[navn]
+            dh = t.les_mlbt(sti)
+            if dh["dim"] != d["dim"]:
+                raise SystemExit(f"{sti}: dim {dh['dim']} != {d['dim']}")
+            if len(dh["X"]) != n:
+                raise SystemExit(f"{sti}: {len(dh['X'])} rader != {n}")
+            for felt in ("FRO", "ST", "ROLLE"):
+                if not numpy.array_equal(dh[felt], d[felt]):
+                    raise SystemExit(f"{sti}: {felt} er ikke rad-for-rad lik {args.hold}")
+            # Etiketten er permutert, saa den kan ikke sammenliknes direkte - men
+            # ANTALLET usette kort per rad maa staa, ellers er det ikke samme stilling.
+            if not numpy.array_equal((dh["F"] > 0).sum(axis=1), (Fa > 0).sum(axis=1)):
+                raise SystemExit(f"{sti}: ulikt antall usette kort per rad mot {args.hold}")
+            print(f"  {navn}: egne rader fra {sti} (rad-for-rad like stillinger)", flush=True)
+            ekstra[navn] = (
+                torch.from_numpy(dh["X"]).to(enhet),
+                torch.from_numpy(dh["F"].astype(numpy.int64)).to(enhet),
+            )
+        return ekstra[navn]
+
+    def per_kort_tap(sti, navn):
         """(sum K8-tap, antall kort) per rad - nøyaktig trenerens maske og renormalisering."""
+        X_, F_ = tensorer(navn)
         dims = t.les_dims(sti)
         modell = t.Tronett(dims).to(enhet)
         t.les_vekter(sti, modell)
@@ -89,8 +134,8 @@ def main():
         c = numpy.zeros(n, dtype=numpy.int64)
         with torch.no_grad():
             for i in range(0, n, args.batch):
-                x = Xt[i : i + args.batch].float()
-                mal = Ft[i : i + args.batch]
+                x = X_[i : i + args.batch].float()
+                mal = F_[i : i + args.batch]
                 ut = modell(x)
                 maske = mal > 0
                 m3 = maske & (mal <= 3)
@@ -113,7 +158,7 @@ def main():
     L.append("")
     for spek in args.nett:
         navn, sti = spek.split("=", 1)
-        s, c = per_kort_tap(sti)
+        s, c = per_kort_tap(sti, navn)
         tap[navn] = (s, c)
         samlet = s.sum() / max(1, c.sum())
         linje = f"  {navn:8s} K8 {samlet:.5f}  ({int(c.sum())} kort)  {sti}"

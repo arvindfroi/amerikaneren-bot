@@ -1,0 +1,11 @@
+PARVIS K8 - mlb-tro-data/holdout-0.bin, 28771 rader, 60 kamper
+
+  F        K8 0.94988  (517778 kort)  analyse/agX-tro-F.bin   treneren sa 0.94988, avvik 1.37e-06
+  E        K8 0.92532  (517778 kort)  analyse/agX-tro-E.bin   treneren sa 0.92532, avvik 4.16e-06
+
+PARVISE DIFFERANSER (negativ = den foerste er BEDRE), SE klynget paa kamp:
+  E-F        alle        -0.02493 ± 0.00098  z = -25.50  (60 kamper)
+  E-F        budvinner   -0.02210 ± 0.00135  z = -16.38  (60 kamper)
+  E-F        makker      -0.02533 ± 0.00156  z = -16.27  (60 kamper)
+  E-F        motspiller  -0.02612 ± 0.00133  z = -19.67  (60 kamper)
+
