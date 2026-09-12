@@ -361,6 +361,15 @@ class StromKilde:
             (d,) = struct.unpack("<i", hode[8:12])
             if versjon not in (1, 2):
                 raise SystemExit(f"skard {i}: ukjent versjon {versjon}")
+            if versjon == 2:
+                # Versjon 2 baerer POSTERIOREN (208 f32 per rad). Stroemloekka trener paa én-hot,
+                # saa en versjon 2-stroem ville STILLTIENDE kastet de myke etikettene: fila ser
+                # riktig ut, tallene er lovlige, og treningen er en annen enn den man tror.
+                # Samme klasse som `medBok`-fella. Heller stopp enn aa kaste dem i stillhet.
+                raise SystemExit(
+                    f"skard {i}: MLBT versjon 2 (myke etiketter) er ikke stoettet av --strom - "
+                    f"de ville blitt kastet i stillhet. Bruk --tren, eller generer uten --myk."
+                )
             if self.dim is None:
                 self.dim, self.versjon = d, versjon
             elif (d, versjon) != (self.dim, self.versjon):
@@ -522,6 +531,16 @@ def main():
         for navn, verdi in (("--hold-del", args.hold_del), ("--bare-tap", args.bare_tap), ("--bare-les", args.bare_les)):
             if verdi:
                 raise SystemExit(f"{navn} og --strom sammen gir ingen mening: en stroem har ingen fil aa dele eller lese om igjen")
+        # DISSE VILLE BLITT KASTET I STILLHET. `--tren-menneske` legger rader paa Xtr, som stroemstien
+        # lar staa tom (epokeloekka hopper over seg selv), saa menneskeradene ville aldri blitt trent
+        # paa - uten en eneste feilmelding. `--minne-dropout` gjelder bare menneskerader, og er da
+        # like stille. Begge er ekte mangler i stroemstien, ikke uvilje: de skal meldes, ikke skjules.
+        for navn, verdi in (("--tren-menneske", args.tren_menneske), ("--minne-dropout", args.minne_dropout)):
+            if verdi:
+                raise SystemExit(
+                    f"{navn} er ikke stoettet av --strom enda: menneskeradene ville blitt lastet og "
+                    f"aldri trent paa. Bruk --tren for menneskerader. (--minne-dropout-bot virker.)"
+                )
         strom = StromKilde(args.strom, args.strom_skard, args.strom_rader)
         print(f"STROEM: {args.strom_skard} skard, versjon {strom.versjon}, {strom.dim} trekk, {strom.post} B per rad", flush=True)
         tom = numpy.empty(0, dtype=numpy.int64)
