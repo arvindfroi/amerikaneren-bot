@@ -393,6 +393,14 @@ def main():
         "armer": {},
     }
 
+    def skriv_json():
+        """RESULTATET SKRIVES ETTER HVER ARM, ikke bare til slutt. Fire armer x tre froe x opptil
+        60 epoker er timer, og en kjoering som bare lagrer paa siste linje gjoer et avbrudd like
+        dyrt som aldri aa ha startet. Delvis JSON er lesbart: hver arm som staar der, er ferdig."""
+        os.makedirs(os.path.dirname(args.ut) or ".", exist_ok=True)
+        with open(args.ut, "w", encoding="utf-8") as fh:
+            json.dump(resultat, fh, indent=1)
+
     # Beste froe per arm, valgt paa holdout-K8. Alle armene faar samme antall forsoek.
     valgt = {}
     for navn in navn_armer:
@@ -426,6 +434,7 @@ def main():
         print("  %s: K8 %.5f +/- %.5f  (beste av %d froe: %s)"
               % (navn, k8, se, args.froe, arm["k8_per_froe"]), flush=True)
         sys.stdout.flush()
+        skriv_json()
 
     # ===================== DEN PARREDE DOMMEN =====================
     # Negativ forskjell = rekka HJELPER (K8 er et tap). Alt leses mot den parrede SE-en.
@@ -451,10 +460,9 @@ def main():
                 post["per_stikk"][str(s_)] = {"diff": round(dd, 5), "se": round(ss, 5)}
             resultat["parret"]["%s - agg" % navn] = post
             print("\nPARRET %s - agg: %.5f +/- %.5f nat  (negativt = rekka hjelper)" % (navn, d, se), flush=True)
+            skriv_json()
 
-    os.makedirs(os.path.dirname(args.ut) or ".", exist_ok=True)
-    with open(args.ut, "w", encoding="utf-8") as fh:
-        json.dump(resultat, fh, indent=1)
+    skriv_json()
     # RAPPORTEN SKRIVES AV PROSESSEN SELV (langkjoeringer skal ikke leve i et stdout-roer).
     os.makedirs(os.path.dirname(args.rapport) or ".", exist_ok=True)
     with open(args.rapport, "a", encoding="utf-8") as fh:
