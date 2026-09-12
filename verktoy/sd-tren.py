@@ -1290,6 +1290,20 @@ def main() -> None:
             modell.eval()
             tr_tap, tr_treff, tr_anger = maal_i_biter(modell, Xk, Vg, Mg, args.tau, tm)
             ho_tap, ho_treff, ho_anger = maal_i_biter(modell, Xk, Vg, Mg, args.tau, hold_idx)
+            # ============ ANGEREN PER FASE HVER EPOKE (12. sep) =====================
+            #
+            # PORTEN i loekka krever BEGGE: totalangeren OG SENT-angeren bedre enn policyen.
+            # Utvalget under har likevel bare sett `ho_anger` - totalen - saa epoken som lagres
+            # er valgt paa HALVE kriteriet den doemmes etter. Iter 5 og 6 falt nettopp der:
+            # totalen ble bedre (0.8447/0.8504, 0.8147/0.8221) mens SENT ble verre
+            # (0.3147/0.3098, 0.2891/0.2872). Uten fasene per epoke er det umulig aa se OM en
+            # epoke fantes som klarte begge, eller om ingen gjorde det - de to sier helt
+            # forskjellige ting om trekket.
+            #
+            # GRATIS: holdouten ligger alt paa GPU, og fasene er delmengder av den. Utvalget
+            # ROERES IKKE her; dette er maaling, ikke en ny port. Skulle porten flyttes inn i
+            # utvalget, er det en egen avgjoerelse med sin egen felle.
+            fase_naa = anger_per_fase(modell) if vekter_modus else {}
             rad = {
                 "type": "epoke",
                 "navn": navn,
@@ -1302,6 +1316,7 @@ def main() -> None:
                 "hold_anger": round(ho_anger, 5),
                 "tren_treff": round(tr_treff, 5),
                 "hold_treff": round(ho_treff, 5),
+                **{f"hold_anger_{f.lower()}": round(v, 5) for f, v in fase_naa.items()},
             }
             print(
                 f"epoke {epoke + 1}/{args.epoker}: tren-tap {tr_tap:.4f} hold-tap {ho_tap:.4f} "
@@ -1309,6 +1324,10 @@ def main() -> None:
                 f"hold-treff {100 * ho_treff:.1f} %",
                 flush=True,
             )
+            if fase_naa:
+                # Ikke prefikset MODELL-/POLICY-: loekka griper `^MODELL-ANGER-HOLDOUT`, og en
+                # epokelinje med det prefikset ville blitt lest som sluttdommen.
+                print("  fase-anger " + " ".join(f"{f.lower()} {v:.4f}" for f, v in fase_naa.items()), flush=True)
             if ho_anger < beste:
                 beste = ho_anger
                 beste_epoke = epoke + 1

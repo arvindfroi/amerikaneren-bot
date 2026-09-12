@@ -1,0 +1,91 @@
+Enhet: cuda (NVIDIA GeForce RTX 5080 Laptop GPU)
+Teller 223485 linjer i 20 filer (72s)
+Trekkbredde: 493 (bok: 273 | hukommelse | stilling | valgt bort)
+  /mnt/d/amb-grp/loop/iter6/kort/s0.jsonl: 9767 stillinger (totalt 9767)
+  /mnt/d/amb-grp/loop/iter6/kort/s1.jsonl: 13073 stillinger (totalt 22840)
+  /mnt/d/amb-grp/loop/iter6/kort/s10.jsonl: 15239 stillinger (totalt 38079)
+  /mnt/d/amb-grp/loop/iter6/kort/s11.jsonl: 9159 stillinger (totalt 47238)
+  /mnt/d/amb-grp/loop/iter6/kort/s12.jsonl: 9690 stillinger (totalt 56928)
+  /mnt/d/amb-grp/loop/iter6/kort/s13.jsonl: 13384 stillinger (totalt 70312)
+  /mnt/d/amb-grp/loop/iter6/kort/s14.jsonl: 8759 stillinger (totalt 79071)
+  /mnt/d/amb-grp/loop/iter6/kort/s15.jsonl: 10033 stillinger (totalt 89104)
+  /mnt/d/amb-grp/loop/iter6/kort/s16.jsonl: 12951 stillinger (totalt 102055)
+  /mnt/d/amb-grp/loop/iter6/kort/s17.jsonl: 9538 stillinger (totalt 111593)
+  /mnt/d/amb-grp/loop/iter6/kort/s18.jsonl: 9681 stillinger (totalt 121274)
+  /mnt/d/amb-grp/loop/iter6/kort/s19.jsonl: 14330 stillinger (totalt 135604)
+  /mnt/d/amb-grp/loop/iter6/kort/s2.jsonl: 9568 stillinger (totalt 145172)
+  /mnt/d/amb-grp/loop/iter6/kort/s3.jsonl: 9519 stillinger (totalt 154691)
+  /mnt/d/amb-grp/loop/iter6/kort/s4.jsonl: 13340 stillinger (totalt 168031)
+  /mnt/d/amb-grp/loop/iter6/kort/s5.jsonl: 8589 stillinger (totalt 176620)
+  /mnt/d/amb-grp/loop/iter6/kort/s6.jsonl: 11447 stillinger (totalt 188067)
+  /mnt/d/amb-grp/loop/iter6/kort/s7.jsonl: 14700 stillinger (totalt 202767)
+  /mnt/d/amb-grp/loop/iter6/kort/s8.jsonl: 11145 stillinger (totalt 213912)
+  /mnt/d/amb-grp/loop/iter6/kort/s9.jsonl: 9573 stillinger (totalt 223485)
+Leste 223485 stillinger, hoppet over 0 dubletter og 0 ugyldige (502s)
+
+=== OVERLAPP ===
+{
+  "mapper": {
+    "/mnt/d/amb-grp/loop/iter6/kort": {
+      "stillinger": 223485,
+      "givere": 500
+    }
+  },
+  "overlapp": {},
+  "froebaand": {
+    "/mnt/d/amb-grp/loop/iter6/kort": [
+      560000000,
+      563850783
+    ]
+  }
+}
+
+Giv-deling: 63 av 500 givere i /mnt/d/amb-grp/loop/iter6/kort → holdout (30549 stillinger). Ingen giver i to deler.
+  utvider inngangen 273 → 493: 220 nye kolonner NULLSTILT, saa nettet starter identisk
+  finjusterer fra e1-modell/kort-7.bin (lr 0.0001)
+
+=== kort-agZ-varm: /mnt/d/amb-grp/loop/iter6/kort, 493 → 512 → 384 → 256 → 52 (561844 parametre) – trening 192936, holdout 30549 ===
+  varmer opp kolonne 273-492 alene i 3 epoker (lr 0.001), resten frosset
+    oppvarming 1/3: snitt |vekt| ny 0.00670 vs gammel 0.08960 (7.5 %)
+    oppvarming 2/3: snitt |vekt| ny 0.01023 vs gammel 0.08960 (11.4 %)
+    oppvarming 3/3: snitt |vekt| ny 0.01351 vs gammel 0.08960 (15.1 %)
+  policy e1-modell/kort-7.bin: 273 -> 493 med nullkolonner bakerst
+START: hold-anger 0.8474, policy 0.8221 (treff 55.9 %), avvik mot vektfila 2.34e+00
+epoke 1/12: tren-tap 1.4063 hold-tap 1.4193 (gap +0.0130)  tren-anger 0.7786 hold-anger 0.8369 hold-treff 55.8 %
+  fase-anger tidlig 1.2496 midt 1.0908 sent 0.2897
+epoke 2/12: tren-tap 1.4027 hold-tap 1.4183 (gap +0.0156)  tren-anger 0.7609 hold-anger 0.8280 hold-treff 56.0 %
+  fase-anger tidlig 1.2507 midt 1.0720 sent 0.2840
+epoke 3/12: tren-tap 1.4039 hold-tap 1.4223 (gap +0.0184)  tren-anger 0.7500 hold-anger 0.8373 hold-treff 55.9 %
+  fase-anger tidlig 1.2426 midt 1.0857 sent 0.3011
+epoke 4/12: tren-tap 1.4018 hold-tap 1.4225 (gap +0.0206)  tren-anger 0.7401 hold-anger 0.8321 hold-treff 56.0 %
+  fase-anger tidlig 1.2402 midt 1.0686 sent 0.3059
+epoke 5/12: tren-tap 1.4020 hold-tap 1.4246 (gap +0.0226)  tren-anger 0.7311 hold-anger 0.8303 hold-treff 55.9 %
+  fase-anger tidlig 1.2387 midt 1.0643 sent 0.3066
+epoke 6/12: tren-tap 1.4043 hold-tap 1.4291 (gap +0.0248)  tren-anger 0.7253 hold-anger 0.8297 hold-treff 56.0 %
+  fase-anger tidlig 1.2294 midt 1.0708 sent 0.3049
+epoke 7/12: tren-tap 1.4018 hold-tap 1.4278 (gap +0.0260)  tren-anger 0.7189 hold-anger 0.8276 hold-treff 56.0 %
+  fase-anger tidlig 1.2367 midt 1.0638 sent 0.3012
+epoke 8/12: tren-tap 1.4015 hold-tap 1.4282 (gap +0.0267)  tren-anger 0.7162 hold-anger 0.8290 hold-treff 55.9 %
+  fase-anger tidlig 1.2323 midt 1.0676 sent 0.3042
+epoke 9/12: tren-tap 1.4019 hold-tap 1.4294 (gap +0.0275)  tren-anger 0.7127 hold-anger 0.8286 hold-treff 56.0 %
+  fase-anger tidlig 1.2331 midt 1.0682 sent 0.3017
+epoke 10/12: tren-tap 1.4022 hold-tap 1.4302 (gap +0.0280)  tren-anger 0.7114 hold-anger 0.8259 hold-treff 56.0 %
+  fase-anger tidlig 1.2302 midt 1.0662 sent 0.2985
+epoke 11/12: tren-tap 1.4021 hold-tap 1.4303 (gap +0.0282)  tren-anger 0.7106 hold-anger 0.8279 hold-treff 56.0 %
+  fase-anger tidlig 1.2324 midt 1.0684 sent 0.3001
+epoke 12/12: tren-tap 1.4022 hold-tap 1.4304 (gap +0.0282)  tren-anger 0.7105 hold-anger 0.8268 hold-treff 56.0 %
+  fase-anger tidlig 1.2326 midt 1.0666 sent 0.2990
+kort-agZ-varm ferdig: beste hold-anger 0.8259 på epoke 10 → e1-modell/kort-agZ-varm.bin
+RADER tren 192936 holdout 30549 holdoutkamper 63
+FASE-RADER-HOLDOUT tidlig 7854 midt 11454 sent 11241
+BESTE-EPOKE 10
+START-AVVIK 2.34e+00
+POLICY-TREFF-HOLDOUT 0.5591
+MODELL-ANGER-HOLDOUT-TIDLIG 1.2302
+MODELL-ANGER-HOLDOUT-MIDT 1.0662
+MODELL-ANGER-HOLDOUT-SENT 0.2985
+POLICY-ANGER-HOLDOUT-TIDLIG 1.2457
+POLICY-ANGER-HOLDOUT-MIDT 1.0568
+POLICY-ANGER-HOLDOUT-SENT 0.2872
+MODELL-ANGER-HOLDOUT 0.8259
+POLICY-ANGER-HOLDOUT 0.8221
