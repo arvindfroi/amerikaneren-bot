@@ -20,9 +20,17 @@ optimerer og kravet stiller - med tre armer paa NOEYAKTIG de samme radene:
     (a) aggregat        de 996 trekkene alene (produksjonens egen inngang)
     (b) aggregat+rekke  de 996 OG den ordnede kortrekka
     (c) rekke           bare rekka
+    (d) aggregat+       de 996 alene, men BRED - like mange vekter som (b)
 
 Vinner (b) ikke over (a) med et gap som er stoert mot den PARREDE spredningen, baerer ordenen
 ingenting for troen - og da skal blokken ikke inn i boten, uansett hvor riktig den foeles.
+
+HVORFOR (d) FINNES: (b) er stoerre enn (a) - 3,16 M vekter mot 2,31 M - fordi rekkeleseren
+selv er vekter. Et negativt gap (b) - (a) kan derfor bety to helt ulike ting: at ORDENEN
+baerer, eller bare at den armen fikk mer aa regne med. Roeyken (én epoke) viste nettopp et
+saant gap, og det er ikke lesbart som en dom uten (d). Slaar (d) det samme gapet uten aa se
+ett eneste kort i rekkefoelge, var svaret kapasitet - og da er den riktige laerdommen for
+loekka «gjoer trostammen bredere», ikke «bygg en sekvensblokk».
 
 ============================ HVA SOM ER RETTET FRA SONDE B ==============
 
@@ -136,11 +144,16 @@ def les(monster):
 
 
 class AggStamme(nn.Module):
-    """Produksjonens egen form: 996 -> 1024 -> 768 -> 512."""
+    """Produksjonens egen form: 996 -> 1024 -> 768 -> 512.
 
-    def __init__(self, inn=DIM, ut=512):
+    `skjulte` finnes for KAPASITETSARMEN (`agg+`): den samme inngangen, men bredere, saa
+    parametertallet moeter agg+rekke. Uten den kan ikke et negativt gap skilles fra at den
+    ene armen rett og slett er stoerre."""
+
+    def __init__(self, inn=DIM, ut=512, skjulte=(1024, 768)):
         super().__init__()
-        self.n = nn.Sequential(nn.Linear(inn, 1024), nn.ReLU(), nn.Linear(1024, 768), nn.ReLU(), nn.Linear(768, ut), nn.ReLU())
+        h1, h2 = skjulte
+        self.n = nn.Sequential(nn.Linear(inn, h1), nn.ReLU(), nn.Linear(h1, h2), nn.ReLU(), nn.Linear(h2, ut), nn.ReLU())
         self.ut = ut
 
     def forward(self, x, s=None, n=None):
@@ -324,7 +337,7 @@ def main():
     ap.add_argument("--batch", type=int, default=1024)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--froe", type=int, default=3, help="antall startvekter per arm")
-    ap.add_argument("--armer", default="agg,agg+rekke,rekke")
+    ap.add_argument("--armer", default="agg,agg+,agg+rekke,rekke")
     args = ap.parse_args()
 
     enhet = "cuda" if torch.cuda.is_available() else "cpu"
@@ -342,11 +355,32 @@ def main():
         d["Nt"] = torch.from_numpy(d["N"].astype(numpy.int32)).to(enhet)
         d["Ft"] = torch.from_numpy(d["F"]).to(enhet).long()
 
-    stammer = {"agg": lambda: AggStamme(), "agg+rekke": lambda: BeggeStamme(), "rekke": lambda: RekkeStamme()}
+    stammer = {
+        "agg": lambda: AggStamme(),
+        # 1312/960 er valgt saa parametertallet lander paa agg+rekke sitt - se kapasitetsfella under.
+        "agg+": lambda: AggStamme(skjulte=(1312, 960)),
+        "agg+rekke": lambda: BeggeStamme(),
+        "rekke": lambda: RekkeStamme(),
+    }
     navn_armer = [a for a in args.armer.split(",") if a]
     for a in navn_armer:
         if a not in stammer:
             raise SystemExit("ukjent arm «%s»" % a)
+
+    # FELLE: KAPASITETSARMEN MAA FAKTISK MOETE agg+rekke.
+    # `agg+` har én oppgave - aa svare paa om gevinsten er ORDEN eller bare FLERE VEKTER. Er den
+    # merkbart mindre enn (b), frikjenner den rekka gratis; er den stoerre, doemmer den rekka
+    # gratis. Begge deler ser like fornuftige ut i rapporten. Proeves paa CPU foer det brukes
+    # timer paa trening, for en felle som slaar ut etter maalingen er ingen felle.
+    if "agg+" in navn_armer and "agg+rekke" in navn_armer:
+        p_stor = sum(p.numel() for p in Tronett(stammer["agg+"]()).parameters())
+        p_begge = sum(p.numel() for p in Tronett(stammer["agg+rekke"]()).parameters())
+        avvik = abs(p_stor - p_begge) / p_begge
+        if avvik > 0.01:
+            raise SystemExit("kapasitetsarmen bommer: agg+ %d vekter mot agg+rekke %d (%.1f %% avvik, taaler 1 %%)"
+                             % (p_stor, p_begge, 100 * avvik))
+        print("kapasitetsfelle godkjent: agg+ %d vekter mot agg+rekke %d (%.2f %% avvik)"
+              % (p_stor, p_begge, 100 * avvik), flush=True)
 
     KL = d_ho["FRO"]
     RO = d_ho["ROLLE"]
