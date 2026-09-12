@@ -35,6 +35,7 @@ import { byggTrekk, type Trekkontekst, type Trofordeler } from "./trekk.ts";
 import { maske, ta, TOMT_DELVALG, type Delvalg, type Giving } from "./handling.ts";
 import { velgKode, type Framover } from "./nett.ts";
 import { Hukommelse } from "./hukommelse.ts";
+import type { Bokfrø } from "./profil.ts";
 
 export interface NettLik {
   framover(trekk: Float32Array): Framover;
@@ -71,6 +72,13 @@ export interface Sandkasseopsjoner {
    * sandkassenettets eget — et hode kan ikke være sin egen inngang.
    */
   readonly tronett?: Trofordeler | null;
+  /**
+   * SPILLERPROFILEN SOM STARTBOK (12. sep, `profil.ts`).
+   *
+   * `undefined` er nullpunktet og betyr bokstavelig talt `new Hukommelse()`,
+   * uttrykket som sto her før. Uten profil er hver bit som den var.
+   */
+  readonly bokfrø?: Bokfrø | null;
 }
 
 /**
@@ -91,6 +99,7 @@ export class Sandkasseagent {
   private readonly brukHukommelse: boolean;
   private readonly påKode: ((kode: number) => void) | null;
   private readonly tronett: Trofordeler | null;
+  private readonly bokfrø: Bokfrø | null;
   private hukommelse: Hukommelse;
   private teller = 0;
 
@@ -101,13 +110,21 @@ export class Sandkasseagent {
     this.brukHukommelse = opts.hukommelse ?? true;
     this.påKode = opts.påKode ?? null;
     this.tronett = opts.tronett ?? null;
-    this.hukommelse = new Hukommelse();
+    this.bokfrø = opts.bokfrø ?? null;
+    this.hukommelse = this.lagBok();
+  }
+
+  /** Uten profil er dette ordrett `new Hukommelse()` — nullpunktet er bit-identisk. */
+  private lagBok(): Hukommelse {
+    return this.bokfrø?.lagBok() ?? new Hukommelse();
   }
 
   nyKamp(): void {
-    // Per økt, aldri til disk og aldri på tvers av kamper. Hukommelsen er
-    // kampens, ikke botens — det er et krav, og det er testhåndhevet.
-    this.hukommelse = new Hukommelse();
+    // Hukommelsen er KAMPENS, ikke botens: den bygges opp fra runde 1 av denne
+    // kampens ferdige runder. Fra 12. sep kan STARTPUNKTET komme fra en lagret
+    // spillerprofil (`bokfrø`), men bare av det som var offentlig ved bordet i
+    // ferdigspilte runder — se `src/mlb/profil.ts`. Uten profil: som før.
+    this.hukommelse = this.lagBok();
     this.teller = 0;
   }
 

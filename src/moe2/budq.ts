@@ -38,6 +38,7 @@ import { forover, type NevroNett } from "../nevro/nett.ts";
 import { budTrekk, BUD_DIM_V2 } from "./budtrekk.ts";
 // Retningen moe2 → mlb er lov (som `agentspek.ts`); mlb importerer aldri herfra.
 import { Hukommelse, HUKOMMELSE_LENGDE_4 } from "../mlb/hukommelse.ts";
+import type { Bokfrø } from "../mlb/profil.ts";
 import { MLB_STILLING, stillingTrekk } from "../mlb/stillingtrekk.ts";
 import { spillerVisning } from "../motor.ts";
 
@@ -117,9 +118,16 @@ export class BudQagent {
    * 11. sep (bånd 1, giv 57715434, runde 8: fersk B9, mett B10). Det var hukommelse, ikke støy.
    */
   private readonly minne: boolean;
+  /** Startboka fra en lagret spillerprofil (12. sep), eller `null` uten profil. */
+  private readonly bokfrø: Bokfrø | null;
 
-  constructor(indre: Innagent, nett: NevroNett, opts: { readonly hukommelse?: boolean } = {}) {
+  constructor(
+    indre: Innagent,
+    nett: NevroNett,
+    opts: { readonly hukommelse?: boolean; readonly bokfrø?: Bokfrø | null } = {},
+  ) {
     this.minne = opts.hukommelse !== false;
+    this.bokfrø = opts.bokfrø ?? null;
     const første = nett.lag[0];
     const siste = nett.lag[nett.lag.length - 1];
     if (første === undefined || !BUDQ_BREDDER.includes(første.inn)) {
@@ -130,8 +138,13 @@ export class BudQagent {
     }
     this.indre = indre;
     this.nett = nett;
-    this.hukommelse = første.inn === BUDQ_INN ? null : new Hukommelse();
+    this.hukommelse = første.inn === BUDQ_INN ? null : this.lagBok();
     this.sanser2 = første.inn === BUDQ_INN_HS2;
+  }
+
+  /** Uten profil er dette ordrett `new Hukommelse()` — nullpunktet er bit-identisk. */
+  private lagBok(): Hukommelse {
+    return this.bokfrø?.lagBok() ?? new Hukommelse();
   }
 
   /** Leser nettet motstanderboka? Da MÅ driveren vise agenten `RUNDE_SLUTT` via `observer`. */
@@ -142,7 +155,7 @@ export class BudQagent {
   nyKamp(): void {
     // Boka er kampens, aldri botens: en ny kamp er nye motstandere (samme regel som
     // `Sandkasseagent.nyKamp`).
-    if (this.hukommelse !== null) this.hukommelse = new Hukommelse();
+    if (this.hukommelse !== null) this.hukommelse = this.lagBok();
     this.indre.nyKamp();
   }
 

@@ -42,6 +42,7 @@
 
 import { spillerVisning, type GameState } from "../motor.ts";
 import { Hukommelse, HUKOMMELSE_LENGDE_4 } from "../mlb/hukommelse.ts";
+import type { Bokfrø } from "../mlb/profil.ts";
 import { MLB_STILLING, stillingTrekk } from "../mlb/stillingtrekk.ts";
 import { MLB_VALGT_BORT, valgtBortTrekk } from "../mlb/valgtbort.ts";
 import { e1SpillTrekk, E1_SPILL_DIM } from "./trekk.ts";
@@ -97,13 +98,27 @@ export function e1KortBokTrekk(state: GameState, sete: number, bok: Float64Array
  * trygt: den som ser en tilstand først, bokfører den.
  */
 export class Kortbok {
-  private bok = new Hukommelse();
+  private readonly bokfrø: Bokfrø | null;
+  private bok: Hukommelse;
   private førsteRunde: number | null = null;
   private sisteRunde = -1;
   private readonly bokført = new Set<number>();
 
+  /**
+   * `bokfrø` (12. sep): startboka fra en lagret spillerprofil, `null` uten. Null er
+   * ordrett `new Hukommelse()`, uttrykket som sto her før — nullpunktet er bit-identisk.
+   */
+  constructor(opts: { readonly bokfrø?: Bokfrø | null } = {}) {
+    this.bokfrø = opts.bokfrø ?? null;
+    this.bok = this.lagBok();
+  }
+
+  private lagBok(): Hukommelse {
+    return this.bokfrø?.lagBok() ?? new Hukommelse();
+  }
+
   nyKamp(): void {
-    this.bok = new Hukommelse();
+    this.bok = this.lagBok();
     this.førsteRunde = null;
     this.sisteRunde = -1;
     this.bokført.clear();

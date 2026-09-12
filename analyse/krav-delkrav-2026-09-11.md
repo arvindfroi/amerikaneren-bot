@@ -33,7 +33,7 @@ Kandidatene: **Adams-v5** (utrullet) · **i2** (MLB, imitasjon av Adams med seie
 | K2.2 | Prøven kan feile (jukser tatt) | `juks:6` tatt 6 av 9; MLB-armene lekker én bit og tas | **JA** |
 | K2.3 | Samplerens verdener er lovlige (talongen) | lekkasje funnet og rettet | **JA** (`test/talonglekkasje.test.ts`) |
 | K2.4 | Skjult info bare i ETIKETTER i trening, aldri i innganger | troFasit, stikkfasit; seiersmålet leser bare poengtavla | **JA** (`mlb-herkomst`, sansekontrollen 10. sep) |
-| K2.5 | Ingen lagring på tvers av økter | hukommelsen dør med kampen | **JA** (test) |
+| K2.5 | **Endret 12. sep** (var: «ingen lagring på tvers av økter»). Lagring på tvers av kamper er lov, men en profil kan BARE inneholde det som var offentlig ved bordet i FERDIGE runder — ingen skjulte kort, ingen talong, ikke andres vrak ut over det utledbare ved rundeslutt. K2 uendret | profilen kan bare bygges av `Hukommelse`, som bokfører ved `RUNDE_SLUTT`; en pågående runde gir tom profil, og bytting av skjulte hender gir bit-identisk profil (begge med felle) | **JA** (`test/mlb-profil.test.ts`, `test/okt.test.ts`) |
 
 ## K3 — Spille optimalt med SOTA-komponenter i alle faser
 
@@ -82,7 +82,7 @@ Arvind: tre nivåer — makro (race mot 100), meso (kontrakten), mikro (stikket)
 | K6.4 | Prøvd mot vaner nettet ALDRI trenes mot (VANER_TEST) | håndhevet | **JA** |
 | K6.5 | Befolkningen i trening HAR vaner å lære | R1: vaner i 15 % av kampene, Adams har ingen | **BYGD** — R2 `--ligavekter 0.3,0.2,0.5` → 25 % |
 | K6.6 | Lese budvanene til DENNE motstanderen (Arvinds «byr 11 → gode kort») | mennesker byr 11 i 14,5 % av vunne budrunder mot 4,7 % for botene | **DELVIS** — hukommelsen har MESO-budavvik; trosnettet leser den ikke (K8.4) |
-| K6.7 | Per økt, ingen lagring | håndhevet | **JA** |
+| K6.7 | **Endret 12. sep** (var: «per økt, ingen lagring»). Vanene følger SPILLEREN mellom kamper, bygget bare av offentlige ferdige runder, og læres videre under kampen | `src/mlb/profil.ts` (48-tallsboka per spiller-id, ferskvektene bæres ikke) + speken `okt:profil=<sti>@<sete>`; boka sås RABATTERT ved kampstart og akkumulerer kampens eget bevis oppå | **JA** (`test/mlb-profil.test.ts`) — gevinsten er målt for seg, se profilmålingene 12. sep |
 
 ## K7 — Matematisk optimale løsninger i sluttspillet
 
