@@ -15,6 +15,7 @@
 
 import type { GameState } from "../src/motor.ts";
 import { kortIndeks } from "../src/nevro/trekk.ts";
+import { intTilKort } from "../src/solver/dds.ts";
 
 /** Relativt sete, samme koding som `fyllSanser` og `monteTro`. */
 export const rel = (sete: number, p: number, n: number): number => (p - sete + n) % n;
@@ -55,6 +56,38 @@ export function nettTap(
     }
   }
   return { tap: Number((tap / kort).toFixed(5)), treff: Number((treff / kort).toFixed(5)) };
+}
+
+/**
+ * FORDELINGEN ET VERDENSSETT IMPLISERER: `f[kort][klasse]`, klasse 0–2 = rel. sete 1–3.
+ *
+ * FLYTTET HIT 12. sep fra `examples/sok-verdener.ts`, ordrett. Grunnen er den samme som for
+ * `nettTap` over: den har nå to kallere (selvspillsmålingen og `menneske-verdener.ts`, som
+ * måler det samme på INNSPILTE menneskekamper), og to kopier av «hva verdenssettet tror» er
+ * to steder gulvet kan settes ulikt — da måler de to filene ikke lenger samme K8.
+ *
+ * Gulvet 1/(2V) på hver klasse er ikke pynt. Uten det gir et sett på V verdener log-tap
+ * −ln 0 = ∞ (kappet til 27,6 av `nettTap`) hver gang ingen av verdenene traff, og tallet måler
+ * da hvor mange verdener vi trakk i stedet for hvor gode de var. Samme konvensjon som
+ * SMC-armen i `naabart-tro.ts`. `nettTap` renormaliserer over de tre setene selv.
+ */
+export function fordelingFra(
+  verdener: readonly (readonly (readonly number[])[])[],
+  s: GameState,
+  sete: number,
+): number[][] {
+  const V = verdener.length;
+  const gulv = 1 / (2 * Math.max(1, V));
+  const f: number[][] = Array.from({ length: 52 }, () => [gulv, gulv, gulv, 0]);
+  for (const w of verdener) {
+    for (let p = 0; p < s.antallSpillere; p++) {
+      if (p === sete) continue;
+      const r = rel(sete, p, s.antallSpillere);
+      if (r < 1 || r > 3) continue;
+      for (const c of w[p] ?? []) f[kortIndeks(intTilKort(c))]![r - 1]! += 1 / V;
+    }
+  }
+  return f;
 }
 
 /** Gulv+: setene som ikke er KJENT renons i fargen. Ordrett fra tro-noyaktighet. */

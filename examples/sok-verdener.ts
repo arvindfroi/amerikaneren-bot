@@ -66,7 +66,7 @@ import { lagLikvekt } from "../src/moe2/likvekt.ts";
 import type { Kanoniserbar } from "../src/moe2/kanonisk.ts";
 import { rolleFor } from "../src/moe2/rolleorakel.ts";
 import type { Verden } from "../src/solver/sampler.ts";
-import { andelGulvTak, gulvene, nettTap, rel } from "./k8-maal.ts";
+import { andelGulvTak, fordelingFra, gulvene, nettTap } from "./k8-maal.ts";
 import { MlbTronett } from "../src/mlb/tronett.ts";
 import { Hukommelse } from "../src/mlb/hukommelse.ts";
 
@@ -200,32 +200,9 @@ const sjanse = Number(arg("--sjanse", kampmodus ? "0.1" : "0.3"));
 const ut = arg("--ut", "D:/amb-grp/sokv/s0.jsonl");
 mkdirSync(dirname(ut), { recursive: true });
 
-/**
- * FORDELINGEN VERDENSSETTET IMPLISERER: `f[kort][klasse]`, klasse 0–2 = rel. sete 1–3.
- *
- * Gulvet 1/(2V) på hver klasse er ikke pynt. Uten det gir et sett på V verdener log-tap
- * −ln 0 = ∞ (kappet til 27,6 av `nettTap`) hver gang ingen av verdenene traff, og tallet
- * måler da hvor mange verdener vi trakk i stedet for hvor gode de var. Samme konvensjon som
- * SMC-armen i `naabart-tro.ts`. `nettTap` renormaliserer over de tre setene selv.
- */
-function fordelingFra(
-  verdener: readonly (readonly (readonly number[])[])[],
-  s: GameState,
-  sete: number,
-): number[][] {
-  const V = verdener.length;
-  const gulv = 1 / (2 * Math.max(1, V));
-  const f: number[][] = Array.from({ length: 52 }, () => [gulv, gulv, gulv, 0]);
-  for (const w of verdener) {
-    for (let p = 0; p < s.antallSpillere; p++) {
-      if (p === sete) continue;
-      const r = rel(sete, p, s.antallSpillere);
-      if (r < 1 || r > 3) continue;
-      for (const c of w[p] ?? []) f[kortIndeks(intTilKort(c))]![r - 1]! += 1 / V;
-    }
-  }
-  return f;
-}
+// `fordelingFra` STÅR I `k8-maal.ts` (12. sep). Den har to kallere nå — denne og
+// `menneske-verdener.ts` — og to kopier av «hva verdenssettet tror» er to steder gulvet
+// 1/(2V) kan settes ulikt. Da måler de to filene ikke lenger samme K8.
 
 /** Andel av motstandernes håndkort verdenen legger hos riktig spiller. */
 function treff(s: GameState, sete: number, hender: readonly (readonly number[])[]): number {

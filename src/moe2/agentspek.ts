@@ -1218,6 +1218,26 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      *
      *   ~lik=selv[,t<temp>][,v<vindu>]      motstanderne antas å spille SOM OSS uten søk
      *   ~lik=@<fil>[,t<temp>][,v<vindu>]    ... eller speken som står i <fil>
+     *   ~lik=selv,<fil>@<sete>              ... men SETE <sete> antas å spille som <fil> (12. sep)
+     *
+     * ============ ÉN MODELL PER SETE — PROFILEN SOM FAKTISK BETYR NOE =====
+     *
+     * Agent U bygde spillerprofilen som 48 AGGREGERTE tall om en spiller og målte at den ikke
+     * gir noe (+0,06 ± 0,02 pp prediksjon, med fella som slapp unna). Agent T målte hvorfor:
+     * trohodet blir DÅRLIGERE av å få vite motstanderens identitet, også som orakel. Verdien
+     * ligger ikke i å MERKE en spiller, men i å SIMULERE ham — og det er nøyaktig det den
+     * antatte policyen her gjør. Profilen som betaler er derfor ikke et tallsett, det er en
+     * MODELL av spilleren satt inn som `policyFor` det setet han sitter i.
+     *
+     * FORMEN ER `okt:profil=<sti>@<sete>`s, med vilje: prosjektet har alt en skrivemåte for
+     * «denne fila hører til det setet», og en ny ville vært et femte sted å ta feil av setet.
+     * Skilt fra knottene på «@»: en knott er t/v/f + tall og kan aldri inneholde «@», mens en
+     * filsti som slutter på «t2» ville vært umulig å skille fra en temperatur uten et slikt
+     * merke — samme felle som komma-skillet ble innført for.
+     *
+     * BASEN GJELDER DE ANDRE SETENE. Sitter ett kjent menneske ved bordet og tre boter, er
+     * `~lik=selv,<klon>@0` det ærlige anslaget: klonen for ham, oss selv for botene. Uten
+     * setefeltet er hver bit som før — basen brukes for alle, som i går.
      *
      * `selv` er den ærlige standarden i spill: vi kjenner ikke motstandernes policy, og vår
      * egen er det beste anslaget vi har. `@<fil>` finnes for å MÅLE taket — hva vekten er
@@ -1231,6 +1251,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      * `<fil>~lik`. Uten «~lik=» er hele denne grenen bit-identisk med før.
      */
     let likKilde: string | null = null;
+    /** `<fil>@<sete>`: setet som antas å spille som en ANNEN spek enn basen. Tom = som før. */
+    const likSete = new Map<number, string>();
     let likTemp = 0;
     let likVindu = 1;
     /**
@@ -1263,6 +1285,22 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
           }
           likKilde = kilde;
           for (const k of knotter) {
+            /**
+             * «<fil>@<sete>» FØR knottene: en knott er t/v/f + tall og kan ikke inneholde «@»,
+             * så merket er entydig. Samme form som `okt:profil=<sti>@<sete>`, og `lastIndexOf`
+             * av samme grunn som der: en sti kan selv inneholde «@».
+             */
+            if (k.includes("@")) {
+              const at = k.lastIndexOf("@");
+              const sti = k.slice(0, at);
+              const sete = Number(k.slice(at + 1));
+              if (sti === "" || !Number.isInteger(sete) || sete < 0 || sete > 5) {
+                throw new Error(`Ugyldig setepolicy «${k}» i «~lik=${verdi}» - forventet <fil>@<sete>`);
+              }
+              if (likSete.has(sete)) throw new Error(`Sete ${sete} har fått to policyer i «~lik=${verdi}»`);
+              likSete.set(sete, sti);
+              continue;
+            }
             const x = Number(k.slice(1));
             if (k.startsWith("t") && Number.isFinite(x) && x >= 0) likTemp = x;
             else if (k.startsWith("v") && Number.isInteger(x) && x >= 0) likVindu = x;
@@ -1372,22 +1410,41 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      */
     let likFor: SikkerOpts["likFor"];
     if (likKilde !== null) {
+      /**
+       * En spek FRA FIL, kontrollert ETT sted: ikke tom, og SØKFRI. Basen og setepolicyene går
+       * gjennom den samme døra — ellers ville en klone lagt på et sete sluppet unna kontrollen
+       * basen må bestå, og et søk i likelihooden ville startet et nytt søk per observasjon per
+       * kandidatverden.
+       */
+      const fraFil = (sti: string, merke: string): Spekagent => {
+        const tekst = readFileSync(sti, "utf8").trim();
+        if (tekst === "") throw new Error(`«${merke}»: fila er tom`);
+        if (utenSøk(tekst) !== tekst) {
+          throw new Error(`«${merke}»: speken søker («${tekst}») - likelihooden ville søkt per observasjon`);
+        }
+        return lagIndre(tekst);
+      };
       let likAgent = motpartAgent;
       if (likKilde !== "selv") {
         if (!likKilde.startsWith("@")) {
           throw new Error(`Ukjent «~lik=${likKilde}» i «${indre}» - forventet «selv» eller «@<fil>»`);
         }
-        const tekst = readFileSync(likKilde.slice(1), "utf8").trim();
-        if (tekst === "") throw new Error(`«~lik=${likKilde}»: fila er tom`);
-        if (utenSøk(tekst) !== tekst) {
-          throw new Error(`«~lik=${likKilde}»: speken søker («${tekst}») - likelihooden ville søkt per observasjon`);
-        }
-        likAgent = lagIndre(tekst);
+        likAgent = fraFil(likKilde.slice(1), `~lik=${likKilde}`);
       }
+      /**
+       * MODELLEN AV ÉN SPILLER, PÅ HANS SETE. Bygget ÉN gang her og ikke per beslutning: et
+       * nett lastet på nytt for hver stilling ville gjort vekten ubrukelig dyr, og `lagIndre`
+       * leser vektfiler fra disk.
+       */
+      const perSete = new Map<number, Spekagent>();
+      for (const [sete, sti] of likSete) perSete.set(sete, fraFil(sti, `~lik=…,${sti}@${sete}`));
       likFor = (s, sete): ((v: Verden) => number) | null =>
         // GATEN: null = ingen vekt, søket sampler som før. `historikk.length` er antall FULLFØRTE
         // stikk, så f7 slår på fra og med det åttende stikket – der agent V målte hele gevinsten.
-        s.historikk.length < likFra ? null : lagLikvekt(s, sete, () => likAgent, { temp: likTemp, vindu: likVindu });
+        s.historikk.length < likFra
+          ? null
+          : // Setet som scores velger policyen — `perSete` for den vi har en modell av, basen for resten.
+            lagLikvekt(s, sete, (p) => perSete.get(p) ?? likAgent, { temp: likTemp, vindu: likVindu });
     }
     // Samme motpart som utspillingene ellers bruker, vridd per sete — som i `amu:`.
     const økt = ctx.økt;

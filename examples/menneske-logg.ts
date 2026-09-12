@@ -58,6 +58,8 @@ import { readFileSync } from "node:fs";
 import { lovligeHandlinger, opprettSpill, utfør, type GameState, type Handling } from "../src/motor.ts";
 import type { Farge, Kort, Verdi } from "../src/kort.ts";
 import type { Bud } from "../src/regler.ts";
+// Pseudonymformen håndheves ETT sted (`src/mlb/profil.ts`), ikke skrevet opp igjen her.
+import { gyldigId } from "../src/mlb/profil.ts";
 
 /** Mennesket sitter i sete 0 i hver kamp i Val Town. */
 export const MENNESKE = 0;
@@ -158,6 +160,61 @@ export const bland = (h: number): number => {
   x ^= x >>> 16;
   return x >>> 0;
 };
+
+/**
+ * ===================== ÉN SPILLER, OG ET SNITT I TIDEN (12. sep) ==========
+ *
+ * `menneskeBånd` deler på kamp-id og blander ALLE spillerne i ett korpus. Det er riktig for
+ * trohodene, som skal lære «mennesker», men galt for en MODELL AV ÉN SPILLER: en klone som
+ * skal brukes som antatt policy mot nettopp ham, må trenes på hans kamper og dømmes på hans
+ * ANDRE kamper.
+ *
+ * To ting kreves, og de er ikke det samme:
+ *
+ *   `erSpiller`   velger kampene ett pseudonym spilte. Prefiks, ikke hele pseudonymet, så en
+ *                 kommandolinje og en rapport slipper å bære id-en i full lengde. Formen
+ *                 håndheves av `gyldigId` — SAMME regel som profilfilene bruker, hentet
+ *                 derfra og ikke skrevet opp igjen: et navn skal ikke kunne bli et filter,
+ *                 og en id skal ikke kunne bli en sti ut av katalogen.
+ *   `tidsside`    deler på KAMP, ikke på runde. En kamp som spenner over snittet hører ingen
+ *                 steder hjemme og gis `null` — kalleren skal TELLE den, ikke gjette. Delte
+ *                 vi på rundetidspunkt, ville de tidlige rundene i en kamp vært trening og de
+ *                 sene holdout, og holdouten hadde inneholdt kamper klonen alt hadde sett
+ *                 halve av. Det er nøyaktig giv-lekkasjen `sd-tren.py` stopper for.
+ */
+export const spillerAv = (k: Menneskekamp): string => k.start?.spiller ?? "";
+
+/** Kampens første og siste rundetidspunkt. `null` når kampen ikke har en eneste runde. */
+export function kampSpenn(k: Menneskekamp): { fra: string; til: string } | null {
+  let fra: string | null = null;
+  let til: string | null = null;
+  for (const r of k.runder) {
+    if (fra === null || r.tid < fra) fra = r.tid;
+    if (til === null || r.tid > til) til = r.tid;
+  }
+  return fra === null || til === null ? null : { fra, til };
+}
+
+/**
+ * Kampene ETT pseudonym spilte, valgt på prefiks. Tom prefiks = alle, som før.
+ *
+ * Pseudonymet skrives aldri ut herfra; kalleren eier utskriften og skal bare bruke prefikset.
+ */
+export function erSpiller(k: Menneskekamp, prefiks: string): boolean {
+  if (prefiks === "") return true;
+  if (!gyldigId(prefiks)) throw new Error(`Ugyldig spillerprefiks – forventet 1–32 hex (samme form som profilfilene)`);
+  return spillerAv(k).startsWith(prefiks);
+}
+
+/** Hvilken side av snittet HELE kampen ligger på. `null` = den spenner over snittet. */
+export type Tidsside = "foer" | "etter";
+export function tidsside(k: Menneskekamp, snitt: string): Tidsside | null {
+  const s = kampSpenn(k);
+  if (s === null) return null;
+  if (s.til < snitt) return "foer";
+  if (s.fra >= snitt) return "etter";
+  return null;
+}
 
 export type Menneskebånd = "trening" | "holdout";
 /**
