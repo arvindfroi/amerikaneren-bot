@@ -92,6 +92,22 @@ export function invers(p: Fargebytte): Fargebytte {
   return u as unknown as Fargebytte;
 }
 
+/**
+ * Først `a`, så `b` — det byttet som gjør begge i én omgang.
+ *
+ * HVORFOR DEN MÅ FINNES: kanoniseringen av en ALLEREDE byttet stilling er to
+ * bytter etter hverandre (`byttVisning(byttVisning(v, p), c)`). Skal vi kunne si
+ * hvor kort `i` havnet, må de to slås sammen til ett — og gjøres det for hånd på
+ * kallstedet, er det en indeksregning som ikke krasjer når den er feil, den bare
+ * peker på feil kort. `test/agX-fargesymmetri.test.ts` krever at `byttVisning`
+ * med den sammensatte er BIT-IDENTISK med de to hver for seg.
+ */
+export function komponer(a: Fargebytte, b: Fargebytte): Fargebytte {
+  const u = [0, 0, 0, 0];
+  for (let f = 0; f < 4; f++) u[f] = b[a[f]!]!;
+  return u as unknown as Fargebytte;
+}
+
 const fargeIndeks = (f: Farge): number => FARGER.indexOf(f);
 
 /**

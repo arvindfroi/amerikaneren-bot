@@ -45,11 +45,13 @@ import {
   erIdentitet,
   invers,
   kanoniskBytte,
+  komponer,
   KORT_INN,
   kortInnKilde,
   lovligeBytter,
   permuter,
   troInnKilde,
+  uavgjorteFarger,
   type Fargebytte,
 } from "../src/mlb/fargebytte.ts";
 
@@ -360,4 +362,113 @@ test("augmentering: prøven kan FEILE — en etikett som ikke permuteres blir ta
       `fella «${navn}» ble ikke tatt i noen av ${prøvd} bytter — ekvivariansprøven måler ingenting`,
     );
   }
+});
+
+/**
+ * SAMMENSETNINGEN — to bytter etter hverandre er ett bytte.
+ *
+ * `examples/agX-fargesymmetri.ts --kanonisk` kanoniserer den BYTTEDE stillingen på
+ * nytt og må kunne si hvor kort `i` havnet etter begge stegene. Regnes den veien
+ * ut for hånd på kallstedet, krasjer den ikke når den er feil — den peker på feil
+ * kort, og restleddet som skulle vært null blir et tall som ser troverdig ut.
+ */
+test("komponer: to bytter etter hverandre er ETT bytte, og stillingen er enig", () => {
+  const pos = stillinger(6, 3, 2);
+  assert.ok(pos.length >= 10, `bare ${pos.length} stillinger`);
+  let prøvd = 0;
+  const avvik: string[] = [];
+  for (const { s, sete } of pos) {
+    const v = spillerVisning(s, sete);
+    for (const a of lovligeBytter(s.trumf, s.etterlyst)) {
+      // `b` trenger ikke være lovlig i ORIGINALEN: den virker på den alt byttede
+      // stillingen, og der er det andre farger som er ankret.
+      for (const b of lovligeBytter(s.trumf, s.etterlyst)) {
+        prøvd++;
+        const toSteg = troTrekk(byttVisning(byttVisning(v, a), b), s);
+        const ettSteg = troTrekk(byttVisning(v, komponer(a, b)), s);
+        for (let i = 0; i < BREDDE; i++) {
+          if (!Object.is(toSteg[i], ettSteg[i])) {
+            avvik.push(`stikk ${s.stikkSpilt} sete ${sete}: trekk ${i} etter ${a.join("")}∘${b.join("")}`);
+            break;
+          }
+        }
+      }
+    }
+  }
+  assert.ok(prøvd >= 20, `bare ${prøvd} sammensetninger prøvd`);
+  assert.deepEqual(avvik, [], `komponer er UENIG med to bytter etter hverandre:\n${avvik.slice(0, 6).join("\n")}`);
+});
+
+/**
+ * KANONISERINGEN SKAL GJØRE MÅLINGEN EKSAKT NULL — der nøkkelen skiller.
+ *
+ * Dette er påstanden hele `--kanonisk` hviler på, og den som gjør restleddet
+ * tolkbart: i en stilling der den offentlige nøkkelen skiller alle frie farger
+ * (`uavgjorteFarger === 0`), skal originalen og enhver byttet utgave av den falle
+ * på NØYAKTIG samme navn — og trekkvektorene være bit-identiske. Er de ikke det,
+ * er kanoniseringen ufullstendig, og hvert «restledd» målingen rapporterer er
+ * kanoniseringens egen feil forkledd som nettets.
+ *
+ * `EST_ARGMAX` er det ene dokumenterte unntaket, som i prøvene over.
+ */
+function kanoniskFelles(velgBytte: (v: SpillerVisning) => Fargebytte): { prøvd: number; avvik: string[] } {
+  const avvik: string[] = [];
+  let prøvd = 0;
+  for (const { s, sete } of stillinger(10, 4, 2)) {
+    const v = spillerVisning(s, sete);
+    if (uavgjorteFarger(v) !== 0) continue; // nøkkelen skiller ikke her — se hodet i eksempelet
+    const fasit = troTrekk(byttVisning(v, velgBytte(v)), s);
+    for (const p of lovligeBytter(s.trumf, s.etterlyst)) {
+      if (erIdentitet(p)) continue;
+      prøvd++;
+      const vP = byttVisning(v, p);
+      const annen = troTrekk(byttVisning(vP, velgBytte(vP)), s);
+      for (let i = 0; i < BREDDE; i++) {
+        if (!Object.is(fasit[i], annen[i]) && !EST_ARGMAX.includes(i)) {
+          avvik.push(`stikk ${s.stikkSpilt} sete ${sete}: trekk ${i} skiller de to kanoniske formene`);
+          break;
+        }
+      }
+    }
+  }
+  return { prøvd, avvik };
+}
+
+test("kanonisering: der nøkkelen skiller, er den byttede stillingen BIT-IDENTISK med originalen", () => {
+  const { prøvd, avvik } = kanoniskFelles(kanoniskBytte);
+  assert.ok(prøvd >= 20, `bare ${prøvd} bytter prøvd — beviser ingenting`);
+  assert.deepEqual(
+    avvik,
+    [],
+    `kanoniseringen er UFULLSTENDIG (${avvik.length} av ${prøvd}):\n${avvik.slice(0, 6).join("\n")}`,
+  );
+});
+
+test("kanonisering: prøven kan FEILE — en nøkkel som bare teller kort blir tatt", () => {
+  /**
+   * FELLA: samme rangering, men bare ledd (a) — ANTALL kort spilt åpent — og så
+   * den faste fargerekkefølgen. Den ser komplett ut og er det ikke: to farger med
+   * like mange spilte kort, men ulik høyeste valør, får navn etter fargeindeksen,
+   * og da bytter navnet seg når fargene byttes. Nøyaktig den feilen som ville
+   * gjort et «kanonisk» korpus stille inkonsistent.
+   */
+  const bareAntall = (v: SpillerVisning): Fargebytte => {
+    const antall = [0, 0, 0, 0];
+    for (const stikk of v.historikk) for (const kp of stikk.kort) antall[["S", "H", "R", "K"].indexOf(kp.kort.farge)]!++;
+    for (const kp of v.bord) antall[["S", "H", "R", "K"].indexOf(kp.kort.farge)]!++;
+    const t = v.trumf === null ? -1 : ["S", "H", "R", "K"].indexOf(v.trumf);
+    const e = v.etterlyst === null ? -1 : ["S", "H", "R", "K"].indexOf(v.etterlyst.farge);
+    const rang = (f: number): number => (f === t ? 0 : f === e ? 1 : 2);
+    const orden = [0, 1, 2, 3].sort((a, b) => rang(a) - rang(b) || antall[b]! - antall[a]! || a - b);
+    const p = [0, 0, 0, 0];
+    for (let i = 0; i < 4; i++) p[orden[i]!] = i;
+    return p as unknown as Fargebytte;
+  };
+  const { prøvd, avvik } = kanoniskFelles(bareAntall);
+  assert.ok(prøvd >= 20, `bare ${prøvd} bytter prøvd`);
+  assert.ok(
+    avvik.length > 0,
+    `en nøkkel UTEN høyeste valør og maske ble ikke tatt i noen av ${prøvd} bytter — ` +
+      "da måler den grønne prøven over ingenting.",
+  );
 });

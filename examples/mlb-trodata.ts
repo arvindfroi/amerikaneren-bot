@@ -514,8 +514,16 @@ if (MENNESKE) {
           if (harUkjente(f)) {
             // K2: visningen alene, og bøkene — som begge bare kjenner FERDIGE runder.
             const huk = medBok ? bok.vektor(sete, s.antallSpillere) : null;
-            const t = troTrekkForBredde(DIM, spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, huk, tbok);
-            skrivRad(t, f, frø, s.stikkSpilt, sete);
+            /**
+             * MENNESKERADENE KANONISERES OGSÅ (12. sep). Løkka trener troen på bot- OG
+             * menneskerader i SAMME kall (`--tren-menneske`), og sto denne grenen igjen
+             * med absolutte farger, ville et «kanonisk» korpus vært halvt kanonisk:
+             * botradene døpt om, menneskeradene ikke. Ingenting hadde krasjet — nettet
+             * ville bare fått to motstridende navnekonvensjoner i samme batch.
+             */
+            const kf = kanonisk(spillerVisning(s, sete), f);
+            const t = troTrekkForBredde(DIM, kf.vis, s.giving.antallStikk, s.regler.målPoeng, huk, tbok);
+            skrivRad(t, kf.f, frø, s.stikkSpilt, sete);
           }
         }
       }

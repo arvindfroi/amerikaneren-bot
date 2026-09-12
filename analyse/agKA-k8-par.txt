@@ -1,0 +1,29 @@
+PARVIS K8 - kk/abs-hold-*.bin, 34242 rader, 100 kamper
+
+  start    K8 0.92272  (621823 kort)  e1-modell/tro-7.bin   treneren sa 0.92272, avvik 1.18e-06
+  A1       K8 0.92117  (621823 kort)  analyse/agKA-tro-A1.bin   treneren sa 0.92117, avvik 4.43e-06
+  B1       K8 0.92508  (621823 kort)  analyse/agKA-tro-B1.bin   treneren sa 0.92508, avvik 2.57e-06
+  A0       K8 0.96462  (621823 kort)  analyse/agKA-tro-A0.bin   treneren sa 0.96462, avvik 4.63e-06
+  B0       K8 0.93808  (621823 kort)  analyse/agKA-tro-B0.bin   treneren sa 0.93808, avvik 2.45e-06
+
+PARVISE DIFFERANSER (negativ = den foerste er BEDRE), SE klynget paa kamp:
+  B1-A1      alle        +0.00430 ± 0.00061  z = +7.03  (100 kamper)
+  B1-A1      budvinner   +0.00227 ± 0.00096  z = +2.36  (100 kamper)
+  B1-A1      makker      +0.00618 ± 0.00110  z = +5.60  (100 kamper)
+  B1-A1      motspiller  +0.00483 ± 0.00090  z = +5.38  (100 kamper)
+
+  B0-A0      alle        -0.02630 ± 0.00083  z = -31.57  (100 kamper)
+  B0-A0      budvinner   -0.02015 ± 0.00149  z = -13.55  (100 kamper)
+  B0-A0      makker      -0.02647 ± 0.00181  z = -14.64  (100 kamper)
+  B0-A0      motspiller  -0.03035 ± 0.00129  z = -23.46  (100 kamper)
+
+  A1-start   alle        -0.00150 ± 0.00031  z = -4.83  (100 kamper)
+  A1-start   budvinner   -0.00115 ± 0.00047  z = -2.43  (100 kamper)
+  A1-start   makker      -0.00222 ± 0.00066  z = -3.34  (100 kamper)
+  A1-start   motspiller  -0.00163 ± 0.00052  z = -3.10  (100 kamper)
+
+  B1-start   alle        +0.00280 ± 0.00063  z = +4.47  (100 kamper)
+  B1-start   budvinner   +0.00112 ± 0.00092  z = +1.22  (100 kamper)
+  B1-start   makker      +0.00396 ± 0.00128  z = +3.09  (100 kamper)
+  B1-start   motspiller  +0.00320 ± 0.00093  z = +3.46  (100 kamper)
+

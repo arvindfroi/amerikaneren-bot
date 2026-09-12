@@ -3,6 +3,7 @@
  *
  *   node examples/kort-data.ts --spek <helbot> --kamper 400 --skard 0/20 --ut D:/amb-grp/loop/iterK/kort/s0.jsonl
  *     [--drivere "@|A|@|B" --rotasjon] [--sjanse 1] [--froe 500000000] [--maksrunder 60] [--bredde 273|493]
+ *     [--kanonisk]
  *
  * HVORFOR. Løkka trener bud, vrak, kall og tro hver iterasjon, men kortnettet (`e1:e1-modell/d7alle.bin`,
  * nederst under `vakt:abmp`) har stått siden 3. august. Det er prioren alt annet bygger på: utspillingene
@@ -50,7 +51,8 @@ import { dirname } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { lagRng } from "../src/kort.ts";
-import { lovligeKort, opprettSpill, utfør, type GameState } from "../src/motor.ts";
+import { lovligeKort, opprettSpill, spillerVisning, utfør, type GameState } from "../src/motor.ts";
+import { byttTilstand, IDENTITET, kanoniskBytte, type Fargebytte } from "../src/mlb/fargebytte.ts";
 import { lagIndre, tall } from "../src/moe2/agentspek.ts";
 import { settParlytter, type Parhendelse } from "../src/moe2/sikkerorakel.ts";
 import type { ParResultat } from "../src/moe2/sdpar.ts";
@@ -90,19 +92,34 @@ export function kortEtikett(
   par: ParResultat,
   dim: number,
   bok: Hukommelse | null = null,
+  bytte: Fargebytte = IDENTITET,
 ): { t: number[]; v: Record<string, number> } {
+  /**
+   * `bytte` er kanoniseringen (`--kanonisk`), IDENTITET ellers — og da er hver rad
+   * byte-identisk med før. Byttet er regnet av `spillerVisning` alene på kallstedet,
+   * så K2 står: `byttTilstand` ser skjulte kort, men PERMUTASJONEN gjør det ikke, og
+   * en permutasjon av en verden er en like gyldig verden.
+   *
+   * TREKKENE OG ETIKETTEN MÅ FØLGE SAMME BYTTE. Døpes bare `t` om, peker `v` på kort
+   * som ikke lenger ligger der — og ingenting krasjer, nettet lærer bare støy.
+   */
+  const s = byttTilstand(state, bytte);
   let t: number[];
   if (erKortbokBredde(dim)) {
     // En tom bok her ville skrevet 144 nuller som ser ut som «første runde» i hver rad.
     if (bok === null) throw new Error(`Bredde ${dim} leser motstanderboka, men ingen bok er gitt`);
-    t = Array.from(e1KortBokTrekk(state, sete, bok.vektor(sete, state.antallSpillere)));
+    // Boka er fargeløs (48 skalarer per motstander), så den går inn uendret.
+    t = Array.from(e1KortBokTrekk(s, sete, bok.vektor(sete, state.antallSpillere)));
   } else {
-    t = Array.from(e1SpillTrekkMedTro(state, sete, dim, null));
+    t = Array.from(e1SpillTrekkMedTro(s, sete, dim, null));
   }
   const v: Record<string, number> = {};
-  for (const k of par.kandidater) v[String(kortIndeks(k.kort))] = rund4(k.snitt);
+  for (const k of par.kandidater) v[String(kortbytteIndeks(kortIndeks(k.kort), bytte))] = rund4(k.snitt);
   return { t, v };
 }
+
+/** Kortindeksen etter et fargebytte: valøren står, fargen flytter. */
+export const kortbytteIndeks = (i: number, p: Fargebytte): number => p[Math.floor(i / 13)]! * 13 + (i % 13);
 
 function kjør(): void {
   const arg = (n: string, s: string): string => {
@@ -121,6 +138,18 @@ function kjør(): void {
   const FRØ = tall(arg("--froe", "500000000"), 500_000_000, "froe");
   const MAKSRUNDER = tall(arg("--maksrunder", "60"), 60, "maksrunder");
   const BREDDE = process.argv.includes("--bredde") ? tall(arg("--bredde", "273"), 273, "bredde") : kortnettBredde(SPEK);
+  /**
+   * `--kanonisk`: DØP OM FARGENE før trekkene bygges — trumf først, så det etterlyste
+   * kortets farge, så resten etter en offentlig nøkkel (`kanoniskBytte`). Samme flagg og
+   * samme nøkkel som `examples/mlb-trodata.ts`, fordi et kanonisk kortnett og et kanonisk
+   * trohode må være enige om hva fargene HETER: de sitter i samme spek, og søket i `sik:`
+   * mater troen med stillinger kortnettet spiller ut.
+   *
+   * SØKET SELV ER URØRT. Etikettene (`v`) kommer fra `vurderPar` på den EKTE stillingen;
+   * bare navnene på fargene byttes etterpå. Kanoniseringen kan derfor ikke endre ett valg
+   * eller én verdi — den flytter bare hvilken kolonne de står i.
+   */
+  const KANONISK = process.argv.includes("--kanonisk");
   mkdirSync(dirname(UT), { recursive: true });
 
   /** Én spek per sete; uten `--drivere` fire ganger `SPEK`, alle registrert (se `drivere.ts`). */
@@ -184,6 +213,8 @@ function kjør(): void {
           utenPar++;
         } else {
           if (fangst.antall > 1) doble++;
+          // Nøkkelen leser bare setets egen visning (K2); uten flagget er dette identiteten.
+          const kb = KANONISK ? kanoniskBytte(spillerVisning(s, sete)) : IDENTITET;
           appendFileSync(
             UT,
             JSON.stringify({
@@ -196,9 +227,10 @@ function kjør(): void {
               mål: f.sik.lagmål ? "lag" : "standard",
               n: f.par.n,
               sigma: rund4(f.par.sigma),
-              p: h.type === "SPILL" ? kortIndeks(h.kort) : null,
-              b: kortIndeks(f.par.beste.kort),
-              ...kortEtikett(s, sete, f.par, BREDDE, bok),
+              // `p` og `b` er kortindekser og må inn i SAMME ramme som `t` og `v`.
+              p: h.type === "SPILL" ? kortbytteIndeks(kortIndeks(h.kort), kb) : null,
+              b: kortbytteIndeks(kortIndeks(f.par.beste.kort), kb),
+              ...kortEtikett(s, sete, f.par, BREDDE, bok, kb),
             }) + "\n",
           );
           skrevet++;
