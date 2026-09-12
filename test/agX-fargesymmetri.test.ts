@@ -37,6 +37,7 @@ import { medVerden, trekkVerdener } from "../src/moe2/sdkort.ts";
 import { lagRng } from "../src/kort.ts";
 import { kortIndeks } from "../src/nevro/trekk.ts";
 import { MLB_TRO_INN_HS2, troTrekkForBredde } from "../src/mlb/trotrekk.ts";
+import { troFasit } from "../src/mlb/fasit.ts";
 import { e1SpillTrekkMedTro } from "../src/e1/trekk.ts";
 import {
   byttTilstand,
@@ -273,4 +274,90 @@ test("K2: prøven kan FEILE — en kanonisering som kikker i en skjult hånd bli
     avvik.length > 0,
     "en kanonisering som RANGERER FARGENE ETTER EN SKJULT HÅND ble ikke tatt. Da måler K2-prøven over ingenting.",
   );
+});
+
+/**
+ * ETIKETTEN FØLGER MED — påstanden hele augmenteringen hviler på.
+ *
+ * `examples/agX-augmenter.ts` permuterer en ferdig trekkvektor OG etiketten med
+ * samme kart, uten å spille stillingen om igjen. Det er bare lov hvis fasiten er
+ * EKVIVARIANT: kortet som lå hos relativt sete 2 før byttet, skal ligge hos
+ * relativt sete 2 etterpå — på sin nye plass i indeksen. Klassen er et SETE, og
+ * et fargebytte flytter ingen kort mellom hender.
+ *
+ * Holder ikke dette, lager augmenteringen rader der inngangen sier én ting og
+ * fasiten en annen. Det krasjer ikke. Det gir et nett som lærer støy.
+ */
+const permIndeks = (i: number, p: Fargebytte): number => p[Math.floor(i / 13)]! * 13 + (i % 13);
+
+/**
+ * Etiketten slik `examples/agX-augmenter.ts` bygger den: kortet flytter til sin
+ * nye farge, KLASSEN står. Prøven under holder denne påstanden opp mot fasiten
+ * regnet på nytt i den byttede verdenen — og fellene bygger den samme tabellen
+ * feil, så de kan sammenliknes med akkurat samme målestokk.
+ */
+const nyEtikett = (f: Int8Array, p: Fargebytte): Int8Array => {
+  const ut = new Int8Array(52);
+  for (let i = 0; i < 52; i++) ut[permIndeks(i, p)] = f[i]!;
+  return ut;
+};
+
+/** Antall stillinger×bytter der den påståtte etiketten IKKE er fasiten i den byttede verdenen. */
+function etikettAvvik(
+  pos: { s: GameState; sete: number }[],
+  bygg: (f: Int8Array, p: Fargebytte) => Int8Array,
+): { prøvd: number; avvik: string[] } {
+  const avvik: string[] = [];
+  let prøvd = 0;
+  for (const { s, sete } of pos) {
+    const før = troFasit(s, sete);
+    for (const p of lovligeBytter(s.trumf, s.etterlyst)) {
+      if (erIdentitet(p)) continue;
+      prøvd++;
+      const fasit = troFasit(byttTilstand(s, p), sete);
+      const påstand = bygg(før, p);
+      for (let i = 0; i < 52; i++) {
+        if (fasit[i] !== påstand[i]) {
+          avvik.push(`stikk ${s.stikkSpilt} sete ${sete}: kort ${i} skulle vært klasse ${fasit[i]}, ble ${påstand[i]}`);
+          break;
+        }
+      }
+    }
+  }
+  return { prøvd, avvik };
+}
+
+test("augmentering: fasiten er EKVIVARIANT — kortet bytter plass, klassen står", () => {
+  const pos = stillinger(8, 4);
+  assert.ok(pos.length >= 20, `bare ${pos.length} stillinger`);
+  const { prøvd, avvik } = etikettAvvik(pos, nyEtikett);
+  assert.ok(prøvd >= 20, `bare ${prøvd} bytter prøvd`);
+  assert.deepEqual(avvik, [], `fasiten er IKKE ekvivariant:\n${avvik.slice(0, 6).join("\n")}`);
+});
+
+test("augmentering: prøven kan FEILE — en etikett som ikke permuteres blir tatt", () => {
+  const pos = stillinger(6, 3, 1);
+  assert.ok(pos.length >= 6, `bare ${pos.length} stillinger`);
+
+  /**
+   * FELLE 1: etiketten blir liggende mens trekkene byttes — nøyaktig det en
+   * augmenter som glemmer `f2`-løkka ville gjort, og den er usynlig i fila.
+   * FELLE 2: etiketten permuteres på VALØREN i stedet for fargen. Like mange
+   * kort flytter seg, og radene ser like riktige ut.
+   */
+  const glemt = (f: Int8Array): Int8Array => Int8Array.from(f);
+  const påValør = (f: Int8Array): Int8Array => {
+    const ut = new Int8Array(52);
+    for (let i = 0; i < 52; i++) ut[Math.floor(i / 13) * 13 + (12 - (i % 13))] = f[i]!;
+    return ut;
+  };
+
+  for (const [navn, feil] of [["glemt etikett", glemt], ["permutert på valør", påValør]] as const) {
+    const { prøvd, avvik } = etikettAvvik(pos, feil);
+    assert.ok(prøvd > 0, "ingen bytter prøvd");
+    assert.ok(
+      avvik.length > 0,
+      `fella «${navn}» ble ikke tatt i noen av ${prøvd} bytter — ekvivariansprøven måler ingenting`,
+    );
+  }
 });
