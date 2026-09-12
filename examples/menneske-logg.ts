@@ -22,6 +22,31 @@
  * `neat/trekk.ts`), og hukommelsen bokfører `budavvik`, `budandel` og `passtyrke` av dem.
  * Å sette dem til null ville vært å vise nettet et bord der ingen bot bød.
  *
+ * REKKEFØLGEN FINNES IKKE I LOGGEN I DET HELE TATT (12. sep, sans C). Talt over hele
+ * `hendelser.jsonl`: 4448 `runde`-hendelser, 2641 av dem etter 10. aug. ÉN av dem har
+ * `budrunde`-feltet, og det feltet er `{sisteBud, passet}` — AGGREGATER, ikke rekka. Av de
+ * 2641 har alle minst ett `valg-bud` (2422 med ett, 219 med to), så menneskets EGNE meldinger
+ * står i rekkefølge, men når de falt i forhold til botenes vites ikke. Auksjonsrekka
+ * (`Budrunde.rekke`) i en runde gjenskapt herfra er derfor SYNTETISK: den kommer fra
+ * `budrunden()` under, som spiller budrunden om med `V5_KJEDE` til den ender i loggens
+ * budvinner og kontrakt. Den er en plausibel auksjon, ikke den som ble spilt. Et nett som
+ * leser `src/mlb/auksjonsrekke.ts` på menneskerader lærer altså budgivernes vaner, ikke
+ * menneskets — bruk `--auksjon` på selvspillrader, og hold menneskeradene utenfor til appen
+ * logger rekka.
+ *
+ * DEN EKSAKTE ENDRINGEN APPEN TRENGER (ikke gjort her; `web/` er utenfor denne greina):
+ * i `web/app.ts`, i `logg("runde", { … })` (linja med `budrunde:`, ~1405), utvid feltet til
+ *
+ *     budrunde: {
+ *       sisteBud: state.budrunde.sisteBud.slice(),
+ *       passet: state.budrunde.passet.slice(),
+ *       rekke: state.budrunde.rekke.map((x) => [x.sete, x.bud]),
+ *     },
+ *
+ * Ett felt, offentlig informasjon (budtavla viser den alt), og `rekke` er allerede på
+ * `state.budrunde` etter denne greina. Da kan `budrunden()` KONTROLLERE gjenskapingen mot
+ * rekka i stedet for bare mot budvinneren, og menneskeradene kan bære en ekte auksjon.
+ *
  * Budrunden SPILLES DERFOR OM med budgiverne mennesket møtte (`V5_KJEDE`), med menneskets
  * bud tvunget i loggens rekkefølge, og GODTAS BARE når den ender i loggens budvinner og
  * kontrakt. Målt 11. sep: 2636 av 2641 runder med speken alene. Resten løses med MINST MULIG
