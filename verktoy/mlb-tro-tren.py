@@ -234,8 +234,15 @@ LAYOUT = {
     776: [("grunn", 660), ("signal", 116)],
     920: [("grunn", 660), ("hukommelse", 144), ("signal", 116)],
     996: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40)],
-    # Tempoblokken (12. sep) er nuller bakerst for et 996-nett: 996 -> 1028 mister ingen blokk.
+    # TO SANSER LANDET SAMME DAG (12. sep), og de er UAVHENGIGE: tempo (32, tenketiden) og
+    # auksjon (44, budrekkefoelgen). Rekkefoelgen i 1072 er den de landet i - tempo foerst -
+    # saa 996 -> 1028 og 996 -> 1072 og 1028 -> 1072 alle er nuller BAKERST. 1040 -> 1072 er
+    # det ikke: auksjonen staar paa 996 i 1040 og paa 1028 i 1072, og `kolonnekart` flytter den
+    # dit (samme mekanikk som 776 -> 920 flytter signalet). Legges nullene bakerst i STEDET,
+    # leser auksjonsvektene tempoblokken - den gamle 776 -> 920-feilen, en gang til.
     1028: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40), ("tempo", 32)],
+    1040: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40), ("auksjon", 44)],
+    1072: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40), ("tempo", 32), ("auksjon", 44)],
 }
 
 

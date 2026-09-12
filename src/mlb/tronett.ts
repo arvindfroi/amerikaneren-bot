@@ -31,10 +31,13 @@ import {
   MLB_TRO_INN_H,
   MLB_TRO_INN_HS,
   MLB_TRO_INN_HS2,
+  MLB_TRO_INN_HS2A,
   MLB_TRO_INN_HS2T,
+  MLB_TRO_INN_HS2TA,
   MLB_TRO_INN_S,
   MLB_TRO_KLASSER,
   MLB_TRO_KORT,
+  MLB_TRO_LAYOUT,
   MLB_TRO_UT,
   troKolonnekart,
   troTrekkForBredde,
@@ -76,7 +79,9 @@ export class MlbTronett {
     if (!MLB_TRO_BREDDER.includes(første.inn)) {
       throw new Error(
         `MLB-trohodet tar ${MLB_TRO_INN} (uten hukommelse), ${MLB_TRO_INN_H} (med), ` +
-          `${MLB_TRO_INN_S} eller ${MLB_TRO_INN_HS} (med signalblokk) eller ${MLB_TRO_INN_HS2} (sanser 2) trekk, ` +
+          `${MLB_TRO_INN_S} eller ${MLB_TRO_INN_HS} (med signalblokk), ${MLB_TRO_INN_HS2} (sanser 2), ` +
+          `${MLB_TRO_INN_HS2T} (tempo), ${MLB_TRO_INN_HS2A} (auksjonsrekka) ` +
+          `eller ${MLB_TRO_INN_HS2TA} (begge) trekk, ` +
           `nettet har ${første.inn}`,
       );
     }
@@ -104,40 +109,51 @@ export class MlbTronett {
     return this;
   }
 
+  /**
+   * HVILKE BLOKKER DENNE BREDDEN HAR — slått opp i `MLB_TRO_LAYOUT`, ikke i en liste av
+   * bredder per sans.
+   *
+   * Her sto det én OR-kjede per sans, og HVER ny bredde måtte inn i alle. En bredde som
+   * manglet i `brukerHukommelse` fikk `null` der den skulle hatt en bok, og blokken ble da
+   * NULLER uten at noe feilet — nøyaktig feilen `--auksjon` hadde i `examples/mlb-trodata.ts`
+   * (`medBok`): et 1040-korpus var ulikt et 996-korpus i de 996 FØRSTE trekkene. Med fire
+   * bredder over 996, i to uavhengige akser, er den fella for lett å gå i. Layouten VET hva
+   * hver bredde inneholder, og er alt kilden varmstarten bruker.
+   */
+  private harBlokk(navn: string): boolean {
+    return (MLB_TRO_LAYOUT[this.innBredde] ?? []).some(([n]) => n === navn);
+  }
+
   /** Leser dette nettet hukommelsen (K6 → K8)? Avgjøres av bredden, ikke av et flagg. */
   get brukerHukommelse(): boolean {
-    return (
-      this.innBredde === MLB_TRO_INN_H ||
-      this.innBredde === MLB_TRO_INN_HS ||
-      this.innBredde === MLB_TRO_INN_HS2 ||
-      this.innBredde === MLB_TRO_INN_HS2T
-    );
+    return this.harBlokk("hukommelse");
   }
 
   /** Leser dette nettet signalblokken (K8 kanal 5 og 2)? Også avgjort av bredden. */
   get brukerSignal(): boolean {
-    return (
-      this.innBredde === MLB_TRO_INN_S ||
-      this.innBredde === MLB_TRO_INN_HS ||
-      this.innBredde === MLB_TRO_INN_HS2 ||
-      this.innBredde === MLB_TRO_INN_HS2T
-    );
+    return this.harBlokk("signal");
   }
 
-  /** Leser dette nettet sanser 2 (stillingen per sete, valgt bort)? 996 og 1028. */
+  /** Leser dette nettet sanser 2 (stillingen per sete, valgt bort)? 996 og alt over. */
   get brukerSanser2(): boolean {
-    return this.innBredde === MLB_TRO_INN_HS2 || this.innBredde === MLB_TRO_INN_HS2T;
+    return this.harBlokk("stilling") && this.harBlokk("valgtbort");
   }
 
-  /** Leser dette nettet tempoblokken (tenketiden til de andre setene)? Bare 1028. */
+  /** Leser dette nettet tempoblokken (tenketiden til de andre setene)? 1028 og 1072. */
   get brukerTempo(): boolean {
-    return this.innBredde === MLB_TRO_INN_HS2T;
+    return this.harBlokk("tempo");
+  }
+
+  /** Leser dette nettet auksjonens rekkefølge (sans C)? 1040 og 1072. */
+  get brukerAuksjon(): boolean {
+    return this.harBlokk("auksjon");
   }
 
   /**
    * TREKKENE FOR NETTOPP DETTE NETTET, etter bredden: 660 og 804 bit-identisk med før,
-   * 776 og 920 med signalblokken bakerst. Alle som bygger trotrekk skal gå gjennom
-   * denne, så en ny bredde ikke må huskes på hvert kallsted.
+   * 776 og 920 med signalblokken bakerst, og 1028/1040/1072 med tempo og/eller auksjon etter
+   * 996. Alle som bygger trotrekk skal gå gjennom denne, så en ny bredde ikke må huskes på
+   * hvert kallsted — `tempo` er uskadelig å sende inn for en bredde uten tempoblokk.
    */
   trekkFor(
     visning: SpillerVisning,

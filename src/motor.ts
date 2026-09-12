@@ -43,11 +43,51 @@ export interface KortPåBord {
   readonly kort: Kort;
 }
 
+/** Én melding i auksjonen: hvem, og hva. `bud === PASS` er et pass. */
+export interface Budsteg {
+  readonly sete: number;
+  readonly bud: Bud;
+}
+
 export interface Budrunde {
   readonly passet: boolean[];
   readonly høyeste: { spiller: number; bud: Exclude<Bud, typeof PASS> } | null;
   /** Hver spillers høyeste meldte bud (null = har ikke meldt). Offentlig. */
   readonly sisteBud: (Exclude<Bud, typeof PASS> | null)[];
+  /**
+   * AUKSJONEN I REKKEFØLGE (12. sep) — meldingene slik de faktisk falt.
+   *
+   * ===================== HVORFOR FELTET FINNES =========================
+   *
+   * `passet` og `sisteBud` er AGGREGATER: hvem som er ute, og hvor høyt hver
+   * kom. To auksjoner der de samme setene endte på de samme budene gir
+   * bit-identiske felt — og de to auksjonene er ikke det samme bordet. «Han
+   * hoppet rett til 11» og «han krøp opp én om gangen fra 5» er den samme
+   * `sisteBud`-raden, og et menneske ved bordet leser nettopp forskjellen.
+   * `src/mlb/sekvens.ts` og `src/mlb/valgtbort.ts` noterte begge mangelen som
+   * et FUNN de ikke kunne fylle: nivået noen passet på, og rekka av meldinger,
+   * fantes ikke i `SpillerVisning` og heller ikke i `GameState` — den levde
+   * bare i hendelsesstrømmen fra `utfør`, som ingen bokførte.
+   *
+   * ===================== HVORFOR DET ER LOVLIG Å DELE ==================
+   *
+   * Auksjonen er OFFENTLIG: alle ved bordet hørte hver melding da den falt.
+   * Feltet går derfor uredigert med i `spillerVisning`, i motsetning til
+   * hender, talong og vrak. Det er ikke en oppmykning av K2 — det er den
+   * samme informasjonen appen alt viser på budtavla.
+   *
+   * ===================== HVORFOR ET NYTT FELT, IKKE ENDREDE =============
+   *
+   * `passet`, `høyeste` og `sisteBud` er RØRT AV INGENTING her. Hver eneste
+   * leser fra før (`neat/trekk.ts` BUD_HIST, `moe2/budtrekk.ts`,
+   * `mlb/stillingtrekk.ts`, budmodellen, appens budtavle) ser nøyaktig de
+   * samme tallene som før. Rekka er et TILLEGG, og et nett som ikke leser den
+   * gir bit for bit samme svar.
+   *
+   * Bare denne rundens meldinger: `nyGivning` tømmer rekka som den tømmer
+   * resten av rundedataene.
+   */
+  readonly rekke: readonly Budsteg[];
 }
 
 export interface Stikk {
@@ -200,6 +240,7 @@ export function opprettSpill(
       passet: new Array<boolean>(r.antallSpillere).fill(false),
       høyeste: null,
       sisteBud: new Array<Exclude<Bud, typeof PASS> | null>(r.antallSpillere).fill(null),
+      rekke: [],
     },
     budvinner: null,
     melding: null,
@@ -364,6 +405,7 @@ function klon(state: GameState): Mutable<GameState> {
       passet: state.budrunde.passet.slice(),
       høyeste: state.budrunde.høyeste,
       sisteBud: state.budrunde.sisteBud.slice(),
+      rekke: state.budrunde.rekke.slice(),
     },
     vrak: state.vrak.slice(),
     bord: state.bord.slice(),
@@ -409,13 +451,16 @@ function utførBud(s: Mutable<GameState>, spiller: number, bud: Bud, ev: Hendels
 
   const passet = s.budrunde.passet.slice();
   const sisteBud = s.budrunde.sisteBud.slice();
+  // Rekka føres av SAMME kodevei som aggregatene, og før grenen under: en melding som
+  // avslutter budrunden (solo, eller siste aktive) skal stå i rekka som alle andre.
+  const rekke = [...s.budrunde.rekke, { sete: spiller, bud }];
   if (bud === PASS) {
     passet[spiller] = true;
-    s.budrunde = { passet, høyeste: s.budrunde.høyeste, sisteBud };
+    s.budrunde = { passet, høyeste: s.budrunde.høyeste, sisteBud, rekke };
     ev.push({ type: "PASS", spiller });
   } else {
     sisteBud[spiller] = bud;
-    s.budrunde = { passet, høyeste: { spiller, bud }, sisteBud };
+    s.budrunde = { passet, høyeste: { spiller, bud }, sisteBud, rekke };
     ev.push({ type: "BUD", spiller, bud });
     if (bud === SOLO) {
       avsluttBudrunde(s, spiller, ev);
@@ -656,6 +701,7 @@ function nyGivning(s: Mutable<GameState>, ev: Hendelse[]): void {
     passet: new Array<boolean>(s.antallSpillere).fill(false),
     høyeste: null,
     sisteBud: new Array<Exclude<Bud, typeof PASS> | null>(s.antallSpillere).fill(null),
+    rekke: [],
   };
   s.budvinner = null;
   s.melding = null;
@@ -730,6 +776,8 @@ export function spillerVisning(state: GameState, spiller: number): SpillerVisnin
       passet: state.budrunde.passet.slice(),
       høyeste: state.budrunde.høyeste,
       sisteBud: state.budrunde.sisteBud.slice(),
+      // Offentlig: alle ved bordet hørte hver melding da den falt. Se `Budrunde.rekke`.
+      rekke: state.budrunde.rekke.slice(),
     },
     budvinner: state.budvinner,
     melding: state.melding,

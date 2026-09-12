@@ -156,7 +156,9 @@ export function stillingTrekk(visning: SpillerVisning, antallStikk: number, mål
     v[b + NÅR_TALLBUD] = igjen <= 2 * antallStikk ? 1 : 0;
     v[b + NÅR_AMERIKANER] = igjen <= mål / 2 ? 1 : 0;
     const eget = visning.budrunde.sisteBud[p];
-    if (eget !== null && eget !== undefined && eget !== PASS) {
+    // `sisteBud` er typet uten PASS, men vakten står som en RUNTIME-sjekk (en visning bygd for
+    // hånd kan bære hva som helst). Kasten til `Bud` er bare for å få lov til å sammenlikne.
+    if (eget !== null && eget !== undefined && (eget as Bud) !== PASS) {
       v[b + NÅR_EGET_BUD] = budvinnergevinst(eget, mål) >= igjen ? 1 : 0;
     }
     if (rollene) v[b + NÅR_I_RUNDEN] = størsteGevinst(visning, p, antallStikk, mål) >= igjen ? 1 : 0;

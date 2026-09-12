@@ -51,6 +51,7 @@ import { FARGER, type Kort } from "../kort.ts";
 import type { SpillerVisning } from "../motor.ts";
 import { lagInn, ANTALL_INN as NEAT_INN } from "../neat/trekk.ts";
 import { kortIndeks } from "../nevro/trekk.ts";
+import { MLB_AUKSJON, auksjonsrekkeTrekk } from "./auksjonsrekke.ts";
 import { MLB_TRO_SIGNAL, signalTrekk } from "./signaltrekk.ts";
 import { MLB_STILLING, stillingTrekk } from "./stillingtrekk.ts";
 import { MLB_TEMPO, tempofaseAv, tempoTrekk, type Tempobok } from "./tempotrekk.ts";
@@ -124,16 +125,37 @@ export const MLB_TRO_SANSER2 = MLB_STILLING + MLB_VALGT_BORT;
 export const MLB_TRO_INN_HS2 = MLB_TRO_INN_HS + MLB_TRO_SANSER2;
 
 /**
- * TEMPOBLOKKEN (12. sep): tenketiden til de ANDRE setene, `src/mlb/tempotrekk.ts` (32),
- * BAKERST etter 996. Én ny bredde, som for sanser 2:
+ * TO NYE SANSER SAMME DAG (12. sep), OG DE ER UAVHENGIGE.
  *
- *   MLB_TRO_INN_HS2T   996 + 32 = 1028   (660 | hukommelse | signal | stilling | valgt bort | tempo)
+ *   TEMPO     tenketiden til de ANDRE setene, `src/mlb/tempotrekk.ts` (32). Bygd av
+ *             `SpillerVisning` og den offentlige tempologgen alene — aldri av observatørens
+ *             EGEN tid, og aldri av botenes regnetid (`bottrekk`); se toppen av den fila.
+ *   AUKSJON   rekkefølgen meldingene falt i, `src/mlb/auksjonsrekke.ts` (44). Aggregatene
+ *             (`passet`, `sisteBud`) kan ikke skille krypern fra hopperen; rekka kan.
  *
- * Et 996-nett utvidet med nullkolonner bakerst gir NØYAKTIG samme tro, og det er dagens
- * nett. Blokken er bygd av `SpillerVisning` og den offentlige tempologgen alene — aldri
- * av observatørens EGEN tid, og aldri av botenes regnetid (`bottrekk`); se toppen av fila.
+ * Begge ble skrevet som «den neste bredden». De utelukker ikke hverandre, og et nett skal
+ * kunne ha den ene, den andre, begge eller ingen. Derfor er det FIRE bredder over 996:
+ *
+ *   MLB_TRO_INN_HS2     996                    (660 | hukommelse | signal | stilling | valgt bort)
+ *   MLB_TRO_INN_HS2T    996 + 32      = 1028   (… | tempo)
+ *   MLB_TRO_INN_HS2A    996 + 44      = 1040   (… | auksjon)
+ *   MLB_TRO_INN_HS2TA   996 + 32 + 44 = 1072   (… | tempo | auksjon)
+ *
+ * REKKEFØLGEN I 1072 ER DEN DE LANDET I — tempo først. Det er ikke smak: da er 996 → 1028,
+ * 996 → 1040, 996 → 1072 og 1028 → 1072 alle nuller BAKERST, og bare 1040 → 1072 må flytte
+ * en blokk (auksjonen fra 996 til 1028). `troKolonnekart` gjør nettopp den flyttingen, på
+ * NAVN — samme mekanikk som 776 → 920 flytter signalet fra 660 til 804. Legger man nullene
+ * bakerst i stedet, leser auksjonsvektene tempoblokken, og troen blir en annen uten at noe
+ * feiler. Det er den eneste feilen i denne stigen som ikke krasjer.
+ *
+ * Løkka trener 996. HVERT steg opp herfra må derfor gi bit-identisk tro for et nett utvidet
+ * med nullkolonner; `test/mlb-tempo.test.ts`, `test/mlb-auksjonsrekke.test.ts` og
+ * `test/mlb-sanser-stigen.test.ts` krever det, steg for steg og for hele stigen.
  */
+export const MLB_TRO_AUKSJON = MLB_AUKSJON;
 export const MLB_TRO_INN_HS2T = MLB_TRO_INN_HS2 + MLB_TEMPO;
+export const MLB_TRO_INN_HS2A = MLB_TRO_INN_HS2 + MLB_TRO_AUKSJON;
+export const MLB_TRO_INN_HS2TA = MLB_TRO_INN_HS2 + MLB_TEMPO + MLB_TRO_AUKSJON;
 /** Alle bredder trohodet kan ha. Bredden ER formatet – det finnes ikke noe versjonsfelt. */
 export const MLB_TRO_BREDDER: readonly number[] = [
   MLB_TRO_INN,
@@ -142,6 +164,8 @@ export const MLB_TRO_BREDDER: readonly number[] = [
   MLB_TRO_INN_HS,
   MLB_TRO_INN_HS2,
   MLB_TRO_INN_HS2T,
+  MLB_TRO_INN_HS2A,
+  MLB_TRO_INN_HS2TA,
 ];
 
 /**
@@ -151,26 +175,29 @@ export const MLB_TRO_BREDDER: readonly number[] = [
  * legger nuller bakerst. `verktoy/mlb-tro-tren.py` har den samme tabellen, og
  * `test/mlb-sanser2-utvid.test.ts` krever at de to gir byte-identiske vektfiler.
  */
+/**
+ * Blokkene i 996, som ALLE de bredere layoutene begynner med. Skrevet ned ÉN gang: fire
+ * bredder som gjentok de samme fem linjene kunne drevet fra hverandre i en enkelt rettelse,
+ * og et prefiks som ikke stemmer flytter en blokk uten å endre noen bredde.
+ */
+const HS2_BLOKKER: readonly (readonly [string, number])[] = [
+  ["grunn", MLB_TRO_INN],
+  ["hukommelse", MLB_TRO_HUKOMMELSE],
+  ["signal", MLB_TRO_SIGNAL],
+  ["stilling", MLB_STILLING],
+  ["valgtbort", MLB_VALGT_BORT],
+];
+
 export const MLB_TRO_LAYOUT: Readonly<Record<number, readonly (readonly [string, number])[]>> = {
   [MLB_TRO_INN]: [["grunn", MLB_TRO_INN]],
   [MLB_TRO_INN_H]: [["grunn", MLB_TRO_INN], ["hukommelse", MLB_TRO_HUKOMMELSE]],
   [MLB_TRO_INN_S]: [["grunn", MLB_TRO_INN], ["signal", MLB_TRO_SIGNAL]],
   [MLB_TRO_INN_HS]: [["grunn", MLB_TRO_INN], ["hukommelse", MLB_TRO_HUKOMMELSE], ["signal", MLB_TRO_SIGNAL]],
-  [MLB_TRO_INN_HS2]: [
-    ["grunn", MLB_TRO_INN],
-    ["hukommelse", MLB_TRO_HUKOMMELSE],
-    ["signal", MLB_TRO_SIGNAL],
-    ["stilling", MLB_STILLING],
-    ["valgtbort", MLB_VALGT_BORT],
-  ],
-  [MLB_TRO_INN_HS2T]: [
-    ["grunn", MLB_TRO_INN],
-    ["hukommelse", MLB_TRO_HUKOMMELSE],
-    ["signal", MLB_TRO_SIGNAL],
-    ["stilling", MLB_STILLING],
-    ["valgtbort", MLB_VALGT_BORT],
-    ["tempo", MLB_TEMPO],
-  ],
+  [MLB_TRO_INN_HS2]: HS2_BLOKKER,
+  [MLB_TRO_INN_HS2T]: [...HS2_BLOKKER, ["tempo", MLB_TEMPO]],
+  [MLB_TRO_INN_HS2A]: [...HS2_BLOKKER, ["auksjon", MLB_TRO_AUKSJON]],
+  // Tempo FØR auksjon — se `MLB_TRO_INN_HS2TA`. 1040 → 1072 flytter derfor auksjonen 996 → 1028.
+  [MLB_TRO_INN_HS2TA]: [...HS2_BLOKKER, ["tempo", MLB_TEMPO], ["auksjon", MLB_TRO_AUKSJON]],
 };
 
 /**
@@ -340,9 +367,11 @@ export function troTrekkMedHukommelse(
  * og `examples/mlb-trodata.ts --signal`). 660 og 804 er bit-identiske med før; 776 og
  * 920 legger signalblokken bakerst.
  *
- * `tempo` er kampens offentlige tempobok (`--tempo`, 12. sep) og brukes BARE av 1028.
- * `null` — standarden, og alt som fantes før — gir en nullblokk der, som er den ærlige
- * verdien for en runde uten tider. Alle de andre breddene er uberørt av argumentet.
+ * `tempo` er kampens offentlige tempobok (`--tempo`, 12. sep) og leses BARE av breddene som
+ * har tempoblokken (1028 og 1072). `null` — standarden, og alt som fantes før — gir en
+ * nullblokk der, som er den ærlige verdien for en runde uten tider. Alle de andre breddene er
+ * uberørt av argumentet, og auksjonsblokken (1040 og 1072) trenger det ikke: den leser
+ * `visning.budrunde.rekke`, som følger med visningen.
  */
 export function troTrekkForBredde(
   bredde: number,
@@ -354,19 +383,31 @@ export function troTrekkForBredde(
 ): Float32Array {
   if (bredde === MLB_TRO_INN) return troTrekk(visning, antallStikk, målPoeng);
   if (bredde === MLB_TRO_INN_H) return troTrekkMedHukommelse(visning, antallStikk, målPoeng, hukommelse);
-  if (bredde === MLB_TRO_INN_HS2T) {
-    // 996 nøyaktig som under, og tempoblokken bakerst (se `MLB_TRO_INN_HS2T`).
-    const v = new Float32Array(MLB_TRO_INN_HS2T);
-    v.set(troTrekkForBredde(MLB_TRO_INN_HS2, visning, antallStikk, målPoeng, hukommelse), 0);
-    v.set(tempoTrekk(visning, tempo, tempofaseAv(visning.fase) ?? "S"), MLB_TRO_INN_HS2);
-    return v;
-  }
   if (bredde === MLB_TRO_INN_HS2) {
-    // 920 nøyaktig som over, og de to nye sansene bakerst (se `MLB_TRO_INN_HS2`).
+    // 920 nøyaktig som over, og de to sanser-2-blokkene bakerst (se `MLB_TRO_INN_HS2`).
     const v = new Float32Array(MLB_TRO_INN_HS2);
     v.set(troTrekkForBredde(MLB_TRO_INN_HS, visning, antallStikk, målPoeng, hukommelse), 0);
     v.set(stillingTrekk(visning, antallStikk, målPoeng), MLB_TRO_INN_HS);
     v.set(valgtBortTrekk(visning), MLB_TRO_INN_HS + MLB_STILLING);
+    return v;
+  }
+  if (bredde === MLB_TRO_INN_HS2T || bredde === MLB_TRO_INN_HS2A || bredde === MLB_TRO_INN_HS2TA) {
+    /**
+     * 996 nøyaktig som over, og de nye blokkene bakerst i LAYOUTENS rekkefølge.
+     *
+     * Offsetene slås opp i `MLB_TRO_LAYOUT` og skrives ikke ned her: auksjonen ligger på 996 i
+     * 1040 og på 1028 i 1072, så ett håndskrevet offset ville vært riktig for den ene bredden
+     * og stille galt for den andre — blokken hadde havnet oppå tempoet, og begge sansene ville
+     * blitt lest som støy uten at noe feilet.
+     */
+    const v = new Float32Array(bredde);
+    v.set(troTrekkForBredde(MLB_TRO_INN_HS2, visning, antallStikk, målPoeng, hukommelse), 0);
+    let o = 0;
+    for (const [navn, lengde] of MLB_TRO_LAYOUT[bredde] ?? []) {
+      if (navn === "tempo") v.set(tempoTrekk(visning, tempo, tempofaseAv(visning.fase) ?? "S"), o);
+      else if (navn === "auksjon") v.set(auksjonsrekkeTrekk(visning), o);
+      o += lengde;
+    }
     return v;
   }
   if (bredde !== MLB_TRO_INN_S && bredde !== MLB_TRO_INN_HS) {

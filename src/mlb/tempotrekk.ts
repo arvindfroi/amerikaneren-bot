@@ -63,8 +63,10 @@
  *     31 NOEN         1 om noen tid i det hele tatt er observert i kampen
  */
 
-import type { Fase } from "../regler.ts";
-import type { SpillerVisning } from "../motor.ts";
+// `Fase` bor i `motor.ts`, ikke i `regler.ts` — importen herfra pekte på feil modul og gjorde
+// `npm run typecheck` rød fra 121470e. `node --test` STRIPPER typer uten å sjekke dem, så prøvene
+// var grønne hele tiden; ingen kjøring kunne avslørt det.
+import type { Fase, SpillerVisning } from "../motor.ts";
 
 /** Fasen en beslutning ble tatt i. Samme koding som `web/tempo.ts` logger. */
 export type Tempofase = "B" | "V" | "T" | "S";

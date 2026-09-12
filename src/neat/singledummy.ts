@@ -67,6 +67,8 @@ function friskBudrunde(s: GameState, sete: number): GameState {
       passet: new Array<boolean>(N).fill(false),
       høyeste: null,
       sisteBud: new Array<null>(N).fill(null),
+      // Frisk budrunde: ingen melding har falt ennå, så rekka er tom — som aggregatene.
+      rekke: [],
     },
     budvinner: null,
     melding: null,

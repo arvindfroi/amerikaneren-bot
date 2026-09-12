@@ -214,6 +214,10 @@ export function visningTilState(
       passet: visning.budrunde.passet.slice(),
       høyeste: visning.budrunde.høyeste,
       sisteBud: visning.budrunde.sisteBud.slice(),
+      // Auksjonsrekka er offentlig og står i visningen: den skal BÆRES VIDERE, ikke tømmes.
+      // En gjenskapt stilling med tom rekke ville gitt en annen auksjonsblokk enn den ekte
+      // og dermed et annet svar; `test/mlb-auksjonsrekke.test.ts` krever identitet her.
+      rekke: visning.budrunde.rekke.slice(),
     },
     budvinner: visning.budvinner,
     melding: visning.melding,
