@@ -1,0 +1,575 @@
+{
+ "filer": [
+  {
+   "fil": "holdout-0.bin",
+   "rader": 8885,
+   "C1_takt": {
+    "brudd": 0,
+    "hva": "n//4 != korpusets stikk"
+   },
+   "C2_form": {
+    "brudd": 0,
+    "hva": "padding, omraade eller STIKK/POSISJON feil"
+   },
+   "C3_med_sola": {
+    "brudd": 0,
+    "hva": "et kortlegg bryter rekkefoelgen med sola innen stikket"
+   },
+   "C4_samme_sete": {
+    "brudd": 0,
+    "hva": "rekkas sete/kort stemmer ikke med HVEM_LA i korpuset"
+   },
+   "C5_metning": {
+    "rader": 8885,
+    "n_snitt": 23.19,
+    "n_median": 23,
+    "n_maks": 47,
+    "andel_tom": 0.0312,
+    "andel_minst_20": 0.5791,
+    "andel_minst_40": 0.1627,
+    "fyllgrad_snitt": 0.4832,
+    "per_stikk": {
+     "0": {
+      "rader": 759,
+      "n_snitt": 1.3
+     },
+     "1": {
+      "rader": 738,
+      "n_snitt": 5.6
+     },
+     "2": {
+      "rader": 735,
+      "n_snitt": 9.4
+     },
+     "3": {
+      "rader": 748,
+      "n_snitt": 13.4
+     },
+     "4": {
+      "rader": 760,
+      "n_snitt": 17.4
+     },
+     "5": {
+      "rader": 790,
+      "n_snitt": 21.3
+     },
+     "6": {
+      "rader": 747,
+      "n_snitt": 25.4
+     },
+     "7": {
+      "rader": 719,
+      "n_snitt": 29.4
+     },
+     "8": {
+      "rader": 711,
+      "n_snitt": 33.4
+     },
+     "9": {
+      "rader": 732,
+      "n_snitt": 37.4
+     },
+     "10": {
+      "rader": 735,
+      "n_snitt": 41.4
+     },
+     "11": {
+      "rader": 711,
+      "n_snitt": 45.4
+     }
+    }
+   }
+  },
+  {
+   "fil": "holdout-1.bin",
+   "rader": 11612,
+   "C1_takt": {
+    "brudd": 0,
+    "hva": "n//4 != korpusets stikk"
+   },
+   "C2_form": {
+    "brudd": 0,
+    "hva": "padding, omraade eller STIKK/POSISJON feil"
+   },
+   "C3_med_sola": {
+    "brudd": 0,
+    "hva": "et kortlegg bryter rekkefoelgen med sola innen stikket"
+   },
+   "C4_samme_sete": {
+    "brudd": 0,
+    "hva": "rekkas sete/kort stemmer ikke med HVEM_LA i korpuset"
+   },
+   "C5_metning": {
+    "rader": 11612,
+    "n_snitt": 23.37,
+    "n_median": 23,
+    "n_maks": 47,
+    "andel_tom": 0.0261,
+    "andel_minst_20": 0.5824,
+    "andel_minst_40": 0.1663,
+    "fyllgrad_snitt": 0.4868,
+    "per_stikk": {
+     "0": {
+      "rader": 1015,
+      "n_snitt": 1.4
+     },
+     "1": {
+      "rader": 978,
+      "n_snitt": 5.5
+     },
+     "2": {
+      "rader": 937,
+      "n_snitt": 9.4
+     },
+     "3": {
+      "rader": 969,
+      "n_snitt": 13.5
+     },
+     "4": {
+      "rader": 950,
+      "n_snitt": 17.4
+     },
+     "5": {
+      "rader": 961,
+      "n_snitt": 21.4
+     },
+     "6": {
+      "rader": 975,
+      "n_snitt": 25.5
+     },
+     "7": {
+      "rader": 988,
+      "n_snitt": 29.4
+     },
+     "8": {
+      "rader": 958,
+      "n_snitt": 33.5
+     },
+     "9": {
+      "rader": 950,
+      "n_snitt": 37.5
+     },
+     "10": {
+      "rader": 952,
+      "n_snitt": 41.5
+     },
+     "11": {
+      "rader": 979,
+      "n_snitt": 45.4
+     }
+    }
+   }
+  },
+  {
+   "fil": "holdout-2.bin",
+   "rader": 8628,
+   "C1_takt": {
+    "brudd": 0,
+    "hva": "n//4 != korpusets stikk"
+   },
+   "C2_form": {
+    "brudd": 0,
+    "hva": "padding, omraade eller STIKK/POSISJON feil"
+   },
+   "C3_med_sola": {
+    "brudd": 0,
+    "hva": "et kortlegg bryter rekkefoelgen med sola innen stikket"
+   },
+   "C4_samme_sete": {
+    "brudd": 0,
+    "hva": "rekkas sete/kort stemmer ikke med HVEM_LA i korpuset"
+   },
+   "C5_metning": {
+    "rader": 8628,
+    "n_snitt": 23.1,
+    "n_median": 23,
+    "n_maks": 47,
+    "andel_tom": 0.0338,
+    "andel_minst_20": 0.5751,
+    "andel_minst_40": 0.1595,
+    "fyllgrad_snitt": 0.4813,
+    "per_stikk": {
+     "0": {
+      "rader": 743,
+      "n_snitt": 1.2
+     },
+     "1": {
+      "rader": 737,
+      "n_snitt": 5.6
+     },
+     "2": {
+      "rader": 758,
+      "n_snitt": 9.3
+     },
+     "3": {
+      "rader": 731,
+      "n_snitt": 13.3
+     },
+     "4": {
+      "rader": 697,
+      "n_snitt": 17.3
+     },
+     "5": {
+      "rader": 677,
+      "n_snitt": 21.4
+     },
+     "6": {
+      "rader": 720,
+      "n_snitt": 25.4
+     },
+     "7": {
+      "rader": 718,
+      "n_snitt": 29.3
+     },
+     "8": {
+      "rader": 721,
+      "n_snitt": 33.3
+     },
+     "9": {
+      "rader": 750,
+      "n_snitt": 37.4
+     },
+     "10": {
+      "rader": 690,
+      "n_snitt": 41.3
+     },
+     "11": {
+      "rader": 686,
+      "n_snitt": 45.3
+     }
+    }
+   }
+  },
+  {
+   "fil": "trening-0.bin",
+   "rader": 29340,
+   "C1_takt": {
+    "brudd": 0,
+    "hva": "n//4 != korpusets stikk"
+   },
+   "C2_form": {
+    "brudd": 0,
+    "hva": "padding, omraade eller STIKK/POSISJON feil"
+   },
+   "C3_med_sola": {
+    "brudd": 0,
+    "hva": "et kortlegg bryter rekkefoelgen med sola innen stikket"
+   },
+   "C4_samme_sete": {
+    "brudd": 0,
+    "hva": "rekkas sete/kort stemmer ikke med HVEM_LA i korpuset"
+   },
+   "C5_metning": {
+    "rader": 29340,
+    "n_snitt": 23.27,
+    "n_median": 23,
+    "n_maks": 47,
+    "andel_tom": 0.0298,
+    "andel_minst_20": 0.5811,
+    "andel_minst_40": 0.162,
+    "fyllgrad_snitt": 0.4847,
+    "per_stikk": {
+     "0": {
+      "rader": 2456,
+      "n_snitt": 1.3
+     },
+     "1": {
+      "rader": 2461,
+      "n_snitt": 5.6
+     },
+     "2": {
+      "rader": 2462,
+      "n_snitt": 9.4
+     },
+     "3": {
+      "rader": 2464,
+      "n_snitt": 13.4
+     },
+     "4": {
+      "rader": 2447,
+      "n_snitt": 17.3
+     },
+     "5": {
+      "rader": 2474,
+      "n_snitt": 21.4
+     },
+     "6": {
+      "rader": 2450,
+      "n_snitt": 25.4
+     },
+     "7": {
+      "rader": 2461,
+      "n_snitt": 29.4
+     },
+     "8": {
+      "rader": 2452,
+      "n_snitt": 33.4
+     },
+     "9": {
+      "rader": 2459,
+      "n_snitt": 37.4
+     },
+     "10": {
+      "rader": 2423,
+      "n_snitt": 41.4
+     },
+     "11": {
+      "rader": 2331,
+      "n_snitt": 45.3
+     }
+    }
+   }
+  },
+  {
+   "fil": "trening-1.bin",
+   "rader": 33376,
+   "C1_takt": {
+    "brudd": 0,
+    "hva": "n//4 != korpusets stikk"
+   },
+   "C2_form": {
+    "brudd": 0,
+    "hva": "padding, omraade eller STIKK/POSISJON feil"
+   },
+   "C3_med_sola": {
+    "brudd": 0,
+    "hva": "et kortlegg bryter rekkefoelgen med sola innen stikket"
+   },
+   "C4_samme_sete": {
+    "brudd": 0,
+    "hva": "rekkas sete/kort stemmer ikke med HVEM_LA i korpuset"
+   },
+   "C5_metning": {
+    "rader": 33376,
+    "n_snitt": 23.37,
+    "n_median": 23,
+    "n_maks": 47,
+    "andel_tom": 0.0247,
+    "andel_minst_20": 0.5808,
+    "andel_minst_40": 0.1648,
+    "fyllgrad_snitt": 0.487,
+    "per_stikk": {
+     "0": {
+      "rader": 2814,
+      "n_snitt": 1.4
+     },
+     "1": {
+      "rader": 2798,
+      "n_snitt": 5.5
+     },
+     "2": {
+      "rader": 2773,
+      "n_snitt": 9.4
+     },
+     "3": {
+      "rader": 2816,
+      "n_snitt": 13.4
+     },
+     "4": {
+      "rader": 2789,
+      "n_snitt": 17.4
+     },
+     "5": {
+      "rader": 2767,
+      "n_snitt": 21.4
+     },
+     "6": {
+      "rader": 2761,
+      "n_snitt": 25.4
+     },
+     "7": {
+      "rader": 2801,
+      "n_snitt": 29.5
+     },
+     "8": {
+      "rader": 2777,
+      "n_snitt": 33.5
+     },
+     "9": {
+      "rader": 2780,
+      "n_snitt": 37.5
+     },
+     "10": {
+      "rader": 2780,
+      "n_snitt": 41.5
+     },
+     "11": {
+      "rader": 2720,
+      "n_snitt": 45.4
+     }
+    }
+   }
+  },
+  {
+   "fil": "trening-2.bin",
+   "rader": 29159,
+   "C1_takt": {
+    "brudd": 0,
+    "hva": "n//4 != korpusets stikk"
+   },
+   "C2_form": {
+    "brudd": 0,
+    "hva": "padding, omraade eller STIKK/POSISJON feil"
+   },
+   "C3_med_sola": {
+    "brudd": 0,
+    "hva": "et kortlegg bryter rekkefoelgen med sola innen stikket"
+   },
+   "C4_samme_sete": {
+    "brudd": 0,
+    "hva": "rekkas sete/kort stemmer ikke med HVEM_LA i korpuset"
+   },
+   "C5_metning": {
+    "rader": 29159,
+    "n_snitt": 23.21,
+    "n_median": 23,
+    "n_maks": 47,
+    "andel_tom": 0.0353,
+    "andel_minst_20": 0.5796,
+    "andel_minst_40": 0.1636,
+    "fyllgrad_snitt": 0.4835,
+    "per_stikk": {
+     "0": {
+      "rader": 2467,
+      "n_snitt": 1.2
+     },
+     "1": {
+      "rader": 2450,
+      "n_snitt": 5.6
+     },
+     "2": {
+      "rader": 2441,
+      "n_snitt": 9.3
+     },
+     "3": {
+      "rader": 2462,
+      "n_snitt": 13.3
+     },
+     "4": {
+      "rader": 2438,
+      "n_snitt": 17.3
+     },
+     "5": {
+      "rader": 2420,
+      "n_snitt": 21.4
+     },
+     "6": {
+      "rader": 2440,
+      "n_snitt": 25.3
+     },
+     "7": {
+      "rader": 2415,
+      "n_snitt": 29.3
+     },
+     "8": {
+      "rader": 2404,
+      "n_snitt": 33.3
+     },
+     "9": {
+      "rader": 2451,
+      "n_snitt": 37.3
+     },
+     "10": {
+      "rader": 2438,
+      "n_snitt": 41.3
+     },
+     "11": {
+      "rader": 2333,
+      "n_snitt": 45.3
+     }
+    }
+   }
+  }
+ ],
+ "sum": {
+  "rader": 121000,
+  "brudd": {
+   "C1_takt": {
+    "brudd": 0,
+    "hva": "n//4 != korpusets stikk"
+   },
+   "C2_form": {
+    "brudd": 0,
+    "hva": "padding, omraade eller STIKK/POSISJON feil"
+   },
+   "C3_med_sola": {
+    "brudd": 0,
+    "hva": "et kortlegg bryter rekkefoelgen med sola innen stikket"
+   },
+   "C4_samme_sete": {
+    "brudd": 0,
+    "hva": "rekkas sete/kort stemmer ikke med HVEM_LA i korpuset"
+   }
+  },
+  "C5_metning": {
+   "rader": 121000,
+   "n_snitt": 23.27,
+   "n_median": 23,
+   "n_maks": 47,
+   "andel_tom": 0.0298,
+   "andel_minst_20": 0.5802,
+   "andel_minst_40": 0.1635,
+   "fyllgrad_snitt": 0.4849,
+   "per_stikk": {
+    "0": {
+     "rader": 10254,
+     "n_snitt": 1.3
+    },
+    "1": {
+     "rader": 10162,
+     "n_snitt": 5.6
+    },
+    "2": {
+     "rader": 10106,
+     "n_snitt": 9.4
+    },
+    "3": {
+     "rader": 10190,
+     "n_snitt": 13.4
+    },
+    "4": {
+     "rader": 10081,
+     "n_snitt": 17.4
+    },
+    "5": {
+     "rader": 10089,
+     "n_snitt": 21.4
+    },
+    "6": {
+     "rader": 10093,
+     "n_snitt": 25.4
+    },
+    "7": {
+     "rader": 10102,
+     "n_snitt": 29.4
+    },
+    "8": {
+     "rader": 10023,
+     "n_snitt": 33.4
+    },
+    "9": {
+     "rader": 10122,
+     "n_snitt": 37.4
+    },
+    "10": {
+     "rader": 10018,
+     "n_snitt": 41.4
+    },
+    "11": {
+     "rader": 9760,
+     "n_snitt": 45.4
+    }
+   }
+  }
+ },
+ "feller": {
+  "rullet_C1": 90182,
+  "rullet_C4": 121000,
+  "stokket_C3": 110746,
+  "avkortet_C1": 110746
+ },
+ "dom": {
+  "alle_sjekker_groenne": true,
+  "alle_feller_tatt": true
+ }
+}
