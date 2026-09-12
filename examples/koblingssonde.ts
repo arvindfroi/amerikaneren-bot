@@ -62,13 +62,20 @@ function budleddet(agent: unknown): { funnet: boolean; koblet: boolean; dybde: n
 
 console.log("=== DEL 1: fester «profil:» seg paa budlaget? ===");
 console.log("");
-const topologier: [string, string][] = [
-  ["koblingssjekkens form   profil:budm:…", `profil:${BUD}:${NETT}`],
-  ["helbotens form          profil:sik:…:budm:…", `profil:sik:alle:0.5:6k8:${BUD}:${NETT}`],
-  ["helbotens form m/oekt   profil:sik:…:budm:…", `okt:profil:sik:alle:0.5:6k8:${BUD}:${NETT}`],
+/**
+ * OEKTEN INJISERES GJENNOM `ctx`, ikke som `okt:` ytterst. `okt:`-grenen
+ * returnerer et objektliteral (`agentspek.ts:928-937`) uten `indre`-felt, saa
+ * walkeren ville stoppet paa selve wrapperen og rapportert «ingen budagent» —
+ * en sondefeil som ser ut som et funn. `okt:` er idempotent naar oekten alt
+ * finnes i konteksten, saa dette er den samme boten med det samme laget.
+ */
+const topologier: [string, string, boolean][] = [
+  ["koblingssjekkens form   profil:budm:…", `profil:${BUD}:${NETT}`, false],
+  ["helbotens form          profil:sik:…:budm:…", `profil:sik:alle:0.5:6k8:${BUD}:${NETT}`, false],
+  ["helbotens form m/oekt   profil:sik:…:budm:…", `profil:sik:alle:0.5:6k8:${BUD}:${NETT}`, true],
 ];
-for (const [navn, spek] of topologier) {
-  const b = budleddet(lagIndre(spek));
+for (const [navn, spek, medØkt] of topologier) {
+  const b = budleddet(medØkt ? lagIndre(spek, { økt: new Økt() }) : lagIndre(spek));
   const st = !b.funnet ? "INGEN BUDAGENT" : b.koblet ? "KOBLET" : "*** BUDAGENT FINNES, JUSTERINGEN ER IKKE SATT ***";
   console.log(`${navn.padEnd(44)} budagent paa dybde ${String(b.dybde).padStart(2)}   ${st}`);
 }
@@ -105,6 +112,54 @@ for (const [navn, spek] of sikKnotter) {
   } catch (e) {
     console.log(`${navn.padEnd(44)} KASTER: ${(e as Error).message.slice(0, 60)}`);
   }
+}
+
+/**
+ * HVA KOSTER DEN STILLE NaN-EN? Les `sampler.ts:460` og `:463`:
+ *
+ *     if (!harInfo || kandidater <= 1) return trekkVerden(...)   // NaN <= 1 er FALSE
+ *     for (let i = 0; i < kandidater; i++)                        // 0 < NaN er FALSE
+ *
+ * Loekka kjoerer null ganger, `utvalg` blir tom, og linje 482 returnerer `null`.
+ * Hver eneste verdenstrekning gir altsaa null, `vurderPar` faar ingen verdener,
+ * og HELE SOEKET er stille av. Under maales det: en spek med en svelget knott
+ * skal da velge nøyaktig som den samme speken UTEN soekelag.
+ */
+console.log("");
+console.log("=== DEL 2b: hva koster den svelgede knotten? ===");
+console.log("");
+{
+  const utenSoek = [0, 1, 2, 3].map(() => lagIndre(NETT));
+  const rent = [0, 1, 2, 3].map(() => lagIndre(`sik:alle:0.5:12k16:${NETT}`));
+  const svelget = [0, 1, 2, 3].map(() => lagIndre(`sik:alle:0.5:12k16d4:${NETT}`));
+  for (const x of [...utenSoek, ...rent, ...svelget]) x.nyKamp();
+  let s: GameState = opprettSpill({ antallSpillere: 4, målPoeng: 100 }, 13_000_777);
+  let vakt = 0;
+  let r = 0;
+  let n = 0;
+  let rentUlik = 0;
+  let svelgetUlik = 0;
+  while (s.fase !== "FERDIG" && vakt++ < 40_000 && r < 2) {
+    if (s.fase === "RUNDE_SLUTT") {
+      for (const x of [...utenSoek, ...rent, ...svelget]) x.velgHandling(s);
+      r++;
+      s = utfør(s, { type: "NESTE" }).state;
+      continue;
+    }
+    const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+    if (iTur === null || iTur === undefined) break;
+    const b = JSON.stringify(utenSoek[iTur]!.velgHandling(s));
+    if (JSON.stringify(rent[iTur]!.velgHandling(s)) !== b) rentUlik++;
+    if (JSON.stringify(svelget[iTur]!.velgHandling(s)) !== b) svelgetUlik++;
+    n++;
+    s = utfør(s, JSON.parse(b) as never).state;
+  }
+  console.log(`avvik fra den SOEKLOESE basen over ${n} valg:`);
+  console.log(`  sik:…12k16    (ren)      ${String(rentUlik).padStart(4)}   ${rentUlik > 0 ? "soeket lever" : "soeket er dodt"}`);
+  console.log(
+    `  sik:…12k16d4  (svelget)  ${String(svelgetUlik).padStart(4)}   ` +
+      (svelgetUlik === 0 ? "*** SOEKET ER HELT AV - speken ser ut som den soeker ***" : "soeket lever"),
+  );
 }
 
 // ===========================================================================

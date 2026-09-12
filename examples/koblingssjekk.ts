@@ -113,3 +113,75 @@ for (const [navn, med] of paaslag) {
   const st = ulik > 0 ? "KOBLET" : "*** IKKE KOBLET ***";
   console.log(`${navn.padEnd(33)} ${String(n).padStart(5)} ${String(ulik).padStart(7)}   ${st}`);
 }
+
+/**
+ * ============ STILLINGEN SOM TRENGS (13. sep) ===========================
+ *
+ * En rad som staar paa 0 betyr én av tre ting, og tabellene over kan ikke
+ * skille dem. `examples/koblingssonde.ts` maalte hvilken det er for hver av de
+ * fem nullene, og to av dem viste seg aa vaere STUMME I DENNE STILLINGEN — ikke
+ * frakoblet, men maalt et sted de umulig kan fyre:
+ *
+ *   okt:   stilen er «sikker» i 0 av 41 amu-valg. Maks |forskjell|/SE er 0,47,
+ *          og porten i `stilbias.ts:331` er 2,0. Fire like agenter har ingen
+ *          vane aa avsloere, saa raden maaler en detektor uten noe aa oppdage.
+ *   B4     `alphamu.ts:229` kaller `søk(…, M − 1)`. Med `m1` er dybden 0, og
+ *          `:166` returnerer FOER breddeblokka paa `:204`. Koden er unaaelig.
+ *
+ * Radene under er de samme knottene stilt i en stilling der de KAN fyre. En rad
+ * som bare kan bekrefte er ingen rad; disse kan avkrefte.
+ *
+ * `r` og `d4` staar IKKE her: sonden maalte at de FYRER i de 219 valgene alt
+ * (racepress != 0 i 10 av 41, stikkIgjen <= 4 i 11 av 41). De flytter bare ingen
+ * argmax, og det er (c) — et ekte tall, ikke en blind rad.
+ */
+const VANE = "vakt:abmpd:e1:e1-modell/d7alle.bin";
+
+/**
+ * Som `ulike`, men SETE 0 er armen og de tre andre har en ekte vane.
+ *
+ * `okt:` leser residualet til hvert sete mot nettets prediksjon. Er alle fire
+ * like, er residualet null per konstruksjon — da maaler raden ingenting, uansett
+ * hvor mange runder den faar. Motstanderne deles av begge armene, saa forskjellen
+ * som telles er armens egen.
+ */
+function ulikeMot(a: string, b: string, motstander: string, runder: number): { n: number; ulik: number } {
+  const A0 = lagIndre(a);
+  const B0 = lagIndre(b);
+  const mot = [1, 2, 3].map(() => lagIndre(motstander));
+  const alle = [A0, B0, ...mot];
+  for (const x of alle) x.nyKamp();
+  let s: GameState = opprettSpill({ antallSpillere: 4, målPoeng: 100 }, 13_000_777);
+  let vakt = 0, r = 0, n = 0, ulik = 0;
+  while (s.fase !== "FERDIG" && vakt++ < 40_000 && r < runder) {
+    if (s.fase === "RUNDE_SLUTT") { for (const x of alle) x.velgHandling(s); r++; s = utfør(s, { type: "NESTE" }).state; continue; }
+    const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+    if (iTur === null || iTur === undefined) break;
+    if (iTur !== 0) { s = utfør(s, mot[iTur - 1]!.velgHandling(s)).state; continue; }
+    const ha = A0.velgHandling(s);
+    const hb = B0.velgHandling(s);
+    n++; if (JSON.stringify(ha) !== JSON.stringify(hb)) ulik++;
+    s = utfør(s, ha).state;
+  }
+  return { n, ulik };
+}
+
+console.log("-".repeat(66));
+console.log("STILLINGEN SOM TRENGS (samme knotter, et sted de KAN fyre):");
+{
+  // `okt:` mot tre med en ekte vane, og over nok runder til at boka fylles.
+  const { n, ulik } = ulikeMot(FULL, `${VR}:${AMU("12k16bgm1e0r1.5v0.5")}:profil:${BUD}:${NETT}`, VANE, 12);
+  const st = ulik > 0 ? "KOBLET" : "*** IKKE KOBLET ***";
+  console.log(`${"okt:  mot tre som ikke drar trumf".padEnd(33)} ${String(n).padStart(5)} ${String(ulik).padStart(7)}   ${st}`);
+}
+for (const [navn, med] of [
+  // M=2 gjoer breddeblokka NAAELIG. B2 biter naar det er mer enn TO felles
+  // lovlige kort under roten; B4 krever mer enn fire, og det er terskelen
+  // `analyse/koblingssjekk2.txt` maalte til 0. B2 er raden som ser LEDNINGEN.
+  ["  m2B2   soekebredde, M=2", `okt:${VR}:${AMU("12k16bgm2e0r1.5v0.5B2")}:profil:${BUD}:${NETT}`],
+  ["  m2B4   soekebredde, M=2", `okt:${VR}:${AMU("12k16bgm2e0r1.5v0.5B4")}:profil:${BUD}:${NETT}`],
+] as [string, string][]) {
+  const { n, ulik } = ulike(`okt:${VR}:${AMU("12k16bgm2e0r1.5v0.5")}:profil:${BUD}:${NETT}`, med, 4);
+  const st = ulik > 0 ? "KOBLET" : "*** IKKE KOBLET ***";
+  console.log(`${navn.padEnd(33)} ${String(n).padStart(5)} ${String(ulik).padStart(7)}   ${st}`);
+}

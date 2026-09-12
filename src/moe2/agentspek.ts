@@ -1393,6 +1393,35 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     if (!Number.isFinite(sigma) || !Number.isFinite(verdener) || verdener < 1) {
       throw new Error(`Ugyldig sik-spek «${indre}» - forventet sik:<rolle>:<sigma>:<verdener>:<indre>`);
     }
+    /**
+     * ============ KANDIDATFELTET MAA VAERE ET TALL (13. sep) ================
+     *
+     * `r` (kampstilling), `d` (sluttspilldybde) og `B` (soekebredde) leses av
+     * `amu:`-grenen og finnes IKKE her. Skriver noen dem likevel — «12k16d4» —
+     * havner halen i kandidatfeltet, `Number("16d4")` er `NaN`, og ingenting sa
+     * fra. Regn ut hva den NaN-en gjoer nede i `solver/sampler.ts`:
+     *
+     *     if (!harInfo || kandidater <= 1) return trekkVerden(...)  // NaN <= 1 er FALSE
+     *     for (let i = 0; i < kandidater; i++)                      // 0 < NaN er FALSE
+     *
+     * Loekka gaar null runder, `utvalg` blir tom, og hver eneste verdenstrekning
+     * returnerer `null`. `vurderPar` faar ingen verdener, og HELE SOEKET er
+     * stille av — i en spek som ser ut som den soeker.
+     *
+     * MAALT, ikke resonnert (`examples/koblingssonde.ts`): «sik:…12k16d4» velger
+     * likt med den SOEKLOESE basen i 115 av 115 valg, mens «sik:…12k16» avviker
+     * i 23 av dem. Knotten slaar ikke paa en evne, den slaar av søket.
+     *
+     * Samme feilklasse som `tall()` lenger oppe ble skrevet for, og samme klasse
+     * som kanal 2: en evne som ser levende ut fordi den staar i strengen.
+     */
+    if (!Number.isInteger(verdenKandidater) || verdenKandidater < 1) {
+      throw new Error(
+        `Ugyldig kandidatfelt «${kPos < 0 ? "" : vFelt.slice(kPos + 1)}» i sik-spek «${indre}» - ` +
+          `«k<kandidater>» maa vaere et helt tall ≥ 1. Merk at «r», «d» og «B» bare finnes i ` +
+          `«amu:»-grenen; i en sik-spek havner de i kandidatfeltet og slaar hele soeket av i stillhet.`,
+      );
+    }
     const innSpek = d.slice(3).join(":");
     const inn = lagIndre(innSpek, ctx);
     const sikRest = utenSøk(innSpek);
@@ -1608,11 +1637,60 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       jukselmål,
     );
   }
-  if (indre.startsWith("profil:")) {
-    const inn = lagIndre(indre.slice(7), ctx);
-    const bud = (inn as unknown as Partial<Budjusterbar>).settForsvarsjustering
+  /**
+   * ============ «profild:» — PROFILEN GJENNOM SOEKELAGET (13. sep) =========
+   *
+   * `profil:` fester seg paa `settForsvarsjustering` i laget RETT UNDER seg. Det
+   * virker i `…:profil:budm:…` (koblingssjekkens form) og IKKE i
+   * `…:profil:sik:…:budm:…` (helbotens form): budagenten finnes, den ligger bare
+   * ett lag for dypt, og `bud` blir `null` uten et pip.
+   *
+   * MAALT (`examples/koblingssonde.ts`, del 1):
+   *
+   *     profil:budm:…           budagent paa dybde 1   KOBLET
+   *     profil:sik:…:budm:…     budagent paa dybde 2   JUSTERINGEN ER IKKE SATT
+   *
+   * `utrullet.ts:180-188` beskriver formen som en foelge man kjenner. Den er
+   * likevel ikke MAALT noe sted, og en koblingssjekk som bare kjoerer
+   * `profil:budm:` kan aldri se den — noeyaktig samme blindsone som lot kanal 2
+   * staa frakoblet i `sik:` mens `amu:` var koblet.
+   *
+   * ============ HVA DEN IKKE FIKSER, SAGT HOEYT ===========================
+   *
+   * Dagens helbot byr med `budq:` (BudQagent), og den er ikke `Budjusterbar` i
+   * det hele tatt — `settForsvarsjustering` finnes BARE i `budmodell.ts:253`.
+   * `profild:` kobler altsaa kanalen i `…:profild:sik:…:budm:…`, og lar den staa
+   * doed i `…:budq:…`, der den er doed av en ANNEN grunn. Aa gi BudQ en
+   * forsvarsjustering er en modellbeslutning om hva justeringen betyr for et
+   * Q-nett, ikke et ledningsarbeid, og den hoerer til eieren.
+   *
+   * AV ER AV, STRUKTURELT: uten «d» staar noeyaktig uttrykket som sto her foer,
+   * ledd for ledd, og det dype oppslaget bygges ikke i det hele tatt. «Av» er
+   * ikke en dybde satt til 1 — det er en kodesti som ikke kjoeres.
+   */
+  if (indre.startsWith("profil:") || indre.startsWith("profild:")) {
+    const dypt = indre.startsWith("profild:");
+    const inn = lagIndre(indre.slice(dypt ? 8 : 7), ctx);
+    // ORDRETT som foer. Denne linja er «av»-tilfellet og skal ikke roeres.
+    const nær = (inn as unknown as Partial<Budjusterbar>).settForsvarsjustering
       ? (inn as unknown as Budjusterbar)
       : null;
+    let bud = nær;
+    if (dypt && nær === null) {
+      /**
+       * `private` i TypeScript er en kompileringsregel, ikke en kjoeretidsregel, og
+       * hvert lag i kjeden kaller sitt indre ledd `indre`. Oppslaget leser derfor
+       * det objektet FAKTISK inneholder etter bygging — som er hele poenget: det
+       * var loeftet fra typen, ikke innholdet, som lot kanalen staa doed.
+       *
+       * Taket paa 12 er en vakt mot en syklisk kjede, ikke en modellgrense.
+       */
+      let x = inn as unknown as Record<string, unknown> | null | undefined;
+      for (let dybde = 0; x != null && dybde < 12 && bud === null; dybde++) {
+        if (typeof x["settForsvarsjustering"] === "function") bud = x as unknown as Budjusterbar;
+        else x = x["indre"] as Record<string, unknown> | null | undefined;
+      }
+    }
     return new Profilagent(inn, bud, ctx.økt?.bok ?? null);
   }
   /**
