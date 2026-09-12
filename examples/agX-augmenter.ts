@@ -62,6 +62,19 @@ const FRØ = tall(arg("--froe", "90012"), 90012);
 if (!(GANGER >= 0 && GANGER <= 5 && Number.isInteger(GANGER))) {
   throw new Error(`--ganger må være et helt tall 0–5, fikk ${GANGER}`);
 }
+/**
+ * `--andel` (0–1): behold bare denne brøkdelen av KAMPENE. Til spørsmålet «hvor mye
+ * data sparer symmetrien» — et halvt korpus med tvillinger mot et helt uten.
+ *
+ * Utvalget går på FRØET, ikke på radnummeret: alle rader fra samme giv følges ad.
+ * En radvis splitt ville latt naborader fra samme stikk havne på hver sin side, og
+ * et «halvt korpus» som i praksis inneholder hele det andre halve er ikke en
+ * datamengdemåling. Samme hash som `--hold-del` i verktoy/mlb-tro-tren.py.
+ */
+const ANDEL = Number(arg("--andel", "1"));
+if (!(ANDEL > 0 && ANDEL <= 1)) throw new Error(`--andel må være i (0, 1], fikk ${arg("--andel", "1")}`);
+const behold = (frø: number): boolean =>
+  ANDEL >= 1 || Number((BigInt(frø >>> 0) * 2654435761n) % 4294967296n) % 1000 < Math.round(ANDEL * 1000);
 
 /** NEAT-prefiksets trumf-one-hot. Samme tall som `INNGANG.TRUMF` i src/neat/trekk.ts. */
 const TRUMF = 156;
@@ -158,13 +171,19 @@ function velg(alle: Fargebytte[], n: number): Fargebytte[] {
 let skrevet = 0;
 let tvillinger = 0;
 const t0 = Date.now();
+let hoppet = 0;
 for (let r = 0; r < RADER; r++) {
   const o = 12 + r * POST;
+  // FRØET FØRST: er giva valgt bort av `--andel`, koster raden ingen lesning av 996 flyttall.
+  const frø = rå.readInt32LE(o + DIM * 4 + 52);
+  if (!behold(frø)) {
+    hoppet++;
+    continue;
+  }
   const x = new Float32Array(DIM);
   for (let i = 0; i < DIM; i++) x[i] = rå.readFloatLE(o + i * 4);
   const f = new Int8Array(52);
   for (let i = 0; i < 52; i++) f[i] = rå.readInt8(o + DIM * 4 + i);
-  const frø = rå.readInt32LE(o + DIM * 4 + 52);
   const stikk = rå.readInt16LE(o + DIM * 4 + 56);
   const sete = rå.readInt16LE(o + DIM * 4 + 58);
 
@@ -192,5 +211,7 @@ closeSync(fd);
 
 console.log(
   `\n${INN}: ${RADER} rader (dim ${DIM}) → ${UT}: ${skrevet} rader ` +
-    `(${tvillinger} tvillinger, ${GANGER} per rad) på ${((Date.now() - t0) / 1000).toFixed(0)} s`,
+    `(${tvillinger} tvillinger, ${GANGER} per rad` +
+    (ANDEL < 1 ? `, --andel ${ANDEL}: ${hoppet} rader i vraket giv hoppet over` : "") +
+    `) på ${((Date.now() - t0) / 1000).toFixed(0)} s`,
 );
