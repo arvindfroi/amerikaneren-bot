@@ -683,7 +683,17 @@ def sonde_d(args, trener):
             print(f"    {merke} epoke {e + 1}/{args.epoker}: holdout-K8 {rad[gyldig].mean():.4f}", flush=True)
         sn, se = klynge_se(rad[gyldig], Kh[gyldig])
         print(f"    {merke:22s} K8 {sn:.4f} +/- {se:.4f}  (n={int(gyldig.sum())} rader)", flush=True)
-        resultat["armer"].append({"arm": merke, "k8": sn, "se": se, "n": int(gyldig.sum())})
+        arm = {"arm": merke, "k8": sn, "se": se, "n": int(gyldig.sum()), "perRolle": {}}
+        # PER ROLLE: hele fenomenet er budvinnerspesifikt (13 % av veien til taket mot 41-48 %),
+        # saa et pooled tall kan skjule at hukommelsen betyr noe i NOEYAKTIG den stolen og ingen andre.
+        for r in range(3):
+            m = gyldig & (dh["ROLLE"] == r)
+            if m.sum() < 50:
+                continue
+            rn, rse = klynge_se(rad[m], Kh[m])
+            arm["perRolle"][ROLLER[r]] = [rn, rse, int(m.sum())]
+            print(f"      {ROLLER[r]:11s} K8 {rn:.4f} +/- {rse:.4f}  (n={int(m.sum())})", flush=True)
+        resultat["armer"].append(arm)
         del Xt, Xh, Xt_t, Xh_t
 
     with open(args.ut, "w", encoding="utf-8") as fh:
