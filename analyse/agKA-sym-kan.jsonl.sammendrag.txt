@@ -1,0 +1,27 @@
+FARGESYMMETRI — 7067 stillinger fra 24 kamper (frø 770000000), tro analyse/agKA-tro-B0.bin, kort e1-modell/kort-7.bin  [KANONISERT: restleddet etter kanonisering, ikke nettets eget brudd]
+Bytter per stilling: snitt 5.00
+
+TRO  TV per usett kort    0.0138 ± 0.0004  (klynget på kamp, 7067 stillinger)
+TRO  argmaks-skifte       0.0763 ± 0.0020  (klynget på kamp, 7067 stillinger)
+KORT TV over lovlige      0.0099 ± 0.0003  (klynget på kamp, 7067 stillinger)
+KORT valgt kort skifter   0.0772 ± 0.0020  (klynget på kamp, 7067 stillinger)
+
+PER ROLLE:
+  foerer   n= 2025  troTV 0.0122±0.0004  troARG 0.1140±0.0043  kortTV 0.0154±0.0006  kortVALG 0.0917±0.0050
+  makker   n= 1593  troTV 0.0133±0.0007  troARG 0.0564±0.0029  kortTV 0.0081±0.0004  kortVALG 0.0771±0.0055
+  forsvar  n= 3449  troTV 0.0149±0.0005  troARG 0.0632±0.0021  kortTV 0.0074±0.0003  kortVALG 0.0687±0.0035
+
+PER STIKK:
+  stikk  0  n=  491  troTV 0.0543±0.0008  troARG 0.3703±0.0050  kortTV 0.0308±0.0010  kortVALG 0.2937±0.0150
+  stikk  1  n=  631  troTV 0.0559±0.0009  troARG 0.3015±0.0055  kortTV 0.0401±0.0010  kortVALG 0.3176±0.0140
+  stikk  2  n=  664  troTV 0.0349±0.0011  troARG 0.1766±0.0063  kortTV 0.0302±0.0013  kortVALG 0.2099±0.0122
+  stikk  3  n=  670  troTV 0.0129±0.0009  troARG 0.0545±0.0038  kortTV 0.0096±0.0008  kortVALG 0.0681±0.0074
+  stikk  4  n=  684  troTV 0.0043±0.0006  troARG 0.0166±0.0024  kortTV 0.0035±0.0005  kortVALG 0.0228±0.0044
+  stikk  5  n=  660  troTV 0.0001±0.0001  troARG 0.0006±0.0004  kortTV 0.0001±0.0001  kortVALG 0.0000±0.0000
+  stikk  6  n=  651  troTV 0.0005±0.0003  troARG 0.0010±0.0008  kortTV 0.0001±0.0000  kortVALG 0.0000±0.0000
+  stikk  7  n=  646  troTV 0.0002±0.0002  troARG 0.0004±0.0004  kortTV 0.0000±0.0000  kortVALG 0.0000±0.0000
+  stikk  8  n=  655  troTV 0.0000±0.0000  troARG 0.0000±0.0000  kortTV 0.0000±0.0000  kortVALG 0.0000±0.0000
+  stikk  9  n=  652  troTV 0.0001±0.0001  troARG 0.0000±0.0000  kortTV 0.0000±0.0000  kortVALG 0.0000±0.0000
+  stikk 10  n=  663  troTV 0.0001±0.0001  troARG 0.0000±0.0000  kortTV 0.0003±0.0002  kortVALG 0.0000±0.0000
+
+KANONISERING: 1816 av 7067 stillinger (25.7 %) har minst ett par frie farger som er PUBLIKT uskillelige — der faller kanoniseringen tilbake på den faste fargerekkefølgen, og restasymmetrien blir stående.
