@@ -234,6 +234,8 @@ LAYOUT = {
     776: [("grunn", 660), ("signal", 116)],
     920: [("grunn", 660), ("hukommelse", 144), ("signal", 116)],
     996: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40)],
+    # SANS C (12. sep): auksjonens rekkefoelge (44) bakerst. 996 -> 1040 er nuller bakerst.
+    1040: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40), ("auksjon", 44)],
 }
 
 

@@ -39,6 +39,7 @@ import { budTrekk, BUD_DIM_V2 } from "./budtrekk.ts";
 // Retningen moe2 → mlb er lov (som `agentspek.ts`); mlb importerer aldri herfra.
 import { Hukommelse, HUKOMMELSE_LENGDE_4 } from "../mlb/hukommelse.ts";
 import type { Bokfrø } from "../mlb/profil.ts";
+import { MLB_AUKSJON, auksjonsrekkeTrekk } from "../mlb/auksjonsrekke.ts";
 import { MLB_STILLING, stillingTrekk } from "../mlb/stillingtrekk.ts";
 import { spillerVisning } from "../motor.ts";
 
@@ -60,7 +61,20 @@ export const BUDQ_INN_H = BUDQ_INN + BUDQ_HUKOMMELSE;
  */
 export const BUDQ_STILLING = MLB_STILLING;
 export const BUDQ_INN_HS2 = BUDQ_INN_H + BUDQ_STILLING;
-export const BUDQ_BREDDER: readonly number[] = [BUDQ_INN, BUDQ_INN_H, BUDQ_INN_HS2];
+/**
+ * SANS C, AUKSJONENS REKKEFØLGE (12. sep): `src/mlb/auksjonsrekke.ts` bakerst etter
+ * stillingsblokken, 323 + 44 = 367.
+ *
+ * Her hører den mer hjemme enn noe annet sted: BudQ er nettopp det laget som SVARER PÅ en
+ * auksjon, og fram til nå har det bare sett den som aggregater (`budtrekk.ts` v2: høyeste bud
+ * per relativt sete, hvem som har passet). At venstre nabo krøp opp 5–7–9 og at han hoppet
+ * rett til 9 er samme inngang i dag, og de to bordene byr man ikke likt mot.
+ *
+ * Bare bakerst: løkka trener 323, og 323 → 367 er nuller bakerst.
+ */
+export const BUDQ_AUKSJON = MLB_AUKSJON;
+export const BUDQ_INN_HS3 = BUDQ_INN_HS2 + BUDQ_AUKSJON;
+export const BUDQ_BREDDER: readonly number[] = [BUDQ_INN, BUDQ_INN_H, BUDQ_INN_HS2, BUDQ_INN_HS3];
 
 export function budqIndeks(b: Bud): number {
   const i = BUDQ_BUD.indexOf(b);
@@ -79,12 +93,16 @@ export function budqTrekk(
   sete: number,
   hukommelse: Hukommelse | null = null,
   sanser2 = false,
+  auksjon = false,
 ): Float32Array {
   if (state.antallSpillere !== 4) throw new Error("BudQ er bygd for fire spillere");
   if (sanser2 && hukommelse === null) throw new Error("BudQ sanser 2 (323) ligger bak boka og krever en hukommelse");
-  const v = new Float32Array(hukommelse === null ? BUDQ_INN : sanser2 ? BUDQ_INN_HS2 : BUDQ_INN_H);
+  if (auksjon && !sanser2) throw new Error("BudQ auksjonsrekka (367) ligger bak stillingsblokken og krever sanser 2");
+  const v = new Float32Array(hukommelse === null ? BUDQ_INN : auksjon ? BUDQ_INN_HS3 : sanser2 ? BUDQ_INN_HS2 : BUDQ_INN_H);
   // K2: stillingsblokken ser bare det setet ser. Legges først inn her så resten under er urørt.
   if (sanser2) v.set(stillingTrekk(spillerVisning(state, sete), state.giving.antallStikk, state.regler.målPoeng), BUDQ_INN_H);
+  // Samme visning, samme grunn: auksjonsrekka er offentlig og leses av `spillerVisning` alene.
+  if (auksjon) v.set(auksjonsrekkeTrekk(spillerVisning(state, sete)), BUDQ_INN_HS2);
   v.set(budTrekk(state, sete, BUD_DIM_V2), 0);
   const mål = state.regler.målPoeng;
   let beste = -Infinity;
@@ -109,6 +127,8 @@ export class BudQagent {
   private hukommelse: Hukommelse | null;
   /** 323-nettet leser stillingsblokken bakerst (sans A). Avgjort av bredden, som boka. */
   private readonly sanser2: boolean;
+  /** 367-nettet leser i tillegg auksjonsrekka bakerst (sans C). Også avgjort av bredden. */
+  private readonly auksjon: boolean;
 
   /**
    * `false` (`budq:<fil>h0` i speken): nettet leser boka, men den er ALLTID en fersk bok for
@@ -131,7 +151,9 @@ export class BudQagent {
     const første = nett.lag[0];
     const siste = nett.lag[nett.lag.length - 1];
     if (første === undefined || !BUDQ_BREDDER.includes(første.inn)) {
-      throw new Error(`BudQ-nettet må ta ${BUDQ_INN} eller ${BUDQ_INN_H} (eller ${BUDQ_INN_HS2}, sanser 2) trekk, har ${første?.inn}`);
+      throw new Error(
+        `BudQ-nettet må ta ${BUDQ_INN} eller ${BUDQ_INN_H} (eller ${BUDQ_INN_HS2}, sanser 2; ${BUDQ_INN_HS3}, auksjonsrekka) trekk, har ${første?.inn}`,
+      );
     }
     if (siste === undefined || siste.ut !== BUDQ_UT) {
       throw new Error(`BudQ-nettet må ha ${BUDQ_UT} utganger, har ${siste?.ut}`);
@@ -139,7 +161,8 @@ export class BudQagent {
     this.indre = indre;
     this.nett = nett;
     this.hukommelse = første.inn === BUDQ_INN ? null : this.lagBok();
-    this.sanser2 = første.inn === BUDQ_INN_HS2;
+    this.sanser2 = første.inn === BUDQ_INN_HS2 || første.inn === BUDQ_INN_HS3;
+    this.auksjon = første.inn === BUDQ_INN_HS3;
   }
 
   /** Uten profil er dette ordrett `new Hukommelse()` — nullpunktet er bit-identisk. */
@@ -176,9 +199,9 @@ export class BudQagent {
       // bare stillingen, så dette er bit for bit boka til en agent som aldri har sett en runde.
       const fersk = new Hukommelse();
       fersk.observer(state);
-      return budqTrekk(state, sete, fersk, this.sanser2);
+      return budqTrekk(state, sete, fersk, this.sanser2, this.auksjon);
     }
-    return budqTrekk(state, sete, this.hukommelse, this.sanser2);
+    return budqTrekk(state, sete, this.hukommelse, this.sanser2, this.auksjon);
   }
 
   /** Q for hvert bud i `BUDQ_BUD`-rekkefølge. For benker og prøver. */

@@ -122,7 +122,7 @@ test("nye sensorer: renons, boss og kan-slå beregnes riktig fra en konstruert v
     fase: "SPILL", iTur: 0, deg: 0,
     dinHånd: [{ farge: "S", verdi: 14 }, { farge: "H", verdi: 5 }],
     antallKort: [2, 2, 2, 2], totalPoeng: [0, 0, 0, 0], rundeNr: 0, giver: 0,
-    budrunde: { passet: [false, false, false, false], høyeste: { spiller: 0, bud: 5 }, sisteBud: [5, null, null, null] },
+    budrunde: { passet: [false, false, false, false], høyeste: { spiller: 0, bud: 5 }, sisteBud: [5, null, null, null], rekke: [{ sete: 0, bud: 5 }] },
     budvinner: 0, melding: { type: "tall", bud: 5 }, trumf: "S", etterlyst: null,
     makker: null,
     bord: [{ spiller: 3, kort: { farge: "H", verdi: 13 } }],

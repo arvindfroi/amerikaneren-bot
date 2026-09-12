@@ -51,6 +51,7 @@ import { FARGER, type Kort } from "../kort.ts";
 import type { SpillerVisning } from "../motor.ts";
 import { lagInn, ANTALL_INN as NEAT_INN } from "../neat/trekk.ts";
 import { kortIndeks } from "../nevro/trekk.ts";
+import { MLB_AUKSJON, auksjonsrekkeTrekk } from "./auksjonsrekke.ts";
 import { MLB_TRO_SIGNAL, signalTrekk } from "./signaltrekk.ts";
 import { MLB_STILLING, stillingTrekk } from "./stillingtrekk.ts";
 import { MLB_VALGT_BORT, valgtBortTrekk } from "./valgtbort.ts";
@@ -121,8 +122,20 @@ export const MLB_TRO_INN_HS = MLB_TRO_INN_H + MLB_TRO_SIGNAL;
  */
 export const MLB_TRO_SANSER2 = MLB_STILLING + MLB_VALGT_BORT;
 export const MLB_TRO_INN_HS2 = MLB_TRO_INN_HS + MLB_TRO_SANSER2;
+
+/**
+ * SANS C: AUKSJONENS REKKEFØLGE (12. sep), `src/mlb/auksjonsrekke.ts`, BAKERST etter 996:
+ *
+ *   MLB_TRO_INN_HS3   996 + 44 = 1040   (… | stilling | valgt bort | auksjonsrekke)
+ *
+ * Bakerst og ingen andre steder: løkka trener 996, og 996 → 1040 er da nuller bakerst, så et
+ * 996-nett utvidet gir NØYAKTIG samme tro. Blokken er bygd av `SpillerVisning` alene, som
+ * resten; se toppen av fila.
+ */
+export const MLB_TRO_AUKSJON = MLB_AUKSJON;
+export const MLB_TRO_INN_HS3 = MLB_TRO_INN_HS2 + MLB_TRO_AUKSJON;
 /** Alle bredder trohodet kan ha. Bredden ER formatet – det finnes ikke noe versjonsfelt. */
-export const MLB_TRO_BREDDER: readonly number[] = [MLB_TRO_INN, MLB_TRO_INN_H, MLB_TRO_INN_S, MLB_TRO_INN_HS, MLB_TRO_INN_HS2];
+export const MLB_TRO_BREDDER: readonly number[] = [MLB_TRO_INN, MLB_TRO_INN_H, MLB_TRO_INN_S, MLB_TRO_INN_HS, MLB_TRO_INN_HS2, MLB_TRO_INN_HS3];
 
 /**
  * BLOKKENE I HVER BREDDE, i rekkefølge. Én kilde til sannhet for varmstarten: et smalere nett
@@ -142,6 +155,14 @@ export const MLB_TRO_LAYOUT: Readonly<Record<number, readonly (readonly [string,
     ["signal", MLB_TRO_SIGNAL],
     ["stilling", MLB_STILLING],
     ["valgtbort", MLB_VALGT_BORT],
+  ],
+  [MLB_TRO_INN_HS3]: [
+    ["grunn", MLB_TRO_INN],
+    ["hukommelse", MLB_TRO_HUKOMMELSE],
+    ["signal", MLB_TRO_SIGNAL],
+    ["stilling", MLB_STILLING],
+    ["valgtbort", MLB_VALGT_BORT],
+    ["auksjon", MLB_TRO_AUKSJON],
   ],
 };
 
@@ -327,6 +348,13 @@ export function troTrekkForBredde(
     v.set(troTrekkForBredde(MLB_TRO_INN_HS, visning, antallStikk, målPoeng, hukommelse), 0);
     v.set(stillingTrekk(visning, antallStikk, målPoeng), MLB_TRO_INN_HS);
     v.set(valgtBortTrekk(visning), MLB_TRO_INN_HS + MLB_STILLING);
+    return v;
+  }
+  if (bredde === MLB_TRO_INN_HS3) {
+    // 996 nøyaktig som over, og auksjonsrekka bakerst (se `MLB_TRO_INN_HS3`).
+    const v = new Float32Array(MLB_TRO_INN_HS3);
+    v.set(troTrekkForBredde(MLB_TRO_INN_HS2, visning, antallStikk, målPoeng, hukommelse), 0);
+    v.set(auksjonsrekkeTrekk(visning), MLB_TRO_INN_HS2);
     return v;
   }
   if (bredde !== MLB_TRO_INN_S && bredde !== MLB_TRO_INN_HS) {

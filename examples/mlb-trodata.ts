@@ -162,6 +162,7 @@ import {
   MLB_TRO_INN_H,
   MLB_TRO_INN_HS,
   MLB_TRO_INN_HS2,
+  MLB_TRO_INN_HS3,
   MLB_TRO_INN_S,
   troTrekkForBredde,
 } from "../src/mlb/trotrekk.ts";
@@ -263,7 +264,17 @@ const SANSER2 = har("--sanser2");
 if (SANSER2 && !((KAMP || MENNESKE) && HUKOMMELSE && SIGNAL)) {
   throw new Error("--sanser2 legger 76 trekk bak 920: krever --hukommelse --signal og --kamp eller --menneske");
 }
-const DIM = SANSER2
+/**
+ * `--auksjon` (12. sep): auksjonens rekkefølge (`src/mlb/auksjonsrekke.ts`) bakerst etter 996,
+ * altså 1040 trekk. Krever `--sanser2` (og dermed `--hukommelse --signal` og hele kamper):
+ * blokken ligger BAKERST, så et 996-nett utvidet med nullkolonner gir nøyaktig samme tro.
+ * Uten flagget er radene byte-identiske med før — `test/mlb-auksjonsrekke.test.ts` sha1-prøver det.
+ */
+const AUKSJON = har("--auksjon");
+if (AUKSJON && !SANSER2) throw new Error("--auksjon legger 44 trekk bak 996: krever --sanser2");
+const DIM = AUKSJON
+  ? MLB_TRO_INN_HS3
+  : SANSER2
   ? MLB_TRO_INN_HS2
   : SIGNAL
   ? HUKOMMELSE ? MLB_TRO_INN_HS : MLB_TRO_INN_S
