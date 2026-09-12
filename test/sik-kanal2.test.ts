@@ -165,9 +165,18 @@ test("kanal 2: speken bygger vekten, og «W0» bygger INGEN vekt", () => {
   assert.equal(vekten(spek("W0")), null, "«W0» skal gi null, ikke { alfa: 0 }");
   assert.deepEqual(vekten(spek("W2")), { alfa: 2, beta: 0 }, "beta er MÅLT og IKKE adoptert - den skal stå på 0");
   assert.deepEqual(vekten(spek("W1")), { alfa: 1, beta: 0 });
-  // «W» skal kunne stå sammen med de andre knottene uten å spise dem.
-  assert.deepEqual(vekten("sik:alle:0.5:6k8e3LMDW2:" + NETT), { alfa: 2, beta: 0 });
-  assert.equal(vekten("sik:alle:0.5:6k8e3LMD:" + NETT), null);
+  /**
+   * «W» skal kunne stå sammen med de andre knottene uten å spise dem, og den står
+   * BAKERST — etter «D», som plukkes med `endsWith`. Nettopp den rekkefølgen er grunnen
+   * til at W leses med `indexOf` og før de tre andre.
+   *
+   * Uten «M» her: den krever en økt (`okt:` ytterst), og da er det ikke lenger
+   * sikkerorakelet `lagIndre` gir tilbake — men «M» spiller ingen rolle for
+   * W-parsingen, som er det denne raden måler. Helbotspeken med både M og W2 er
+   * dekket av `examples/koblingssjekk.ts` sin sik-seksjon.
+   */
+  assert.deepEqual(vekten("sik:alle:0.5:6k8e3LDW2:" + NETT), { alfa: 2, beta: 0 });
+  assert.equal(vekten("sik:alle:0.5:6k8e3LD:" + NETT), null);
 });
 
 test("kanal 2: «W» avviser tull i stedet for å tie", () => {
