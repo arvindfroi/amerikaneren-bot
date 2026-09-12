@@ -1,0 +1,207 @@
+91875 treningsrader, 29125 holdoutrader, 996 trekk, enhet cuda (29 s)
+holdout: 90 kamper, rekkelengde snitt 23.2 av 48 (57.9 % av radene har >= 20 steg)
+kapasitetsfelle godkjent: agg+ 3167280 vekter mot agg+rekke 3161920 (0.17 % avvik)
+
+== ARM: agg ==
+    agg              froe 20260912 epoke  1/60: tren 1.2417  holdout-K8 1.06987  <- beste
+    agg              froe 20260912 epoke  2/60: tren 1.1635  holdout-K8 1.03488  <- beste
+    agg              froe 20260912 epoke  3/60: tren 1.1095  holdout-K8 0.99987  <- beste
+    agg              froe 20260912 epoke  4/60: tren 1.0823  holdout-K8 0.99834  <- beste
+    agg              froe 20260912 epoke  5/60: tren 1.0609  holdout-K8 1.00032
+    agg              froe 20260912 epoke  6/60: tren 1.0355  holdout-K8 1.00216
+    agg              froe 20260912 epoke  7/60: tren 1.0089  holdout-K8 1.01432
+    agg              froe 20260912 epoke  8/60: tren 0.9823  holdout-K8 1.02282
+    agg              froe 20260912 epoke  9/60: tren 0.9555  holdout-K8 1.03817
+    agg              froe 20260912 epoke 10/60: tren 0.9298  holdout-K8 1.05971
+    agg              froe 20260912 epoke 11/60: tren 0.9020  holdout-K8 1.07662
+    agg              froe 20260912 epoke 12/60: tren 0.8754  holdout-K8 1.09667
+    agg              froe 20260912: tidlig stopp etter 8 epoker uten framgang
+    agg              froe 20260912 FERDIG: beste K8 0.99834 (epoke 4), 2308560 parametre, 12 s
+    agg              froe 20261013 epoke  1/60: tren 1.2462  holdout-K8 1.07978  <- beste
+    agg              froe 20261013 epoke  2/60: tren 1.1688  holdout-K8 1.03385  <- beste
+    agg              froe 20261013 epoke  3/60: tren 1.1120  holdout-K8 1.00246  <- beste
+    agg              froe 20261013 epoke  4/60: tren 1.0837  holdout-K8 0.99966  <- beste
+    agg              froe 20261013 epoke  5/60: tren 1.0626  holdout-K8 0.99933  <- beste
+    agg              froe 20261013 epoke  6/60: tren 1.0388  holdout-K8 1.00508
+    agg              froe 20261013 epoke  7/60: tren 1.0138  holdout-K8 1.01121
+    agg              froe 20261013 epoke  8/60: tren 0.9876  holdout-K8 1.02255
+    agg              froe 20261013 epoke  9/60: tren 0.9631  holdout-K8 1.03447
+    agg              froe 20261013 epoke 10/60: tren 0.9381  holdout-K8 1.05391
+    agg              froe 20261013 epoke 11/60: tren 0.9131  holdout-K8 1.06618
+    agg              froe 20261013 epoke 12/60: tren 0.8876  holdout-K8 1.09236
+    agg              froe 20261013 epoke 13/60: tren 0.8626  holdout-K8 1.11244
+    agg              froe 20261013: tidlig stopp etter 8 epoker uten framgang
+    agg              froe 20261013 FERDIG: beste K8 0.99933 (epoke 5), 2308560 parametre, 9 s
+    agg              froe 20261114 epoke  1/60: tren 1.2452  holdout-K8 1.07961  <- beste
+    agg              froe 20261114 epoke  2/60: tren 1.1639  holdout-K8 1.03037  <- beste
+    agg              froe 20261114 epoke  3/60: tren 1.1079  holdout-K8 1.00128  <- beste
+    agg              froe 20261114 epoke  4/60: tren 1.0839  holdout-K8 0.99715  <- beste
+    agg              froe 20261114 epoke  5/60: tren 1.0614  holdout-K8 0.99901
+    agg              froe 20261114 epoke  6/60: tren 1.0404  holdout-K8 1.00309
+    agg              froe 20261114 epoke  7/60: tren 1.0139  holdout-K8 1.00950
+    agg              froe 20261114 epoke  8/60: tren 0.9900  holdout-K8 1.02177
+    agg              froe 20261114 epoke  9/60: tren 0.9656  holdout-K8 1.03381
+    agg              froe 20261114 epoke 10/60: tren 0.9420  holdout-K8 1.04578
+    agg              froe 20261114 epoke 11/60: tren 0.9186  holdout-K8 1.06389
+    agg              froe 20261114 epoke 12/60: tren 0.8948  holdout-K8 1.08401
+    agg              froe 20261114: tidlig stopp etter 8 epoker uten framgang
+    agg              froe 20261114 FERDIG: beste K8 0.99715 (epoke 4), 2308560 parametre, 8 s
+  agg: K8 0.99715 +/- 0.00171  (beste av 3 froe: [0.99834, 0.99933, 0.99715])
+
+== ARM: agg+ ==
+    agg+             froe 20260912 epoke  1/60: tren 1.2407  holdout-K8 1.07345  <- beste
+    agg+             froe 20260912 epoke  2/60: tren 1.1671  holdout-K8 1.03937  <- beste
+    agg+             froe 20260912 epoke  3/60: tren 1.1126  holdout-K8 1.00183  <- beste
+    agg+             froe 20260912 epoke  4/60: tren 1.0806  holdout-K8 0.99966  <- beste
+    agg+             froe 20260912 epoke  5/60: tren 1.0559  holdout-K8 1.00218
+    agg+             froe 20260912 epoke  6/60: tren 1.0279  holdout-K8 1.00648
+    agg+             froe 20260912 epoke  7/60: tren 0.9977  holdout-K8 1.02105
+    agg+             froe 20260912 epoke  8/60: tren 0.9679  holdout-K8 1.03711
+    agg+             froe 20260912 epoke  9/60: tren 0.9369  holdout-K8 1.05368
+    agg+             froe 20260912 epoke 10/60: tren 0.9083  holdout-K8 1.08162
+    agg+             froe 20260912 epoke 11/60: tren 0.8765  holdout-K8 1.10133
+    agg+             froe 20260912 epoke 12/60: tren 0.8450  holdout-K8 1.13353
+    agg+             froe 20260912: tidlig stopp etter 8 epoker uten framgang
+    agg+             froe 20260912 FERDIG: beste K8 0.99966 (epoke 4), 3167280 parametre, 8 s
+    agg+             froe 20261013 epoke  1/60: tren 1.2399  holdout-K8 1.07287  <- beste
+    agg+             froe 20261013 epoke  2/60: tren 1.1636  holdout-K8 1.03017  <- beste
+    agg+             froe 20261013 epoke  3/60: tren 1.1061  holdout-K8 1.00341  <- beste
+    agg+             froe 20261013 epoke  4/60: tren 1.0772  holdout-K8 1.00009  <- beste
+    agg+             froe 20261013 epoke  5/60: tren 1.0509  holdout-K8 1.00258
+    agg+             froe 20261013 epoke  6/60: tren 1.0217  holdout-K8 1.01225
+    agg+             froe 20261013 epoke  7/60: tren 0.9896  holdout-K8 1.02399
+    agg+             froe 20261013 epoke  8/60: tren 0.9588  holdout-K8 1.03753
+    agg+             froe 20261013 epoke  9/60: tren 0.9262  holdout-K8 1.05935
+    agg+             froe 20261013 epoke 10/60: tren 0.8933  holdout-K8 1.08467
+    agg+             froe 20261013 epoke 11/60: tren 0.8611  holdout-K8 1.11617
+    agg+             froe 20261013 epoke 12/60: tren 0.8274  holdout-K8 1.14211
+    agg+             froe 20261013: tidlig stopp etter 8 epoker uten framgang
+    agg+             froe 20261013 FERDIG: beste K8 1.00009 (epoke 4), 3167280 parametre, 9 s
+    agg+             froe 20261114 epoke  1/60: tren 1.2440  holdout-K8 1.07808  <- beste
+    agg+             froe 20261114 epoke  2/60: tren 1.1672  holdout-K8 1.03967  <- beste
+    agg+             froe 20261114 epoke  3/60: tren 1.1106  holdout-K8 1.00161  <- beste
+    agg+             froe 20261114 epoke  4/60: tren 1.0823  holdout-K8 0.99776  <- beste
+    agg+             froe 20261114 epoke  5/60: tren 1.0566  holdout-K8 1.00225
+    agg+             froe 20261114 epoke  6/60: tren 1.0297  holdout-K8 1.01093
+    agg+             froe 20261114 epoke  7/60: tren 0.9993  holdout-K8 1.01827
+    agg+             froe 20261114 epoke  8/60: tren 0.9697  holdout-K8 1.03516
+    agg+             froe 20261114 epoke  9/60: tren 0.9391  holdout-K8 1.05050
+    agg+             froe 20261114 epoke 10/60: tren 0.9102  holdout-K8 1.07093
+    agg+             froe 20261114 epoke 11/60: tren 0.8770  holdout-K8 1.09589
+    agg+             froe 20261114 epoke 12/60: tren 0.8464  holdout-K8 1.12624
+    agg+             froe 20261114: tidlig stopp etter 8 epoker uten framgang
+    agg+             froe 20261114 FERDIG: beste K8 0.99776 (epoke 4), 3167280 parametre, 9 s
+  agg+: K8 0.99776 +/- 0.00174  (beste av 3 froe: [0.99966, 1.00009, 0.99776])
+
+== ARM: agg+rekke ==
+    agg+rekke        froe 20260912 epoke  1/60: tren 1.2391  holdout-K8 1.06692  <- beste
+    agg+rekke        froe 20260912 epoke  2/60: tren 1.1543  holdout-K8 1.02037  <- beste
+    agg+rekke        froe 20260912 epoke  3/60: tren 1.1047  holdout-K8 1.00233  <- beste
+    agg+rekke        froe 20260912 epoke  4/60: tren 1.0769  holdout-K8 0.99954  <- beste
+    agg+rekke        froe 20260912 epoke  5/60: tren 1.0495  holdout-K8 1.00268
+    agg+rekke        froe 20260912 epoke  6/60: tren 1.0196  holdout-K8 1.01231
+    agg+rekke        froe 20260912 epoke  7/60: tren 0.9874  holdout-K8 1.02556
+    agg+rekke        froe 20260912 epoke  8/60: tren 0.9542  holdout-K8 1.04894
+    agg+rekke        froe 20260912 epoke  9/60: tren 0.9187  holdout-K8 1.07144
+    agg+rekke        froe 20260912 epoke 10/60: tren 0.8818  holdout-K8 1.09835
+    agg+rekke        froe 20260912 epoke 11/60: tren 0.8422  holdout-K8 1.13378
+    agg+rekke        froe 20260912 epoke 12/60: tren 0.8001  holdout-K8 1.17902
+    agg+rekke        froe 20260912: tidlig stopp etter 8 epoker uten framgang
+    agg+rekke        froe 20260912 FERDIG: beste K8 0.99954 (epoke 4), 3161920 parametre, 39 s
+    agg+rekke        froe 20261013 epoke  1/60: tren 1.2449  holdout-K8 1.07391  <- beste
+    agg+rekke        froe 20261013 epoke  2/60: tren 1.1528  holdout-K8 1.02036  <- beste
+    agg+rekke        froe 20261013 epoke  3/60: tren 1.1079  holdout-K8 1.00697  <- beste
+    agg+rekke        froe 20261013 epoke  4/60: tren 1.0802  holdout-K8 1.00375  <- beste
+    agg+rekke        froe 20261013 epoke  5/60: tren 1.0531  holdout-K8 1.00396
+    agg+rekke        froe 20261013 epoke  6/60: tren 1.0242  holdout-K8 1.01375
+    agg+rekke        froe 20261013 epoke  7/60: tren 0.9922  holdout-K8 1.02489
+    agg+rekke        froe 20261013 epoke  8/60: tren 0.9601  holdout-K8 1.04306
+    agg+rekke        froe 20261013 epoke  9/60: tren 0.9258  holdout-K8 1.06625
+    agg+rekke        froe 20261013 epoke 10/60: tren 0.8896  holdout-K8 1.09040
+    agg+rekke        froe 20261013 epoke 11/60: tren 0.8522  holdout-K8 1.12268
+    agg+rekke        froe 20261013 epoke 12/60: tren 0.8113  holdout-K8 1.16033
+    agg+rekke        froe 20261013: tidlig stopp etter 8 epoker uten framgang
+    agg+rekke        froe 20261013 FERDIG: beste K8 1.00375 (epoke 4), 3161920 parametre, 40 s
+    agg+rekke        froe 20261114 epoke  1/60: tren 1.2430  holdout-K8 1.07069  <- beste
+    agg+rekke        froe 20261114 epoke  2/60: tren 1.1556  holdout-K8 1.02445  <- beste
+    agg+rekke        froe 20261114 epoke  3/60: tren 1.1070  holdout-K8 1.00300  <- beste
+    agg+rekke        froe 20261114 epoke  4/60: tren 1.0799  holdout-K8 0.99810  <- beste
+    agg+rekke        froe 20261114 epoke  5/60: tren 1.0533  holdout-K8 1.00242
+    agg+rekke        froe 20261114 epoke  6/60: tren 1.0258  holdout-K8 1.01187
+    agg+rekke        froe 20261114 epoke  7/60: tren 0.9941  holdout-K8 1.02162
+    agg+rekke        froe 20261114 epoke  8/60: tren 0.9629  holdout-K8 1.04001
+    agg+rekke        froe 20261114 epoke  9/60: tren 0.9292  holdout-K8 1.05661
+    agg+rekke        froe 20261114 epoke 10/60: tren 0.8926  holdout-K8 1.08651
+    agg+rekke        froe 20261114 epoke 11/60: tren 0.8543  holdout-K8 1.11848
+    agg+rekke        froe 20261114 epoke 12/60: tren 0.8116  holdout-K8 1.16196
+    agg+rekke        froe 20261114: tidlig stopp etter 8 epoker uten framgang
+    agg+rekke        froe 20261114 FERDIG: beste K8 0.99810 (epoke 4), 3161920 parametre, 41 s
+  agg+rekke: K8 0.99810 +/- 0.00174  (beste av 3 froe: [0.99954, 1.00375, 0.9981])
+
+== ARM: rekke ==
+    rekke            froe 20260912 epoke  1/60: tren 1.2680  holdout-K8 1.09666  <- beste
+    rekke            froe 20260912 epoke  2/60: tren 1.2238  holdout-K8 1.07094  <- beste
+    rekke            froe 20260912 epoke  3/60: tren 1.1721  holdout-K8 1.02798  <- beste
+    rekke            froe 20260912 epoke  4/60: tren 1.1386  holdout-K8 1.01729  <- beste
+    rekke            froe 20260912 epoke  5/60: tren 1.1263  holdout-K8 1.01208  <- beste
+    rekke            froe 20260912 epoke  6/60: tren 1.1147  holdout-K8 1.00894  <- beste
+    rekke            froe 20260912 epoke  7/60: tren 1.1028  holdout-K8 1.00548  <- beste
+    rekke            froe 20260912 epoke  8/60: tren 1.0904  holdout-K8 1.00454  <- beste
+    rekke            froe 20260912 epoke  9/60: tren 1.0774  holdout-K8 1.00427  <- beste
+    rekke            froe 20260912 epoke 10/60: tren 1.0638  holdout-K8 1.00882
+    rekke            froe 20260912 epoke 11/60: tren 1.0486  holdout-K8 1.01246
+    rekke            froe 20260912 epoke 12/60: tren 1.0313  holdout-K8 1.01932
+    rekke            froe 20260912 epoke 13/60: tren 1.0133  holdout-K8 1.03128
+    rekke            froe 20260912 epoke 14/60: tren 0.9935  holdout-K8 1.04498
+    rekke            froe 20260912 epoke 15/60: tren 0.9729  holdout-K8 1.05860
+    rekke            froe 20260912 epoke 16/60: tren 0.9510  holdout-K8 1.07294
+    rekke            froe 20260912 epoke 17/60: tren 0.9292  holdout-K8 1.09235
+    rekke            froe 20260912: tidlig stopp etter 8 epoker uten framgang
+    rekke            froe 20260912 FERDIG: beste K8 1.00427 (epoke 9), 853568 parametre, 51 s
+    rekke            froe 20261013 epoke  1/60: tren 1.2653  holdout-K8 1.09527  <- beste
+    rekke            froe 20261013 epoke  2/60: tren 1.2203  holdout-K8 1.06853  <- beste
+    rekke            froe 20261013 epoke  3/60: tren 1.1721  holdout-K8 1.02876  <- beste
+    rekke            froe 20261013 epoke  4/60: tren 1.1384  holdout-K8 1.01743  <- beste
+    rekke            froe 20261013 epoke  5/60: tren 1.1241  holdout-K8 1.01266  <- beste
+    rekke            froe 20261013 epoke  6/60: tren 1.1124  holdout-K8 1.00826  <- beste
+    rekke            froe 20261013 epoke  7/60: tren 1.1005  holdout-K8 1.00663  <- beste
+    rekke            froe 20261013 epoke  8/60: tren 1.0885  holdout-K8 1.00833
+    rekke            froe 20261013 epoke  9/60: tren 1.0755  holdout-K8 1.00818
+    rekke            froe 20261013 epoke 10/60: tren 1.0619  holdout-K8 1.01096
+    rekke            froe 20261013 epoke 11/60: tren 1.0466  holdout-K8 1.01701
+    rekke            froe 20261013 epoke 12/60: tren 1.0295  holdout-K8 1.02528
+    rekke            froe 20261013 epoke 13/60: tren 1.0111  holdout-K8 1.03360
+    rekke            froe 20261013 epoke 14/60: tren 0.9923  holdout-K8 1.05003
+    rekke            froe 20261013 epoke 15/60: tren 0.9715  holdout-K8 1.06267
+    rekke            froe 20261013: tidlig stopp etter 8 epoker uten framgang
+    rekke            froe 20261013 FERDIG: beste K8 1.00663 (epoke 7), 853568 parametre, 43 s
+    rekke            froe 20261114 epoke  1/60: tren 1.2663  holdout-K8 1.09713  <- beste
+    rekke            froe 20261114 epoke  2/60: tren 1.2209  holdout-K8 1.06574  <- beste
+    rekke            froe 20261114 epoke  3/60: tren 1.1683  holdout-K8 1.02711  <- beste
+    rekke            froe 20261114 epoke  4/60: tren 1.1388  holdout-K8 1.01933  <- beste
+    rekke            froe 20261114 epoke  5/60: tren 1.1272  holdout-K8 1.01404  <- beste
+    rekke            froe 20261114 epoke  6/60: tren 1.1164  holdout-K8 1.01069  <- beste
+    rekke            froe 20261114 epoke  7/60: tren 1.1057  holdout-K8 1.00898  <- beste
+    rekke            froe 20261114 epoke  8/60: tren 1.0952  holdout-K8 1.00822  <- beste
+    rekke            froe 20261114 epoke  9/60: tren 1.0837  holdout-K8 1.00746  <- beste
+    rekke            froe 20261114 epoke 10/60: tren 1.0716  holdout-K8 1.00859
+    rekke            froe 20261114 epoke 11/60: tren 1.0578  holdout-K8 1.01230
+    rekke            froe 20261114 epoke 12/60: tren 1.0433  holdout-K8 1.01670
+    rekke            froe 20261114 epoke 13/60: tren 1.0274  holdout-K8 1.02472
+    rekke            froe 20261114 epoke 14/60: tren 1.0108  holdout-K8 1.03646
+    rekke            froe 20261114 epoke 15/60: tren 0.9934  holdout-K8 1.04562
+    rekke            froe 20261114 epoke 16/60: tren 0.9747  holdout-K8 1.05641
+    rekke            froe 20261114 epoke 17/60: tren 0.9548  holdout-K8 1.07386
+    rekke            froe 20261114: tidlig stopp etter 8 epoker uten framgang
+    rekke            froe 20261114 FERDIG: beste K8 1.00746 (epoke 9), 853568 parametre, 48 s
+  rekke: K8 1.00427 +/- 0.00180  (beste av 3 froe: [1.00427, 1.00663, 1.00746])
+
+PARRET agg+ - agg: 0.00061 +/- 0.00039 nat  (negativt = rekka hjelper)
+
+PARRET agg+rekke - agg: 0.00095 +/- 0.00047 nat  (negativt = rekka hjelper)
+
+PARRET rekke - agg: 0.00712 +/- 0.00093 nat  (negativt = rekka hjelper)
+
+PARRET agg+rekke - agg+: 0.00034 +/- 0.00051 nat  (negativt = rekka hjelper)
+
+-> analyse/agOE-rekke-k8.json  og  analyse/agOE-rekke-k8.txt
