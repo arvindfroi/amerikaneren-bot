@@ -1,12 +1,26 @@
 /**
- * ØKTEN: lærer på tvers av kamper, lagrer ALDRI.
+ * ØKTEN: lærer på tvers av kamper i minnet, og lagrer ALDRI SELV.
  *
- * Arvind: «den ska bare lære per økt for nå. men det skal være sykt godt
- * gjennomført.»
+ * Arvind, 6. august: «den ska bare lære per økt for nå. men det skal være sykt
+ * godt gjennomført.»
  *
- * Skillet som gjør dette lovlig er mellom ØKT og HISTORIE. En kommentar som
- * sier «vi lagrer ikke» kan ryke ved neste endring; en test kan ikke. Derfor
- * leser den første testen KILDEN og feiler på ethvert spor av lagring.
+ * ============ KRAVET BLE FLYTTET 12. SEPTEMBER, MEN IKKE HER =============
+ *
+ * K2.5/K6.7 sa «ingen lagring på tvers av økter». Eieren flyttet grensen:
+ * vanene SKAL nå følge spilleren mellom kamper. Det som lagrer, er
+ * `src/mlb/profil.ts`, og den har sine egne prøver (`test/mlb-profil.test.ts`)
+ * for den nye, smalere regelen: en profil kan bare inneholde det som var
+ * offentlig ved bordet i FERDIGE runder.
+ *
+ * DENNE FILA ER UENDRET I SIN PÅSTAND, og det er et poeng. `okt.ts` er
+ * KVELDEN — modellen som lever mens prosessen lever — ikke historien. Skulle
+ * den begynt å lese eller skrive filer selv, ville vi hatt to lagre av samme
+ * slags data med hver sin regel, og bare det ene ville vært prøvd. Ett sted
+ * lagrer; dette er ikke det stedet.
+ *
+ * En kommentar som sier «vi lagrer ikke» kan ryke ved neste endring; en test
+ * kan ikke. Derfor leser den første testen KILDEN og feiler på ethvert spor av
+ * lagring.
  */
 
 import { strict as assert } from "node:assert";

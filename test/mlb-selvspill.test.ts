@@ -317,12 +317,24 @@ test("hukommelsen: én delt bok gir BIT-IDENTISKE vektorer med fire egne bøker"
 // Per økt, aldri til disk
 // ===========================================================================
 
-test("selvspill og liga RØRER ALDRI disk — spillerprofiler dør med økta", () => {
+test("selvspill og liga RØRER ALDRI disk — treningsløkka lagrer ingen profil", () => {
   /**
-   * Regelen er hard i dette prosjektet: en profil om en spiller lever i minnet
-   * og dør med prosessen. `okt.ts` lever under den samme regelen, håndhevet av
-   * `test/okt.test.ts`, og hukommelsen i selvspillet er nøyaktig samme slags
-   * data — hvordan de andre ved bordet spiller.
+   * ============ REGELEN BLE FLYTTET 12. SEPTEMBER, OG BLE SMALERE =========
+   *
+   * K2.5/K6.7 sa «ingen lagring på tvers av økter». Eieren flyttet den: vanene
+   * skal følge spilleren mellom kamper. Det ene stedet som lagrer er
+   * `src/mlb/profil.ts`, med sine egne prøver for den nye regelen — en profil
+   * kan bare inneholde det som var offentlig ved bordet i FERDIGE runder.
+   *
+   * SELVSPILLET OG LIGAEN ER LIKEVEL UENDRET, og påstanden her er nå en annen
+   * enn før: ikke «ingen lagrer», men «TRENINGSLØKKA lagrer ikke».
+   *
+   * Grunnen er målbarhet. Skrev `selvspill.ts` eller `liga.ts` profiler til
+   * disk, ville en epoke arvet vaner fra forrige epokes motstandere, og to
+   * kjøringer av samme frø ville ikke lenger gitt samme tall. Da er hver
+   * nullarm og hver 0,0000-kontroll i prosjektet verdiløs — de hviler på at en
+   * kjøring bare avhenger av frøet og vektene. Profiler hører hjemme der en
+   * KAMP spilles mot en kjent spiller, ikke der en generasjon trenes.
    *
    * En kommentar som sier «vi lagrer ikke» kan ryke ved neste endring. Denne
    * leser KILDEN. Kommentarer teller ikke: en fil som forklarer hvorfor den

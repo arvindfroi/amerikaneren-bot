@@ -19,6 +19,7 @@ import { readFileSync } from "node:fs";
 import type { GameState, Handling } from "../index.ts";
 import { E1Agent, lesE1Nett } from "../e1/nett.ts";
 import { erKortbokBredde, Kortbok } from "../e1/kortbok.ts";
+import { bokfrøFraSpek, type Bokfrø } from "../mlb/profil.ts";
 import { Vrakrangerer } from "./vrakrang.ts";
 import { nettFraBytes } from "../nevro/nett.ts";
 import { NevroAgent } from "../nevro/index.ts";
@@ -557,6 +558,15 @@ export interface Spekkontekst {
    * være en egen instans, og den skal se den samme boka som nettet som spiller.
    */
   kortbok?: Kortbok;
+  /**
+   * STARTBOKA FRA EN LAGRET SPILLERPROFIL (12. sep, `src/mlb/profil.ts`).
+   *
+   * Settes av `okt:profil=<sti>@<sete>,…:` og leses av de fire stedene som
+   * eier en `Hukommelse`: `Sandkasseagent`, `MlbSøketro`, `Kortbok` og
+   * `BudQagent`. `undefined` betyr `new Hukommelse()` — uttrykket som sto der
+   * før — så en spek uten `profil=` er bit-identisk med i går.
+   */
+  bokfrø?: Bokfrø | null;
 }
 
 export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
@@ -637,7 +647,10 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     if (h0) fil = fil.slice(0, -2);
     const budqNett = nettFraBytes(new Uint8Array(readFileSync(fil)))[0];
     if (budqNett === undefined) throw new Error(`Tomt BudQ-nett i «${indre}»`);
-    return new BudQagent(lagIndre(rest.slice(skille + 1), ctx), budqNett, h0 ? { hukommelse: false } : {});
+    return new BudQagent(lagIndre(rest.slice(skille + 1), ctx), budqNett, {
+      ...(h0 ? { hukommelse: false } : {}),
+      bokfrø: ctx.bokfrø ?? null,
+    });
   }
   if (indre.startsWith("budm:")) {
     const rest = indre.slice(5);
@@ -878,8 +891,40 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      */
     const økt = ctx.økt ?? new Økt();
 
+    /**
+     * ============ «profil=» — VANENE SOM FØLGER SPILLEREN (12. sep) ========
+     *
+     *     okt:profil=<sti>@<sete>[,<sti>@<sete>]:<indre>
+     *
+     * Eieren flyttet K2.5 samme dag: en profil får overleve kampen, men den
+     * kan bare inneholde det som var OFFENTLIG ved bordet i ferdigspilte
+     * runder (`src/mlb/profil.ts`). Her lastes den, og den sendes nedover som
+     * `ctx.bokfrø` til de fire stedene som eier en `Hukommelse`.
+     *
+     * DEN HENGER PÅ `okt:` MED VILJE. `okt:` er allerede laget som skal si
+     * «dette er mer enn én kamp», og alle spekene som skal ha hukommelse har
+     * den ytterst fra før. Et eget toppnivålag ville vært et femte sted å
+     * glemme.
+     *
+     * STÅR DEN IKKE, er `bokfrø` det konteksten alt hadde — i praksis
+     * `undefined` — og hver bit er som før. Målt med sha1 på generatorene i
+     * løkka og et helbot-rundesett.
+     */
+    let restSpek = indre.slice(4);
+    let bokfrø = ctx.bokfrø ?? null;
+    if (restSpek.startsWith("profil=")) {
+      const kolon = restSpek.indexOf(":");
+      if (kolon < 0) {
+        throw new Error(
+          `Ugyldig okt-spek «${indre}» – «profil=<sti>@<sete>» må følges av «:<indre>». ` +
+            `Stien kan ikke inneholde kolon (bruk relativ sti), som i «sik:…~mlbu=».`,
+        );
+      }
+      bokfrø = bokfrøFraSpek(restSpek.slice(7, kolon));
+      restSpek = restSpek.slice(kolon + 1);
+    }
 
-    const inn = lagIndre(indre.slice(4), { ...ctx, økt });
+    const inn = lagIndre(restSpek, { ...ctx, økt, bokfrø });
     return {
       velgHandling: (s) => inn.velgHandling(s),
       nyKamp: () => {
@@ -1207,7 +1252,9 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
           if (verdi === "") throw new Error(`Tom trokilde i «${indre}» - forventet ${art}=<fil>`);
           // ÉN SØKETRO PER AGENT: nettet deles, boka gjør ikke det — den er denne kampens.
           // Et trohode med hukommelse får boka fylt gjennom `observer` (kampbenken kaller den).
-          tro = new MlbSøketro(lesTronett(verdi));
+          // `bokfrø` er spillerprofilen (agent U): boka starter fra det spilleren har vist i TIDLIGERE
+          // ferdige kamper i stedet for på null. Uten `okt:profil=` er den null, og stien er som før.
+          tro = new MlbSøketro(lesTronett(verdi), { bokfrø: ctx.bokfrø ?? null });
           budvekt = art === "mlb";
         } else if (art === "lik") {
           const [kilde, ...knotter] = verdi.split(",");
@@ -1566,7 +1613,12 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     if (kilde === "") throw new Error(`Tom vektkilde i «${indre}»`);
     const nett = lesSandkassenett(kilde);
     const tronett = trosti === null ? null : lesTronett(trosti);
-    return new Sandkasseagent(nett, { temperatur, hukommelse, tronett }) as unknown as Spekagent;
+    return new Sandkasseagent(nett, {
+      temperatur,
+      hukommelse,
+      tronett,
+      bokfrø: ctx.bokfrø ?? null,
+    }) as unknown as Spekagent;
   }
   if (indre.startsWith("e1:")) {
     const rest = indre.slice(3);
@@ -1595,7 +1647,9 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       if (erKortbokBredde(kn.lag[0]!.inn)) {
         const agent = h0
           ? new E1Agent(kn, undefined, { hukommelse: false })
-          : new E1Agent(kn, undefined, { kortbok: (ctx.kortbok ??= new Kortbok()) });
+          : new E1Agent(kn, undefined, {
+              kortbok: (ctx.kortbok ??= new Kortbok({ bokfrø: ctx.bokfrø ?? null })),
+            });
         if (ctx.økt !== undefined && !ctx.økt.bok.harAtferd()) {
           ctx.økt.bok.settAtferd({ logits: (st: GameState, s2: number) => agent.logits(st, s2) });
         }

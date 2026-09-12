@@ -23,6 +23,7 @@
 import type { GameState } from "../motor.ts";
 import type { Verden } from "../solver/sampler.ts";
 import { Hukommelse } from "../mlb/hukommelse.ts";
+import type { Bokfrø } from "../mlb/profil.ts";
 import { lagTrovektFraVisning, type Visningstro } from "./troprior.ts";
 
 /** Det søket trenger av en trokilde. */
@@ -34,13 +35,24 @@ export interface Søketro {
 
 export class MlbSøketro implements Søketro {
   private readonly nett: Visningstro;
-  private bok = new Hukommelse();
+  private readonly bokfrø: Bokfrø | null;
+  private bok: Hukommelse;
   private førsteRunde: number | null = null;
   private sisteRunde = -1;
   private readonly bokført = new Set<number>();
 
-  constructor(nett: Visningstro) {
+  /**
+   * `bokfrø` (12. sep): startboka fra en lagret spillerprofil, `null` uten. Null er
+   * ordrett `new Hukommelse()`, uttrykket som sto her før — nullpunktet er bit-identisk.
+   */
+  constructor(nett: Visningstro, opts: { readonly bokfrø?: Bokfrø | null } = {}) {
     this.nett = nett;
+    this.bokfrø = opts.bokfrø ?? null;
+    this.bok = this.lagBok();
+  }
+
+  private lagBok(): Hukommelse {
+    return this.bokfrø?.lagBok() ?? new Hukommelse();
   }
 
   get brukerHukommelse(): boolean {
@@ -53,7 +65,7 @@ export class MlbSøketro implements Søketro {
   }
 
   nyKamp(): void {
-    this.bok = new Hukommelse();
+    this.bok = this.lagBok();
     this.førsteRunde = null;
     this.sisteRunde = -1;
     this.bokført.clear();

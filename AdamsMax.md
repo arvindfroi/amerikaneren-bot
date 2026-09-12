@@ -305,9 +305,25 @@ innfridd.
 
 Alle tre er rettet. **Målingen over ble gjort før fiksene og må kjøres om.**
 
-*Begrensning du selv satte:* «det skal bare lære per økt for nå.» Ingen
-kryssøkt-lagring. Håndhevet i test: `okt.ts` har ingen `fs`, `localStorage`
-eller `fetch`.
+*Begrensningen du satte 6. august* var «det skal bare lære per økt for nå», og
+den ble **flyttet 12. september**: «når botten starter en kamp mot en spiller så
+lastes den spilleren sine vaner inn i botten sitt minne basert på tidligere
+matches, også oppdateres den videre under kampen. så en spiller sine vaner og
+spillerstil følger brukeren, også kan botten trekke fra den.»
+
+**Den nye grensen er smalere enn «alt er lov».** Lagring på tvers av kamper er
+lov, men en profil kan bare inneholde **det som var offentlig ved bordet i
+FERDIGSPILTE runder** — ingen skjulte kort, ingen talong, og ingen annen
+spillers vrak ut over det som er utledbart ved rundeslutt. **K2 er uendret:**
+valgene skal fortsatt være invariante for skjult informasjon.
+
+Håndhevet i test, på to steder som gjør hver sin jobb: `okt.ts` har fortsatt
+ingen `fs`, `localStorage` eller `fetch` (økta er kveldens, ikke historien,
+`test/okt.test.ts`), og `src/mlb/profil.ts` — det ene stedet som lagrer — kan
+bare bygges av `Hukommelse`, som ikke bokfører før `RUNDE_SLUTT`. Prøven mater
+en pågående runde og krever en tom profil, bytter de skjulte hendene og krever
+bit-identisk profil, og har en felle for hver av de to
+(`test/mlb-profil.test.ts`).
 
 ---
 
@@ -675,7 +691,8 @@ dem finnes etter at noe gikk galt uten den.
 7. Alt logges i `docs/plan.md`, også det som feilet.
 
 Og de rammene som ER dine: offentlig repo uten fornavn, ingen utrulling uten
-beskjed, ingen kryssøkt-lagring.
+beskjed, og — fra 12. september — lagring på tvers av kamper bare av det som var
+offentlig ved bordet i ferdigspilte runder.
 
 ---
 

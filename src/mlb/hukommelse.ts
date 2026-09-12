@@ -684,6 +684,27 @@ export class Hukommelse {
     return b;
   }
 
+  /**
+   * ============ STARTBOKA UTENFRA (12. sep, `profil.ts`) ==================
+   *
+   * Eieren flyttet K2.5: en spillerprofil får overleve kampen. Da må boka
+   * kunne STARTE et annet sted enn på null, og det må skje gjennom en dør —
+   * ikke ved at kalleren muterer objektet `bok()` gir ut.
+   *
+   * Grunnen er at `bokfør` og `mikro` jobber på KOPIER (`{ ...this.bok(sete) }`)
+   * og skriver dem tilbake. En kaller som muterte referansen mellom to
+   * bokføringer ville fått endringen overskrevet av en kopi som ble tatt før,
+   * stille og bare noen ganger. Denne setter kartet, som er det de to gjør.
+   *
+   * DEN ENDRER IKKE HVA BOKA SER. Alt som fyller boka ligger fortsatt bak
+   * `fase === "RUNDE_SLUTT"`; dette flytter bare NULLPUNKTET den teller fra.
+   * Kalles den aldri, er hver bit som før — det er nullpunktet
+   * `test/mlb-profil.test.ts` måler.
+   */
+  settBok(sete: number, b: Setebok): void {
+    this.bøker.set(sete, b);
+  }
+
   /** Antall runder boka har sett i det hele tatt. */
   runder(): number {
     let m = 0;
