@@ -53,6 +53,7 @@ import { lagInn, ANTALL_INN as NEAT_INN } from "../neat/trekk.ts";
 import { kortIndeks } from "../nevro/trekk.ts";
 import { MLB_TRO_SIGNAL, signalTrekk } from "./signaltrekk.ts";
 import { MLB_STILLING, stillingTrekk } from "./stillingtrekk.ts";
+import { MLB_TEMPO, tempofaseAv, tempoTrekk, type Tempobok } from "./tempotrekk.ts";
 import { MLB_VALGT_BORT, valgtBortTrekk } from "./valgtbort.ts";
 
 /** rel sete 1, 2, 3, talong. Samme koding som `moe2/trosnett.ts`. */
@@ -121,8 +122,27 @@ export const MLB_TRO_INN_HS = MLB_TRO_INN_H + MLB_TRO_SIGNAL;
  */
 export const MLB_TRO_SANSER2 = MLB_STILLING + MLB_VALGT_BORT;
 export const MLB_TRO_INN_HS2 = MLB_TRO_INN_HS + MLB_TRO_SANSER2;
+
+/**
+ * TEMPOBLOKKEN (12. sep): tenketiden til de ANDRE setene, `src/mlb/tempotrekk.ts` (32),
+ * BAKERST etter 996. Én ny bredde, som for sanser 2:
+ *
+ *   MLB_TRO_INN_HS2T   996 + 32 = 1028   (660 | hukommelse | signal | stilling | valgt bort | tempo)
+ *
+ * Et 996-nett utvidet med nullkolonner bakerst gir NØYAKTIG samme tro, og det er dagens
+ * nett. Blokken er bygd av `SpillerVisning` og den offentlige tempologgen alene — aldri
+ * av observatørens EGEN tid, og aldri av botenes regnetid (`bottrekk`); se toppen av fila.
+ */
+export const MLB_TRO_INN_HS2T = MLB_TRO_INN_HS2 + MLB_TEMPO;
 /** Alle bredder trohodet kan ha. Bredden ER formatet – det finnes ikke noe versjonsfelt. */
-export const MLB_TRO_BREDDER: readonly number[] = [MLB_TRO_INN, MLB_TRO_INN_H, MLB_TRO_INN_S, MLB_TRO_INN_HS, MLB_TRO_INN_HS2];
+export const MLB_TRO_BREDDER: readonly number[] = [
+  MLB_TRO_INN,
+  MLB_TRO_INN_H,
+  MLB_TRO_INN_S,
+  MLB_TRO_INN_HS,
+  MLB_TRO_INN_HS2,
+  MLB_TRO_INN_HS2T,
+];
 
 /**
  * BLOKKENE I HVER BREDDE, i rekkefølge. Én kilde til sannhet for varmstarten: et smalere nett
@@ -142,6 +162,14 @@ export const MLB_TRO_LAYOUT: Readonly<Record<number, readonly (readonly [string,
     ["signal", MLB_TRO_SIGNAL],
     ["stilling", MLB_STILLING],
     ["valgtbort", MLB_VALGT_BORT],
+  ],
+  [MLB_TRO_INN_HS2T]: [
+    ["grunn", MLB_TRO_INN],
+    ["hukommelse", MLB_TRO_HUKOMMELSE],
+    ["signal", MLB_TRO_SIGNAL],
+    ["stilling", MLB_STILLING],
+    ["valgtbort", MLB_VALGT_BORT],
+    ["tempo", MLB_TEMPO],
   ],
 };
 
@@ -311,6 +339,10 @@ export function troTrekkMedHukommelse(
  * TREKKENE FOR EN GITT BREDDE — den ene veien alle skal gå (via `MlbTronett.trekkFor`
  * og `examples/mlb-trodata.ts --signal`). 660 og 804 er bit-identiske med før; 776 og
  * 920 legger signalblokken bakerst.
+ *
+ * `tempo` er kampens offentlige tempobok (`--tempo`, 12. sep) og brukes BARE av 1028.
+ * `null` — standarden, og alt som fantes før — gir en nullblokk der, som er den ærlige
+ * verdien for en runde uten tider. Alle de andre breddene er uberørt av argumentet.
  */
 export function troTrekkForBredde(
   bredde: number,
@@ -318,9 +350,17 @@ export function troTrekkForBredde(
   antallStikk: number,
   målPoeng: number,
   hukommelse: Float64Array | null,
+  tempo: Tempobok | null = null,
 ): Float32Array {
   if (bredde === MLB_TRO_INN) return troTrekk(visning, antallStikk, målPoeng);
   if (bredde === MLB_TRO_INN_H) return troTrekkMedHukommelse(visning, antallStikk, målPoeng, hukommelse);
+  if (bredde === MLB_TRO_INN_HS2T) {
+    // 996 nøyaktig som under, og tempoblokken bakerst (se `MLB_TRO_INN_HS2T`).
+    const v = new Float32Array(MLB_TRO_INN_HS2T);
+    v.set(troTrekkForBredde(MLB_TRO_INN_HS2, visning, antallStikk, målPoeng, hukommelse), 0);
+    v.set(tempoTrekk(visning, tempo, tempofaseAv(visning.fase) ?? "S"), MLB_TRO_INN_HS2);
+    return v;
+  }
   if (bredde === MLB_TRO_INN_HS2) {
     // 920 nøyaktig som over, og de to nye sansene bakerst (se `MLB_TRO_INN_HS2`).
     const v = new Float32Array(MLB_TRO_INN_HS2);

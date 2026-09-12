@@ -162,9 +162,11 @@ import {
   MLB_TRO_INN_H,
   MLB_TRO_INN_HS,
   MLB_TRO_INN_HS2,
+  MLB_TRO_INN_HS2T,
   MLB_TRO_INN_S,
   troTrekkForBredde,
 } from "../src/mlb/trotrekk.ts";
+import { Tempobok } from "../src/mlb/tempotrekk.ts";
 import { SEKV_FELT, SEKV_LENGDE, SEKV_MAKS, sekvensTrekk } from "../src/mlb/sekvens.ts";
 import { bordTekst, lesBord, slot, tilSeter } from "./drivere.ts";
 import { kanoniskAgent, type Loggpost } from "./naabart-tro.ts";
@@ -173,6 +175,7 @@ import {
   kamprunder,
   lesMenneskelogg,
   MENNESKE_FRA,
+  rundeTempo,
   menneskeBånd,
   nyTeller,
   skardAv,
@@ -263,7 +266,27 @@ const SANSER2 = har("--sanser2");
 if (SANSER2 && !((KAMP || MENNESKE) && HUKOMMELSE && SIGNAL)) {
   throw new Error("--sanser2 legger 76 trekk bak 920: krever --hukommelse --signal og --kamp eller --menneske");
 }
-const DIM = SANSER2
+/**
+ * `--tempo` (12. sep): TENKETIDEN til de andre setene bakerst etter 996, altså 1028 trekk
+ * (`src/mlb/tempotrekk.ts`). Krever `--menneske` og `--sanser2`: tidene finnes BARE i
+ * menneskeloggen — selvspill har ingen — og det finnes bare én tempobredde, 1028, slik at
+ * et 996-nett utvidet med nullkolonner gir nøyaktig samme svar. Uten flagget er radene
+ * byte-identiske med før.
+ *
+ * BOKA BÆRER BARE FERDIGE RUNDER, nøyaktig som `Hukommelse`: en rad i runde r ser tidene
+ * fra runde < r. Det er strengere enn det som er lovlig — et menneske ved bordet ser jo
+ * nølingen i inneværende runde også — men det er den samme K2-disiplinen resten av
+ * korpuset har, og det gjør det umulig for en beslutnings EGEN tid å havne i raden som
+ * beskriver den. Tidene inne i runden kan legges til senere; da må de bokføres etter hver
+ * beslutning, ikke etter runden.
+ */
+const TEMPO = har("--tempo");
+if (TEMPO && !(MENNESKE && SANSER2)) {
+  throw new Error("--tempo legger 32 trekk bak 996: krever --sanser2, og --menneske (bare menneskeloggen har tider)");
+}
+const DIM = TEMPO
+  ? MLB_TRO_INN_HS2T
+  : SANSER2
   ? MLB_TRO_INN_HS2
   : SIGNAL
   ? HUKOMMELSE ? MLB_TRO_INN_HS : MLB_TRO_INN_S
@@ -398,6 +421,9 @@ if (MENNESKE) {
   const medBok = DIM === MLB_TRO_INN_H || DIM === MLB_TRO_INN_HS;
   const teller = nyTeller();
   let kamper = 0;
+  /** `--tempo`: hvor mye loggen FAKTISK bar, skrevet ut så ingen tror korpuset er fullt av tider. */
+  let medTempo = 0;
+  let rundeTot = 0;
   for (const [id, kamp] of lesMenneskelogg(MENNESKE_DATA)) {
     if (kamp.start === null || skardAv(id, SN) !== SI || menneskeBånd(id) !== BAND) continue;
     if (ETTER !== "" && !kamp.runder.some((r) => r.tid >= ETTER)) continue;
@@ -405,8 +431,13 @@ if (MENNESKE) {
     kamper++;
     // Én bok for bordet, ny per kamp — og ny der loggen har et hull eller en runde ble avvist.
     let bok = new Hukommelse();
+    // Tempoboka følger hukommelsen: samme levetid, samme nullstilling, bare ferdige runder.
+    let tbok = TEMPO ? new Tempobok() : null;
     for (const steg of kamprunder(kamp, budgivere, teller)) {
-      if (steg.nyBok) bok = new Hukommelse();
+      if (steg.nyBok) {
+        bok = new Hukommelse();
+        if (TEMPO) tbok = new Tempobok();
+      }
       if (steg.runde === null) continue;
       // Runder før `--etter` spilles gjennom boka, men blir ikke rader.
       const skriv = ETTER === "" || steg.hendelse.tid >= ETTER;
@@ -417,12 +448,20 @@ if (MENNESKE) {
           const sete = s.iTur;
           const f = troFasit(s, sete);
           if (harUkjente(f)) {
-            // K2: visningen alene, og boka — som bare kjenner FERDIGE runder.
+            // K2: visningen alene, og bøkene — som begge bare kjenner FERDIGE runder.
             const huk = medBok ? bok.vektor(sete, s.antallSpillere) : null;
-            const t = troTrekkForBredde(DIM, spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, huk);
+            const t = troTrekkForBredde(DIM, spillerVisning(s, sete), s.giving.antallStikk, s.regler.målPoeng, huk, tbok);
             skrivRad(t, f, frø, s.stikkSpilt, sete);
           }
         }
+      }
+      // ETTER radene: runden er ferdig, og tidene fra den kan bokføres for de neste.
+      rundeTot++;
+      if (rundeTempo(steg.hendelse) !== null) medTempo++;
+      if (tbok !== null) {
+        const tid = steg.runde.tempo;
+        tbok.rundeSett(tid !== null && tid.length > 0);
+        for (const h of tid ?? []) tbok.se(h);
       }
     }
     const sek = (Date.now() - t0) / 1000;
@@ -432,7 +471,8 @@ if (MENNESKE) {
   closeSync(fd);
   console.log(
     `\nSkard ${SI} ferdig: ${kamper} menneskekamper i båndet ${BAND}, ${tellerTekst(teller)}, ` +
-      `${skrevet} rader (${DIM} trekk${medBok ? ", med hukommelse" : ""}${SIGNAL ? ", med signalblokk" : ""}) -> ${UT}`,
+      `${skrevet} rader (${DIM} trekk${medBok ? ", med hukommelse" : ""}${SIGNAL ? ", med signalblokk" : ""}` +
+      `${TEMPO ? `, med tempoblokk — ${medTempo} av ${rundeTot} gjenskapte runder bar tider` : ""}) -> ${UT}`,
   );
 } else if (!KAMP) {
   for (let g = FRA + SI; g < GIVER; g += SN) {

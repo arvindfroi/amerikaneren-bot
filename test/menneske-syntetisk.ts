@@ -24,6 +24,12 @@ export interface SyntetiskRunde {
   readonly rundeNr: number;
   /** Tavla før runden. Standard: forrige rundes `totalPoeng` (0-0-0-0 i første). */
   readonly før?: readonly number[];
+  /**
+   * `tempo`-lista på `runde`-raden, som appen skriver den fra v13 (`web/tempo.ts`).
+   * Utelatt = runden er FØR v13 og har ingen tider — det er tilfellet for de aller
+   * fleste loggede rundene, og prøvene skal kunne treffe begge.
+   */
+  readonly tempo?: readonly Record<string, unknown>[];
 }
 
 export interface SyntetiskKamp {
@@ -93,6 +99,7 @@ export function syntetiskLogg(
       }
       const res = s.sisteRunde!;
       hendelse(k, "runde", {
+        ...(r.tempo === undefined ? {} : { tempo: r.tempo }),
         rundeNr: r.rundeNr,
         budvinner: s.budvinner,
         melding: s.melding,

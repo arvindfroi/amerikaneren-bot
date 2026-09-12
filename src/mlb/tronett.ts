@@ -24,12 +24,14 @@
 import { forover, nettFraBytes, type NevroNett } from "../nevro/nett.ts";
 import { foroverKolonne } from "../nevro/nett-kolonne.ts";
 import type { SpillerVisning } from "../motor.ts";
+import type { Tempobok } from "./tempotrekk.ts";
 import {
   MLB_TRO_BREDDER,
   MLB_TRO_INN,
   MLB_TRO_INN_H,
   MLB_TRO_INN_HS,
   MLB_TRO_INN_HS2,
+  MLB_TRO_INN_HS2T,
   MLB_TRO_INN_S,
   MLB_TRO_KLASSER,
   MLB_TRO_KORT,
@@ -104,17 +106,32 @@ export class MlbTronett {
 
   /** Leser dette nettet hukommelsen (K6 → K8)? Avgjøres av bredden, ikke av et flagg. */
   get brukerHukommelse(): boolean {
-    return this.innBredde === MLB_TRO_INN_H || this.innBredde === MLB_TRO_INN_HS || this.innBredde === MLB_TRO_INN_HS2;
+    return (
+      this.innBredde === MLB_TRO_INN_H ||
+      this.innBredde === MLB_TRO_INN_HS ||
+      this.innBredde === MLB_TRO_INN_HS2 ||
+      this.innBredde === MLB_TRO_INN_HS2T
+    );
   }
 
   /** Leser dette nettet signalblokken (K8 kanal 5 og 2)? Også avgjort av bredden. */
   get brukerSignal(): boolean {
-    return this.innBredde === MLB_TRO_INN_S || this.innBredde === MLB_TRO_INN_HS || this.innBredde === MLB_TRO_INN_HS2;
+    return (
+      this.innBredde === MLB_TRO_INN_S ||
+      this.innBredde === MLB_TRO_INN_HS ||
+      this.innBredde === MLB_TRO_INN_HS2 ||
+      this.innBredde === MLB_TRO_INN_HS2T
+    );
   }
 
-  /** Leser dette nettet sanser 2 (stillingen per sete, valgt bort)? Bare 996. */
+  /** Leser dette nettet sanser 2 (stillingen per sete, valgt bort)? 996 og 1028. */
   get brukerSanser2(): boolean {
-    return this.innBredde === MLB_TRO_INN_HS2;
+    return this.innBredde === MLB_TRO_INN_HS2 || this.innBredde === MLB_TRO_INN_HS2T;
+  }
+
+  /** Leser dette nettet tempoblokken (tenketiden til de andre setene)? Bare 1028. */
+  get brukerTempo(): boolean {
+    return this.innBredde === MLB_TRO_INN_HS2T;
   }
 
   /**
@@ -127,8 +144,9 @@ export class MlbTronett {
     antallStikk: number,
     målPoeng: number,
     hukommelse: Float64Array | null,
+    tempo: Tempobok | null = null,
   ): Float32Array {
-    return troTrekkForBredde(this.innBredde, visning, antallStikk, målPoeng, hukommelse);
+    return troTrekkForBredde(this.innBredde, visning, antallStikk, målPoeng, hukommelse, tempo);
   }
 
   /** Hvilken kjerne som FAKTISK regner — for rapportene, så ingen må gjette. */
