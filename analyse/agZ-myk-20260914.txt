@@ -1,0 +1,77 @@
+Enhet: cuda (NVIDIA GeForce RTX 5080 Laptop GPU)
+Teller 223485 linjer i 20 filer (54s)
+Trekkbredde: 493 (bok: 273 | hukommelse | stilling | valgt bort)
+  /mnt/d/amb-grp/loop/iter6/kort/s0.jsonl: 9767 stillinger (totalt 9767)
+  /mnt/d/amb-grp/loop/iter6/kort/s1.jsonl: 13073 stillinger (totalt 22840)
+  /mnt/d/amb-grp/loop/iter6/kort/s10.jsonl: 15239 stillinger (totalt 38079)
+  /mnt/d/amb-grp/loop/iter6/kort/s11.jsonl: 9159 stillinger (totalt 47238)
+  /mnt/d/amb-grp/loop/iter6/kort/s12.jsonl: 9690 stillinger (totalt 56928)
+  /mnt/d/amb-grp/loop/iter6/kort/s13.jsonl: 13384 stillinger (totalt 70312)
+  /mnt/d/amb-grp/loop/iter6/kort/s14.jsonl: 8759 stillinger (totalt 79071)
+  /mnt/d/amb-grp/loop/iter6/kort/s15.jsonl: 10033 stillinger (totalt 89104)
+  /mnt/d/amb-grp/loop/iter6/kort/s16.jsonl: 12951 stillinger (totalt 102055)
+  /mnt/d/amb-grp/loop/iter6/kort/s17.jsonl: 9538 stillinger (totalt 111593)
+  /mnt/d/amb-grp/loop/iter6/kort/s18.jsonl: 9681 stillinger (totalt 121274)
+  /mnt/d/amb-grp/loop/iter6/kort/s19.jsonl: 14330 stillinger (totalt 135604)
+  /mnt/d/amb-grp/loop/iter6/kort/s2.jsonl: 9568 stillinger (totalt 145172)
+  /mnt/d/amb-grp/loop/iter6/kort/s3.jsonl: 9519 stillinger (totalt 154691)
+  /mnt/d/amb-grp/loop/iter6/kort/s4.jsonl: 13340 stillinger (totalt 168031)
+  /mnt/d/amb-grp/loop/iter6/kort/s5.jsonl: 8589 stillinger (totalt 176620)
+  /mnt/d/amb-grp/loop/iter6/kort/s6.jsonl: 11447 stillinger (totalt 188067)
+  /mnt/d/amb-grp/loop/iter6/kort/s7.jsonl: 14700 stillinger (totalt 202767)
+  /mnt/d/amb-grp/loop/iter6/kort/s8.jsonl: 11145 stillinger (totalt 213912)
+  /mnt/d/amb-grp/loop/iter6/kort/s9.jsonl: 9573 stillinger (totalt 223485)
+Leste 223485 stillinger, hoppet over 0 dubletter og 0 ugyldige (584s)
+
+=== OVERLAPP ===
+{
+  "mapper": {
+    "/mnt/d/amb-grp/loop/iter6/kort": {
+      "stillinger": 223485,
+      "givere": 500
+    }
+  },
+  "overlapp": {},
+  "froebaand": {
+    "/mnt/d/amb-grp/loop/iter6/kort": [
+      560000000,
+      563850783
+    ]
+  }
+}
+
+Giv-deling: 54 av 500 givere i /mnt/d/amb-grp/loop/iter6/kort → holdout (26051 stillinger). Ingen giver i to deler.
+  utvider inngangen 273 → 493: 220 nye kolonner NULLSTILT, saa nettet starter identisk
+  finjusterer fra e1-modell/kort-7.bin (lr 0.0001)
+
+=== kort-agZ-myk-20260914: /mnt/d/amb-grp/loop/iter6/kort, 493 → 512 → 384 → 256 → 52 (561844 parametre) – trening 197434, holdout 26051 ===
+  varmer opp kolonne 273-492 alene i 1 epoker (lr 0.0001), resten frosset
+    oppvarming 1/1: snitt |vekt| ny 0.00096 vs gammel 0.08960 (1.1 %)
+  policy e1-modell/kort-7.bin: 273 -> 493 med nullkolonner bakerst
+START: hold-anger 0.8565, policy 0.8535 (treff 55.4 %), avvik mot vektfila 1.04e+00
+epoke 1/6: tren-tap 1.4070 hold-tap 1.4089 (gap +0.0018)  tren-anger 0.8014 hold-anger 0.8511 hold-treff 55.9 %
+  fase-anger tidlig 1.2288 midt 1.0852 sent 0.3493
+epoke 2/6: tren-tap 1.4075 hold-tap 1.4120 (gap +0.0045)  tren-anger 0.7863 hold-anger 0.8443 hold-treff 55.8 %
+  fase-anger tidlig 1.2284 midt 1.0865 sent 0.3297
+epoke 3/6: tren-tap 1.4059 hold-tap 1.4124 (gap +0.0065)  tren-anger 0.7786 hold-anger 0.8489 hold-treff 55.8 %
+  fase-anger tidlig 1.2377 midt 1.0877 sent 0.3346
+epoke 4/6: tren-tap 1.4069 hold-tap 1.4148 (gap +0.0079)  tren-anger 0.7706 hold-anger 0.8427 hold-treff 55.9 %
+  fase-anger tidlig 1.2327 midt 1.0726 sent 0.3366
+epoke 5/6: tren-tap 1.4068 hold-tap 1.4156 (gap +0.0088)  tren-anger 0.7672 hold-anger 0.8477 hold-treff 55.8 %
+  fase-anger tidlig 1.2330 midt 1.0845 sent 0.3379
+epoke 6/6: tren-tap 1.4065 hold-tap 1.4154 (gap +0.0090)  tren-anger 0.7658 hold-anger 0.8469 hold-treff 55.8 %
+  fase-anger tidlig 1.2350 midt 1.0809 sent 0.3380
+kort-agZ-myk-20260914 ferdig: beste hold-anger 0.8427 på epoke 4 → e1-modell/kort-agZ-myk-20260914.bin
+RADER tren 197434 holdout 26051 holdoutkamper 54
+FASE-RADER-HOLDOUT tidlig 6699 midt 9757 sent 9595
+BESTE-EPOKE 4
+START-AVVIK 1.04e+00
+POLICY-TREFF-HOLDOUT 0.5544
+MODELL-ANGER-HOLDOUT-TIDLIG 1.2327
+MODELL-ANGER-HOLDOUT-MIDT 1.0726
+MODELL-ANGER-HOLDOUT-SENT 0.3366
+POLICY-ANGER-HOLDOUT-TIDLIG 1.2424
+POLICY-ANGER-HOLDOUT-MIDT 1.0974
+POLICY-ANGER-HOLDOUT-SENT 0.3341
+MODELL-ANGER-HOLDOUT 0.8427
+POLICY-ANGER-HOLDOUT 0.8535
