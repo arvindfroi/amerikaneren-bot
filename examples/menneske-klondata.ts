@@ -68,6 +68,7 @@ import { etterlystKandidater, etterlystTrekk, vraktrekkK } from "../src/moe2/vra
 import { klonVrakpar, nevroVrakpar, KLON_KORT_DIM } from "../src/moe2/menneskeklon.ts";
 import { e1SpillTrekkMedTro } from "../src/e1/trekk.ts";
 import {
+  erSpiller,
   fnv,
   kamprunder,
   lesMenneskelogg,
@@ -77,6 +78,7 @@ import {
   nyTeller,
   skardAv,
   tellerTekst,
+  tidsside,
   V5_KJEDE,
 } from "./menneske-logg.ts";
 
@@ -90,6 +92,34 @@ if (BAND !== "trening" && BAND !== "holdout") throw new Error(`Ukjent bånd «${
 const DATA = arg("--data", "D:/amb-grp/menneske/hendelser.jsonl");
 const UT = arg("--ut", `D:/amb-grp/klon/${BAND}`);
 const ETTER = arg("--etter", MENNESKE_FRA);
+
+/**
+ * ===================== ÉN SPILLER, DELT PÅ TID (12. sep) =================
+ *
+ *   --spiller <prefiks>   bare denne spillerens kamper (pseudonymprefiks, `erSpiller`)
+ *   --snitt <dato> --side foer|etter   KAMPENE FØR eller ETTER datoen
+ *
+ * HVORFOR EN DATO OG IKKE `--band`. Båndet deler på en hash av kamp-id, og det er riktig for
+ * et trohode som skal lære «mennesker». En MODELL AV ÉN SPILLER skal svare på et annet
+ * spørsmål: hjelper det å kjenne ham FRA FØR? Da må treningen ligge i FORTIDEN til holdouten,
+ * ikke være tilfeldig spredt gjennom den. En hash-deling ville latt klonen lære av kamper som
+ * ble spilt etter dem den dømmes på, og «kjenner spilleren» hadde vært umulig å skille fra
+ * «har sett framtiden».
+ *
+ * SNITTET GÅR PÅ KAMP, ikke på runde (`tidsside`). En kamp som spenner over datoen hører
+ * ingen steder hjemme og TELLES (`spennende`) i stedet for å bli gjettet på. Delte vi på
+ * rundetidspunkt, ville holdouten inneholdt kamper klonen alt hadde sett halve av — samme
+ * giv-lekkasje `sd-tren.py` stopper for.
+ *
+ * `--snitt` SLÅR AV `--band`, med vilje: to delinger oppå hverandre ville kastet en firedel av
+ * en spillers kamper uten at noen ba om det, og «holdout» hadde betydd to ting i samme fil.
+ * Uten `--snitt` er hver rad som før — bånddelingen er urørt.
+ */
+const SPILLER = arg("--spiller", "");
+const SNITT = arg("--snitt", "");
+const SIDE = arg("--side", "");
+if (SIDE !== "" && SIDE !== "foer" && SIDE !== "etter") throw new Error(`Ukjent --side «${SIDE}» (foer|etter)`);
+if ((SNITT === "") !== (SIDE === "")) throw new Error("--snitt og --side må oppgis sammen");
 const [SI, SN] = arg("--skard", "0/1").split("/").map(Number) as [number, number];
 if (!Number.isFinite(SI) || !Number.isFinite(SN) || SN < 1) throw new Error("--skard <i>/<n>");
 
@@ -131,6 +161,8 @@ const nevro = new NevroAgent();
 const teller = nyTeller();
 
 let kamper = 0;
+/** Kamper som SPENNER over `--snitt`: de hører ingen side til, og telles i stedet for å gjettes på. */
+let spennende = 0;
 let rKort = 0;
 let rBud = 0;
 let rVrak = 0;
@@ -144,7 +176,18 @@ const t0 = Date.now();
 for (const [id, kamp] of spill) {
   if (kamp.start === null) continue;
   if (skardAv(id, SN) !== SI) continue;
-  if (menneskeBånd(id) !== BAND) continue;
+  if (!erSpiller(kamp, SPILLER)) continue;
+  // Med `--snitt` deler TIDEN, ikke hashen — og en kamp som spenner over snittet telles bort.
+  if (SNITT === "") {
+    if (menneskeBånd(id) !== BAND) continue;
+  } else {
+    const side = tidsside(kamp, SNITT);
+    if (side === null) {
+      spennende++;
+      continue;
+    }
+    if (side !== SIDE) continue;
+  }
   if (!kamp.runder.some((r) => r.tid >= ETTER)) continue;
   kamper++;
   const frø = fnv(id);
@@ -294,9 +337,16 @@ for (const [id, kamp] of spill) {
   process.stdout.write(`\r  skard ${SI}/${SN} (${BAND}): ${kamper} kamper, ${rKort} kort, ${((Date.now() - t0) / 1000).toFixed(0)} s   `);
 }
 
+const merke =
+  SNITT === ""
+    ? `bånd ${BAND}`
+    : `spiller ${SPILLER === "" ? "(alle)" : SPILLER}, ${SIDE} ${SNITT}`;
 console.log(
-  `\nSkard ${SI}/${SN}, bånd ${BAND}: ${kamper} kamper → ${rKort} kortvalg, ${rBud} bud, ${rVrak} vrak, ${rKall} kall`,
+  `\nSkard ${SI}/${SN}, ${merke}: ${kamper} kamper → ${rKort} kortvalg, ${rBud} bud, ${rVrak} vrak, ${rKall} kall`,
 );
+if (spennende > 0) {
+  console.log(`  ${spennende} kamper SPENNER over ${SNITT} og er utelatt fra begge sider (ingen giv-lekkasje).`);
+}
 console.log(`  ${tellerTekst(teller)}`);
 // TAKET, sagt høyt: kandidatsettet kan ikke inneholde menneskets valg i hver stilling.
 console.log(

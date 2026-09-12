@@ -1,0 +1,55 @@
+Enhet: cpu
+Teller 15150 linjer i 1 filer (1s)
+Trekkbredde: 273 (v1)
+  /mnt/d/amb-grp/klon-p957/foer/kort/s0.jsonl: 15150 stillinger (totalt 15150)
+Leste 15150 stillinger, hoppet over 0 dubletter og 0 ugyldige (10s)
+
+=== OVERLAPP ===
+{
+  "mapper": {
+    "/mnt/d/amb-grp/klon-p957/foer/kort": {
+      "stillinger": 15150,
+      "givere": 153
+    }
+  },
+  "overlapp": {},
+  "froebaand": {
+    "/mnt/d/amb-grp/klon-p957/foer/kort": [
+      20264995,
+      4281192899
+    ]
+  }
+}
+
+Giv-deling: 6 av 153 givere i /mnt/d/amb-grp/klon-p957/foer/kort → holdout (495 stillinger). Ingen giver i to deler.
+  finjusterer fra e1-modell/d7alle.bin (lr 0.0003)
+
+=== klon-p957-kort: /mnt/d/amb-grp/klon-p957/foer/kort, 273 → 512 → 384 → 256 → 52 (449204 parametre) – trening 14655, holdout 495 ===
+START: hold-anger 0.5636, policy 0.5636 (treff 43.6 %), avvik mot vektfila 1.70e-06
+epoke 1/40: tren-tap 1.1831 hold-tap 1.1967 (gap +0.0137)  tren-anger 0.4008 hold-anger 0.4040 hold-treff 59.6 %
+epoke 2/40: tren-tap 1.0995 hold-tap 1.1329 (gap +0.0334)  tren-anger 0.3600 hold-anger 0.3737 hold-treff 62.6 %
+epoke 3/40: tren-tap 1.0319 hold-tap 1.0947 (gap +0.0628)  tren-anger 0.3412 hold-anger 0.3535 hold-treff 64.6 %
+epoke 4/40: tren-tap 0.9773 hold-tap 1.0753 (gap +0.0980)  tren-anger 0.3239 hold-anger 0.3394 hold-treff 66.1 %
+epoke 5/40: tren-tap 0.9343 hold-tap 1.0638 (gap +0.1294)  tren-anger 0.3128 hold-anger 0.3394 hold-treff 66.1 %
+epoke 6/40: tren-tap 0.8988 hold-tap 1.0533 (gap +0.1545)  tren-anger 0.3007 hold-anger 0.3293 hold-treff 67.1 %
+epoke 7/40: tren-tap 0.8672 hold-tap 1.0487 (gap +0.1815)  tren-anger 0.2918 hold-anger 0.3414 hold-treff 65.9 %
+epoke 8/40: tren-tap 0.8385 hold-tap 1.0410 (gap +0.2026)  tren-anger 0.2814 hold-anger 0.3374 hold-treff 66.3 %
+epoke 9/40: tren-tap 0.8127 hold-tap 1.0400 (gap +0.2273)  tren-anger 0.2725 hold-anger 0.3394 hold-treff 66.1 %
+epoke 10/40: tren-tap 0.7890 hold-tap 1.0384 (gap +0.2494)  tren-anger 0.2637 hold-anger 0.3394 hold-treff 66.1 %
+epoke 11/40: tren-tap 0.7667 hold-tap 1.0377 (gap +0.2710)  tren-anger 0.2549 hold-anger 0.3394 hold-treff 66.1 %
+epoke 12/40: tren-tap 0.7463 hold-tap 1.0366 (gap +0.2903)  tren-anger 0.2469 hold-anger 0.3394 hold-treff 66.1 %
+tidlig stopp: 6 epoker uten framgang (beste 0.3293)
+klon-p957-kort ferdig: beste hold-anger 0.3293 på epoke 6 → e1-modell/klon-p957-kort.bin
+RADER tren 14655 holdout 495 holdoutkamper 6
+FASE-RADER-HOLDOUT tidlig 129 midt 182 sent 184
+BESTE-EPOKE 6
+START-AVVIK 1.70e-06
+POLICY-TREFF-HOLDOUT 0.4364
+MODELL-ANGER-HOLDOUT-TIDLIG 0.2171
+MODELL-ANGER-HOLDOUT-MIDT 0.3956
+MODELL-ANGER-HOLDOUT-SENT 0.3424
+POLICY-ANGER-HOLDOUT-TIDLIG 0.6357
+POLICY-ANGER-HOLDOUT-MIDT 0.5879
+POLICY-ANGER-HOLDOUT-SENT 0.4891
+MODELL-ANGER-HOLDOUT 0.3293
+POLICY-ANGER-HOLDOUT 0.5636

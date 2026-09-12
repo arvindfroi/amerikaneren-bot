@@ -145,3 +145,8 @@ mlb-tro-data/
 /analyse/roeyk-g05/
 /analyse/126-sveip/erf-s*.bin
 /analyse/126-roeyk/erf-s*.bin
+
+# test/lik-per-sete.test.ts skriver tre smaa spekfiler hit for aa proeve «~lik=…,<fil>@<sete>»
+# uten aa trenge modellfiler. De lages paa nytt hver kjoering, saa de er ikke raarader og
+# hoerer ikke i git - i motsetning til maalingene ellers under analyse/ (se linje 120).
+analyse/lik-per-sete/
