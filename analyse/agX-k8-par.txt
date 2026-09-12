@@ -1,0 +1,34 @@
+PARVIS K8 - mlb-tro-data/holdout-0.bin, 28771 rader, 60 kamper
+
+  start    K8 0.90132  (517778 kort)  e1-modell/tro-7.bin   treneren sa 0.90132, avvik 3.72e-06
+  A2       K8 0.89757  (517778 kort)  analyse/agX-tro-A2.bin   treneren sa 0.89757, avvik 4.89e-06
+  B2       K8 0.89708  (517778 kort)  analyse/agX-tro-B2.bin   treneren sa 0.89708, avvik 3.15e-06
+  C2       K8 0.89826  (517778 kort)  analyse/agX-tro-C2.bin   treneren sa 0.89826, avvik 1.63e-06
+  D2       K8 0.89784  (517778 kort)  analyse/agX-tro-D2.bin   treneren sa 0.89784, avvik 8.54e-07
+
+PARVISE DIFFERANSER (negativ = den foerste er BEDRE), SE klynget paa kamp:
+  B2-A2      alle        -0.00053 ± 0.00026  z = -2.03  (60 kamper)
+  B2-A2      budvinner   -0.00081 ± 0.00037  z = -2.18  (60 kamper)
+  B2-A2      makker      -0.00076 ± 0.00049  z = -1.56  (60 kamper)
+  B2-A2      motspiller  -0.00029 ± 0.00035  z = -0.82  (60 kamper)
+
+  D2-C2      alle        -0.00045 ± 0.00018  z = -2.43  (60 kamper)
+  D2-C2      budvinner   -0.00059 ± 0.00031  z = -1.93  (60 kamper)
+  D2-C2      makker      -0.00082 ± 0.00036  z = -2.29  (60 kamper)
+  D2-C2      motspiller  -0.00018 ± 0.00028  z = -0.65  (60 kamper)
+
+  A2-C2      alle        -0.00072 ± 0.00019  z = -3.76  (60 kamper)
+  A2-C2      budvinner   -0.00039 ± 0.00029  z = -1.33  (60 kamper)
+  A2-C2      makker      -0.00107 ± 0.00038  z = -2.79  (60 kamper)
+  A2-C2      motspiller  -0.00071 ± 0.00024  z = -2.97  (60 kamper)
+
+  D2-A2      alle        +0.00027 ± 0.00020  z = +1.34  (60 kamper)
+  D2-A2      budvinner   -0.00021 ± 0.00035  z = -0.60  (60 kamper)
+  D2-A2      makker      +0.00025 ± 0.00047  z = +0.54  (60 kamper)
+  D2-A2      motspiller  +0.00053 ± 0.00028  z = +1.92  (60 kamper)
+
+  A2-start   alle        -0.00407 ± 0.00039  z = -10.31  (60 kamper)
+  A2-start   budvinner   -0.00119 ± 0.00050  z = -2.37  (60 kamper)
+  A2-start   makker      -0.00517 ± 0.00070  z = -7.36  (60 kamper)
+  A2-start   motspiller  -0.00497 ± 0.00060  z = -8.35  (60 kamper)
+
