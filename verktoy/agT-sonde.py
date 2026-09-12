@@ -101,7 +101,9 @@ def les_korpus(monster):
     """
     filer = []
     for m in monster.split(","):
-        filer += sorted(glob.glob(m))
+        # LEDSAGERFILENE MAA UT: «trening-*.bin» treffer ogsaa «trening-0.bin.sekv.bin», og en
+        # sekvensfil lest som korpus stopper foerst paa magien - i beste fall. Filtrert her, én gang.
+        filer += [f for f in sorted(glob.glob(m)) if not f.endswith(".sekv.bin")]
     if not filer:
         raise SystemExit(f"Fant ingen filer for «{monster}»")
     ut = {k: [] for k in ("X", "F", "FRO", "STIKK", "SETE", "MYK", "P")}
@@ -147,9 +149,13 @@ def les_korpus(monster):
     return d
 
 
-def sjekk_leser(monster, d, trener):
-    """Krysstjekk mot `les_mlbt`: samme rader, samme trekk, samme froe. Ellers er alt etterpaa feil."""
-    r = trener.les_mlbt(monster)
+def sjekk_leser(d, trener):
+    """Krysstjekk mot `les_mlbt`: samme rader, samme trekk, samme froe. Ellers er alt etterpaa feil.
+
+    Filliste, ikke moenster: `les_mlbt` globber hvert ledd, og moensteret ville dratt inn
+    ledsagerfilene som `les_korpus` nettopp luket bort.
+    """
+    r = trener.les_mlbt(",".join(d["filer"]))
     if len(r["FRO"]) != len(d["FRO"]):
         raise SystemExit(f"leserne er uenige om antall rader: {len(r['FRO'])} mot {len(d['FRO'])}")
     if not numpy.array_equal(r["FRO"], d["FRO"]) or not numpy.array_equal(r["ST"], d["STIKK"]):
@@ -336,7 +342,7 @@ def sonde_a(args, trener):
     navn = les_typer(args.typer)
     dt = les_korpus(args.tren)
     dh = les_korpus(args.hold)
-    sjekk_leser(args.tren, dt, trener)
+    sjekk_leser(dt, trener)
     Lt, Kt, typenavn = etiketter(dt, navn)
     Lh, Kh, _ = etiketter(dh, navn)
 
@@ -517,27 +523,74 @@ def sonde_c(args, trener):
     rolle = dm["ROLLE"][gyldig]
     kamp = Km[gyldig]
 
-    resultat = {"myke_rader": int(gyldig.sum()), "deler": []}
+    resultat = {"myke_rader": int(gyldig.sum()), "deler": [], "identitet": []}
     sn, se = klynge_se(nett_tap, kamp)
     tn, tse = klynge_se(tak_tap, kamp)
     gn, gse = klynge_se(gap, kamp)
     print(f"  alle myke rader (n={int(gyldig.sum())}): nett {sn:.4f} +/- {se:.4f}, tak {tn:.4f} +/- {tse:.4f}, gap {gn:.4f} +/- {gse:.4f}", flush=True)
     resultat["alle"] = {"n": int(gyldig.sum()), "nett": [sn, se], "tak": [tn, tse], "gap": [gn, gse]}
 
-    # Traff sonde A typen paa DENNE raden? Gjettene kommer fra sonde A, lagret per rad.
-    treff_fil = args.gjett
-    if treff_fil and os.path.exists(treff_fil):
-        # Sonde A ble kjoert paa sitt eget holdout; her trenger vi en modell brukt paa MYK-radene.
-        print(f"  (bruker lagrede gjett fra {treff_fil})", flush=True)
     for r in range(3):
         m = rolle == r
         if m.sum() < 20:
             continue
-        gn, gse = klynge_se(gap[m], kamp[m])
+        gn_, gse_ = klynge_se(gap[m], kamp[m])
         nn_, nse = klynge_se(nett_tap[m], kamp[m])
         tn_, tse_ = klynge_se(tak_tap[m], kamp[m])
-        print(f"    {ROLLER[r]:11s} n={int(m.sum()):5d}  nett {nn_:.4f} +/- {nse:.4f}  tak {tn_:.4f} +/- {tse_:.4f}  gap {gn:.4f} +/- {gse:.4f}", flush=True)
-        resultat["deler"].append({"rolle": ROLLER[r], "n": int(m.sum()), "nett": [nn_, nse], "tak": [tn_, tse_], "gap": [gn, gse]})
+        print(f"    {ROLLER[r]:11s} n={int(m.sum()):5d}  nett {nn_:.4f} +/- {nse:.4f}  tak {tn_:.4f} +/- {tse_:.4f}  gap {gn_:.4f} +/- {gse_:.4f}", flush=True)
+        resultat["deler"].append({"rolle": ROLLER[r], "n": int(m.sum()), "nett": [nn_, nse], "tak": [tn_, tse_], "gap": [gn_, gse_]})
+
+    # =======================================================================
+    # BOR GAPET DER IDENTITETEN ER UKJENT?
+    #
+    # Sonde A sier om typen ER lesbar. Her spoerres det dyrere spoersmaalet: paa de radene
+    # der sonden BOMMER paa typen, er nettet lengre fra taket enn der den treffer? Er svaret
+    # ja, peker gapet mot identitet; er svaret nei, ligger gapet et annet sted, og mer
+    # motstanderlesing er feil medisin.
+    #
+    # Identitetsmodellen trenes paa TRENINGSBAANDET og brukes paa myk-radene, som ligger i
+    # holdout-baandet: disjunkt per kamp, saa treffet her ikke er innlaering.
+    # =======================================================================
+    rel = args.rel[0]
+    dt = les_korpus(args.tren)
+    Lt, Kt, typenavn_t = etiketter(dt, navn)
+    if typenavn_t != typenavn:
+        raise SystemExit("typelistene i trening og myk er ulike")
+    felles = numpy.intersect1d(dt["FRO"], dm["FRO"])
+    if len(felles):
+        raise SystemExit(f"myk-radene deler {len(felles)} froe med treningen - identitetstreffet ville vaert innlaering")
+    torch.manual_seed(20260912)
+    id_modell = MLP(996, len(typenavn), args.bredde)
+    yt = torch.from_numpy(Lt[:, rel].astype(numpy.int64))
+    Xt = torch.from_numpy(dt["X"])
+    opt = torch.optim.Adam(id_modell.parameters(), lr=1e-3)
+    for e in range(args.epoker):
+        id_modell.train()
+        perm = torch.randperm(len(yt))
+        for i in range(0, len(yt), args.batch):
+            j = perm[i : i + args.batch]
+            opt.zero_grad()
+            F.cross_entropy(id_modell(Xt[j]), yt[j]).backward()
+            opt.step()
+    id_modell.eval()
+    with torch.no_grad():
+        gjett = torch.cat([id_modell(X[i : i + 4096]).argmax(1) for i in range(0, len(X), 4096)]).numpy()
+    riktig = (gjett == Lm[:, rel])[gyldig]
+    rn, rse = klynge_se(riktig.astype(float), kamp)
+    print(f"\n  identitet i rel sete {rel} truffet paa {pp(rn, rse)} % av de myke radene", flush=True)
+    resultat["identitet_treff"] = [rn, rse]
+
+    for merke, m in [("hele utvalget", numpy.ones(len(riktig), bool)), ("budvinner", rolle == 0), ("ikke budvinner", rolle != 0)]:
+        for tm, tmerke in [(riktig & m, "type TRUFFET"), (~riktig & m, "type BOMMET")]:
+            if tm.sum() < 20:
+                print(f"    {merke:15s} {tmerke:13s} n={int(tm.sum()):4d}  - for faa rader til aa konkludere", flush=True)
+                resultat["identitet"].append({"del": merke, "traff": tmerke, "n": int(tm.sum()), "gap": None})
+                continue
+            gn_, gse_ = klynge_se(gap[tm], kamp[tm])
+            nn_, _ = klynge_se(nett_tap[tm], kamp[tm])
+            tn_, _ = klynge_se(tak_tap[tm], kamp[tm])
+            print(f"    {merke:15s} {tmerke:13s} n={int(tm.sum()):4d}  nett {nn_:.4f}  tak {tn_:.4f}  gap {gn_:.4f} +/- {gse_:.4f}", flush=True)
+            resultat["identitet"].append({"del": merke, "traff": tmerke, "n": int(tm.sum()), "nett": nn_, "tak": tn_, "gap": [gn_, gse_]})
 
     with open(args.ut, "w", encoding="utf-8") as fh:
         json.dump(resultat, fh, indent=1)
@@ -552,7 +605,6 @@ def main():
     ap.add_argument("--myk", default="_agT/myk/*.bin")
     ap.add_argument("--typer", default="_agT/typer.tsv")
     ap.add_argument("--nett", default="e1-modell/tro-6.bin")
-    ap.add_argument("--gjett", default="")
     ap.add_argument("--ut", default="analyse/agT-sonde.json")
     ap.add_argument("--rel", type=int, nargs="+", default=[1, 3], help="hvilke relative seter (2 er makkeren = kandidaten)")
     ap.add_argument("--epoker", type=int, default=4)
