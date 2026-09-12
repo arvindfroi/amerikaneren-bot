@@ -324,6 +324,41 @@ test("MÅLT, ikke antatt: mot et bord som IKKE er kanonisk finnes et bomgulv", (
 // 5: speken
 // ===========================================================================
 
+test("gaten «f<stikk>»: vekten er AV før stikket og PÅ fra og med det", () => {
+  /**
+   * Agent V målte gevinsten per stikk: 0–3 −0,34 pp riktig plasserte kort, 4–6 +0,44,
+   * 7+ +3,83 — og kostnaden (2,5× søketid) påløper overalt. `f<stikk>` betaler bare der det
+   * lønner seg. FELLA: uten gaten må vekten finnes ALLEREDE i de tidlige stillingene, ellers
+   * måler prøven ingenting.
+   */
+  const utenGate = lagIndre(`sik:alle:0:4k8~lik=selv:${ADAMS}`) as unknown as Sikkerorakel;
+  const medGate = lagIndre(`sik:alle:0:4k8~lik=selv,f7:${ADAMS}`) as unknown as Sikkerorakel;
+  assert.ok(utenGate.likFor !== null && medGate.likFor !== null, "begge spekene skal ha en vektbygger");
+
+  let tidlig = 0;
+  let sent = 0;
+  for (const st of STILLINGER) {
+    const n = st.s.historikk.length;
+    const av = medGate.likFor!(st.s, st.sete) === null;
+    const på = utenGate.likFor!(st.s, st.sete) !== null;
+    assert.ok(på, `felle: uten gate mangler vekten allerede ved ${n} fullførte stikk`);
+    if (n < 7) {
+      assert.ok(av, `f7 ga vekt ved bare ${n} fullførte stikk`);
+      tidlig++;
+    } else {
+      assert.ok(!av, `f7 ga INGEN vekt ved ${n} fullførte stikk`);
+      sent++;
+    }
+  }
+  assert.ok(tidlig > 0 && sent > 0, `prøven trenger begge sider: ${tidlig} tidlige, ${sent} sene`);
+
+  assert.throws(
+    () => lagIndre(`sik:alle:0:4k8~lik=selv,q3:${ADAMS}`),
+    /Ukjent knott/,
+    "en ukjent knott skal kastes, ikke ties i hjel",
+  );
+});
+
 test("speken: «~lik=» bygger, kobles til σ, og standardstien er urørt", () => {
   const uten = `sik:alle:0:4k8:${ADAMS}`;
   const med = `sik:alle:0:4k8~lik=selv:${ADAMS}`;

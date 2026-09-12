@@ -1188,6 +1188,13 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     let likKilde: string | null = null;
     let likTemp = 0;
     let likVindu = 1;
+    /**
+     * «f<stikk>»: vekten er AV før så mange stikk er spilt (12. sep). Agent V målte gevinsten per
+     * stikk: 0–3 −0,34 ± 0,18 pp riktig plasserte kort, 4–6 +0,44 ± 0,34, **7+ +3,83 ± 0,65**, og
+     * hele K8-gevinsten (−0,096 nat/kort) ligger sent. Tidlig finnes det knapt observasjoner å
+     * score, så vekten betaler bare i samplingstøy — og den koster 2,5× søketid overalt. 0 = alltid på.
+     */
+    let likFra = 0;
     const tPos = vFelt.indexOf("~");
     if (tPos >= 0) {
       const felter = vFelt.slice(tPos + 1).split("~");
@@ -1212,7 +1219,12 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
             const x = Number(k.slice(1));
             if (k.startsWith("t") && Number.isFinite(x) && x >= 0) likTemp = x;
             else if (k.startsWith("v") && Number.isInteger(x) && x >= 0) likVindu = x;
-            else throw new Error(`Ukjent knott «${k}» i «~lik=${verdi}» - forventet t<temp> eller v<vindu>`);
+            else if (k.startsWith("f") && Number.isInteger(x) && x >= 0) likFra = x;
+            else {
+              throw new Error(
+                `Ukjent knott «${k}» i «~lik=${verdi}» - forventet t<temp>, v<vindu> eller f<stikk>`,
+              );
+            }
           }
         } else {
           throw new Error(
@@ -1326,7 +1338,9 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
         likAgent = lagIndre(tekst);
       }
       likFor = (s, sete): ((v: Verden) => number) | null =>
-        lagLikvekt(s, sete, () => likAgent, { temp: likTemp, vindu: likVindu });
+        // GATEN: null = ingen vekt, søket sampler som før. `historikk.length` er antall FULLFØRTE
+        // stikk, så f7 slår på fra og med det åttende stikket – der agent V målte hele gevinsten.
+        s.historikk.length < likFra ? null : lagLikvekt(s, sete, () => likAgent, { temp: likTemp, vindu: likVindu });
     }
     // Samme motpart som utspillingene ellers bruker, vridd per sete — som i `amu:`.
     const økt = ctx.økt;
