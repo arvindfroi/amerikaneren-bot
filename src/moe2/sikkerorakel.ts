@@ -57,7 +57,7 @@
 
 import { spillerVisning, type GameState, type Handling } from "../motor.ts";
 import { lagRng } from "../kort.ts";
-import type { Verden } from "../solver/sampler.ts";
+import type { Verden, Vrakvekt } from "../solver/sampler.ts";
 import { vurderPar, type ParResultat } from "./sdpar.ts";
 import type { Søketro } from "./soketro.ts";
 import { lagMål, type Utspiller } from "./sdkort.ts";
@@ -120,6 +120,19 @@ export interface SikkerOpts {
    * LEGGES SAMMEN i `vurderPar`. Udefinert = av, bit-identisk.
    */
   readonly likFor?: (state: GameState, sete: number) => ((v: Verden) => number) | null;
+  /**
+   * KANAL 2 (`W<alfa>` i speken, 13. sep): budvinnerens vrak som bevis i
+   * verdenstrekningen. 0 eller udefinert = av, bit-identisk.
+   *
+   * ALFA, IKKE HELE VEKTEN, av samme grunn som i `amu:`: `beta` (inversjonsstraffen)
+   * er målt og IKKE adoptert, og et felt som bare kan settes fra spek-bokstaven
+   * kan ikke stille få en verdi ingen har målt. Orakelet bygger `{ alfa, beta: 0 }`.
+   *
+   * Målt (§111/§117): budvinneren skaper 0,967 sidefargerenonser per runde mot
+   * 0,101 ved tilfeldig kasting, og sampleren antok det tilfeldige. +0,0046 ±
+   * 0,0004 nat mot «av» på troen — nest sterkeste slutning etter renonsene.
+   */
+  readonly vrakalfa?: number;
 }
 
 /**
@@ -239,6 +252,12 @@ export class Sikkerorakel {
   readonly likFor: ((state: GameState, sete: number) => ((v: Verden) => number) | null) | null;
   /** `L`: utspillingene måles med lagmålet. Offentlig for kortdataene, som skriver hvilket mål verdiene har. */
   readonly lagmål: boolean;
+  /**
+   * `W`: kanal 2-vekten, eller null. Offentlig for prøvene, som resten av knottene her:
+   * speken skal kunne BEVISES koblet, ikke antas koblet. Nettopp denne kanalen sto
+   * bygd, målt og frakoblet fra `sik:` fram til 13. sep.
+   */
+  readonly vrakvekt: Vrakvekt | null;
   private readonly frø: number;
   readonly tellere: SikkerTellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, enig: 0, avkortet: 0 };
   siste: SikkerSiste | null = null;
@@ -272,6 +291,16 @@ export class Sikkerorakel {
     if (this.eksaktBlad !== null && !(Number.isInteger(this.eksaktBlad) && this.eksaktBlad >= 1)) {
       throw new Error(`Sikkerorakel: eksaktBlad må være et helt antall stikk ≥ 1, fikk ${this.eksaktBlad}`);
     }
+    /**
+     * KANAL 2. `> 0` og ikke `!== undefined`: `W0` skal være nøyaktig «av», og da må
+     * feltet være FRAVÆRENDE i opsjonsobjektet til `vurderPar` — ikke et objekt med
+     * alfa 0. Da er argumentet til `trekkVerdener` den samme `undefined` som før.
+     */
+    const alfa = opts.vrakalfa ?? 0;
+    if (!Number.isFinite(alfa) || alfa < 0) {
+      throw new Error(`Sikkerorakel: vrakalfa må være et endelig tall ≥ 0, fikk ${opts.vrakalfa}`);
+    }
+    this.vrakvekt = alfa > 0 ? { alfa, beta: 0 } : null;
     // Feil ved bygging, ikke ved første trekk midt i en kamp.
     if (this.spillvekt && this.tro !== null) {
       throw new Error("Sikkerorakel: spillvekt og trovekt leser det samme beviset - velg én");
@@ -319,6 +348,8 @@ export class Sikkerorakel {
       klokke: this.klokke,
       ...(this.eksaktBlad === null ? {} : { eksaktBlad: this.eksaktBlad }),
       ...(this.motpartFor === null ? {} : { motpartFor: this.motpartFor }),
+      // KANAL 2: nøkkelen er BORTE når den er av, så kallet er bit for bit som før.
+      ...(this.vrakvekt === null ? {} : { vrakvekt: this.vrakvekt }),
       verdener: this.verdener,
       // Med `visningsfrø` står instansens strøm urørt; uten den er dette nøyaktig som før.
       rng: this.visningsfrø ? lagRng(visningsfrø(state, sete, this.frø)) : this.rng,

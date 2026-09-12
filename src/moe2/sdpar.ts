@@ -34,7 +34,7 @@
  */
 
 import { lovligeKort, utfør, type GameState, type Handling } from "../motor.ts";
-import type { Verden } from "../solver/sampler.ts";
+import type { Verden, Vrakvekt } from "../solver/sampler.ts";
 import { kortTilInt } from "../solver/dds.ts";
 import { poengRotVerdier } from "../solver/poengdds.ts";
 import { FARGER, type Kort } from "../kort.ts";
@@ -134,6 +134,18 @@ export interface ParOpts {
    * motstandermodell i hver verden — parringen over verdener forutsetter det.
    */
   readonly motpartFor?: (sete: number) => Utspiller;
+  /**
+   * KANAL 2 (13. sep): budvinnerens vrak som bevis. Udefinert = av, bit-identisk.
+   *
+   * DETTE FELTET ER HELE FIKSEN. `vurderPar` sendte en hardkodet `undefined` i
+   * vrakvekt-sporet til `trekkVerdener`, og siden `sik:` går gjennom `vurderPar`
+   * og ikke gjennom `vurderSD`, var kanal 2 stum i den boten vi faktisk måler —
+   * uansett hva speken sa. `amu:` hadde stien, `sik:` hadde den ikke.
+   *
+   * LEGGES TIL de andre vektene i log, som budvekten og troen: tre uavhengige
+   * kilder på samme skala (`trekkVerdenBelief`). Den erstatter ingen av dem.
+   */
+  readonly vrakvekt?: Vrakvekt;
 }
 
 export interface ParKandidat {
@@ -273,7 +285,8 @@ export function vurderPar(
     undefined,
     vekt,
     opts.verdenKandidater,
-    undefined,
+    // KANAL 2. Her sto `undefined` hardkodet — se `vrakvekt` i `ParOpts`.
+    opts.vrakvekt,
     opts.budvekt ?? true,
   );
   if (verdener.length === 0) return null;

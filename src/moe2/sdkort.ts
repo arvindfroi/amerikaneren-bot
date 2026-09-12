@@ -121,6 +121,20 @@ export interface SDOpts {
    * klassen feil som ikke feiler noe sted.
    */
   readonly verdenKandidater?: number;
+  /**
+   * KANAL 2: budvinnerens vrak som bevis. Udefinert = av, bit-identisk.
+   *
+   * Den kan IKKE bæres av `trovekt`: den vekten ser bare `hender`, mens
+   * `vrakLogVekt` må lese `verden.vrakVerden` — de fire kortene SAMPLEREN la i
+   * den døde bingen. Derfor er dette et eget felt hele veien ned til
+   * `trekkVerdenBelief`, som allerede tar imot den.
+   *
+   * MERK ASYMMETRIEN (K2): er observatøren selv budvinneren, setter
+   * `trekkVerden` `dødKapasitet = 0` — hun kjenner sitt eget vrak — og da er
+   * `vrakVerden` tom og vekten returnerer 0 per konstruksjon. Kanal 2 leser
+   * ALDRI budvinnerens virkelige vrak, bare det den innbilte verdenen påstår.
+   */
+  readonly vrakvekt?: Vrakvekt;
 }
 
 export interface SDKortOpts extends SDOpts {
@@ -403,7 +417,18 @@ export function vurderSD(
   const mål = opts.mål ?? standardMål;
   const verdener =
     opts.verdenerHender ??
-    trekkVerdener(state, spiller, opts.verdener, opts.rng, undefined, opts.trovekt, opts.verdenKandidater);
+    trekkVerdener(
+      state,
+      spiller,
+      opts.verdener,
+      opts.rng,
+      undefined,
+      opts.trovekt,
+      opts.verdenKandidater,
+      // KANAL 2. Sto ikke her, og signaturen har tatt argumentet hele tiden:
+      // `vurderSD` var det siste leddet som slapp vekten på gulvet.
+      opts.vrakvekt,
+    );
   if (verdener.length === 0) return [];
 
   /**

@@ -1335,6 +1335,34 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      *   D  frøet for hver beslutning utledes av det setet SER (`visningsfrø`), så samme
      *      stilling gir samme valg og skjulte kort ikke kan flytte frøet.
      */
+    /**
+     * «W<alfa>»: KANAL 2, budvinnerens vrak som bevis (13. sep). 0 eller fraværende
+     * = av, bit-identisk. Stor W så den ikke kolliderer med tallparserne, nøyaktig
+     * som i `amu:`-grenen — og med SAMME bokstav og samme betydning der, slik at
+     * `W2` betyr det samme uansett hvilket søk speken velger.
+     *
+     * HVORFOR DEN MÅTTE LEGGES TIL HER. `amu:` har lest «W» siden §111, `sik:` aldri.
+     * Helboten kjører `sik:`, så kanal 2 var stum i alt vi målte — bygd, målt til
+     * +0,0046 ± 0,0004 nat, og strukturelt frakoblet. Se `AdamsMax.md` linje 1106,
+     * som fører nettopp «kanal 2 nådde aldri fram fra speken» som en feilklasse.
+     *
+     * LESES FØR «D»/«M»/«L», fordi den står BAKERST i feltet («…LMDW2») og de tre
+     * andre plukkes med `endsWith`. `indexOf` og ikke `endsWith` her: da spiller
+     * rekkefølgen mot de øvrige knottene ingen rolle. Trygt fordi «~<art>=<fil>»
+     * alt er skilt ut over — en filsti er det eneste som kunne inneholdt en W.
+     */
+    let vrakalfa = 0;
+    const wPos = vFelt.indexOf("W");
+    if (wPos >= 0) {
+      const rest = vFelt.slice(wPos + 1);
+      const wm = /^[\d.]+/.exec(rest);
+      if (wm === null) throw new Error(`Ugyldig «W» i sik-spek «${indre}» - forventet W<alfa>`);
+      vrakalfa = Number(wm[0]);
+      if (!Number.isFinite(vrakalfa) || vrakalfa < 0) {
+        throw new Error(`Ugyldig «W${wm[0]}» i sik-spek «${indre}» - alfa må være et endelig tall ≥ 0`);
+      }
+      vFelt = vFelt.slice(0, wPos) + rest.slice(wm[0].length);
+    }
     let visningsfrø = false;
     if (vFelt.endsWith("D")) {
       visningsfrø = true;
@@ -1462,6 +1490,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       ...(brukØkt && økt !== undefined ? { motpartFor: (sete: number) => økt.motpartFor(motpart, sete) } : {}),
       ...(visningsfrø ? { visningsfrø: true } : {}),
       ...(likFor === undefined ? {} : { likFor }),
+      // KANAL 2: nøkkelen er borte når alfa er 0, så speker uten «W» er urørt.
+      ...(vrakalfa > 0 ? { vrakalfa } : {}),
     });
   }
   /**

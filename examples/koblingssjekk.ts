@@ -81,6 +81,31 @@ const paaslag: [string, string][] = [
   ["  e0.25   A7 (PARKERT)",          `okt:${VR}:${AMU("12k16bgm1e0.25r1.5v0.5")}:profil:${BUD}:${NETT}`],
 ];
 
+/**
+ * ============ SIK-STIEN — DEN HELBOTEN FAKTISK BRUKER (13. sep) ===========
+ *
+ * Radene over måler `amu:`. Helboten kjører `sik:`, og de to grenene har HVER
+ * SIN parameterkjede: `amu:` → `Alphamuagent` → `vurderSD`, `sik:` →
+ * `Sikkerorakel` → `vurderPar`. En knott kan derfor være koblet i den ene og
+ * stum i den andre, og tabellen over ville ikke merket det.
+ *
+ * Det var nøyaktig det som skjedde med kanal 2: `W2` sto som IKKE KOBLET her
+ * fordi `amu:foerer` er strukturelt stum (budvinneren kjenner sitt eget vrak),
+ * og INGEN rad målte `sik:` i det hele tatt. Da fiksen kom, måtte den derfor
+ * bevises på den grenen den gjelder — ellers ville «koblet» igjen vært en
+ * påstand om et annet hus enn det man bor i.
+ *
+ * `alle` og ikke `foerer`: kanal 2 KAN ikke fyre i førersetet, så en rad med
+ * `sik:foerer` ville målt 0 og vært umulig å skille fra en frakoblet ledning.
+ */
+const SIK = (f: string) => `sik:alle:0.5:${f}`;
+const SIK_FULL = `okt:${VR}:${SIK("12k16MD")}:profil:${BUD}:${NETT}`;
+const sikPaaslag: [string, string][] = [
+  ["  W2      kanal 2, vraket (K8)",  `okt:${VR}:${SIK("12k16MDW2")}:profil:${BUD}:${NETT}`],
+  ["  W1      kanal 2, halv alfa",    `okt:${VR}:${SIK("12k16MDW1")}:profil:${BUD}:${NETT}`],
+  ["  W0      kanal 2 AV (maa gi 0)", `okt:${VR}:${SIK("12k16MDW0")}:profil:${BUD}:${NETT}`],
+];
+
 function ulike(a: string, b: string, runder: number): { n: number; ulik: number } {
   const A = [0,1,2,3].map(() => lagIndre(a));
   const B = [0,1,2,3].map(() => lagIndre(b));
@@ -111,5 +136,24 @@ console.log("PAASLAG (skal endre naar de slaas PAA):");
 for (const [navn, med] of paaslag) {
   const { n, ulik } = ulike(FULL, med, 4);
   const st = ulik > 0 ? "KOBLET" : "*** IKKE KOBLET ***";
+  console.log(`${navn.padEnd(33)} ${String(n).padStart(5)} ${String(ulik).padStart(7)}   ${st}`);
+}
+console.log("-".repeat(66));
+console.log("SIK-STIEN (helbotens eget soek; basen er sik:alle:0.5:12k16MD):");
+for (const [navn, med] of sikPaaslag) {
+  const { n, ulik } = ulike(SIK_FULL, med, 4);
+  /**
+   * W0-RADEN LESES MOTSATT VEI. Den er nullpunktet: «av» skal gi NULL avvik, og
+   * et utslag der betyr at paaslaget lekker inn i den maalte boten. En rad som
+   * bare kan bekrefte er ingen rad — derfor staar begge retningene i samme tabell.
+   */
+  const erNull = navn.includes("W0");
+  const st = erNull
+    ? ulik === 0
+      ? "AV ER AV (0 forventet)"
+      : "*** AV ER IKKE AV ***"
+    : ulik > 0
+      ? "KOBLET"
+      : "*** IKKE KOBLET ***";
   console.log(`${navn.padEnd(33)} ${String(n).padStart(5)} ${String(ulik).padStart(7)}   ${st}`);
 }
