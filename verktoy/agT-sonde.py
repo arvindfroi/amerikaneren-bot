@@ -597,9 +597,103 @@ def sonde_c(args, trener):
     print(f"\n  -> {args.ut}", flush=True)
 
 
+# ===========================================================================
+# SONDE D
+# ===========================================================================
+
+
+def k8_enhot(logits, Fa):
+    """Én-hot-K8 per rad: -log q3 for kortene som ER paa en haand, renormalisert over de tre setene.
+
+    Samme form som `mlb-tro-tren.py --> maal()['k8']`, som er maaltallet loekka doemmer troen paa.
+    Retur: (radsnitt, gyldig) - rader uten et eneste kort paa haand er ikke tap, de er tomme.
+    """
+    mal = torch.from_numpy(Fa.astype(numpy.int64))
+    maske = mal > 0
+    t = (mal - 1).clamp(min=0)
+    m3 = maske & (mal <= 3)
+    lp = F.log_softmax(logits[:, :, :3].float(), dim=2)
+    valgt = lp.gather(2, t.clamp(max=2).unsqueeze(2)).squeeze(2)
+    tap = (-valgt * m3.float()).sum(dim=1)
+    ant = m3.float().sum(dim=1)
+    gyldig = (ant > 0).numpy()
+    rad = numpy.zeros(len(Fa), dtype=numpy.float64)
+    rad[gyldig] = (tap[torch.from_numpy(gyldig)] / ant[torch.from_numpy(gyldig)]).numpy()
+    return rad, gyldig
+
+
+def sonde_d(args, trener):
+    """BRUKES identiteten? Sonde A viste at den er LESBAR - av en egen klassifikator med bare den jobben.
+
+    Det er en OEVRE grense for hva trohodet faktisk henter ut, ikke et maal paa det. Her trenes selve
+    trooppgaven (52 x 4) tre ganger paa samme rader og samme budsjett:
+
+      alle 996                dagens inngang
+      996 uten hukommelse     hukommelsesblokken nullet. Faller K8 ikke, brukes identiteten ikke.
+      996 + sann identitet    fasitidentiteten for rel 1 og rel 3 servert som én-hot. Loefter DET ikke
+                              K8, er mer motstanderlesing feil medisin - da er flaskehalsen ikke hvem
+                              motstanderen er.
+
+    Den siste armen er et ORAKEL og skal aldri inn i boten; den staar her for aa sette taket paa hva
+    identitetskunnskap i det hele tatt kan vaere verdt for troen.
+    """
+    print("== SONDE D: BRUKER trohodet identiteten, og hva er den verdt? ==", flush=True)
+    navn = les_typer(args.typer)
+    dt = les_korpus(args.tren)
+    dh = les_korpus(args.hold)
+    Lt, Kt, typenavn = etiketter(dt, navn)
+    Lh, Kh, _ = etiketter(dh, navn)
+    print(f"  trening {len(Lt)} rader, holdout {len(Lh)} rader", flush=True)
+
+    kap_treff, kap_k8 = trener.kapasitetsreferanse(dh["F"])
+    print(f"  referanser: gulv (uniform over 3) 1,0986   kapasitetstelleren {kap_k8:.4f}", flush=True)
+
+    Ft = torch.from_numpy(dt["F"].astype(numpy.int64))
+    idt = numpy.concatenate([numpy.eye(len(typenavn), dtype=numpy.float32)[Lt[:, r]] for r in (1, 3)], axis=1)
+    idh = numpy.concatenate([numpy.eye(len(typenavn), dtype=numpy.float32)[Lh[:, r]] for r in (1, 3)], axis=1)
+
+    resultat = {"gulv": 1.0986, "kapasitet": kap_k8, "armer": []}
+    for merke in ["alle 996", "996 uten hukommelse", "996 + sann identitet"]:
+        Xt, Xh = dt["X"].copy(), dh["X"].copy()
+        if merke == "996 uten hukommelse":
+            Xt[:, 660:804] = 0
+            Xh[:, 660:804] = 0
+        if merke == "996 + sann identitet":
+            Xt = numpy.concatenate([Xt, idt], axis=1)
+            Xh = numpy.concatenate([Xh, idh], axis=1)
+        Xt_t, Xh_t = torch.from_numpy(Xt), torch.from_numpy(Xh)
+        torch.manual_seed(20260912)
+        modell = trener.Tronett([Xt.shape[1], 512, 256, KORT * KLASSER])
+        opt = torch.optim.Adam(modell.parameters(), lr=1e-3)
+        for e in range(args.epoker):
+            modell.train()
+            perm = torch.randperm(len(Xt_t))
+            for i in range(0, len(perm), args.batch):
+                j = perm[i : i + args.batch]
+                opt.zero_grad()
+                ut = modell(Xt_t[j])
+                mal = Ft[j]
+                maske = mal > 0
+                F.cross_entropy(ut[maske], (mal - 1).clamp(min=0)[maske]).backward()
+                opt.step()
+            modell.eval()
+            with torch.no_grad():
+                logits = torch.cat([modell(Xh_t[i : i + 4096]) for i in range(0, len(Xh_t), 4096)])
+            rad, gyldig = k8_enhot(logits, dh["F"])
+            print(f"    {merke} epoke {e + 1}/{args.epoker}: holdout-K8 {rad[gyldig].mean():.4f}", flush=True)
+        sn, se = klynge_se(rad[gyldig], Kh[gyldig])
+        print(f"    {merke:22s} K8 {sn:.4f} +/- {se:.4f}  (n={int(gyldig.sum())} rader)", flush=True)
+        resultat["armer"].append({"arm": merke, "k8": sn, "se": se, "n": int(gyldig.sum())})
+        del Xt, Xh, Xt_t, Xh_t
+
+    with open(args.ut, "w", encoding="utf-8") as fh:
+        json.dump(resultat, fh, indent=1)
+    print(f"\n  -> {args.ut}", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--sonde", required=True, choices=["a", "b", "c"])
+    ap.add_argument("--sonde", required=True, choices=["a", "b", "c", "d"])
     ap.add_argument("--tren", default="_agT/data/trening-*.bin")
     ap.add_argument("--hold", default="_agT/data/holdout-*.bin")
     ap.add_argument("--myk", default="_agT/myk/*.bin")
@@ -616,7 +710,7 @@ def main():
     args = ap.parse_args()
     os.makedirs(os.path.dirname(args.ut) or ".", exist_ok=True)
     trener = last_trener()
-    {"a": sonde_a, "b": sonde_b, "c": sonde_c}[args.sonde](args, trener)
+    {"a": sonde_a, "b": sonde_b, "c": sonde_c, "d": sonde_d}[args.sonde](args, trener)
 
 
 if __name__ == "__main__":
