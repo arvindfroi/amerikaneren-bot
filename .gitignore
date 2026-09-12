@@ -150,3 +150,6 @@ mlb-tro-data/
 # uten aa trenge modellfiler. De lages paa nytt hver kjoering, saa de er ikke raarader og
 # hoerer ikke i git - i motsetning til maalingene ellers under analyse/ (se linje 120).
 analyse/lik-per-sete/
+
+# agX: trente armer fra fargesymmetri-maalingen (vekter, som e1-modell/ ellers)
+analyse/agX-tro-*.bin
