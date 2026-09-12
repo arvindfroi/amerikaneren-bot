@@ -234,6 +234,8 @@ LAYOUT = {
     776: [("grunn", 660), ("signal", 116)],
     920: [("grunn", 660), ("hukommelse", 144), ("signal", 116)],
     996: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40)],
+    # Tempoblokken (12. sep) er nuller bakerst for et 996-nett: 996 -> 1028 mister ingen blokk.
+    1028: [("grunn", 660), ("hukommelse", 144), ("signal", 116), ("stilling", 36), ("valgtbort", 40), ("tempo", 32)],
 }
 
 

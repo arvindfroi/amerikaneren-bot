@@ -161,7 +161,8 @@ test("breddene: 996 = 920 + 36 + 40, 323 = 287 + 36, og alle gamle bredder står
   assert.equal(MLB_VALGT_BORT, 40);
   assert.equal(MLB_TRO_INN_HS2, 996);
   assert.equal(BUDQ_INN_HS2, 323);
-  assert.deepEqual([...MLB_TRO_BREDDER], [660, 804, 776, 920, 996]);
+  // 1028 = 996 + tempoblokken (12. sep, `test/mlb-tempo.test.ts`).
+  assert.deepEqual([...MLB_TRO_BREDDER], [660, 804, 776, 920, 996, 1028]);
   assert.deepEqual(troKolonnekart(920, 996), [[0, 0, 660], [660, 660, 144], [804, 804, 116]]);
   assert.deepEqual(troKolonnekart(776, 920), [[0, 0, 660], [660, 804, 116]], "776 → 920 setter signalet på 804");
   assert.throws(() => troKolonnekart(776, 804), /signal.*finnes ikke/);

@@ -56,6 +56,7 @@
 import { readFileSync } from "node:fs";
 
 import { lovligeHandlinger, opprettSpill, utfør, type GameState, type Handling } from "../src/motor.ts";
+import { TEMPOFASER, type Tempofase, type Tempohendelse } from "../src/mlb/tempotrekk.ts";
 import type { Farge, Kort, Verdi } from "../src/kort.ts";
 import type { Bud } from "../src/regler.ts";
 // Pseudonymformen håndheves ETT sted (`src/mlb/profil.ts`), ikke skrevet opp igjen her.
@@ -320,6 +321,51 @@ function budrunden(
   return null;
 }
 
+/**
+ * ===================== TENKETIDEN, DER LOGGEN HAR DEN (12. sep) ==========
+ *
+ * Fra v13 (`web/tempo.ts`, 11. sep) bærer `runde`-raden en `tempo`-liste: én post per
+ * MENNESKEBESLUTNING i runden, i rekkefølge, med `{fase, stikk?, ms, skjultMs?,
+ * ufokusMs?, angre?}`. Mennesket sitter i sete 0 i hver Val Town-kamp (`MENNESKE`), og
+ * appen logger bare sine egne beslutninger — derfor er `sete` alltid `MENNESKE` her.
+ *
+ * SKILLET SOM MÅ STÅ: `null` betyr «loggen har ingen tider for denne runden», og en TOM
+ * liste betyr «feltet sto der, men ingen post var lesbar». De er ikke det samme som
+ * «spilleren brukte null tid», og en sans som forveksler dem lærer at gamle runder ble
+ * spilt lynraskt. Målt 12. sep: 67 av 86 runder etter v13 har feltet; alle 4 448 runder
+ * før har det ikke.
+ *
+ * BOTENES REGNETID KOMMER ALDRI HERFRA. Den står i `bottrekk`-raden, som denne funksjonen
+ * ikke leser — den tar en `runde`-hendelse og henter bare `data.tempo`. Blandes de to,
+ * måler «tenketid» hvor mye CPU søket fikk. `test/mlb-tempo.test.ts` har fella.
+ */
+export function rundeTempo(r: Hendelse): Tempohendelse[] | null {
+  const rå = r.data["tempo"];
+  if (!Array.isArray(rå)) return null;
+  const ut: Tempohendelse[] = [];
+  for (const x of rå) {
+    if (x === null || typeof x !== "object") continue;
+    const o = x as Record<string, unknown>;
+    const fase = o["fase"];
+    const ms = Number(o["ms"]);
+    // En post uten lesbar fase eller tid er ikke en post: et gjettet tall er verre enn
+    // et manglende, som i `web/tempo.ts` sin egen `stopp()`.
+    if (typeof fase !== "string" || !TEMPOFASER.includes(fase as Tempofase) || !Number.isFinite(ms) || ms < 0) continue;
+    const stikk = Number(o["stikk"]);
+    const tall = (n: unknown): number => (Number.isFinite(Number(n)) && Number(n) > 0 ? Number(n) : 0);
+    ut.push({
+      sete: MENNESKE,
+      fase: fase as Tempofase,
+      stikk: Number.isFinite(stikk) ? stikk : null,
+      ms,
+      skjultMs: tall(o["skjultMs"]),
+      ufokusMs: tall(o["ufokusMs"]),
+      angre: tall(o["angre"]),
+    });
+  }
+  return ut;
+}
+
 export type Avvisning = "ingen start" | "ufullstendig" | "budrunde" | "budrundefelt" | "ulovlig" | "delta";
 
 export interface GjenskaptRunde {
@@ -327,6 +373,12 @@ export interface GjenskaptRunde {
   readonly tilstander: GameState[];
   /** Botbud som måtte avvike fra budspeken for å nå loggens budvinner og kontrakt. 0 = speken alene. */
   readonly budavvik: number;
+  /**
+   * TENKETIDEN til den som handlet, i beslutningsrekkefølge — eller `null` når loggen
+   * ikke har den. `null` er tilfellet for de aller fleste runder: feltet kom med v13
+   * 11. sep, og alt før det er stumt. Se `rundeTempo`.
+   */
+  readonly tempo: Tempohendelse[] | null;
 }
 
 /** Én loggført runde som ekte tilstander — eller en avvisning med grunn. */
@@ -392,7 +444,7 @@ export function gjenskapRunde(
   if (!likeTall(s.sisteRunde?.delta, delta) || !likeTall(s.totalPoeng, total)) {
     return { avvist: "delta", melding: `runde ${rundeNr}: motorens poeng er ikke loggens` };
   }
-  return { tilstander, budavvik: bud.avvik };
+  return { tilstander, budavvik: bud.avvik, tempo: rundeTempo(r) };
 }
 
 export interface Rundesteg {
