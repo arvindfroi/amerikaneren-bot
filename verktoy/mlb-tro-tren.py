@@ -53,6 +53,7 @@ import glob
 import json
 import os
 import struct
+import subprocess
 import time
 
 import numpy
@@ -319,6 +320,112 @@ def kapasitetsreferanse(Fa):
     return treff, tap / max(1, n)
 
 
+class StromKilde:
+    """MLBT-rader RETT FRA GENERATOREN, uten aa gaa via disk.
+
+    HVORFOR. `les_mlbt` legger hele korpuset i RAM: 1 992 B per rad som fp16. Ved 3,5·10⁸ rader -
+    tallet skaleringskurven peker paa for 35 % (`D:/amb-grp/loop/skalering.md`) - er det ~705 GB
+    RAM og 1,43 TB paa disk. Maskinen har 23 GB og 628 GB. Ingen av dem er nok, og det er RAM som
+    binder foerst.
+
+    Ved den datamengden trengs heller ikke epoker: ti runder over de samme radene er ti ganger den
+    samme informasjonen, mens én gjennomgang av en STROEM er 3,5·10⁸ FORSKJELLIGE rader. Da faller
+    baade disken og RAM-en bort - generatoren mater treneren direkte.
+
+    BLANDINGEN ER IKKE DEN SAMME, og det skal staa tydelig: `--tren` permuterer hele korpuset per
+    epoke, en stroem kan ikke det. Her blandes det blokkvis (`--strom-buffer` rader om gangen).
+    Derfor er ikke stroemstien bit-identisk med filstien - det er den samme koden for tap og maal,
+    men en annen radrekkefoelge. Filstien er urørt, og det er DEN bit-identiteten proeves paa.
+
+    Formatet leses akkurat som `les_mlbt` gjoer det, med den samme feltlista.
+    """
+
+    def __init__(self, mal, n_skard, maks_rader=0):
+        if n_skard < 1:
+            raise SystemExit("--strom-skard maa vaere >= 1")
+        self.maks_rader = maks_rader
+        self.lest = 0
+        self.prosesser = []
+        for i in range(n_skard):
+            kommando = mal.replace("{skard}", str(i)).replace("{skard_n}", str(n_skard))
+            self.prosesser.append(subprocess.Popen(kommando, shell=True, stdout=subprocess.PIPE, bufsize=0))
+        # HODET FRA HVER PROSESS. Blandes to bredder, hoppes halve stroemmen over i stillhet -
+        # noeyaktig samme felle som `les_mlbt` vokter mot, og her er det ingen fil aa etterproeve.
+        self.dim = None
+        self.versjon = None
+        for i, p in enumerate(self.prosesser):
+            hode = self._les_noeyaktig(p, 12)
+            if hode is None or hode[:4] != b"MLBT":
+                raise SystemExit(f"skard {i}: ikke en MLBT-stroem (fikk {hode!r:.20})")
+            (versjon,) = struct.unpack("<i", hode[4:8])
+            (d,) = struct.unpack("<i", hode[8:12])
+            if versjon not in (1, 2):
+                raise SystemExit(f"skard {i}: ukjent versjon {versjon}")
+            if self.dim is None:
+                self.dim, self.versjon = d, versjon
+            elif (d, versjon) != (self.dim, self.versjon):
+                raise SystemExit(f"skard {i}: dim {d} versjon {versjon}, ventet {self.dim}/{self.versjon}")
+        felt = [("t", "<f4", (self.dim,)), ("f", "i1", (KORT,)), ("fro", "<i4"), ("stikk", "<i2"), ("sete", "<i2")]
+        if self.versjon == 2:
+            felt += [("rolle", "i1"), ("myk", "u1"), ("p", "<f4", (MYK_UT,))]
+        self.dtype = numpy.dtype(felt)
+        self.post = self.dtype.itemsize
+        self.levende = list(self.prosesser)
+
+    @staticmethod
+    def _les_noeyaktig(p, n):
+        """`read` paa et roer kan gi kort svar. En halv post ville forskjoevet HELE resten."""
+        deler, igjen = [], n
+        while igjen > 0:
+            b = p.stdout.read(igjen)
+            if not b:
+                break
+            deler.append(b)
+            igjen -= len(b)
+        ut = b"".join(deler)
+        return None if len(ut) < n else ut
+
+    def blokk(self, rader):
+        """Neste blokk paa inntil `rader` rader, hentet rundgang over de levende skardene."""
+        if self.maks_rader and self.lest >= self.maks_rader:
+            return None
+        if self.maks_rader:
+            rader = min(rader, self.maks_rader - self.lest)
+        per = max(1, rader // max(1, len(self.levende)))
+        deler, n = [], 0
+        for p in list(self.levende):
+            if n >= rader:
+                break
+            vil = min(per, rader - n)
+            b = self._les_noeyaktig(p, vil * self.post)
+            if b is None:
+                # Skardet er tomt. Halene (< én full lesning) er med i det `_les_noeyaktig`
+                # returnerte None for, og de kastes: en delvis post kan ikke tolkes.
+                self.levende.remove(p)
+                continue
+            deler.append(b)
+            n += vil
+        if n == 0:
+            return None
+        self.lest += n
+        a = numpy.frombuffer(b"".join(deler), dtype=self.dtype)
+        return {
+            "X": a["t"].astype(numpy.float16),
+            "F": numpy.ascontiguousarray(a["f"]),
+            "ST": numpy.ascontiguousarray(a["stikk"]),
+            "ROLLE": rolle_fra_trekk(a["t"]),
+        }
+
+    def avslutt(self):
+        for p in self.prosesser:
+            if p.poll() is None:
+                p.terminate()
+            try:
+                p.stdout.close()
+            except Exception:
+                pass
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tren", default="mlb-tro-data/trening-*.bin")
@@ -366,6 +473,17 @@ def main():
     # A/B-armer paa en holdout fra et annet bord enn dommen (k8-tak.ts) kan ellers alle ende som startvektene,
     # og sammenlikningen maaler da ingenting.
     ap.add_argument("--velg", default="beste", choices=["beste", "siste"], help="hvilken epoke som skrives til --ut")
+    # STROEMMENDE TRENING (13. sep). Se `StromKilde` over for hvorfor. `--strom` er kommandoen som
+    # skriver MLBT til stdout; «{skard}» og «{skard_n}» erstattes per prosess. Med --strom leses
+    # --tren ALDRI, og holdout (--hold) leses som foer, fra fil.
+    ap.add_argument("--strom", default="", help="kommando som skriver MLBT til stdout ({skard}/{skard_n} erstattes); erstatter --tren")
+    ap.add_argument("--strom-skard", type=int, default=1, help="hvor mange generatorprosesser som kjoeres parallelt")
+    ap.add_argument("--strom-rader", type=int, default=0, help="stopp etter saa mange rader (0 = til kildene er tomme)")
+    # BLANDEBUFFERET. En stroem kan ikke permuteres globalt slik --tren blir; i stedet blandes den
+    # blokkvis. Naborader fra samme kamp er sterkt korrelerte, saa blokken maa vaere mye stoerre enn
+    # en kamp (~322 rader). 262 144 rader = ~800 kamper per blokk, og ~520 MB som fp16 ved dim 996.
+    ap.add_argument("--strom-buffer", type=int, default=262_144, help="rader per blandeblokk")
+    ap.add_argument("--strom-mal-hver", type=int, default=2_000_000, help="mal holdout hver N rad")
     args = ap.parse_args()
     rolle_vekt = [float(x) for x in args.rolle_vekt.split(",")]
     if len(rolle_vekt) != 3 or any(not (v >= 0) for v in rolle_vekt):
@@ -396,8 +514,30 @@ def main():
 
     enhet = "cuda" if torch.cuda.is_available() else "cpu"
     t0 = time.time()
-    print("TRENING:", flush=True)
-    dtr = les_mlbt(args.tren)
+    strom = None
+    if args.strom:
+        # STROEMMEN ERSTATTER --tren. Generatorene startes FOERST, saa bredden er kjent foer nettet
+        # bygges. Resten av oppsettet under kjoerer paa tomme arrays og er dermed uendret - det er
+        # den samme koden filstien bruker, og filstien er ikke roert.
+        for navn, verdi in (("--hold-del", args.hold_del), ("--bare-tap", args.bare_tap), ("--bare-les", args.bare_les)):
+            if verdi:
+                raise SystemExit(f"{navn} og --strom sammen gir ingen mening: en stroem har ingen fil aa dele eller lese om igjen")
+        strom = StromKilde(args.strom, args.strom_skard, args.strom_rader)
+        print(f"STROEM: {args.strom_skard} skard, versjon {strom.versjon}, {strom.dim} trekk, {strom.post} B per rad", flush=True)
+        tom = numpy.empty(0, dtype=numpy.int64)
+        dtr = {
+            "X": numpy.empty((0, strom.dim), numpy.float16),
+            "F": numpy.empty((0, KORT), numpy.int8),
+            "FRO": tom.astype(numpy.int32),
+            "ST": tom.astype(numpy.int16),
+            "ROLLE": tom.astype(numpy.int8),
+            "MYK": numpy.zeros(0, dtype=bool),
+            "P": None,
+            "dim": strom.dim,
+        }
+    else:
+        print("TRENING:", flush=True)
+        dtr = les_mlbt(args.tren)
     Xtr, Ftr, FROtr, STtr, dim = dtr["X"], dtr["F"], dtr["FRO"], dtr["ST"], dtr["dim"]
     Rtr, Ktr, Ptr = dtr["ROLLE"], dtr["MYK"], dtr["P"]
     del dtr
@@ -490,7 +630,8 @@ def main():
     rv = numpy.array(rolle_vekt, dtype=numpy.float32)[Rtr.astype(numpy.int64)]
     if bruk_myk:
         rv = numpy.where(Ktr, rv * numpy.float32(args.myk_vekt), rv).astype(numpy.float32)
-    ny_tapsvei = bruk_myk or bool((rv != 1).any())
+    # Med --strom er `rv` tom, saa rollevekten maa leses av flagget i stedet for av radene.
+    ny_tapsvei = bruk_myk or bool((rv != 1).any()) or (bool(args.strom) and any(v != 1 for v in rolle_vekt))
     Wt = torch.from_numpy(rv).to(enhet)
     Kt = torch.from_numpy(Ktr if bruk_myk else numpy.zeros(len(Ktr), dtype=bool)).to(enhet)
     Pt = torch.from_numpy(Ptr).to(enhet) if bruk_myk else None
@@ -680,7 +821,9 @@ def main():
         # enn den den startet fra.
         skriv_vekter(args.ut, modell)
     n = len(Xt)
-    for e in range(args.epoker):
+    # Med --strom er n = 0, og denne loekka hopper over seg selv uten aa bli roert. Stroemloekka
+    # staar rett under. Uten --strom er `range` noeyaktig som foer.
+    for e in range(0 if args.strom else args.epoker):
         modell.train()
         perm = torch.randperm(n, device=enhet)
         sum_tap, n_tap = 0.0, 0
@@ -734,6 +877,87 @@ def main():
             beste_rad = (e + 1, h)
             beste_m = hm
             skriv_vekter(args.ut, modell)
+
+    if strom is not None:
+        # ÉN GJENNOMGANG AV STROEMMEN, ingen epoker: hver rad er NY, og en rad som er sett er kastet.
+        # Cosine-planen over --epoker gir ingen mening da, saa lr holdes fast.
+        rng = numpy.random.default_rng(args.froe)
+        rv3 = numpy.array(rolle_vekt, dtype=numpy.float32)
+        sett, neste, bolk = 0, args.strom_mal_hver, 0
+        t_str = time.time()
+        sum_tap, n_tap = 0.0, 0
+        while True:
+            b = strom.blokk(args.strom_buffer)
+            if b is None:
+                break
+            Xb, Fb, Rb = b["X"], b["F"], b["ROLLE"]
+            modell.train()
+            # BLOKKVIS BLANDING: en stroem kan ikke permuteres globalt. Blokken maa vaere mye
+            # stoerre enn en kamp (~322 rader), ellers ligger naborader fra samme giv i samme batch.
+            perm = rng.permutation(len(Xb))
+            for i in range(0, len(perm), args.batch):
+                j = perm[i : i + args.batch]
+                x = torch.from_numpy(numpy.ascontiguousarray(Xb[j])).to(enhet).float()
+                fj = torch.from_numpy(numpy.ascontiguousarray(Fb[j])).to(enhet).long()
+                wj = torch.from_numpy(rv3[Rb[j].astype(numpy.int64)]).to(enhet)
+                kj = torch.zeros(len(j), dtype=torch.bool, device=enhet)
+                if args.minne_dropout_bot > 0:
+                    slipp = torch.rand(len(j), device=enhet) < args.minne_dropout_bot
+                    if bool(slipp.any()):
+                        x[slipp, 660:804] = 0
+                tap = tap_batch(modell(x), fj, wj, kj, None)
+                if tap is None:
+                    continue
+                opt.zero_grad(set_to_none=True)
+                tap.backward()
+                opt.step()
+                sum_tap += float(tap.detach())
+                n_tap += 1
+            sett += len(Xb)
+            if sett >= neste:
+                bolk += 1
+                modell.eval()
+                h = mål(Xh, Fh, Sh, Rh, Kh, Ph)
+                hm = mål(Xhm_t, Fhm_t, Shm_t) if args.hold_menneske else None
+                fart = sett / max(1e-9, time.time() - t_str)
+                rad = {
+                    "bolk": bolk,
+                    "rader": sett,
+                    "rader_per_s": round(fart, 1),
+                    "tren_tap": round(sum_tap / max(1, n_tap), 5),
+                    "hold_ce4": round(h["ce4"], 5),
+                    "hold_treff": round(h["treff"], 5),
+                    "hold_honnor": round(h["honnor"], 5),
+                    "hold_k8": round(h["k8"], 5),
+                    "hold_k8_n": h["k8_n"],
+                    "hold_k8_rolle": h["perRolle"],
+                }
+                logg.write(json.dumps(rad) + "\n")
+                print(
+                    f"strom {sett} rader ({fart:.0f}/s): tren {rad['tren_tap']:.4f}  "
+                    f"CE4 {h['ce4']:.4f}  treff {h['treff'] * 100:.1f} %  K8-tap {h['k8']:.4f}",
+                    flush=True,
+                )
+                print(f"          per rolle: {rolle_tekst(h)}", flush=True)
+                if beste_rad is None or poeng(h, hm) < beste or args.velg == "siste":
+                    beste, beste_rad, beste_m = poeng(h, hm), (bolk, h), hm
+                    skriv_vekter(args.ut, modell)
+                sum_tap, n_tap = 0.0, 0
+                neste = sett + args.strom_mal_hver
+        strom.avslutt()
+        # SISTE MAALING uansett, saa ogsaa et forsoek som er mindre enn --strom-mal-hver faar en dom.
+        modell.eval()
+        h = mål(Xh, Fh, Sh, Rh, Kh, Ph)
+        hm = mål(Xhm_t, Fhm_t, Shm_t) if args.hold_menneske else None
+        if beste_rad is None or poeng(h, hm) < beste or args.velg == "siste":
+            beste, beste_rad, beste_m = poeng(h, hm), (bolk + 1, h), hm
+            skriv_vekter(args.ut, modell)
+        n = sett
+        fart = sett / max(1e-9, time.time() - t_str)
+        print(f"STROEM FERDIG: {sett} rader paa {time.time() - t_str:.0f}s = {fart:.0f} rader/s ende-til-ende", flush=True)
+        # MASKINLESBART, som resten av linjene nederst: gjennomstroemningen er et maaltall.
+        print(f"STROEM-RADER {sett}", flush=True)
+        print(f"STROEM-RADER-PER-S {fart:.1f}", flush=True)
 
     # RESULTATET SKRIVES AV PROSESSEN SELV, aldri gjennom et stdout-roer.
     os.makedirs(os.path.dirname(args.rapport) or ".", exist_ok=True)

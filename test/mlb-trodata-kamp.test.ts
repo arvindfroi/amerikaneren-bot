@@ -48,9 +48,15 @@ const ROT = fileURLToPath(new URL("..", import.meta.url));
 /** Relativ til ROT og ignorert av git (`/_*`). Per prosess, så parallelle kjøringer ikke deler fil. */
 const MAPPE = `_test-trodata-kamp-${process.pid}`;
 
-/** Båndene fra toppen av `examples/mlb-trodata.ts`. Knyttet til driveren av prøvene under. */
-const KAMP_TRENING = { base: 1_950_000_000, steg: 7717, maks: 4_000 };
+/** Båndene fra toppen av `examples/mlb-trodata.ts`. Knyttet til driveren av prøvene under.
+ *
+ *  13. sep: treningsbåndet TOK SLUTT (alle seks skardene i iterasjon 8 døde på taket 4 000), og
+ *  steget falt fra 7717 til 1 fordi 1,1 millioner kamper × 7717 er fire ganger 2³¹. Steget var
+ *  målt verdiløst: nabogiv med steg 1 er like uavhengige som fremmede giv. Se `KAMP_BÅND`. */
+const KAMP_TRENING = { base: 950_000_000, steg: 1, maks: 16_000_000 };
 const KAMP_HOLDOUT = { base: 1_985_000_000, steg: 7717, maks: 1_500 };
+/** Det gamle treningsbåndet er UTGÅTT, men fortsatt reservert: iterasjon 0–7 ligger i det. */
+const KAMP_TRENING_UTGÅTT = { base: 1_950_000_000, steg: 7717, maks: 4_000 };
 
 before(() => mkdirSync(`${ROT}/${MAPPE}`, { recursive: true }));
 after(() => rmSync(`${ROT}/${MAPPE}`, { recursive: true, force: true }));
@@ -253,7 +259,7 @@ test("standarden uten --kamp er uendret: én runde per giv, 660 trekk, samme utv
   }
 });
 
-test("frøbåndene: kamp k har frø base + k·7717, toppen er inne i int32, og ut over båndet avvises", () => {
+test("frøbåndene: kamp k har frø base + k·steg, toppen er inne i int32, og ut over båndet avvises", () => {
   // Øverste kamp i treningsbåndet — der `frø | 0` ville slått om til negativt om båndet lå for høyt.
   const topp = `${MAPPE}/topp.bin`;
   const a = kjør(["--kamp", "--kamper", String(KAMP_TRENING.maks), "--fra", String(KAMP_TRENING.maks - 1), "--maksrunder", "1", "--sjanse", "1", "--ut", topp]);
@@ -270,7 +276,7 @@ test("frøbåndene: kamp k har frø base + k·7717, toppen er inne i int32, og u
 
   const c = kjør(["--kamp", "--kamper", String(KAMP_TRENING.maks + 1), "--ut", `${MAPPE}/x.bin`]);
   assert.notEqual(c.status, 0);
-  assert.match(c.tekst, /avsatt til 4000 kamper/);
+  assert.match(c.tekst, /avsatt til 16000000 kamper/);
   const d = kjør(["--kamp", "--band", "holdout", "--kamper", String(KAMP_HOLDOUT.maks + 1), "--ut", `${MAPPE}/x.bin`]);
   assert.notEqual(d.status, 0);
   // Og hukommelse uten hele kamper er et korpus med bare nuller — avvist, ikke skrevet.
@@ -296,6 +302,9 @@ test("frøbåndene: kamp k har frø base + k·7717, toppen er inne i int32, og u
     ["mlb-port bånd 1", 1_850_000_000, 1_850_000_000 + 5_000 * 7717],
     ["styrkebåndet", 1_900_000_000, 1_900_000_000 + 5_000 * 7717],
     ["mlb-data trening", 2_000_000_000, 2_000_000_000 + 99_999 * 7717],
+    // UTGÅTT, men reservert: iterasjon 0–7 av løkka ble spilt i dette båndet, og et nytt bånd
+    // som tok det i bruk ville duplisert de radene i stedet for å legge nye til.
+    ["kamp-trening UTGÅTT", KAMP_TRENING_UTGÅTT.base, KAMP_TRENING_UTGÅTT.base + (KAMP_TRENING_UTGÅTT.maks - 1) * KAMP_TRENING_UTGÅTT.steg],
   ];
   for (const [navn, b0, b1] of [
     ["kamp-trening", KAMP_TRENING.base, toppFrø],

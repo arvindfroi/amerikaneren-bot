@@ -77,8 +77,13 @@
  *
  * FRØBÅNDENE FOR --kamp — egne, og disjunkte fra hvert bånd som er dokumentert i repoet:
  *
- *   kamp-trening  1 950 000 000 + k·7717, k < 4 000  → 1,950 0 G … 1,980 9 G
- *   kamp-holdout  1 985 000 000 + k·7717, k < 1 500  → 1,985 0 G … 1,996 6 G
+ *   kamp-trening    950 000 000 + k·1,    k < 16 000 000  → 0,950 0 G … 0,966 0 G
+ *   kamp-holdout  1 985 000 000 + k·7717, k <      1 500  → 1,985 0 G … 1,996 6 G
+ *   kamp-trening (UTGÅTT, 13. sep)  1 950 000 000 + k·7717, k < 4 000  → 1,950 0 G … 1,980 9 G
+ *
+ * Det utgåtte båndet er FORTSATT RESERVERT: iterasjon 0–7 av løkka ligger i det, og et nytt
+ * bånd som tok det i bruk ville duplisert de radene. Se `KAMP_BÅND` for hvorfor steget falt
+ * fra 7717 til 1, og for den ene kollisjonen som faktisk er farlig.
  *
  * De bor i hullet mellom styrkebåndet (1,900 G + k·7717, k < 200; `mlb-epoke.py`,
  * `mlb-port.ts`) og treningsbåndet til `mlb-data.ts` (2,000 G …). Sjekket mot: trodata
@@ -157,6 +162,7 @@ import { spillerVisning, type SpillerVisning } from "../src/motor.ts";
 import { byttVisning, kanoniskBytte } from "../src/mlb/fargebytte.ts";
 import { lagIndre, ADAMS_MAALT } from "../src/moe2/agentspek.ts";
 import { troFasit } from "../src/mlb/fasit.ts";
+import { delerGiv, KAMP_MAKSRUNDER_TAK } from "../src/mlb/froebaand.ts";
 import { Hukommelse } from "../src/mlb/hukommelse.ts";
 import {
   MLB_TRO_INN,
@@ -201,11 +207,52 @@ export const BÅND: Record<string, { base: number; steg: number }> = {
   holdout: { base: 1_100_000_000, steg: 7717 },
 };
 
-/** `--kamp` sine bånd (se toppen). `maks` er antall KAMPER båndet er avsatt til. */
+/**
+ * `--kamp` sine bånd (se toppen). `maks` er antall KAMPER båndet er avsatt til.
+ *
+ * ============ HVORFOR STEGET FALT FRA 7717 TIL 1 (13. sep) ============
+ *
+ * Treningsbåndet var avsatt til 4 000 kamper, og **det tok slutt i natt**: alle seks
+ * treningsskardene i iterasjon 8 døde på `kamp-trening-båndet er avsatt til 4000 kamper`,
+ * og løkka bokførte det som «DATA tro: 2 filer» — de to filene var holdout. Iterasjon 8
+ * trente altså trohodet uten en eneste ny treningsrad, uten at noe sa fra.
+ *
+ * Skaleringskurven (`D:/amb-grp/loop/skalering.md`) peker på ~3,5·10⁸ rader ≈ 1,1 millioner
+ * kamper for å nå 35 %. Med steg 7717 er det 8,5·10⁹ i frøverdi — fire ganger 2³¹, og frøet
+ * skrives som `frø | 0`. Steget måtte altså vekk, ikke bare taket.
+ *
+ * STEGET BAR INGENTING. Målt (`_pr/stride.ts`, 2 000 giv per arm): andelen kortposisjoner der
+ * nabogiv har samme eier er 0,21885 med steg 1, 0,21825 med steg 16, 0,21995 med steg 7717 og
+ * 0,21906 med helt tilfeldige frø — mot 0,21893 for uavhengige giv. Null dubletter i alle fire.
+ * `blandeSeed` + mulberry32 avalancher frøet, så nabofrø gir like uavhengige giv som fremmede.
+ *
+ * ============ DEN KOLLISJONEN SOM FAKTISK ER FARLIG ============
+ *
+ * «0 delte frø» er IKKE nok, og det er verdt å si tydelig: `blandeSeed(frø, r) = frø + (r+1)·C`
+ * er LINEÆR, så to ULIKE frø gir samme giv når de skiller seg med `m·C mod 2³²` for en
+ * runde-differanse m. Med `maksrunder ≤ 128` er den minste slike avstanden 21 581 449 (m = 89).
+ *
+ * Derav de to reglene båndet under er valgt etter, og som `mlb-baand-sjekk.ts` håndhever:
+ *   INTERNT   båndets bredde (16 000 000) er MINDRE enn 21 581 449, så ingen to kamper i
+ *             båndet kan dele en giv, uansett hvilke runder de er i.
+ *   MOT HOLDOUT  basen 950 000 000 er søkt fram slik at ingen av de 127 forskjøvne
+ *                holdout-spennene treffer båndet. Null delte giv mot `kamp-holdout`.
+ *
+ * ET TETT BÅND TREFFER OFTERE, OG DERFOR FILTRERES DET. Med steg 7717 delte det utgåtte båndet
+ * bare 8 giv med K8-prøven (12 M + k·6151) ved rent uhell. Et TETT bånd treffer 45 837 av
+ * 16 000 000 — og K8-prøven er båndet DOMMEN faller på, så det ville forurenset selve måltallet
+ * dette arbeidet finnes for. Derfor spilles ikke et frø som deler giv med et vernet bånd i det
+ * hele tatt: `delerGiv` (`src/mlb/froebaand.ts`) hopper over det, og ~0,3 % av båndet går tapt.
+ * Kontrollen «0 delte frø» ville aldri sett noe av dette, for frøene ER forskjellige.
+ */
 export const KAMP_BÅND: Record<string, { base: number; steg: number; maks: number }> = {
-  trening: { base: 1_950_000_000, steg: 7717, maks: 4_000 },
+  trening: { base: 950_000_000, steg: 1, maks: 16_000_000 },
   holdout: { base: 1_985_000_000, steg: 7717, maks: 1_500 },
 };
+
+// Runde-taket båndbeviset er ført for (`KAMP_MAKSRUNDER_TAK`) bor i `src/mlb/froebaand.ts`,
+// sammen med filteret som håndhever det. Heves `--maksrunder` over taket, blir «minste avstand
+// 21 581 449» et annet tall og båndbredden slutter å være trygg — derfor er det en vakt under.
 
 /**
  * `--kamp` spiller hele kamper; uten flagget er alt under nøyaktig som før.
@@ -244,6 +291,12 @@ if (KAMP) {
   const kb = KAMP_BÅND[BAND]!;
   if (KAMPER > kb.maks) throw new Error(`kamp-${BAND}-båndet er avsatt til ${kb.maks} kamper`);
   if (!(MAKSRUNDER >= 1)) throw new Error(`--maksrunder må være ≥ 1, fikk ${MAKSRUNDER}`);
+  // Se `KAMP_MAKSRUNDER_TAK`: båndbredden er bevist trygg for m < 128, ikke for et vilkårlig tak.
+  if (MAKSRUNDER > KAMP_MAKSRUNDER_TAK) {
+    throw new Error(
+      `--maksrunder ${MAKSRUNDER} > ${KAMP_MAKSRUNDER_TAK}: båndbredden er bare bevist fri for delte giv opp til det taket (se KAMP_BÅND)`,
+    );
+  }
 }
 /** Andel spillestillinger som skrives. 1 gir sterkt korrelerte naborader. */
 const SJANSE = tall(arg("--sjanse", "0.5"), 0.5);
@@ -388,8 +441,36 @@ for (const n of ["--bordmerke", "--sekvens"]) {
   if (har(n) && !KAMP) throw new Error(`${n} krever --kamp: sonden merker kamper, ikke enkeltgiv`);
 }
 
-mkdirSync(dirname(UT), { recursive: true });
-const fd = openSync(UT, "w");
+/**
+ * `--ut -`: RADENE GÅR TIL STDOUT, ikke til en fil (13. sep).
+ *
+ * Ved 3,5·10⁸ rader er korpuset 1,43 TB på disk og ~705 GB i RAM hos treneren. Begge tallene
+ * forsvinner om generatoren mater treneren direkte — `verktoy/mlb-tro-tren.py --strom`.
+ * Bytene er NØYAKTIG de samme som fila ville fått; `test/mlb-trodata-strom.test.ts` sha256-prøver
+ * det, og `--ut -` er derfor ikke et nytt format, bare et annet rør.
+ *
+ * STDOUT TILHØRER DA RADENE. En eneste framdriftslinje midt i strømmen ville forskjøvet hver
+ * eneste post etter seg — og ingenting ville krasjet, fordi en forskjøvet post fortsatt er
+ * lovlige flyttall. Derfor flyttes ALT annet til stderr her, `console.log` inkludert.
+ */
+const TIL_STDOUT = UT === "-";
+for (const [flagg, på] of [["--sekvens", SEKVENS], ["--bordmerke", BORDMERKE], ["--myk", MYK]] as const) {
+  // Alle tre skriver en sidefil ved siden av `${UT}`, og «-.sekv.bin» er ikke en fil noen vil ha.
+  if (TIL_STDOUT && på) throw new Error(`${flagg} skriver en sidefil ved siden av --ut, og går ikke sammen med «--ut -»`);
+}
+if (TIL_STDOUT) {
+  const opprinnelig = console.log.bind(console);
+  void opprinnelig;
+  console.log = (...a: unknown[]): void => void process.stderr.write(`${a.map((x) => String(x)).join(" ")}\n`);
+}
+/** Framdrift: til stderr når radene eier stdout, ellers som før. */
+const framdrift = (s: string): void => void (TIL_STDOUT ? process.stderr : process.stdout).write(s);
+/** `closeSync(1)` ville lukket prosessens egen stdout. Med `--ut -` er det røret, ikke vårt å lukke. */
+const lukk = (): void => {
+  if (!TIL_STDOUT) closeSync(fd);
+};
+if (!TIL_STDOUT) mkdirSync(dirname(UT), { recursive: true });
+const fd = TIL_STDOUT ? 1 : openSync(UT, "w");
 {
   const hode = Buffer.alloc(12);
   hode.write("MLBT", 0, "ascii");
@@ -537,10 +618,10 @@ if (MENNESKE) {
       }
     }
     const sek = (Date.now() - t0) / 1000;
-    process.stdout.write(`  skard ${SI}: ${kamper} menneskekamper, ${skrevet} rader, ${(skrevet / Math.max(1, sek)).toFixed(0)}/s\r`);
+    framdrift(`  skard ${SI}: ${kamper} menneskekamper, ${skrevet} rader, ${(skrevet / Math.max(1, sek)).toFixed(0)}/s\r`);
   }
   tøm();
-  closeSync(fd);
+  lukk();
   console.log(
     `\nSkard ${SI} ferdig: ${kamper} menneskekamper i båndet ${BAND}, ${tellerTekst(teller)}, ` +
       `${skrevet} rader (${DIM} trekk${medBok ? ", med hukommelse" : ""}${SIGNAL ? ", med signalblokk" : ""}` +
@@ -570,11 +651,11 @@ if (MENNESKE) {
     }
     if (g % 200 === SI % 200) {
       const sek = (Date.now() - t0) / 1000;
-      process.stdout.write(`  skard ${SI}: ${skrevet} rader, ${(skrevet / Math.max(1, sek)).toFixed(0)}/s\r`);
+      framdrift(`  skard ${SI}: ${skrevet} rader, ${(skrevet / Math.max(1, sek)).toFixed(0)}/s\r`);
     }
   }
   tøm();
-  closeSync(fd);
+  lukk();
   console.log(`\nSkard ${SI} ferdig: ${skrevet} rader (${DIM} trekk${SIGNAL ? ", med signalblokk" : ""}) -> ${UT}`);
 } else {
   const kb = KAMP_BÅND[BAND]!;
@@ -584,6 +665,8 @@ if (MENNESKE) {
   let runder = 0;
   let kamper = 0;
   let kappet = 0;
+  /** Frø som deler giv med et vernet bånd, og derfor ikke spilles. Se `delerGiv`. */
+  let hoppet = 0;
   /** DEKNINGEN med `--myk`, per rolle × stikk (se `myk-etikett.ts` for utfallene). */
   type Dekning = { rolle: number; stikk: number; rader: number; myk: number; over: number; uforenlig: number; tom: number; ms: number; msMyk: number; kall: number };
   const dekning = new Map<string, Dekning>();
@@ -599,6 +682,16 @@ if (MENNESKE) {
   };
   for (let k = FRA + SI; k < KAMPER; k += SN) {
     const frø = kb.base + k * kb.steg;
+    /**
+     * DELER DETTE FRØET EN GIV MED ET VERNET BÅND? Da spilles kampen ikke.
+     *
+     * Bare for treningsbåndet: holdout ER et vernet bånd, så `delerGiv` ville flagget hver
+     * eneste holdout-kamp mot seg selv (m = 0). Se `src/mlb/froebaand.ts`.
+     */
+    if (BAND === "trening" && delerGiv(frø) !== null) {
+      hoppet++;
+      continue;
+    }
     let s: GameState = opprettSpill({ antallSpillere: 4, målPoeng: MÅLPOENG }, frø);
     for (const a of agenter) a.nyKamp();
     for (const a of skygge) a.nyKamp();
@@ -657,12 +750,12 @@ if (MENNESKE) {
     kamper++;
     const sek = (Date.now() - t0) / 1000;
     const nMyk = [...dekning.values()].reduce((a, d) => a + d.myk, 0);
-    process.stdout.write(
+    framdrift(
       `  skard ${SI}: ${kamper} kamper, ${runder} runder, ${skrevet} rader${MYK ? ` (${nMyk} myke)` : ""}, ${(skrevet / Math.max(1, sek)).toFixed(0)}/s\r`,
     );
   }
   tøm();
-  closeSync(fd);
+  lukk();
   if (SEKVENS) closeSync(sekvFd);
   /**
    * SONDEMERKET: skrevet av prosessen som FAKTISK spilte kampene, ikke gjenskapt av en leser.
@@ -694,7 +787,8 @@ if (MENNESKE) {
     );
   }
   console.log(
-    `\nSkard ${SI} ferdig: ${kamper} kamper (${kappet} stoppet på rundetaket ${MAKSRUNDER}), ${runder} runder, ` +
+    `\nSkard ${SI} ferdig: ${kamper} kamper (${kappet} stoppet på rundetaket ${MAKSRUNDER}, ` +
+      `${hoppet} frø hoppet over pga. delt giv), ${runder} runder, ` +
       `${skrevet} rader (${DIM} trekk${medBok ? ", med hukommelse" : ""}${SIGNAL ? ", med signalblokk" : ""}) -> ${UT}`,
   );
   if (MYK) {
