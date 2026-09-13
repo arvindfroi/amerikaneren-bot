@@ -252,6 +252,10 @@ interface Boks {
   n: number;
   ulikArgmax: number;
   ulikSpilt: number;
+  /** STØYGULVET: A mot C — samme tro, bare et annet verdenstrekk. */
+  ulikAC: number;
+  /** Stillinger i fasitvinduet der ALLE lovlige kort har samme eksakte verdi. */
+  flate: number;
   /** Sum av regret (fasit) per kriterium og arm, over rader med fasit. */
   sumRegret: Map<string, number>;
   sumRegretLag: Map<string, number>;
@@ -271,6 +275,8 @@ const nyBoks = (): Boks => ({
   n: 0,
   ulikArgmax: 0,
   ulikSpilt: 0,
+  ulikAC: 0,
+  flate: 0,
   sumRegret: new Map(),
   sumRegretLag: new Map(),
   nFasit: 0,
@@ -341,8 +347,27 @@ while (s.fase !== "FERDIG" && vakt++ < 40_000 && r < RUNDER) {
 
     const A = vurderPar(s, sete, motpart, { ...felles, rng: frøFor(), trovekt, budvekt: false });
     const B = vurderPar(s, sete, motpart, { ...felles, rng: frøFor(), budvekt: true });
+    /**
+     * STØYGULVET (arm C). Uten det kan ikke tallet i punkt 1 leses.
+     *
+     * C er arm A i ETT og alt — samme tro, samme budvekt, samme kriterium — bortsett
+     * fra at verdenene trekkes fra et ANNET instansfrø. Andelen der A og C er uenige
+     * om beste kort er derfor ren samplingsstøy: det er hvor ofte søket skifter mening
+     * uten at noe informasjonsbærende er endret.
+     *
+     * `sd-stoy.ts` målte nøyaktig denne størrelsen til 92,5 % ved 12 verdener
+     * (signal/støy 0,27). Er A-mot-B av samme størrelsesorden som A-mot-C, måler
+     * «troen endret kortet» ingenting annet enn at argmax over 48 støyete anslag er
+     * ustabil — og da kan en bedre verdensfordeling ikke nå fram til kortet.
+     */
+    const C = vurderPar(s, sete, motpart, {
+      ...felles,
+      rng: lagRng(visningsfrø(s, sete, (SIK_FRØ ^ 0x5bf0_3635) >>> 0)),
+      trovekt,
+      budvekt: false,
+    });
 
-    if (A !== null && B !== null) {
+    if (A !== null && B !== null && C !== null) {
       const nettKort = (() => {
         const h = indre[sete]!.velgHandling(s);
         return h.type === "SPILL" ? h.kort : null;
@@ -361,13 +386,32 @@ while (s.fase !== "FERDIG" && vakt++ < 40_000 && r < RUNDER) {
       const spiltA = A.sigma >= SIGMA_PORT ? valg.A_snitt! : (nettKort ?? valg.A_snitt!);
       const spiltB = B.sigma >= SIGMA_PORT ? valg.B_snitt! : (nettKort ?? valg.B_snitt!);
 
+      const cSnitt = velgEtter(C, "snitt").kort;
       const ulikArgmax = !likeKort(valg.A_snitt!, valg.B_snitt!);
       const ulikSpilt = !likeKort(spiltA, spiltB);
+      /** Støygulvet: samme tro, annet verdenstrekk. */
+      const ulikAC = !likeKort(valg.A_snitt!, cSnitt);
+
+      /**
+       * ER FASITEN I DET HELE TATT UENIG MED SEG SELV HER?
+       *
+       * Målt i `troledd-fasitspredning.ts`: 37 av 42 stillinger i vinduet har
+       * spredning 0 — kontrakten er alt avgjort, og hvert lovlig kort gir samme
+       * rundepoeng. En slik stilling kan ikke skille en god arm fra en dårlig, og
+       * å telle den som «begge traff» ville fortynnet tallet mot null uansett hva
+       * armene gjorde. Regret regnes derfor BARE der fasiten har en mening, og
+       * antallet flate rapporteres ved siden av.
+       */
+      const spredning =
+        fasit === null ? null : fasit.bestDiff - Math.min(...fasit.diff.values());
+      const skiller = spredning !== null && spredning > 1e-9;
 
       for (const b of bokser(rolle, stikk)) {
         b.n++;
         if (ulikArgmax) b.ulikArgmax++;
         if (ulikSpilt) b.ulikSpilt++;
+        if (ulikAC) b.ulikAC++;
+        if (fasit !== null && !skiller) b.flate++;
       }
 
       const rad: Record<string, unknown> = {
@@ -382,11 +426,14 @@ while (s.fase !== "FERDIG" && vakt++ < 40_000 && r < RUNDER) {
         sigB: Math.round(B.sigma * 1000) / 1000,
         ulikArgmax,
         ulikSpilt,
+        ulikAC,
+        C_snitt: `${cSnitt.farge}${cSnitt.verdi}`,
+        spredning: spredning === null ? null : Math.round(spredning * 1000) / 1000,
         lovlige: lovligeKort(s, sete).length,
       };
       for (const [k, v] of Object.entries(valg)) rad[k] = `${v.farge}${v.verdi}`;
 
-      if (fasit !== null) {
+      if (fasit !== null && skiller) {
         const regret = (kort: Kort, lagmål: boolean): number | null => {
           const m = lagmål ? fasit.lag : fasit.diff;
           const v = slåOpp(m, kort);
@@ -450,12 +497,12 @@ const pct = (a: number, b: number): string => (b === 0 ? "  –  " : `${((100 * 
 console.log(`\n=== TROLEDDET — frø ${FRO}, ${r} runder, ${radNr} beslutninger ===`);
 console.log(`(${((performance.now() - tStart) / 1000).toFixed(0)} s, uoppslåtte kort: ${uoppslåtte})\n`);
 
-console.log("1. ENDRER TROEN KORTVALGET?");
-console.log("gruppe          |     n | ulik argmax | ulik spilt");
-console.log("-".repeat(56));
+console.log("1. ENDRER TROEN KORTVALGET?  (STOEYGULV = samme tro, annet verdenstrekk)");
+console.log("gruppe          |     n | ulik argmax | ulik spilt | STOEYGULV A-C");
+console.log("-".repeat(72));
 const visUlik = (navn: string, b: Boks): void =>
   console.log(
-    `${navn.padEnd(15)} | ${String(b.n).padStart(5)} | ${pct(b.ulikArgmax, b.n).padStart(11)} | ${pct(b.ulikSpilt, b.n).padStart(10)}`,
+    `${navn.padEnd(15)} | ${String(b.n).padStart(5)} | ${pct(b.ulikArgmax, b.n).padStart(11)} | ${pct(b.ulikSpilt, b.n).padStart(10)} | ${pct(b.ulikAC, b.n).padStart(13)}`,
   );
 visUlik("ALLE", total);
 for (const [rolle, b] of [...perRolle.entries()].sort()) visUlik(`  ${rolle}`, b);
@@ -475,7 +522,9 @@ for (const k of KRITERIER) {
     );
   }
 }
-console.log(`\n(n med fasit = ${total.nFasit})`);
+console.log(
+  `\n(n med SKILLENDE fasit = ${total.nFasit}; flate stillinger forkastet = ${total.flate})`,
+);
 
 console.log("\n3. DEN PARREDE DIFFERANSEN A-B (snitt-kriteriet, diff-maalet)");
 console.log("Positiv = troen velger et BEDRE kort.\n");
