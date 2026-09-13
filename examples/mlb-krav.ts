@@ -10,6 +10,13 @@
  *   node examples/mlb-krav.ts --spek "<hele boten>" --kjerner 12 --ut analyse/krav-helbot
  *                            # HELE BOTEN mot K1–K8, se examples/krav-helbot.ts
  *
+ *   node examples/mlb-krav.ts --spek "<hele boten>" --kampsett utvalg --ut analyse/krav-helbot
+ *                            # K1 måles bare på UTVALGET av menneskekampene — det treningsløkkas
+ *                            # helport får se. HOLDOUT rapporteres ved siden av, og skal aldri
+ *                            # brukes til å velge noe. `--kampsett alle` er standard og
+ *                            # bit-identisk med kjøringene fra før 14. sep.
+ *                            # Delingen er låst i `analyse/k1-kampsett.tsv`.
+ *
  * ===================== HVORFOR FILA FINNES ==============================
  *
  * Arvind: «kravene 2-8 må være godkjent for at Adams max skal ut.»

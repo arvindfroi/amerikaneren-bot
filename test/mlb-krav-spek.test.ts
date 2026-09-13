@@ -25,6 +25,7 @@ import {
   domBudduell,
   domNaabart,
   domTak,
+  iKampsett,
   sprikende,
   type D1,
   type K8Rad,
@@ -165,6 +166,63 @@ test("domK1: boten klart bedre enn mennesket og nevro klart dårligere gir ja", 
   assert.equal(d.kontrollOk, true);
   assert.equal(d.felleOk, true);
   assert.equal(d.innfridd, "ja");
+});
+
+// ===========================================================================
+// K1: delingen av menneskekampene (14. sep) — utvalg for porten, holdout blind
+// ===========================================================================
+
+const kampsettRader = readFileSync(new URL("../analyse/k1-kampsett.tsv", import.meta.url), "utf8")
+  .split("\n")
+  .filter((l) => l !== "" && !l.startsWith("#") && !l.startsWith("spill\t"))
+  .map((l) => l.split("\t") as [string, string]);
+
+test("k1-kampsett.tsv: hver kamp står nøyaktig én gang, i utvalg eller holdout", () => {
+  const sett = new Map<string, string>();
+  for (const [id, s] of kampsettRader) {
+    assert.ok(id !== "", "tom kamp-id i lista");
+    assert.ok(s === "utvalg" || s === "holdout", `ukjent sett «${s}» for ${id}`);
+    assert.equal(sett.has(id), false, `kampen ${id} står to ganger`);
+    sett.set(id, s);
+  }
+  assert.equal(sett.size, 273, "de 273 menneskekampene fra 10. aug");
+  const u = [...sett.values()].filter((s) => s === "utvalg").length;
+  // Begge sider må ha nok kamper til å bære en klyngebootstrap i det hele tatt.
+  assert.ok(u >= 100, `utvalget er for lite: ${u} kamper`);
+  assert.ok(sett.size - u >= 100, `holdouten er for liten: ${sett.size - u} kamper`);
+});
+
+test("iKampsett: «alle» filtrerer ingenting — heller ikke en ukjent kamp", () => {
+  const alle = iKampsett("alle");
+  assert.equal(alle({ spill: kampsettRader[0]![0] }), true);
+  // Bit-identiteten hviler på dette: uten deling kan ingen rad falle ut, og ingenting kaste.
+  assert.equal(alle({ spill: "en-kamp-som-ikke-finnes" }), true);
+});
+
+test("iKampsett: utvalg og holdout er disjunkte, dekker alt, og en ukjent kamp er en STOPP", () => {
+  const u = iKampsett("utvalg");
+  const h = iKampsett("holdout");
+  let nU = 0;
+  for (const [id] of kampsettRader) {
+    const iU = u({ spill: id });
+    assert.notEqual(iU, h({ spill: id }), `${id} er i begge eller ingen av settene`);
+    if (iU) nU++;
+  }
+  assert.ok(nU > 0 && nU < kampsettRader.length);
+  // En ukjent kamp skal stoppe kjøringen, ikke falle stille ut av tallet.
+  assert.throws(() => u({ spill: "en-kamp-som-ikke-finnes" }), /mangler i analyse\/k1-kampsett\.tsv/);
+});
+
+test("delingen er en REN filtrering: «alle» gir nøyaktig samme dom som ufiltrerte rader", () => {
+  const rader = k1Rader(1.5);
+  const felle = k1Rader(-3);
+  const alle = iKampsett("alle");
+  const a = domK1(rader, felle);
+  const b = domK1(rader.filter(alle), felle.filter(alle));
+  assert.deepEqual({ ...b.ks }, { ...a.ks });
+  assert.equal(b.z, a.z);
+  assert.equal(b.innfridd, a.innfridd);
+  assert.deepEqual(b.halv.map((x) => x.snitt), a.halv.map((x) => x.snitt));
 });
 
 /**

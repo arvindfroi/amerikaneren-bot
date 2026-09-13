@@ -18,6 +18,11 @@
  *        Den gamle porten (> 2 SE og positiv i begge halvdeler) sa JA til +0,86 ± 0,20 i
  *        batteriet 11. sep — målt fordel, men under det eieren kaller «henter mer ut».
  *        Halvdelene (delt på kamp-id) står som kontekst i raden.
+ *        `--kampsett utvalg|holdout|alle` (14. sep) deler de 273 kampene mot den låste lista
+ *        i `analyse/k1-kampsett.tsv`. Treningsløkka måler porten på UTVALG og rapporterer
+ *        holdout ved siden av — helporten valgte før nettsett på K1 målt på de samme 2641
+ *        rundene iterasjon etter iterasjon, altså seleksjon på testsettet. `alle` er standard
+ *        og bit-identisk med kjøringene fra før.
  *   K2   `k2-spek.ts`, tidlig (bud, vrak, velg, stikk 0–3) og sent (stikk 7+).
  *        KONTROLL: fersk agent to ganger gir samme svar. FELLE: juks:6 og den plantede
  *        jukseren tatt i hver fase. JA: 0 avvik.
@@ -457,6 +462,8 @@ interface Rigg {
   readonly nullSpek: string;
   readonly motstander: string;
   readonly data: string;
+  /** Hvilke menneskekamper K1 dømmes på: alle (som før), utvalg (porten) eller holdout. */
+  readonly kampsett: Kampsett;
   readonly basis: string;
   readonly drivere: string;
   readonly andre: string;
@@ -473,6 +480,54 @@ const skardtall = (r: Rigg, total: number): number => Math.max(1, Math.min(r.kje
 // ===========================================================================
 // 3. Dommene — rene funksjoner, prøvd i test/mlb-krav-spek.test.ts
 // ===========================================================================
+
+/**
+ * DELINGEN AV MENNESKEKAMPENE (14. sep).
+ *
+ * Helporten i treningsløkka valgte hvilke nettsett som overlever ved å måle K1 på de SAMME
+ * 2641 rundene i 273 kamper, iterasjon etter iterasjon. Det er seleksjon på testsettet: med
+ * SE ±0,20 gir elleve iterasjoner pluss ~15 løsrevne målinger et forventet maksimum av ren
+ * støy på ~+0,3 pp — hele størrelsen på «forbedringen» fra 1,01 til 1,24. Parret på nøyaktig
+ * samme runder var ingen av differansene mellom iterasjonene signifikante.
+ *
+ *   alle      som før 14. sep. BIT-IDENTISK: ingen filtrering, ingen ny tekst i raden.
+ *   utvalg    150 kamper. Det porten får se, og det eneste den får velge på.
+ *   holdout   123 kamper. Porten ser den ALDRI; tallet er ren rapport.
+ *
+ * Lista ligger i `analyse/k1-kampsett.tsv` — en FIL under versjonskontroll, ikke en hash-regel
+ * som kan endres i stillhet. Regelen som laget den står i filhodet der og skal aldri kjøres igjen.
+ */
+export type Kampsett = "alle" | "utvalg" | "holdout";
+export const KAMPSETT: readonly Kampsett[] = ["alle", "utvalg", "holdout"];
+
+let kampsettCache: Map<string, string> | null = null;
+function kampsettListe(): Map<string, string> {
+  if (kampsettCache !== null) return kampsettCache;
+  const m = new Map<string, string>();
+  for (const l of readFileSync(new URL("../analyse/k1-kampsett.tsv", import.meta.url), "utf8").split("\n")) {
+    if (l === "" || l.startsWith("#") || l.startsWith("spill\t")) continue;
+    const [id, s] = l.split("\t");
+    if (id !== undefined && s !== undefined) m.set(id, s.trim());
+  }
+  if (m.size === 0) throw new Error("analyse/k1-kampsett.tsv er tom — delingen finnes ikke");
+  kampsettCache = m;
+  return m;
+}
+
+/**
+ * Filteret for ett sett. «alle» slipper ALT gjennom uendret — det er det som gjør at raden er
+ * bit-identisk med kjøringene fra før delingen fantes. En kamp som ikke står i lista er en
+ * STOPP: en ukjent kamp som stille faller ut av tallet er nettopp feilen delingen skal hindre.
+ */
+export function iKampsett(sett: Kampsett): (r: { readonly spill: string }) => boolean {
+  if (sett === "alle") return () => true;
+  const liste = kampsettListe();
+  return (r) => {
+    const s = liste.get(r.spill);
+    if (s === undefined) throw new Error(`kampen «${r.spill}» mangler i analyse/k1-kampsett.tsv — lista er fasit`);
+    return s === sett;
+  };
+}
 
 export interface D1 {
   readonly spill: string;
@@ -680,11 +735,23 @@ async function k1(r: Rigg): Promise<Helrad[]> {
     }
   }
   await Promise.all(jobber);
-  await reg.kjør(r.kø, ["analyse/duplikat-dom.mjs", "--ut", `${r.utBase}-k1-dom.txt`, ...filer.spek], `${r.utBase}-k1-dom.logg`);
-  const d = domK1(
-    filer.spek.flatMap((f) => lesJsonl<D1>(f)),
-    filer.felle.flatMap((f) => lesJsonl<D1>(f)),
-  );
+  /**
+   * `alle` MÅ VÆRE UENDRET, helt ned til kommandolinja: uten deling legges ikke flagget på,
+   * og radene går urørt inn i domK1. Det er den kontrollen som gjør resten av delingen
+   * troverdig — er «alle» flyttet seg, er ingen historisk sammenlikning gyldig lenger.
+   */
+  const domArg = r.kampsett === "alle" ? [] : ["--kampsett", r.kampsett];
+  await reg.kjør(r.kø, ["analyse/duplikat-dom.mjs", "--ut", `${r.utBase}-k1-dom.txt`, ...domArg, ...filer.spek], `${r.utBase}-k1-dom.logg`);
+  const alleSpek = filer.spek.flatMap((f) => lesJsonl<D1>(f));
+  const alleFelle = filer.felle.flatMap((f) => lesJsonl<D1>(f));
+  const iPort = iKampsett(r.kampsett);
+  const d = domK1(alleSpek.filter(iPort), alleFelle.filter(iPort));
+  /**
+   * RAPPORTEN VED SIDEN AV PORTEN. Holdout regnes ut her og skrives i samme rad, men går
+   * ALDRI inn i `innfridd`. Leses den av en port, er delingen verdiløs fra den dagen.
+   */
+  const motsatt: Kampsett | null = r.kampsett === "utvalg" ? "holdout" : r.kampsett === "holdout" ? "utvalg" : null;
+  const dR = motsatt === null ? null : domK1(alleSpek.filter(iKampsett(motsatt)), alleFelle.filter(iKampsett(motsatt)));
   return [
     {
       krav: "K1",
@@ -694,7 +761,10 @@ async function k1(r: Rigg): Promise<Helrad[]> {
         `ΔP(seier) bot − menneske ${fmt(d.ks.snitt, 2)} ± ${d.ks.se.toFixed(2)} pp per runde, z = ${d.z.toFixed(2)} ` +
         `(port: ≥ ${fmt(K1_TERSKEL_PP, 1)} pp OG z ≥ ${K1_Z}) ` +
         `(${d.ks.n} runder i ${d.ks.klynger} kamper fra ${K1_FRA}); halvdeler ${fmt(d.halv[0]!.snitt, 2)} / ${fmt(d.halv[1]!.snitt, 2)}; ` +
-        `rundepoeng ${fmt(d.kd.snitt, 2)} ± ${d.kd.se.toFixed(2)}`,
+        `rundepoeng ${fmt(d.kd.snitt, 2)} ± ${d.kd.se.toFixed(2)}` +
+        (dR === null
+          ? ""
+          : ` [sett ${r.kampsett} = PORT; ${motsatt} ${fmt(dR.ks.snitt, 2)} ± ${dR.ks.se.toFixed(2)} i ${dR.ks.klynger} kamper = RAPPORT, aldri port]`),
       kontroll: `menneskesiden identisk i begge armene: ${d.parret} parret, ${d.ulik} ulike (må være 0)`,
       kontrollOk: d.kontrollOk,
       felle: `nevro i menneskets sete: ΔP ${fmt(d.kf.snitt, 2)} ± ${d.kf.se.toFixed(2)} (må være < −2 SE)`,
@@ -704,6 +774,9 @@ async function k1(r: Rigg): Promise<Helrad[]> {
       merknad:
         "K1.1 (< 5 % seire) avgjøres ikke her: duplikatet spør om boten henter mer ut av NØYAKTIG de samme " +
         "kortene og poengtavlene. Motstanderne i duplikatet er v5-kjeden mennesket møtte; SE er klynget på kamp." +
+        (r.kampsett === "alle"
+          ? ""
+          : ` KAMPSETT: porten er målt på «${r.kampsett}» (analyse/k1-kampsett.tsv); tallet for «${motsatt}» står i MÅLT som ren rapport.`) +
         (r.st.k1Bare === null ? "" : ` RØYK: bare skard ${r.st.k1Bare}/${N}.`) +
         reg.merknad(),
       prosessSekunder: Math.round(reg.sek),
@@ -1518,10 +1591,17 @@ export async function kjørHelbot(argv: readonly string[]): Promise<void> {
     menneskeSjanse: over("--menneske-sjanse", st0.menneskeSjanse),
     menneskeKamper: over("--menneske-kamper", st0.menneskeKamper),
   };
+  /**
+   * HVILKE MENNESKEKAMPER K1 DØMMES PÅ. Standard «alle» er nøyaktig som før 14. sep.
+   * Treningsløkka (v11) kjører porten på «utvalg»; holdout rapporteres, aldri besluttes på.
+   */
+  const kampsett = arg("--kampsett", "alle") as Kampsett;
+  if (!KAMPSETT.includes(kampsett)) throw new Error(`ukjent --kampsett «${kampsett}» (${KAMPSETT.join("|")})`);
   const base = utenSøkOveralt(spek);
   const felles = {
     spek,
     base,
+    kampsett,
     nullSpek: arg("--null-spek", "") || utenMinne(spek),
     motstander: arg("--motstander", V5_KJEDE),
     data: arg("--data", "D:/amb-grp/menneske/hendelser.jsonl"),
