@@ -172,10 +172,18 @@ test("domK1: boten klart bedre enn mennesket og nevro klart dårligere gir ja", 
 // K1: delingen av menneskekampene (14. sep) — utvalg for porten, holdout blind
 // ===========================================================================
 
-const kampsettRader = readFileSync(new URL("../analyse/k1-kampsett.tsv", import.meta.url), "utf8")
-  .split("\n")
-  .filter((l) => l !== "" && !l.startsWith("#") && !l.startsWith("spill\t"))
-  .map((l) => l.split("\t") as [string, string]);
+const kampsettTekst = readFileSync(new URL("../analyse/k1-kampsett.tsv", import.meta.url), "utf8");
+const kampsettLinjer = kampsettTekst.split(/\r?\n/).filter((l) => l.trim() !== "" && !l.startsWith("#") && !l.startsWith("spill\t"));
+const kampsettRader = kampsettLinjer.map((l) => l.split("\t").map((x) => x.trim()) as [string, string]);
+
+test("k1-kampsett.tsv: hver linje er «id<TAB>sett», med eller uten CRLF", () => {
+  // Git sjekker ut fila med \r\n på denne maskinen. Leserne deler på /\r?\n/ og trimmer; hadde
+  // de ikke gjort det, ville «utvalg\r» matchet null kamper og porten målt på tomt i stillhet.
+  for (const l of kampsettLinjer) {
+    assert.match(l, /^[^\t\r]+\t(utvalg|holdout)\r?$/, `linja tåler ikke lesing: «${l}»`);
+  }
+  assert.ok(kampsettLinjer.length > 0, "lista er tom");
+});
 
 test("k1-kampsett.tsv: hver kamp står nøyaktig én gang, i utvalg eller holdout", () => {
   const sett = new Map<string, string>();

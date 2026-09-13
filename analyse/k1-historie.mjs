@@ -12,10 +12,12 @@ const UT = process.argv[3] ?? new URL("./k1-holdout-historie.txt", import.meta.u
 const ITER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 const sett = new Map();
-for (const l of readFileSync(KAMPSETT, "utf8").split("\n")) {
+// CRLF-sikker: fila sjekkes ut med \r\n på denne maskinen, og «utvalg\r» ville ikke matchet noe.
+for (const l of readFileSync(KAMPSETT, "utf8").split(/\r?\n/)) {
   if (l.startsWith("#") || l.trim() === "" || l.startsWith("spill\t")) continue;
   const [id, s] = l.split("\t");
-  sett.set(id, s.trim());
+  if (id === undefined || s === undefined) continue;
+  sett.set(id.trim(), s.trim());
 }
 
 const les = (iter) => {

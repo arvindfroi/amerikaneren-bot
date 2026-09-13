@@ -504,10 +504,12 @@ let kampsettCache: Map<string, string> | null = null;
 function kampsettListe(): Map<string, string> {
   if (kampsettCache !== null) return kampsettCache;
   const m = new Map<string, string>();
-  for (const l of readFileSync(new URL("../analyse/k1-kampsett.tsv", import.meta.url), "utf8").split("\n")) {
-    if (l === "" || l.startsWith("#") || l.startsWith("spill\t")) continue;
+  // CRLF: git sjekker ut fila med \r\n her. «utvalg\r» ville ikke matchet noe sett, og porten
+  // hadde målt på tomt uten å si fra — derfor /\r?\n/ og trim på begge feltene.
+  for (const l of readFileSync(new URL("../analyse/k1-kampsett.tsv", import.meta.url), "utf8").split(/\r?\n/)) {
+    if (l.trim() === "" || l.startsWith("#") || l.startsWith("spill\t")) continue;
     const [id, s] = l.split("\t");
-    if (id !== undefined && s !== undefined) m.set(id, s.trim());
+    if (id !== undefined && s !== undefined) m.set(id.trim(), s.trim());
   }
   if (m.size === 0) throw new Error("analyse/k1-kampsett.tsv er tom — delingen finnes ikke");
   kampsettCache = m;

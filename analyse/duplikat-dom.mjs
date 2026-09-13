@@ -32,10 +32,14 @@ const filer = argv.filter((_, i) => i !== iUt && i !== iUt + 1 && (iKs < 0 || (i
 
 const settAv = new Map();
 if (KAMPSETT !== "alle") {
-  for (const l of readFileSync(new URL("./k1-kampsett.tsv", import.meta.url), "utf8").split("\n")) {
-    if (l === "" || l.startsWith("#") || l.startsWith("spill\t")) continue;
+  // CRLF: git skriver ut fila med \r\n på denne maskinen. Et «\r» som ble hengende igjen i
+  // «utvalg\r» ville gjort at INGEN kamp matchet settet, og porten hadde målt på tomt uten
+  // å si fra. Derfor deles det på /\r?\n/ og hvert felt trimmes.
+  for (const l of readFileSync(new URL("./k1-kampsett.tsv", import.meta.url), "utf8").split(/\r?\n/)) {
+    if (l.trim() === "" || l.startsWith("#") || l.startsWith("spill\t")) continue;
     const [id, s] = l.split("\t");
-    settAv.set(id, s.trim());
+    if (id === undefined || s === undefined) continue;
+    settAv.set(id.trim(), s.trim());
   }
   if (settAv.size === 0) throw new Error("analyse/k1-kampsett.tsv er tom");
 }
