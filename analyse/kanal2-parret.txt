@@ -1,0 +1,24 @@
+KANAL 2 PAA MOT AV — PARRET DIFFERANSE PER RUNDE
+========================================================================================
+uten  analyse/kanal2-k1-uten-k1-spek-s*.jsonl
+med   analyse/kanal2-k1-med-k1-spek-s*.jsonl
+parrede rader 2641 (uten 2641, med 2641)
+SE: klyngebootstrap over kamper, B=20000 — samme estimator som duplikat-dom.mjs
+
+KONTROLL
+  menneskesiden identisk i de to armene: 0 avvik av 2641  [OK]
+  runder der BOTEN spilte ulikt:         676 av 2641 (25,6 %)
+
+DIFFERANSEN (positiv = kanal 2 hjelper)
+  ΔP(seier)   +0,038 ± 0,085 pp per runde   z +0,45   (2641 runder i 273 kamper)
+  rundepoeng  +0,047 ± 0,124 per runde   z +0,38
+
+BARE RUNDER DER BOTEN SPILTE ULIKT (der kanal 2 kan ha virket)
+  ΔP(seier)   +0,148 ± 0,329 pp   z +0,45   (674 runder i 198 kamper)
+
+DOMMEN
+========================================================================================
+  INGEN MAALBAR EFFEKT paa K1: den parrede differansen er innenfor 2 SE av null.
+  Merk: dommen «ja/nei» i hver arm er en TERSKEL mot +1,0 pp. Ligger grunnlinjen
+  like under, snur den paa en bevegelse som er langt mindre enn sin egen stoey.
+  Det er denne parrede raden som skal leses, ikke om terskelen flippet.
