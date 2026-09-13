@@ -1262,6 +1262,25 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      * score, så vekten betaler bare i samplingstøy — og den koster 2,5× søketid overalt. 0 = alltid på.
      */
     let likFra = 0;
+    /**
+     * «~stikk=<fra>-<til>»: SØKEVINDUET, 1-basert og INKLUSIVE i begge ender (14. sep).
+     *
+     * Hvorfor et `~`-felt og ikke en bokstavknott: verdensfeltet leses BAKFRA, og en knott av
+     * små bokstaver + tall må treffe en presis posisjon i den kjeden. `t1-4` bakerst i
+     * «48k32e3t1-4» havner i `e`-halen (`Number("3t1-4")` er NaN), og uten `e` havner den i
+     * kandidatfeltet — nøyaktig felleklassen vakten rett under denne funksjonen ble skrevet for:
+     * «12k16d4» ga NaN kandidater og slo HELE søket av i stillhet, i en spek som så ut som den
+     * søkte. `s` er dessuten allerede tatt av A1-spillvekten. `~`-feltene plukkes derimot FØRST,
+     * før all bokstavparsing (fordi en filsti kan inneholde «a», «k» og «s»), så feltet er
+     * strippet av `vFelt` før D/M/L/s/a/e/k i det hele tatt leses. Ingen kollisjon er mulig.
+     *
+     * `utenSøk` er også urørt: den splitter på «:» og hopper tre felt, og «~stikk=1-4» inneholder
+     * ingen kolon — feltantallet er uendret, og rollout-motparten strippes bit for bit som før.
+     *
+     * UDEFINERT = AV, STRUKTURELT: nøkkelen utelates fra opsjonsobjektet under, den settes ikke
+     * til «1-12». Av skal være av fordi porten ikke finnes, ikke fordi den regner riktig.
+     */
+    let stikkvindu: readonly [number, number] | undefined;
     const tPos = vFelt.indexOf("~");
     if (tPos >= 0) {
       const felter = vFelt.slice(tPos + 1).split("~");
@@ -1311,9 +1330,28 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
               );
             }
           }
+        } else if (art === "stikk") {
+          /**
+           * `<fra>-<til>`, 1-BASERT og INKLUSIVE: «~stikk=1-4» er de fire første stikkene, altså
+           * nøyaktig raden «kortspill stikk 1–4» i dekomponeringen. Internt er `stikkSpilt`
+           * 0-basert (antall FULLFØRTE stikk), og `Sikkerorakel` sammenlikner derfor
+           * `stikkSpilt + 1`. Omregningen ligger ETT sted, og speken kan leses side om side med
+           * tabellen den er utledet av.
+           */
+          const bit = verdi.split("-");
+          const fra = Number(bit[0]);
+          const til = Number(bit[1]);
+          if (bit.length !== 2 || !Number.isInteger(fra) || !Number.isInteger(til) || fra < 1 || til < fra) {
+            throw new Error(
+              `Ugyldig «~stikk=${verdi}» i «${indre}» - forventet stikk=<fra>-<til> med hele stikk ` +
+                `1 ≤ fra ≤ til, 1-basert og INKLUSIVE i begge ender (stikk=1-4 er de fire første).`,
+            );
+          }
+          stikkvindu = [fra, til];
         } else {
           throw new Error(
-            `Ukjent ~-felt «${f}» i «${indre}» - forventet trokilde mlb=<fil>/mlbu=<fil> eller lik=<selv|@fil>`,
+            `Ukjent ~-felt «${f}» i «${indre}» - forventet trokilde mlb=<fil>/mlbu=<fil>, ` +
+              `lik=<selv|@fil> eller stikk=<fra>-<til>`,
           );
         }
       }
@@ -1491,6 +1529,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       ...(brukØkt && økt !== undefined ? { motpartFor: (sete: number) => økt.motpartFor(motpart, sete) } : {}),
       ...(visningsfrø ? { visningsfrø: true } : {}),
       ...(likFor === undefined ? {} : { likFor }),
+      // AV ER AV, STRUKTURELT: uten «~stikk=» finnes ikke nøkkelen i objektet i det hele tatt.
+      ...(stikkvindu === undefined ? {} : { stikkvindu }),
     });
   }
   /**

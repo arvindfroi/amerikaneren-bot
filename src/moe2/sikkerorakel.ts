@@ -120,6 +120,23 @@ export interface SikkerOpts {
    * LEGGES SAMMEN i `vurderPar`. Udefinert = av, bit-identisk.
    */
   readonly likFor?: (state: GameState, sete: number) => ((v: Verden) => number) | null;
+  /**
+   * SØKEVINDUET I STIKK (`~stikk=<fra>-<til>` i speken, 14. sep): søket kjøres BARE i stikkene
+   * `fra`..`til`. Utenfor vinduet svarer det indre laget direkte — nøyaktig samme sti som en
+   * beslutning i feil rolle. Udefinert = av, bit-identisk.
+   *
+   * 1-BASERT OG INKLUSIVE I BEGGE ENDER: `[1, 4]` er de fire første stikkene, altså nøyaktig
+   * raden «kortspill stikk 1–4» i dekomponeringen (`D:\amb-grp\loop\dekomp.md` §4a). Internt er
+   * `state.stikkSpilt` antall FULLFØRTE stikk, så porten sammenlikner `stikkSpilt + 1`. Formen er
+   * valgt for at speken skal kunne leses side om side med den tabellen uten omregning — og den
+   * tabellen er hele grunnen til at knotten finnes: stikk 1–4 bærer 56,7 % av beslutningene og
+   * +0,49 pp av forspranget, stikk 9–12 bærer 0,6 % og +0,00 pp.
+   *
+   * UDEFINERT OG IKKE `[1, 12]`: «av» må være strukturelt av. Et vindu som dekker alt ville gitt
+   * samme valg, men da hviler bit-identiteten på at porten regner riktig i stedet for på at den
+   * ikke kjøres i det hele tatt.
+   */
+  readonly stikkvindu?: readonly [number, number];
 }
 
 /**
@@ -239,6 +256,8 @@ export class Sikkerorakel {
   readonly likFor: ((state: GameState, sete: number) => ((v: Verden) => number) | null) | null;
   /** `L`: utspillingene måles med lagmålet. Offentlig for kortdataene, som skriver hvilket mål verdiene har. */
   readonly lagmål: boolean;
+  /** `~stikk=`: søkevinduet i stikk (1-basert, inklusive), eller null. Offentlig for prøvene. */
+  readonly stikkvindu: readonly [number, number] | null;
   private readonly frø: number;
   readonly tellere: SikkerTellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, enig: 0, avkortet: 0 };
   siste: SikkerSiste | null = null;
@@ -272,6 +291,16 @@ export class Sikkerorakel {
     if (this.eksaktBlad !== null && !(Number.isInteger(this.eksaktBlad) && this.eksaktBlad >= 1)) {
       throw new Error(`Sikkerorakel: eksaktBlad må være et helt antall stikk ≥ 1, fikk ${this.eksaktBlad}`);
     }
+    // `?? null` og ikke en standardverdi: uten opsjonen finnes ikke porten, den står ikke åpen.
+    this.stikkvindu = opts.stikkvindu ?? null;
+    if (this.stikkvindu !== null) {
+      const [fra, til] = this.stikkvindu;
+      if (!Number.isInteger(fra) || !Number.isInteger(til) || fra < 1 || til < fra) {
+        throw new Error(
+          `Sikkerorakel: stikkvindu må være [fra, til] med hele stikk 1 ≤ fra ≤ til, fikk [${fra}, ${til}]`,
+        );
+      }
+    }
     // Feil ved bygging, ikke ved første trekk midt i en kamp.
     if (this.spillvekt && this.tro !== null) {
       throw new Error("Sikkerorakel: spillvekt og trovekt leser det samme beviset - velg én");
@@ -303,6 +332,22 @@ export class Sikkerorakel {
     if (this.roller.length > 0) {
       const r = rolleFor(state, sete);
       if (r === null || !this.roller.includes(r)) return this.indre.velgHandling(state);
+    }
+    /**
+     * SØKEVINDUET, på nøyaktig samme sted som rolleporten og FØR `beslutninger++`.
+     *
+     * Utenfor vinduet ser beslutningen ut som en beslutning i feil rolle: ingen teller rører seg,
+     * `siste` blir stående `null`, og `lesUtfall` rapporterer «ikke-rolle». Det er med vilje — de
+     * to portene har samme betydning («søket gjelder ikke her»), og en tredje utfallsverdi ville
+     * krevd at hver leser av tellerne ble oppdatert for å bety det samme.
+     *
+     * `stikkSpilt` er antall FULLFØRTE stikk, så stikket som spilles NÅ er `stikkSpilt + 1`.
+     */
+    if (this.stikkvindu !== null) {
+      const stikkNå = state.stikkSpilt + 1;
+      if (stikkNå < this.stikkvindu[0] || stikkNå > this.stikkvindu[1]) {
+        return this.indre.velgHandling(state);
+      }
     }
     this.tellere.beslutninger++;
     const start = this.klokke();
