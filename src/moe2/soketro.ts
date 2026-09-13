@@ -24,7 +24,7 @@ import type { GameState } from "../motor.ts";
 import type { Verden } from "../solver/sampler.ts";
 import { Hukommelse } from "../mlb/hukommelse.ts";
 import type { Bokfrø } from "../mlb/profil.ts";
-import { lagTrovektFraVisning, type Visningstro } from "./troprior.ts";
+import { fordelingFraVisning, lagTrovektFraVisning, type Visningstro } from "./troprior.ts";
 
 /** Det søket trenger av en trokilde. */
 export interface Søketro {
@@ -90,5 +90,17 @@ export class MlbSøketro implements Søketro {
       );
     }
     return lagTrovektFraVisning(this.nett, state, sete, this.bok.vektor(sete, state.antallSpillere));
+  }
+
+  /**
+   * FORDELINGEN `vektFor` bygger vekten av, med NØYAKTIG samme bok — for kalibreringsproben.
+   *
+   * Ingen egen sti gjennom hukommelsen: `observer` kalles og boka slås opp på samme måte, så
+   * en probe kan ikke komme til å måle et annet trohode enn det som spiller.
+   */
+  fordelingFor(state: GameState, sete: number): number[][] {
+    if (!this.brukerHukommelse) return fordelingFraVisning(this.nett, state, sete, null);
+    this.observer(state);
+    return fordelingFraVisning(this.nett, state, sete, this.bok.vektor(sete, state.antallSpillere));
   }
 }

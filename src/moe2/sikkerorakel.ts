@@ -90,6 +90,11 @@ export interface SikkerOpts {
   readonly tro?: Søketro | null;
   /** Budvekten på verdenene. Standard på. */
   readonly budvekt?: boolean;
+  /**
+   * TEMPERATUREN PÅ TROVEKTEN (`~mlbu=<fil>,T<temp>` i speken, 13. sep): `logW_tro / T`.
+   * 1 eller udefinert = av, bit-identisk. Se `ParOpts.trotemp` for hvorfor.
+   */
+  readonly trotemp?: number;
   /** LAGMÅLET i utspillingene i stedet for `standardMål`. Standard av, bit-identisk. */
   readonly lagmål?: boolean;
   /** Tidsbudsjett per beslutning i millisekunder. Udefinert = ingen frist. */
@@ -239,6 +244,8 @@ export class Sikkerorakel {
   /** Søketroen, eller null. Offentlig for loggen og prøvene. */
   readonly tro: Søketro | null;
   private readonly budvekt: boolean;
+  /** `T<temp>`: temperaturen på trovekten. Offentlig for prøvene — knotten skal kunne BEVISES koblet. */
+  readonly trotemp: number;
   private readonly mål: ((s: GameState, spiller: number) => number) | undefined;
   private readonly fristMs: number | null;
   private readonly klokke: () => number;
@@ -282,6 +289,10 @@ export class Sikkerorakel {
     this.spillvekt = opts.spillvekt === true;
     this.tro = opts.tro ?? null;
     this.budvekt = opts.budvekt ?? true;
+    this.trotemp = opts.trotemp ?? 1;
+    if (!(Number.isFinite(this.trotemp) && this.trotemp > 0)) {
+      throw new Error(`Sikkerorakel: trotemp må være et endelig tall > 0, fikk ${opts.trotemp}`);
+    }
     // Udefinert, ikke `standardMål`: da velger `vurderPar` selv, og standardstien er urørt.
     this.mål = opts.lagmål === true ? lagMål : undefined;
     this.lagmål = opts.lagmål === true;
@@ -343,6 +354,8 @@ export class Sikkerorakel {
       trovekt: this.tro === null ? undefined : (this.tro.vektFor(state, sete) ?? undefined),
       likvekt: this.likFor === null ? undefined : (this.likFor(state, sete) ?? undefined),
       budvekt: this.budvekt,
+      // TEMPERATUREN: nøkkelen er BORTE ved T = 1, så kallet er bit for bit som før.
+      ...(this.trotemp === 1 ? {} : { trotemp: this.trotemp }),
       mål: this.mål,
       frist: this.fristMs === null ? undefined : start + this.fristMs,
       klokke: this.klokke,

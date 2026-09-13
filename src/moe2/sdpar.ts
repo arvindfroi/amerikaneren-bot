@@ -88,6 +88,28 @@ export interface ParOpts {
    * feil å be om begge, ikke et valg, så det kastes.
    */
   readonly trovekt?: (v: Verden) => number;
+  /**
+   * TEMPERATUREN PÅ TROVEKTEN (13. sep): `logW_tro / T`. 1 eller udefinert = av,
+   * BIT-IDENTISK — da sendes nøyaktig det samme funksjonsobjektet videre som før,
+   * ikke en lukning som deler på 1.
+   *
+   * HVORFOR DEN FINNES. Troen er målt til 21,9 ± 2,5 % av veien fra gulv til det
+   * NÅBARE taket, men vekten den legger på kandidatverdenene har effektivt utvalg
+   * 5,7 av 32 (ESS/K = 0,179). Den handler altså langt skarpere enn den vet, og
+   * `troledd.md` §3b målte at de kortene den faktisk endrer er en myntkast
+   * (bedre i 20, verre i 14). Det er signaturen på en overkonfident vekt.
+   *
+   * DEN VIRKER PER SKJULT KORT. `logW_tro` er en SUM over de skjulte kortene av
+   * log p(kortet ligger der verdenen sier), så `logW/T` er nøyaktig det samme som
+   * å opphøye hver marginal i 1/T. Normaliseringen over kandidatene spiser
+   * konstanten, så temperaturskalering av trohodets kategoriske utgang og
+   * temperatur på verdensvekten er SAMME operasjon. Det er derfor den optimale T
+   * kan måles på marginalene, der fasiten er kjent uten å trekke en eneste verden.
+   *
+   * BARE TROEN, ikke `likvekt` og ikke budvekten. Likelihooden har sin egen
+   * temperatur (`~lik=…,t<temp>`), og budvekten er av i den utrullede speken.
+   */
+  readonly trotemp?: number;
   /** Budvekten på kandidatverdenene. Standard på; av når troen selv leser budet. */
   readonly budvekt?: boolean;
   /**
@@ -272,7 +294,18 @@ export function vurderPar(
    * VEKTEN PÅ KANDIDATVERDENENE. Uten `likvekt` er dette NØYAKTIG uttrykket som sto her, og
    * samme funksjonsobjekt går videre — ingen ny lukning, ingen ny gren, bit-identisk.
    */
-  const grunnvekt = opts.trovekt ?? (opts.spillvekt === true ? lagHvemLaVekt(state, spiller) : undefined);
+  const rå = opts.trovekt ?? (opts.spillvekt === true ? lagHvemLaVekt(state, spiller) : undefined);
+  /**
+   * TEMPERATUREN. `=== 1` og ikke `Math.abs(T-1) < eps`: da er `grunnvekt` NØYAKTIG det
+   * samme funksjonsobjektet som før, ikke en lukning som deler på 1. Divisjon med 1,0 er
+   * riktignok identitet i IEEE754 for alle endelige tall, men et fravær som kan LESES er
+   * verdt mer enn et fravær som må bevises — samme regel som `W0` og `vrakvekt` følger.
+   */
+  const T = opts.trotemp ?? 1;
+  if (!(Number.isFinite(T) && T > 0)) {
+    throw new Error(`vurderPar: trotemp må være et endelig tall > 0, fikk ${opts.trotemp}`);
+  }
+  const grunnvekt = T === 1 || rå === undefined ? rå : (v: Verden): number => rå(v) / T;
   const lik = opts.likvekt;
   const vekt =
     lik === undefined ? grunnvekt : (v: Verden): number => (grunnvekt === undefined ? 0 : grunnvekt(v)) + lik(v);

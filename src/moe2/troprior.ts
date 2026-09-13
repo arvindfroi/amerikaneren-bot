@@ -47,7 +47,7 @@ const GULV = 1e-4;
  * konstant og bare gjort tallene større. `medEgetVrak` regner budvinnerens eget vrak
  * som sett — hun kastet det selv. Av for `lagTrovekt`, så den er bit-identisk med før.
  */
-function skjulteKort(state: GameState, sete: number, medEgetVrak: boolean): number[] {
+export function skjulteKort(state: GameState, sete: number, medEgetVrak: boolean): number[] {
   const synlig = new Set<number>();
   for (const k of state.hender[sete] ?? []) synlig.add(kortIndeks(k));
   for (const t of state.historikk) for (const kp of t.kort) synlig.add(kortIndeks(kp.kort));
@@ -133,6 +133,24 @@ export function lagTrovektFraVisning(
 ): ((v: Verden) => number) | null {
   const skjult = skjulteKort(state, sete, true);
   if (skjult.length === 0) return null;
-  const trekk = nett.trekkFor(spillerVisning(state, sete), state.giving.antallStikk, state.regler.målPoeng, hukommelse);
-  return vektFraFordeling(nett.fordeling(trekk), skjult, sete);
+  return vektFraFordeling(fordelingFraVisning(nett, state, sete, hukommelse), skjult, sete);
+}
+
+/**
+ * FORDELINGEN vekten over bygges av — `p[kort][klasse]`, før den summeres til én log-vekt.
+ *
+ * SKILT UT 13. sep fordi kalibreringsproben (`examples/trotemp-kalibrering.ts`) må lese
+ * marginalene selv: spørsmålet «sier troen 30 %, har den rett 30 % av gangene?» stilles på
+ * fordelingen, ikke på summen. Skrevet ut på nytt der ville vært en annen fordeling den dagen
+ * `trekkFor`-argumentene endrer seg — samme feilklasse som de sju kopiene av spec-parseren.
+ */
+export function fordelingFraVisning(
+  nett: Visningstro,
+  state: GameState,
+  sete: number,
+  hukommelse: Float64Array | null,
+): number[][] {
+  return nett.fordeling(
+    nett.trekkFor(spillerVisning(state, sete), state.giving.antallStikk, state.regler.målPoeng, hukommelse),
+  );
 }

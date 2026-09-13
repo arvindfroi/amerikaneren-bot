@@ -1214,6 +1214,18 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     let tro: MlbSøketro | undefined;
     let budvekt = true;
     /**
+     * «T<temp>» BAK TROKILDEN: `~mlbu=<fil>,T3` deler trohodets log-vekt på 3 (13. sep).
+     *
+     * 1 = av, og da er speken bit-identisk med en uten knotten — `Sikkerorakel` utelater
+     * nøkkelen helt, som `W0` gjør for kanal 2.
+     *
+     * KOMMA OG STOR T, av nøyaktig de to grunnene «~lik=» skrev ned. Komma fordi en filsti
+     * kan slutte på «T3», og en halesnutt-parser ville tatt den for en temperatur i
+     * stillhet. STOR T fordi «~lik=…,t<temp>» alt eier den lille — to temperaturer i samme
+     * spek på to forskjellige vekter må ikke kunne forveksles.
+     */
+    let trotemp = 1;
+    /**
      * ============ «~lik=»: LIKELIHOOD-VEKTEN (12. sep) =====================
      *
      *   ~lik=selv[,t<temp>][,v<vindu>]      motstanderne antas å spille SOM OSS uten søk
@@ -1271,12 +1283,25 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
         const art = likPos < 0 ? "" : f.slice(0, likPos);
         const verdi = likPos < 0 ? "" : f.slice(likPos + 1);
         if (art === "mlb" || art === "mlbu") {
-          if (verdi === "") throw new Error(`Tom trokilde i «${indre}» - forventet ${art}=<fil>`);
+          // «<fil>[,T<temp>]». Uten komma er `sti` hele verdien, altså ordrett som før.
+          const [sti, ...troknotter] = verdi.split(",");
+          if (sti === undefined || sti === "") {
+            throw new Error(`Tom trokilde i «${indre}» - forventet ${art}=<fil>`);
+          }
+          for (const k of troknotter) {
+            const x = Number(k.slice(1));
+            if (!k.startsWith("T") || !Number.isFinite(x) || !(x > 0)) {
+              throw new Error(
+                `Ukjent knott «${k}» i «~${art}=${verdi}» - forventet T<temp> med temp > 0`,
+              );
+            }
+            trotemp = x;
+          }
           // ÉN SØKETRO PER AGENT: nettet deles, boka gjør ikke det — den er denne kampens.
           // Et trohode med hukommelse får boka fylt gjennom `observer` (kampbenken kaller den).
           // `bokfrø` er spillerprofilen (agent U): boka starter fra det spilleren har vist i TIDLIGERE
           // ferdige kamper i stedet for på null. Uten `okt:profil=` er den null, og stien er som før.
-          tro = new MlbSøketro(lesTronett(verdi), { bokfrø: ctx.bokfrø ?? null });
+          tro = new MlbSøketro(lesTronett(sti), { bokfrø: ctx.bokfrø ?? null });
           budvekt = art === "mlb";
         } else if (art === "lik") {
           const [kilde, ...knotter] = verdi.split(",");
@@ -1484,6 +1509,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       spillvekt,
       tro,
       budvekt,
+      // TEMPERATUREN: nøkkelen er borte ved T = 1, så speker uten «,T» er urørt.
+      ...(trotemp === 1 ? {} : { trotemp }),
       lagmål,
       roller: rolle === "alle" ? [] : [rolle],
       ...(eksaktBlad === undefined ? {} : { eksaktBlad }),
