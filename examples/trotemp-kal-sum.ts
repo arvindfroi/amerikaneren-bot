@@ -39,6 +39,9 @@ interface Rad {
   nSkjult: number;
   lw: number[];
   lwS: number;
+  /** KONTROLLARMEN: samme fordeling med seteklassene rotert ett hakk. Kan mangle i gamle filer. */
+  lwR?: number[];
+  lwRS?: number;
   nSann: number;
   nDist: number;
   mp: number[];
@@ -106,20 +109,22 @@ interface Sett {
   readonly maksP: number;
 }
 
-function byggSett(r: Rad, T: number): Sett {
-  const lw = r.lw.slice();
+function byggSett(r: Rad, T: number, kontroll = false): Sett {
+  const kilde = kontroll ? r.lwR! : r.lw;
+  const kildeS = kontroll ? r.lwRS! : r.lwS;
+  const lw = kilde.slice();
   const sann: boolean[] = new Array(lw.length).fill(false);
   if (r.nSann > 0) {
     // Alle kopier av den sanne verdenen har per konstruksjon samme log-vekt.
     let igjen = r.nSann;
     for (let i = 0; i < lw.length && igjen > 0; i++) {
-      if (lw[i] === r.lwS) {
+      if (lw[i] === kildeS) {
         sann[i] = true;
         igjen--;
       }
     }
   } else {
-    lw.push(r.lwS);
+    lw.push(kildeS);
     sann.push(true);
   }
   const maks = Math.max(...lw.map((x) => x / T));
@@ -282,6 +287,33 @@ for (const [navn, filter] of grupper) {
   console.log(
     `${navn.padEnd(15)} | ${String(g.length).padStart(5)} | ${snitt(g.map((r) => essAndel(r, 1))).toFixed(3).padStart(11)} | ${tapT(1).toFixed(4).padStart(14)} | ${best.T.toFixed(1).padStart(9)} | ${pst(snitt(sett1.map((x) => x.maksP)))} / ${pst(topp)}`,
   );
+}
+
+// ------------------------------------------------------------ 5b. kontrollarmen
+{
+  const med = rader.filter((r) => Array.isArray(r.lwR) && typeof r.lwRS === "number");
+  if (med.length > 0) {
+    const ekte = med.map((r) => byggSett(r, 1));
+    const rot = med.map((r) => byggSett(r, 1, true));
+    const tap = (x: readonly Sett[]): number => snitt(x.map((s) => -Math.log(Math.max(1e-300, s.pSann))));
+    const topp = (x: readonly Sett[]): number => x.filter((s) => s.toppSann).length / x.length;
+    const M = snitt(med.map((r) => (r.nSann > 0 ? r.lw.length : r.lw.length + 1)));
+    console.log(
+      `\n\n5b. KONTROLLARMEN — samme fordeling, seteklassene ROTERT ett hakk (n = ${med.length}).\n` +
+        `    Peker troen feil vei, skal den sanne verdenen ikke lenger finnes igjen på toppen.\n`,
+    );
+    console.log("  arm                 | log-tap | troen sier topp | FAKTISK topp | p(sann)");
+    console.log("  " + "-".repeat(74));
+    console.log(
+      `  EKTE tro            | ${tap(ekte).toFixed(4).padStart(7)} | ${pst(snitt(ekte.map((s) => s.maksP))).padStart(15)} | ${pst(topp(ekte)).padStart(12)} | ${pst(snitt(ekte.map((s) => s.pSann)))}`,
+    );
+    console.log(
+      `  ROTERT (kontroll)   | ${tap(rot).toFixed(4).padStart(7)} | ${pst(snitt(rot.map((s) => s.maksP))).padStart(15)} | ${pst(topp(rot)).padStart(12)} | ${pst(snitt(rot.map((s) => s.pSann)))}`,
+    );
+    console.log(
+      `  uniformt gulv       | ${Math.log(M).toFixed(4).padStart(7)} | ${pst(1 / M).padStart(15)} | ${pst(1 / M).padStart(12)} | ${pst(1 / M)}`,
+    );
+  }
 }
 
 // -------------------------------------------------- 6. delmengden uten duplikat

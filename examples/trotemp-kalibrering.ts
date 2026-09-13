@@ -151,6 +151,35 @@ while (s.fase !== "FERDIG" && vakt++ < 40_000 && r < RUNDER) {
       const skjult = skjulteKort(s, sete, true);
       const p = tro.fordelingFor(s, sete);
 
+      /**
+       * ============ KONTROLLARMEN: EN TRO SOM PEKER FEIL VEI ================
+       *
+       * Måler proben i det hele tatt TROENS treffsikkerhet, eller er det noe ved oppsettet
+       * som løfter den sanne verdenen uansett hva troen sier? Uten et svar på det er en høy
+       * treffrate ikke et funn, den er en mistanke — «en vakt som ikke kan feile måler
+       * ingenting».
+       *
+       * Kontrollen er den samme fordelingen med SETEKLASSENE ROTERT ett hakk (0→1→2→0,
+       * vraket urørt). Formen, skarpheten og gulvet er bit for bit de samme; bare hvem den
+       * peker på er feil. Treffer den sanne verdenen fortsatt toppen da, kommer løftet fra
+       * oppsettet og ikke fra troen, og hele målingen skal forkastes.
+       *
+       * `logVekt(…, 0)` er dessuten en uavhengig gjenskaping av `vektFraFordeling`, og den
+       * SAMMENLIKNES med den ekte vekten under. Er de ulike, har proben regnet på et annet
+       * trohode enn det som spiller, og da kaster den heller enn å rapportere.
+       */
+      const logVekt = (hender: readonly number[][], rot: number): number => {
+        const hos = new Int8Array(52).fill(-1);
+        for (let q = 0; q < hender.length; q++) for (const c of hender[q]!) if (c >= 0 && c < 52) hos[c] = q;
+        let sum = 0;
+        for (const i of skjult) {
+          const k = klasseFor(hos[i]!, sete);
+          const kr = k === TRO_KLASSER - 1 ? k : (k + rot) % (TRO_KLASSER - 1);
+          sum += Math.log(Math.max(1e-4, p[i]?.[kr] ?? 1e-4));
+        }
+        return sum;
+      };
+
       // ---------------------------------------------------------------- fasiten
       // Hvor kortene FAKTISK ligger. −1 = på ingen hånd, altså vraket/talongen (klasse 3).
       const holder = new Int8Array(52).fill(-1);
@@ -171,6 +200,13 @@ while (s.fase !== "FERDIG" && vakt++ < 40_000 && r < RUNDER) {
       const sannHender: number[][] = [];
       for (let q = 0; q < s.antallSpillere; q++) sannHender.push((s.hender[q] ?? []).map(kortTilInt));
       const lwS = trovekt({ hender: sannHender } as never);
+      // GJENSKAPINGEN MÅ STEMME, ellers måler kontrollarmen et annet trohode enn vekten.
+      if (Math.abs(logVekt(sannHender, 0) - lwS) > 1e-9) {
+        throw new Error(
+          `proben gjenskaper ikke vekten: ${logVekt(sannHender, 0)} mot ${lwS} — kontrollarmen ville målt noe annet`,
+        );
+      }
+      const lwRS = logVekt(sannHender, 1);
       // Nøkkelen som avgjør log-vekten: klassen til hvert skjulte kort, ingenting annet.
       const nøkkel = (h: readonly number[][]): string => {
         const hos = new Int8Array(52).fill(-1);
@@ -182,12 +218,14 @@ while (s.fase !== "FERDIG" && vakt++ < 40_000 && r < RUNDER) {
       // -------------------------------------------------- de 32 kandidatene, ekte strøm
       const rng = lagRng(visningsfrø(s, sete, SIK_FRØ));
       const lw: number[] = [];
+      const lwR: number[] = [];
       const nøkler = new Set<string>();
       let nSann = 0;
       for (let i = 0; i < KAND; i++) {
         const v = trekkVerden(s, sete, rng);
         if (v === null) continue;
         lw.push(r4(trovekt(v)));
+        lwR.push(r4(logVekt(v.hender, 1)));
         const nk = nøkkel(v.hender);
         nøkler.add(nk);
         if (nk === sannNøkkel) nSann++;
@@ -204,6 +242,8 @@ while (s.fase !== "FERDIG" && vakt++ < 40_000 && r < RUNDER) {
           lovlige: lovligeKort(s, sete).length,
           lw,
           lwS: r4(lwS),
+          lwR,
+          lwRS: r4(lwRS),
           nSann,
           nDist: nøkler.size,
           mp,
