@@ -166,10 +166,12 @@ if (SPEK.length > 0) {
   const spek = SPEK.flatMap((f) => les(f));
   const sk = new Map(spek.map((r) => [`${r.spill}|${r.runde}`, r]));
   const par = rader.filter((r) => sk.has(`${r.spill}|${r.runde}`)).map((r) => ({ ...r, s: sk.get(`${r.spill}|${r.runde}`) }));
-  const kontroll = par.filter((r) => Math.abs(r.s.mP - (r.dP === undefined ? NaN : r.s.mP)) > 1e-9).length;
-  L.push(`SØKETS BIDRAG (spek-armen minus friløpet med samme nett, parret på runde; ${par.length} runder, kontroll ${kontroll})`);
-  const tot = klynge(par, (r) => r.s.bP - r.dP - (r.s.mP - r.s.mP));
-  void tot;
+  // KONTROLL: menneskesiden må være bit-identisk i de to armene, ellers er differansen ikke parret.
+  const ulikMenneske = par.filter((r) => Math.abs(r.s.mP - r.mP) > 1e-12).length;
+  L.push(
+    `SØKETS BIDRAG (spek-armen minus friløpet med samme nett, parret på runde; ${par.length} runder; ` +
+      `kontroll: ${ulikMenneske} runder med ulik menneskeside, må være 0)`,
+  );
   const d = klynge(par, (r) => r.s.bP - r.s.mP - r.dP);
   L.push(`  søk − uten søk  ΔP ${fmt(d.pt)} ± ${d.se.toFixed(2)} pp/runde`);
   for (const b of ORDEN) {
