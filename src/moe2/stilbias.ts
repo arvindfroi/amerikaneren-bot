@@ -320,15 +320,127 @@ export function rundensResidualer(
  */
 export const BEFOLKNING_RESIDUAL = -0.0976;
 
+/**
+ * ============ OG KONSTANTEN VAR MÅLT PÅ FEIL STAKK =====================
+ *
+ * 13. sep: `okt-sonde.md` målte nullpunktet i tre haler, med fire IDENTISKE
+ * agenter i hver. Konstanten treffer bare den ene den ble målt på:
+ *
+ *     abmpf + d7alle   (der den ble målt)   snitt −0,1055   0 av 4 flagget
+ *     abmp  + kort-7   (løkka)              snitt −0,0721   2 av 4 flagget
+ *     abmp  + kort-8   (løkka)              snitt −0,0836   1 av 4 flagget
+ *
+ * Avviket er 0,014–0,025, og det er SYSTEMATISK: det krymper ikke med `n`,
+ * mens SE gjør. Altså
+ *
+ *     z = |snitt − konstant| / SE  ~  avvik·√n / σ   ->   vokser uten grense
+ *
+ * Detektoren blir dermed MER sikker på at fire like kopier av samme bot har
+ * hver sin spillestil, jo lenger de spiller. Det er ikke en grensesak som kan
+ * dempes med en høyere port — porten passeres til slutt uansett hvor den står.
+ *
+ * Og feilen er strukturell, ikke et tall som må oppdateres: løkka bytter
+ * kortnett hver iterasjon. En konstant kalibrert på iterasjon 9 er feil i
+ * iterasjon 10.
+ */
+export type Nullform =
+  /** Nullpunktet er den målte konstanten. Formen som var her til 13. sep. */
+  | "global"
+  /** Nullpunktet er BORDETS EGNE andre seter, i samme kamp. */
+  | "bord";
+
+/**
+ * Slår flere anslag sammen til ett — summer, kvadratsummer og tellere er
+ * additive, så dette ER utvalget av alle observasjonene under ett.
+ */
+export const slåSammen = (xs: readonly Biasanslag[]): Biasanslag => {
+  let sum = 0;
+  let kvadrat = 0;
+  let n = 0;
+  for (const x of xs) {
+    sum += x.sum;
+    kvadrat += x.kvadrat;
+    n += x.n;
+  }
+  return { sum, kvadrat, n };
+};
+
+/**
+ * ============ DEN ÆRLIGE FORMEN: MOT BORDETS EGEN GRUNNLINJE ===========
+ *
+ * `forskjell = snitt(eget) − snitt(de tre andre)`, med SE for en DIFFERANSE:
+ *
+ *     SE = √(SE_eget² + SE_andre²)
+ *
+ * Tre egenskaper følger, og alle tre er det konstanten manglet:
+ *
+ *   NULLPUNKTET KAN IKKE BLI FORELDET. Bytter løkka kortnett, flytter bordets
+ *   grunnlinje seg sammen med setet. Differansen er uendret. Konstanten måtte
+ *   vært målt på nytt for hver stakk, hver konvensjonshale og hvert nett — og
+ *   ingen ville merket at den var utdatert, for feilen er stum.
+ *
+ *   z VOKSER IKKE LENGER UTEN GRENSE. Med fire like er `E[forskjell] = 0`
+ *   EKSAKT, ikke omtrent: begge ledd er trekninger fra samme fordeling. Da er
+ *   z ~ O(1) uansett hvor lenge de spiller, i stedet for ~avvik·√n.
+ *
+ *   REFERANSENS EGEN USIKKERHET TELLER MED. `SE_andre` er med i nevneren, så
+ *   et bord som selv spriker krever mer bevis. Konstanten lot som om
+ *   nullpunktet var kjent uten feilmargin.
+ *
+ * ================= HVORFOR IKKE MEDIANEN, SOM FØRSTE UTGAVE ============
+ *
+ * Medianreferansen ble forlatt fordi K6-prøven har TRE trumftrekkere av fire
+ * seter: da er medianen selv en trumftrekker, alle ser normale ut, og
+ * detektoren finner ingenting.
+ *
+ * Det SAMMENSLÅTTE snittet har ikke den feilen, fordi det ikke er et forsøk på
+ * å finne «den typiske spilleren». Med tre trumftrekkere trekkes referansen
+ * mot vanen, og differansen krymper — men den forsvinner ikke, den skifter
+ * bare hvem som ser mest særegen ut. Målt i `analyse/`: vanen fyrer fortsatt
+ * klart. Medianen ga 0; dette gir et tall.
+ *
+ * Poolingen er med vilje over OBSERVASJONER og ikke over seter: et sete med få
+ * observasjoner skal ikke veie like tungt som ett med mange.
+ */
+export function stilForskjellForm(
+  eget: Biasanslag,
+  andre: readonly Biasanslag[],
+  form: Nullform,
+): { forskjell: number; se: number; sikker: boolean } {
+  if (eget.n < 2) return { forskjell: 0, se: Infinity, sikker: false };
+
+  if (form === "global") {
+    const forskjell = snitt(eget) - BEFOLKNING_RESIDUAL;
+    const se = standardfeil(eget);
+    return { forskjell, se, sikker: Number.isFinite(se) && Math.abs(forskjell) >= 2 * se };
+  }
+
+  const ref = slåSammen(andre);
+  // Bordet må selv ha en grunnlinje. Uten den finnes ingen referanse, og å
+  // falle tilbake på konstanten ville gjeninnført nøyaktig feilen.
+  if (ref.n < 2) return { forskjell: 0, se: Infinity, sikker: false };
+  const seE = standardfeil(eget);
+  const seR = standardfeil(ref);
+  const se = Math.sqrt(seE * seE + seR * seR);
+  const forskjell = snitt(eget) - snitt(ref);
+  return {
+    forskjell,
+    se,
+    sikker: Number.isFinite(se) && se > 0 && Math.abs(forskjell) >= 2 * se,
+  };
+}
+
+/**
+ * FORMEN SOM ER I BRUK. Byttes her, ett sted, så begge former alltid finnes
+ * side om side og kan måles mot hverandre i stedet for å bli husket.
+ */
+export const NULLFORM: Nullform = "global";
+
 export function stilForskjell(
   eget: Biasanslag,
   andre: readonly Biasanslag[],
 ): { forskjell: number; se: number; sikker: boolean } {
-  if (eget.n < 2) return { forskjell: 0, se: Infinity, sikker: false };
-  void andre;
-  const forskjell = snitt(eget) - BEFOLKNING_RESIDUAL;
-  const se = standardfeil(eget);
-  return { forskjell, se, sikker: Number.isFinite(se) && Math.abs(forskjell) >= 2 * se };
+  return stilForskjellForm(eget, andre, NULLFORM);
 }
 
 /**

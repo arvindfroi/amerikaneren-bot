@@ -38,8 +38,14 @@ import { dirname } from "node:path";
 import { opprettSpill, utfør } from "../src/index.ts";
 import type { GameState, Handling } from "../src/motor.ts";
 import { ADAMS_MAALT, lagIndre, tall } from "../src/moe2/agentspek.ts";
-import { Økt } from "../src/moe2/okt.ts";
-import { BEFOLKNING_RESIDUAL, snitt, standardfeil } from "../src/moe2/stilbias.ts";
+import { MIN_RUNDER, Økt } from "../src/moe2/okt.ts";
+import {
+  BEFOLKNING_RESIDUAL,
+  snitt,
+  standardfeil,
+  stilForskjellForm,
+  type Nullform,
+} from "../src/moe2/stilbias.ts";
 import { lagTrumftrekker, type Spekagent } from "./k6-vaner.ts";
 
 // ===========================================================================
@@ -59,10 +65,21 @@ const USOKT = `okt:${VR}:profil:${BUD}:${NETT}`;
 const LOOP_HALE = "vakt:abmp:e1:e1-modell/kort-7.bin";
 const LOOPNAER = `okt:${VR}:profil:${BUD}:${LOOP_HALE}`;
 
+/** Loekkas hale med kort-8 — iterasjon 9s eget nett. */
+const LOOP_HALE8 = "vakt:abmp:e1:e1-modell/kort-8.bin";
+const LOOPNAER8 = `okt:${VR}:profil:${BUD}:${LOOP_HALE8}`;
+/** Loekkas ORDRETTE spek (`adams-max-loop-v9.sh:161`). Dyr — 8 runder tar ~215 s. */
+const LOOPSPEK =
+  "okt:vr:e1-modell/vrak-8.bin@e1-modell/etterlyst-8.bin:telrd:eks:3Lt2000:profil:" +
+  "sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-8.bin:budq:e1-modell/budq-8.bin:" +
+  "vakt:abmp:e1:e1-modell/kort-8.bin";
+
 const ARMER: Record<string, string> = {
   full: FULL,
   usokt: USOKT,
   loopnaer: LOOPNAER,
+  loopnaer8: LOOPNAER8,
+  loopspek: LOOPSPEK,
 };
 
 /** Motstandere: hvem de tre andre setene er. */
@@ -93,6 +110,17 @@ interface Punkt {
   readonly sikker: boolean;
   /** `max(0, |forskjell| − 2·SE)` — det `stilvri` faktisk returnerer. */
   readonly krympet: number;
+  /**
+   * SAMME PUNKT, MÅLT MED BORDET SOM NULLPUNKT.
+   *
+   * Regnet i samme gjennomløp, på nøyaktig samme bokføring, så de to formene
+   * ikke kan skille lag på annet enn formelen. Å kjøre dem i hver sin kjøring
+   * ville blandet inn ulike kortstokker.
+   */
+  readonly zB: number;
+  readonly sikkerB: boolean;
+  readonly krympetB: number;
+  readonly forskjellB: number;
 }
 
 interface Kjøring {
@@ -151,6 +179,10 @@ function spill(
           const b = økt.bok.biasFor(sete);
           const d = økt.bok.stil(sete);
           const z = Number.isFinite(d.se) && d.se > 0 ? Math.abs(d.forskjell) / d.se : 0;
+          // BORDET SOM NULLPUNKT, samme bokføring, samme øyeblikk.
+          const andre = [0, 1, 2, 3].filter((p) => p !== sete).map((p) => økt.bok.biasFor(p));
+          const dB = stilForskjellForm(b, andre, "bord");
+          const zB = Number.isFinite(dB.se) && dB.se > 0 ? Math.abs(dB.forskjell) / dB.se : 0;
           punkter.push({
             kamp: k,
             runde: r,
@@ -163,6 +195,10 @@ function spill(
             z,
             sikker: d.sikker,
             krympet: d.sikker && Number.isFinite(d.se) ? Math.max(0, Math.abs(d.forskjell) - 2 * d.se) : 0,
+            zB,
+            sikkerB: dB.sikker,
+            krympetB: dB.sikker && Number.isFinite(dB.se) ? Math.max(0, Math.abs(dB.forskjell) - 2 * dB.se) : 0,
+            forskjellB: dB.forskjell,
           });
         }
       }
@@ -319,6 +355,135 @@ function endrerValg(
 }
 
 // ===========================================================================
+// DEL D — KALIBRERINGEN: hvilken form lyver minst mot fire IDENTISKE agenter?
+// ===========================================================================
+
+/**
+ * De to formene, lest ut av det SAMME punktet. Begge er regnet i samme
+ * gjennomløp på samme bokføring, så en forskjell mellom dem kan bare komme fra
+ * formelen — ikke fra ulike kortstokker, ulike runder eller ulik `n`.
+ */
+interface Form {
+  readonly navn: string;
+  readonly z: (p: Punkt) => number;
+  readonly sikker: (p: Punkt) => boolean;
+  readonly krympet: (p: Punkt) => number;
+}
+
+const FORMER: readonly Form[] = [
+  { navn: "global", z: (p) => p.z, sikker: (p) => p.sikker, krympet: (p) => p.krympet },
+  { navn: "bord", z: (p) => p.zB, sikker: (p) => p.sikkerB, krympet: (p) => p.krympetB },
+];
+
+/**
+ * KLONPRØVEN, over flere frø.
+ *
+ * Ett frø sier ingenting om en detektor som skal være stille: en form kan være
+ * heldig i én kortstokk. Kravet er at fire IDENTISKE agenter ikke flagges i
+ * NOEN av dem — og det tallet er bare meningsfullt over et knippe frø.
+ */
+function kalibrer(
+  navn: string,
+  armSpek: string,
+  motstander: keyof typeof MOTSTANDERE,
+  runder: number,
+  kamper: number,
+  frøBase: number,
+  frøer: number,
+): void {
+  const kjøringer: { frø: number; k: Kjøring }[] = [];
+  for (let i = 0; i < frøer; i++) {
+    const frø = frøBase + i * 1_000_003;
+    kjøringer.push({ frø, k: spill(armSpek, motstander, runder, kamper, frø) });
+  }
+  const alle = kjøringer.flatMap((x) => x.k.punkter);
+
+  skriv("");
+  skriv(`=== DEL D: kalibrering — ${navn} ===`);
+  skriv(`  ${frøer} froe x ${kamper} kamper x ${runder} runder`);
+  skriv(`  runder spilt totalt       ${kjøringer.reduce((a, x) => a + x.k.runder, 0)}`);
+  skriv(`  atferdsmodell satt        ${kjøringer.every((x) => x.k.harAtferd) ? "JA" : "*** NEI ***"}`);
+
+  skriv("");
+  skriv("  form     gulv   punkter   over porten          p99 z    maks z   maks krympet");
+  for (const f of FORMER) {
+    for (const gulv of [false, true]) {
+      const pk = gulv ? alle.filter((p) => p.runde >= MIN_RUNDER) : alle;
+      const z = pk.map(f.z).filter((x) => Number.isFinite(x));
+      const over = pk.filter(f.sikker).length;
+      skriv(
+        `  ${f.navn.padEnd(7)} ${(gulv ? `r>=${MIN_RUNDER}` : "nei").padStart(5)}   ` +
+          `${String(pk.length).padStart(7)}   ` +
+          `${`${over} (${((100 * over) / Math.max(1, pk.length)).toFixed(1)} %)`.padEnd(18)}` +
+          `${pst(z, 99).toFixed(2).padStart(6)}    ${Math.max(0, ...z).toFixed(2).padStart(6)}   ` +
+          `${Math.max(0, ...pk.map(f.krympet)).toFixed(4).padStart(12)}`,
+      );
+    }
+  }
+
+  /**
+   * SELVE PRØVEN. To lesninger, fordi de svarer på ulike ting:
+   *
+   *   SLUTT      flagget noen ved siste avlesning? Det er tilstanden en lang
+   *              kamp ender i, og der den feilkalibrerte formen er verst.
+   *   NOENSINNE  passerte noen porten på noe tidspunkt? Strengere, og det er
+   *              den som svarer «kan vrien ha fyrt i denne kampen».
+   */
+  skriv("");
+  skriv(`  KLONPROEVEN — seter over porten (av 4). Kravet er 0.`);
+  skriv("  froe            global slutt   global noensinne   bord slutt   bord noensinne");
+  const sum = { gs: 0, gn: 0, bs: 0, bn: 0 };
+  for (const { frø, k } of kjøringer) {
+    const gulvet = k.punkter.filter((p) => p.runde >= MIN_RUNDER);
+    let gs = 0;
+    let gn = 0;
+    let bs = 0;
+    let bn = 0;
+    for (let sete = 0; sete < 4; sete++) {
+      const mine = gulvet.filter((p) => p.sete === sete);
+      const siste = mine[mine.length - 1];
+      if (siste === undefined) continue;
+      if (siste.sikker) gs++;
+      if (siste.sikkerB) bs++;
+      if (mine.some((p) => p.sikker)) gn++;
+      if (mine.some((p) => p.sikkerB)) bn++;
+    }
+    sum.gs += gs;
+    sum.gn += gn;
+    sum.bs += bs;
+    sum.bn += bn;
+    skriv(
+      `  ${String(frø).padEnd(14)}  ${String(gs).padStart(11)}   ${String(gn).padStart(16)}   ` +
+        `${String(bs).padStart(10)}   ${String(bn).padStart(14)}`,
+    );
+  }
+  const N = 4 * frøer;
+  skriv(
+    `  SUM (av ${String(N).padEnd(6)}) ${String(sum.gs).padStart(11)}   ${String(sum.gn).padStart(16)}   ` +
+      `${String(sum.bs).padStart(10)}   ${String(sum.bn).padStart(14)}`,
+  );
+
+  /**
+   * VOKSER z MED n? Det er signaturen på et feil nullpunkt: et systematisk
+   * avvik krymper ikke med flere observasjoner, mens SE gjør, så z ~ avvik·√n.
+   * En riktig kalibrert form ligger flatt uansett hvor lenge de spiller.
+   */
+  skriv("");
+  skriv("  z-VEKST — snitt z per runde over alle froe (flat = kalibrert, stigende = feil nullpunkt)");
+  skriv("  runde    n/sete   global   bord");
+  const maksRunde = Math.max(0, ...alle.map((p) => p.runde));
+  for (let r = 0; r <= maksRunde; r++) {
+    const pr = alle.filter((p) => p.runde === r);
+    if (pr.length === 0) continue;
+    if (r % 5 !== 0 && r !== maksRunde) continue;
+    skriv(
+      `  ${String(r).padStart(5)}   ${String(Math.round(middelAv(pr.map((p) => p.n)))).padStart(7)}   ` +
+        `${middelAv(pr.map((p) => p.z)).toFixed(2).padStart(6)}   ${middelAv(pr.map((p) => p.zB)).toFixed(2).padStart(4)}`,
+    );
+  }
+}
+
+// ===========================================================================
 // Kjoeringen
 // ===========================================================================
 
@@ -329,6 +494,7 @@ function kjør(): void {
   let runder = 26;
   let kamper = 1;
   let frø = 13_000_777;
+  let frøer = 1;
   let utFil = "";
 
   for (let i = 2; i < process.argv.length; i++) {
@@ -340,6 +506,7 @@ function kjør(): void {
     else if (a === "--runder") runder = tall(v, runder, "--runder");
     else if (a === "--kamper") kamper = tall(v, kamper, "--kamper");
     else if (a === "--froe") frø = tall(v, frø, "--froe");
+    else if (a === "--froeer") frøer = tall(v, frøer, "--froeer");
     else if (a === "--ut") utFil = v ?? utFil;
   }
 
@@ -373,8 +540,10 @@ function kjør(): void {
     skriv(`  valg der stilvri != null  ${r.sikreValg} (porten passert for minst ett motsete)`);
     skriv(`  maks z over motsetene     ${r.maksZ.toFixed(2)} (porten er 2,0)`);
     skriv(`  observasjoner i boka      ${r.bokN}`);
+  } else if (del === "d") {
+    kalibrer(`${arm} mot ${motstander}`, armSpek, motstander as never, runder, kamper, frø, frøer);
   } else {
-    throw new Error(`Ukjent del «${del}» (a, c)`);
+    throw new Error(`Ukjent del «${del}» (a, c, d)`);
   }
   skriv("");
   skriv(`kjoeretid ${Math.round((Date.now() - t0) / 1000)} s`);
