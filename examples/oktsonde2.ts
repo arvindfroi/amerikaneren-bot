@@ -41,6 +41,7 @@ import { ADAMS_MAALT, lagIndre, tall } from "../src/moe2/agentspek.ts";
 import { MIN_RUNDER, Økt } from "../src/moe2/okt.ts";
 import {
   BEFOLKNING_RESIDUAL,
+  NULLFORM,
   snitt,
   standardfeil,
   stilForskjellForm,
@@ -82,8 +83,15 @@ const ARMER: Record<string, string> = {
   loopspek: LOOPSPEK,
 };
 
-/** Motstandere: hvem de tre andre setene er. */
-const MOTSTANDERE: Record<string, { spek: string; vane: boolean }> = {
+/**
+ * Motstandere: hvem de tre andre setene er.
+ *
+ * `bare` gir vanen til NØYAKTIG ETT sete; de øvrige er kloner av armen. Det er
+ * stillingen der en bordrelativ referanse betaler sin pris: den ene som avviker
+ * drar referansen til de tre andre, så tilskuerne leses som avvikende motsatt
+ * vei. Målt, ikke antatt — se `--del d`.
+ */
+const MOTSTANDERE: Record<string, { spek: string; vane: boolean; bare?: number }> = {
   // Fire like — koblingssjekkens egen stilling.
   like: { spek: "", vane: false },
   // Forrige gjennomgangs «vane»: `d` = ikkeDraTrumf, draTerskel 3.
@@ -91,6 +99,8 @@ const MOTSTANDERE: Record<string, { spek: string; vane: boolean }> = {
   // Den vanen detektoren ER maalt mot: +0,629 ± 0,036 = 17 SE.
   trumftrekker: { spek: ADAMS_MAALT, vane: true },
   noytral: { spek: ADAMS_MAALT, vane: false },
+  // ÉN trumftrekker (sete 1), to kloner. Prisen paa en bordrelativ referanse.
+  envane: { spek: ADAMS_MAALT, vane: true, bare: 1 },
 };
 
 // ===========================================================================
@@ -150,7 +160,12 @@ function spill(
   for (let i = 0; i < 4; i++) {
     if (m.spek === "") seter.push(lagIndre(kjerne, { økt }) as unknown as Spekagent);
     else if (i === 0) seter.push(lagIndre(kjerne, { økt }) as unknown as Spekagent);
-    else seter.push(m.vane ? lagTrumftrekker(m.spek) : (lagIndre(m.spek) as unknown as Spekagent));
+    // `bare`: alle andre enn det ene setet er kloner av armen, ikke motstandere.
+    else if (m.bare !== undefined && i !== m.bare) {
+      seter.push(lagIndre(kjerne, { økt }) as unknown as Spekagent);
+    } else {
+      seter.push(m.vane ? lagTrumftrekker(m.spek) : (lagIndre(m.spek) as unknown as Spekagent));
+    }
   }
 
   const punkter: Punkt[] = [];
@@ -177,10 +192,18 @@ function spill(
         valg++;
         for (let sete = 0; sete < 4; sete++) {
           const b = økt.bok.biasFor(sete);
-          const d = økt.bok.stil(sete);
-          const z = Number.isFinite(d.se) && d.se > 0 ? Math.abs(d.forskjell) / d.se : 0;
-          // BORDET SOM NULLPUNKT, samme bokføring, samme øyeblikk.
           const andre = [0, 1, 2, 3].filter((p) => p !== sete).map((p) => økt.bok.biasFor(p));
+          /**
+           * BEGGE FORMER KALLES EKSPLISITT, ikke via `bok.stil`.
+           *
+           * Sto `const d = økt.bok.stil(sete)` for den globale kolonnen. Den
+           * går gjennom `NULLFORM`, så i det øyeblikket produksjonen byttet
+           * form, målte BEGGE kolonnene det samme — og tabellen så ut som om
+           * de to formene var identiske. Sammenligningen må være uavhengig av
+           * hva produksjonen tilfeldigvis er koblet til.
+           */
+          const d = stilForskjellForm(b, andre, "global");
+          const z = Number.isFinite(d.se) && d.se > 0 ? Math.abs(d.forskjell) / d.se : 0;
           const dB = stilForskjellForm(b, andre, "bord");
           const zB = Number.isFinite(dB.se) && dB.se > 0 ? Math.abs(dB.forskjell) / dB.se : 0;
           punkter.push({
@@ -464,6 +487,27 @@ function kalibrer(
   );
 
   /**
+   * PER SETE: hvor stor vri fikk hvert sete, som det STØRSTE over frøene?
+   *
+   * Det er her prisen på en bordrelativ referanse blir synlig. Sitter det én
+   * avviker ved bordet, drar hun referansen til de tre andre, og tilskuerne får
+   * et utslag de ikke har fortjent. Tallet som betyr noe er FORHOLDET mellom
+   * vanens utslag og den største tilskuerens — det er det som avgjør om
+   * vridningen treffer den særegne eller alle.
+   */
+  skriv("");
+  skriv("  PER SETE — stoerste utslag (krympet) over froe, etter rundegulvet");
+  skriv("  sete   global   bord");
+  for (let sete = 0; sete < 4; sete++) {
+    const mine = alle.filter((p) => p.sete === sete && p.runde >= MIN_RUNDER);
+    if (mine.length === 0) continue;
+    skriv(
+      `  ${String(sete).padStart(4)}   ${Math.max(0, ...mine.map((p) => p.krympet)).toFixed(4).padStart(6)}   ` +
+        `${Math.max(0, ...mine.map((p) => p.krympetB)).toFixed(4).padStart(6)}`,
+    );
+  }
+
+  /**
    * VOKSER z MED n? Det er signaturen på et feil nullpunkt: et systematisk
    * avvik krymper ikke med flere observasjoner, mens SE gjør, så z ~ avvik·√n.
    * En riktig kalibrert form ligger flatt uansett hvor lenge de spiller.
@@ -481,6 +525,52 @@ function kalibrer(
         `${middelAv(pr.map((p) => p.z)).toFixed(2).padStart(6)}   ${middelAv(pr.map((p) => p.zB)).toFixed(2).padStart(4)}`,
     );
   }
+}
+
+// ===========================================================================
+// DEL E — AV ER AV: uten «okt:» skal alt vaere bit-identisk
+// ===========================================================================
+
+/**
+ * En FNV-1a-hash over hele handlingsrekken i et oppsett.
+ *
+ * Hvorfor en hash og ikke «endret den et valg»: en endring i nullpunktet kan
+ * flytte ETT kort i runde 19 og ellers ingenting. En teller som ser på siste
+ * stilling ville sagt «likt». Hashen fanger hvert eneste bud, vrak og kort i
+ * rekkefølge, så den kan ikke gå glipp av noe — og den er ett tall å sammenligne.
+ */
+function trajektorie(spek: string, runder: number, kamper: number, frøBase: number): {
+  hash: string;
+  n: number;
+} {
+  const seter = [0, 1, 2, 3].map(() => lagIndre(spek) as unknown as Spekagent);
+  let h = 2_166_136_261 >>> 0;
+  let n = 0;
+  for (let k = 0; k < kamper; k++) {
+    for (const a of seter) a.nyKamp();
+    let s: GameState = opprettSpill({ antallSpillere: 4, målPoeng: 9999 }, frøBase + k * 7717);
+    let vakt = 0;
+    let r = 0;
+    while (s.fase !== "FERDIG" && vakt++ < 200_000 && r < runder) {
+      if (s.fase === "RUNDE_SLUTT") {
+        for (const a of seter) a.observer?.(s);
+        r++;
+        s = utfør(s, { type: "NESTE" }).state;
+        continue;
+      }
+      const iTur = s.fase === "VRAK" || s.fase === "VELG" ? s.budvinner : s.iTur;
+      if (iTur === null || iTur === undefined) break;
+      const hd = seter[iTur]!.velgHandling(s);
+      const str = JSON.stringify(hd);
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16_777_619) >>> 0;
+      }
+      n++;
+      s = utfør(s, hd).state;
+    }
+  }
+  return { hash: h.toString(16).padStart(8, "0"), n };
 }
 
 // ===========================================================================
@@ -542,6 +632,18 @@ function kjør(): void {
     skriv(`  observasjoner i boka      ${r.bokN}`);
   } else if (del === "d") {
     kalibrer(`${arm} mot ${motstander}`, armSpek, motstander as never, runder, kamper, frø, frøer);
+  } else if (del === "e") {
+    const uten = armSpek.startsWith("okt:") ? armSpek.slice(4) : armSpek;
+    const med = trajektorie(armSpek, runder, kamper, frø);
+    const u = trajektorie(uten, runder, kamper, frø);
+    skriv("");
+    skriv(`=== DEL E: AV ER AV (${runder} runder x ${kamper} kamper) ===`);
+    skriv(`  NULLFORM i bruk           ${NULLFORM}`);
+    skriv(`  med «okt:»   ${med.hash}   (${med.n} handlinger)`);
+    skriv(`  uten «okt:»  ${u.hash}   (${u.n} handlinger)`);
+    skriv("");
+    skriv(`  Hashene skal sammenlignes MELLOM formene, ikke mot hverandre:`);
+    skriv(`  «uten okt:» maa vaere IDENTISK foer og etter at nullpunktet byttes.`);
   } else {
     throw new Error(`Ukjent del «${del}» (a, c, d)`);
   }

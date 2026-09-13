@@ -433,8 +433,34 @@ export function stilForskjellForm(
 /**
  * FORMEN SOM ER I BRUK. Byttes her, ett sted, så begge former alltid finnes
  * side om side og kan måles mot hverandre i stedet for å bli husket.
+ *
+ * ================= MÅLINGEN SOM AVGJORDE (13. sep) =====================
+ *
+ * Fire IDENTISKE agenter, 5 frø × 3 kamper × 26 runder per hale, begge former
+ * regnet i SAMME gjennomløp på samme bokføring (`oktsonde2.ts --del d`):
+ *
+ *     hale              global               bord
+ *     abmpf+d7alle       3,1 %   flat        4,1 %   flat
+ *     abmp+kort-7       31,1 %   STIGER      2,2 %   flat
+ *     abmp+kort-8       19,6 %   STIGER      4,5 %   flat
+ *
+ * Med konstanten avhenger detektorens oppførsel av hvilken stakk som spiller,
+ * og på løkkas haler vokser z med `n`. Med bordet ligger alle tre halene på
+ * 2–5 %, flatt. Formen oppfører seg likt uansett stakk — det er poenget.
+ *
+ * Og den er ikke blitt blind: mot tre trumftrekkere fyrer bord i **97,3 %** av
+ * punktene mot globals 89,9 %, med utslaget bevart (0,6585 mot 0,6521).
+ *
+ * ================= HVORFOR IKKE EN KONSTANT PER HALE ===================
+ *
+ * Fordi målingen avliver den: på den halen konstanten ER kalibrert for, er de
+ * to formene like (3,1 % mot 4,1 %). En konstant per hale kjøper altså
+ * ingenting bordet ikke allerede gir, og betaler med et kalibreringssteg per
+ * stakk — som allerede har sviktet stille én gang. Løkka byttet `kort-7` til
+ * `kort-8`, halene måler −0,0721 mot −0,0836, og en konstant kalibrert på den
+ * første er 0,0115 feil for den andre. Iterasjon 10 får et nytt nett igjen.
  */
-export const NULLFORM: Nullform = "global";
+export const NULLFORM: Nullform = "bord";
 
 export function stilForskjell(
   eget: Biasanslag,

@@ -139,6 +139,30 @@ export class Økt {
    * noe: å vri på en stil vi ikke har sett er verre enn å la være.
    */
   stilvri(sete: number): number | null {
+    /**
+     * ============ SAMME RUNDETERSKEL SOM `aggressivitet` ================
+     *
+     * `aggressivitet` har krevd `MIN_RUNDER = 4` hele tiden. `stilvri` krevde
+     * bare `d.sikker`, og kunne derfor vri søket fra runde 1.
+     *
+     * Det er ikke en teoretisk åpning. `standardfeil` bruker `n − 1` og
+     * kollapser for små `n`: klumper residualene seg tilfeldig i de første ni
+     * observasjonene, eksploderer z. Målt topp i runde 1 med fire IDENTISKE
+     * agenter:
+     *
+     *     abmpf + d7alle    z = 7,13     (faller til 2,88 med gulvet)
+     *     abmp  + kort-8    z = 13,19    (faller til 4,27 med gulvet)
+     *
+     * Det er rene småutvalgsspøkelser, og de forsvinner helt med gulvet. Fire
+     * runder er billig: hukommelsen har uansett ingenting å si før den har
+     * sett noen runder, og `aggressivitet` har alltid ventet like lenge.
+     *
+     * Terskelen ligger på SAMME teller som `aggressivitet` bruker
+     * (`bok.runder` = `bydde.n`, som øker hver observerte runde) — ikke på
+     * `bias.n`. To tellere for «har vi sett nok» er nøyaktig feilklassen
+     * `profilagent.ts:135` dokumenterer.
+     */
+    if (this.bok.runder(sete) < MIN_RUNDER) return null;
     const d = this.bok.stil(sete);
     if (!d.sikker || !Number.isFinite(d.se)) return null;
 
