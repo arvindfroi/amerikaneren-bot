@@ -102,8 +102,14 @@ const INDRE = "budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin";
 
 /** Sikkerorakelets standardfrø (`sikkerorakel.ts:275`), så `D` gir samme strøm som i boten. */
 const SIK_FRØ = 20_260_804;
-const VERDENER = 48;
-const KANDIDATER = 32;
+/**
+ * VERDENER SOM AKSE (13. sep). Støygulvet — hvor ofte argmaks skifter kort når BARE
+ * verdenstrekket endres — er hele funnet i denne fila, og det gulvet er en funksjon av
+ * hvor mange verdener som midles. Derfor er tallet en knott og ikke en konstant: uten
+ * den kan ingen si om flere verdener gjør troen synlig i kortet.
+ */
+const VERDENER = tall(arg("--verdener", "48"), 48, "verdener");
+const KANDIDATER = tall(arg("--kandidater", "32"), 32, "kandidater");
 const EKSAKT_BLAD = 3;
 const SIGMA_PORT = 0.5;
 
