@@ -221,8 +221,8 @@ function rapporter(navn: string, k: Kjøring): void {
     if (pr.length === 0) continue;
     const zr = pr.map((p) => p.z);
     skriv(
-      `  ${String(r).padStart(5)}   ${String(Math.round(snitt(pr.map((p) => p.n)))).padStart(6)}   ` +
-        `${Math.max(0, ...zr).toFixed(2).padStart(6)}   ${snitt(zr).toFixed(2).padStart(7)}   ` +
+      `  ${String(r).padStart(5)}   ${String(Math.round(middelAv(pr.map((p) => p.n)))).padStart(6)}   ` +
+        `${Math.max(0, ...zr).toFixed(2).padStart(6)}   ${middelAv(zr).toFixed(2).padStart(7)}   ` +
         `${String(pr.filter((p) => p.sikker).length).padStart(5)}`,
     );
   }
