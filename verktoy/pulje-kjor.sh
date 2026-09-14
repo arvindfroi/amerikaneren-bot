@@ -30,8 +30,23 @@ UTMAPPE="analyse"
 LOGGMAPPE="D:/amb-grp/loop"
 
 # ---- VAKTEN -------------------------------------------------------------
-ALT=$(tasklist /FI "IMAGENAME eq node.exe" /FO CSV 2>/dev/null | grep -c "node.exe" || true)
-KJORER=$(wmic process where "name='node.exe'" get commandline 2>/dev/null | grep -c "examples/pulje.ts" || true)
+#
+# POWERSHELL, IKKE `wmic`/`tasklist`. Begge de to sviktet på denne maskinen 14. sep:
+# `wmic` er fjernet i nyere Windows 11, og en `tasklist | grep -c`-telling rapporterte
+# 0 mens 28 node-prosesser FAKTISK kjørte. En vakt som svarer «ingen kjører» når det
+# kjører 28 er verre enn ingen vakt — den er en falsk trygghet foran nøyaktig den
+# doblingen den skal stanse. `Get-CimInstance` er verifisert å virke her.
+ALT=$(powershell -NoProfile -Command "@(Get-Process node -ErrorAction SilentlyContinue).Count" 2>/dev/null | tr -d '\r')
+KJORER=$(powershell -NoProfile -Command \
+  "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*examples/pulje.ts*' }).Count" \
+  2>/dev/null | tr -d '\r')
+# FEILER VAKTEN, SKAL VI IKKE STARTE. Et tomt svar betyr at vi ikke VET, og «vet ikke»
+# må behandles som «kanskje» når prisen er en lydløst doblet måling.
+if ! [ "${KJORER:-}" -eq "${KJORER:-}" ] 2>/dev/null; then
+  echo "NEKTER Å STARTE: prosessvakten svarte ikke (fikk «${KJORER:-}»)." >&2
+  echo "Uten en fungerende vakt kan en dobbeltstart ikke utelukkes. Sjekk manuelt." >&2
+  exit 1
+fi
 if [ "${KJORER:-0}" -gt 0 ]; then
   echo "NEKTER Å STARTE: det kjører allerede $KJORER prosess(er) med examples/pulje.ts." >&2
   echo "Drep dem først, og slett $UTMAPPE/pulje-w*.jsonl — ellers dobles radene." >&2
