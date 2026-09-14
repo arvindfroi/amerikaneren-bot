@@ -134,6 +134,20 @@ export interface ParOpts {
    * motstandermodell i hver verden — parringen over verdener forutsetter det.
    */
   readonly motpartFor?: (sete: number) => Utspiller;
+  /**
+   * TREKKEMÅTEN FOR VERDENENE (`~trekk=` i speken, 14. sep).
+   *
+   * Udefinert = i.i.d., dagens vei, bit-identisk. `"strata"` = stratifisert
+   * utvalg: samme antall verdener og samme antall utspillinger, men de K
+   * trekningene dekker den kumulative vekten jevnt i stedet for å klumpe seg.
+   * Se `trekkVerdenBelief` i `solver/sampler.ts` for hvorfor fordelingen står
+   * stille mens utvalget endres.
+   *
+   * DETTE ER EN VARIANSREDUKSJON, IKKE EN FORDYRELSE. `bandit.md` og `troledd.md`
+   * målte at tre grep som endret HVORDAN BUDSJETTET BRUKES alle ga null; ingen av
+   * dem rørte hvordan verdenene TREKKES. Det er leddet dette angriper.
+   */
+  readonly trekk?: "strata";
 }
 
 export interface ParKandidat {
@@ -275,6 +289,8 @@ export function vurderPar(
     opts.verdenKandidater,
     undefined,
     opts.budvekt ?? true,
+    // Uten `trekk` er dette `undefined`, altså nøyaktig kallet som sto her.
+    opts.trekk,
   );
   if (verdener.length === 0) return null;
   const mål = opts.mål ?? standardMål;

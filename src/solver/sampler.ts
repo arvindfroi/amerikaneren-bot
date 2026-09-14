@@ -448,6 +448,53 @@ export function trekkVerdenBelief(
    * alt her bit-identisk med før.
    */
   budvekt = true,
+  /**
+   * ============ STRATIFISERT UTVALG (14. sep) — `~trekk=strata` ============
+   *
+   * `[slott, slotter]`: hvilken av de `slotter` verdenene denne trekningen er.
+   * Udefinert = av, og da er hver bit under nøyaktig som før.
+   *
+   * HVA DEN GJØR. Kalleren (`trekkVerdener`) ber om K verdener ved å kalle hit K
+   * ganger. Hver gang bygges en EGEN pool på `kandidater` forslag, og ÉN av dem
+   * velges med invers-CDF over vektene. I dag er utvelgelsestallet `u ~ U(0,1)`,
+   * uavhengig i hvert av de K kallene — og et i.i.d.-utvalg klumper seg: noen
+   * ganger havner nesten alle K verdenene i vektfordelingens topp, andre ganger
+   * i halen. Her erstattes det med `u = (slott + rng()) / slotter`, altså ett
+   * punkt i hver av K like store celler av den kumulative vekten, etter at poolen
+   * er SORTERT på vekt. Systematic/stratified resampling, som i partikkelfiltre.
+   *
+   * HVORFOR DEN ER FORVENTNINGSRETT FOR NØYAKTIG SAMME FORDELING. De K slottene
+   * er utbyttbare: hver bygger sin pool ved `kandidater` i.i.d. trekk fra samme
+   * forslagsfordeling med samme vektfunksjon. La `W(pool, u)` være kandidaten
+   * invers-CDF velger. Da er
+   *
+   *     E[(1/K) Σ_slott f(W_slott)]
+   *       = (1/K) Σ_slott ∫_{slott/K}^{(slott+1)/K} K · E_pool[f(W(pool,u))] du
+   *       = ∫₀¹ E_pool[f(W(pool,u))] du
+   *       = E_iid[f(W)]
+   *
+   * — cellene dekker [0,1) nøyaktig én gang, og poolfordelingen er den samme i
+   * hver celle. Utvalget endres, fordelingen står stille. Det er hele kravet.
+   *
+   * SORTERINGEN ER GRATIS OG EKSAKT. En kategorisk fordeling er permutasjons-
+   * invariant, så invers-CDF over en sortert pool har samme marginalfordeling som
+   * over en usortert. Sorteringen gjør bare at celle-indeksen betyr «vektkvantil»
+   * i stedet for «tilfeldig trekkerekkefølge» — uten den ville risten ligget over
+   * en meningsløs akse. Den skjer derfor BARE i denne grenen.
+   *
+   * RNG-NØYTRAL, MED VILJE. Grenen bruker nøyaktig ÉN `rng()`, på samme sted i
+   * strømmen som `let r = rng() * …` under. Kandidatpoolene blir derfor bit-
+   * identiske med i.i.d.-armen på samme frø, og bare utvelgelsen skiller. Et
+   * grep som forskjøv strømmen ville målt «andre verdener» i stedet for «samme
+   * verdener, bedre fordelt».
+   *
+   * STRATIFISERT (egen `rng()` per slott) OG IKKE SYSTEMATISK (én delt U):
+   * systematisk resampling vinner når det finnes ÉN felles sortert populasjon å
+   * legge risten over. Her er poolene uavhengige på tvers av slott, så en delt
+   * forskyvning har ingen felles struktur å justere mot. Stratifisert er alltid
+   * ≤ i.i.d. i varians og trivielt forventningsrett.
+   */
+  strata?: readonly [number, number],
 ): Verden | null {
   // Uten budinformasjon om noen andre er BUD-vektingen et nullbidrag – men
   // `ekstraVekt` (troen) leser SPILLET og bidrar uansett hva budrunden sa.
@@ -482,6 +529,26 @@ export function trekkVerdenBelief(
     }
   }
   if (utvalg.length === 0) return null;
+  /**
+   * STRATIFISERT GREN. Se `strata` i signaturen for beviset på at dette er samme
+   * fordeling. `slotter > 0` er en ren vakt: et slotttall på 0 ville gitt `u = ∞`.
+   */
+  if (strata !== undefined && strata[1] > 0) {
+    const slott = strata[0];
+    const slotter = strata[1];
+    // Stabil sort (ES2019+): like vekter beholder trekkerekkefølgen, så grenen er
+    // deterministisk gitt frøet.
+    const sortert = utvalg.slice().sort((a, b) => a.logW - b.logW);
+    const maksS = Math.max(...sortert.map((u) => u.logW));
+    const vekterS = sortert.map((u) => Math.exp(u.logW - maksS));
+    // ÉN `rng()`, samme sted i strømmen som i.i.d.-grenen under.
+    let r = ((slott + rng()) / slotter) * vekterS.reduce((a, b) => a + b, 0);
+    for (const [i, u] of sortert.entries()) {
+      r -= vekterS[i]!;
+      if (r < 0) return u.verden;
+    }
+    return sortert[sortert.length - 1]!.verden;
+  }
   const maks = Math.max(...utvalg.map((u) => u.logW));
   const vekter = utvalg.map((u) => Math.exp(u.logW - maks));
   let r = rng() * vekter.reduce((a, b) => a + b, 0);

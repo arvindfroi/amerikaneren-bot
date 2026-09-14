@@ -120,6 +120,12 @@ export interface SikkerOpts {
    * LEGGES SAMMEN i `vurderPar`. Udefinert = av, bit-identisk.
    */
   readonly likFor?: (state: GameState, sete: number) => ((v: Verden) => number) | null;
+  /**
+   * TREKKEMÅTEN (`~trekk=strata` i speken, 14. sep): stratifisert utvalg av
+   * verdenene i stedet for i.i.d. Samme antall verdener, samme antall
+   * utspillinger — se `ParOpts.trekk`. Udefinert = av, bit-identisk.
+   */
+  readonly trekk?: "strata";
 }
 
 /**
@@ -237,6 +243,8 @@ export class Sikkerorakel {
   readonly visningsfrø: boolean;
   /** `~lik=`: likelihood-vekten, eller null. Offentlig for prøvene: speken skal kunne bevises koblet. */
   readonly likFor: ((state: GameState, sete: number) => ((v: Verden) => number) | null) | null;
+  /** `~trekk=`: stratifisert utvalg, eller null. Offentlig så prøvene kan bevise at knotten er KOBLET. */
+  readonly trekk: "strata" | null;
   /** `L`: utspillingene måles med lagmålet. Offentlig for kortdataene, som skriver hvilket mål verdiene har. */
   readonly lagmål: boolean;
   private readonly frø: number;
@@ -258,6 +266,7 @@ export class Sikkerorakel {
     this.motpartFor = opts.motpartFor ?? null;
     this.visningsfrø = opts.visningsfrø === true;
     this.likFor = opts.likFor ?? null;
+    this.trekk = opts.trekk ?? null;
     this.verdenKandidater = opts.verdenKandidater ?? 3;
     this.verdenKombi = opts.verdenKombi ?? "snitt";
     this.spillvekt = opts.spillvekt === true;
@@ -319,6 +328,8 @@ export class Sikkerorakel {
       klokke: this.klokke,
       ...(this.eksaktBlad === null ? {} : { eksaktBlad: this.eksaktBlad }),
       ...(this.motpartFor === null ? {} : { motpartFor: this.motpartFor }),
+      // Nøkkelen finnes ikke i objektet uten feltet — «av er av» STRUKTURELT.
+      ...(this.trekk === null ? {} : { trekk: this.trekk }),
       verdener: this.verdener,
       // Med `visningsfrø` står instansens strøm urørt; uten den er dette nøyaktig som før.
       rng: this.visningsfrø ? lagRng(visningsfrø(state, sete, this.frø)) : this.rng,

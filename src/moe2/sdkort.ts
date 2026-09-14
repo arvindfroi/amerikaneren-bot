@@ -356,6 +356,18 @@ export function trekkVerdener(
   vrakvekt?: Vrakvekt,
   /** Budvekten på kandidatverdenene; se `trekkVerdenBelief`. Standard på. */
   budvekt = true,
+  /**
+   * `~trekk=strata` (14. sep): STRATIFISERT UTVALG i stedet for i.i.d.
+   *
+   * Hver av de `antall` verdenene trekkes i dag uavhengig, og et i.i.d.-utvalg
+   * klumper seg — noen deler av vektfordelingen blir overrepresentert, andre
+   * uteblir. Med `"strata"` får slott `v` sitt utvelgelsestall fra celle
+   * `[v/antall, (v+1)/antall)` av den kumulative vekten, så dekningen er
+   * garantert. SAMME antall verdener, SAMME antall kandidattrekninger, SAMME
+   * antall `rng()`-kall — se beviset for forventningsretthet i
+   * `trekkVerdenBelief`. Udefinert = i.i.d., bit-identisk med før.
+   */
+  trekk?: "strata",
 ): number[][][] {
   const ut: number[][][] = [];
   for (let v = 0; v < antall; v++) {
@@ -364,6 +376,9 @@ export function trekkVerdener(
     // dem som faktisk sitter ved bordet - se `laertForenlighet` i sampler.ts.
     const w = trekkVerdenBelief(
       state, spiller, rng, kandidater, prior, undefined, trovekt, vrakvekt, budvekt,
+      // Cellen er SLOTTEN, ikke et nytt tilfeldighetsledd. Uten `trekk` er
+      // argumentet `undefined`, altså nøyaktig som om det ikke var skrevet.
+      trekk === "strata" ? ([v, antall] as const) : undefined,
     );
     if (w !== null) ut.push(w.hender);
   }

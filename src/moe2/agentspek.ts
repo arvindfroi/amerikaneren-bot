@@ -1262,6 +1262,22 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      * score, så vekten betaler bare i samplingstøy — og den koster 2,5× søketid overalt. 0 = alltid på.
      */
     let likFra = 0;
+    /**
+     * ============ «~trekk=»: HVORDAN VERDENENE TREKKES (14. sep) ============
+     *
+     *   ~trekk=strata   stratifisert utvalg i stedet for i.i.d.
+     *
+     * ET `~`-FELT, OG IKKE EN BOKSTAV I VERDENSFELTET. Samme begrunnelse som
+     * `~stikk=` (`sokfokus.md` §2) og `~fordel=`: verdensfeltet
+     * `<V>[k<K>][e<T>][a<krit>][s][L][M][D]` leses BAKFRA, og en liten bokstav +
+     * hale der inne kolliderer STILLE — `48k32t...` gir `Number("32t…") === NaN`,
+     * og `NaN` kandidater slår hele søket av i en spek som ser ut som den søker
+     * (målt: 115 av 115 like valg, se kandidatvakten lenger nede). `~`-feltene
+     * plukkes FØRST, før all bokstavparsing, så kollisjonen er strukturelt umulig.
+     * `~trekk=strata` inneholder heller ikke kolon, så `utenSøk` teller like mange
+     * felt som før og rollout-motparten strippes bit for bit som i dag.
+     */
+    let trekkModus: "strata" | undefined;
     const tPos = vFelt.indexOf("~");
     if (tPos >= 0) {
       const felter = vFelt.slice(tPos + 1).split("~");
@@ -1311,9 +1327,20 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
               );
             }
           }
+        } else if (art === "trekk") {
+          // ÉN lovlig verdi, og alt annet kaster HØYLYTT. En knott som er død i
+          // strengen er verre enn ingen knott: den måler grunnlinja og heter noe annet.
+          if (verdi !== "strata") {
+            throw new Error(
+              `Ukjent «~trekk=${verdi}» i «${indre}» - forventet «strata» (stratifisert utvalg). ` +
+                `Utelat feltet for i.i.d., som er dagens vei.`,
+            );
+          }
+          trekkModus = "strata";
         } else {
           throw new Error(
-            `Ukjent ~-felt «${f}» i «${indre}» - forventet trokilde mlb=<fil>/mlbu=<fil> eller lik=<selv|@fil>`,
+            `Ukjent ~-felt «${f}» i «${indre}» - forventet trokilde mlb=<fil>/mlbu=<fil>, ` +
+              `lik=<selv|@fil> eller trekk=strata`,
           );
         }
       }
@@ -1491,6 +1518,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       ...(brukØkt && økt !== undefined ? { motpartFor: (sete: number) => økt.motpartFor(motpart, sete) } : {}),
       ...(visningsfrø ? { visningsfrø: true } : {}),
       ...(likFor === undefined ? {} : { likFor }),
+      // AV ER AV STRUKTURELT: uten «~trekk=» finnes nøkkelen ikke i opsjonsobjektet.
+      ...(trekkModus === undefined ? {} : { trekk: trekkModus }),
     });
   }
   /**
