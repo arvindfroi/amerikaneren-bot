@@ -1262,6 +1262,28 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      * score, så vekten betaler bare i samplingstøy — og den koster 2,5× søketid overalt. 0 = alltid på.
      */
     let likFra = 0;
+    /**
+     * «~fordel=<form>»: ADAPTIV BUDSJETTERING (14. sep).
+     *
+     *   ~fordel=halv   sekvensiell halvering — samme antall utspillinger, fordelt adaptivt
+     *
+     * HVORFOR ET `~`-FELT og ikke en bokstavknott: verdensfeltet leses BAKFRA
+     * (`<V>[k<K>][e<T>][a<krit>][s][L][M][D]`), og en knott av små bokstaver må treffe en
+     * presis posisjon i den kjeden. «halv» inneholder både «a» og «l»; lagt i verdensfeltet
+     * ville «48k32e3LMDhalv» havnet i `e`-halen (`Number("3LMDhalv")` er NaN) eller — uten
+     * `e` — i kandidatfeltet, som er nøyaktig felleklassen vakten lenger nede ble skrevet
+     * for: «12k16d4» ga NaN kandidater og slo HELE søket av i stillhet, i en spek som så ut
+     * som den søkte. `~`-feltene plukkes derimot FØRST, før all bokstavparsing, så feltet er
+     * strippet av `vFelt` før D/M/L/s/a/e/k i det hele tatt leses. Samme sted som
+     * `~stikk=` ble lagt av samme grunn (`D:\amb-grp\loop\sokfokus.md` §2).
+     *
+     * `utenSøk` er urørt: den splitter på «:» og hopper tre felt, og «~fordel=halv»
+     * inneholder ingen kolon — feltantallet er uendret.
+     *
+     * UDEFINERT = AV, STRUKTURELT: nøkkelen utelates fra opsjonsobjektet under, den settes
+     * ikke til «jevn». Av skal være av fordi grenen ikke finnes, ikke fordi den regner riktig.
+     */
+    let fordeling: "halv" | undefined;
     const tPos = vFelt.indexOf("~");
     if (tPos >= 0) {
       const felter = vFelt.slice(tPos + 1).split("~");
@@ -1311,9 +1333,25 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
               );
             }
           }
+        } else if (art === "fordel") {
+          /**
+           * BARE «halv» I DAG. UCB er vurdert og valgt bort med begrunnelse (se `vurderPar`):
+           * den trekker ett og ett armvalg, så to kandidater ender med ULIKE verdenssett, og
+           * da er sammenlikningen uparret — nøyaktig variansen omfordelingen skal fjerne.
+           * Kastes høylytt, som resten av speken: en form som ikke finnes skal ikke bli en
+           * stille «jevn fordeling».
+           */
+          if (verdi !== "halv") {
+            throw new Error(
+              `Ukjent «~fordel=${verdi}» i «${indre}» - forventet «halv» (sekvensiell halvering). ` +
+                `UCB er valgt bort: den gir kandidatene ULIKE verdener, og da er sammenlikningen uparret.`,
+            );
+          }
+          fordeling = "halv";
         } else {
           throw new Error(
-            `Ukjent ~-felt «${f}» i «${indre}» - forventet trokilde mlb=<fil>/mlbu=<fil> eller lik=<selv|@fil>`,
+            `Ukjent ~-felt «${f}» i «${indre}» - forventet trokilde mlb=<fil>/mlbu=<fil>, ` +
+              `lik=<selv|@fil> eller fordel=halv`,
           );
         }
       }
@@ -1491,6 +1529,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       ...(brukØkt && økt !== undefined ? { motpartFor: (sete: number) => økt.motpartFor(motpart, sete) } : {}),
       ...(visningsfrø ? { visningsfrø: true } : {}),
       ...(likFor === undefined ? {} : { likFor }),
+      // AV ER AV, STRUKTURELT: uten «~fordel=» finnes ikke nøkkelen i objektet i det hele tatt.
+      ...(fordeling === undefined ? {} : { fordeling }),
     });
   }
   /**

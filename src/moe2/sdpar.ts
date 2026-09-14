@@ -134,6 +134,20 @@ export interface ParOpts {
    * motstandermodell i hver verden — parringen over verdener forutsetter det.
    */
   readonly motpartFor?: (sete: number) => Utspiller;
+  /**
+   * ADAPTIV BUDSJETTERING (`~fordel=` i speken, 14. sep). Udefinert = jevn fordeling, altså
+   * PIMC-standarden og bit-identisk med før.
+   *
+   *   "halv"  SEKVENSIELL HALVERING: runde 1 gir alle kandidatene `K/⌈log2 k⌉` verdener,
+   *           den dårligste halvparten kastes, budsjettet deles på de gjenværende, og slik
+   *           til én står igjen. SAMME antall utspillinger som i dag — en omfordeling, ikke
+   *           en fordyrelse. Se den lange begrunnelsen i `vurderPar`, inkludert hvorfor det
+   *           ble halvering og ikke UCB.
+   *
+   * UDEFINERT OG IKKE `"jevn"`: «av» skal være strukturelt av. En standardverdi ville gjort
+   * bit-identiteten avhengig av at grenen regner riktig i stedet for av at den ikke kjøres.
+   */
+  readonly fordeling?: "halv";
 }
 
 export interface ParKandidat {
@@ -146,8 +160,20 @@ export interface ParKandidat {
 
 export interface ParResultat {
   readonly kandidater: readonly ParKandidat[];
-  /** Antall verdener som faktisk lot seg trekke. */
+  /**
+   * Antall verdener BESTE kandidat ble vurdert i. Med jevn fordeling er det antallet
+   * verdener som lot seg trekke, som før — alle kandidatene deler dem. Med
+   * `fordeling: "halv"` er det finalistenes antall, som er større enn `opts.verdener`:
+   * budsjettet er flyttet dit, og det er hele poenget.
+   */
   readonly n: number;
+  /**
+   * UTSPILLINGER FAKTISK BRUKT. Ligger her fordi påstanden «adaptiv fordeling koster det
+   * samme» må kunne ETTERPRØVES og ikke bare hevdes: med jevn fordeling er dette
+   * `n · antall lovlige kort`, og med halvering skal det være det samme tallet (minus en
+   * rest mindre enn antall kandidater, som ikke rekker en hel verden til).
+   */
+  readonly utspillinger: number;
   /** Beste kandidat etter snitt. */
   readonly beste: ParKandidat;
   /** Nest beste etter snitt, eller null om det bare fantes én kandidat. */
@@ -265,88 +291,241 @@ export function vurderPar(
   const vekt =
     lik === undefined ? grunnvekt : (v: Verden): number => (grunnvekt === undefined ? 0 : grunnvekt(v)) + lik(v);
 
-  const verdener = trekkVerdener(
-    state,
-    spiller,
-    opts.verdener,
-    opts.rng,
-    undefined,
-    vekt,
-    opts.verdenKandidater,
-    undefined,
-    opts.budvekt ?? true,
-  );
-  if (verdener.length === 0) return null;
   const mål = opts.mål ?? standardMål;
   const klokke = opts.klokke ?? ((): number => performance.now());
   // Uten `motpartFor` er dette SAMME objekt som før, og utspillingene er bit-identiske.
   const utspiller = opts.motpartFor === undefined ? motpart : lagRuter(motpart, opts.motpartFor, spiller);
 
   /**
-   * VERDEN FOR VERDEN, ikke kort for kort (11. sep). Det er det som gjør fristen
-   * mulig uten å ødelegge parringen: en verden er enten spilt ut for ALLE kandidatene
-   * eller for ingen. Rekkefølgen endrer ingen verdi — motparten er tilstandsløs i SPILL
-   * (E1, vakt og budagent holder ingenting mellom kall der), og hver utspilling starter
-   * fra sin egen `medVerden`. `test/sik-tro.test.ts` holder den gamle rekkefølgen som
-   * referanse.
+   * Trekker en BLOKK verdener. Samme `rng`-objekt hele veien, så to kall à m verdener
+   * gir NØYAKTIG samme strøm som ett kall à 2m — `trekkVerdener` er bare en løkke rundt
+   * `trekkVerdenBelief`. Det er derfor den jevne fordelingen under kan bli stående med
+   * ett kall, og den adaptive kan trekke blokk for blokk uten å endre trekningene.
    */
+  const trekk = (antall: number): number[][][] =>
+    trekkVerdener(
+      state,
+      spiller,
+      antall,
+      opts.rng,
+      undefined,
+      vekt,
+      opts.verdenKandidater,
+      undefined,
+      opts.budvekt ?? true,
+    );
+
+  /** ÉN UTSPILLING: kandidat `i` i verdenen `hender`. Ordrett uttrykket som sto i løkka. */
+  const spillUt = (hender: number[][], i: number): number => {
+    const h: Handling = { type: "SPILL", spiller, kort: lovlige[i]! };
+    const etter = utfør(medVerden(state, hender, spiller), h).state;
+    const slutt =
+      opts.eksaktBlad !== undefined && opts.eksaktBlad > 0
+        ? spillFerdigEksakt(etter, utspiller, opts.eksaktBlad)
+        : spillFerdig(etter, utspiller);
+    return mål(slutt, spiller);
+  };
+
   const verdier: number[][] = lovlige.map(() => []);
-  let brukt = 0;
-  for (const hender of verdener) {
-    if (opts.frist !== undefined && klokke() >= opts.frist) break;
-    for (let i = 0; i < lovlige.length; i++) {
-      const h: Handling = { type: "SPILL", spiller, kort: lovlige[i]! };
-      const etter = utfør(medVerden(state, hender, spiller), h).state;
-      const slutt =
-        opts.eksaktBlad !== undefined && opts.eksaktBlad > 0
-          ? spillFerdigEksakt(etter, utspiller, opts.eksaktBlad)
-          : spillFerdig(etter, utspiller);
-      verdier[i]!.push(mål(slutt, spiller));
+  const lagKandidat = (i: number): ParKandidat => {
+    const perVerden = verdier[i]!;
+    const snitt = perVerden.reduce((a, b) => a + b, 0) / perVerden.length;
+    return { kort: lovlige[i]!, snitt, perVerden };
+  };
+
+  /**
+   * RANGERINGEN OVER VERDENER, trukket ut som funksjon fordi den adaptive fordelingen må
+   * rangere de LEVENDE kandidatene mellom hver runde på NØYAKTIG samme kriterium som
+   * sluttrangeringen. Uttrykkene er ordrett de som sto her før.
+   *
+   * Med `snitt` er dette som før. De andre kriteriene bruker `perVerden`, som allerede ble
+   * regnet ut — de koster ingen ekstra utspillinger.
+   */
+  const vk = opts.verdenKombi ?? "snitt";
+  const rangering = (kand: readonly ParKandidat[], nVerdener: number): Map<ParKandidat, number> => {
+    const rang = new Map<ParKandidat, number>();
+    if (vk === "flest") {
+      for (const k of kand) rang.set(k, 0);
+      for (let w = 0; w < nVerdener; w++) {
+        let best = -Infinity;
+        for (const k of kand) if (k.perVerden[w]! > best) best = k.perVerden[w]!;
+        const vinnere = kand.filter((k) => k.perVerden[w]! >= best - 1e-9);
+        for (const k of vinnere) rang.set(k, rang.get(k)! + 1 / vinnere.length);
+      }
+    } else {
+      for (const k of kand) {
+        if (vk === "snitt") {
+          rang.set(k, k.snitt);
+          continue;
+        }
+        const v = [...k.perVerden].sort((a, b) => a - b);
+        rang.set(k, vk === "min" ? v[0]! : v[Math.floor(0.25 * (v.length - 1))]!);
+      }
     }
-    brukt++;
+    return rang;
+  };
+
+  /** Utspillinger faktisk brukt. Hele poenget med den adaptive fordelingen er at dette tallet står stille. */
+  let utspillinger = 0;
+  /** Verdener DE LEVENDE kandidatene deler. Jevn fordeling: alle lever hele veien. */
+  let brukt = 0;
+  /** Kandidatene som fortsatt er med, i indeksrekkefølge. */
+  let live: number[] = lovlige.map((_, i) => i);
+  /** Den best rangerte som ble kastet SIST — motparten i den parrede marginen når én står igjen. */
+  let sistUte: number | null = null;
+
+  if (opts.fordeling === undefined) {
+    /**
+     * JEVN FORDELING — PIMC-standarden, og stien uten knotten. BIT-IDENTISK: ett trekk av
+     * `opts.verdener` verdener, og hvert lovlig kort spilt ut i hver av dem.
+     *
+     * VERDEN FOR VERDEN, ikke kort for kort (11. sep). Det er det som gjør fristen
+     * mulig uten å ødelegge parringen: en verden er enten spilt ut for ALLE kandidatene
+     * eller for ingen. Rekkefølgen endrer ingen verdi — motparten er tilstandsløs i SPILL
+     * (E1, vakt og budagent holder ingenting mellom kall der), og hver utspilling starter
+     * fra sin egen `medVerden`. `test/sik-tro.test.ts` holder den gamle rekkefølgen som
+     * referanse.
+     */
+    const verdener = trekk(opts.verdener);
+    if (verdener.length === 0) return null;
+    for (const hender of verdener) {
+      if (opts.frist !== undefined && klokke() >= opts.frist) break;
+      for (let i = 0; i < lovlige.length; i++) {
+        verdier[i]!.push(spillUt(hender, i));
+        utspillinger++;
+      }
+      brukt++;
+    }
+  } else {
+    /**
+     * ============ SEKVENSIELL HALVERING (14. sep) ==============================
+     *
+     * PROBLEMET, MÅLT (`D:\amb-grp\loop\troledd.md` §3a og §5): søkets valgte kort skifter i
+     * 43,8 % av beslutningene BARE av å trekke nye verdener med samme tro. Troens egen netto
+     * virkning er +2,7 pp over det gulvet — under 6 % av endringene bærer informasjon. Syv
+     * forsøk på å fikse det med bedre INFORMASJON har alle målt null. 16× flere verdener
+     * kjøper 7,5 pp lavere gulv til 4× søketid. Det er ikke et informasjonsproblem, det er
+     * et VARIANSPROBLEM i argmaks.
+     *
+     * OMFORDELINGEN. Den jevne løkka over gir hvert lovlig kort like mange utspillinger.
+     * I en typisk stilling er 2–3 av 6 lovlige kort reelle kandidater; resten er avgjort
+     * etter noen få verdener. Mesteparten av budsjettet går altså til å skille kort som
+     * ikke konkurrerer. Sekvensiell halvering flytter det: runde 1 gir alle kandidatene
+     * `K/⌈log2 k⌉` verdener, den dårligste halvparten kastes, og budsjettet deles på de
+     * gjenværende. De to finalistene ender på ~2K verdener hver — det doble av i dag —
+     * og det er DER argmaks faktisk avgjøres.
+     *
+     * SAMME ANTALL UTSPILLINGER. Budsjettet er `k · K`, nøyaktig det den jevne løkka
+     * bruker. Hver runde får `⌊(budsjett − brukt) / (levende · gjenstående runder)⌋`
+     * verdener per kandidat, så avrunding fra én runde tilfaller den neste i stedet for å
+     * lekke. Taket under er hardt: en verden startes ikke om den ville tatt oss over
+     * budsjettet. Resten (< antall levende, altså < k av k·K) blir stående ubrukt, og
+     * `utspillinger` i svaret gjør differansen etterprøvbar i stedet for påstått.
+     *
+     * PARRET PÅ TVERS AV KANDIDATER. Alle som fortsatt lever i en runde spiller ut
+     * NØYAKTIG de samme verdenene — blokken deles. To levende kandidater har derfor til
+     * enhver tid identiske verdenssett, og enhver sammenlikning mellom dem er parret.
+     * Uten det ville halveringen innført akkurat den variansen den er der for å fjerne.
+     *
+     * HVORFOR HALVERING OG IKKE UCB — begrunnelsen oppdraget ber om. To grunner, og den
+     * andre er avgjørende:
+     *
+     *   1. UCB trenger en utforskningskonstant mot en BELØNNINGSSKALA. Verdiene her er
+     *      rundepoeng, og spredningen varierer sterkt med stillingen (`troledd.md` §6:
+     *      σ fra under 0,5 til over 2,5 i samme kjøring). En konstant måtte kalibreres per
+     *      stilling — en ny knott å ta feil av. Halvering har ingen konstant: budsjettet og
+     *      antall kandidater bestemmer alt.
+     *   2. UCB ØDELEGGER PARRINGEN. Den trekker ett og ett armvalg, så to kandidater
+     *      ender med ULIKE verdenssett. Da må de sammenliknes uparret, og verden-effekten
+     *      («denne given var snill mot alle») kommer tilbake i differansen — nøyaktig
+     *      støyen hele oppdraget handler om å fjerne. Halvering er den bandittalgoritmen
+     *      som lar hele det levende feltet dele hver eneste verden.
+     *
+     * MARGIN OG σ REGNES PÅ FINALEPARET, som deler ALLE verdenene. Med jevn fordeling
+     * hviler σ på K verdener; her hviler den på ~2K, og på de to kortene som faktisk
+     * konkurrerte. Porten i `Sikkerorakel` ser altså en bedre målt margin, ikke bare et
+     * annet kort.
+     */
+    const k = lovlige.length;
+    const runder = Math.max(1, Math.ceil(Math.log2(k)));
+    const budsjett = k * opts.verdener;
+    let stopp = false;
+    for (let r = 0; r < runder; r++) {
+      const gjenstår = runder - r;
+      const perKandidat = Math.max(1, Math.floor((budsjett - utspillinger) / (live.length * gjenstår)));
+      const blokk = trekk(perKandidat);
+      if (blokk.length === 0) break;
+      for (const hender of blokk) {
+        // TAKET: en verden startes ikke om den ville tatt oss over dagens budsjett.
+        if (utspillinger + live.length > budsjett) {
+          stopp = true;
+          break;
+        }
+        if (opts.frist !== undefined && klokke() >= opts.frist) {
+          stopp = true;
+          break;
+        }
+        for (const i of live) {
+          verdier[i]!.push(spillUt(hender, i));
+          utspillinger++;
+        }
+        brukt++;
+      }
+      // Avbrutt midt i en blokk: ingen utsiling på halve data, de levende står som de er.
+      if (stopp || live.length <= 1) break;
+      /**
+       * KAST DEN DÅRLIGSTE HALVPARTEN. `Array.prototype.sort` er stabil, og `live` står i
+       * stigende indeksrekkefølge, så uavgjorte rangeringer avgjøres av kortrekkefølgen fra
+       * `lovligeKort` — deterministisk, som resten av søket.
+       */
+      const par = live.map((i) => ({ i, kand: lagKandidat(i) }));
+      const rang = rangering(
+        par.map((p) => p.kand),
+        brukt,
+      );
+      const sortert = par.slice().sort((a, b) => rang.get(b.kand)! - rang.get(a.kand)!);
+      const behold = Math.ceil(live.length / 2);
+      sistUte = sortert[behold]!.i;
+      live = sortert
+        .slice(0, behold)
+        .map((p) => p.i)
+        .sort((a, b) => a - b);
+    }
   }
   // Fristen rakk ikke én verden: «ingen data», og policyen skal stå.
   if (brukt === 0) return null;
 
-  const kandidater: ParKandidat[] = lovlige.map((kort, i) => {
-    const perVerden = verdier[i]!;
-    const snitt = perVerden.reduce((a, b) => a + b, 0) / perVerden.length;
-    return { kort, snitt, perVerden };
-  });
+  const kandidater: ParKandidat[] = lovlige.map((_, i) => lagKandidat(i));
 
-  /**
-   * RANGERINGEN. Med `snitt` er dette nøyaktig som før. De andre kriteriene
-   * bruker `perVerden`, som allerede ble regnet ut — de koster ingen ekstra
-   * utspillinger.
-   */
-  const vk = opts.verdenKombi ?? "snitt";
-  const rang = new Map<ParKandidat, number>();
-  if (vk === "flest") {
-    for (const k of kandidater) rang.set(k, 0);
-    for (let w = 0; w < brukt; w++) {
-      let best = -Infinity;
-      for (const k of kandidater) if (k.perVerden[w]! > best) best = k.perVerden[w]!;
-      const vinnere = kandidater.filter((k) => k.perVerden[w]! >= best - 1e-9);
-      for (const k of vinnere) rang.set(k, rang.get(k)! + 1 / vinnere.length);
-    }
+  let beste: ParKandidat;
+  let nestBeste: ParKandidat | null;
+  if (opts.fordeling === undefined) {
+    const rang = rangering(kandidater, brukt);
+    const sortert = kandidater.slice().sort((a, b) => rang.get(b)! - rang.get(a)!);
+    beste = sortert[0]!;
+    nestBeste = sortert[1] ?? null;
+  } else if (live.length >= 2) {
+    /**
+     * Halveringen ble avbrutt (frist eller tomt trekk) med flere i live. De deler alle
+     * `brukt` verdener, så toppen og nest øverst er fortsatt et PARRET par.
+     */
+    const levende = live.map((i) => kandidater[i]!);
+    const rang = rangering(levende, brukt);
+    const sortert = levende.slice().sort((a, b) => rang.get(b)! - rang.get(a)!);
+    beste = sortert[0]!;
+    nestBeste = sortert[1]!;
   } else {
-    for (const k of kandidater) {
-      if (vk === "snitt") {
-        rang.set(k, k.snitt);
-        continue;
-      }
-      const v = [...k.perVerden].sort((a, b) => a - b);
-      rang.set(k, vk === "min" ? v[0]! : v[Math.floor(0.25 * (v.length - 1))]!);
-    }
+    // Finalen: vinneren og den som ble kastet sist. De to deler HVER eneste verden.
+    beste = kandidater[live[0]!]!;
+    nestBeste = sistUte === null ? null : kandidater[sistUte]!;
   }
-  const sortert = kandidater.slice().sort((a, b) => rang.get(b)! - rang.get(a)!);
-  const beste = sortert[0]!;
-  const nestBeste = sortert[1] ?? null;
+  const n = opts.fordeling === undefined ? brukt : beste.perVerden.length;
 
   if (nestBeste === null) {
     return {
       kandidater,
-      n: brukt,
+      n,
+      utspillinger,
       beste,
       nestBeste: null,
       margin: 0,
@@ -365,5 +544,5 @@ export function vurderPar(
     marginSE = Math.sqrt(varians / d.length);
   }
   const sigma = Number.isFinite(marginSE) && marginSE > 1e-12 ? margin / marginSE : 0;
-  return { kandidater, n: brukt, beste, nestBeste, margin, marginSE, sigma };
+  return { kandidater, n, utspillinger, beste, nestBeste, margin, marginSE, sigma };
 }

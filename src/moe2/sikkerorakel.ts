@@ -120,6 +120,18 @@ export interface SikkerOpts {
    * LEGGES SAMMEN i `vurderPar`. Udefinert = av, bit-identisk.
    */
   readonly likFor?: (state: GameState, sete: number) => ((v: Verden) => number) | null;
+  /**
+   * ADAPTIV BUDSJETTERING (`~fordel=<form>` i speken, 14. sep): søket fordeler de SAMME
+   * utspillingene ULIKT mellom de lovlige kortene i stedet for jevnt. Udefinert = jevn
+   * fordeling, bit-identisk med før.
+   *
+   * HVORFOR DEN FINNES, i ett tall: `D:\amb-grp\loop\troledd.md` §3a målte at søkets valgte
+   * kort skifter i 43,8 % av beslutningene BARE av å trekke nye verdener med samme tro. Det
+   * er et VARIANSPROBLEM i argmaks, ikke et informasjonsproblem — syv forsøk på bedre
+   * informasjon har alle målt null. Se `vurderPar` i `sdpar.ts` for formen og for hvorfor
+   * det ble sekvensiell halvering og ikke UCB.
+   */
+  readonly fordeling?: "halv";
 }
 
 /**
@@ -239,6 +251,8 @@ export class Sikkerorakel {
   readonly likFor: ((state: GameState, sete: number) => ((v: Verden) => number) | null) | null;
   /** `L`: utspillingene måles med lagmålet. Offentlig for kortdataene, som skriver hvilket mål verdiene har. */
   readonly lagmål: boolean;
+  /** `~fordel=`: adaptiv budsjettering, eller null. Offentlig for prøvene: knotten skal kunne bevises koblet. */
+  readonly fordeling: "halv" | null;
   private readonly frø: number;
   readonly tellere: SikkerTellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, enig: 0, avkortet: 0 };
   siste: SikkerSiste | null = null;
@@ -266,6 +280,8 @@ export class Sikkerorakel {
     // Udefinert, ikke `standardMål`: da velger `vurderPar` selv, og standardstien er urørt.
     this.mål = opts.lagmål === true ? lagMål : undefined;
     this.lagmål = opts.lagmål === true;
+    // `?? null` og ikke en standardform: uten opsjonen finnes ikke omfordelingen i det hele tatt.
+    this.fordeling = opts.fordeling ?? null;
     this.fristMs = opts.fristMs ?? null;
     this.klokke = opts.klokke ?? ((): number => performance.now());
     this.eksaktBlad = opts.eksaktBlad ?? null;
@@ -319,6 +335,8 @@ export class Sikkerorakel {
       klokke: this.klokke,
       ...(this.eksaktBlad === null ? {} : { eksaktBlad: this.eksaktBlad }),
       ...(this.motpartFor === null ? {} : { motpartFor: this.motpartFor }),
+      // AV ER AV, STRUKTURELT: uten knotten finnes ikke nøkkelen i opsjonsobjektet.
+      ...(this.fordeling === null ? {} : { fordeling: this.fordeling }),
       verdener: this.verdener,
       // Med `visningsfrø` står instansens strøm urørt; uten den er dette nøyaktig som før.
       rng: this.visningsfrø ? lagRng(visningsfrø(state, sete, this.frø)) : this.rng,
