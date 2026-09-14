@@ -57,7 +57,13 @@ import { lovligeKort, utfør, type GameState, type Handling } from "../motor.ts"
 // av samme klasse (nt/t-vektorene), saa duplisert konvertering er forbudt her.
 import { intTilKort, kortTilInt } from "../solver/dds.ts";
 import type { Vrakvekt } from "../solver/sampler.ts";
-import { trekkVerdenBelief, alleKortInt, type Budprior , type Verden } from "../solver/sampler.ts";
+import {
+  trekkVerdenBelief,
+  trekkVerdenerFellesPulje,
+  alleKortInt,
+  type Budprior,
+  type Verden,
+} from "../solver/sampler.ts";
 
 /** Motstandermodellen som spiller runden ferdig. NevroAgent oppfyller det. */
 export interface Utspiller {
@@ -356,7 +362,28 @@ export function trekkVerdener(
   vrakvekt?: Vrakvekt,
   /** Budvekten på kandidatverdenene; se `trekkVerdenBelief`. Standard på. */
   budvekt = true,
+  /**
+   * `~pulje=` (14. sep): ÉN FELLES KANDIDATPULJE for alle verdenene.
+   *
+   * I dag får hver av de `antall` verdenene sin EGEN uavhengige pulje på `kandidater`.
+   * `strata.md` §4c målte at det er nettopp derfor en rist over vektkvantilen ikke
+   * virker: «rangering 0,9 i pulje A» og «rangering 0,9 i pulje B» er urelaterte
+   * verdener, så risten har ingen felles akse. Med `"felles"` trekkes én pulje på
+   * `antall · kandidater` — NØYAKTIG like mange kandidater som i dag — og de `antall`
+   * verdenene velges derfra med en rist over den felles kumulative vekten.
+   *
+   * `"blokk"` er samme kodesti med utvelgelse blokk for blokk, altså BIT-IDENTISK med
+   * udefinert. Den finnes for å bevise at stien er en tro omskriving.
+   *
+   * Udefinert = av, og da er alt her bit-identisk med før.
+   */
+  pulje?: "felles" | "blokk",
 ): number[][][] {
+  if (pulje !== undefined) {
+    return trekkVerdenerFellesPulje(
+      state, spiller, rng, antall, kandidater, prior, undefined, trovekt, vrakvekt, budvekt, pulje,
+    ).map((w) => w.hender);
+  }
   const ut: number[][][] = [];
   for (let v = 0; v < antall; v++) {
     // Med `prior` vektes kandidatverdenene etter en LÆRT budmodell i stedet

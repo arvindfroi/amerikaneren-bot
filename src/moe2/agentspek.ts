@@ -1262,6 +1262,16 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      * score, så vekten betaler bare i samplingstøy — og den koster 2,5× søketid overalt. 0 = alltid på.
      */
     let likFra = 0;
+    /**
+     * «~pulje=felles» (14. sep): ÉN felles kandidatpulje for alle verdenene i stedet for
+     * én uavhengig pulje per verden. `~`-felt og ikke en bokstav i verdensfeltet, av
+     * nøyaktig grunnen `sokfokus.md` §2 dokumenterer: verdensfeltet leses BAKFRA
+     * (`<V>[k<K>][e<T>][a<krit>][s][L][M][D]`), og en ny liten bokstav der ville kunne
+     * bli spist av `k`- eller `e`-parsingen i stillhet — «12k16d4» slo en gang hele søket
+     * av uten å si fra. `~`-feltene plukkes FØRST, før all bokstavparsing, så de kan
+     * ikke kollidere; og de inneholder ikke kolon, så `utenSøk` teller like mange felt.
+     */
+    let pulje: "felles" | "blokk" | undefined;
     const tPos = vFelt.indexOf("~");
     if (tPos >= 0) {
       const felter = vFelt.slice(tPos + 1).split("~");
@@ -1311,9 +1321,19 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
               );
             }
           }
+        } else if (art === "pulje") {
+          // KASTER PÅ ALT ANNET. En knott som er død i strengen er verre enn ingen knott:
+          // den ser ut som en måling og er en grunnlinje. Jf. «12k16d4».
+          if (verdi !== "felles" && verdi !== "blokk") {
+            throw new Error(
+              `Ugyldig «~pulje=${verdi}» i «${indre}» - forventet ~pulje=felles eller ~pulje=blokk`,
+            );
+          }
+          pulje = verdi;
         } else {
           throw new Error(
-            `Ukjent ~-felt «${f}» i «${indre}» - forventet trokilde mlb=<fil>/mlbu=<fil> eller lik=<selv|@fil>`,
+            `Ukjent ~-felt «${f}» i «${indre}» - forventet trokilde mlb=<fil>/mlbu=<fil>, ` +
+              `lik=<selv|@fil> eller pulje=felles`,
           );
         }
       }
@@ -1491,6 +1511,8 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       ...(brukØkt && økt !== undefined ? { motpartFor: (sete: number) => økt.motpartFor(motpart, sete) } : {}),
       ...(visningsfrø ? { visningsfrø: true } : {}),
       ...(likFor === undefined ? {} : { likFor }),
+      // «AV ER AV» STRUKTURELT: uten feltet finnes ikke nøkkelen i opsjonsobjektet.
+      ...(pulje === undefined ? {} : { pulje }),
     });
   }
   /**

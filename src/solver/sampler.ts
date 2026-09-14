@@ -492,6 +492,196 @@ export function trekkVerdenBelief(
   return utvalg[utvalg.length - 1]!.verden;
 }
 
+/**
+ * ============ ÉN FELLES KANDIDATPULJE (14. sep) — `~pulje=` ================
+ *
+ * Trekker ALLE `antall` verdenene i ett, fra ÉN felles pulje på `antall · kandidater`
+ * kandidater, i stedet for fra `antall` uavhengige puljer på `kandidater` hver.
+ *
+ * ---- HVORFOR: risten manglet en akse -------------------------------------
+ *
+ * `strata.md` §4c målte variansreduksjonen ved stratifisert utvalg til **0,997** og
+ * fant grunnen: `trekkVerdener` gir hver av de 48 verdenene sin EGEN uavhengige
+ * kandidatpulje. «Rangering 0,9 i pulje A» og «rangering 0,9 i pulje B» er to
+ * urelaterte verdener, så en rist lagt over vektkvantilen INNENFOR hver pulje har
+ * ingenting felles å virke langs. Her slås de 48 puljene sammen til én, og risten
+ * legges over den FELLES kumulative vekten. Da betyr celle `v` det samme for alle
+ * slottene, og dekningen av vektfordelingen er garantert jevn i stedet for tilfeldig.
+ *
+ * ---- RNG-STRØMMEN ER BEVART, OG DET ER IKKE PYNT -------------------------
+ *
+ * Dagens strøm er `[kandidater trekk][1 rng][kandidater trekk][1 rng]…`. En naiv
+ * felles pulje som trekker alle `antall · kandidater` i ett strekk og DERETTER trekker
+ * utvalgstallene ville fått ANDRE kandidater fra og med nr. `kandidater + 1`, fordi
+ * i.i.d.-grenen har brukt et `rng()` på utvelgelsen imellom. Armen ville da målt
+ * «andre verdener» i tillegg til «bedre fordelte verdener» — to endringer i én, som er
+ * fella `bandit.md` §3 beskriver.
+ *
+ * Løkka under beholder derfor blokkstrukturen i STRØMMEN og slår bare sammen
+ * UTVELGELSEN: `kandidater` trekk, så ett `rng()` (som blir `u_v`), `antall` ganger.
+ * Antall `trekkVerden`-kall, rekkefølgen deres og antall `rng()`-kall er dermed
+ * NØYAKTIG som i i.i.d.-grenen, og kandidatpuljen blir bit-identisk på samme frø.
+ * Bare hvilke kandidater som plukkes ut skiller.
+ *
+ * ---- `"blokk"`: SAMME KODESTI, BIT-IDENTISK RESULTAT ----------------------
+ *
+ * Med `"blokk"` velges hver verden med invers-CDF innenfor SIN EGEN blokk på
+ * `kandidater`, med blokkens egen `maks`-normalisering og `u_v` rått — altså nøyaktig
+ * regnestykket `trekkVerdenBelief` gjør. Modusen finnes for å BEVISE at den felles
+ * kodestien er en tro omskriving: er `"blokk"` bit-identisk med i.i.d., er den eneste
+ * forskjellen i `"felles"` selve utvelgelsen, og ingenting annet har sneket seg med.
+ *
+ * ---- FORDELINGEN FLYTTER SEG, OG DET SKAL SIES HØYT ----------------------
+ *
+ * Dagens utvalg er SIR med M = `kandidater`; med felles pulje er hver verden SIR med
+ * M = `antall · kandidater`. SIR er bare asymptotisk riktig, så den endelige-M-
+ * skjevheten mot forslagsfordelingen KRYMPER. Fordelingen står altså ikke stille —
+ * den flytter seg mot målfordelingen `p ∝ q·w`. Det er en uunngåelig følge av å gi
+ * risten en felles akse: aksen finnes bare fordi kandidatene nå konkurrerer på tvers
+ * av slottene. `examples/pulje-forventning.ts` måler retningen mot en høy-M referanse
+ * i stedet for å påstå at ingenting skjedde.
+ *
+ * ---- MANGFOLDET KAN KOLLAPSE, OG DET MÅLES ------------------------------
+ *
+ * `troledd.md` §4 målte vekten som skarp (ESS/K 0,179, maks p 0,547, log-spenn 19,13).
+ * En kandidat som holder mer enn `1/antall` av totalvekten får FLERE slott her, mens
+ * de 48 uavhengige puljene i dag gir hver blokk sin egen vinner og dermed 48 ulike
+ * verdener. Et støygulv som faller fordi de 48 verdenene har kollapset til en håndfull
+ * er ikke en seier. Kallerne logger derfor antall DISTINKTE verdener.
+ */
+export function trekkVerdenerFellesPulje(
+  state: GameState,
+  observator: number,
+  rng: () => number,
+  antall: number,
+  kandidater = 3,
+  prior?: Budprior,
+  navn: (sete: number) => string = (s) => `sete${s}`,
+  ekstraVekt?: (v: Verden) => number,
+  vrakvekt?: Vrakvekt,
+  budvekt = true,
+  modus: "felles" | "blokk" = "felles",
+): Verden[] {
+  // ORDRETT samme vakt som `trekkVerdenBelief`, og med vilje: uten den ville de to
+  // grenene tatt ulike veier nettopp i stillingene der det ikke er noe å vekte på.
+  const harInfo =
+    ekstraVekt !== undefined ||
+    (budvekt &&
+      state.budrunde.sisteBud.some(
+        (b, p) => p !== observator && (b !== null || state.budrunde.passet[p]),
+      ));
+  if (!harInfo || kandidater <= 1) {
+    // Uten informasjon å vekte på gjør `trekkVerdenBelief` ett rått `trekkVerden` per
+    // verden og bruker INGEN rng() til utvelgelse. Samme her, kall for kall.
+    const rå: Verden[] = [];
+    for (let v = 0; v < antall; v++) {
+      const w = trekkVerden(state, observator, rng);
+      if (w !== null) rå.push(w);
+    }
+    return rå;
+  }
+
+  /** Hele puljen, med hvilken blokk hver kandidat ble trukket i. */
+  const alle: { verden: Verden; logW: number; blokk: number }[] = [];
+  /** Ett utvalgstall per slott, trukket PÅ SAMME STED i strømmen som i i.i.d.-grenen. */
+  const us: number[] = [];
+  for (let v = 0; v < antall; v++) {
+    for (let i = 0; i < kandidater; i++) {
+      const w = trekkVerden(state, observator, rng);
+      if (w) {
+        const budW = !budvekt
+          ? 0
+          : prior === undefined
+            ? budForenlighet(state, w, observator)
+            : lærtForenlighet(state, w, observator, prior, navn);
+        alle.push({
+          verden: w,
+          logW:
+            budW +
+            (ekstraVekt === undefined ? 0 : ekstraVekt(w)) +
+            (vrakvekt === undefined ? 0 : vrakLogVekt(state, w, vrakvekt)),
+          blokk: v,
+        });
+      }
+    }
+    // SAMME POSISJON I STRØMMEN som `let r = rng() * …` i i.i.d.-grenen.
+    us.push(rng());
+  }
+  if (alle.length === 0) return [];
+
+  const ut: Verden[] = [];
+
+  if (modus === "blokk") {
+    /**
+     * BIT-IDENTISK MED I.I.D. Blokkens egen `maks`, blokkens egen sum, `u_v` rått og
+     * samme løkkeform — altså tegn for tegn regnestykket i `trekkVerdenBelief`. En tom
+     * blokk gir ingen verden, akkurat som et `null`-svar derfra gjør i dag.
+     */
+    for (let v = 0; v < antall; v++) {
+      const blokk = alle.filter((a) => a.blokk === v);
+      if (blokk.length === 0) continue;
+      const maks = Math.max(...blokk.map((u) => u.logW));
+      const vekter = blokk.map((u) => Math.exp(u.logW - maks));
+      let r = us[v]! * vekter.reduce((a, b) => a + b, 0);
+      let valgt = blokk[blokk.length - 1]!.verden;
+      for (const [i, u] of blokk.entries()) {
+        r -= vekter[i]!;
+        if (r < 0) {
+          valgt = u.verden;
+          break;
+        }
+      }
+      ut.push(valgt);
+    }
+    return ut;
+  }
+
+  /**
+   * FELLES PULJE. Sortert på vekt, så celle-indeksen betyr «vektkvantil i HELE puljen»
+   * og ikke «tilfeldig trekkerekkefølge». Sorteringen er gratis og eksakt: en kategorisk
+   * fordeling er permutasjonsinvariant, så invers-CDF over en sortert pulje har samme
+   * marginal som over en usortert — sorteringen gjør bare aksen meningsfull.
+   */
+  const sortert = alle.slice().sort((a, b) => a.logW - b.logW);
+  const maks = Math.max(...sortert.map((u) => u.logW));
+  const vekter = sortert.map((u) => Math.exp(u.logW - maks));
+  const total = vekter.reduce((a, b) => a + b, 0);
+  if (!(total > 0)) return sortert.slice(0, antall).map((u) => u.verden);
+
+  /**
+   * KUMULATIV ÉN GANG, så utvelgelsen er `antall · log(pulje)` og ikke `antall · pulje`.
+   * Summen akkumuleres i samme rekkefølge som `vekter`, så avrundingen er den samme.
+   */
+  const kum = new Float64Array(sortert.length);
+  {
+    let s = 0;
+    for (let i = 0; i < sortert.length; i++) {
+      s += vekter[i]!;
+      kum[i] = s;
+    }
+  }
+
+  /** Første indeks der `kum[i] >= mål`. Binærsøk; `kum` er ikke-avtakende. */
+  const finn = (mål: number): number => {
+    let lo = 0;
+    let hi = sortert.length - 1;
+    while (lo < hi) {
+      const m = (lo + hi) >> 1;
+      if (kum[m]! < mål) lo = m + 1;
+      else hi = m;
+    }
+    return lo;
+  };
+
+  for (let v = 0; v < antall; v++) {
+    // Én rist over den FELLES kumulative vekten: ett punkt i hver av `antall` like
+    // brede celler. `u_v` er slottets eget tilfeldighetstall, trukket over.
+    const u = (v + us[v]!) / antall;
+    ut.push(sortert[finn(u * total)]!.verden);
+  }
+  return ut;
+}
+
 /** Bygger et DD-oppsett for stillingen NÅ (før spiller i tur har lagt kort). */
 export function byggDDOppsett(state: GameState, verden: Verden): DDOppsett {
   const trump = state.trumf ? FARGER.indexOf(state.trumf) : 0;

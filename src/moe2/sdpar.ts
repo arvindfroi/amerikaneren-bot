@@ -91,6 +91,19 @@ export interface ParOpts {
   /** Budvekten på kandidatverdenene. Standard på; av når troen selv leser budet. */
   readonly budvekt?: boolean;
   /**
+   * ÉN FELLES KANDIDATPULJE (`~pulje=` i speken, 14. sep). Udefinert = av, og da er
+   * kallet under bit for bit som før.
+   *
+   *   felles  alle `verdener` verdenene velges fra ÉN pulje på `verdener · verdenKandidater`,
+   *           med en rist over den felles kumulative vekten.
+   *   blokk   samme kodesti, men utvelgelse blokk for blokk — BIT-IDENTISK med av.
+   *           Finnes for å bevise at den felles stien er en tro omskriving.
+   *
+   * Se `trekkVerdenerFellesPulje` i `solver/sampler.ts` for hvorfor risten trengte en
+   * felles akse (`strata.md` §4c målte variansreduksjonen til 0,997 uten den).
+   */
+  readonly pulje?: "felles" | "blokk";
+  /**
    * LIKELIHOOD-VEKTEN (12. sep): hvor godt verdenen gjenskaper de andres OBSERVERTE
    * handlinger under en antatt policy — se `likvekt.ts`.
    *
@@ -275,6 +288,8 @@ export function vurderPar(
     opts.verdenKandidater,
     undefined,
     opts.budvekt ?? true,
+    // Udefinert = argumentet er som om det ikke var skrevet, og stien er den gamle.
+    opts.pulje,
   );
   if (verdener.length === 0) return null;
   const mål = opts.mål ?? standardMål;

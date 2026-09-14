@@ -90,6 +90,11 @@ export interface SikkerOpts {
   readonly tro?: Søketro | null;
   /** Budvekten på verdenene. Standard på. */
   readonly budvekt?: boolean;
+  /**
+   * ÉN FELLES KANDIDATPULJE (`~pulje=felles`, 14. sep) i stedet for én uavhengig pulje
+   * per verden. Udefinert = av, bit-identisk. Se `ParOpts.pulje`.
+   */
+  readonly pulje?: "felles" | "blokk";
   /** LAGMÅLET i utspillingene i stedet for `standardMål`. Standard av, bit-identisk. */
   readonly lagmål?: boolean;
   /** Tidsbudsjett per beslutning i millisekunder. Udefinert = ingen frist. */
@@ -226,6 +231,8 @@ export class Sikkerorakel {
   /** Søketroen, eller null. Offentlig for loggen og prøvene. */
   readonly tro: Søketro | null;
   private readonly budvekt: boolean;
+  /** `~pulje=`: felles kandidatpulje, eller null. Offentlig for prøvene: speken skal kunne bevises koblet. */
+  readonly pulje: "felles" | "blokk" | null;
   private readonly mål: ((s: GameState, spiller: number) => number) | undefined;
   private readonly fristMs: number | null;
   private readonly klokke: () => number;
@@ -263,6 +270,7 @@ export class Sikkerorakel {
     this.spillvekt = opts.spillvekt === true;
     this.tro = opts.tro ?? null;
     this.budvekt = opts.budvekt ?? true;
+    this.pulje = opts.pulje ?? null;
     // Udefinert, ikke `standardMål`: da velger `vurderPar` selv, og standardstien er urørt.
     this.mål = opts.lagmål === true ? lagMål : undefined;
     this.lagmål = opts.lagmål === true;
@@ -314,6 +322,8 @@ export class Sikkerorakel {
       trovekt: this.tro === null ? undefined : (this.tro.vektFor(state, sete) ?? undefined),
       likvekt: this.likFor === null ? undefined : (this.likFor(state, sete) ?? undefined),
       budvekt: this.budvekt,
+      // Nøkkelen skal ikke finnes i objektet uten feltet — «av er av» strukturelt.
+      ...(this.pulje === null ? {} : { pulje: this.pulje }),
       mål: this.mål,
       frist: this.fristMs === null ? undefined : start + this.fristMs,
       klokke: this.klokke,
