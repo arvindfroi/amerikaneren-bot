@@ -2,13 +2,19 @@
  * SAMMENDRAG av `examples/seiersmaal-fasit.ts`.
  *
  * Klyngebootstrap over KAMPER, B = 20 000. SE er bootstrapfordelingens standardavvik —
- * **ikke delt på √n en gang til** (`dekomp.md` §0, og feilen eieren gjorde i går med en
- * `sd()` som delte på n to ganger og ga 21× for små feilmarginer).
+ * **ikke delt på √n en gang til** (`dekomp.md` §0; eieren gjorde i går feilen med en `sd()`
+ * som delte på n to ganger og fikk 21× for små feilmarginer).
  *
- * Anger regnes BARE der den aktuelle fasiten skiller. Undergrupper er beste-av-mange
- * og merkes som det.
+ * ALLE statistikkene her er SNITT: en andel er snittet av en 0/1-indikator, og en
+ * gjennomsnittlig anger er snittet av angeret. Bootstrappen utnytter det og resampler
+ * **per-klynge-aggregater** (sum, antall) i stedet for å filtrere radene på nytt i hver av
+ * de 20 000 runddene. Den naive formen var O(B × rader) — 20 000 × 60 000 rader per
+ * statistikk — og ville tatt timer per tabellrad. Denne er O(B × klynger).
  *
- *   node examples/seiersmaal-sum.ts analyse/seiersmaal-w*.jsonl
+ * Anger regnes BARE der den aktuelle fasiten skiller (`angerP`/`angerPoeng` er `null`
+ * ellers, og `null` faller ut av snittet). Undergrupper er beste-av-mange og merkes som det.
+ *
+ *   node examples/seiersmaal-sum.ts analyse/seiersmaal-w0.jsonl analyse/seiersmaal-w1.jsonl ...
  */
 import { readFileSync } from "node:fs";
 
@@ -67,12 +73,9 @@ if (duplikat > 0) {
   process.exit(1);
 }
 
-const kamper = [...new Set(rader.map((r) => r.kamp))].sort((a, b) => a - b);
-const perKamp = new Map<number, Rad[]>();
-for (const k of kamper) perKamp.set(k, []);
-for (const r of rader) perKamp.get(r.kamp)!.push(r);
+const B = 20_000;
 
-/** Enkel deterministisk RNG, så sammendraget er reproduserbart. */
+/** Deterministisk RNG, så sammendraget er reproduserbart. */
 function lagRng(frø: number): () => number {
   let s = frø >>> 0;
   return () => {
@@ -81,96 +84,116 @@ function lagRng(frø: number): () => number {
   };
 }
 
-const B = 20_000;
-
 /**
- * Klyngebootstrap: trekk KAMPER med tilbakelegging, regn statistikken på nytt.
- * SE = SD i bootstrapfordelingen. Ingen ekstra deling på √n.
+ * Klyngebootstrap på per-kamp-aggregater. `val` gir radens tall, eller `null` for «denne
+ * raden teller ikke» (f.eks. anger i en flat stilling).
  */
-function boot(utvalg: Rad[], stat: (rr: Rad[]) => number | null): { est: number | null; se: number; n: number } {
-  const est = stat(utvalg);
-  if (est === null) return { est: null, se: NaN, n: utvalg.length };
-  const grupper = new Map<number, Rad[]>();
+function boot(utvalg: readonly Rad[], val: (r: Rad) => number | null): { est: number | null; se: number; n: number } {
+  const sum = new Map<number, number>();
+  const ant = new Map<number, number>();
+  let ts = 0;
+  let ta = 0;
   for (const r of utvalg) {
-    if (!grupper.has(r.kamp)) grupper.set(r.kamp, []);
-    grupper.get(r.kamp)!.push(r);
+    const v = val(r);
+    if (v === null) continue;
+    sum.set(r.kamp, (sum.get(r.kamp) ?? 0) + v);
+    ant.set(r.kamp, (ant.get(r.kamp) ?? 0) + 1);
+    ts += v;
+    ta++;
   }
-  const nøkler = [...grupper.keys()];
-  if (nøkler.length < 2) return { est, se: NaN, n: utvalg.length };
+  if (ta === 0) return { est: null, se: NaN, n: 0 };
+  const est = ts / ta;
+  const nøkler = [...sum.keys()];
+  const K = nøkler.length;
+  if (K < 2) return { est, se: NaN, n: ta };
+  const s = new Float64Array(K);
+  const a = new Float64Array(K);
+  for (let i = 0; i < K; i++) {
+    s[i] = sum.get(nøkler[i]!)!;
+    a[i] = ant.get(nøkler[i]!)!;
+  }
   const rng = lagRng(20_260_914);
-  const verdier: number[] = [];
+  let m = 0;
+  let m2 = 0;
+  let brukt = 0;
   for (let b = 0; b < B; b++) {
-    const bag: Rad[] = [];
-    for (let i = 0; i < nøkler.length; i++) {
-      bag.push(...grupper.get(nøkler[Math.floor(rng() * nøkler.length)]!)!);
+    let bs = 0;
+    let ba = 0;
+    for (let i = 0; i < K; i++) {
+      const j = Math.floor(rng() * K);
+      bs += s[j]!;
+      ba += a[j]!;
     }
-    const v = stat(bag);
-    if (v !== null) verdier.push(v);
+    if (ba === 0) continue;
+    const v = bs / ba;
+    brukt++;
+    const d = v - m;
+    m += d / brukt;
+    m2 += d * (v - m);
   }
-  const m = verdier.reduce((a, b2) => a + b2, 0) / verdier.length;
-  const sd = Math.sqrt(verdier.reduce((a, b2) => a + (b2 - m) ** 2, 0) / verdier.length);
-  return { est, se: sd, n: utvalg.length };
+  return { est, se: Math.sqrt(m2 / brukt), n: ta };
 }
 
-const andel = (pred: (r: Rad) => boolean) => (rr: Rad[]): number | null =>
-  rr.length === 0 ? null : (100 * rr.filter(pred).length) / rr.length;
-
-const snitt = (v: (r: Rad) => number | null) => (rr: Rad[]): number | null => {
-  const xs = rr.map(v).filter((x): x is number => x !== null);
-  return xs.length === 0 ? null : xs.reduce((a, b) => a + b, 0) / xs.length;
-};
-
-const f = (x: number | null, d = 1): string => (x === null ? "—" : x.toFixed(d));
+const ind = (p: (r: Rad) => boolean) => (r: Rad): number => (p(r) ? 100 : 0);
 const pm = (r: { est: number | null; se: number }, d = 1): string =>
   r.est === null ? "—" : `${r.est.toFixed(d)} ± ${Number.isNaN(r.se) ? "—" : r.se.toFixed(d)}`;
+const f = (x: number | undefined, d = 3): string => (x === undefined ? "—" : x.toFixed(d));
 
 const FLAT_POENG = (r: Rad): boolean => r.spredPoeng < 1e-9;
 const FLAT_P = (r: Rad): boolean => r.spredP < 0.01;
 
+const kamper = new Set(rader.map((r) => r.kamp));
 console.log(`\n=== GRUNNLAG ===`);
-console.log(`stillinger: ${rader.length}   kamper (klynger): ${kamper.length}   dupliserte: ${duplikat}`);
+console.log(`stillinger: ${rader.length}   kamper (klynger): ${kamper.size}   dupliserte: ${duplikat}`);
+console.log(`ledende poeng: ${Math.min(...rader.map((r) => r.ledende))} – ${Math.max(...rader.map((r) => r.ledende))}`);
 
-console.log(`\n=== 1. FLAT-ANDELEN: POENG MOT SEIERSANNSYNLIGHET ===\n`);
-console.log(`| linjal | flate | andel |`);
+console.log(`\n=== 1. HOVEDTALLET: FLAT-ANDELEN, POENG MOT SEIERSANNSYNLIGHET ===\n`);
+console.log(`| linjal | flate | andel (klynget SE) |`);
 console.log(`|---|---|---|`);
-const fp = boot(rader, andel(FLAT_POENG));
-const fv = boot(rader, andel((r) => r.vektorFlat));
-const fs1 = boot(rader, andel(FLAT_P));
-console.log(`| POENG (diff, spredning 0) | ${rader.filter(FLAT_POENG).length} | **${pm(fp)} %** |`);
-console.log(`| poengVEKTOR identisk | ${rader.filter((r) => r.vektorFlat).length} | ${pm(fv)} % |`);
-console.log(`| SEIER (< 0,01 pp) | ${rader.filter(FLAT_P).length} | **${pm(fs1)} %** |`);
+console.log(`| **POENG** (diff, spredning 0) | ${rader.filter(FLAT_POENG).length} | **${pm(boot(rader, ind(FLAT_POENG)))} %** |`);
+console.log(`| poengVEKTOR identisk | ${rader.filter((r) => r.vektorFlat).length} | ${pm(boot(rader, ind((r) => r.vektorFlat)))} % |`);
+console.log(`| **SEIER** (< 0,01 pp) | ${rader.filter(FLAT_P).length} | **${pm(boot(rader, ind(FLAT_P)))} %** |`);
+
+const parret = boot(rader, (r) => (FLAT_P(r) ? 100 : 0) - (FLAT_POENG(r) ? 100 : 0));
+console.log(`\nPARRET (seier − poeng), samme stillinger: **${pm(parret, 2)} pp**`);
 
 console.log(`\nSensitivitet på seiersterskelen:`);
-for (const t of [0.001, 0.01, 0.1, 1.0]) {
-  const b = boot(rader, andel((r) => r.spredP < t));
-  console.log(`  < ${String(t).padEnd(6)} pp:  ${pm(b)} %`);
+for (const t of [0.0000001, 0.001, 0.01, 0.1, 1.0]) {
+  console.log(`  flat når spredning < ${String(t).padEnd(9)} pp:  ${pm(boot(rader, ind((r) => r.spredP < t)))} %`);
 }
 
-console.log(`\n=== 2. DER POENGFASITEN ER FLAT MEN SEIERSFASITEN IKKE ER ===\n`);
+console.log(`\n=== 2. MEKANISMENS TAKHØYDE: flat i diff, men ULIK poengvektor ===\n`);
 const flatePoeng = rader.filter(FLAT_POENG);
+const komprimert = flatePoeng.filter((r) => !r.vektorFlat);
+console.log(`flate i poeng (diff): ${flatePoeng.length}`);
+console.log(`  av dem med ULIK poengvektor (der linjalen KAN skille): ${komprimert.length}` +
+  `  (${pm(boot(flatePoeng, ind((r) => !r.vektorFlat)), 2)} %)`);
 const skjult = flatePoeng.filter((r) => !FLAT_P(r));
-console.log(`flate i poeng: ${flatePoeng.length}`);
-console.log(`   av dem SKILLENDE i seier: ${skjult.length}  (${pm(boot(flatePoeng, andel((r) => !FLAT_P(r))))} %)`);
+console.log(`  av dem SKILLENDE i seier (> 0,01 pp): ${skjult.length}  (${pm(boot(flatePoeng, ind((r) => !FLAT_P(r))), 2)} %)`);
+
 if (skjult.length > 0) {
   const sp = skjult.map((r) => r.spredP).sort((a, b) => a - b);
-  const q = (p: number): number => sp[Math.min(sp.length - 1, Math.floor(p * sp.length))]!;
-  console.log(`   spredning i seier (pp): median ${f(q(0.5), 3)}  p75 ${f(q(0.75), 3)}  p90 ${f(q(0.9), 3)}  maks ${f(sp[sp.length - 1]!, 3)}`);
-  console.log(`   snitt spredning: ${pm(boot(skjult, snitt((r) => r.spredP)), 3)} pp`);
-  console.log(`   argmaks flytter seg: ${pm(boot(skjult, andel((r) => r.byttet)))} %  (${skjult.filter((r) => r.byttet).length} av ${skjult.length})`);
-  console.log(`   ANGER for dagens bot: ${pm(boot(skjult, snitt((r) => r.angerP)), 3)} pp`);
-  console.log(`   botens kort er seiersoptimalt i ${f(100 * skjult.filter((r) => (r.angerP ?? 0) < 1e-9).length / skjult.length)} %`);
+  const q = (p: number): number | undefined => sp[Math.min(sp.length - 1, Math.floor(p * sp.length))];
+  console.log(`\n  spredning i seier på de skillende (pp):`);
+  console.log(`    median ${f(q(0.5))}  p75 ${f(q(0.75))}  p90 ${f(q(0.9))}  maks ${f(sp[sp.length - 1])}`);
+  console.log(`    snitt ${pm(boot(skjult, (r) => r.spredP), 3)} pp`);
+  console.log(`    argmaks flytter seg: ${pm(boot(skjult, ind((r) => r.byttet)))} %  (${skjult.filter((r) => r.byttet).length} av ${skjult.length})`);
+  console.log(`    ANGER for dagens bot: ${pm(boot(skjult, (r) => r.angerP), 3)} pp`);
+  const opt = skjult.filter((r) => (r.angerP ?? 0) < 1e-9).length;
+  console.log(`    botens kort er alt seiersoptimalt i ${((100 * opt) / skjult.length).toFixed(1)} %`);
 }
 
-console.log(`\n=== 3. ANGER PÅ STILLINGENE DER FASITEN SKILLER ===\n`);
+console.log(`\n=== 3. ANGER DER FASITEN SKILLER ===\n`);
 const skillPoeng = rader.filter((r) => !FLAT_POENG(r));
 const skillP = rader.filter((r) => !FLAT_P(r));
 console.log(`| fasit skiller i | n | snitt anger | argmaks byttet |`);
 console.log(`|---|---|---|---|`);
-console.log(`| POENG (anger i poeng) | ${skillPoeng.length} | ${pm(boot(skillPoeng, snitt((r) => r.angerPoeng)), 3)} | — |`);
-console.log(`| SEIER (anger i pp) | ${skillP.length} | ${pm(boot(skillP, snitt((r) => r.angerP)), 3)} | ${pm(boot(skillP, andel((r) => r.byttet)))} % |`);
-
-console.log(`\nHvor ofte er de to linjalene uenige om beste kort, over ALLE stillinger:`);
-console.log(`  ${pm(boot(rader, andel((r) => r.byttet)))} %   (${rader.filter((r) => r.byttet).length} av ${rader.length})`);
+console.log(`| POENG (anger i poeng/runde) | ${skillPoeng.length} | ${pm(boot(skillPoeng, (r) => r.angerPoeng), 3)} | — |`);
+console.log(`| **SEIER** (anger i pp) | ${skillP.length} | **${pm(boot(skillP, (r) => r.angerP), 3)}** | ${pm(boot(skillP, ind((r) => r.byttet)))} % |`);
+console.log(`\nDe to linjalene uenige om beste kort, over ALLE stillinger:`);
+console.log(`  ${pm(boot(rader, ind((r) => r.byttet)))} %   (${rader.filter((r) => r.byttet).length} av ${rader.length})`);
+console.log(`Uenige der POENGfasiten skiller (altså der det finnes noe å velge):`);
+console.log(`  ${pm(boot(skillPoeng, ind((r) => r.byttet)))} %   (${skillPoeng.filter((r) => r.byttet).length} av ${skillPoeng.length})`);
 
 console.log(`\n=== 4. UNDERGRUPPER — BESTE-AV-MANGE, IKKE FUNN ===\n`);
 const grupper: [string, (r: Rad) => boolean][] = [
@@ -184,7 +207,7 @@ const grupper: [string, (r: Rad) => boolean][] = [
   ["forsvar", (r) => r.rolle === "forsvar"],
   ["ledende < 40", (r) => r.ledende < 40],
   ["ledende 40-69", (r) => r.ledende >= 40 && r.ledende < 70],
-  ["ledende >= 70", (r) => r.ledende >= 70],
+  ["ledende 70-84", (r) => r.ledende >= 70 && r.ledende < 85],
   ["ledende >= 85", (r) => r.ledende >= 85],
   ["2 lovlige", (r) => r.nLov === 2],
   ["3-4 lovlige", (r) => r.nLov >= 3 && r.nLov <= 4],
@@ -196,16 +219,16 @@ for (const [navn, p] of grupper) {
   const u = rader.filter(p);
   if (u.length === 0) continue;
   console.log(
-    `| ${navn} | ${u.length} | ${pm(boot(u, andel(FLAT_POENG)))} % | ${pm(boot(u, andel(FLAT_P)))} % | ${pm(boot(u, andel((r) => r.byttet)))} % |`,
+    `| ${navn} | ${u.length} | ${pm(boot(u, ind(FLAT_POENG)))} % | ${pm(boot(u, ind(FLAT_P)))} % | ${pm(boot(u, ind((r) => r.byttet)))} % |`,
   );
 }
 
 console.log(`\n=== 5. H3-FORMKONTROLL: skiller seiersfasiten MER nær 100? ===\n`);
-console.log(`| kampstilling (ledende) | n | snitt spredning i seier (pp) |`);
-console.log(`|---|---|---|`);
+console.log(`| kampstilling (ledende) | n | snitt spredning i seier (pp) | snitt anger (pp) |`);
+console.log(`|---|---|---|---|`);
 for (const [navn, p] of grupper.filter(([n]) => n.startsWith("ledende"))) {
   const u = rader.filter(p);
   if (u.length === 0) continue;
-  console.log(`| ${navn} | ${u.length} | ${pm(boot(u, snitt((r) => r.spredP)), 3)} |`);
+  console.log(`| ${navn} | ${u.length} | ${pm(boot(u, (r) => r.spredP), 3)} | ${pm(boot(u, (r) => r.angerP), 3)} |`);
 }
 console.log();
