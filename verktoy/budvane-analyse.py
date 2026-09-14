@@ -306,7 +306,7 @@ def kjor(navn_til_X, maske=None, merke=""):
             m, se = boot_diff(tap[egen], tap[frem], kk)
             z = m / se if se > 0 else 0.0
             dom = "EGEN er bedre (fella klarert)" if z < -2 else "fella FYRTE: ingen profil"
-            print(f"  FELLE {egen.split('/')[1]:5}: egen − fremmed = {m:+.4f} ± {se:.4f} (z {z:+.2f})  -> {dom}")
+            print(f"  FELLE {egen.split('/')[1]:5}: egen - fremmed = {m:+.4f} +- {se:.4f} (z {z:+.2f})  -> {dom}")
     return tap
 
 
