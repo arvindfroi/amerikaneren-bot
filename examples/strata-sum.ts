@@ -128,7 +128,14 @@ function klynget(d: readonly number[], klynge: readonly string[]): {
  * var en signifikanstest. Det er nøyaktig hvordan et måletall blir til et falskt funn.
  */
 const zTekst = (m: number, se: number): string =>
-  !Number.isFinite(se) || se <= 0 ? "z=–" : `z=${(m / se).toFixed(2)}`;
+  // `se <= 0` er ikke nok. Klyngesummene kanselleres i FLYTTALL, så en differanse som er
+  // identisk i hver rad gir en SE på ~1e-17 i stedet for eksakt 0 — og da trykker `m/se`
+  // et tall som 1,6e16 der det skulle stått «ingen spredning». Målt på syntetiske rader
+  // 14. sep. Terskelen fanger begge formene: forsvinnende SE, og et forhold så stort at
+  // det bare kan komme av at nevneren er numerisk støy.
+  !Number.isFinite(se) || se <= 1e-12 || Math.abs(m) / se > 1e6
+    ? "z=–"
+    : `z=${(m / se).toFixed(2)}`;
 
 const vis = (navn: string, r: { m: number; se: number; n: number; k: number }, enhet = "pp", skala = 100): string =>
   `${navn.padEnd(26)} ${(skala * r.m >= 0 ? "+" : "") + (skala * r.m).toFixed(2)} ± ${(skala * r.se).toFixed(2)} ${enhet}` +
@@ -259,7 +266,7 @@ console.log("\n\n3. KOSTNADEN — SAMME antall verdener OG samme antall utspilli
   console.log(`\n   ms/beslutning:              iid ${mi.toFixed(0)}   strata ${ms.toFixed(0)}   (${(100 * (ms / mi - 1)).toFixed(1)} %)`);
   console.log(`   ${vis("   parret strata − iid", klms, "ms", 1)}`);
   console.log(
-    `   Den eneste posten som ikke er gratis: én sortering av ${"<kandidater>"} elementer per verden.`,
+    `   Den eneste posten som ikke er gratis: én sortering av kandidatpoolen per verden.`,
   );
 }
 
