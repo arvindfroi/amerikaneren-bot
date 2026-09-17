@@ -45,6 +45,12 @@ createServer((req, res) => {
     res.end(html);
     return;
   }
+  // A/B-benken (17. sep): statisk side som laster `dist/ab-benk.js`, logger ingenting.
+  if (sti === "/ab-benk.html") {
+    res.writeHead(200, { "content-type": MIME[".html"]! });
+    res.end(readFileSync(resolve(WEB, "ab-benk.html")));
+    return;
+  }
   // `index.html` laster `dist/app.js` og `dist/worker.js` først (11. sep), og CSS-en
   // `dist/f-*.woff2`; eldre stier uten `dist/` virker fortsatt.
   const fil = resolve(WEB, "dist", sti.replace(/^\/(dist\/)?/, ""));

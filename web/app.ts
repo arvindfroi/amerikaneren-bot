@@ -1302,6 +1302,10 @@ async function start(navn: string): Promise<void> {
     // Ny kamp til helbotens seter (ny økt, nye bøker). En helbotworker som var treg eller
     // feilet, startes på nytt her – som arm A sin.
     helbotklient.nyKamp();
+    // Arm B tar ALLE botbeslutninger i workeren, også budet i første stikk av første runde.
+    // Uten ventingen ble de første budene tatt av reserven mens workeren bygde (~0,1–1 s).
+    // Lasteskjermen står så lenge; taket gjør at en treg worker aldri holder kampen igjen.
+    for (let t = 0; t < 300 && helbotklient.status === "laster"; t++) await new Promise((r) => setTimeout(r, 50));
   } else if (motstander === "Vaar" && råVekter !== null && SØKVERDENER > 0) {
     helbotklient.stopp();
     // WORKEREN STARTES VED KAMPSTART, ikke ved første førertrekk. Da er den
