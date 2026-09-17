@@ -1,0 +1,56 @@
+
+=== BANDITTEN: 1320 beslutninger, 12 kamper, 3 filer ===
+
+1. STØYGULVET — hvor ofte skifter argmaks kort BARE av et nytt verdenstrekk?
+   (dagens tall fra troledd.md §3a: 43,8 % ± 1,0)
+
+gruppe          |     n | JEVN (i dag)    | HALV            | PARRET HALV − JEVN
+------------------------------------------------------------------------------------------------
+ALLE            |  1320 |     43.0% ± 1.4 |     42.2% ± 1.4 | -0.8 ± 1.1 pp (z=-0.71)
+  foerer        |   378 |     39.2% ± 2.5 |     37.3% ± 2.5 | -1.9 ± 1.8 pp (z=-1.04)
+  makker        |   301 |     44.5% ± 2.9 |     47.8% ± 2.9 | +3.3 ± 2.0 pp (z=1.63)
+  forsvar       |   641 |     44.5% ± 2.0 |     42.4% ± 2.0 | -2.0 ± 1.2 pp (z=-1.66)
+  stikk 0-3     |   461 |     60.5% ± 2.3 |     60.1% ± 2.3 | -0.4 ± 1.3 pp (z=-0.33)
+  stikk 4-7     |   491 |     52.1% ± 2.3 |     50.9% ± 2.3 | -1.2 ± 2.2 pp (z=-0.57)
+  stikk 8+      |   368 |      8.7% ± 1.5 |      8.2% ± 1.4 | -0.5 ± 0.9 pp (z=-0.58)
+  2 lovlige     |   342 |     17.0% ± 2.0 |     17.0% ± 2.0 | +0.0 ± 0.0 pp (z=–)
+  3-4 lovlige   |   417 |     33.1% ± 2.3 |     32.4% ± 2.3 | -0.7 ± 1.6 pp (z=-0.44)
+  5+ lovlige    |   561 |     66.1% ± 2.0 |     64.9% ± 2.0 | -1.2 ± 2.0 pp (z=-0.64)
+
+   Samme tall for KORTET SOM SPILLES (porten σ ≥ 0,5 anvendt):
+   jevn 32.3% ± 1.3   halv 37.9% ± 1.3   parret +5.5 ± 1.3 pp
+
+
+2. ANGER MOT EKSAKT FASIT — bare der fasiten SKILLER
+   166 skillende, 569 flate forkastet, 585 utenfor fasitvinduet
+
+   diff-målet: jevn 0.475   halv 0.428   (lavere er bedre)
+        parret halv − jevn    -0.05 ± 0.11 poeng  (z=-0.41, n=166, klynger=12)
+   lagmålet: jevn 0.508   halv 0.503   (lavere er bedre)
+        parret halv − jevn    -0.00 ± 0.13 poeng  (z=-0.04, n=166, klynger=12)
+
+
+3. KOSTNADEN — skal være uendret i UTSPILLINGER
+   utspillinger/beslutning:  jevn 229.0   halv 228.9
+      parret halv − jevn      -0.05 ± 0.00 utsp.  (z=-13.55, n=1320, klynger=12)
+   rader der halv brukte FLERE utspillinger enn jevn: 0 av 1320
+
+   ms/beslutning:            jevn 644   halv 653   (1.3 %)
+      parret halv − jevn      +8.26 ± 1.83 ms  (z=4.52, n=1320, klynger=12)
+   verdener beste kort ble vurdert i:  jevn 48.0   halv 78.9
+
+
+4. AV ER AV — k = 2 skal være BIT-IDENTISK
+   342 beslutninger med to lovlige kort. Med k=2 er halveringen ÉN runde over hele budsjettet,
+   altså nøyaktig den jevne fordelingen. Ulike kort: 0 (skal være 0).
+n=1320
+snitt sigma:   jevn 2.453   halv 2.625
+|sigma| >= 0.5 (porten aapner): jevn 51.0 %   halv 56.1 %
+  2 lovlige  n= 342  port aapen: jevn 48.8 %  halv 48.8 %   sigma jevn 7.21 halv 7.21
+  3-4        n= 417  port aapen: jevn 48.9 %  halv 51.1 %   sigma jevn 0.97 halv 1.14
+  5+         n= 561  port aapen: jevn 53.8 %  halv 64.2 %   sigma jevn 0.65 halv 0.93
+
+samme froe, jevn mot halv (argmaks): ulikt kort i 24.6 % av 978 med >=3 lovlige
+verdener til finalistene: halv 78.9 mot jevn 48.0
+  3-4: nH=65.1  utsp jevn 164.3 halv 164.3
+  5+: nH=108.1  utsp jevn 358.2 halv 358.1

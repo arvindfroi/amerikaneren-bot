@@ -203,7 +203,9 @@ export const BÅND: Record<string, { base: number; steg: number }> = {
 
 /** `--kamp` sine bånd (se toppen). `maks` er antall KAMPER båndet er avsatt til. */
 export const KAMP_BÅND: Record<string, { base: number; steg: number; maks: number }> = {
-  trening: { base: 1_950_000_000, steg: 7717, maks: 4_000 },
+  // 13. sep 05:20: baandet var OPPBRUKT - iterasjon 8 mistet ALLE seks treningsskaar paa
+  // «avsatt til 4000 kamper», og loekka logget det som suksess. Hevet 4000x.
+  trening: { base: 1_950_000_000, steg: 7717, maks: 16_000_000 },
   holdout: { base: 1_985_000_000, steg: 7717, maks: 1_500 },
 };
 

@@ -1,0 +1,71 @@
+
+=== FELLES PULJE: 1320 beslutninger, 12 kamper, 3 filer ===
+
+1. STØYGULVET — hvor ofte skifter argmaks kort BARE av et nytt verdenstrekk?
+   FORHÅNDSREGISTRERT HYPOTESE: raden ALLE, pulje < i.i.d.
+   (kjente tall: troledd.md §3a 43,8 % ± 1,0; bandit.md 43,0 % ± 1,4)
+
+gruppe          |     n | I.I.D. (i dag)  | FELLES PULJE    | PARRET PULJE − IID
+--------------------------------------------------------------------------------------------------
+ALLE            |  1320 |     43.0% ± 1.4 |     45.0% ± 1.4 | +2.0 ± 1.0 pp (z=2.05)
+  stikk 0-3     |   461 |     60.5% ± 2.3 |     66.6% ± 2.2 | +6.1 ± 1.5 pp (z=4.06)
+  stikk 4-7     |   491 |     52.1% ± 2.3 |     53.6% ± 2.3 | +1.4 ± 2.4 pp (z=0.60)
+  stikk 8+      |   368 |      8.7% ± 1.5 |      6.5% ± 1.3 | -2.2 ± 1.8 pp (z=-1.22)
+  foerer        |   378 |     39.2% ± 2.5 |     41.5% ± 2.5 | +2.4 ± 2.7 pp (z=0.87)
+  makker        |   301 |     44.5% ± 2.9 |     46.5% ± 2.9 | +2.0 ± 2.6 pp (z=0.75)
+  forsvar       |   641 |     44.5% ± 2.0 |     46.3% ± 2.0 | +1.9 ± 1.5 pp (z=1.21)
+  2 lovlige     |   342 |     17.0% ± 2.0 |     18.7% ± 2.1 | +1.8 ± 2.3 pp (z=0.77)
+  3-4 lovlige   |   417 |     33.1% ± 2.3 |     34.3% ± 2.3 | +1.2 ± 2.6 pp (z=0.47)
+  5+ lovlige    |   561 |     66.1% ± 2.0 |     69.0% ± 2.0 | +2.9 ± 1.4 pp (z=1.97)
+
+   MERK: bare raden ALLE er forhåndsregistrert. De ni undergruppene er ni ekstra
+   sammenlikninger; den største av dem er ikke et funn uten en egen forhåndsregistrert
+   prøve av akkurat den armen. Stikk 0–3 er nevnt på forhånd som den interessante
+   (dekomp.md legger +0,49 av K1s +1,24 der), men er ikke lovet.
+
+   Samme tall for KORTET SOM SPILLES (porten σ ≥ 0,5 anvendt):
+   iid 32.3% ± 1.3   pulje 37.0% ± 1.3   parret +4.6 ± 1.4 pp
+   σ i snitt: iid 2.453   pulje 3.049   | porten åpner: iid 51.0% ± 1.4   pulje 52.4% ± 1.4
+   (bandit.md §3: en arm som endrer σ endrer også hvor ofte porten åpner, og da er
+    armen TO endringer. Med færre distinkte verdener kan marginens SE flytte seg, så
+    dette tallet står her og ikke i en fotnote.)
+
+
+2. MANGFOLDET — kollapser ensemblet? (leses SAMMEN med punkt 1)
+   distinkte verdener av 48:   iid 45.3   pulje 25.5
+      parret pulje − iid      -19.76 ± 0.55 verdener  (z=-35.86, n=1320, klynger=12)
+   rader der pulje har HALVPARTEN eller færre distinkte: 50.2% ± 1.4
+   Faller dette mye, vurderes kortene i færre ULIKE verdener, og et lavere støygulv er
+   delvis bare et smalere ensemble — ikke et bedre søk. Dommen i punkt 1 må leses i lys
+   av dette tallet, og de to hører sammen i rapporten.
+
+
+3. ANGER MOT EKSAKT FASIT — bare der fasiten SKILLER
+   166 skillende, 569 flate forkastet, 585 utenfor fasitvinduet
+
+   diff-målet: iid 0.475   pulje 0.785   (lavere er bedre)
+        parret pulje − iid    +0.31 ± 0.13 poeng  (z=2.35, n=166, klynger=12)
+   lagmålet: iid 0.508   pulje 0.892   (lavere er bedre)
+        parret pulje − iid    +0.38 ± 0.18 poeng  (z=2.08, n=166, klynger=12)
+
+
+4. KOSTNADEN — SAMME antall verdener OG samme antall utspillinger
+   verdener per vurdering:      iid 48.00   pulje 48.00
+   rader med ULIKT antall verdener:     0 av 1320  (skal være 0)
+   utspillinger per beslutning: iid 229.0   pulje 229.0
+   rader med ULIKT antall utspillinger: 0 av 1320  (skal være 0)
+   (utspillinger = n × lovlige, som er nøyaktig løkka i vurderPar. Er begge tallene 0,
+    er «samme budsjett» BEVIST rad for rad, ikke hevdet.)
+
+   ms/beslutning:               iid 923   pulje 925   (0.2 %)
+      parret pulje − iid      +1.67 ± 4.64 ms  (z=0.36, n=1320, klynger=12)
+   Trekningen koster LIKE MANGE trekkVerden-kall som før (48·32 = 1536 i begge). Det
+   nye er én sortering av 1536 elementer og ett binærsøk per verden. Tallet over er
+   den ærlige prisen for det, målt og ikke anslått.
+
+
+5. BITER KNOTTEN? (samme frø, i.i.d. mot felles pulje)
+   ulikt kort på samme frø: 39.8% ± 1.3 over alle rader
+                            46.9% ± 1.6 med ≥ 3 lovlige kort
+   En knott som aldri biter er død i strengen (jf. «12k16d4», som slo hele søket av
+   i stillhet). Dette tallet skal være klart over null.

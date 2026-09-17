@@ -1,0 +1,12 @@
+
+===== LANG KJØRING START 2026-09-14 21:13 : iterasjon 14-22 =====
+[21:13] starter iterasjon 14
+[03:17] iterasjon 14 FERDIG |  | port: K1 1.29 ± 0.28 er nytt beste (forrige 1, nett 14) | holdout: +0.73 ± 0.28
+[03:17] starter iterasjon 15
+[09:41] iterasjon 15 FERDIG |  | port: K1 1.11 ± 0.27 er dårligere enn beste 1.29 ± 0.28 (nett 15) → RULLET TILBAKE til beste i slott 16 | holdout: +0.85 ± 0.27
+[09:41] starter iterasjon 16
+
+[2026-09-17 13:39] KJEDEN DØDE 15. sep ca. 10:05 midt i iterasjon 16 (budgenerering, ingen feil) – trolig drept da Claude-økta ble lukket. Delvis iter16 flyttet til iter16-avbrutt-15sep. Startes på nytt via WMI.
+
+===== LANG KJØRING START 2026-09-17 13:39 : iterasjon 16-22 =====
+[13:39] starter iterasjon 16

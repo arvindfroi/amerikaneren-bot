@@ -1,0 +1,108 @@
+FORHÅNDSREGISTRERT SPÅDOM — felles kandidatpulje (`~pulje=felles`)
+Gren pulje-2026-09-14, D:\amb-pulje. Skrevet 14. sep FØR noen måling er startet.
+Ingen tall fra pulje.ts, pulje-forventning.ts eller pulje-sum.ts finnes ennå.
+
+Husregelen kommer fra strata.md §4d: spådommen skal stå på disk så den ikke kan
+justeres etterpå. Denne går lenger enn strata sin, fordi den også forhåndsregistrerer
+TOLKNINGSREGELEN — hovedrisikoen her er ikke at gulvet står stille, men at det faller
+av feil grunn.
+
+=====================================================================
+1. HOVEDHYPOTESEN (den eneste forhåndsregistrerte), raden ALLE
+=====================================================================
+
+    STØYGULV(felles pulje) < STØYGULV(i.i.d.)
+
+Anslag: **−8 til −20 pp** mot dagens 43,0 %. Altså et gulv i området 23–35 %.
+
+Hvorfor jeg venter et STORT utslag her, når fire grep på rad har målt null:
+de fire endret HVORDAN BUDSJETTET BRUKES (flere verdener, σ-porten, adaptiv
+fordeling) eller la en rist over en akse som ikke fantes (strata). Dette grepet
+endrer selve ENSEMBLET på to måter samtidig:
+  (a) hver verden er nå SIR med M = 1536 i stedet for M = 32, altså mye nærmere
+      målfordelingen p ∝ q·w, og
+  (b) risten har en EKTE felles akse, så dekningen av vektfordelingen er garantert
+      jevn i stedet for tilfeldig.
+Med ESS/K = 0,179 (troledd.md §4) er det (a) som burde bite hardest.
+
+FALSIFISERING: er raden ALLE innenfor ±2 SE av null (SE ventes ~1,1–1,5 pp), er
+hypotesen forkastet, på linje med de fire foregående. Da leveres ingen K1-spek.
+
+=====================================================================
+2. MANGFOLDET — og hvorfor det avgjør TOLKNINGEN, ikke bare pynter
+=====================================================================
+
+Vekten er skarp: ESS/K 0,179, maks p 0,547, log-spenn 19,13 (troledd.md §4). I dag
+beskytter de 48 UAVHENGIGE puljene mangfoldet — hver pulje har sin egen vinner, så de
+48 verdenene er nær 48 forskjellige. Med én felles pulje får en kandidat som holder
+mer enn 1/48 = 2,08 % av totalvekten FLERE slott.
+
+Anslag: distinkte verdener faller fra ~46–48 (i.i.d.) til **8–25 av 48** (felles).
+
+Et gulv som faller fordi ensemblet har kollapset er ikke et bedre søk — det er et mer
+deterministisk søk over et smalere ensemble. Derfor, FORHÅNDSREGISTRERT BESLUTNINGSREGEL:
+
+  A. Gulvet faller ≥ 2 SE  OG  distinkte ≥ 24 av 48
+     → ekte gevinst. Jeg leverer en K1-spek og anbefaler den.
+
+  B. Gulvet faller ≥ 2 SE  MEN  distinkte < 12 av 48
+     → rapporteres som ENSEMBLEKOLLAPS, ikke som seier. Ingen K1-spek anbefales
+       uten en variant med tak på multiplisiteten, som jeg i så fall ikke har målt.
+
+  C. Alt imellom (12 ≤ distinkte < 24)
+     → begge tallene rapporteres side om side; K1-speken leveres, men med kollapsen
+       eksplisitt oppgitt som forbeholdet, og som noe som må måles før den køes.
+
+=====================================================================
+3. FORVENTNINGSRETTHET — retningen, ikke et ja/nei
+=====================================================================
+
+Jeg venter at fordelingen FLYTTER SEG, og sier det på forhånd: felles pulje bytter
+SIR-approksimasjonen fra M = 32 til M = 1536. Det er matematikk, ikke en måling, og
+strata.md §4c pekte på nøyaktig dette. Kravet «endrer utvalget, ikke fordelingen» kan
+derfor ikke innfris av noe grep som gir risten en felles akse.
+
+Spådom, mot referansen p̂ (vektet marginal over 16 384 kandidater, ingen resampling):
+
+    RMS |marginal − p̂| for felles = **0,4 til 0,8 ×** den for i.i.d.
+
+Altså: fordelingen flytter seg MOT målet. Blir forholdet > 1,0, er knotten ødelagt og
+skal rapporteres som det.
+
+Kontroll som må være eksakt (ikke et anslag): `~pulje=blokk` skal være BIT-IDENTISK
+med i.i.d. i alle sjekkede repetisjoner. Er den ikke det, er den felles kodestien ikke
+en tro omskriving, og ingen av tallene over kan tilskrives utvelgelsen.
+
+=====================================================================
+4. KOSTNADEN
+=====================================================================
+
+Antall `trekkVerden`-kall: IDENTISK (1536 i begge — oppdragets «trekningen blir dyrere»
+stemmer ikke; 48 puljer à 32 er allerede 1536 kandidater).
+Antall rng()-kall: IDENTISK. Antall utspillinger: IDENTISK (0 rader skal avvike).
+Nytt arbeid: én sortering av 1536 elementer + ett binærsøk per verden.
+
+Anslag veggtid: **+0 til +8 %** per beslutning.
+
+=====================================================================
+5. BIVIRKNING JEG VENTER, OG SOM MÅ RAPPORTERES UANSETT
+=====================================================================
+
+bandit.md §3: en arm som endrer σ endrer også hvor ofte porten åpner, og da er armen
+TO endringer. Her venter jeg at σ STIGER — færre distinkte verdener gir en mindre SE
+på den parrede marginen — så porten (σ ≥ 0,5) åpner OFTERE.
+
+Anslag: andelen der porten åpner stiger med **+3 til +15 pp**.
+
+Skjer det, er `~pulje=felles` ved σ 0,5 ikke én endring, og enhver K1-spek jeg leverer
+må si det høyt, slik bandit-agenten gjorde.
+
+=====================================================================
+6. HVA JEG IKKE MÅLER
+=====================================================================
+
+Ingen K1-måling startes (2,5 t per arm, eierens å køe). Ingen undergruppe forfremmes
+til funn: de ni undergruppene i pulje-sum.ts punkt 1 er ni ekstra sammenlikninger, og
+den største av dem oppstår av seg selv. Stikk 0–3 er nevnt på forhånd som den
+interessante (dekomp.md legger +0,49 av K1s +1,24 der), men er IKKE lovet og krever en
+egen forhåndsregistrert prøve for å kalles et funn.

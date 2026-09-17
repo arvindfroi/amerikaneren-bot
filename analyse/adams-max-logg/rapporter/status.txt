@@ -1,0 +1,321 @@
+2026-09-11T14:53:18 [iter 0] START policy=okt:vr:e1-modell/vrak-0.bin:telrd:profil:budq:e1-modell/budq-0.bin:vakt:abmp:e1:e1-modell/d7alle.bin
+2026-09-11T14:57:52 [iter 0] DATA tro: 8 filer, 950M
+2026-09-11T15:15:17 [krav 1] VENTER paa iterasjon 0
+2026-09-11T15:30:20 [iter 0] DATA vrak+kall: 13476 grupper
+2026-09-11T15:58:26 [kampsjekk 1] VENTER paa kravbatteriet 1
+2026-09-11T16:03:26 [iter 0] DATA bud: 53051 budstillinger
+2026-09-11T16:03:41 [iter 0] TRENT bud: MODELL-GEVINST-HOLDOUT 0.0257 START-GEVINST-HOLDOUT 0.0000 
+2026-09-11T16:03:44 [iter 0] TRENT vrak: modell 1.5638 < policy 1.7308 → nytt nett
+2026-09-11T16:03:48 [iter 0] TRENT etterlyst: modell 0.5246, policy 0.5246 → regelen beholdes (intet nett)
+2026-09-11T16:03:57 [iter 0] TRENT tro: 
+2026-09-11T16:03:57 [iter 0] FERDIG (batteriet ikke koblet inn ennå)
+2026-09-11T16:05:24 [krav 1] START helbot=okt:vr:e1-modell/vrak-1.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:24k32e3LMD~mlbu=e1-modell/tro-1.bin:budq:e1-modell/budq-1.bin:vakt:abmp:e1:e1-modell/d7alle.bin
+2026-09-11T16:30:40 [krav 1] FERDIG exit=0: HELE BOTEN MOT KRAVENE K1–K8  Spek:         okt:vr:e1-modell/vrak-1.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:24k32e3LMD~mlbu=e1-modell/tro-1.bin:budq:e1-modell/budq-1.bin:vakt:abmp:e1:e1-modell/d7alle.bin Uten søk:     okt:vr:e1-modell/vrak-1.bin:telrd:profil:budq:e1-modell/budq-1.bin:vakt:abmp:e1:e1-modell/d7alle.bin Uten minne:   vr:e1-modell/vrak-1.bin:telrd:eks:3Lt2000:sik:alle:0.5:24k32e3LMD:budq:e1-modell/budq-1.bin:vakt:abmp:e1:e1-modell/d7alle.bin K1-motstander vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin K6-basis:     vr:e
+2026-09-11T16:32:28 [kampsjekk 1] START loop-iter0-mot-prod
+2026-09-11T17:48:05 [kampsjekk 1] FERDIG:  KANDIDATENS vinnerandel 0.2700  differanse i vinnerandel +0.0200 +/- 0.0203 (+0.98 SE)  tegntest froe 31 opp / 26 ned (z=+0.66)  KANDIDATENS vinnerandel 0.2700  differanse i vinnerandel +0.0200 +/- 0.0203 (+0.98 SE)  tegntest froe 31 opp / 26 ned (z=+0.66) 
+2026-09-11T17:48:38 [iter 1] kampsjekk 1 ferdig – starter v2
+2026-09-11T17:48:38 [iter 1] START (v2) policy=okt:vr:e1-modell/vrak-1.bin:telrd:profil:budq:e1-modell/budq-1.bin:vakt:abmp:e1:e1-modell/d7alle.bin befolkning=ADAMS MENN GBT SPAR HOY (3 bord, 2 @-seter, rotasjon)
+2026-09-11T17:50:01 [iter 1] DATA tro: 8 filer, 539M
+2026-09-11T18:00:32 [iter 1] DATA vrak+kall: 7206 grupper
+2026-09-11T18:12:46 [iter 1] DATA bud: 21814 budstillinger
+2026-09-11T18:12:56 [iter 1] TRENT bud: MODELL-GEVINST-HOLDOUT 0.0632 START-GEVINST-HOLDOUT 0.0015 
+2026-09-11T18:13:00 [iter 1] TRENT vrak: modell 1.7694 < policy 2.0207 → nytt nett
+2026-09-11T18:13:03 [iter 1] TRENT etterlyst: modell 0.8434, policy 0.8434 → regelen beholdes (intet nett)
+2026-09-11T18:13:09 [iter 1] TRENT tro: Ferdig: beste holdout K8-tap 0.92137 -> /mnt/d/amb-grp/loop/iter1/tro-ny.bin
+2026-09-11T18:13:09 [iter 1] FERDIG trening
+2026-09-11T18:13:09 [iter 1] BATTERIKODE: Already up to date. → fae4074 Menneskerader i sanser-2-bredden og minne-dropout i trotreningen
+2026-09-11T18:13:10 [iter 1] KRAV START helbot=okt:vr:e1-modell/vrak-2.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:24k32e3LMD~mlbu=e1-modell/tro-2.bin:budq:e1-modell/budq-2.bin:vakt:abmp:e1:e1-modell/d7alle.bin
+2026-09-11T18:56:19 [iter 1] KRAV FERDIG exit=0: HELE BOTEN MOT KRAVENE K1–K8  Spek:         okt:vr:e1-modell/vrak-2.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:24k32e3LMD~mlbu=e1-modell/tro-2.bin:budq:e1-modell/budq-2.bin:vakt:abmp:e1:e1-modell/d7alle.bin Uten søk:     okt:vr:e1-modell/vrak-2.bin:telrd:profil:budq:e1-modell/budq-2.bin:vakt:abmp:e1:e1-modell/d7alle.bin Uten minne:   vr:e1-modell/vrak-2.bin:telrd:eks:3Lt2000:sik:alle:0.5:24k32e3LD:budq:e1-modell/budq-2.bin:vakt:abmp:e1:e1-modell/d7alle.bin K1-motstander vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin K6-basis:     vr:e1
+2026-09-11T20:12:35 [iter 1] KAMPSJEKK:  KANDIDATENS vinnerandel 0.2625  differanse i vinnerandel +0.0125 +/- 0.0193 (+0.65 SE)  tegntest froe 25 opp / 23 ned (z=+0.29)  KANDIDATENS vinnerandel 0.2625  differanse i vinnerandel +0.0125 +/- 0.0193 (+0.65 SE)  tegntest froe 25 opp / 23 ned (z=+0.29) 
+2026-09-11T20:12:35 [iter 1] FERDIG
+2026-09-11T20:13:13 [iter 2] iterasjon 1 ferdig – starter v3
+2026-09-11T20:13:14 [iter 2] KODE /d/amb-loop → fb82d97 Merge branch 'agM-2026-09-11' into krav-2026-09-11 (K2-lekk i 
+2026-09-11T20:13:14 [iter 2] START (v3) policy=okt:vr:e1-modell/vrak-2.bin:telrd:profil:budq:e1-modell/budq-2.bin:vakt:abmp:e1:e1-modell/kort-2.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-11T20:14:47 [iter 2] DATA tro: 8 filer, 576M
+2026-09-11T20:27:59 [iter 2] DATA vrak+kall: 7006 grupper
+2026-09-11T20:42:32 [iter 2] DATA bud: 22381 budstillinger
+2026-09-11T22:05:32 [iter 2] DATA kort: 217565 kortvalg
+2026-09-11T22:05:42 [iter 2] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0473 START-GEVINST-HOLDOUT 0.0000 
+2026-09-11T22:05:46 [iter 2] TRENT vrak: modell 1.8608 < policy 2.0415 → nytt nett
+2026-09-11T22:05:50 [iter 2] TRENT etterlyst: modell 0.9469, policy 0.9469 → regelen beholdes (intet nett)
+2026-09-11T22:05:57 [iter 2] TRENT tro: TRO-BESTE-EPOKE 1 TRO-BOT-K8-START 0.91739 TRO-BOT-K8-BESTE 0.91673 TRO-MENNESKE-K8-START 0.93202 TRO-MENNESKE-K8-BESTE 0.92840 
+2026-09-11T22:06:10 [iter 2] TRENT kort: modell 0.8077 < policy 0.8195 → nytt nett
+2026-09-11T22:06:10 [iter 2] FERDIG trening
+2026-09-11T22:06:11 [iter 2] KODE /d/amb-krav-batteri → fb82d97 Merge branch 'agM-2026-09-11' into krav-2026-09-11 (K2-lekk i 
+2026-09-11T22:06:11 [iter 2] KRAV START helbot=okt:vr:e1-modell/vrak-3.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:24k32e3LMD~mlbu=e1-modell/tro-3.bin:budq:e1-modell/budq-3.bin:vakt:abmp:e1:e1-modell/kort-3.bin
+2026-09-11T22:51:24 [iter 2] KRAV FERDIG exit=0:  9 av 23 rader lukket porten sin. SPRIKER MELLOM BÅNDENE: K3.6. Et krav som bare innfris i ETT bånd er IKKE innfridd. 4 rad(er) er STUMME: kontrollen bommet, fella slapp unna eller treet ble kappet. De tallene skal ikke leses som dom. 
+2026-09-11T22:51:31 [nyeporter 3] START k1,k3,k4,k7 fra D:/amb-agN (1ef96d8-kode) på nett 3
+2026-09-12T00:26:59 [iter 2] KAMPSJEKK:  KANDIDATENS vinnerandel 0.2850  differanse i vinnerandel +0.0350 +/- 0.0213 (+1.64 SE)  differanse i sluttmargin +5.862 +/- 2.897 (+2.02 SE)  KANDIDATENS vinnerandel 0.2850  differanse i vinnerandel +0.0350 +/- 0.0213 (+1.64 SE)  differanse i sluttmargin +5.862 +/- 2.897 (+2.02 SE) 
+2026-09-12T00:26:59 [iter 2] FERDIG
+2026-09-12T00:27:27 [iter 3] iterasjon 2 ferdig – starter v4 (nyeporter kjører videre parallelt)
+2026-09-12T00:27:28 [iter 3] KODE /d/amb-loop → 85725fc Merge branch 'agO-2026-09-11' into krav-2026-09-11 (kortnett 4
+2026-09-12T00:27:28 [iter 3] START (v4) policy=okt:vr:e1-modell/vrak-3.bin:telrd:profil:budq:e1-modell/budq-3.bin:vakt:abmp:e1:e1-modell/kort-3.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-12T00:29:57 [iter 3] DATA tro: 8 filer, 566M
+2026-09-12T00:46:52 [nyeporter 3] FERDIG exit=0:  11 av 13 rader lukket porten sin. SPRIKER MELLOM BÅNDENE: K3.6. Et krav som bare innfris i ETT bånd er IKKE innfridd. 1 rad(er) er STUMME: kontrollen bommet, fella slapp unna eller treet ble kappet. De tallene skal ikke leses som dom. 
+2026-09-12T00:48:12 [iter 3] DATA vrak+kall: 6878 grupper
+2026-09-12T01:03:09 [iter 3] DATA bud: 22021 budstillinger
+2026-09-12T02:35:25 [iter 3] DATA kort: 210460 kortvalg
+2026-09-12T02:35:36 [iter 3] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0601 START-GEVINST-HOLDOUT 0.0003 
+2026-09-12T02:35:40 [iter 3] TRENT vrak: modell 1.8763 < policy 2.0795 → nytt nett
+2026-09-12T02:35:43 [iter 3] TRENT etterlyst: modell 0.6855, policy 0.6855 → regelen beholdes (intet nett)
+2026-09-12T02:35:51 [iter 3] TRENT tro: TRO-BESTE-EPOKE 4 TRO-BOT-K8-START 0.92198 TRO-BOT-K8-BESTE 0.92045 TRO-MENNESKE-K8-START 0.92840 TRO-MENNESKE-K8-BESTE 0.92824 
+2026-09-12T02:36:04 [iter 3] TRENT kort: modell 0.7954 < policy 0.7997, SENT 0.2688 <= 0.2769 → nytt nett
+2026-09-12T02:36:04 [iter 3] FERDIG trening
+2026-09-12T02:36:05 [iter 3] KODE /d/amb-krav-batteri → 4c49883 Merge branch 'agP-2026-09-11' into krav-2026-09-11 (eksakt ret
+2026-09-12T02:36:05 [iter 3] KRAV START helbot=okt:vr:e1-modell/vrak-4.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:24k32e3LMD~mlbu=e1-modell/tro-4.bin:budq:e1-modell/budq-4.bin:vakt:abmp:e1:e1-modell/kort-4.bin
+2026-09-12T03:32:41 [iter 3] KRAV FERDIG exit=0:  16 av 23 rader lukket porten sin. Alle krav gir samme dom i begge bånd. 1 rad(er) er STUMME: kontrollen bommet, fella slapp unna eller treet ble kappet. De tallene skal ikke leses som dom. 
+2026-09-12T03:32:41 [iter 3] SØKEVARIANT W48 START okt:vr:e1-modell/vrak-4.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-4.bin:budq:e1-modell/budq-4.bin:vakt:abmp:e1:e1-modell/kort-4.bin
+2026-09-12T03:51:01 [iter 3] SØKEVARIANT W48:  MÅLT ΔP(seier) bot − menneske +1.12 ± 0.19 pp per runde, z = 5.79 (port: ≥ +1.0 pp OG z ≥ 3) (2641 runder i 273 kamper fra 2026-08-10); halvdeler +0.79 / +1.51; rundepoeng +1.44 ± 0.26
+2026-09-12T03:51:01 [iter 3] SØKEVARIANT E4 START okt:vr:e1-modell/vrak-4.bin:telrd:eks:4Lt2000:profil:sik:alle:0.5:24k32e4LMD~mlbu=e1-modell/tro-4.bin:budq:e1-modell/budq-4.bin:vakt:abmp:e1:e1-modell/kort-4.bin
+2026-09-12T03:58:38 [iter 3] SØKEVARIANT E4:  MÅLT ΔP(seier) bot − menneske +1.00 ± 0.19 pp per runde, z = 5.26 (port: ≥ +1.0 pp OG z ≥ 3) (2641 runder i 273 kamper fra 2026-08-10); halvdeler +0.71 / +1.34; rundepoeng +1.13 ± 0.28
+2026-09-12T03:58:38 [iter 3] FERDIG
+2026-09-12T03:58:58 [iter 4] iterasjon 3 ferdig – starter v5 (kortnett 493)
+2026-09-12T03:58:58 [iter 4] KODE /d/amb-loop → d69fdc8 Merge branch 'agR-2026-09-12' into krav-2026-09-11 (myke troet
+2026-09-12T03:58:58 [iter 4] START (v5, kortnett 493) policy=okt:vr:e1-modell/vrak-4.bin:telrd:profil:budq:e1-modell/budq-4.bin:vakt:abmp:e1:e1-modell/kort-4.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-12T04:00:31 [iter 4] DATA tro: 8 filer, 607M
+2026-09-12T04:14:58 [iter 4] DATA vrak+kall: 7296 grupper
+2026-09-12T04:28:33 [iter 4] DATA bud: 22828 budstillinger
+2026-09-12T05:52:43 [iter 4] DATA kort: 214911 kortvalg
+2026-09-12T05:52:53 [iter 4] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0904 START-GEVINST-HOLDOUT 0.0000 
+2026-09-12T05:52:57 [iter 4] TRENT vrak: modell 1.5338 < policy 1.7605 → nytt nett
+2026-09-12T05:53:00 [iter 4] TRENT etterlyst: modell 0.8659 < policy 0.8729 → nytt nett
+2026-09-12T05:53:08 [iter 4] TRENT tro: TRO-BESTE-EPOKE 1 TRO-BOT-K8-START 0.92485 TRO-BOT-K8-BESTE 0.92392 TRO-BOT-K8-ROLLE-START 1.03702 0.87221 0.87407 TRO-BOT-K8-ROLLE-BESTE 1.03608 0.87099 0.87329 TRO-MENNESKE-K8-START 0.92824 TRO-MENNESKE-K8-BESTE 0.92769 
+2026-09-12T05:53:35 [iter 4] TRENT kort: modell 0.8226 < policy 0.8306, SENT 0.3038 <= 0.3128 → nytt nett
+2026-09-12T05:53:35 [iter 4] FERDIG trening
+2026-09-12T05:53:36 [iter 4] KODE /d/amb-krav-batteri → 5d4b8d3 mlb-tro-tren: --minne-dropout-bot – symmetrisk minne-dropout
+2026-09-12T05:53:36 [iter 4] KRAV START helbot=okt:vr:e1-modell/vrak-5.bin@e1-modell/etterlyst-5.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:24k32e3LMD~mlbu=e1-modell/tro-5.bin:budq:e1-modell/budq-5.bin:vakt:abmp:e1:e1-modell/kort-5.bin
+2026-09-12T07:11:26 [iter 4] KRAV FERDIG exit=0:  16 av 23 rader lukket porten sin. Alle krav gir samme dom i begge bånd. 1 rad(er) er STUMME: kontrollen bommet, fella slapp unna eller treet ble kappet. De tallene skal ikke leses som dom. 
+2026-09-12T07:11:26 [iter 4] SØKEVARIANT W48 START okt:vr:e1-modell/vrak-5.bin@e1-modell/etterlyst-5.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-5.bin:budq:e1-modell/budq-5.bin:vakt:abmp:e1:e1-modell/kort-5.bin
+2026-09-12T07:39:23 [iter 4] SØKEVARIANT W48:  MÅLT ΔP(seier) bot − menneske +0.88 ± 0.19 pp per runde, z = 4.69 (port: ≥ +1.0 pp OG z ≥ 3) (2641 runder i 273 kamper fra 2026-08-10); halvdeler +0.61 / +1.19; rundepoeng +1.25 ± 0.28
+2026-09-12T07:39:23 [iter 4] SØKEVARIANT E4 START okt:vr:e1-modell/vrak-5.bin@e1-modell/etterlyst-5.bin:telrd:eks:4Lt2000:profil:sik:alle:0.5:24k32e4LMD~mlbu=e1-modell/tro-5.bin:budq:e1-modell/budq-5.bin:vakt:abmp:e1:e1-modell/kort-5.bin
+2026-09-12T07:51:42 [iter 4] SØKEVARIANT E4:  MÅLT ΔP(seier) bot − menneske +0.72 ± 0.20 pp per runde, z = 3.61 (port: ≥ +1.0 pp OG z ≥ 3) (2641 runder i 273 kamper fra 2026-08-10); halvdeler +0.36 / +1.14; rundepoeng +0.88 ± 0.27
+2026-09-12T07:51:42 [iter 4] FERDIG
+2026-09-12T07:51:51 [iter 5] iterasjon 4 ferdig – starter v6 (48 verdener, symmetrisk minne-dropout)
+2026-09-12T07:51:52 [iter 5] KODE /d/amb-loop → 5d4b8d3 mlb-tro-tren: --minne-dropout-bot – symmetrisk minne-dropout
+2026-09-12T07:51:52 [iter 5] START (v5, kortnett 493) policy=okt:vr:e1-modell/vrak-5.bin@e1-modell/etterlyst-5.bin:telrd:profil:budq:e1-modell/budq-5.bin:vakt:abmp:e1:e1-modell/kort-5.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-12T07:54:29 [iter 5] DATA tro: 8 filer, 617M
+2026-09-12T08:15:12 [iter 5] DATA vrak+kall: 7472 grupper
+2026-09-12T08:32:42 [iter 5] DATA bud: 22965 budstillinger
+2026-09-12T11:04:37 [iter 5] DATA kort: 221104 kortvalg
+2026-09-12T11:04:48 [iter 5] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0344 START-GEVINST-HOLDOUT 0.0000 
+2026-09-12T11:04:52 [iter 5] TRENT vrak: modell 1.6820 < policy 2.0028 → nytt nett
+2026-09-12T11:04:55 [iter 5] TRENT etterlyst: modell 0.8021 < policy 0.8341 → nytt nett
+2026-09-12T11:05:04 [iter 5] TRENT tro: TRO-BESTE-EPOKE 1 TRO-BOT-K8-START 0.92807 TRO-BOT-K8-BESTE 0.92658 TRO-BOT-K8-ROLLE-START 1.03710 0.87683 0.87675 TRO-BOT-K8-ROLLE-BESTE 1.03635 0.87528 0.87478 TRO-MENNESKE-K8-START 0.92769 TRO-MENNESKE-K8-BESTE 0.92777 
+2026-09-12T11:05:31 [iter 5] TRENT kort: modell 0.8447/0.8504, SENT 0.3147/0.3098 → forrige nett beholdes
+2026-09-12T11:05:31 [iter 5] FERDIG trening
+2026-09-12T11:05:32 [iter 5] KODE /d/amb-krav-batteri → 5d4b8d3 mlb-tro-tren: --minne-dropout-bot – symmetrisk minne-dropout
+2026-09-12T11:05:32 [iter 5] KRAV START helbot=okt:vr:e1-modell/vrak-6.bin@e1-modell/etterlyst-6.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-6.bin:budq:e1-modell/budq-6.bin:vakt:abmp:e1:e1-modell/kort-6.bin
+2026-09-12T13:21:46 [iter 5] KRAV FERDIG exit=0:  15 av 23 rader lukket porten sin. SPRIKER MELLOM BÅNDENE: K7. Et krav som bare innfris i ETT bånd er IKKE innfridd. 1 rad(er) er STUMME: kontrollen bommet, fella slapp unna eller treet ble kappet. De tallene skal ikke leses som dom. 
+2026-09-12T13:21:46 [iter 5] SØKEVARIANT W96 START okt:vr:e1-modell/vrak-6.bin@e1-modell/etterlyst-6.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:96k32e3LMD~mlbu=e1-modell/tro-6.bin:budq:e1-modell/budq-6.bin:vakt:abmp:e1:e1-modell/kort-6.bin
+2026-09-12T14:20:36 [iter 5] SØKEVARIANT W96:  MÅLT ΔP(seier) bot − menneske +1.05 ± 0.18 pp per runde, z = 5.93 (port: ≥ +1.0 pp OG z ≥ 3) (2641 runder i 273 kamper fra 2026-08-10); halvdeler +1.04 / +1.07; rundepoeng +1.10 ± 0.28
+2026-09-12T14:20:36 [iter 5] SØKEVARIANT W48E4 START okt:vr:e1-modell/vrak-6.bin@e1-modell/etterlyst-6.bin:telrd:eks:4Lt2000:profil:sik:alle:0.5:48k32e4LMD~mlbu=e1-modell/tro-6.bin:budq:e1-modell/budq-6.bin:vakt:abmp:e1:e1-modell/kort-6.bin
+2026-09-12T14:45:58 [iter 5] SØKEVARIANT W48E4:  MÅLT ΔP(seier) bot − menneske +0.66 ± 0.18 pp per runde, z = 3.66 (port: ≥ +1.0 pp OG z ≥ 3) (2641 runder i 273 kamper fra 2026-08-10); halvdeler +0.57 / +0.75; rundepoeng +0.80 ± 0.28
+2026-09-12T14:45:58 [iter 5] FERDIG
+2026-09-12T14:46:19 [iter 6] HELPORT (manuell): K1 0.92 ± 0.19 < beste 1.12 (nett 4) − 0,15 → nett 6 rullet tilbake til beste
+2026-09-12T14:46:19 [iter 6] starter v7 (port på helheten)
+2026-09-12T14:46:20 [iter 6] KODE /d/amb-loop → 5d4b8d3 mlb-tro-tren: --minne-dropout-bot – symmetrisk minne-dropout
+2026-09-12T14:46:20 [iter 6] START (v5, kortnett 493) policy=okt:vr:e1-modell/vrak-6.bin:telrd:profil:budq:e1-modell/budq-6.bin:vakt:abmp:e1:e1-modell/kort-6.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-12T14:48:11 [iter 6] DATA tro: 8 filer, 580M
+2026-09-12T15:02:49 [iter 6] DATA vrak+kall: 7140 grupper
+2026-09-12T15:06:03 [lop-helbot] START 100 løp, 6 skard, beste nett (K1 +1,12)
+2026-09-12T15:24:48 [iter 6] DATA bud: 23682 budstillinger
+2026-09-12T17:09:15 [iter 6] DATA kort: 223485 kortvalg
+2026-09-12T17:09:27 [iter 6] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0230 START-GEVINST-HOLDOUT 0.0000 
+2026-09-12T17:09:31 [iter 6] TRENT vrak: modell 1.8260 < policy 1.9855 → nytt nett
+2026-09-12T17:09:35 [iter 6] TRENT etterlyst: modell 0.9035 < policy 0.9101 → nytt nett
+2026-09-12T17:09:44 [iter 6] TRENT tro: TRO-BESTE-EPOKE 1 TRO-BOT-K8-START 0.92786 TRO-BOT-K8-BESTE 0.92686 TRO-BOT-K8-ROLLE-START 1.03770 0.87617 0.87835 TRO-BOT-K8-ROLLE-BESTE 1.03703 0.87521 0.87710 TRO-MENNESKE-K8-START 0.92824 TRO-MENNESKE-K8-BESTE 0.92835 
+2026-09-12T17:10:16 [iter 6] TRENT kort: modell 0.8147/0.8221, SENT 0.2891/0.2872 → forrige nett beholdes
+2026-09-12T17:10:16 [iter 6] FERDIG trening
+2026-09-12T17:10:16 [iter 6] KODE /d/amb-krav-batteri → 16c0fcb Merge branch 'agW-2026-09-12' into krav-2026-09-11 (spillermod
+2026-09-12T17:10:16 [iter 6] KRAV START helbot=okt:vr:e1-modell/vrak-7.bin@e1-modell/etterlyst-7.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-7.bin:budq:e1-modell/budq-7.bin:vakt:abmp:e1:e1-modell/kort-7.bin
+2026-09-12T18:24:30 [lop-helbot] FERDIG
+2026-09-12T18:25:40 [lop-helbot2] START 100 nye løp, frø 1260000000 (disjunkt), 6 skard
+2026-09-12T18:47:35 [menneskerader] START ny generering (medBok-feilen rettet)
+2026-09-12T18:47:45 [menneskerader] FERDIG
+2026-09-12T18:48:54 [menneskerader] BYTTET INN: rader996 har nå fylt hukommelsesblokk (0 % → 84 %); gamle i rader996-gammel-tomtminne
+2026-09-12T19:21:29 [iter 6] KRAV FERDIG exit=0:  17 av 23 rader lukket porten sin. Alle krav gir samme dom i begge bånd. 1 rad(er) er STUMME: kontrollen bommet, fella slapp unna eller treet ble kappet. De tallene skal ikke leses som dom. 
+2026-09-12T19:21:29 [iter 6] HELPORT: K1 1.1 ± 0.19 er ikke signifikant dårligere enn beste 1.12 ± 0.19 (nett 4) → nettene beholdes
+2026-09-12T19:21:29 [iter 6] SØKEVARIANT W96 START okt:vr:e1-modell/vrak-7.bin@e1-modell/etterlyst-7.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:96k32e3LMD~mlbu=e1-modell/tro-7.bin:budq:e1-modell/budq-7.bin:vakt:abmp:e1:e1-modell/kort-7.bin
+2026-09-12T20:02:33 [iter 6] SØKEVARIANT W96:  MÅLT ΔP(seier) bot − menneske +1.10 ± 0.17 pp per runde, z = 6.52 (port: ≥ +1.0 pp OG z ≥ 3) (2641 runder i 273 kamper fra 2026-08-10); halvdeler +1.02 / +1.18; rundepoeng +1.38 ± 0.26
+2026-09-12T20:02:33 [iter 6] SØKEVARIANT W48E4 START okt:vr:e1-modell/vrak-7.bin@e1-modell/etterlyst-7.bin:telrd:eks:4Lt2000:profil:sik:alle:0.5:48k32e4LMD~mlbu=e1-modell/tro-7.bin:budq:e1-modell/budq-7.bin:vakt:abmp:e1:e1-modell/kort-7.bin
+2026-09-12T20:19:06 [iter 6] SØKEVARIANT W48E4:  MÅLT ΔP(seier) bot − menneske +1.04 ± 0.19 pp per runde, z = 5.52 (port: ≥ +1.0 pp OG z ≥ 3) (2641 runder i 273 kamper fra 2026-08-10); halvdeler +1.03 / +1.05; rundepoeng +1.10 ± 0.27
+2026-09-12T20:19:06 [iter 6] FERDIG
+2026-09-12T20:19:54 [iter 7] iterasjon 6 ferdig – starter v8 (W96 + LIK7)
+2026-09-12T20:19:55 [iter 7] KODE /d/amb-loop → 3c4e0b6 sd-tren: utvalget doemmer paa BEGGE tallene, som porten
+2026-09-12T20:19:55 [iter 7] START (v5, kortnett 493) policy=okt:vr:e1-modell/vrak-7.bin@e1-modell/etterlyst-7.bin:telrd:profil:budq:e1-modell/budq-7.bin:vakt:abmp:e1:e1-modell/kort-7.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-12T20:21:47 [iter 7] DATA tro: 8 filer, 604M
+2026-09-12T20:36:27 [iter 7] DATA vrak+kall: 7454 grupper
+2026-09-12T20:54:29 [iter 7] DATA bud: 22759 budstillinger
+2026-09-12T21:31:43 [lop-helbot2] FERDIG
+2026-09-12T21:33:05 [kort-K1] START kandidat mot kort-7 (4 kjerner)
+2026-09-12T22:35:52 [iter 7] DATA kort: 226381 kortvalg
+2026-09-12T22:36:03 [iter 7] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.1018 START-GEVINST-HOLDOUT 0.0000 
+2026-09-12T22:36:07 [iter 7] TRENT vrak: modell 2.0472 < policy 2.2166 → nytt nett
+2026-09-12T22:36:11 [iter 7] TRENT etterlyst: modell 1.0777 < policy 1.1285 → nytt nett
+2026-09-12T22:36:20 [iter 7] TRENT tro: TRO-BESTE-EPOKE 1 TRO-BOT-K8-START 0.92946 TRO-BOT-K8-BESTE 0.92894 TRO-BOT-K8-ROLLE-START 1.03596 0.87841 0.87864 TRO-BOT-K8-ROLLE-BESTE 1.03557 0.87773 0.87812 TRO-MENNESKE-K8-START 0.92970 TRO-MENNESKE-K8-BESTE 0.92844 
+2026-09-12T22:36:51 [iter 7] TRENT kort: modell 0.8468 < policy 0.8546, SENT 0.3075 <= 0.3082 → nytt nett
+2026-09-12T22:36:51 [iter 7] FERDIG trening
+2026-09-12T22:36:52 [iter 7] KODE /d/amb-krav-batteri → 3c4e0b6 sd-tren: utvalget doemmer paa BEGGE tallene, som porten
+2026-09-12T22:36:52 [iter 7] KRAV START helbot=okt:vr:e1-modell/vrak-8.bin@e1-modell/etterlyst-8.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-8.bin:budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin
+2026-09-13T01:10:50 [iter 7] KRAV FERDIG exit=0:  17 av 23 rader lukket porten sin. Alle krav gir samme dom i begge bånd. 1 rad(er) er STUMME: kontrollen bommet, fella slapp unna eller treet ble kappet. De tallene skal ikke leses som dom. 
+2026-09-13T01:10:51 [iter 7] HELPORT: K1 1.01 ± 0.19 er ikke signifikant dårligere enn beste 1.12 ± 0.19 (nett 4) → nettene beholdes
+2026-09-13T01:10:51 [iter 7] SØKEVARIANT W96 START okt:vr:e1-modell/vrak-8.bin@e1-modell/etterlyst-8.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:96k32e3LMD~mlbu=e1-modell/tro-8.bin:budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin
+2026-09-13T01:43:48 [kort-K1] FERDIG kandidat=menneske +0.98 dagens=menneske +1.10
+2026-09-13T02:05:27 [iter 7] SØKEVARIANT W96:  MÅLT ΔP(seier) bot − menneske +0.94 ± 0.20 pp per runde, z = 4.80 (port: ≥ +1.0 pp OG z ≥ 3) (2641 runder i 273 kamper fra 2026-08-10); halvdeler +0.84 / +1.05; rundepoeng +1.17 ± 0.27
+2026-09-13T02:05:27 [iter 7] SØKEVARIANT LIK7 START okt:vr:e1-modell/vrak-8.bin@e1-modell/etterlyst-8.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-8.bin~lik=selv,f7:budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin
+2026-09-13T02:50:01 [iter 7] SØKEVARIANT LIK7:  MÅLT ΔP(seier) bot − menneske +0.91 ± 0.20 pp per runde, z = 4.45 (port: ≥ +1.0 pp OG z ≥ 3) (2641 runder i 273 kamper fra 2026-08-10); halvdeler +0.78 / +1.06; rundepoeng +1.27 ± 0.29
+2026-09-13T02:50:01 [iter 7] FERDIG
+2026-09-13T02:52:55 [iter 8] KODE /d/amb-loop → 3c4e0b6 sd-tren: utvalget doemmer paa BEGGE tallene, som porten
+2026-09-13T02:52:55 [iter 8] START (v5, kortnett 493) policy=okt:vr:e1-modell/vrak-8.bin@e1-modell/etterlyst-8.bin:telrd:profil:budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-13T02:53:34 [iter 8] DATA tro: 2 filer, 74M
+2026-09-13T03:16:27 [iter 8] DATA vrak+kall: 7472 grupper
+2026-09-13T03:38:38 [iter 8] DATA bud: 23116 budstillinger
+2026-09-13T06:36:49 [iter 8] DATA kort: 223260 kortvalg
+2026-09-13T06:37:00 [iter 8] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0726 START-GEVINST-HOLDOUT 0.0000 
+2026-09-13T06:37:04 [iter 8] TRENT vrak: modell 1.8578 < policy 1.9868 → nytt nett
+2026-09-13T06:37:07 [iter 8] TRENT etterlyst: modell 1.0587, policy 1.0587 → forrige nett beholdes
+2026-09-13T06:37:09 [iter 8] TRENT tro: 
+2026-09-13T06:37:37 [iter 8] TRENT kort: modell 0.8240 < policy 0.8302, SENT 0.3085 <= 0.3134 → nytt nett
+2026-09-13T06:37:37 [iter 8] FERDIG trening
+2026-09-13T06:37:38 [iter 8] KODE /d/amb-krav-batteri → 3c4e0b6 sd-tren: utvalget doemmer paa BEGGE tallene, som porten
+2026-09-13T06:37:38 [iter 8] KRAV START helbot=okt:vr:e1-modell/vrak-9.bin@e1-modell/etterlyst-9.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-9.bin:budq:e1-modell/budq-9.bin:vakt:abmp:e1:e1-modell/kort-9.bin
+2026-09-13T09:15:29 [iter 8] KRAV FERDIG exit=0:  17 av 23 rader lukket porten sin. Alle krav gir samme dom i begge bånd. 1 rad(er) er STUMME: kontrollen bommet, fella slapp unna eller treet ble kappet. De tallene skal ikke leses som dom. 
+2026-09-13T09:15:30 [iter 8] HELPORT: K1 1.02 ± 0.2 er ikke signifikant dårligere enn beste 1.12 ± 0.19 (nett 4) → nettene beholdes
+2026-09-13T09:15:30 [iter 8] FERDIG
+2026-09-13T09:17:30 [iter 9] KODE /d/amb-loop → 3c4e0b6 sd-tren: utvalget doemmer paa BEGGE tallene, som porten
+2026-09-13T09:17:30 [iter 9] START (v5, kortnett 493) policy=okt:vr:e1-modell/vrak-9.bin@e1-modell/etterlyst-9.bin:telrd:profil:budq:e1-modell/budq-9.bin:vakt:abmp:e1:e1-modell/kort-9.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-13T09:20:16 [iter 9] DATA tro: 8 filer, 574M
+2026-09-13T09:41:06 [iter 9] DATA vrak+kall: 7112 grupper
+2026-09-13T10:00:48 [iter 9] DATA bud: 22690 budstillinger
+2026-09-13T13:08:23 [iter 9] DATA kort: 220289 kortvalg
+2026-09-13T13:08:25 [iter 9] DATA-SJEKK OK: alle generatorfiler til stede, ingen krasj i loggene
+2026-09-13T13:08:35 [iter 9] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0771 START-GEVINST-HOLDOUT 0.0000 
+2026-09-13T13:08:39 [iter 9] TRENT vrak: modell 1.4327 < policy 1.6872 → nytt nett
+2026-09-13T13:08:43 [iter 9] TRENT etterlyst: modell 0.8770, policy 0.8770 → forrige nett beholdes
+2026-09-13T13:08:51 [iter 9] TRENT tro: TRO-BESTE-EPOKE 1 TRO-BOT-K8-START 0.92913 TRO-BOT-K8-BESTE 0.92779 TRO-BOT-K8-ROLLE-START 1.04075 0.87942 0.88018 TRO-BOT-K8-ROLLE-BESTE 1.04031 0.87822 0.87818 TRO-MENNESKE-K8-START 0.92844 TRO-MENNESKE-K8-BESTE 0.92866 
+2026-09-13T13:09:20 [iter 9] TRENT kort: modell 0.8314 < policy 0.8391, SENT 0.3227 <= 0.3343 → nytt nett
+2026-09-13T13:09:20 [iter 9] FERDIG trening
+2026-09-13T13:09:20 [iter 9] KODE /d/amb-krav-batteri → 3c4e0b6 sd-tren: utvalget doemmer paa BEGGE tallene, som porten
+2026-09-13T13:09:20 [iter 9] KRAV START helbot=okt:vr:e1-modell/vrak-10.bin@e1-modell/etterlyst-10.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-10.bin:budq:e1-modell/budq-10.bin:vakt:abmp:e1:e1-modell/kort-10.bin
+2026-09-13T15:47:08 [iter 9] KRAV FERDIG exit=0:  17 av 23 rader lukket porten sin. Alle krav gir samme dom i begge bånd. 1 rad(er) er STUMME: kontrollen bommet, fella slapp unna eller treet ble kappet. De tallene skal ikke leses som dom. 
+2026-09-13T15:47:09 [iter 9] HELPORT: K1 1.12 ± 0.19 er ikke signifikant dårligere enn beste 1.12 ± 0.19 (nett 4) → nettene beholdes
+2026-09-13T15:47:09 [iter 9] FERDIG
+2026-09-13T18:06:34 [iter 10] KODE /d/amb-loop → 3c4e0b6 sd-tren: utvalget doemmer paa BEGGE tallene, som porten
+2026-09-13T18:06:34 [iter 10] START (v5, kortnett 493) policy=okt:vr:e1-modell/vrak-10.bin@e1-modell/etterlyst-10.bin:telrd:profil:budq:e1-modell/budq-10.bin:vakt:abmp:e1:e1-modell/kort-10.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-13T18:10:01 [iter 10] DATA tro: 8 filer, 596M
+2026-09-13T18:34:08 [iter 10] DATA vrak+kall: 7400 grupper
+2026-09-13T19:02:10 [iter 10] DATA bud: 22889 budstillinger
+2026-09-13T22:15:49 [iter 10] DATA kort: 226284 kortvalg
+2026-09-13T22:15:51 [iter 10] DATA-SJEKK OK: alle generatorfiler til stede, ingen krasj i loggene
+2026-09-13T22:16:02 [iter 10] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0000 START-GEVINST-HOLDOUT 0.0000 
+2026-09-13T22:16:06 [iter 10] TRENT vrak: modell 1.8951 < policy 2.1152 → nytt nett
+2026-09-13T22:16:10 [iter 10] TRENT etterlyst: modell 0.7165, policy 0.7165 → forrige nett beholdes
+2026-09-13T22:16:18 [iter 10] TRENT tro: TRO-BESTE-EPOKE 1 TRO-BOT-K8-START 0.92422 TRO-BOT-K8-BESTE 0.92345 TRO-BOT-K8-ROLLE-START 1.03706 0.87806 0.87875 TRO-BOT-K8-ROLLE-BESTE 1.03637 0.87748 0.87782 TRO-MENNESKE-K8-START 0.92866 TRO-MENNESKE-K8-BESTE 0.92869 
+2026-09-13T22:16:46 [iter 10] TRENT kort: modell 0.8168/0.8168, SENT 0.3026/0.3026 → forrige nett beholdes
+2026-09-13T22:16:46 [iter 10] FERDIG trening
+2026-09-13T22:16:46 [iter 10] KODE /d/amb-krav-batteri → 9aaed8e Nullpunktet er BORDETS eget, og «stilvri» faar samme rundete
+2026-09-13T22:16:46 [iter 10] KRAV START helbot=okt:vr:e1-modell/vrak-11.bin@e1-modell/etterlyst-11.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-11.bin:budq:e1-modell/budq-11.bin:vakt:abmp:e1:e1-modell/kort-11.bin
+2026-09-14T00:42:08 [iter 10] KRAV FERDIG exit=0:   Merknad    Ingen port: raden er ny (11. sep). Ren prediksjon på innspilte menneskekamper fra 10. aug, samme måltall som K8 (k8-maal.ts); halvdelene er fnv(kamp-id) % 2. Budrundene gjenskapt med vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin og kontrollert mot loggen; SE klynget på kamp. Rapport: D:/amb-grp/loop/iter10/krav-b0-menneske-d
+2026-09-14T00:42:09 [iter 10] HELPORT: K1 1.24 ± 0.21 er nytt beste (forrige 1.12, nett 4)
+2026-09-14T00:42:09 [iter 10] FERDIG
+2026-09-14T00:42:40 [iter 11] KODE /d/amb-loop → 9aaed8e Nullpunktet er BORDETS eget, og «stilvri» faar samme rundete
+2026-09-14T00:42:40 [iter 11] START (v5, kortnett 493) policy=okt:vr:e1-modell/vrak-11.bin@e1-modell/etterlyst-11.bin:telrd:profil:budq:e1-modell/budq-11.bin:vakt:abmp:e1:e1-modell/kort-11.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-14T00:45:20 [iter 11] DATA tro: 8 filer, 587M
+2026-09-14T01:05:52 [iter 11] DATA vrak+kall: 7406 grupper
+2026-09-14T01:27:42 [iter 11] DATA bud: 23481 budstillinger
+2026-09-14T04:41:08 [iter 11] DATA kort: 224239 kortvalg
+2026-09-14T04:41:10 [iter 11] DATA-SJEKK OK: alle generatorfiler til stede, ingen krasj i loggene
+2026-09-14T04:41:21 [iter 11] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0000 START-GEVINST-HOLDOUT 0.0000 
+2026-09-14T04:41:25 [iter 11] TRENT vrak: modell 1.8154 < policy 2.0661 → nytt nett
+2026-09-14T04:41:29 [iter 11] TRENT etterlyst: modell 0.9330, policy 0.9330 → forrige nett beholdes
+2026-09-14T04:41:37 [iter 11] TRENT tro: TRO-BESTE-EPOKE 0 TRO-BOT-K8-START 0.92715 TRO-BOT-K8-BESTE 0.92715 TRO-BOT-K8-ROLLE-START 1.03696 0.87848 0.87710 TRO-BOT-K8-ROLLE-BESTE 1.03696 0.87848 0.87710 TRO-MENNESKE-K8-START 0.92869 TRO-MENNESKE-K8-BESTE 0.92869 
+2026-09-14T04:42:05 [iter 11] TRENT kort: modell 0.7985/0.7985, SENT 0.3192/0.3192 → forrige nett beholdes
+2026-09-14T04:42:05 [iter 11] FERDIG trening
+2026-09-14T04:42:06 [iter 11] KODE /d/amb-krav-batteri → 9aaed8e Nullpunktet er BORDETS eget, og «stilvri» faar samme rundete
+2026-09-14T04:42:06 [iter 11] KRAV START helbot=okt:vr:e1-modell/vrak-12.bin@e1-modell/etterlyst-12.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-12.bin:budq:e1-modell/budq-12.bin:vakt:abmp:e1:e1-modell/kort-12.bin
+2026-09-14T07:08:00 [iter 11] KRAV FERDIG exit=0:   Merknad    Ingen port: raden er ny (11. sep). Ren prediksjon på innspilte menneskekamper fra 10. aug, samme måltall som K8 (k8-maal.ts); halvdelene er fnv(kamp-id) % 2. Budrundene gjenskapt med vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin og kontrollert mot loggen; SE klynget på kamp. Rapport: D:/amb-grp/loop/iter11/krav-b0-menneske-d
+2026-09-14T07:08:00 [iter 11] HELPORT: K1 1.19 ± 0.2 er ikke signifikant dårligere enn beste 1.24 ± 0.21 (nett 11) → nettene beholdes
+2026-09-14T07:08:00 [iter 11] FERDIG
+2026-09-14T07:10:26 [iter 12] KODE /d/amb-loop → 092cd00 Historietabellen regenerert med skriptets egne standardstier
+2026-09-14T07:10:26 [iter 12] START (v11, kortnett 493, helport på UTVALG) policy=okt:vr:e1-modell/vrak-12.bin@e1-modell/etterlyst-12.bin:telrd:profil:budq:e1-modell/budq-12.bin:vakt:abmp:e1:e1-modell/kort-12.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-14T07:13:00 [iter 12] DATA tro: 8 filer, 611M
+2026-09-14T07:36:04 [iter 12] DATA vrak+kall: 7386 grupper
+2026-09-14T07:55:13 [iter 12] DATA bud: 22729 budstillinger
+2026-09-14T10:57:28 [iter 12] DATA kort: 223501 kortvalg
+2026-09-14T10:57:30 [iter 12] DATA-SJEKK OK: alle generatorfiler til stede, ingen krasj i loggene
+2026-09-14T10:57:41 [iter 12] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0213 START-GEVINST-HOLDOUT 0.0000 
+2026-09-14T10:57:45 [iter 12] TRENT vrak: modell 1.6939 < policy 1.8641 → nytt nett
+2026-09-14T10:57:49 [iter 12] TRENT etterlyst: modell 0.6855, policy 0.6855 → forrige nett beholdes
+2026-09-14T10:57:58 [iter 12] TRENT tro: TRO-BESTE-EPOKE 1 TRO-BOT-K8-START 0.92624 TRO-BOT-K8-BESTE 0.92585 TRO-BOT-K8-ROLLE-START 1.03750 0.87443 0.88120 TRO-BOT-K8-ROLLE-BESTE 1.03715 0.87387 0.88086 TRO-MENNESKE-K8-START 0.92869 TRO-MENNESKE-K8-BESTE 0.92863 
+2026-09-14T10:58:26 [iter 12] TRENT kort: modell 0.7898 < policy 0.8081, SENT 0.2694 <= 0.2914 → nytt nett
+2026-09-14T10:58:26 [iter 12] FERDIG trening
+2026-09-14T10:58:26 [iter 12] KODE /d/amb-krav-batteri → 092cd00 Historietabellen regenerert med skriptets egne standardstier
+2026-09-14T10:58:26 [iter 12] KRAV START helbot=okt:vr:e1-modell/vrak-13.bin@e1-modell/etterlyst-13.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-13.bin:budq:e1-modell/budq-13.bin:vakt:abmp:e1:e1-modell/kort-13.bin
+2026-09-14T13:28:11 [iter 12] KRAV FERDIG exit=0:   Merknad    Ingen port: raden er ny (11. sep). Ren prediksjon på innspilte menneskekamper fra 10. aug, samme måltall som K8 (k8-maal.ts); halvdelene er fnv(kamp-id) % 2. Budrundene gjenskapt med vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin og kontrollert mot loggen; SE klynget på kamp. Rapport: D:/amb-grp/loop/iter12/krav-b0-menneske-d
+2026-09-14T13:28:11 [iter 12] HOLDOUT (ren rapport, ingen beslutning): +1.03 ± 0.27
+2026-09-14T13:28:12 [iter 12] HELPORT: K1 0.91 ± 0.27 er dårligere enn beste 1.24 ± 0.21 (nett 11) → RULLET TILBAKE til beste i slott 13
+2026-09-14T13:28:12 [iter 12] FERDIG
+2026-09-14T13:31:25 [iter 13] KODE /d/amb-loop → 092cd00 Historietabellen regenerert med skriptets egne standardstier
+2026-09-14T13:31:25 [iter 13] START (v11, kortnett 493, helport på UTVALG) policy=okt:vr:e1-modell/vrak-13.bin@e1-modell/etterlyst-13.bin:telrd:profil:budq:e1-modell/budq-13.bin:vakt:abmp:e1:e1-modell/kort-13.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-14T13:33:51 [iter 13] DATA tro: 8 filer, 609M
+2026-09-14T13:50:35 [iter 13] DATA vrak+kall: 7480 grupper
+2026-09-14T14:07:33 [iter 13] DATA bud: 22759 budstillinger
+2026-09-14T17:02:57 [iter 13] DATA kort: 226958 kortvalg
+2026-09-14T17:02:59 [iter 13] DATA-SJEKK OK: alle generatorfiler til stede, ingen krasj i loggene
+2026-09-14T17:03:10 [iter 13] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0247 START-GEVINST-HOLDOUT 0.0000 
+2026-09-14T17:03:13 [iter 13] TRENT vrak: modell 1.6376 < policy 1.7773 → nytt nett
+2026-09-14T17:03:17 [iter 13] TRENT etterlyst: modell 0.9299, policy 0.9299 → forrige nett beholdes
+2026-09-14T17:03:26 [iter 13] TRENT tro: TRO-BESTE-EPOKE 1 TRO-BOT-K8-START 0.92683 TRO-BOT-K8-BESTE 0.92670 TRO-BOT-K8-ROLLE-START 1.03730 0.87517 0.87371 TRO-BOT-K8-ROLLE-BESTE 1.03721 0.87523 0.87344 TRO-MENNESKE-K8-START 0.92869 TRO-MENNESKE-K8-BESTE 0.92859 
+2026-09-14T17:03:55 [iter 13] TRENT kort: modell 0.7982/0.7982, SENT 0.2949/0.2949 → forrige nett beholdes
+2026-09-14T17:03:55 [iter 13] FERDIG trening
+2026-09-14T17:03:55 [iter 13] KODE /d/amb-krav-batteri → 092cd00 Historietabellen regenerert med skriptets egne standardstier
+2026-09-14T17:03:55 [iter 13] KRAV START helbot=okt:vr:e1-modell/vrak-14.bin@e1-modell/etterlyst-14.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-14.bin:budq:e1-modell/budq-14.bin:vakt:abmp:e1:e1-modell/kort-14.bin
+2026-09-14T19:19:29 [iter 13] KRAV FERDIG exit=0:   Merknad    Ingen port: raden er ny (11. sep). Ren prediksjon på innspilte menneskekamper fra 10. aug, samme måltall som K8 (k8-maal.ts); halvdelene er fnv(kamp-id) % 2. Budrundene gjenskapt med vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin og kontrollert mot loggen; SE klynget på kamp. Rapport: D:/amb-grp/loop/iter13/krav-b0-menneske-d
+2026-09-14T19:19:29 [iter 13] HOLDOUT (ren rapport, ingen beslutning): +0.73 ± 0.31
+2026-09-14T19:19:29 [iter 13] HELPORT: første måling, nett 14 er beste (K1 1 ± 0.25)
+2026-09-14T19:19:29 [iter 13] FERDIG
+2026-09-14T21:13:18 [iter 14] KODE /d/amb-loop → 092cd00 Historietabellen regenerert med skriptets egne standardstier
+2026-09-14T21:13:18 [iter 14] START (v11, kortnett 493, helport på UTVALG) policy=okt:vr:e1-modell/vrak-14.bin@e1-modell/etterlyst-14.bin:telrd:profil:budq:e1-modell/budq-14.bin:vakt:abmp:e1:e1-modell/kort-14.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-14T21:15:53 [iter 14] DATA tro: 8 filer, 593M
+2026-09-14T21:31:50 [iter 14] DATA vrak+kall: 6962 grupper
+2026-09-14T21:46:42 [iter 14] DATA bud: 22244 budstillinger
+2026-09-15T00:49:13 [iter 14] DATA kort: 229715 kortvalg
+2026-09-15T00:49:15 [iter 14] DATA-SJEKK OK: alle generatorfiler til stede, ingen krasj i loggene
+2026-09-15T00:49:25 [iter 14] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0370 START-GEVINST-HOLDOUT 0.0000 
+2026-09-15T00:49:29 [iter 14] TRENT vrak: modell 1.3831 < policy 1.6699 → nytt nett
+2026-09-15T00:49:33 [iter 14] TRENT etterlyst: modell 0.6228, policy 0.6228 → forrige nett beholdes
+2026-09-15T00:49:41 [iter 14] TRENT tro: TRO-BESTE-EPOKE 0 TRO-BOT-K8-START 0.92313 TRO-BOT-K8-BESTE 0.92313 TRO-BOT-K8-ROLLE-START 1.03817 0.86854 0.87937 TRO-BOT-K8-ROLLE-BESTE 1.03817 0.86854 0.87937 TRO-MENNESKE-K8-START 0.92859 TRO-MENNESKE-K8-BESTE 0.92859 
+2026-09-15T00:50:09 [iter 14] TRENT kort: modell 0.7986 < policy 0.8098, SENT 0.2724 <= 0.2815 → nytt nett
+2026-09-15T00:50:09 [iter 14] FERDIG trening
+2026-09-15T00:50:09 [iter 14] KODE /d/amb-krav-batteri → 092cd00 Historietabellen regenerert med skriptets egne standardstier
+2026-09-15T00:50:10 [iter 14] KRAV START helbot=okt:vr:e1-modell/vrak-15.bin@e1-modell/etterlyst-15.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-15.bin:budq:e1-modell/budq-15.bin:vakt:abmp:e1:e1-modell/kort-15.bin
+2026-09-15T03:17:13 [iter 14] KRAV FERDIG exit=0:   Merknad    Ingen port: raden er ny (11. sep). Ren prediksjon på innspilte menneskekamper fra 10. aug, samme måltall som K8 (k8-maal.ts); halvdelene er fnv(kamp-id) % 2. Budrundene gjenskapt med vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin og kontrollert mot loggen; SE klynget på kamp. Rapport: D:/amb-grp/loop/iter14/krav-b0-menneske-d
+2026-09-15T03:17:13 [iter 14] HOLDOUT (ren rapport, ingen beslutning): +0.73 ± 0.28
+2026-09-15T03:17:14 [iter 14] HELPORT: K1 1.29 ± 0.28 er nytt beste (forrige 1, nett 14)
+2026-09-15T03:17:14 [iter 14] FERDIG
+2026-09-15T03:17:15 [iter 15] KODE /d/amb-loop → 092cd00 Historietabellen regenerert med skriptets egne standardstier
+2026-09-15T03:17:15 [iter 15] START (v11, kortnett 493, helport på UTVALG) policy=okt:vr:e1-modell/vrak-15.bin@e1-modell/etterlyst-15.bin:telrd:profil:budq:e1-modell/budq-15.bin:vakt:abmp:e1:e1-modell/kort-15.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-15T03:19:44 [iter 15] DATA tro: 8 filer, 590M
+2026-09-15T03:37:31 [iter 15] DATA vrak+kall: 7744 grupper
+2026-09-15T03:52:21 [iter 15] DATA bud: 22826 budstillinger
+2026-09-15T07:07:32 [iter 15] DATA kort: 229788 kortvalg
+2026-09-15T07:07:34 [iter 15] DATA-SJEKK OK: alle generatorfiler til stede, ingen krasj i loggene
+2026-09-15T07:07:44 [iter 15] TRENT bud: MODELL-DIM 323 MODELL-GEVINST-HOLDOUT 0.0000 START-GEVINST-HOLDOUT 0.0000 
+2026-09-15T07:07:48 [iter 15] TRENT vrak: modell 1.7337 < policy 2.0001 → nytt nett
+2026-09-15T07:07:52 [iter 15] TRENT etterlyst: modell 1.0021 < policy 1.0178 → nytt nett
+2026-09-15T07:08:01 [iter 15] TRENT tro: TRO-BESTE-EPOKE 1 TRO-BOT-K8-START 0.92981 TRO-BOT-K8-BESTE 0.92924 TRO-BOT-K8-ROLLE-START 1.03582 0.87835 0.87941 TRO-BOT-K8-ROLLE-BESTE 1.03537 0.87759 0.87885 TRO-MENNESKE-K8-START 0.92859 TRO-MENNESKE-K8-BESTE 0.92911 
+2026-09-15T07:08:29 [iter 15] TRENT kort: modell 0.7939/0.7939, SENT 0.2784/0.2784 → forrige nett beholdes
+2026-09-15T07:08:29 [iter 15] FERDIG trening
+2026-09-15T07:08:29 [iter 15] KODE /d/amb-krav-batteri → 092cd00 Historietabellen regenerert med skriptets egne standardstier
+2026-09-15T07:08:30 [iter 15] KRAV START helbot=okt:vr:e1-modell/vrak-16.bin@e1-modell/etterlyst-16.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-16.bin:budq:e1-modell/budq-16.bin:vakt:abmp:e1:e1-modell/kort-16.bin
+2026-09-15T09:41:01 [iter 15] KRAV FERDIG exit=0:   Merknad    Ingen port: raden er ny (11. sep). Ren prediksjon på innspilte menneskekamper fra 10. aug, samme måltall som K8 (k8-maal.ts); halvdelene er fnv(kamp-id) % 2. Budrundene gjenskapt med vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin og kontrollert mot loggen; SE klynget på kamp. Rapport: D:/amb-grp/loop/iter15/krav-b0-menneske-d
+2026-09-15T09:41:02 [iter 15] HOLDOUT (ren rapport, ingen beslutning): +0.85 ± 0.27
+2026-09-15T09:41:02 [iter 15] HELPORT: K1 1.11 ± 0.27 er dårligere enn beste 1.29 ± 0.28 (nett 15) → RULLET TILBAKE til beste i slott 16
+2026-09-15T09:41:02 [iter 15] FERDIG
+2026-09-15T09:41:03 [iter 16] KODE /d/amb-loop → 092cd00 Historietabellen regenerert med skriptets egne standardstier
+2026-09-15T09:41:03 [iter 16] START (v11, kortnett 493, helport på UTVALG) policy=okt:vr:e1-modell/vrak-16.bin@e1-modell/etterlyst-16.bin:telrd:profil:budq:e1-modell/budq-16.bin:vakt:abmp:e1:e1-modell/kort-16.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-15T09:43:45 [iter 16] DATA tro: 8 filer, 605M
+2026-09-15T10:04:28 [iter 16] DATA vrak+kall: 7558 grupper
+2026-09-17T13:39:15 [iter 16] KODE /d/amb-loop → 092cd00 Historietabellen regenerert med skriptets egne standardstier
+2026-09-17T13:39:15 [iter 16] START (v11, kortnett 493, helport på UTVALG) policy=okt:vr:e1-modell/vrak-16.bin@e1-modell/etterlyst-16.bin:telrd:profil:budq:e1-modell/budq-16.bin:vakt:abmp:e1:e1-modell/kort-16.bin befolkning=3 bord, sanser2, menneskerader
+2026-09-17T13:41:52 [iter 16] DATA tro: 8 filer, 605M
