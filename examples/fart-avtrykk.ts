@@ -37,6 +37,12 @@ const RUNDER = Number(arg("--runder", "5"));
 const FRØ = Number(arg("--froe", "1250000000"));
 const UT = arg("--ut", "D:/amb-grp/loop/fart/avtrykk.jsonl");
 const MERKE = arg("--merke", "avtrykk");
+/**
+ * SIDEVOGN: A spiller partiet, B tar sin beslutning på NØYAKTIG A sin stilling (og ser de samme
+ * tilstandene gjennom `observer`), men B sitt valg kastes. For speker som ENDRER valg: tiden er
+ * fortsatt parret per stilling, og andelen ulike kortvalg telles i stedet for avtrykket.
+ */
+const SIDEVOGN = process.argv.includes("--sidevogn");
 
 class Hash {
   h = 0x811c9dc5;
@@ -109,8 +115,10 @@ function steg(arm: Arm): { h: Handling | null; ms: number | null; tekst: string 
 let vakt = 0;
 let nr = 0;
 let avvik: string | null = null;
+let ulikeKort = 0;
 const par: { a: number; b: number; stikk: number }[] = [];
 while (A.s.fase !== "FERDIG" && A.s.rundeNr < RUNDER && vakt++ < 40_000) {
+  if (SIDEVOGN) B.s = A.s;
   const først = nr++ % 2 === 0 ? [A, B] : [B, A];
   const r1 = steg(først[0]!);
   const r2 = steg(først[1]!);
@@ -118,13 +126,16 @@ while (A.s.fase !== "FERDIG" && A.s.rundeNr < RUNDER && vakt++ < 40_000) {
   const rb = først[0] === A ? r2 : r1;
   if (ra.h === null || rb.h === null) break;
   const stikk = A.s.stikkSpilt + 1;
-  if (ra.ms !== null && rb.ms !== null) par.push({ a: ra.ms, b: rb.ms, stikk });
-  if (ra.tekst !== rb.tekst || A.hash.hex() !== B.hash.hex()) {
+  if (ra.ms !== null && rb.ms !== null) {
+    par.push({ a: ra.ms, b: rb.ms, stikk });
+    if (ra.tekst !== rb.tekst) ulikeKort++;
+  }
+  if (!SIDEVOGN && (ra.tekst !== rb.tekst || A.hash.hex() !== B.hash.hex())) {
     avvik = `steg ${nr}, runde ${A.s.rundeNr}, stikk ${stikk}: A=${ra.tekst} B=${rb.tekst} hashA=${A.hash.hex()} hashB=${B.hash.hex()}`;
     break;
   }
   A.s = utfør(A.s, ra.h).state;
-  B.s = utfør(B.s, rb.h).state;
+  B.s = SIDEVOGN ? A.s : utfør(B.s, rb.h).state;
 }
 
 const sum = (xs: number[]): number => xs.reduce((a, b) => a + b, 0);
@@ -148,7 +159,9 @@ const rad = {
   vurdertB: B.vurdert,
   hashA: A.hash.hex(),
   hashB: B.hash.hex(),
-  identisk: avvik === null,
+  sidevogn: SIDEVOGN,
+  ulikeKort,
+  identisk: SIDEVOGN ? null : avvik === null,
   avvik,
   msPerKortvalgA: Number((ta / Math.max(1, n)).toFixed(1)),
   msPerKortvalgB: Number((tb / Math.max(1, n)).toFixed(1)),

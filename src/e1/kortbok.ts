@@ -40,6 +40,7 @@
  * det en ny kamp, og boka nullstilles — boka er kampens, aldri botens.
  */
 
+import { e1GrunnTrekkInn } from "./trekk-rask.ts";
 import { spillerVisning, type GameState } from "../motor.ts";
 import { Hukommelse, HUKOMMELSE_LENGDE_4 } from "../mlb/hukommelse.ts";
 import type { Bokfrø } from "../mlb/profil.ts";
@@ -72,9 +73,20 @@ export const erKortbokBredde = (dim: number): boolean => E1_KORT_BOK_BREDDER.inc
  * `null` gir en nullblokk — den ærlige verdien før første runde er ferdig.
  */
 export function e1KortBokTrekk(state: GameState, sete: number, bok: Float64Array | null): Float32Array {
+  return kortBokTrekk(state, sete, bok, true);
+}
+
+/** REFERANSEN (før 17. sep): grunnen bygd av `e1SpillTrekk` og kopiert inn. Bare for prøvene. */
+export function e1KortBokTrekkRef(state: GameState, sete: number, bok: Float64Array | null): Float32Array {
+  return kortBokTrekk(state, sete, bok, false);
+}
+
+function kortBokTrekk(state: GameState, sete: number, bok: Float64Array | null, rask: boolean): Float32Array {
   if (state.antallSpillere !== 4) throw new Error("Kortnettet med bok er bygd for fire spillere");
   const v = new Float32Array(E1_KORT_BOK_DIM);
-  v.set(e1SpillTrekk(state, sete, E1_SPILL_DIM), 0);
+  // Grunnen (0–272) skrives rett inn, bit-identisk med `e1SpillTrekk` (`trekk-rask.ts`, fart.md).
+  if (rask) e1GrunnTrekkInn(v, state, sete);
+  else v.set(e1SpillTrekk(state, sete, E1_SPILL_DIM), 0);
   if (bok !== null) {
     if (bok.length !== HUKOMMELSE_LENGDE_4) {
       throw new Error(`Boka har ${bok.length} tall, kortnettet venter ${HUKOMMELSE_LENGDE_4}`);
