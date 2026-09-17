@@ -4,9 +4,11 @@
  *   node examples/fart-kjernebenk.ts <fang.bin> [omganger]
  */
 import { readFileSync } from "node:fs";
-import { forover, nettFraBytes } from "../src/nevro/nett.ts";
+import { foroverRef as forover, nettFraBytes } from "../src/nevro/nett.ts";
 import { foroverKolonne } from "../src/nevro/nett-kolonne.ts";
 import { foroverRask } from "../src/nevro/nett-rask.ts";
+import { foroverSimd, simdTilgjengelig } from "../src/nevro/nett-simd.ts";
+console.log("simd:", simdTilgjengelig());
 
 const fil = process.argv[2]!;
 const omganger = Number(process.argv[3] ?? "5");
@@ -21,6 +23,7 @@ const armer: Record<string, (x: Float32Array) => Float32Array> = {
   forover: (x) => forover(nett, x),
   kolonne64: (x) => foroverKolonne(nett, x),
   rask: (x) => foroverRask(nett, x),
+  simd: (x) => foroverSimd(nett, x)!,
 };
 // Bit-identitet
 const ref = xs.map((x) => forover(nett, x).slice());

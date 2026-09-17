@@ -17,6 +17,8 @@
  */
 
 import { NEVRO_VEKTER_B64 } from "./vekter.ts";
+import { foroverSimd } from "./nett-simd.ts";
+import { foroverRask } from "./nett-rask.ts";
 
 export interface NevroLag {
   readonly inn: number;
@@ -87,8 +89,36 @@ let bufA = new Float32Array(0);
 let bufB = new Float32Array(0);
 let ikkeNull = new Int32Array(0);
 
+/**
+ * ============ KJERNEN (17. sep): SAMME BITER, 4× FORTERE ==================================
+ *
+ * `forover` går nå gjennom `nett-simd.ts` (WebAssembly SIMD) når kjøretiden har det, ellers
+ * gjennom `nett-rask.ts` (kolonnevis JS). BEGGE ER BIT-IDENTISKE med referansen under
+ * (`foroverRef`): samme ledd i samme rekkefølge per utgang, Float64-sum, Float32-avrunding per
+ * lag. Målt på 16 735 ekte innganger fra helbotens søk: 0 avvik, 4,25× (SIMD) og 1,43× (JS).
+ * Profilen sa at 75 % av søkets tid er dette kallet (`D:/amb-grp/loop/fart.md`).
+ *
+ * `settForoverKjerne("ref")` finnes BARE for å kunne bevise identiteten i hele søket
+ * (fingeravtrykk før/etter). Ingen spek og ingen bot skal bruke den.
+ */
+export type ForoverKjerne = "auto" | "js" | "ref";
+let kjerne: ForoverKjerne = "auto";
+export function settForoverKjerne(k: ForoverKjerne): void {
+  kjerne = k;
+}
+
 /** ReLU på alle lag unntatt det siste (logits) – som i appen. */
 export function forover(nett: NevroNett, x: Float32Array): Float32Array {
+  if (kjerne === "auto") {
+    const y = foroverSimd(nett, x);
+    if (y !== null) return y;
+  }
+  if (kjerne !== "ref" && x.length >= (nett.lag[0]?.inn ?? 0)) return foroverRask(nett, x);
+  return foroverRef(nett, x);
+}
+
+/** REFERANSEN: den opprinnelige glisne radkjernen. Alt over måles mot denne. */
+export function foroverRef(nett: NevroNett, x: Float32Array): Float32Array {
   const sisteLag = nett.lag.length - 1;
   let a = x;
   for (let i = 0; i < nett.lag.length; i++) {
