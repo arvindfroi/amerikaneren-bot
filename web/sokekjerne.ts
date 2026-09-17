@@ -22,9 +22,21 @@ import {
   byggAdams,
   lesUtfall,
   SØKEPROTOKOLL,
+  tilBytes,
   type AdamsKonfig,
   type Søkeutfall,
 } from "./adamskjede.ts";
+import { Bokvakt, byggHelbotsete, type Helbotsete } from "./helbot.ts";
+import { leggInnFil } from "./nettleser/fs.ts";
+import { simdTilgjengelig } from "../src/nevro/nett-simd.ts";
+
+/**
+ * PROTOKOLL 4 (17. sep, A/B-demoen): `helbot-init` bygger Adams Max (arm B) med
+ * spekparseren, én agent per sete, og da går ALLE botbeslutninger for de setene hit —
+ * bud, vrak, trumf og kort. Kvitteringen på `helbot-init` bærer 4; `adams-init` kvitteres
+ * fortsatt med `SØKEPROTOKOLL` (3), så arm A logger som før.
+ */
+export const HELBOTPROTOKOLL = 4;
 
 export type Initmelding = {
   readonly type: "adams-init";
@@ -41,8 +53,21 @@ export type Initmelding = {
   readonly budq?: string | null;
 } & AdamsKonfig;
 
+/** Arm B. `filer` er spekstien → base64; `seter` er setene workeren fører. */
+export type Helbotinit = {
+  readonly type: "helbot-init";
+  readonly spek: string;
+  readonly filer: Readonly<Record<string, string>>;
+  readonly seter: readonly number[];
+  /** Nødbremsen i ms per kortvalg, eller `null` (ingen frist – bare til måling). */
+  readonly fristMs: number | null;
+  /** BARE BENKEN: later som WASM-SIMD mangler, så JS-reserven kan prøves i en nettleser som har den. */
+  readonly utenSimd?: boolean;
+};
+
 export type TilWorker =
   | Initmelding
+  | Helbotinit
   /** `frist` er `Date.now()`-tid. Hovedtråd og worker deler veggklokka, ikke `performance.now()`. */
   | { readonly type: "adams-trekk"; readonly id: number; readonly state: GameState; readonly sete: number; readonly frist?: number }
   | { readonly type: "nyKamp" }
@@ -65,6 +90,9 @@ export type FraWorker =
       /** Protokoll 3: trohodet sitter i søket. */
       readonly tro?: boolean;
       readonly ms: number;
+      /** Protokoll 4: helboten er bygd, og om WASM-SIMD-kjernen er tilgjengelig. */
+      readonly helbot?: boolean;
+      readonly simd?: boolean;
     }
   | { readonly id: 0; readonly klar: false; readonly protokoll: number; readonly feil: string }
   | {
@@ -75,6 +103,10 @@ export type FraWorker =
       /** Protokoll 3: parret σ og verdener som faktisk ble spilt ut, når søket vurderte. */
       readonly sigma?: number;
       readonly n?: number;
+      /** Protokoll 4: fristen kuttet verdener i dette kortvalget. */
+      readonly nødbrems?: boolean;
+      /** Protokoll 4: en runde manglet i hukommelsen, og bøkene ble nullet før trekket. */
+      readonly bokbrudd?: boolean;
     }
   | { readonly id: number; readonly utløpt: true; readonly forsinketMs: number }
   | { readonly id: number; readonly feil: string };
@@ -85,14 +117,54 @@ export function lagSøkekjerne(
 ): (m: TilWorker) => void {
   let adams: Velger | null = null;
   let sik: Sikkerorakel | null = null;
+  /** Arm B: én kjede per sete. Settes av `helbot-init` og nulles av `adams-init`. */
+  let helbot: Map<number, Helbotsete> | null = null;
+  const bokvakt = new Bokvakt();
 
   return (m) => {
+    if (m.type === "helbot-init") {
+      const t0 = performance.now();
+      try {
+        adams = null;
+        sik = null;
+        helbot = null;
+        if (m.utenSimd === true) {
+          // Før første `forover`: modulbufferen i `nett-simd.ts` fylles ved første kall.
+          (WebAssembly as unknown as { validate: () => boolean }).validate = () => false;
+        }
+        for (const [sti, b64] of Object.entries(m.filer)) leggInnFil(sti, tilBytes(b64));
+        const kart = new Map<number, Helbotsete>();
+        for (const sete of m.seter) kart.set(sete, byggHelbotsete(m.spek, m.fristMs));
+        helbot = kart;
+        bokvakt.nyKamp();
+        post({
+          id: 0,
+          klar: true,
+          protokoll: HELBOTPROTOKOLL,
+          verdener: 0,
+          sigma: 0,
+          bud: false,
+          vrak: true,
+          søk: [...kart.values()].every((h) => h.sik !== null),
+          tro: [...kart.values()].every((h) => h.sik?.tro != null),
+          helbot: true,
+          simd: simdTilgjengelig(),
+          ms: Math.round(performance.now() - t0),
+        });
+      } catch (feil) {
+        helbot = null;
+        post({ id: 0, klar: false, protokoll: HELBOTPROTOKOLL, feil: `helbot-init: ${String(feil)}` });
+      }
+      return;
+    }
+
     if (m.type === "adams-init") {
       // Bygges HER, ikke sendes ferdig: agenter kan ikke krysse en
       // meldingsgrense. Vektene kommer som base64 fra hovedtråden, som alt har
       // hentet dem – ingen dobbel nedlasting av sju megabyte.
       const t0 = performance.now();
       try {
+        helbot = null;
         const bygd = byggAdams({ kort: m.kort, bud: m.bud, vrak: m.vrak, tro: m.tro, budq: m.budq ?? null }, m, true);
         adams = bygd.agent;
         sik = bygd.sik;
@@ -127,6 +199,10 @@ export function lagSøkekjerne(
       // er det uten virkning (`økt: false`), men det er DEN som skiller «én økt»
       // fra «historie» den dagen K4/K6 slås på.
       adams?.nyKamp();
+      if (helbot !== null) {
+        for (const h of helbot.values()) h.agent.nyKamp();
+        bokvakt.nyKamp();
+      }
       return;
     }
 
@@ -135,8 +211,48 @@ export function lagSøkekjerne(
       // Et kast her skal ikke drepe workeren; neste trekk melder feilen med sin id.
       try {
         adams?.observer?.(m.state);
+        if (helbot !== null) {
+          for (const h of helbot.values()) (h.agent as { observer?(s: GameState): void }).observer?.(m.state);
+          bokvakt.slutt(m.state);
+        }
       } catch (feil) {
         console.warn("rundeslutt kunne ikke bokføres:", feil);
+      }
+      return;
+    }
+
+    if (m.type === "adams-trekk" && helbot !== null) {
+      try {
+        const h = helbot.get(m.sete);
+        if (h === undefined) throw new Error(`helboten fører ikke sete ${m.sete}`);
+        if (m.frist !== undefined && veggklokke() >= m.frist) {
+          post({ id: m.id, utløpt: true, forsinketMs: veggklokke() - m.frist });
+          return;
+        }
+        let bokbrudd = false;
+        if (bokvakt.brudd(m.state)) {
+          for (const x of helbot.values()) x.agent.nyKamp();
+          bokvakt.nyKamp();
+          bokvakt.brudd(m.state);
+          bokbrudd = true;
+        }
+        const t0 = performance.now();
+        const før = h.sik === null ? null : { ...h.sik.tellere };
+        const handling = h.agent.velgHandling(m.state);
+        const utfall = h.sik === null || før === null ? null : lesUtfall(før, h.sik.tellere);
+        const siste = h.sik?.siste ?? null;
+        const nødbrems = h.sik !== null && før !== null && h.sik.tellere.avkortet > før.avkortet;
+        post({
+          id: m.id,
+          handling,
+          utfall,
+          ms: Math.round(performance.now() - t0),
+          ...(siste === null ? {} : { sigma: Math.round(siste.sigma * 100) / 100, n: siste.n }),
+          ...(nødbrems ? { nødbrems: true } : {}),
+          ...(bokbrudd ? { bokbrudd: true } : {}),
+        });
+      } catch (feil) {
+        post({ id: m.id, feil: String(feil) });
       }
       return;
     }

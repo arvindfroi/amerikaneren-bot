@@ -50,10 +50,24 @@ const FELLES = {
   logLevel: "warning",
 };
 
-for (const [inn, ut] of [
-  ["web/app.ts", "web/dist/app.js"],
-  ["web/worker.ts", "web/dist/worker.js"],
+/**
+ * A/B-DEMOEN (17. sep): workeren kjører spekparseren (`web/helbot.ts` → `lagIndre`), som
+ * importerer `node:fs` og `node:path`. I nettleseren kobles de til et minnefilsystem
+ * (`web/nettleser/`). BARE workeren og benken får koblingen: importerer `app.ts` noen gang
+ * parseren ved en feil, skal byggingen stoppe i stedet for å bunte den stille.
+ */
+const NETTLESER_NODE = {
+  alias: {
+    "node:fs": resolve(rot, "web/nettleser/fs.ts"),
+    "node:path": resolve(rot, "web/nettleser/path.ts"),
+  },
+};
+
+for (const [inn, ut, ekstra] of [
+  ["web/app.ts", "web/dist/app.js", {}],
+  ["web/worker.ts", "web/dist/worker.js", NETTLESER_NODE],
+  ["web/ab-benk.ts", "web/dist/ab-benk.js", {}],
 ]) {
-  await build({ ...FELLES, entryPoints: [resolve(rot, inn)], outfile: resolve(rot, ut) });
+  await build({ ...FELLES, ...ekstra, entryPoints: [resolve(rot, inn)], outfile: resolve(rot, ut) });
   console.log(`${ut.padEnd(20)} ${statSync(resolve(rot, ut)).size.toLocaleString("nb-NO")} byte  <- ${inn}`);
 }

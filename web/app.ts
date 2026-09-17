@@ -29,6 +29,15 @@ import { AMERIKANER, PASS, SOLO, type Bud } from "../src/regler.ts";
 import { byggAdams, børSøke, erLovligKort, type AdamsKonfig } from "./adamskjede.ts";
 import { Søkeklient, type Arbeider, type Søkelag } from "./sokeklient.ts";
 import { Tenkeklokke, type Synlighet, type Tenketid } from "./tempo.ts";
+import {
+  FART_PÅ,
+  HELBOT_FILER,
+  HELBOT_FRIST_MS,
+  HELBOT_NETT,
+  HELBOT_TREKKFRIST_MS,
+  helbotSpek,
+  type HelbotSti,
+} from "./helbotspek.ts";
 
 // --- Oppsett ----------------------------------------------------------------
 const DATA_URL = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
@@ -52,7 +61,7 @@ const MENNESKE = 0;
  *
  * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
  */
-const BUNDELVERSJON = "v13-2026-09-11";
+const BUNDELVERSJON = "v14-ab-2026-09-17";
 (globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
@@ -678,6 +687,131 @@ const søkeklient = new Søkeklient({
   logg: (type, data) => logg(type, data),
 });
 
+/**
+ * ============ A/B-DEMOEN (17. sep): DAGENS ADAMS MOT ADAMS MAX =================
+ *
+ * Hver kamp trekkes 50/50 til
+ *
+ *   A  dagens utrullede Adams-v5.1 — kjeden over, urørt (hovedtråd + førersøk i workeren)
+ *   B  Adams Max, «helboten» — `helbotSpek()` i `web/helbotspek.ts`, bygd av spekparseren
+ *      i workeren, én agent per botsete, og ALLE botbeslutninger går dit
+ *
+ * Målet er K1: hvor ofte mennesket vinner kampen, per arm. Armen står i `start`-radens
+ * `modeller.ab`; `D:\amb-grp\loop\ab-demo.md` sier hvordan det regnes ut.
+ *
+ * ARMEN HOLDER SEG. Appen kan ikke gjenoppta en kamp: en omlasting starter en ny. Derfor
+ * huskes armen i `localStorage` til en kamp på denne enheten er spilt FERDIG — ellers kunne
+ * en omlasting (eller en treg arm som får noen til å laste på nytt) trekke armen på nytt og
+ * skjevfordele kampene. `modeller.abArv` peker på kampen armen ble arvet fra.
+ *
+ * INGENTING I SPILLET SIER HVILKEN ARM. Samme tekster, samme lasteskjerm, samme botnavn og
+ * samme `navn` i loggen; tempoet jevnes ut så et raskt helbottrekk tar like lang tid som et
+ * nettrekk i arm A (se `helbotPause`).
+ *
+ * `?ab=A` / `?ab=B` tvinger armen (til prøving) og logges som `abTvunget`.
+ */
+type Arm = "A" | "B";
+const AB_PÅ: boolean = true;
+const AB_ANDEL_B = 0.5;
+const AB_VERSJON = "ab1-2026-09-17";
+const AB_NØKKEL = "amerikaneren-ab";
+let arm: Arm = "A";
+let armInfo: { abArv?: string; abTvunget?: true } = {};
+
+function trekkArm(nyttSpill: string): void {
+  armInfo = {};
+  const tvunget = new URLSearchParams(location.search).get("ab");
+  if (!AB_PÅ) {
+    arm = "A";
+  } else if (tvunget === "A" || tvunget === "B") {
+    arm = tvunget;
+    armInfo = { abTvunget: true };
+  } else {
+    const forrige = ((): { arm?: unknown; spillId?: unknown; ferdig?: unknown } | null => {
+      try {
+        return JSON.parse(localStorage.getItem(AB_NØKKEL) ?? "null") as { arm?: unknown } | null;
+      } catch {
+        return null;
+      }
+    })();
+    if (forrige !== null && forrige.ferdig === false && (forrige.arm === "A" || forrige.arm === "B")) {
+      arm = forrige.arm;
+      armInfo = { abArv: String(forrige.spillId) };
+    } else {
+      arm = Math.random() < AB_ANDEL_B ? "B" : "A";
+    }
+  }
+  try {
+    if (armInfo.abTvunget === undefined) {
+      localStorage.setItem(AB_NØKKEL, JSON.stringify({ arm, spillId: nyttSpill, ferdig: false, versjon: AB_VERSJON }));
+    }
+  } catch { /* privat modus – armen trekkes på nytt ved omlasting, og `abArv` mangler */ }
+}
+
+function armFerdig(): void {
+  try {
+    const x = JSON.parse(localStorage.getItem(AB_NØKKEL) ?? "null") as { spillId?: unknown } | null;
+    if (x !== null && x.spillId === spillId) localStorage.setItem(AB_NØKKEL, JSON.stringify({ ...x, ferdig: true }));
+  } catch { /* se over */ }
+}
+
+/**
+ * HELBOTENS FILER, hentet som de andre modellene (valens PROXY-tabell). `null` = minst én
+ * mangler; da spiller arm B med arm A-kjeden på hovedtråden, og `modeller.helbot` er `false`.
+ */
+let helbotLaster: Promise<Record<string, string> | null> | null = null;
+function hentHelbot(): Promise<Record<string, string> | null> {
+  helbotLaster ??= Promise.all(
+    (Object.entries(HELBOT_FILER) as [HelbotSti, string][]).map(async ([sti, navn]) => [sti, await hentB64(navn)] as const),
+  ).then((par) => {
+    const mangler = par.filter(([, b]) => b === null).map(([sti]) => HELBOT_FILER[sti]);
+    if (mangler.length > 0) {
+      console.warn(`Helbotens filer mangler: ${mangler.join(", ")}`);
+      helbotLaster = null; // neste kamp prøver igjen
+      return null;
+    }
+    return Object.fromEntries(par) as Record<string, string>;
+  });
+  return helbotLaster;
+}
+
+const HELBOT_SPEK = helbotSpek(FART_PÅ);
+
+/** Arm B sin worker. Egen klient: den krever protokoll 4, og bare én av de to går om gangen. */
+const helbotklient = new Søkeklient({
+  lagArbeider,
+  kvitteringsfristMs: 30_000,
+  trekkfristMs: HELBOT_TREKKFRIST_MS,
+  maksFristbrudd: MAKS_FRISTBRUDD,
+  minProtokoll: 4,
+  logg: (type, data) => logg(type, { ...data, arm: "B" }),
+});
+/** Oppløst for arm B i denne kampen: helbotfilene kom fram. */
+let helbotFiler = false;
+
+/** Kan handlingen føres inn i DENNE stillingen, av dette setet? */
+function erLovligHandling(s: GameState, h: Handling, aktør: number): boolean {
+  if (h.type === "SPILL") return erLovligKort(s, h);
+  const lov = lovligeHandlinger(s);
+  if (h.type === "BUD" ? lov.fase !== "BUDRUNDE" : h.type === "VRAK" ? lov.fase !== "VRAK" : h.type === "VELG" ? lov.fase !== "VELG" : true) {
+    return false;
+  }
+  if (h.type === "NESTE" || h.spiller !== aktør) return false;
+  try {
+    utfør(s, h);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * TEMPOET SKAL IKKE AVSLØRE ARMEN. I arm A tar et nettrekk ~30 ms + 550 ms pause, og et
+ * førersøk sin egen tid + 250 ms. Helboten søker overalt; et raskt svar får derfor pause opp
+ * til samme ~580 ms, et tregt får 250 ms som førersøket.
+ */
+const helbotPause = (brukt: number): number => Math.max(250, 580 - brukt);
+
 /** Hvor workerkoden faktisk ble hentet fra. Logges ved kampstart. */
 let workerKilde: string | null = null;
 /** Når boten begynte å tenke. Driver sekundtelleren i «tenker …»-bobla. */
@@ -749,6 +883,8 @@ async function lagArbeider(): Promise<Arbeider> {
  */
 type Bottrekk = [sete: number, fase: string, lag: Søkelag | "nett" | "bro" | "bro-reserve", ms: number];
 let bottrekk: Bottrekk[] = [];
+/** Arm B: `[wms, verdener, nødbrems, bokbrudd]` per bottrekk, parallelt med `bottrekk`. */
+let helbotDetalj: [number, number, number, number][] = [];
 const FASEKODE: Partial<Record<GameState["fase"], string>> = { BUDRUNDE: "B", VRAK: "V", VELG: "T", SPILL: "S" };
 function notérBottrekk(sete: number, fase: GameState["fase"], lag: Bottrekk[2], ms: number): void {
   bottrekk.push([sete, FASEKODE[fase] ?? fase, lag, Math.round(ms)]);
@@ -1110,6 +1246,9 @@ async function start(navn: string): Promise<void> {
   spillerNavn = navn || "familien";
   spillId = Math.random().toString(36).slice(2, 10);
   nettAgenter = null;
+  if (motstander === "Vaar") trekkArm(spillId);
+  else arm = "A";
+  helbotFiler = false;
   if (motstander === "Vaar") {
     // Vår beste bot: vektene lastes én gang og bufres i nettleseren. ÉTT delt
     // eksemplar fører alle tre botsetene, slik benken kjører den.
@@ -1118,8 +1257,20 @@ async function start(navn: string): Promise<void> {
     // sier at noe skjer.
     rot.innerHTML = laster("Laster boten…", "Henter kortvektene — 2,4 MB første gang, deretter fra hurtigbufferen.");
     try {
-      const bot = await besteBot();
+      // Arm B henter helbotens filer i samme ventetid; arm A-kjeden er reserven i begge armer.
+      const [bot, filer] = await Promise.all([besteBot(), arm === "B" ? hentHelbot() : Promise.resolve(null)]);
       nettAgenter = [bot, bot, bot];
+      if (arm === "B" && filer !== null) {
+        helbotFiler = true;
+        søkeklient.stopp();
+        helbotklient.start({
+          type: "helbot-init",
+          spek: HELBOT_SPEK,
+          filer,
+          seter: [1, 2, 3],
+          fristMs: HELBOT_FRIST_MS,
+        });
+      }
     } catch {
       rot.innerHTML = feilrute(
         "Klarte ikke laste boten",
@@ -1143,10 +1294,16 @@ async function start(navn: string): Promise<void> {
   }
   state = opprettSpill({ antallSpillere: 4 }, (Date.now() ^ (Math.random() * 1e9)) >>> 0);
   bottrekk = [];
+  helbotDetalj = [];
   rundeTempo = [];
   // Ett delt eksemplar fører alle tre setene, så nullstill det bare én gang.
   for (const a of new Set(nettAgenter ?? [])) a.nyKamp();
-  if (motstander === "Vaar" && råVekter !== null && SØKVERDENER > 0) {
+  if (arm === "B" && helbotFiler) {
+    // Ny kamp til helbotens seter (ny økt, nye bøker). En helbotworker som var treg eller
+    // feilet, startes på nytt her – som arm A sin.
+    helbotklient.nyKamp();
+  } else if (motstander === "Vaar" && råVekter !== null && SØKVERDENER > 0) {
+    helbotklient.stopp();
     // WORKEREN STARTES VED KAMPSTART, ikke ved første førertrekk. Da er den
     // som regel klar før budrunden er over, og første kort venter ikke på en
     // nedlasting. `start` gjør ingenting om den alt går.
@@ -1174,16 +1331,24 @@ async function start(navn: string): Promise<void> {
   // `klar` er workerens status I DET kampen starter. Første kamp i en økt står
   // den som regel på «laster»; `worker`-raden sier når den ble klar, og
   // `bottrekk` per runde sier hvilket lag som faktisk spilte hvert kort.
+  // A/B: armen og (for B) nøyaktig hvilken bot, i `modeller`. Arm A står ellers som før.
+  const aktivKlient = arm === "B" && helbotFiler ? helbotklient : søkeklient;
   logg("start", {
     frø: state.frø,
     målPoeng: state.regler.målPoeng,
     motstander,
-    modeller: { ...oppløst },
+    modeller: {
+      ...oppløst,
+      ...(motstander === "Vaar" ? { ab: arm, abVersjon: AB_VERSJON, ...armInfo } : {}),
+      ...(arm === "B"
+        ? { helbot: helbotFiler, spek: HELBOT_SPEK, nett: HELBOT_NETT, fart: FART_PÅ, fristMs: HELBOT_FRIST_MS }
+        : {}),
+    },
     bundel: BUNDELVERSJON,
-    søkverdener: SØKVERDENER,
+    søkverdener: arm === "B" ? 48 : SØKVERDENER,
     søksigma: SØKSIGMA,
-    klar: søkeklient.status === "klar",
-    worker: søkeklient.status,
+    klar: aktivKlient.status === "klar",
+    worker: aktivKlient.status,
     workerKilde,
   });
   fortsett();
@@ -1445,14 +1610,20 @@ function håndterHendelser(hendelser: readonly Hendelse[]): void {
           rundeNr: state.rundeNr,
           trekk: bottrekk,
           ...(søkeklient.sene > 0 ? { sene: søkeklient.sene } : {}),
+          // ARM B: per trekk i samme rekkefølge [workerens ms, verdener, nødbrems, bokbrudd].
+          ...(helbotDetalj.length > 0 ? { arm: "B", detalj: helbotDetalj } : {}),
+          ...(helbotklient.sene > 0 ? { seneB: helbotklient.sene } : {}),
         });
         bottrekk = [];
+        helbotDetalj = [];
       }
       // Søketroens hukommelse (K6 → K8) ser runden først når den er ferdig. Går bare
       // til en klar worker som forstår meldingen (protokoll 3); ellers ingenting.
       søkeklient.rundeSlutt(state);
+      helbotklient.rundeSlutt(state);
     } else if (h.type === "KAMP_SLUTT") {
       logg("kamp", { vinner: h.vinner, totalPoeng: state.totalPoeng, runder: state.rundeNr + 1 });
+      armFerdig();
     }
   }
 }
@@ -1496,6 +1667,36 @@ function fortsett(): void {
         notérBottrekk(aktør, fase, "bro-reserve", performance.now() - t0);
         gjørMedPause(reserve(), 550);
       });
+  } else if (nettAgenter !== null && arm === "B" && helbotFiler) {
+    // ARM B: HVER botbeslutning går til helboten i workeren. Reserven (frist, feil, ikke
+    // klar, ulovlig svar) er arm A-kjeden på hovedtråden — logget i `bottrekk`.
+    tegn();
+    const t0 = performance.now();
+    const spurt = state;
+    const kamp = spillId;
+    const fase = state.fase;
+    void helbotklient.trekk(spurt, aktør).then((svar) => {
+      if (state !== spurt || spillId !== kamp) return;
+      let lag = svar.lag;
+      let h = svar.handling;
+      if (h !== null && !erLovligHandling(state, h, aktør)) {
+        console.warn("Helboten svarte med et ulovlig trekk – spiller reservens valg:", h);
+        h = null;
+        lag = "feil";
+      }
+      const valgt = h ?? nettAgenter![aktør - 1]!.velgHandling(state);
+      const ms = performance.now() - t0;
+      travelt = false;
+      notérBottrekk(aktør, fase, lag, ms);
+      helbotDetalj.push([
+        svar.wms ?? -1,
+        svar.n ?? -1,
+        svar.nødbrems === true ? 1 : 0,
+        svar.bokbrudd === true ? 1 : 0,
+      ]);
+      gjørMedPause(valgt, helbotPause(ms));
+    });
+    return;
   } else if (nettAgenter !== null) {
     // SØKET GÅR TIL WORKEREN, og bare når det er noe å hente: kortvalg der
     // boten er spillefører (`børSøke`, delt med paritetsprøven).

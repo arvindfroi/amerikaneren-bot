@@ -41,7 +41,7 @@
 
 import type { GameState, Handling } from "../src/motor.ts";
 import type { Søkeutfall } from "./adamskjede.ts";
-import type { FraWorker, Initmelding, TilWorker } from "./sokekjerne.ts";
+import type { FraWorker, Helbotinit, Initmelding, TilWorker } from "./sokekjerne.ts";
 
 /** Det appen trenger av en `Worker`. En adapter i `app.ts`, en falsk i prøvene. */
 export interface Arbeider {
@@ -92,6 +92,10 @@ export interface Søkesvar {
   /** Protokoll 3: søkets parrede σ for denne beslutningen, og verdenene som rakk. */
   readonly sigma?: number;
   readonly n?: number;
+  /** Protokoll 4: nødbremsen kuttet verdener. */
+  readonly nødbrems?: boolean;
+  /** Protokoll 4: hukommelsen manglet en runde og ble nullet. */
+  readonly bokbrudd?: boolean;
 }
 
 export interface Klientvalg {
@@ -101,6 +105,12 @@ export interface Klientvalg {
   readonly trekkfristMs: number;
   readonly maksFristbrudd: number;
   readonly logg: (type: string, data: Record<string, unknown>) => void;
+  /**
+   * Laveste protokoll en kvittering må bære for å godtas (A/B-demoen: helboten krever 4).
+   * En eldre worker (valens pinne) kvitterer aldri på `helbot-init`; skulle den likevel
+   * kvittere med en lavere protokoll, regnes det som feil. Udefinert = alt godtas, som før.
+   */
+  readonly minProtokoll?: number;
 }
 
 interface Ventende {
@@ -118,7 +128,7 @@ export class Søkeklient {
   private readonly v: Klientvalg;
   private readonly tid: Tidtaker;
   private arbeider: Arbeider | null = null;
-  private init: Initmelding | null = null;
+  private init: Initmelding | Helbotinit | null = null;
   /** Øker ved hver (om)start. Meldinger fra en avløst worker ignoreres. */
   private generasjon = 0;
   private startetVed = 0;
@@ -133,9 +143,26 @@ export class Søkeklient {
   }
 
   /** Starter workeren om den ikke går. Idempotent. */
-  start(init: Initmelding): void {
+  start(init: Initmelding | Helbotinit): void {
     this.init = init;
     if (this.status === "av") this.startArbeider("start");
+  }
+
+  /**
+   * STOPP (A/B-demoen): workeren termineres og klienten står «av» til neste `start`.
+   * Brukes når kampen trekkes til den andre armen — to søkeworkere samtidig ville doblet
+   * minnet på en iPad for ingenting. Ventende trekk løses som feil med én gang.
+   */
+  stopp(): void {
+    if (this.status === "av" && this.arbeider === null) return;
+    this.generasjon++;
+    this.avbrytKvittering();
+    this.arbeider?.terminate();
+    this.arbeider = null;
+    this.løsAlle("feil");
+    this.status = "av";
+    this.protokoll = 0;
+    this.init = null;
   }
 
   /**
@@ -263,7 +290,10 @@ export class Søkeklient {
     if (d.klar !== undefined) {
       this.avbrytKvittering();
       const ms = this.tid.nå() - this.startetVed;
-      if (d.klar === true) {
+      const forGammel =
+        d.klar === true && this.v.minProtokoll !== undefined &&
+        !(typeof d.protokoll === "number" && d.protokoll >= this.v.minProtokoll);
+      if (d.klar === true && !forGammel) {
         if (this.status !== "laster" && this.status !== "treg") return;
         const fra = this.status;
         this.status = "klar";
@@ -275,11 +305,14 @@ export class Søkeklient {
           ...(fra === "treg" ? { fra } : {}),
           ...(typeof d.ms === "number" ? { byggMs: d.ms } : {}),
           ...(typeof d.tro === "boolean" ? { tro: d.tro } : {}),
+          ...(d.helbot === true ? { helbot: true } : {}),
+          ...(typeof d.simd === "boolean" ? { simd: d.simd } : {}),
         });
       } else {
         this.status = "feil";
-        console.warn("Workeren klarte ikke bygge Adams:", d.feil);
-        this.v.logg("worker", { status: "feil", ms, feil: String(d.feil).slice(0, 160) });
+        const feil = forGammel ? `protokoll ${String(d.protokoll)} < ${this.v.minProtokoll}` : String(d.feil);
+        console.warn("Workeren klarte ikke bygge Adams:", feil);
+        this.v.logg("worker", { status: "feil", ms, feil: feil.slice(0, 160) });
       }
       return;
     }
@@ -294,7 +327,17 @@ export class Søkeklient {
     this.venter.delete(id);
     const ms = this.tid.nå() - lapp.t0;
     const svar = d as Partial<
-      FraWorker & { handling: Handling; utfall: Søkeutfall | null; ms: number; utløpt: true; feil: string; sigma: number; n: number }
+      FraWorker & {
+        handling: Handling;
+        utfall: Søkeutfall | null;
+        ms: number;
+        utløpt: true;
+        feil: string;
+        sigma: number;
+        n: number;
+        nødbrems: boolean;
+        bokbrudd: boolean;
+      }
     >;
 
     if (svar.handling !== undefined) {
@@ -309,6 +352,8 @@ export class Søkeklient {
         ...(typeof svar.ms === "number" ? { wms: svar.ms } : {}),
         ...(typeof svar.sigma === "number" ? { sigma: svar.sigma } : {}),
         ...(typeof svar.n === "number" ? { n: svar.n } : {}),
+        ...(svar.nødbrems === true ? { nødbrems: true } : {}),
+        ...(svar.bokbrudd === true ? { bokbrudd: true } : {}),
       });
       return;
     }
