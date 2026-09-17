@@ -105,7 +105,7 @@ async function økt(navn, sti, ctxValg, runder) {
     økt: navn,
     spillId: logg[0]?.spillId,
     bundel: start?.bundel,
-    modeller: start && { ab: start.modeller.ab, abFaktisk: start.modeller.abFaktisk, helbot: start.modeller.helbot, abTvunget: start.modeller.abTvunget, nett: start.modeller.nett, fart: start.modeller.fart },
+    modeller: start && { ab: start.modeller.ab, abFaktisk: start.modeller.abFaktisk, helbot: start.modeller.helbot, abTvunget: start.modeller.abTvunget, nett: start.modeller.nett, fart: start.modeller.fart, fristMs: start.modeller.fristMs, abVersjon: start.modeller.abVersjon },
     workerKilde: start?.workerKilde,
     worker,
     runder: logg.filter((x) => x.type === "runde").length,
