@@ -59,3 +59,4 @@ Begge armene endrer kortvalget (under støygulvet, som ventet for et bedre estim
 koster ~3–4×. **Anslag i nettleseren** (appens S1-median 17 ms): arm1 ≈ 65 ms median, arm2 ≈ 45–55 ms median,
 begge langt under 5 s. Spådd 3,5–4× / 4–5× og 15–25 % / 20–30 %: V192 traff, E5 er billigere og endrer litt
 mindre enn spådd.
+- K1 startet på nytt 22:19 maskintid (pid 39412, WmiPrvSE, BelowNormal), uten forsjekk (utført over).

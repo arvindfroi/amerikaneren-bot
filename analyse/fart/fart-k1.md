@@ -23,3 +23,9 @@ Duplikat på menneskekampene, 8 skarder per arm, alle fire seter = armen, BelowN
 ## DOM: **S1 GODKJENT**
 
 S1 − base = −0,070 ≥ −0,150 og z = −0,52 > −1,96.
+
+> **MERK (18. sep, `k1-avstemming.md`):** kolonnen «arm − menneske» er IKKE botens forsprang på mennesker.
+> Her spiller armen i alle fire seter, mens mennesket møtte v5-kjeden. Samme bot måles 1,48 ± 0,52 pp høyere
+> per runde med v5 i de tre andre setene (batteriets oppsett). Tallet for «hvor mye bedre enn mennesker» er
+> batteriets ~+1,1 pp (utvalg), og det rettferdige +0,72 ± 0,19. De parrede arm-mot-arm-tallene står, men er
+> mindre følsomme for en JEVN styrkeendring enn et oppsett med fast motstander ville vært.
