@@ -67,6 +67,15 @@ const SIGMA_PORT = 0.5;
  */
 const DOMMER = Number(arg("--dommer", "0"));
 const DOMMER_FRØ = 0x2f6b_1d93;
+/**
+ * EPIMC-DOMMEREN (18. sep, 0 = av): som dommeren, men med EPIMC d = 1 (kortekvivalens på dybde 1, ingen
+ * beskjæring), så en arm som fjerner fusjon ikke dømmes av et søk som har den. Begge dommerne vurderer
+ * bare KORTENE ARMENE SPILTE (unionen): analysen bruker bare Q(REF) − Q(arm), og det er langt billigere
+ * enn alle lovlige kort. «egen»-kolonnen er derfor anger mot beste SPILTE kort, ikke mot beste lovlige.
+ */
+const DOMMER_E = Number(arg("--dommerE", "0"));
+/** Armen dommerne utløses mot (spilte en arm noe annet enn denne?). */
+const REFARM = arg("--refarm", "REF");
 
 /** En arm: endringer i `ParOpts` og hvordan kandidatene velges. */
 interface ArmDef {
@@ -79,6 +88,8 @@ interface ArmDef {
   readonly støy?: boolean;
   /** σ-porten for denne armen (standard 0,5). */
   readonly sigma?: number;
+  /** EPIMC d = 1 (18. sep): `EP1`, `EPX` (utelat-én), `EPM<k>` (minste gruppe), `EPP<p·100>` (beskjæring på dybde 1). */
+  readonly epimc?: { minGruppe?: number; kryss?: boolean; toppP?: number };
 }
 /** Navnet leses som en liten spek: REF, STOY, EKV, TOPP<p·100>, FLAT<n0>, E<T>, V<V>, S<σ·100>, + for å stable. */
 function lesArm(navn: string): ArmDef {
@@ -93,6 +104,10 @@ function lesArm(navn: string): ArmDef {
     else if ((m = bit.match(/^E(\d+)$/))) d.eksaktBlad = Number(m[1]);
     else if ((m = bit.match(/^V(\d+)$/))) d.verdener = Number(m[1]);
     else if ((m = bit.match(/^S(\d+)$/))) d.sigma = Number(m[1]) / 100;
+    else if (bit === "EP1") d.epimc = { ...(d.epimc as object) };
+    else if (bit === "EPX") d.epimc = { ...(d.epimc as object), kryss: true };
+    else if ((m = bit.match(/^EPM(\d+)$/))) d.epimc = { ...(d.epimc as object), minGruppe: Number(m[1]) };
+    else if ((m = bit.match(/^EPP(\d+)$/))) d.epimc = { ...(d.epimc as object), toppP: Number(m[1]) / 100 };
     else throw new Error(`Ukjent armledd «${bit}» i «${navn}»`);
   }
   return d as ArmDef;
@@ -220,6 +235,17 @@ for (let kamp = 0; kamp < KAMPER; kamp++) {
           ...(d.ekvivalens === true ? { ekvivalens: true } : {}),
           ...(d.flatStopp !== undefined ? { flatStopp: d.flatStopp } : {}),
           ...(kandidater !== undefined ? { kandidater } : {}),
+          ...(d.epimc !== undefined
+            ? {
+                epimc: {
+                  dybde: 1,
+                  ...(d.epimc.minGruppe !== undefined ? { minGruppe: d.epimc.minGruppe } : {}),
+                  ...(d.epimc.kryss === true ? { kryss: true } : {}),
+                  ...((d.epimc.toppP ?? d.toppP) !== undefined ? { toppP: d.epimc.toppP ?? d.toppP, prior: prior[sete]! } : {}),
+                  ...(d.ekvivalens === true ? { ekvivalens: true } : {}),
+                },
+              }
+            : {}),
         };
         const par: ParResultat | null = vurderPar(s, sete, motpart, opts);
         const ms = performance.now() - t0;
@@ -236,44 +262,54 @@ for (let kamp = 0; kamp < KAMPER; kamp++) {
           arg: kortStr(par?.beste.kort ?? null),
           spilt: kortStr(spilt),
           kl: klasseId(spilt),
+          ...(par?.epimc !== undefined ? { ep: par.epimc } : {}),
         };
       }
 
       const igjen = s.hender[sete]?.length ?? 0;
       let dommer: Record<string, number> | null = null;
       let dommerMs = 0;
-      if (DOMMER > 0) {
-        const refSpilt = (ut.REF as { spilt: string | null } | undefined)?.spilt;
-        const utløst = ARMER.some((a) => a !== "STOY" && a !== "REF" && (ut[a] as { spilt: string | null }).spilt !== refSpilt);
-        if (utløst) {
-          const t0 = performance.now();
-          const dp = vurderPar(s, sete, motpart, {
-            verdener: DOMMER,
-            verdenKandidater: 32,
-            verdenKombi: "snitt",
-            eksaktBlad: 3,
-            mål: lagMål,
-            trovekt,
-            budvekt: false,
-            rng: lagRng(visningsfrø(s, sete, DOMMER_FRØ)),
-          });
-          dommerMs = performance.now() - t0;
-          if (dp !== null) {
-            dommer = {};
-            let maks = -Infinity;
-            for (const k of dp.kandidater) maks = Math.max(maks, k.snitt);
-            for (const k of dp.kandidater) dommer[kortStr(k.kort)!] = k.snitt;
-            for (const navn of ARMER) {
-              const a = ut[navn] as { spilt: string | null; regQ?: number | null };
-              const q = a.spilt === null ? undefined : dommer[a.spilt];
-              a.regQ = q === undefined ? null : Math.round((maks - q) * 10000) / 10000;
-            }
+      let dommerEMs = 0;
+      const refSpilt = (ut[REFARM] as { spilt: string | null } | undefined)?.spilt;
+      const utløst = ARMER.some((a) => a !== REFARM && !a.endsWith("STOY") && (ut[a] as { spilt: string | null }).spilt !== refSpilt);
+      const spilte = [...new Set(ARMER.map((a) => (ut[a] as { spilt: string | null }).spilt).filter((x): x is string => x !== null))];
+      const dommerKand = lovlige.filter((k) => spilte.includes(kortStr(k)!));
+      const døm = (antall: number, epimc: boolean, felt: "regQ" | "regE"): number => {
+        const t0 = performance.now();
+        const dp = vurderPar(s, sete, motpart, {
+          verdener: antall,
+          verdenKandidater: 32,
+          verdenKombi: "snitt",
+          eksaktBlad: 3,
+          mål: lagMål,
+          trovekt,
+          budvekt: false,
+          kandidater: dommerKand,
+          rng: lagRng(visningsfrø(s, sete, DOMMER_FRØ)),
+          ...(epimc ? { epimc: { dybde: 1, ekvivalens: true } } : {}),
+        });
+        if (dp !== null) {
+          const q: Record<string, number> = {};
+          let maks = -Infinity;
+          for (const k of dp.kandidater) maks = Math.max(maks, k.snitt);
+          for (const k of dp.kandidater) q[kortStr(k.kort)!] = k.snitt;
+          for (const navn of ARMER) {
+            const a = ut[navn] as { spilt: string | null } & Record<string, number | null | string>;
+            const v = a.spilt === null ? undefined : q[a.spilt];
+            a[felt] = v === undefined ? null : Math.round((maks - v) * 10000) / 10000;
           }
+          if (!epimc) dommer = q;
         }
+        return performance.now() - t0;
+      };
+      if (utløst && dommerKand.length >= 2) {
+        if (DOMMER > 0) dommerMs = døm(DOMMER, false, "regQ");
+        if (DOMMER_E > 0) dommerEMs = døm(DOMMER_E, true, "regE");
       }
       const rad: Record<string, unknown> = {
         dommerMs: Math.round(dommerMs),
-        dommerUtløst: dommer !== null,
+        dommerEMs: Math.round(dommerEMs),
+        dommerUtløst: DOMMER > 0 || DOMMER_E > 0 ? utløst && dommerKand.length >= 2 : undefined,
         kamp: frø,
         r,
         sete,

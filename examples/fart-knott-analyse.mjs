@@ -83,7 +83,8 @@ function tabell(utvalg, tittel) {
       "endret%".padStart(15) +
       "endretKl%".padStart(15) +
       "  nF  anger lag (arm−REF)     anger diff (arm−REF)    angerREF lag" +
-      "   nQ  dommeranger (arm−REF)",
+      "   nQ  dommeranger (arm−REF)" +
+      "            EPIMC-dommer (arm−REF)   ms p50/p90   ep-endret",
   );
   for (const arm of armer) {
     const rs = utvalg.filter((r) => r.armer[arm] && r.armer[ref]);
@@ -104,7 +105,7 @@ function tabell(utvalg, tittel) {
     const medDommer = rs.filter((r) => r.dommerUtløst !== undefined);
     let q;
     let qMerke = "";
-    if (arm === "STOY") {
+    if (arm.endsWith("STOY")) {
       const u = medDommer.filter((r) => r.dommerUtløst && r.armer[arm].regQ != null && r.armer[ref].regQ != null);
       q = klyngeSnitt(u.map((r) => ({ k: r.kamp, d: r.armer[arm].regQ - r.armer[ref].regQ })));
       qMerke = "*";
@@ -112,6 +113,18 @@ function tabell(utvalg, tittel) {
       const u = medDommer.filter((r) => !r.dommerUtløst || (r.armer[arm].regQ != null && r.armer[ref].regQ != null));
       q = klyngeSnitt(u.map((r) => ({ k: r.kamp, d: r.dommerUtløst ? r.armer[arm].regQ - r.armer[ref].regQ : 0 })));
     }
+    // EPIMC-dommeren (18. sep): samme regel, felt `regE`.
+    let qe = { m: NaN, se: NaN, N: 0 };
+    if (medDommer.some((r) => r.dommerEMs !== undefined && r.dommerEMs > 0)) {
+      const u = arm.endsWith("STOY")
+        ? medDommer.filter((r) => r.dommerUtløst && r.armer[arm].regE != null && r.armer[ref].regE != null)
+        : medDommer.filter((r) => !r.dommerUtløst || (r.armer[arm].regE != null && r.armer[ref].regE != null));
+      qe = klyngeSnitt(u.map((r) => ({ k: r.kamp, d: r.dommerUtløst ? r.armer[arm].regE - r.armer[ref].regE : 0 })));
+    }
+    const msSort = rs.map((r) => r.armer[arm].ms).sort((a, b) => a - b);
+    const pct = (p) => msSort[Math.min(msSort.length - 1, Math.floor(p * msSort.length))];
+    const ep = rs.filter((r) => r.armer[arm].ep);
+    const epTxt = ep.length === 0 ? "" : `${fmt(ep.reduce((a, r) => a + r.armer[arm].ep.endret, 0) / Math.max(1, ep.reduce((a, r) => a + r.armer[arm].ep.noder, 0)) * 100, 1)}% av noder`;
     // Skala: armens EGEN dommeranger på det utløste utvalget.
     const egen = klyngeSnitt(
       medDommer.filter((r) => r.dommerUtløst && r.armer[arm].regQ != null).map((r) => ({ k: r.kamp, d: r.armer[arm].regQ })),
@@ -123,14 +136,16 @@ function tabell(utvalg, tittel) {
         `${pm(endret, 1, 100)}`.padStart(15) +
         `${pm(endretKl, 1, 100)}`.padStart(15) +
         `  ${String(skiller.length).padStart(3)}  ${pm(aL, 3).padEnd(22)}  ${pm(aD, 3).padEnd(22)}  ${fmt(refL.m, 3).padStart(12)}` +
-        `  ${String(q.N).padStart(5)}${qMerke.padEnd(1)} ${pm(q, 4).padEnd(20)} egen ${fmt(egen.m, 3)}`,
+        `  ${String(q.N).padStart(5)}${qMerke.padEnd(1)} ${pm(q, 4).padEnd(20)} egen ${fmt(egen.m, 3)}` +
+        `  ${pm(qe, 4).padEnd(22)}  ${fmt(pct(0.5), 0)}/${fmt(pct(0.9), 0)}  ${epTxt}`,
     );
   }
 }
 
 tabell(rader, "ALLE");
 if (gruppe === "stikk") {
-  for (const [a, b] of [[1, 4], [5, 8], [9, 12]]) tabell(rader.filter((r) => r.stikk >= a && r.stikk <= b), `stikk ${a}-${b}`);
+  // `stikk` i radene er 1-basert; overskriften viser også 0-basert (stikkSpilt): 0–3, 4–7, 8+.
+  for (const [a, b] of [[1, 4], [5, 8], [9, 13]]) tabell(rader.filter((r) => r.stikk >= a && r.stikk <= b), `stikk ${a}-${b} (0-basert ${a - 1}-${b === 13 ? "" : b - 1}${b === 13 ? "+" : ""})`);
 } else if (gruppe === "rolle") {
   for (const ro of [...new Set(rader.map((r) => r.rolle))]) tabell(rader.filter((r) => r.rolle === ro), `rolle ${ro}`);
 }
