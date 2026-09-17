@@ -165,6 +165,11 @@ export interface ParOpts {
    * linje av grenen under — stien er bit for bit som før.
    */
   readonly epimc?: EpimcOpts;
+  /**
+   * PRØVEHÅNDTAK: ferdig gitte verdener (hender per sete, kort-int) i stedet for `trekkVerdener`.
+   * Samme idé som `SDOpts.verdener` i `sdkort.ts`. Udefinert = trekkes som før; ingen spek setter den.
+   */
+  readonly ferdigeVerdener?: readonly (readonly (readonly number[])[])[];
 }
 
 /**
@@ -523,7 +528,7 @@ export function vurderPar(
   const vekt =
     lik === undefined ? grunnvekt : (v: Verden): number => (grunnvekt === undefined ? 0 : grunnvekt(v)) + lik(v);
 
-  const verdener = trekkVerdener(
+  const verdener = opts.ferdigeVerdener !== undefined ? opts.ferdigeVerdener.map((v) => v.map((h) => h.slice())) : trekkVerdener(
     state,
     spiller,
     opts.verdener,
@@ -662,11 +667,14 @@ function epimcLøkke(
         }
         politikk = ph.kort;
         kand = g0?.kand.slice() ?? dybde1Kandidater(node, spiller, politikk, e);
-        const v = kand.map((c, j) =>
-          mål(fullfør(utfør(node, j === 0 ? ph : { type: "SPILL", spiller, kort: c }).state), spiller),
-        );
+        // Gruppens kandidater, ikke denne verdenens politikkort: kandidatlista er FELLES for gruppen.
+        const v = kand.map((c) => mål(fullfør(utfør(node, { type: "SPILL", spiller, kort: c }).state), spiller));
         info.ekstra += kand.length - 1;
-        nv = { v, fall: v[0]!, fallJ: 0 };
+        // Dagens verdi er politikkens kort i DENNE verdenen. Politikken i `sik:` ser bare visningen, så
+        // det er gruppens kort 0; en politikk som ser mer (prøvene) kan velge et annet, som da spilles ut.
+        const fallJ = kand.findIndex((c) => c.farge === politikk!.farge && c.verdi === politikk!.verdi);
+        const fall = fallJ >= 0 ? v[fallJ]! : mål(fullfør(utfør(node, ph).state), spiller);
+        nv = { v, fall, fallJ };
       }
       info.noder++;
       let g = g0;
