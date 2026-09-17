@@ -6,7 +6,7 @@
  * Uten `--konfig`: S1-kjøringen (base mot S1, iter-8, regel «ikke verre»), rapport
  * D:/amb-grp/loop/fart-k1.md. Med `--konfig`:
  *   { dir, rapport, tittel, armer: {navn: spek}, ref, regel: "ikke-verre" | "forbedring",
- *     ventPå?: pid, forsjekk?: { args: [...], froe, ref, ut, arbeidere? } }
+ *     ventPå?: pid, ventPåFil?: fil, ventPåAlle?: [pid], rot?, gren?, nei?, forsjekk?: { args: [...], froe, ref, ut, arbeidere? } }
  *
  * Hver arm: `examples/duplikat-menneske.ts` i 8 skarder over alle menneskekampene (alle fire seter
  * spilles av armen). Maks 3 prosesser samtidig, BelowNormal på driveren og alle barn.
@@ -25,7 +25,6 @@ import { spawn } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 
-const ROT = "D:/amb-fart";
 const SKARDER = 8;
 const SAMTIDIG = 3;
 const P =
@@ -44,6 +43,11 @@ const K =
         regel: "ikke-verre",
       }
     : JSON.parse(readFileSync(process.argv[iK + 1], "utf8"));
+/** Arbeidstreet barna kjører i (`rot` i konfig, 18. sep); standard som før. */
+const ROT = K.rot ?? "D:/amb-fart";
+const GREN = K.gren ?? "fart-2026-09-17";
+/** Dommen når ingen arm består «forbedring»-regelen. */
+const NEI = K.nei ?? "mer tenketid hjelper ikke målbart";
 const DIR = K.dir;
 const RAPPORT = K.rapport;
 const STATUS = `${DIR}/status.log`;
@@ -51,7 +55,7 @@ const ARMER = K.armer;
 const REF = K.ref;
 const REGELTEKST =
   K.regel === "forbedring"
-    ? "en arm tas i bruk hvis arm − ref ≥ +0,15 pp OG z > +1,96; ellers «mer tenketid hjelper ikke målbart»"
+    ? `en arm tas i bruk hvis arm − ref ≥ +0,15 pp OG z > +1,96; ellers «${NEI}»`
     : "armen godkjennes hvis arm − ref ≥ −0,15 pp og ikke signifikant negativ (z > −1,96)";
 
 mkdirSync(DIR, { recursive: true });
@@ -184,10 +188,20 @@ async function main() {
   );
   logg(`driver startet, pid ${process.pid}`);
   if (K.ventPå !== undefined) {
-    logg(`venter på at pid ${K.ventPå} blir ferdig (maks ${SAMTIDIG} prosesser totalt)`);
-    while (lever(K.ventPå)) await vent(60_000);
-    logg(`pid ${K.ventPå} er borte, starter`);
+    /**
+     * `ventPåFil` (18. sep): vent så lenge prosessen lever OG fila fortsatt sier «PÅGÅR». Ferdig rapport
+     * slipper oss løs selv om pid-en skulle være gjenbrukt; død prosess slipper oss løs selv om fila står.
+     */
+    const pågår = () => K.ventPåFil === undefined || (existsSync(K.ventPåFil) && readFileSync(K.ventPåFil, "utf8").includes("PÅGÅR"));
+    logg(`venter på pid ${K.ventPå}${K.ventPåFil ? ` / ${K.ventPåFil}` : ""} (maks ${SAMTIDIG} prosesser totalt)`);
+    while (lever(K.ventPå) && pågår()) await vent(60_000);
+    logg(`pid ${K.ventPå} ${lever(K.ventPå) ? "lever, men rapporten er ferdig" : "er borte"}`);
   }
+  if (K.ventPåAlle !== undefined) {
+    logg(`venter på egne pid-er ${K.ventPåAlle.join(", ")}`);
+    while (K.ventPåAlle.some(lever)) await vent(60_000);
+  }
+  logg("starter");
   if (K.forsjekk !== undefined) {
     const fs = K.forsjekk;
     const n = fs.arbeidere ?? SAMTIDIG;
@@ -231,7 +245,7 @@ async function main() {
   );
   if (nan.length > 0) problemer.push(`${nan.length} rader med NaN/ikke-endelig verdi`);
 
-  let t = `# ${K.tittel}\n\nFerdig ${new Date().toISOString()}. Gren \`fart-2026-09-17\` i \`${ROT}\`. Rådata: \`${DIR}\`.\n\n`;
+  let t = `# ${K.tittel}\n\nFerdig ${new Date().toISOString()}. Gren \`${GREN}\` i \`${ROT}\`. Rådata: \`${DIR}\`.\n\n`;
   for (const [a, sp] of Object.entries(ARMER)) t += `- ${a}${a === REF ? " (referanse)" : ""}: \`${sp}\`\n`;
   t += `\nDuplikat på menneskekampene, ${SKARDER} skarder per arm, alle fire seter = armen, BelowNormal. `;
   t += `SE: klyngebootstrap over kamper (B = 20 000); klynget sandwich i parentes.\n\n`;
@@ -270,7 +284,7 @@ async function main() {
   t += `\nVeggtid gjelder bare skarder kjørt i denne prosessen, på en belastet maskin i BelowNormal.\n\n`;
   if (K.regel === "forbedring") {
     const tatt = dommer.filter((d) => d.ok);
-    t += `## DOM: ${tatt.length === 0 ? "**mer tenketid hjelper ikke målbart**" : `**${tatt.map((d) => d.a).join(", ")} tas i bruk**`}\n`;
+    t += `## DOM: ${tatt.length === 0 ? `**${NEI}**` : `**${tatt.map((d) => d.a).join(", ")} tas i bruk**`}\n`;
   } else {
     t += `## DOM\n\n${dommer.map((d) => `- ${d.a}: ${d.ok ? "GODKJENT" : "AVVIST"} (${f(d.dP.m)}, z ${f(d.z, 2)})`).join("\n")}\n`;
   }
