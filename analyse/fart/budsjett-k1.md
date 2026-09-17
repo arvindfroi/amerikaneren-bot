@@ -42,3 +42,20 @@ etter start: forsjekk ~10 min, K1 ~11 t (arm0 ~1 700 s per skard, arm1/arm2 ~6 0
 
 ## Tidsbruk i nettleseren
 Rapporteres fra forsjekken (ms per vurdert kortvalg i Node, parret) og skaleres mot appens S1-median 17 ms.
+
+## FORSJEKK — utfall (skrevet før K1 startet), `budsjettk1/forsjekk.txt`
+Første kjeden ble drept utenfra ca. 22:17 (driver + alle tre riggarbeidere samtidig, ingen feilmelding;
+ingen av treningskjedens stoppskript matcher kommandolinjene). Forsjekken rakk **442 stillinger i 8 kamper**,
+som brukes. Maskinen var tungt belastet (treningskjedens KRAV kjørte), så absolutte ms er høye; forholdene gjelder.
+
+| arm | ms snitt / median / p90 | kostnad mot arm0 (parret) | endret spilt kort mot arm0 |
+|---|---|---|---|
+| arm0 (S1, 48) | 266 / 195 / 681 | 1,00× | – |
+| arm0 + nytt verdensfrø (støygulv) | 263 / 200 / 661 | 0,99× | 25,3 ± 2,7 % |
+| **arm1 (192 verdener)** | 1 024 / 768 / 2 595 | **3,85×** | **17,2 ± 1,9 %** (stikk 1–4: 21,3 %) |
+| **arm2 (e5)** | 882 / 508 / 2 324 | **3,32×** (median 2,6×) | **16,7 ± 2,3 %** (stikk 5–8: 26,5 %) |
+
+Begge armene endrer kortvalget (under støygulvet, som ventet for et bedre estimat av samme verdi), og begge
+koster ~3–4×. **Anslag i nettleseren** (appens S1-median 17 ms): arm1 ≈ 65 ms median, arm2 ≈ 45–55 ms median,
+begge langt under 5 s. Spådd 3,5–4× / 4–5× og 15–25 % / 20–30 %: V192 traff, E5 er billigere og endrer litt
+mindre enn spådd.
