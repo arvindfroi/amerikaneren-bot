@@ -79,7 +79,7 @@ function lesArm(navn: string): ArmDef {
     else if ((m = bit.match(/^FLAT(\d+)$/))) d.flatStopp = Number(m[1]);
     else if ((m = bit.match(/^E(\d+)$/))) d.eksaktBlad = Number(m[1]);
     else if ((m = bit.match(/^V(\d+)$/))) d.verdener = Number(m[1]);
-    else if ((m = bit.match(/^S(\d+)$/))) d.sigma = Number(m[1]) / 10;
+    else if ((m = bit.match(/^S(\d+)$/))) d.sigma = Number(m[1]) / 100;
     else throw new Error(`Ukjent armledd «${bit}» i «${navn}»`);
   }
   return d as ArmDef;
