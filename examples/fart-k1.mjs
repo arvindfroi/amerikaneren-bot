@@ -107,8 +107,11 @@ function kjør(j) {
     return Promise.resolve(0);
   }
   rmSync(fil(j), { force: true });
+  const ekstra = [];
+  if (K.motstander !== undefined) ekstra.push("--motstander", K.motstander);
+  if (K.etter !== undefined) ekstra.push("--etter", K.etter);
   return nodeKjør(
-    ["examples/duplikat-menneske.ts", "--spek", ARMER[j.arm], "--skard", `${j.s}/${SKARDER}`, "--ut", fil(j)],
+    ["examples/duplikat-menneske.ts", "--spek", ARMER[j.arm], ...ekstra, "--skard", `${j.s}/${SKARDER}`, "--ut", fil(j)],
     `${j.arm} s${j.s}`,
     (sek) => {
       tider[j.arm] += sek;
@@ -225,7 +228,23 @@ async function main() {
     const bareA = [...kart[a].keys()].filter((k) => !refKart.has(k)).length;
     if (bareR + bareA > 0) problemer.push(`ulik nøkkelmengde ${REF}/${a}: ${bareR} bare i ${REF}, ${bareA} bare i ${a}`);
   }
-  const felles = [...refKart.keys()].filter((k) => Object.values(kart).every((m) => m.has(k)));
+  let felles = [...refKart.keys()].filter((k) => Object.values(kart).every((m) => m.has(k)));
+  /**
+   * KAMPSETTET, som batteriet (`analyse/k1-kampsett.tsv`): `utvalg` er porten, `holdout` rapporteres ved
+   * siden av og går ALDRI inn i dommen. En kamp som mangler i lista er en stopp, ikke en stille utelatelse.
+   */
+  let settAv = null;
+  if (K.kampsett !== undefined) {
+    settAv = new Map();
+    for (const l of readFileSync("analyse/k1-kampsett.tsv", "utf8").split(/\r?\n/)) {
+      if (!l.trim() || l.startsWith("#") || l.startsWith("spill\t")) continue;
+      const [id, v] = l.split("\t");
+      if (id && v) settAv.set(id.trim(), v.trim());
+    }
+    const mangler = [...new Set(felles.map((k) => refKart.get(k).spill))].filter((id) => !settAv.has(id));
+    if (mangler.length > 0) problemer.push(`${mangler.length} kamp(er) mangler i analyse/k1-kampsett.tsv, f.eks. «${mangler[0]}»`);
+  }
+  const iSett = (k, sett) => settAv === null || sett === "alle" || settAv.get(refKart.get(k).spill) === sett;
   const nan = felles.filter(
     (k) => !Object.values(kart).every((m) => [m.get(k).bP, m.get(k).bot, m.get(k).mP].every(Number.isFinite)),
   );
@@ -233,7 +252,9 @@ async function main() {
 
   let t = `# ${K.tittel}\n\nFerdig ${new Date().toISOString()}. Gren \`fart-2026-09-17\` i \`${ROT}\`. Rådata: \`${DIR}\`.\n\n`;
   for (const [a, sp] of Object.entries(ARMER)) t += `- ${a}${a === REF ? " (referanse)" : ""}: \`${sp}\`\n`;
-  t += `\nDuplikat på menneskekampene, ${SKARDER} skarder per arm, alle fire seter = armen, BelowNormal. `;
+  t += `\nDuplikat på menneskekampene, ${SKARDER} skarder per arm, BelowNormal. `;
+  t += K.motstander === undefined ? `Alle fire seter = armen. ` : `De tre andre setene: \`${K.motstander}\`. `;
+  if (K.etter !== undefined) t += `Bare runder fra ${K.etter}. `;
   t += `SE: klyngebootstrap over kamper (B = 20 000); klynget sandwich i parentes.\n\n`;
   t += `**Beslutningsregel (skrevet før måling):** ${REGELTEKST}.\n\n`;
   if (K.forsjekk !== undefined) t += `Forsjekk (knottriggen, skrevet før K1): \`${K.forsjekk.ut}\`.\n\n`;
@@ -244,8 +265,11 @@ async function main() {
     return;
   }
   const kamp = (k) => refKart.get(k).spill;
+  const alleFelles = felles;
+  const port = K.kampsett ?? "alle";
+  felles = alleFelles.filter((k) => iSett(k, port));
   const K0 = new Set(felles.map(kamp)).size;
-  t += `## Resultat (${felles.length} parrede runder i ${K0} kamper)\n\n`;
+  t += `## Resultat — PORTEN: kampsett = ${port} (${felles.length} parrede runder i ${K0} kamper)\n\n`;
   t += `| arm | arm − menneske, ΔP (pp) | arm − ${REF}, ΔP (pp) | z | arm − ${REF}, rundepoeng | runder med ulikt rundepoeng | veggtid (sum skarder) | dom |\n`;
   t += `|---|---|---|---|---|---|---|---|\n`;
   const dommer = [];
@@ -268,6 +292,26 @@ async function main() {
     logg(`DOM ${a}: ${dP.m.toFixed(4)} ± ${dP.se.toFixed(4)} z ${z.toFixed(2)} (n=${dP.N}, K=${dP.K}) → ${ok}`);
   }
   t += `\nVeggtid gjelder bare skarder kjørt i denne prosessen, på en belastet maskin i BelowNormal.\n\n`;
+  if (settAv !== null) {
+    const andre = Object.keys(ARMER).filter((a) => a !== REF);
+    t += `### Ved siden av porten (kontekst, går ALDRI inn i dommen)\n\n`;
+    t += `| kampsett | n | ${Object.keys(ARMER).map((a) => `${a} − menneske`).join(" | ")} | ${andre.map((a) => `${a} − ${REF}`).join(" | ")} |\n`;
+    t += `|---|---|${Object.keys(ARMER).map(() => "---").join("|")}|${andre.map(() => "---").join("|")}|\n`;
+    for (const sett of ["alle", "utvalg", "holdout"]) {
+      const u = alleFelles.filter((k) => iSett(k, sett));
+      if (u.length === 0) continue;
+      const mot = Object.keys(ARMER).map((a) => {
+        const o = klynge(u.map((k) => ({ k: kamp(k), d: kart[a].get(k).bP - kart[a].get(k).mP })));
+        return `${f(o.m)} ± ${f(o.se).slice(1)}`;
+      });
+      const rel = andre.map((a) => {
+        const o = klynge(u.map((k) => ({ k: kamp(k), d: kart[a].get(k).bP - refKart.get(k).bP })));
+        return `${f(o.m)} ± ${f(o.se).slice(1)}`;
+      });
+      t += `| ${sett} | ${u.length} | ${mot.join(" | ")} | ${rel.join(" | ")} |\n`;
+    }
+    t += `\n`;
+  }
   if (K.regel === "forbedring") {
     const tatt = dommer.filter((d) => d.ok);
     t += `## DOM: ${tatt.length === 0 ? "**mer tenketid hjelper ikke målbart**" : `**${tatt.map((d) => d.a).join(", ")} tas i bruk**`}\n`;
