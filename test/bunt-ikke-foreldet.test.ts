@@ -61,6 +61,7 @@ const PAR: readonly (readonly [string, string])[] = [
   ["web/app.ts", "web/dist/app.js"],
   ["web/adamskjede.ts", "web/dist/app.js"],
   ["web/sokeklient.ts", "web/dist/app.js"],
+  ["web/tempo.ts", "web/dist/app.js"],
   // `sokekjerne.ts` står bare med workeren: appen importerer bare TYPER derfra,
   // og de forsvinner i bunten.
   ["web/worker.ts", "web/dist/worker.js"],
