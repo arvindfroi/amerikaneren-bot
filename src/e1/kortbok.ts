@@ -73,7 +73,13 @@ export const erKortbokBredde = (dim: number): boolean => E1_KORT_BOK_BREDDER.inc
  * `null` gir en nullblokk — den ærlige verdien før første runde er ferdig.
  */
 export function e1KortBokTrekk(state: GameState, sete: number, bok: Float64Array | null): Float32Array {
-  return kortBokTrekk(state, sete, bok, true);
+  return kortBokTrekk(state, sete, bok, raskGrunn);
+}
+
+/** Bare for målinger av total fart mot gammel kode (`examples/fart-avtrykk.ts`). Bit-identisk uansett. */
+let raskGrunn = true;
+export function settKortbokRask(på: boolean): void {
+  raskGrunn = på;
 }
 
 /** REFERANSEN (før 17. sep): grunnen bygd av `e1SpillTrekk` og kopiert inn. Bare for prøvene. */

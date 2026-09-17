@@ -98,11 +98,16 @@ const V128_NULL = simd(0x0c, ...new Array<number>(16).fill(0));
  *   relu≠0: z får ut f64 = fround(max-uttrykket).   relu=0: z får ut f32 = fround(y).
  * Alle områder er polstret med minst 16 byte, og `ut` er et partall.
  */
-function byggModul(): Uint8Array {
+function byggModul(kol32 = false): Uint8Array {
   const [INN, UT, KOL, BIAS, X, Y, Z, RELU] = [0, 1, 2, 3, 4, 5, 6, 7];
   const [R, C, END_, OFF] = [8, 9, 10, 11]; // i32-lokale
   const V = 12; // f64
   const VV = 13; // v128
+  // Kolonnen for rad-paret r/16: f64-lagring leses rett; f32-lagring leses som f32x4 på r/2 og
+  // de to laveste forfremmes (eksakt). De to øvre leses og kastes — polstringen dekker enden.
+  const lastKol = kol32
+    ? [...lget(OFF), ...lget(R), ...i32c(1), 0x76, ...I32_ADD, ...V_LOAD, ...F64X2_PROMOTE]
+    : [...lget(OFF), ...lget(R), ...I32_ADD, ...V_LOAD];
   const kropp: number[] = [
     // end_ = ut * 8
     ...lget(UT), ...i32c(8), ...I32_MUL, ...lset(END_),
@@ -123,15 +128,15 @@ function byggModul(): Uint8Array {
         ...lget(X), ...lget(C), ...i32c(8), ...I32_MUL, ...I32_ADD, ...f64load, ...lset(V),
         ...lget(V), ...f64c(0), ...F64_NE,
         ...IF,
-          // off = kol + c * end_
-          ...lget(KOL), ...lget(C), ...lget(END_), ...I32_MUL, ...I32_ADD, ...lset(OFF),
+          // off = kol + c * end_  (f32-lagring: c * end_/2, og r/2 per rad-par)
+          ...lget(KOL), ...lget(C), ...lget(END_), ...I32_MUL, ...(kol32 ? [...i32c(1), 0x76] : []), ...I32_ADD, ...lset(OFF),
           ...i32c(0), ...lset(R),
           ...lget(V), ...f64c(1), ...F64_EQ,
           ...IF,
             ...LOOP,
               ...lget(Y), ...lget(R), ...I32_ADD,
               ...lget(Y), ...lget(R), ...I32_ADD, ...V_LOAD,
-              ...lget(OFF), ...lget(R), ...I32_ADD, ...V_LOAD,
+              ...lastKol,
               ...F64X2_ADD,
               ...V_STORE,
               ...lget(R), ...i32c(16), ...I32_ADD, ...lset(R),
@@ -142,7 +147,7 @@ function byggModul(): Uint8Array {
             ...LOOP,
               ...lget(Y), ...lget(R), ...I32_ADD,
               ...lget(Y), ...lget(R), ...I32_ADD, ...V_LOAD,
-              ...lget(OFF), ...lget(R), ...I32_ADD, ...V_LOAD,
+              ...lastKol,
               ...lget(VV), ...F64X2_MUL,
               ...F64X2_ADD,
               ...V_STORE,
@@ -212,23 +217,27 @@ interface SimdNett {
   readonly akk: number;
 }
 
-let modul: WebAssembly.Module | null | undefined;
-function hentModul(): WebAssembly.Module | null {
-  if (modul !== undefined) return modul;
+const moduler = new Map<boolean, WebAssembly.Module | null>();
+function hentModul(kol32 = false): WebAssembly.Module | null {
+  const kjent = moduler.get(kol32);
+  if (kjent !== undefined) return kjent;
+  let m: WebAssembly.Module | null;
   try {
-    const b = byggModul();
-    modul = WebAssembly.validate(b) ? new WebAssembly.Module(b) : null;
+    const b = byggModul(kol32);
+    m = WebAssembly.validate(b) ? new WebAssembly.Module(b) : null;
   } catch {
-    modul = null;
+    m = null;
   }
-  return modul;
+  moduler.set(kol32, m);
+  return m;
 }
 
 const nettene = new WeakMap<NevroNett, SimdNett | null>();
+const nettene32 = new WeakMap<NevroNett, SimdNett | null>();
 const pad = (n: number): number => (Math.ceil(n / 8) + 2) * 8; // minst 16 byte ekstra, 8-justert
 
-function byggNett(nett: NevroNett): SimdNett | null {
-  const m = hentModul();
+function byggNett(nett: NevroNett, kol32 = false): SimdNett | null {
+  const m = hentModul(kol32);
   if (m === null) return null;
   if (nett.lag.some((l) => l.ut % 2 !== 0)) return null;
   let p = 16;
@@ -236,7 +245,7 @@ function byggNett(nett: NevroNett): SimdNett | null {
   let maks = 0;
   for (const l of nett.lag) {
     const kol = p;
-    p += pad(l.inn * l.ut * 8);
+    p += pad(l.inn * l.ut * (kol32 ? 4 : 8));
     const bias = p;
     p += pad(l.ut * 8);
     lagInfo.push({ inn: l.inn, ut: l.ut, kol, bias });
@@ -255,10 +264,11 @@ function byggNett(nett: NevroNett): SimdNett | null {
   const f32 = new Float32Array(minne.buffer);
   nett.lag.forEach((l, i) => {
     const info = lagInfo[i]!;
-    const k0 = info.kol / 8;
+    const mål = kol32 ? f32 : f64;
+    const k0 = info.kol / (kol32 ? 4 : 8);
     for (let r = 0; r < l.ut; r++) {
       const rad = r * l.inn;
-      for (let c = 0; c < l.inn; c++) f64[k0 + c * l.ut + r] = l.vekter[rad + c]!;
+      for (let c = 0; c < l.inn; c++) mål[k0 + c * l.ut + r] = l.vekter[rad + c]!;
     }
     f64.set(l.bias, info.bias / 8);
   });
@@ -274,11 +284,12 @@ export function simdTilgjengelig(): boolean {
  * `forover` i SIMD, eller `null` når kjernen ikke kan brukes for dette nettet (kalleren faller da
  * tilbake). Samme kontrakt: ReLU på alle lag unntatt det siste, fersk Float32Array ut.
  */
-export function foroverSimd(nett: NevroNett, x: Float32Array): Float32Array | null {
-  let s = nettene.get(nett);
+export function foroverSimd(nett: NevroNett, x: Float32Array, kol32 = false): Float32Array | null {
+  const cache = kol32 ? nettene32 : nettene;
+  let s = cache.get(nett);
   if (s === undefined) {
-    s = byggNett(nett);
-    nettene.set(nett, s);
+    s = byggNett(nett, kol32);
+    cache.set(nett, s);
   }
   if (s === null) return null;
   const siste = s.lagInfo.length - 1;

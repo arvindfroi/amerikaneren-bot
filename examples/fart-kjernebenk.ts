@@ -24,6 +24,7 @@ const armer: Record<string, (x: Float32Array) => Float32Array> = {
   kolonne64: (x) => foroverKolonne(nett, x),
   rask: (x) => foroverRask(nett, x),
   simd: (x) => foroverSimd(nett, x)!,
+  simd32: (x) => foroverSimd(nett, x, true)!,
 };
 // Bit-identitet
 const ref = xs.map((x) => forover(nett, x).slice());

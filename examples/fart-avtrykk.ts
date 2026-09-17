@@ -21,6 +21,7 @@ import { opprettSpill, utfør, type GameState, type Handling } from "../src/inde
 import { ADAMS_MAALT, lagIndre } from "../src/moe2/agentspek.ts";
 import { settParlytter, type Parhendelse } from "../src/moe2/sikkerorakel.ts";
 import { settForoverKjerne, type ForoverKjerne } from "../src/nevro/nett.ts";
+import { settKortbokRask } from "../src/e1/kortbok.ts";
 
 const arg = (n: string, s: string): string => {
   const i = process.argv.indexOf(n);
@@ -104,6 +105,8 @@ function steg(arm: Arm): { h: Handling | null; ms: number | null; tekst: string 
   if (sete === null || sete === undefined) return { h: null, ms: null, tekst: "stopp" };
   aktiv = arm;
   settForoverKjerne(arm.kjerne);
+  // «ref» betyr hele den gamle stien: radkjernen OG grunntrekkene via `e1SpillTrekk`.
+  settKortbokRask(arm.kjerne !== "ref");
   const t = performance.now();
   const h = arm.seter[sete]!.velgHandling(s);
   const ms = performance.now() - t;
