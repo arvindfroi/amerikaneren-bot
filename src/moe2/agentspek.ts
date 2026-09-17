@@ -574,7 +574,7 @@ export interface Spekkontekst {
  * med et `indre`-felt (vakt, BudQ, …); den første `E1Agent` nedover er nettet som faktisk spiller.
  * Kaster hvis ingen finnes — en beskjæring uten prior ville vært stille av.
  */
-function priorFra(agent: unknown, spek: string): (state: GameState, sete: number) => ArrayLike<number> {
+export function priorFra(agent: unknown, spek: string): (state: GameState, sete: number) => ArrayLike<number> {
   let a: unknown = agent;
   for (let d = 0; d < 12 && a !== null && a !== undefined; d++) {
     if (a instanceof E1Agent) {
