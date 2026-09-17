@@ -54,6 +54,16 @@ const HELBOT_SPEK = arg(
 const INDRE = "budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin";
 const SIK_FRØ = 20_260_804;
 const SIGMA_PORT = 0.5;
+/**
+ * DOMMEREN (0 = av): et UAVHENGIG søk med så mange verdener (eget frø, alle lovlige kort, ingen
+ * knott) som gir en referanseverdi Q per kort i HELE runden — også der eksakt fasit er for dyr.
+ * Anger mot dommeren = maks Q − Q(spilt). Den er PIMC under utspillingspolicyen, altså det søket
+ * selv prøver å tilnærme, og uavhengig av REF-støyen fordi frøet er et annet.
+ * Kjøres bare når minst én arm (utenom STOY) spilte et annet kort enn REF: ellers er alle
+ * differansene 0. STOY sin dommeranger er derfor bare en sjekk på det utvalget.
+ */
+const DOMMER = Number(arg("--dommer", "0"));
+const DOMMER_FRØ = 0x2f6b_1d93;
 
 /** En arm: endringer i `ParOpts` og hvordan kandidatene velges. */
 interface ArmDef {
@@ -226,7 +236,40 @@ for (let kamp = 0; kamp < KAMPER; kamp++) {
       }
 
       const igjen = s.hender[sete]?.length ?? 0;
+      let dommer: Record<string, number> | null = null;
+      let dommerMs = 0;
+      if (DOMMER > 0) {
+        const refSpilt = (ut.REF as { spilt: string | null } | undefined)?.spilt;
+        const utløst = ARMER.some((a) => a !== "STOY" && a !== "REF" && (ut[a] as { spilt: string | null }).spilt !== refSpilt);
+        if (utløst) {
+          const t0 = performance.now();
+          const dp = vurderPar(s, sete, motpart, {
+            verdener: DOMMER,
+            verdenKandidater: 32,
+            verdenKombi: "snitt",
+            eksaktBlad: 3,
+            mål: lagMål,
+            trovekt,
+            budvekt: false,
+            rng: lagRng(visningsfrø(s, sete, DOMMER_FRØ)),
+          });
+          dommerMs = performance.now() - t0;
+          if (dp !== null) {
+            dommer = {};
+            let maks = -Infinity;
+            for (const k of dp.kandidater) maks = Math.max(maks, k.snitt);
+            for (const k of dp.kandidater) dommer[kortStr(k.kort)!] = k.snitt;
+            for (const navn of ARMER) {
+              const a = ut[navn] as { spilt: string | null; regQ?: number | null };
+              const q = a.spilt === null ? undefined : dommer[a.spilt];
+              a.regQ = q === undefined ? null : Math.round((maks - q) * 10000) / 10000;
+            }
+          }
+        }
+      }
       const rad: Record<string, unknown> = {
+        dommerMs: Math.round(dommerMs),
+        dommerUtløst: dommer !== null,
         kamp: frø,
         r,
         sete,

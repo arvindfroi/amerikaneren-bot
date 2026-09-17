@@ -71,7 +71,8 @@ function tabell(utvalg, tittel) {
       "fart".padStart(14) +
       "endret%".padStart(15) +
       "endretKl%".padStart(15) +
-      "  nF  anger lag (arm−REF)     anger diff (arm−REF)    angerREF lag",
+      "  nF  anger lag (arm−REF)     anger diff (arm−REF)    angerREF lag" +
+      "   nQ  dommeranger (arm−REF)",
   );
   for (const arm of armer) {
     const rs = utvalg.filter((r) => r.armer[arm] && r.armer[ref]);
@@ -87,13 +88,31 @@ function tabell(utvalg, tittel) {
     const skD = rs.filter((r) => r.spredDiff > 1e-9 && r.armer[arm].regD != null && r.armer[ref].regD != null);
     const aD = klyngeSnitt(skD.map((r) => ({ k: r.kamp, d: r.armer[arm].regD - r.armer[ref].regD })));
     const refL = klyngeSnitt(skiller.map((r) => ({ k: r.kamp, d: r.armer[ref].regL })));
+    // Dommeren: rader der den ikke ble utløst har differanse 0 for alle armer utenom STOY (samme kort
+    // som REF). For STOY regnes bare det utløste utvalget (merket *).
+    const medDommer = rs.filter((r) => r.dommerUtløst !== undefined);
+    let q;
+    let qMerke = "";
+    if (arm === "STOY") {
+      const u = medDommer.filter((r) => r.dommerUtløst && r.armer[arm].regQ != null && r.armer[ref].regQ != null);
+      q = klyngeSnitt(u.map((r) => ({ k: r.kamp, d: r.armer[arm].regQ - r.armer[ref].regQ })));
+      qMerke = "*";
+    } else {
+      const u = medDommer.filter((r) => !r.dommerUtløst || (r.armer[arm].regQ != null && r.armer[ref].regQ != null));
+      q = klyngeSnitt(u.map((r) => ({ k: r.kamp, d: r.dommerUtløst ? r.armer[arm].regQ - r.armer[ref].regQ : 0 })));
+    }
+    // Skala: armens EGEN dommeranger på det utløste utvalget.
+    const egen = klyngeSnitt(
+      medDommer.filter((r) => r.dommerUtløst && r.armer[arm].regQ != null).map((r) => ({ k: r.kamp, d: r.armer[arm].regQ })),
+    );
     console.log(
       arm.padEnd(26) +
         fmt(ms, 1).padStart(7) +
         `${fmt(f.r)}±${fmt(f.se)}`.padStart(14) +
         `${pm(endret, 1, 100)}`.padStart(15) +
         `${pm(endretKl, 1, 100)}`.padStart(15) +
-        `  ${String(skiller.length).padStart(3)}  ${pm(aL, 3).padEnd(22)}  ${pm(aD, 3).padEnd(22)}  ${fmt(refL.m, 3)}`,
+        `  ${String(skiller.length).padStart(3)}  ${pm(aL, 3).padEnd(22)}  ${pm(aD, 3).padEnd(22)}  ${fmt(refL.m, 3).padStart(12)}` +
+        `  ${String(q.N).padStart(5)}${qMerke.padEnd(1)} ${pm(q, 4).padEnd(20)} egen ${fmt(egen.m, 3)}`,
     );
   }
 }
