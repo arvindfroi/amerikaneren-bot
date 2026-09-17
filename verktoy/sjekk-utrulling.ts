@@ -134,9 +134,15 @@ const startetDirekte =
 
 async function kjor(): Promise<void> {
   const app = readFileSync("web/app.ts", "utf8");
-  const basen = /const DATA_URL = "([^"]+)"/.exec(app)?.[1];
-  if (basen === undefined) throw new Error("Fant ikke DATA_URL i web/app.ts");
-  const navn = utledNavn(app);
+  const dataUrl = /const DATA_URL = "([^"]+)"/.exec(app)?.[1];
+  if (dataUrl === undefined) throw new Error("Fant ikke DATA_URL i web/app.ts");
+  // `--base <url>` sjekker en annen kilde med SAMME filliste, f.eks. Vercels `dist/`
+  // (`https://project-a9l2n.vercel.app/dist/`), som appen henter worker og helbotfiler fra først.
+  const bi = process.argv.indexOf("--base");
+  const basen = bi >= 0 ? process.argv[bi + 1]! : dataUrl;
+  // A/B-demoen (17. sep): helbotens filnavn står i `web/helbotspek.ts`, som appen importerer.
+  const navn = utledNavn(`${app}
+${existsSync("web/helbotspek.ts") ? readFileSync("web/helbotspek.ts", "utf8") : ""}`);
   const UT = (() => {
     const i = process.argv.indexOf("--ut");
     return i >= 0 ? process.argv[i + 1]! : "analyse/utrulling-sjekk.txt";
