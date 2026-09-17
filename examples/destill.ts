@@ -74,6 +74,8 @@ const VERD_L = tall(arg("--verdenerL", "24"), 24, "verdenerL");
 const VERD_G = tall(arg("--verdenerG", "48"), 48, "verdenerG");
 const FASITTAK = tall(arg("--fasittak", "7"), 7, "fasittak");
 const DATA = process.argv.includes("--data");
+/** `--halv`: bare gruppe 1 (G0…G(K−1)) — korpusgenerering i del 2, der gruppe 2 ikke trengs. */
+const HALV = process.argv.includes("--halv");
 /** Sannsynlighet for å måle en gitt beslutning (strømmen er egen, så kampen er urørt). */
 const SJANSE = Number(arg("--sjanse", "1"));
 const ITER = arg("--iter", "16");
@@ -258,7 +260,7 @@ for (let kamp = 0; kamp < KAMPER; kamp++) {
         const G: (number[] | null)[] = [];
         const nG: number[] = [];
         let msG = 0;
-        for (let j = 0; j < 2 * K; j++) {
+        for (let j = 0; j < (HALV ? K : 2 * K); j++) {
           const g = søk(VERD_G, gFrø(j));
           G.push(rekke(g.p));
           nG.push(g.p?.n ?? 0);
@@ -272,7 +274,7 @@ for (let kamp = 0; kamp < KAMPER; kamp++) {
         const fl = fasit === null ? null : kort.map((k) => slåOpp(fasit.lag, k));
         if (G.every((x) => x !== null) && L0 !== null) {
           const am = (v: number[]): number => v.indexOf(Math.max(...v));
-          if (am(G[0]!) !== am(G[K]!)) ulikG++;
+          if (!HALV && am(G[0]!) !== am(G[K]!)) ulikG++;
           const rad: Record<string, unknown> = {
             kamp: `${MERKE}-${kamp}`,
             frø: kampFrø,
