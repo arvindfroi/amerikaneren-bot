@@ -58,7 +58,7 @@
 import { lovligeKort, spillerVisning, type GameState, type Handling } from "../motor.ts";
 import { FARGER, lagRng, type Kort } from "../kort.ts";
 import type { Verden } from "../solver/sampler.ts";
-import { vurderPar, type ParResultat } from "./sdpar.ts";
+import { vurderPar, type EpimcOpts, type ParResultat } from "./sdpar.ts";
 import type { Søketro } from "./soketro.ts";
 import { lagMål, type Utspiller } from "./sdkort.ts";
 import { rolleFor, type Rolle } from "./rolleorakel.ts";
@@ -150,6 +150,12 @@ export interface SikkerOpts {
   readonly toppP?: number;
   readonly prior?: (state: GameState, sete: number) => ArrayLike<number>;
   readonly flatStopp?: number;
+  /**
+   * EPIMC (`~epimc=1[,m<k>][,x][,p<q>]`, 18. sep): se `EpimcOpts` i `sdpar.ts`. Dybde-1-kandidatene
+   * beskjæres med `toppP` her, ellers med sikkerorakelets egen `toppP`, og med `ekvivalens` hvis den
+   * er på. Udefinert = av, og nøkkelen går ikke videre til `vurderPar`.
+   */
+  readonly epimc?: { readonly dybde: number; readonly minGruppe?: number; readonly kryss?: boolean; readonly toppP?: number };
 }
 
 /** Kortets indeks i nettets 52 logits: farge × 13 + verdi − 2 (samme som `kortTilInt`). */
@@ -301,6 +307,8 @@ export class Sikkerorakel {
   readonly ekvivalens: boolean;
   readonly toppP: number | null;
   readonly flatStopp: number | null;
+  /** EPIMC ferdig satt sammen for `vurderPar`, eller null. Offentlig for prøvene. */
+  readonly epimc: EpimcOpts | null;
   private readonly prior: ((state: GameState, sete: number) => ArrayLike<number>) | null;
   readonly tellere: SikkerTellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, enig: 0, avkortet: 0 };
   siste: SikkerSiste | null = null;
@@ -350,6 +358,26 @@ export class Sikkerorakel {
     this.prior = opts.prior ?? null;
     if (this.toppP !== null && (!(this.toppP > 0 && this.toppP < 1) || this.prior === null)) {
       throw new Error(`Sikkerorakel: toppP må være i (0, 1) og krever en prior, fikk ${this.toppP}`);
+    }
+    if (opts.epimc === undefined) {
+      this.epimc = null;
+    } else {
+      const e = opts.epimc;
+      if (e.dybde !== 1) throw new Error(`Sikkerorakel: epimc-dybde må være 1 (bare d = 1 er bygd), fikk ${e.dybde}`);
+      if (e.minGruppe !== undefined && !(Number.isInteger(e.minGruppe) && e.minGruppe >= 1)) {
+        throw new Error(`Sikkerorakel: epimc minGruppe må være et helt tall ≥ 1, fikk ${e.minGruppe}`);
+      }
+      const p = e.toppP ?? this.toppP ?? undefined;
+      if (p !== undefined && (!(p > 0 && p < 1) || this.prior === null)) {
+        throw new Error(`Sikkerorakel: epimc-beskjæringen må være i (0, 1) og krever en prior, fikk ${p}`);
+      }
+      this.epimc = {
+        dybde: 1,
+        ...(e.minGruppe === undefined ? {} : { minGruppe: e.minGruppe }),
+        ...(e.kryss === true ? { kryss: true } : {}),
+        ...(p === undefined || this.prior === null ? {} : { toppP: p, prior: this.prior }),
+        ...(this.ekvivalens ? { ekvivalens: true } : {}),
+      };
     }
     if (this.flatStopp !== null && !(Number.isInteger(this.flatStopp) && this.flatStopp >= 2)) {
       throw new Error(`Sikkerorakel: flatStopp må være et helt antall verdener ≥ 2, fikk ${this.flatStopp}`);
@@ -436,6 +464,7 @@ export class Sikkerorakel {
       ...(this.ekvivalens ? { ekvivalens: true } : {}),
       ...(kandidater === undefined ? {} : { kandidater }),
       ...(this.flatStopp === null ? {} : { flatStopp: this.flatStopp }),
+      ...(this.epimc === null ? {} : { epimc: this.epimc }),
       verdener: this.verdener,
       // Med `visningsfrø` står instansens strøm urørt; uten den er dette nøyaktig som før.
       rng: this.visningsfrø ? lagRng(visningsfrø(state, sete, this.frø)) : this.rng,

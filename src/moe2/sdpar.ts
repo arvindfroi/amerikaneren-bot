@@ -160,6 +160,67 @@ export interface ParOpts {
    * ≤ 7 kort er flate i fasiten, `seiersmaal.md`).
    */
   readonly flatStopp?: number;
+  /**
+   * EPIMC (`~epimc=<d>`, 18. sep, `D:/amb-grp/loop/epimc.md`). Udefinert = av, og da kjøres ikke én
+   * linje av grenen under — stien er bit for bit som før.
+   */
+  readonly epimc?: EpimcOpts;
+}
+
+/**
+ * ============ EPIMC: DET NESTE EGNE VALGET SOM ETT FELLES VALG (18. sep) ==================
+ *
+ * Arjonilla, Saffidine & Cazenave (CoG 2024): PIMC løser hver verden som om den var kjent, og
+ * lar dermed senere valg tilpasse seg verdenen (strategifusjon). EPIMC utsetter den perfekte
+ * oppløsningen: over dybde d bygges et felles tre der noder med SAMME informasjonstilstand er
+ * slått sammen og løses med maks over snitt; først under d løses hver verden for seg.
+ *
+ * HER er d = 1 (og bare 1): botens NESTE egne kortvalg etter rotkortet. For hver verden spilles
+ * rotkortet, så spiller politikken de andre setene fram til vi er i tur igjen. Det vi har SETT
+ * i mellomtiden er nøyaktig sekvensen av spilte kort (samme rotvisning + samme rotkort), så
+ * verdenene grupperes på den sekvensen. Innen en gruppe vurderes hvert kandidatkort c i hver
+ * verden, og gruppen får ÉTT kort: argmaks over snittet. Verdien til rotkortet i verden w er
+ * verdien av gruppens kort i w — max over snitt, ikke snitt over max.
+ *
+ * HVOR FUSJONEN FAKTISK SITTER I DETTE SØKET. Utspillingspolitikken (E1-nettet bak vakten)
+ * ser bare sin egen visning, så dagens utspillinger tar allerede SAMME valg i verdener setet
+ * ikke kan skille. Fusjonen i dagens `sik:` sitter i e-bladet (`poengRotVerdier` er perfekt
+ * informasjon). Under e-bladet er egne valg per verden; i bladet ved vår tur gir løseren verdien
+ * per kort, og da er det rotkortet i bladet som gjøres felles.
+ *
+ * SMÅ GRUPPER ER EN FELLE. En gruppe på én verden gjør «felles maks» til maks PER VERDEN — ren
+ * fusjon, og verre enn politikken som står der i dag. `minGruppe` lar grupper under grensen
+ * beholde dagens verdi (politikkens kort; i bladet løserens per-verden-maks). `kryss` velger
+ * kortet for verden w fra gruppen UTEN w (utelat-én), så valget aldri ser w sitt eget utfall;
+ * da er ingen seleksjonsskjevhet mulig, og en gruppe på én faller tilbake.
+ */
+export interface EpimcOpts {
+  /** Dybden i EGNE valg. Bare 1 er implementert. */
+  readonly dybde: number;
+  /** Grupper med færre verdener beholder dagens verdi. Standard 1 (alle grupper velger felles). */
+  readonly minGruppe?: number;
+  /** Utelat-én: kortet for w velges av gruppen uten w. */
+  readonly kryss?: boolean;
+  /** Beskjæring på dybde 1 (samme form som `~topp=`): prior ≥ p, pluss politikkens kort. */
+  readonly toppP?: number;
+  readonly prior?: (state: GameState, sete: number) => ArrayLike<number>;
+  /** Kortekvivalens på dybde 1 (politikkens kort står for sin klasse). */
+  readonly ekvivalens?: boolean;
+}
+
+/** Tellere for EPIMC-grenen, for riggen. Bare satt når `epimc` er på. */
+export interface EpimcInfo {
+  /** (rotkort, verden)-par som nådde en egen beslutning på dybde 1. */
+  noder: number;
+  /** Av dem: i e-bladet. */
+  bladnoder: number;
+  /** Grupper totalt, og grupper som valgte felles (≥ minGruppe). */
+  grupper: number;
+  felles: number;
+  /** Par der gruppens kort var et annet enn dagens (politikkens / løserens per-verden-maks). */
+  endret: number;
+  /** Ekstra utspillinger (kandidater utover politikkens kort). */
+  ekstra: number;
 }
 
 export interface ParKandidat {
@@ -231,6 +292,8 @@ export interface ParResultat {
   readonly marginSE: number;
   /** margin / marginSE. 0 når SE er 0 eller udefinert. */
   readonly sigma: number;
+  /** EPIMC-tellerne; bare med `epimc`. */
+  readonly epimc?: EpimcInfo;
 }
 
 function spillFerdig(start: GameState, motpart: Utspiller): GameState {
@@ -282,6 +345,115 @@ function spillFerdigEksakt(start: GameState, motpart: Utspiller, blad: number): 
   if (beste === undefined) return spillFerdig(s, motpart);
   const poeng = beste.poeng;
   return { ...s, totalPoeng: s.totalPoeng.map((t, p) => t + (poeng[p] ?? 0)) };
+}
+
+/**
+ * ============ EPIMC-MASKINERIET (d = 1) ============
+ *
+ * `tilEgenNode`: politikken spiller de ANDRE setene fram til vi er i tur, runden er over, eller
+ * e-bladet begynner med et annet sete i tur. Nøyaktig samme løkke-betingelser som
+ * `spillFerdigEksakt`/`spillFerdig`, så det som skjer før noden er det samme som før.
+ */
+type Egennode =
+  | { readonly slutt: GameState }
+  | { readonly node: GameState; readonly nøkkel: string; readonly blad: boolean };
+
+/** Returnerer selve tilstanden (har `fase`) når e-bladet begynner med et annet sete i tur. */
+function tilEgenNode(start: GameState, utspiller: Utspiller, sete: number, blad: number | undefined): Egennode | GameState {
+  let s = start;
+  let vakt = 0;
+  let nøkkel = "";
+  const iBlad = (x: GameState): boolean => blad !== undefined && x.giving.antallStikk - x.stikkSpilt <= blad;
+  while (s.fase === "SPILL" && s.iTur !== null && vakt++ < 20_000) {
+    if (s.iTur === sete) return { node: s, nøkkel, blad: iBlad(s) };
+    // e-bladet begynner med et annet sete i tur: ingen egen beslutning over bladet.
+    if (iBlad(s)) return s;
+    const h = utspiller.velgHandling(s);
+    if (h.type === "SPILL") nøkkel += `${h.spiller}.${kortTilInt(h.kort)},`;
+    s = utfør(s, h).state;
+  }
+  return { slutt: s };
+}
+
+/** Løserens svar i `s` (setet i tur), eller null når løseren ikke kan brukes. Som `spillFerdigEksakt`. */
+function eksaktSvar(s: GameState): ReturnType<typeof poengRotVerdier> | null {
+  if (s.fase !== "SPILL" || s.iTur === null || s.budvinner === null || s.melding === null) return null;
+  const hender = s.hender.map((h) => h.map(kortTilInt));
+  if (hender.some((h) => h.length === 0)) return null;
+  const svar = poengRotVerdier({
+    N: s.antallSpillere,
+    trump: s.trumf ? FARGER.indexOf(s.trumf) : 0,
+    hender,
+    iTur: s.iTur,
+    bord: s.bord.map((kp) => ({ spiller: kp.spiller, kort: kortTilInt(kp.kort) })),
+    stikkFør: s.stikkVunnet.slice(),
+    ferdigeStikk: s.stikkSpilt,
+    totalStikk: s.giving.antallStikk,
+    budvinner: s.budvinner,
+    makker: s.makker,
+    melding: s.melding,
+    målPoeng: s.regler.målPoeng,
+    mål: "diff",
+  });
+  return svar.verdier.length === 0 ? null : svar;
+}
+
+/** Løserens representant er den HØYESTE i en sekvens; et annet kort slås opp mot nærmeste over i fargen. */
+function slåOppSvar(verdier: ReturnType<typeof poengRotVerdier>["verdier"], c: number): number {
+  let beste = -1;
+  let r0 = Infinity;
+  for (let i = 0; i < verdier.length; i++) {
+    const k = verdier[i]!.kort;
+    if (k === c) return i;
+    if (Math.floor(k / 13) === Math.floor(c / 13) && k % 13 > c % 13 && k % 13 < r0) {
+      r0 = k % 13;
+      beste = i;
+    }
+  }
+  return beste;
+}
+
+/** Én dybde-1-node for ett (rotkort, verden)-par. `v[j]` er verdien av kandidat j; `fall` er dagens verdi. */
+interface Nodeverdi {
+  readonly v: readonly number[];
+  readonly fall: number;
+  /** Indeksen i `v` dagens verdi tilsvarer (politikkens kort), eller −1 (bladets per-verden-maks). */
+  readonly fallJ: number;
+}
+interface Gruppe {
+  readonly kand: readonly Kort[];
+  readonly politikk: Kort | null;
+  readonly blad: boolean;
+  /** Per verden i gruppen: verdensindeks og nodeverdiene. */
+  readonly medlem: { w: number; nv: Nodeverdi }[];
+}
+
+/**
+ * Kandidatene på dybde 1 for `node` (vår tur). Politikkens kort først og som representant for sin
+ * klasse, så «dagens verdi» alltid er med. Avhenger bare av det vi ser i `node`, så den regnes én
+ * gang per gruppe.
+ */
+function dybde1Kandidater(node: GameState, sete: number, politikk: Kort, e: EpimcOpts): Kort[] {
+  let lov = lovligeKort(node, sete);
+  if (e.toppP !== undefined && e.prior !== undefined) {
+    const logits = e.prior(node, sete);
+    const kidx = (k: Kort): number => FARGER.indexOf(k.farge) * 13 + (k.verdi - 2);
+    let maks = -Infinity;
+    for (const k of lov) maks = Math.max(maks, logits[kidx(k)]!);
+    let z = 0;
+    for (const k of lov) z += Math.exp(logits[kidx(k)]! - maks);
+    const p = e.toppP;
+    lov = lov.filter((k) => {
+      const l = logits[kidx(k)]!;
+      return l === maks || (k.farge === politikk.farge && k.verdi === politikk.verdi) || Math.exp(l - maks) / z >= p;
+    });
+  }
+  const lik = (a: Kort, b: Kort): boolean => a.farge === b.farge && a.verdi === b.verdi;
+  if (e.ekvivalens === true) {
+    const klasser = kortklasser(node, lov);
+    lov = klasser.map((kl) => kl.find((k) => lik(k, politikk)) ?? kl[0]!);
+  }
+  return [politikk, ...lov.filter((k) => !lik(k, politikk))];
 }
 
 /**
@@ -380,6 +552,10 @@ export function vurderPar(
   let brukt = 0;
   const flatStopp = opts.flatStopp;
   let flatHittil = true;
+  const epimc = opts.epimc;
+  if (epimc !== undefined) {
+    return epimcLøkke(state, spiller, lovlige, klasser, verdener, utspiller, mål, klokke, opts, epimc);
+  }
   for (const hender of verdener) {
     if (opts.frist !== undefined && klokke() >= opts.frist) break;
     for (let i = 0; i < lovlige.length; i++) {
@@ -405,6 +581,156 @@ export function vurderPar(
       if (flatHittil && brukt >= flatStopp) break;
     }
   }
+  return rangér(lovlige, klasser, verdier, brukt, opts, undefined);
+}
+
+/**
+ * EPIMC-løkka (se `EpimcOpts`). Verden for verden som over, så fristen kutter hele verdener; men
+ * verdien per (rotkort, verden) er først kjent når gruppene er fylt, så den settes etter løkka.
+ */
+function epimcLøkke(
+  state: GameState,
+  spiller: number,
+  lovlige: readonly Kort[],
+  klasser: Kort[][] | null,
+  verdener: readonly (readonly number[][])[] | readonly number[][][],
+  utspiller: Utspiller,
+  mål: (s: GameState, spiller: number) => number,
+  klokke: () => number,
+  opts: ParOpts,
+  e: EpimcOpts,
+): ParResultat | null {
+  if (e.dybde !== 1) throw new Error(`vurderPar: epimc-dybde ${e.dybde} er ikke implementert (bare 1)`);
+  const minGruppe = e.minGruppe ?? 1;
+  const kryss = e.kryss === true;
+  const blad = opts.eksaktBlad !== undefined && opts.eksaktBlad > 0 ? opts.eksaktBlad : undefined;
+  const fullfør = (s: GameState): GameState =>
+    blad !== undefined ? spillFerdigEksakt(s, utspiller, blad) : spillFerdig(s, utspiller);
+  const info: EpimcInfo = { noder: 0, bladnoder: 0, grupper: 0, felles: 0, endret: 0, ekstra: 0 };
+  const verdier: number[][] = lovlige.map(() => []);
+  const grupper: Map<string, Gruppe>[] = lovlige.map(() => new Map());
+  let brukt = 0;
+  let flatHittil = true;
+  for (const hender of verdener) {
+    if (opts.frist !== undefined && klokke() >= opts.frist) break;
+    const w = brukt;
+    const sett: number[] = [];
+    for (let i = 0; i < lovlige.length; i++) {
+      const h: Handling = { type: "SPILL", spiller, kort: lovlige[i]! };
+      const etter = utfør(medVerden(state, hender as number[][], spiller), h).state;
+      const r = tilEgenNode(etter, utspiller, spiller, blad);
+      if ("fase" in r || "slutt" in r) {
+        const x = mål(fullfør("fase" in r ? r : r.slutt), spiller);
+        verdier[i]!.push(x);
+        sett.push(x);
+        continue;
+      }
+      const node = r.node;
+      let nv: Nodeverdi;
+      let kand: Kort[];
+      let politikk: Kort | null = null;
+      const nøkkel = `${r.blad ? "B" : "N"}|${r.nøkkel}`;
+      const g0 = grupper[i]!.get(nøkkel);
+      if (r.blad) {
+        const svar = eksaktSvar(node);
+        if (svar === null) {
+          const x = mål(spillFerdig(node, utspiller), spiller);
+          verdier[i]!.push(x);
+          sett.push(x);
+          continue;
+        }
+        kand = g0?.kand.slice() ?? lovligeKort(node, spiller);
+        const medPoeng = (poeng: readonly number[]): number =>
+          mål({ ...node, totalPoeng: node.totalPoeng.map((t, p) => t + (poeng[p] ?? 0)) }, spiller);
+        // Dagens verdi: løserens beste for setet i tur, første av like gode (som `spillFerdigEksakt`).
+        let beste = svar.verdier[0]!;
+        for (const v of svar.verdier) if (v.verdi > beste.verdi) beste = v;
+        const fall = medPoeng(beste.poeng);
+        const v = kand.map((c) => {
+          const j = slåOppSvar(svar.verdier, kortTilInt(c));
+          return j < 0 ? fall : medPoeng(svar.verdier[j]!.poeng);
+        });
+        nv = { v, fall, fallJ: -1 };
+        info.bladnoder++;
+      } else {
+        const ph = utspiller.velgHandling(node);
+        if (ph.type !== "SPILL") {
+          const x = mål(fullfør(node), spiller);
+          verdier[i]!.push(x);
+          sett.push(x);
+          continue;
+        }
+        politikk = ph.kort;
+        kand = g0?.kand.slice() ?? dybde1Kandidater(node, spiller, politikk, e);
+        const v = kand.map((c, j) =>
+          mål(fullfør(utfør(node, j === 0 ? ph : { type: "SPILL", spiller, kort: c }).state), spiller),
+        );
+        info.ekstra += kand.length - 1;
+        nv = { v, fall: v[0]!, fallJ: 0 };
+      }
+      info.noder++;
+      let g = g0;
+      if (g === undefined) {
+        g = { kand, politikk, blad: r.blad, medlem: [] };
+        grupper[i]!.set(nøkkel, g);
+      }
+      g.medlem.push({ w, nv });
+      // Plassholder: dagens verdi; byttes ut når gruppen er kjent.
+      verdier[i]!.push(nv.fall);
+      sett.push(nv.fall, ...nv.v);
+    }
+    brukt++;
+    if (opts.flatStopp !== undefined) {
+      // Flatt = ALT som ble regnet i verdenen er likt, også dybde-1-kandidatene: da kan intet valg skille.
+      if (flatHittil) for (const x of sett) if (x !== sett[0]) flatHittil = false;
+      if (flatHittil && brukt >= opts.flatStopp) break;
+    }
+  }
+  if (brukt === 0) return null;
+
+  // FELLES VALG PER GRUPPE: maks over snitt (utelat-én med `kryss`).
+  for (let i = 0; i < lovlige.length; i++) {
+    for (const g of grupper[i]!.values()) {
+      info.grupper++;
+      const n = g.medlem.length;
+      if (n < minGruppe || (kryss && n < 2)) continue;
+      info.felles++;
+      const J = g.kand.length;
+      const sum = new Float64Array(J);
+      for (const m of g.medlem) for (let j = 0; j < J; j++) sum[j]! += m.nv.v[j]!;
+      const argmaks = (utenfor: Nodeverdi | null): number => {
+        let bj = 0;
+        let bv = -Infinity;
+        for (let j = 0; j < J; j++) {
+          const x = utenfor === null ? sum[j]! : sum[j]! - utenfor.v[j]!;
+          if (x > bv + 1e-9) {
+            bv = x;
+            bj = j;
+          }
+        }
+        return bj;
+      };
+      const felles = kryss ? -1 : argmaks(null);
+      for (const m of g.medlem) {
+        const j = kryss ? argmaks(m.nv) : felles;
+        const x = m.nv.v[j]!;
+        if (g.blad ? x !== m.nv.fall : j !== m.nv.fallJ) info.endret++;
+        verdier[i]![m.w] = x;
+      }
+    }
+  }
+  return rangér(lovlige, klasser, verdier, brukt, opts, info);
+}
+
+/** Rangering, margin og σ fra verdiene per verden — felles for PIMC og EPIMC. */
+function rangér(
+  lovlige: readonly Kort[],
+  klasser: Kort[][] | null,
+  verdier: number[][],
+  brukt: number,
+  opts: ParOpts,
+  info: EpimcInfo | undefined,
+): ParResultat | null {
   // Fristen rakk ikke én verden: «ingen data», og policyen skal stå.
   if (brukt === 0) return null;
 
@@ -452,6 +778,7 @@ export function vurderPar(
       margin: 0,
       marginSE: Number.NaN,
       sigma: 0,
+      ...(info === undefined ? {} : { epimc: info }),
     };
   }
 
@@ -465,5 +792,7 @@ export function vurderPar(
     marginSE = Math.sqrt(varians / d.length);
   }
   const sigma = Number.isFinite(marginSE) && marginSE > 1e-12 ? margin / marginSE : 0;
-  return { kandidater, n: brukt, beste, nestBeste, margin, marginSE, sigma };
+  return info === undefined
+    ? { kandidater, n: brukt, beste, nestBeste, margin, marginSE, sigma }
+    : { kandidater, n: brukt, beste, nestBeste, margin, marginSE, sigma, epimc: info };
 }

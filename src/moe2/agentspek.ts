@@ -1310,6 +1310,15 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
     let ekvivalens = false;
     let toppP: number | undefined;
     let flatStopp: number | undefined;
+    /**
+     * «~epimc=1[,m<k>][,x][,p<q>]» (18. sep, `D:/amb-grp/loop/epimc.md`): botens NESTE egne kortvalg
+     * tas som ett felles valg per observasjonsgruppe (se `EpimcOpts` i `sdpar.ts`).
+     *   m<k>  grupper under k verdener beholder dagens verdi (standard 1)
+     *   x     utelat-én: kortet for en verden velges av resten av gruppen
+     *   p<q>  beskjæring på dybde 1 (standard: sikkerorakelets `~topp=`, om den er satt)
+     * UDEFINERT = AV, STRUKTURELT, som de andre `~`-feltene.
+     */
+    let epimc: { dybde: number; minGruppe?: number; kryss?: boolean; toppP?: number } | undefined;
     const tPos = vFelt.indexOf("~");
     if (tPos >= 0) {
       const felter = vFelt.slice(tPos + 1).split("~");
@@ -1386,6 +1395,20 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
             throw new Error(`Ugyldig «~topp=${verdi}» i «${indre}» - forventet topp=<p> med 0 < p < 1`);
           }
           toppP = p;
+        } else if (art === "epimc") {
+          const deler = verdi.split(",");
+          const dybde = Number(deler[0]);
+          if (dybde !== 1) {
+            throw new Error(`Ugyldig «~epimc=${verdi}» i «${indre}» - forventet epimc=1[,m<k>][,x][,p<q>] (bare d = 1 er bygd)`);
+          }
+          const e: { dybde: number; minGruppe?: number; kryss?: boolean; toppP?: number } = { dybde };
+          for (const del of deler.slice(1)) {
+            if (del === "x") e.kryss = true;
+            else if (/^m\d+$/.test(del) && Number(del.slice(1)) >= 1) e.minGruppe = Number(del.slice(1));
+            else if (/^p[0-9.]+$/.test(del) && Number(del.slice(1)) > 0 && Number(del.slice(1)) < 1) e.toppP = Number(del.slice(1));
+            else throw new Error(`Ugyldig del «${del}» i «~epimc=${verdi}» i «${indre}» - forventet m<k>, x eller p<q>`);
+          }
+          epimc = e;
         } else if (art === "flat") {
           const n0 = Number(verdi);
           if (verdi === "" || !Number.isInteger(n0) || n0 < 2) {
@@ -1395,7 +1418,7 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
         } else {
           throw new Error(
             `Ukjent ~-felt «${f}» i «${indre}» - forventet trokilde mlb=<fil>/mlbu=<fil>, ` +
-              `lik=<selv|@fil>, stikk=<fra>-<til>, ekv=1, topp=<p> eller flat=<n0>`,
+              `lik=<selv|@fil>, stikk=<fra>-<til>, ekv=1, topp=<p>, flat=<n0> eller epimc=1[,m<k>][,x][,p<q>]`,
           );
         }
       }
@@ -1576,8 +1599,10 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       // AV ER AV, STRUKTURELT: uten «~stikk=» finnes ikke nøkkelen i objektet i det hele tatt.
       ...(stikkvindu === undefined ? {} : { stikkvindu }),
       ...(ekvivalens ? { ekvivalens: true } : {}),
-      ...(toppP === undefined ? {} : { toppP, prior: priorFra(inn, indre) }),
+      ...(toppP === undefined && epimc?.toppP === undefined ? {} : { prior: priorFra(inn, indre) }),
+      ...(toppP === undefined ? {} : { toppP }),
       ...(flatStopp === undefined ? {} : { flatStopp }),
+      ...(epimc === undefined ? {} : { epimc }),
     });
   }
   /**
