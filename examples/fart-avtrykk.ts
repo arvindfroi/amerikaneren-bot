@@ -150,6 +150,11 @@ const n = par.length;
 const r = ta / tb;
 const res = par.map((p) => p.a - r * p.b);
 const se = Math.sqrt(sum(res.map((x) => x * x)) / Math.max(1, n - 1) / n) / (tb / n);
+function fordeling(xs: number[]): { p50: number; p90: number; maks: number; snitt: number } {
+  const s = xs.slice().sort((a, b) => a - b);
+  const q = (p: number): number => (s.length === 0 ? NaN : Number(s[Math.min(s.length - 1, Math.floor(p * s.length))]!.toFixed(1)));
+  return { p50: q(0.5), p90: q(0.9), maks: q(1), snitt: Number((sum(s) / Math.max(1, s.length)).toFixed(1)) };
+}
 const rad = {
   merke: MERKE,
   a: SPEK_A,
@@ -169,6 +174,13 @@ const rad = {
   msPerKortvalgA: Number((ta / Math.max(1, n)).toFixed(1)),
   msPerKortvalgB: Number((tb / Math.max(1, n)).toFixed(1)),
   fartBmotA: Number(r.toFixed(3)),
+  // Fordeling per kortvalg (18. sep): appfristen gjelder det verste kortvalget, ikke snittet.
+  msA: fordeling(par.map((p) => p.a)),
+  msB: fordeling(par.map((p) => p.b)),
+  msStikk: [[1, 4], [5, 8], [9, 13]].map(([fra, til]) => {
+    const u = par.filter((p) => p.stikk >= fra! && p.stikk <= til!);
+    return { stikk: `${fra! - 1}-${til! - 1}`, n: u.length, a: fordeling(u.map((p) => p.a)), b: fordeling(u.map((p) => p.b)) };
+  }),
   fartSE: Number(se.toFixed(3)),
 };
 mkdirSync(dirname(UT), { recursive: true });
