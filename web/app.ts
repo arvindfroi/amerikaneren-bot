@@ -61,7 +61,7 @@ const MENNESKE = 0;
  *
  * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
  */
-const BUNDELVERSJON = "v14-ab-2026-09-17";
+const BUNDELVERSJON = "v15-kunB-2026-09-17";
 (globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
@@ -690,7 +690,7 @@ const søkeklient = new Søkeklient({
 /**
  * ============ A/B-DEMOEN (17. sep): DAGENS ADAMS MOT ADAMS MAX =================
  *
- * Hver kamp trekkes 50/50 til
+ * Hver kamp trekkes til (andelen står i `AB_ANDEL_B`; fra 17. sep er den 1, altså bare B)
  *
  *   A  dagens utrullede Adams-v5.1 — kjeden over, urørt (hovedtråd + førersøk i workeren)
  *   B  Adams Max, «helboten» — `helbotSpek()` i `web/helbotspek.ts`, bygd av spekparseren
@@ -712,8 +712,14 @@ const søkeklient = new Søkeklient({
  */
 type Arm = "A" | "B";
 const AB_PÅ: boolean = true;
-const AB_ANDEL_B = 0.5;
-const AB_VERSJON = "ab1-2026-09-17";
+/**
+ * 100 % B (eieren, 17. sep): alle nye kamper mot Adams Max. Kontrollen er FØR/ETTER — kampene
+ * mot Adams-v5/v5.1 i basen fra før utrullingen. Arm A-kodeveien står som reserve (helbotfilene
+ * mangler → hele arm A-kjeden spiller, logget `abFaktisk: "A"`) og som `?ab=A` til prøving.
+ * Tilbake til randomisert: sett 0.5 og bump `AB_VERSJON`.
+ */
+const AB_ANDEL_B = 1;
+const AB_VERSJON = "ab2-kunB-2026-09-17";
 const AB_NØKKEL = "amerikaneren-ab";
 let arm: Arm = "A";
 let armInfo: { abArv?: string; abTvunget?: true } = {};
@@ -734,7 +740,10 @@ function trekkArm(nyttSpill: string): void {
         return null;
       }
     })();
-    if (forrige !== null && forrige.ferdig === false && (forrige.arm === "A" || forrige.arm === "B")) {
+    // Arves bare innen SAMME A/B-versjon: en halvspilt kamp fra en annen fordeling skal ikke
+    // trekke armen i den nye.
+    const sammeVersjon = (forrige as { versjon?: unknown } | null)?.versjon === AB_VERSJON;
+    if (forrige !== null && sammeVersjon && forrige.ferdig === false && (forrige.arm === "A" || forrige.arm === "B")) {
       arm = forrige.arm;
       armInfo = { abArv: String(forrige.spillId) };
     } else {
@@ -1346,7 +1355,9 @@ async function start(navn: string): Promise<void> {
     motstander,
     modeller: {
       ...oppløst,
-      ...(motstander === "Vaar" ? { ab: arm, abVersjon: AB_VERSJON, ...armInfo } : {}),
+      ...(motstander === "Vaar"
+        ? { ab: arm, abFaktisk: arm === "B" && !helbotFiler ? "A" : arm, abVersjon: AB_VERSJON, abAndelB: AB_ANDEL_B, ...armInfo }
+        : {}),
       ...(arm === "B"
         ? { helbot: helbotFiler, spek: HELBOT_SPEK, nett: HELBOT_NETT, fart: FART_PÅ, fristMs: HELBOT_FRIST_MS }
         : {}),
@@ -2883,6 +2894,32 @@ const HJUL_MAKS_STEG = 0.94;
  */
 const MAKS_SYNLIG = 6.6;
 /**
+ * ============ UNNTAKET: NETTBRETT LIGGENDE VISER HELE HÅNDEN (17. sep) ======
+ *
+ * EIEREN, via A/B-utrullingen: betatesteren spiller på iPad, liggende, og «alle kortene på
+ * hånden skal være synlige samtidig, uten å scrolle og uten at noen er skjult eller klippet».
+ * Det går foran punkt 2 på NETTOPP den formfaktoren, og bare der: telefon (stående og
+ * liggende), stående nettbrett og PC/TV blar som før.
+ *
+ * Nettbrett = berøringsskjerm (`maxTouchPoints`, iPadOS melder 5 også i «skrivebordsmodus»)
+ * med minst 1000×700 CSS-piksler liggende: 1024×768, 1133×744, 1180×820, 1194×834, 1366×1024.
+ * `?helhand=1` tvinger unntaket (prøving i en nettleser uten berøring), `?helhand=0` slår det av.
+ *
+ * TRYKKFLATEN er det som bestemmer om det holder: hvert kort må ha en synlig stripe på minst
+ * `HEL_MIN_STRIPE` px. Blir steget smalere (et vindu som er for smalt for hånden), blar hjulet
+ * som før i stedet for å stable kort man ikke kan treffe.
+ */
+const HEL_MIN_STRIPE = 44;
+function helHånd(): boolean {
+  const tving = new URLSearchParams(location.search).get("helhand");
+  if (tving === "0") return false;
+  const b = window.innerWidth || 0;
+  const h = window.innerHeight || 0;
+  const flate = b > h && b >= 1000 && h >= 700;
+  if (tving === "1") return flate;
+  return flate && (navigator.maxTouchPoints ?? 0) > 0;
+}
+/**
  * ============ VIFTA BØYER SEG MYE MER =================================
  *
  * ARVIND, runde 7: «hvis man ser på mockup så ser man at kortene er større på
@@ -3047,7 +3084,8 @@ function oppdaterHjul(): void {
    * hvorfor den finnes. Steget kan aldri bli SÅ tett at flere enn så mange
    * kort står i vinduet samtidig — heller ikke når skjermen har plass.
    */
-  const gulv = Math.max(kb * HJUL_MIN_STEG, (bredde - fotavtrykk) / (MAKS_SYNLIG - 1));
+  const hel = helHånd() && ønsket >= HEL_MIN_STRIPE;
+  const gulv = hel ? kb * HJUL_MIN_STEG : Math.max(kb * HJUL_MIN_STEG, (bredde - fotavtrykk) / (MAKS_SYNLIG - 1));
   /**
    * TAKET VINNER OVER GULVET, og rekkefølgen er ikke likegyldig.
    *
@@ -3070,7 +3108,7 @@ function oppdaterHjul(): void {
    * ville et bredt vindu låst hånden igjen, og punkt 2 og 7 vært tilbake på
    * nøyaktig de skjermene de ble meldt fra.
    */
-  hjulLåst = n <= MAKS_SYNLIG && (n - 1) / 2 <= hjulSpenn + 0.001;
+  hjulLåst = hel ? (n - 1) / 2 <= hjulSpenn + 0.001 : n <= MAKS_SYNLIG && (n - 1) / 2 <= hjulSpenn + 0.001;
   /**
    * BØYEN REGNES BAKLENGS FRA HVOR MYE PLASS DEN FÅR LOV Å TA.
    *
