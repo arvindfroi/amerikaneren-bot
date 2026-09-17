@@ -32,7 +32,7 @@ const arg = (n: string, s: string): string => {
 };
 const DATA = arg("--data", "D:/amb-grp/menneske/hendelser.jsonl");
 /** Kommaliste. ETTER er unionen; hver versjon skrives også ut for seg (v15 base, v16 med S1). */
-const VERSJONER = new Set(arg("--versjon", "ab2-kunB-2026-09-17,ab3-kunB-fart-2026-09-17").split(","));
+const VERSJONER = new Set(arg("--versjon", "ab2-kunB-2026-09-17,ab3-kunB-fart-2026-09-17,ab4-kunB-fart-frist3s-2026-09-18").split(","));
 const FØR_FRA = arg("--foer-fra", "2026-08-05");
 const FØR_BOTER = new Set(["Adams-v5", "Adams-v5.1"]);
 
@@ -75,7 +75,7 @@ for (const r of rader) {
   if (g === null) continue;
   // Undergruppe per versjon (og fart), telles bare i start/ferdig/vant.
   if (g === "ETTER") {
-    const u = `  ${String(m?.["abVersjon"])}${m?.["fart"] === true ? " (S1)" : ""}`;
+    const u = `  ${String(m?.["abVersjon"])}${m?.["fart"] === true ? " (S1)" : ""} frist ${String(m?.["fristMs"])}`;
     if (!grupper.has(u)) grupper.set(u, ny());
     grupper.get(u)!.start++;
     underFor.set(r.spillId, u);

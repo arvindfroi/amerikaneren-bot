@@ -50,15 +50,20 @@ export function helbotSpek(fart: boolean = FART_PÅ, sti: (s: HelbotSti) => stri
 /**
  * NØDBREMSEN. Søket får så mange ms per kortvalg; når fristen går, stopper det ved neste hele
  * verden (σ regnes fortsatt parvis over de verdenene som rakk). Workeren melder
- * `nødbrems: true` når færre enn 48 verdener ble spilt ut. `null` = ingen frist (all måling).
+ * `nødbrems: true` når fristen kuttet verdener. `null` = ingen frist (all måling).
  *
- * 1 100 ms og ikke 1 500: resten av trekket (trovekt, eksakt sluttspill, meldingskø, klone av
- * stillingen) må også få plass innenfor ~1,5 s på en iPad.
+ * v17 (18. sep): 3 000 ms, opp fra 1 100. Menneskeloggen viste at spillerens enhet er ~10×
+ * tregere enn laptopen: median 647 ms og brems i 42 % av kortvalgene i v15, 148 ms og 12,5 % i
+ * v16 (S1). Eieren vil at boten skal få tenke ferdig. Fristen er et TAK: raske valg er like
+ * raske som før, og ingenting ventes ut (se `helbotPause` i `web/app.ts`).
  */
-export const HELBOT_FRIST_MS: number | null = 1_100;
+export const HELBOT_FRIST_MS: number | null = 3_000;
 
 /**
  * Hovedtrådens frist for et helbotsvar. Løs, med vilje: workerens egen frist holder trekket
  * nede; denne fanger bare en hengt eller treg worker, og da spiller arm A-kjeden (logget).
+ * Søkefristen pluss 2 s slakk til trovekt, eksakt sluttspill, kø og kloning på en treg enhet.
+ * Et svar som kommer etter den, kastes (`sene`), og workeren hopper over forespørsler som
+ * allerede er for sene når den når dem.
  */
-export const HELBOT_TREKKFRIST_MS = 4_000;
+export const HELBOT_TREKKFRIST_MS = (HELBOT_FRIST_MS ?? 3_000) + 2_000;

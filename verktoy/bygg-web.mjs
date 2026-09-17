@@ -66,7 +66,8 @@ const NETTLESER_NODE = {
 for (const [inn, ut, ekstra] of [
   ["web/app.ts", "web/dist/app.js", {}],
   ["web/worker.ts", "web/dist/worker.js", NETTLESER_NODE],
-  ["web/ab-benk.ts", "web/dist/ab-benk.js", {}],
+  // Benken kan kjøre workerkjernen på siden (`?traad=side`), og trenger da minnefilsystemet.
+  ["web/ab-benk.ts", "web/dist/ab-benk.js", NETTLESER_NODE],
 ]) {
   await build({ ...FELLES, ...ekstra, entryPoints: [resolve(rot, inn)], outfile: resolve(rot, ut) });
   console.log(`${ut.padEnd(20)} ${statSync(resolve(rot, ut)).size.toLocaleString("nb-NO")} byte  <- ${inn}`);

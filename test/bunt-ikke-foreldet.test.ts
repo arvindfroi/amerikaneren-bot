@@ -75,6 +75,8 @@ const PAR: readonly (readonly [string, string])[] = [
   ["web/nettleser/path.ts", "web/dist/worker.js"],
   ["web/ab-benk.ts", "web/dist/ab-benk.js"],
   ["web/ab-driver.ts", "web/dist/ab-benk.js"],
+  ["web/sokekjerne.ts", "web/dist/ab-benk.js"],
+  ["web/helbot.ts", "web/dist/ab-benk.js"],
 ];
 
 for (const [kilde, bunt] of PAR) {

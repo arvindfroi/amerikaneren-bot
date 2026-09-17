@@ -61,7 +61,7 @@ const MENNESKE = 0;
  *
  * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
  */
-const BUNDELVERSJON = "v16-fart-2026-09-17";
+const BUNDELVERSJON = "v17-frist3s-2026-09-18";
 (globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
@@ -719,7 +719,7 @@ const AB_PÅ: boolean = true;
  * Tilbake til randomisert: sett 0.5 og bump `AB_VERSJON`.
  */
 const AB_ANDEL_B = 1;
-const AB_VERSJON = "ab3-kunB-fart-2026-09-17";
+const AB_VERSJON = "ab4-kunB-fart-frist3s-2026-09-18";
 const AB_NØKKEL = "amerikaneren-ab";
 let arm: Arm = "A";
 let armInfo: { abArv?: string; abTvunget?: true } = {};

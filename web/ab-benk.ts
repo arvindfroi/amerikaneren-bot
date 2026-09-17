@@ -15,7 +15,7 @@
 import type { GameState, Handling } from "../src/motor.ts";
 import { avtrykk, avtrykkstekst, spillAvtrykk, tidstabell, type Beslutning } from "./ab-driver.ts";
 import { FART_PÅ, HELBOT_FILER, HELBOT_FRIST_MS, helbotSpek, type HelbotSti } from "./helbotspek.ts";
-import type { FraWorker, TilWorker } from "./sokekjerne.ts";
+import { lagSøkekjerne, type FraWorker, type TilWorker } from "./sokekjerne.ts";
 
 const q = new URLSearchParams(location.search);
 const FRØ = (q.get("frø") ?? "71000001,71000002").split(",").map(Number);
@@ -25,6 +25,12 @@ const FRIST_MS = FRIST === "av" ? null : FRIST === "app" ? HELBOT_FRIST_MS : Num
 const UTEN_SIMD = q.get("simd") === "0";
 const FART = q.get("fart") === null ? FART_PÅ : q.get("fart") === "1";
 const KILDE = q.get("kilde") ?? "dist/";
+/**
+ * `traad=side`: den SAMME meldingskjernen kjøres på sidens hovedtråd i stedet for i en worker.
+ * Bare til treg-enhet-benken: Chromes CPU-struping (`Emulation.setCPUThrottlingRate`) virker
+ * bare på sider, ikke på dedikerte workere. Svarene leveres asynkront, som over `postMessage`.
+ */
+const PÅ_SIDEN = q.get("traad") === "side";
 
 const utEl = document.getElementById("ut")!;
 const linje = (t: string): void => {
@@ -39,7 +45,7 @@ async function hent(url: string): Promise<string> {
 
 async function kjør(): Promise<void> {
   const tLast = performance.now();
-  const kode = await hent("dist/worker.js");
+  const kode = PÅ_SIDEN ? "" : await hent("dist/worker.js");
   const filer: Record<string, string> = {};
   let byte = 0;
   for (const [sti, navn] of Object.entries(HELBOT_FILER) as [HelbotSti, string][]) {
@@ -51,7 +57,19 @@ async function kjør(): Promise<void> {
   const lastMs = performance.now() - tLast;
   linje(`nedlasting: ${(byte / 1e6).toFixed(1)} MB base64 på ${Math.round(lastMs)} ms`);
 
-  const w = new Worker(URL.createObjectURL(new Blob([kode], { type: "text/javascript" })));
+  const w: { onmessage: ((e: MessageEvent<FraWorker>) => void) | null; postMessage(m: TilWorker): void; terminate(): void } = PÅ_SIDEN
+    ? (() => {
+        const skall = {
+          onmessage: null as ((e: MessageEvent<FraWorker>) => void) | null,
+          postMessage: (m: TilWorker): void => {
+            setTimeout(() => kjerne(structuredClone(m)), 0);
+          },
+          terminate: (): void => {},
+        };
+        const kjerne = lagSøkekjerne((m) => setTimeout(() => skall.onmessage?.({ data: m } as MessageEvent<FraWorker>), 0));
+        return skall;
+      })()
+    : new Worker(URL.createObjectURL(new Blob([kode], { type: "text/javascript" })));
   const ventende = new Map<number, (m: FraWorker) => void>();
   let kvittering: ((m: FraWorker) => void) | null = null;
   w.onmessage = (e: MessageEvent<FraWorker>) => {
@@ -99,6 +117,7 @@ async function kjør(): Promise<void> {
     fart: FART,
     frist: FRIST_MS,
     utenSimd: UTEN_SIMD,
+    tråd: PÅ_SIDEN ? "side" : "worker",
     simd: (kv as { simd?: boolean }).simd,
     frø: FRØ,
     runder: RUNDER,
