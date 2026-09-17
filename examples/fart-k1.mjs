@@ -1,86 +1,120 @@
 /**
- * PARRET K1 FOR FARTSSPEKEN S1 (17. sep) — frakoblet driver.
+ * PARRET K1 — frakoblet driver (17. sep).
  *
- *   node examples/fart-k1.mjs            (startes via WMI; se D:/amb-grp/loop/fart-k1.md)
+ *   node examples/fart-k1.mjs [--konfig <fil.json>]      (startes via WMI)
  *
- * To armer, begge med ny kjerne (koden i denne arbeidskopien), iter-8-nettene:
- *   base  helbotspeken uten fartsknotter
- *   S1    samme spek + «~ekv=1~topp=0.1~flat=8»
+ * Uten `--konfig`: S1-kjøringen (base mot S1, iter-8, regel «ikke verre»), rapport
+ * D:/amb-grp/loop/fart-k1.md. Med `--konfig`:
+ *   { dir, rapport, tittel, armer: {navn: spek}, ref, regel: "ikke-verre" | "forbedring",
+ *     ventPå?: pid, forsjekk?: { args: [...], froe, ref, ut, arbeidere? } }
+ *
  * Hver arm: `examples/duplikat-menneske.ts` i 8 skarder over alle menneskekampene (alle fire seter
- * spilles av armen, som i tidligere K1-duplikat). Maks 3 prosesser samtidig, BelowNormal-prioritet.
+ * spilles av armen). Maks 3 prosesser samtidig, BelowNormal på driveren og alle barn.
+ * `ventPå`: start først når den prosessen er borte (så totalen aldri overstiger 3).
+ * `forsjekk`: knottriggen kjøres og analysen skrives til fil FØR K1 starter.
  *
- * PARRET: radene kobles på (spill, runde). Hovedtallet er S1 − base i `bP` (100·ΔP(seier) for
- * sete 0); menneskeleddet er likt i begge og faller bort. SE: klyngebootstrap over kamper
- * (B = 20 000) og klynget sandwich-SE som kontroll. Delt på n én gang.
+ * PARRET: radene kobles på (spill, runde). Hovedtallet er arm − ref i `bP` (100·ΔP(seier) for
+ * sete 0); menneskeleddet er likt og faller bort. SE: klyngebootstrap over kamper (B = 20 000),
+ * klynget sandwich-SE som kontroll. Delt på n én gang.
  *
- * KRAV (ellers ingen dom): ≥ 2000 runder per arm, samme nøkkelmengde i begge, ingen NaN.
- * BESLUTNINGSREGEL (skrevet før måling): S1 godkjennes hvis S1 − base ≥ −0,15 OG ikke
- * signifikant negativ (z > −1,96).
- *
+ * KRAV (ellers ingen dom): ≥ 2000 runder per arm, samme nøkkelmengde i alle armer, ingen NaN.
  * GJENOPPTAKBAR: en skard med «.ferdig»-merke hoppes over; en halvferdig skardfil slettes før omstart.
- * Rapporten skrives av prosessen selv til D:/amb-grp/loop/fart-k1.md.
+ * Rapporten skrives av prosessen selv.
  */
 import { spawn } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 
 const ROT = "D:/amb-fart";
-const DIR = "D:/amb-grp/loop/fartk1";
-const RAPPORT = "D:/amb-grp/loop/fart-k1.md";
-const STATUS = `${DIR}/status.log`;
 const SKARDER = 8;
 const SAMTIDIG = 3;
 const P =
   "okt:vr:e1-modell/vrak-8.bin@e1-modell/etterlyst-8.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-8.bin";
 const H = ":budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin";
-const ARMER = { base: `${P}${H}`, S1: `${P}~ekv=1~topp=0.1~flat=8${H}` };
+
+const iK = process.argv.indexOf("--konfig");
+const K =
+  iK < 0
+    ? {
+        dir: "D:/amb-grp/loop/fartk1",
+        rapport: "D:/amb-grp/loop/fart-k1.md",
+        tittel: "K1 PARRET: S1 mot base",
+        armer: { base: `${P}${H}`, S1: `${P}~ekv=1~topp=0.1~flat=8${H}` },
+        ref: "base",
+        regel: "ikke-verre",
+      }
+    : JSON.parse(readFileSync(process.argv[iK + 1], "utf8"));
+const DIR = K.dir;
+const RAPPORT = K.rapport;
+const STATUS = `${DIR}/status.log`;
+const ARMER = K.armer;
+const REF = K.ref;
+const REGELTEKST =
+  K.regel === "forbedring"
+    ? "en arm tas i bruk hvis arm − ref ≥ +0,15 pp OG z > +1,96; ellers «mer tenketid hjelper ikke målbart»"
+    : "armen godkjennes hvis arm − ref ≥ −0,15 pp og ikke signifikant negativ (z > −1,96)";
 
 mkdirSync(DIR, { recursive: true });
 const logg = (s) => appendFileSync(STATUS, `${new Date().toISOString()} ${s}\n`);
-try {
-  os.setPriority(process.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
-} catch (e) {
-  logg(`kunne ikke senke egen prioritet: ${e}`);
-}
+const lav = (pid) => {
+  try {
+    os.setPriority(pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
+  } catch (e) {
+    logg(`kunne ikke senke prioritet for ${pid}: ${e}`);
+  }
+};
+lav(process.pid);
 
 const kø = [];
 for (let s = 0; s < SKARDER; s++) for (const arm of Object.keys(ARMER)) kø.push({ arm, s });
 const fil = (j) => `${DIR}/${j.arm}-s${j.s}.jsonl`;
-const tider = { base: 0, S1: 0 };
+const tider = Object.fromEntries(Object.keys(ARMER).map((a) => [a, 0]));
+const lever = (pid) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+const vent = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
-function kjør(j) {
+/** Kjører node med `args` i ROT, BelowNormal; løser med exit-kode. */
+function nodeKjør(args, merke, påFerdig) {
   return new Promise((ok) => {
-    if (existsSync(`${fil(j)}.ferdig`)) {
-      logg(`hopper over ${j.arm} s${j.s} (ferdig fra før)`);
-      return ok(0);
-    }
-    rmSync(fil(j), { force: true });
     const t0 = Date.now();
-    const p = spawn(
-      process.execPath,
-      ["examples/duplikat-menneske.ts", "--spek", ARMER[j.arm], "--skard", `${j.s}/${SKARDER}`, "--ut", fil(j)],
-      { cwd: ROT, stdio: ["ignore", "ignore", "pipe"] },
-    );
-    try {
-      os.setPriority(p.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
-    } catch (e) {
-      logg(`kunne ikke senke prioritet for ${p.pid}: ${e}`);
-    }
+    const p = spawn(process.execPath, args, { cwd: ROT, stdio: ["ignore", "ignore", "pipe"] });
+    lav(p.pid);
     let feil = "";
     p.stderr.on("data", (d) => (feil = (feil + d).slice(-2000)));
-    logg(`start ${j.arm} s${j.s} pid ${p.pid}`);
+    logg(`start ${merke} pid ${p.pid}`);
     p.on("exit", (kode) => {
       const sek = (Date.now() - t0) / 1000;
       if (kode === 0) {
-        tider[j.arm] += sek;
-        writeFileSync(`${fil(j)}.ferdig`, `${sek}\n`);
-        logg(`ferdig ${j.arm} s${j.s} på ${sek.toFixed(0)} s`);
+        påFerdig?.(sek);
+        logg(`ferdig ${merke} på ${sek.toFixed(0)} s`);
       } else {
-        logg(`FEIL ${j.arm} s${j.s} kode ${kode}: ${feil.replace(/\s+/g, " ")}`);
+        logg(`FEIL ${merke} kode ${kode}: ${feil.replace(/\s+/g, " ")}`);
       }
       ok(kode ?? 1);
     });
   });
+}
+
+function kjør(j) {
+  if (existsSync(`${fil(j)}.ferdig`)) {
+    logg(`hopper over ${j.arm} s${j.s} (ferdig fra før)`);
+    return Promise.resolve(0);
+  }
+  rmSync(fil(j), { force: true });
+  return nodeKjør(
+    ["examples/duplikat-menneske.ts", "--spek", ARMER[j.arm], "--skard", `${j.s}/${SKARDER}`, "--ut", fil(j)],
+    `${j.arm} s${j.s}`,
+    (sek) => {
+      tider[j.arm] += sek;
+      writeFileSync(`${fil(j)}.ferdig`, `${sek}\n`);
+    },
+  );
 }
 
 async function kjørAlle() {
@@ -107,7 +141,6 @@ const les = (arm) => {
 };
 
 function klynge(par) {
-  // par: [{k, d}]; snitt, klynget sandwich-SE og bootstrap-SE over kamper.
   const N = par.length;
   const m = par.reduce((a, p) => a + p.d, 0) / N;
   const kl = new Map();
@@ -117,10 +150,10 @@ function klynge(par) {
     x.n++;
     kl.set(p.k, x);
   }
-  const K = kl.size;
+  const Kn = kl.size;
   let q = 0;
   for (const x of kl.values()) q += (x.s - m * x.n) ** 2;
-  const seSandwich = Math.sqrt((K / (K - 1)) * q) / N;
+  const seSandwich = Math.sqrt((Kn / (Kn - 1)) * q) / N;
   const liste = [...kl.values()];
   let rng = 20260917;
   const r = () => ((rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0) / 2 ** 32);
@@ -129,8 +162,8 @@ function klynge(par) {
   for (let b = 0; b < B; b++) {
     let s = 0;
     let n = 0;
-    for (let k = 0; k < K; k++) {
-      const x = liste[Math.floor(r() * K)];
+    for (let k = 0; k < Kn; k++) {
+      const x = liste[Math.floor(r() * Kn)];
       s += x.s;
       n += x.n;
     }
@@ -138,7 +171,7 @@ function klynge(par) {
   }
   const mb = bs.reduce((a, v) => a + v, 0) / B;
   const seBoot = Math.sqrt(bs.reduce((a, v) => a + (v - mb) ** 2, 0) / (B - 1));
-  return { m, se: seBoot, seSandwich, N, K };
+  return { m, se: seBoot, seSandwich, N, K: Kn };
 }
 
 const f = (x, d = 3) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(d).replace(".", ",");
@@ -146,63 +179,102 @@ const f = (x, d = 3) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(d).replace(
 async function main() {
   writeFileSync(
     RAPPORT,
-    `# K1 PARRET: S1 mot base — PÅGÅR\n\nStartet ${new Date().toISOString()} (pid ${process.pid}). Status: \`${STATUS}\`.\n\n` +
-      `Beslutningsregel (før måling): S1 godkjennes hvis S1 − base ≥ −0,15 og ikke signifikant negativ.\n`,
+    `# ${K.tittel} — PÅGÅR\n\nStartet ${new Date().toISOString()} (pid ${process.pid}). Status: \`${STATUS}\`.\n\n` +
+      `Beslutningsregel (før måling): ${REGELTEKST}.\n`,
   );
   logg(`driver startet, pid ${process.pid}`);
+  if (K.ventPå !== undefined) {
+    logg(`venter på at pid ${K.ventPå} blir ferdig (maks ${SAMTIDIG} prosesser totalt)`);
+    while (lever(K.ventPå)) await vent(60_000);
+    logg(`pid ${K.ventPå} er borte, starter`);
+  }
+  if (K.forsjekk !== undefined) {
+    const fs = K.forsjekk;
+    const n = fs.arbeidere ?? SAMTIDIG;
+    const ark = Array.from({ length: n }, (_, w) => `${DIR}/forsjekk-w${w}.jsonl`);
+    const koder = await Promise.all(
+      ark.map((ut, w) => {
+        rmSync(ut, { force: true });
+        return nodeKjør([...fs.args, "--froe", String(fs.froe + 1000 * w), "--ut", ut], `forsjekk w${w}`);
+      }),
+    );
+    if (koder.some((k) => k !== 0)) {
+      appendFileSync(RAPPORT, `\n## STOPPET: forsjekken feilet (${koder.join(",")}); ingen K1 startet.\n`);
+      logg("forsjekken feilet; stopper");
+      return;
+    }
+    await nodeKjør(["examples/fart-knott-analyse.mjs", ...ark, "--ref", fs.ref, "--skriv", fs.ut, "--gruppe", "stikk"], "forsjekk-analyse");
+    logg(`forsjekken skrevet til ${fs.ut}; K1 starter`);
+  }
   const feil = await kjørAlle();
-  const base = les("base");
-  const s1 = les("S1");
+
+  const data = Object.fromEntries(Object.keys(ARMER).map((a) => [a, les(a)]));
   const problemer = [];
   if (feil > 0) problemer.push(`${feil} skard(er) feilet`);
-  if (base.length < 2000) problemer.push(`base har bare ${base.length} runder`);
-  if (s1.length < 2000) problemer.push(`S1 har bare ${s1.length} runder`);
   const nøkkel = (r) => `${r.spill}#${r.runde}`;
-  const bMap = new Map(base.map((r) => [nøkkel(r), r]));
-  const sMap = new Map(s1.map((r) => [nøkkel(r), r]));
-  if (bMap.size !== base.length || sMap.size !== s1.length) problemer.push("duplikate (spill, runde)-nøkler");
-  const bareB = [...bMap.keys()].filter((k) => !sMap.has(k));
-  const bareS = [...sMap.keys()].filter((k) => !bMap.has(k));
-  if (bareB.length + bareS.length > 0) problemer.push(`ulik nøkkelmengde: ${bareB.length} bare i base, ${bareS.length} bare i S1`);
-  const felles = [...bMap.keys()].filter((k) => sMap.has(k));
-  const nan = felles.filter((k) => ![bMap.get(k).bP, sMap.get(k).bP, bMap.get(k).bot, sMap.get(k).bot, bMap.get(k).mP].every(Number.isFinite));
+  const kart = {};
+  for (const [a, rader] of Object.entries(data)) {
+    if (rader.length < 2000) problemer.push(`${a} har bare ${rader.length} runder`);
+    kart[a] = new Map(rader.map((r) => [nøkkel(r), r]));
+    if (kart[a].size !== rader.length) problemer.push(`${a}: duplikate (spill, runde)-nøkler`);
+  }
+  const refKart = kart[REF];
+  for (const a of Object.keys(ARMER)) {
+    if (a === REF) continue;
+    const bareR = [...refKart.keys()].filter((k) => !kart[a].has(k)).length;
+    const bareA = [...kart[a].keys()].filter((k) => !refKart.has(k)).length;
+    if (bareR + bareA > 0) problemer.push(`ulik nøkkelmengde ${REF}/${a}: ${bareR} bare i ${REF}, ${bareA} bare i ${a}`);
+  }
+  const felles = [...refKart.keys()].filter((k) => Object.values(kart).every((m) => m.has(k)));
+  const nan = felles.filter(
+    (k) => !Object.values(kart).every((m) => [m.get(k).bP, m.get(k).bot, m.get(k).mP].every(Number.isFinite)),
+  );
   if (nan.length > 0) problemer.push(`${nan.length} rader med NaN/ikke-endelig verdi`);
 
-  let t = `# K1 PARRET: S1 mot base\n\nFerdig ${new Date().toISOString()}. Gren \`fart-2026-09-17\` i \`${ROT}\`. Rådata: \`${DIR}\`.\n\n`;
-  t += `- base: \`${ARMER.base}\`\n- S1: \`${ARMER.S1}\`\n\n`;
-  t += `Duplikat på menneskekampene, 8 skarder per arm, alle fire seter = armen, BelowNormal. `;
+  let t = `# ${K.tittel}\n\nFerdig ${new Date().toISOString()}. Gren \`fart-2026-09-17\` i \`${ROT}\`. Rådata: \`${DIR}\`.\n\n`;
+  for (const [a, sp] of Object.entries(ARMER)) t += `- ${a}${a === REF ? " (referanse)" : ""}: \`${sp}\`\n`;
+  t += `\nDuplikat på menneskekampene, ${SKARDER} skarder per arm, alle fire seter = armen, BelowNormal. `;
   t += `SE: klyngebootstrap over kamper (B = 20 000); klynget sandwich i parentes.\n\n`;
-  t += `**Beslutningsregel (skrevet før måling):** S1 godkjennes hvis S1 − base ≥ −0,15 og ikke signifikant negativ (z > −1,96).\n\n`;
+  t += `**Beslutningsregel (skrevet før måling):** ${REGELTEKST}.\n\n`;
+  if (K.forsjekk !== undefined) t += `Forsjekk (knottriggen, skrevet før K1): \`${K.forsjekk.ut}\`.\n\n`;
   if (problemer.length > 0) {
     t += `## INGEN DOM — kravene er ikke oppfylt\n\n${problemer.map((p) => `- ${p}`).join("\n")}\n`;
     writeFileSync(RAPPORT, t);
     logg(`INGEN DOM: ${problemer.join("; ")}`);
     return;
   }
-  const kamp = (k) => bMap.get(k).spill;
-  const parP = felles.map((k) => ({ k: kamp(k), d: sMap.get(k).bP - bMap.get(k).bP }));
-  const parR = felles.map((k) => ({ k: kamp(k), d: sMap.get(k).bot - bMap.get(k).bot }));
-  const dP = klynge(parP);
-  const dR = klynge(parR);
-  const bmP = klynge(felles.map((k) => ({ k: kamp(k), d: bMap.get(k).bP - bMap.get(k).mP })));
-  const smP = klynge(felles.map((k) => ({ k: kamp(k), d: sMap.get(k).bP - sMap.get(k).mP })));
-  const ulike = felles.filter((k) => sMap.get(k).bot !== bMap.get(k).bot).length;
-  const z = dP.m / dP.se;
-  const godkjent = dP.m >= -0.15 && z > -1.96;
-  t += `## Resultat (${dP.N} parrede runder i ${dP.K} kamper)\n\n`;
-  t += `| mål | verdi |\n|---|---|\n`;
-  t += `| **S1 − base, 100·ΔP(seier) per runde** | **${f(dP.m)} ± ${f(dP.se).slice(1)} pp** (sandwich ${f(dP.seSandwich).slice(1)}), z ${f(z, 2)} |\n`;
-  t += `| S1 − base, rundepoeng | ${f(dR.m)} ± ${f(dR.se).slice(1)} (z ${f(dR.m / dR.se, 2)}) |\n`;
-  t += `| base − menneske, ΔP | ${f(bmP.m)} ± ${f(bmP.se).slice(1)} pp |\n`;
-  t += `| S1 − menneske, ΔP | ${f(smP.m)} ± ${f(smP.se).slice(1)} pp |\n`;
-  t += `| runder med ulikt rundepoeng S1 mot base | ${ulike} av ${dP.N} |\n`;
-  t += `| veggtid, sum over skarder | base ${(tider.base / 60).toFixed(0)} min, S1 ${(tider.S1 / 60).toFixed(0)} min (bare skarder kjørt i denne prosessen) |\n\n`;
-  t += `## DOM: **${godkjent ? "S1 GODKJENT" : "S1 AVVIST"}**\n\n`;
-  t += godkjent
-    ? `S1 − base = ${f(dP.m)} ≥ −0,150 og z = ${f(z, 2)} > −1,96.\n`
-    : `S1 − base = ${f(dP.m)}, z = ${f(z, 2)}: ${dP.m < -0.15 ? "under −0,15" : ""}${z <= -1.96 ? " signifikant negativ" : ""}.\n`;
+  const kamp = (k) => refKart.get(k).spill;
+  const K0 = new Set(felles.map(kamp)).size;
+  t += `## Resultat (${felles.length} parrede runder i ${K0} kamper)\n\n`;
+  t += `| arm | arm − menneske, ΔP (pp) | arm − ${REF}, ΔP (pp) | z | arm − ${REF}, rundepoeng | runder med ulikt rundepoeng | veggtid (sum skarder) | dom |\n`;
+  t += `|---|---|---|---|---|---|---|---|\n`;
+  const dommer = [];
+  for (const a of Object.keys(ARMER)) {
+    const m = kart[a];
+    const mot = klynge(felles.map((k) => ({ k: kamp(k), d: m.get(k).bP - m.get(k).mP })));
+    const tid = `${(tider[a] / 60).toFixed(0)} min`;
+    if (a === REF) {
+      t += `| ${a} | ${f(mot.m)} ± ${f(mot.se).slice(1)} | – | – | – | – | ${tid} | referanse |\n`;
+      continue;
+    }
+    const dP = klynge(felles.map((k) => ({ k: kamp(k), d: m.get(k).bP - refKart.get(k).bP })));
+    const dR = klynge(felles.map((k) => ({ k: kamp(k), d: m.get(k).bot - refKart.get(k).bot })));
+    const z = dP.m / dP.se;
+    const ok = K.regel === "forbedring" ? dP.m >= 0.15 && z > 1.96 : dP.m >= -0.15 && z > -1.96;
+    const ulike = felles.filter((k) => m.get(k).bot !== refKart.get(k).bot).length;
+    const dom = K.regel === "forbedring" ? (ok ? "**TAS I BRUK**" : "ikke målbart bedre") : ok ? "**GODKJENT**" : "**AVVIST**";
+    dommer.push({ a, ok, dP, z });
+    t += `| ${a} | ${f(mot.m)} ± ${f(mot.se).slice(1)} | **${f(dP.m)} ± ${f(dP.se).slice(1)}** (${f(dP.seSandwich).slice(1)}) | ${f(z, 2)} | ${f(dR.m)} ± ${f(dR.se).slice(1)} | ${ulike} | ${tid} | ${dom} |\n`;
+    logg(`DOM ${a}: ${dP.m.toFixed(4)} ± ${dP.se.toFixed(4)} z ${z.toFixed(2)} (n=${dP.N}, K=${dP.K}) → ${ok}`);
+  }
+  t += `\nVeggtid gjelder bare skarder kjørt i denne prosessen, på en belastet maskin i BelowNormal.\n\n`;
+  if (K.regel === "forbedring") {
+    const tatt = dommer.filter((d) => d.ok);
+    t += `## DOM: ${tatt.length === 0 ? "**mer tenketid hjelper ikke målbart**" : `**${tatt.map((d) => d.a).join(", ")} tas i bruk**`}\n`;
+  } else {
+    t += `## DOM\n\n${dommer.map((d) => `- ${d.a}: ${d.ok ? "GODKJENT" : "AVVIST"} (${f(d.dP.m)}, z ${f(d.z, 2)})`).join("\n")}\n`;
+  }
   writeFileSync(RAPPORT, t);
-  logg(`DOM ${godkjent ? "GODKJENT" : "AVVIST"}: ${dP.m.toFixed(4)} ± ${dP.se.toFixed(4)} (n=${dP.N}, K=${dP.K})`);
 }
 
 main().catch((e) => {

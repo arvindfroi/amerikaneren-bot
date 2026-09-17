@@ -17,6 +17,17 @@ const args = process.argv.slice(2);
 const filer = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1]?.startsWith("--")));
 const ref = args.includes("--ref") ? args[args.indexOf("--ref") + 1] : "REF";
 const gruppe = args.includes("--gruppe") ? args[args.indexOf("--gruppe") + 1] : null;
+/** `--skriv <fil>`: rapporten skrives av prosessen selv, i tillegg til konsollen. */
+const skrivTil = args.includes("--skriv") ? args[args.indexOf("--skriv") + 1] : null;
+if (skrivTil !== null) {
+  const { writeFileSync, appendFileSync } = await import("node:fs");
+  writeFileSync(skrivTil, "");
+  const orig = console.log;
+  console.log = (...x) => {
+    orig(...x);
+    appendFileSync(skrivTil, x.join(" ") + "\n");
+  };
+}
 
 const rader = [];
 for (const f of filer) {

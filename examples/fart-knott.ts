@@ -46,12 +46,15 @@ const FRØ0 = Number(arg("--froe", "17090001"));
 const UT = arg("--ut", "D:/amb-grp/loop/fart/knott.jsonl");
 const FASITTAK = Number(arg("--fasittak", "7"));
 const ARMER = arg("--armer", "REF,STOY,EKV,TOPP05,FLAT8").split(",");
-const HELBOT_SPEK = arg(
+const HELBOT_SPEK_RÅ = arg(
   "--driver",
   "okt:vr:e1-modell/vrak-8.bin@e1-modell/etterlyst-8.bin:telrd:eks:3Lt2000:profil:" +
     "sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-8.bin:budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin",
 );
-const INDRE = "budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin";
+/** `--nett <id>`: nettgenerasjonen (standard 8). `-8.bin` byttes mot `-<id>.bin` i drivere, indre og tro. */
+const NETT = arg("--nett", "8");
+const medNett = (sp: string): string => sp.replaceAll("-8.bin", `-${NETT}.bin`);
+const INDRE = medNett("budq:e1-modell/budq-8.bin:vakt:abmp:e1:e1-modell/kort-8.bin");
 const SIK_FRØ = 20_260_804;
 const SIGMA_PORT = 0.5;
 /**
@@ -96,7 +99,8 @@ function lesArm(navn: string): ArmDef {
 }
 const armDef = new Map(ARMER.map((a) => [a, lesArm(a)]));
 
-const tronett = MlbTronett.fraBytes(readFileSync("e1-modell/tro-8.bin"));
+const HELBOT_SPEK = medNett(HELBOT_SPEK_RÅ);
+const tronett = MlbTronett.fraBytes(readFileSync(`e1-modell/tro-${NETT}.bin`));
 const kortStr = (k: Kort | null): string | null => (k === null ? null : `${k.farge}${k.verdi}`);
 
 /** Fasitverdi (lag- og diff-mål) per kort-int for setet i tur, eller null. Fra troledd.ts. */
