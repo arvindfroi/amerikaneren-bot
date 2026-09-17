@@ -569,6 +569,23 @@ export interface Spekkontekst {
   bokfrø?: Bokfrø | null;
 }
 
+/**
+ * NETTETS PRIOR for `~topp=`: logitsene til kortnettet i den indre kjeden. Kjeden er innpakninger
+ * med et `indre`-felt (vakt, BudQ, …); den første `E1Agent` nedover er nettet som faktisk spiller.
+ * Kaster hvis ingen finnes — en beskjæring uten prior ville vært stille av.
+ */
+function priorFra(agent: unknown, spek: string): (state: GameState, sete: number) => ArrayLike<number> {
+  let a: unknown = agent;
+  for (let d = 0; d < 12 && a !== null && a !== undefined; d++) {
+    if (a instanceof E1Agent) {
+      const e1 = a;
+      return (st, sete) => e1.logits(st, sete);
+    }
+    a = (a as { indre?: unknown }).indre;
+  }
+  throw new Error(`«~topp=» i «${spek}» krever et kortnett («e1:») i det indre laget, og fant ingen`);
+}
+
 export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
   if (indre === "nevro") return new NevroAgent();
   if (indre.startsWith("vakt:")) {
@@ -1281,6 +1298,18 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
      * til «1-12». Av skal være av fordi porten ikke finnes, ikke fordi den regner riktig.
      */
     let stikkvindu: readonly [number, number] | undefined;
+    /**
+     * FARTSKNOTTENE (17. sep, `D:/amb-grp/loop/fart.md`), som `~stikk=` og av samme grunn: `~`-felt
+     * plukkes før all bokstavparsing, så de kan ikke kollidere med D/M/L/s/a/e/k. UDEFINERT = AV,
+     * STRUKTURELT: nøkkelen utelates fra opsjonsobjektet.
+     *
+     *   ~ekv=1        kortekvivalens (Kermit/αμ): én representant per klasse likeverdige kort
+     *   ~topp=<p>     bare kort med nettets prior ≥ p (pluss argmaks og det indre valget)
+     *   ~flat=<n0>    stopp etter n0 verdener hvis alle kandidatene er likt i hver av dem
+     */
+    let ekvivalens = false;
+    let toppP: number | undefined;
+    let flatStopp: number | undefined;
     const tPos = vFelt.indexOf("~");
     if (tPos >= 0) {
       const felter = vFelt.slice(tPos + 1).split("~");
@@ -1348,10 +1377,25 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
             );
           }
           stikkvindu = [fra, til];
+        } else if (art === "ekv") {
+          if (verdi !== "1") throw new Error(`Ugyldig «~ekv=${verdi}» i «${indre}» - forventet ekv=1`);
+          ekvivalens = true;
+        } else if (art === "topp") {
+          const p = Number(verdi);
+          if (verdi === "" || !(p > 0 && p < 1)) {
+            throw new Error(`Ugyldig «~topp=${verdi}» i «${indre}» - forventet topp=<p> med 0 < p < 1`);
+          }
+          toppP = p;
+        } else if (art === "flat") {
+          const n0 = Number(verdi);
+          if (verdi === "" || !Number.isInteger(n0) || n0 < 2) {
+            throw new Error(`Ugyldig «~flat=${verdi}» i «${indre}» - forventet flat=<n0>, et helt antall verdener ≥ 2`);
+          }
+          flatStopp = n0;
         } else {
           throw new Error(
             `Ukjent ~-felt «${f}» i «${indre}» - forventet trokilde mlb=<fil>/mlbu=<fil>, ` +
-              `lik=<selv|@fil> eller stikk=<fra>-<til>`,
+              `lik=<selv|@fil>, stikk=<fra>-<til>, ekv=1, topp=<p> eller flat=<n0>`,
           );
         }
       }
@@ -1531,6 +1575,9 @@ export function lagIndre(indre: string, ctx: Spekkontekst = {}): Spekagent {
       ...(likFor === undefined ? {} : { likFor }),
       // AV ER AV, STRUKTURELT: uten «~stikk=» finnes ikke nøkkelen i objektet i det hele tatt.
       ...(stikkvindu === undefined ? {} : { stikkvindu }),
+      ...(ekvivalens ? { ekvivalens: true } : {}),
+      ...(toppP === undefined ? {} : { toppP, prior: priorFra(inn, indre) }),
+      ...(flatStopp === undefined ? {} : { flatStopp }),
     });
   }
   /**

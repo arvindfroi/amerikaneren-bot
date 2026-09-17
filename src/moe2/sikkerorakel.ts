@@ -55,8 +55,8 @@
  * frø, samme verdener og samme valg.
  */
 
-import { spillerVisning, type GameState, type Handling } from "../motor.ts";
-import { lagRng } from "../kort.ts";
+import { lovligeKort, spillerVisning, type GameState, type Handling } from "../motor.ts";
+import { FARGER, lagRng, type Kort } from "../kort.ts";
 import type { Verden } from "../solver/sampler.ts";
 import { vurderPar, type ParResultat } from "./sdpar.ts";
 import type { Søketro } from "./soketro.ts";
@@ -137,6 +137,44 @@ export interface SikkerOpts {
    * ikke kjøres i det hele tatt.
    */
   readonly stikkvindu?: readonly [number, number];
+  /**
+   * FARTSKNOTTENE (17. sep, `D:/amb-grp/loop/fart.md`). Udefinert = av, og da kjøres ingen av dem.
+   *
+   * `ekvivalens` (`~ekv=1`): se `ParOpts.ekvivalens`. Porten regner nettets kort som ENIG når det
+   *   ligger i samme klasse som søkets beste, og spiller da nettets kort.
+   * `toppP` (`~topp=<p>`): bare kort med prior ≥ p (softmax over de lovlige), pluss nettets
+   *   argmaks og det indre lagets valg, vurderes. Krever `prior`.
+   * `flatStopp` (`~flat=<n0>`): se `ParOpts.flatStopp`.
+   */
+  readonly ekvivalens?: boolean;
+  readonly toppP?: number;
+  readonly prior?: (state: GameState, sete: number) => ArrayLike<number>;
+  readonly flatStopp?: number;
+}
+
+/** Kortets indeks i nettets 52 logits: farge × 13 + verdi − 2 (samme som `kortTilInt`). */
+const kortIdx = (k: Kort): number => FARGER.indexOf(k.farge) * 13 + (k.verdi - 2);
+
+/**
+ * KANDIDATENE `~topp=<p>` beholder: prior ≥ p etter softmax over de LOVLIGE kortenes logits,
+ * alltid nettets argmaks og alltid `eget` (det indre lagets valg, som vakten kan ha flyttet).
+ */
+export function toppKandidater(
+  lovlige: readonly Kort[],
+  logits: ArrayLike<number>,
+  p: number,
+  eget: Kort | null,
+): Kort[] {
+  let maks = -Infinity;
+  for (const k of lovlige) maks = Math.max(maks, logits[kortIdx(k)]!);
+  let z = 0;
+  for (const k of lovlige) z += Math.exp(logits[kortIdx(k)]! - maks);
+  return lovlige.filter((k) => {
+    const l = logits[kortIdx(k)]!;
+    if (l === maks) return true;
+    if (eget !== null && eget.farge === k.farge && eget.verdi === k.verdi) return true;
+    return Math.exp(l - maks) / z >= p;
+  });
 }
 
 /**
@@ -259,6 +297,11 @@ export class Sikkerorakel {
   /** `~stikk=`: søkevinduet i stikk (1-basert, inklusive), eller null. Offentlig for prøvene. */
   readonly stikkvindu: readonly [number, number] | null;
   private readonly frø: number;
+  /** Fartsknottene, eller null/false. Offentlige for prøvene: speken skal kunne bevises koblet. */
+  readonly ekvivalens: boolean;
+  readonly toppP: number | null;
+  readonly flatStopp: number | null;
+  private readonly prior: ((state: GameState, sete: number) => ArrayLike<number>) | null;
   readonly tellere: SikkerTellere = { beslutninger: 0, vurdert: 0, overstyrt: 0, enig: 0, avkortet: 0 };
   siste: SikkerSiste | null = null;
 
@@ -300,6 +343,16 @@ export class Sikkerorakel {
           `Sikkerorakel: stikkvindu må være [fra, til] med hele stikk 1 ≤ fra ≤ til, fikk [${fra}, ${til}]`,
         );
       }
+    }
+    this.ekvivalens = opts.ekvivalens === true;
+    this.toppP = opts.toppP ?? null;
+    this.flatStopp = opts.flatStopp ?? null;
+    this.prior = opts.prior ?? null;
+    if (this.toppP !== null && (!(this.toppP > 0 && this.toppP < 1) || this.prior === null)) {
+      throw new Error(`Sikkerorakel: toppP må være i (0, 1) og krever en prior, fikk ${this.toppP}`);
+    }
+    if (this.flatStopp !== null && !(Number.isInteger(this.flatStopp) && this.flatStopp >= 2)) {
+      throw new Error(`Sikkerorakel: flatStopp må være et helt antall verdener ≥ 2, fikk ${this.flatStopp}`);
     }
     // Feil ved bygging, ikke ved første trekk midt i en kamp.
     if (this.spillvekt && this.tro !== null) {
@@ -352,6 +405,22 @@ export class Sikkerorakel {
     this.tellere.beslutninger++;
     const start = this.klokke();
 
+    /**
+     * `~topp=`: det indre valget hentes FØR søket (det trengs i kandidatlista) og gjenbrukes under.
+     * Bare med knotten — uten den står kallrekkefølgen som før.
+     */
+    let tidligEget: Handling | null = null;
+    let kandidater: Kort[] | undefined;
+    if (this.toppP !== null && this.prior !== null) {
+      tidligEget = this.indre.velgHandling(state);
+      kandidater = toppKandidater(
+        lovligeKort(state, sete),
+        this.prior(state, sete),
+        this.toppP,
+        tidligEget.type === "SPILL" ? tidligEget.kort : null,
+      );
+    }
+
     const par = vurderPar(state, sete, this.motpart, {
       verdenKandidater: this.verdenKandidater,
       verdenKombi: this.verdenKombi,
@@ -364,6 +433,9 @@ export class Sikkerorakel {
       klokke: this.klokke,
       ...(this.eksaktBlad === null ? {} : { eksaktBlad: this.eksaktBlad }),
       ...(this.motpartFor === null ? {} : { motpartFor: this.motpartFor }),
+      ...(this.ekvivalens ? { ekvivalens: true } : {}),
+      ...(kandidater === undefined ? {} : { kandidater }),
+      ...(this.flatStopp === null ? {} : { flatStopp: this.flatStopp }),
       verdener: this.verdener,
       // Med `visningsfrø` står instansens strøm urørt; uten den er dette nøyaktig som før.
       rng: this.visningsfrø ? lagRng(visningsfrø(state, sete, this.frø)) : this.rng,
@@ -372,7 +444,7 @@ export class Sikkerorakel {
     // verden: la policyen stå.
     if (par === null) {
       this.siste = { lag: "nett", n: 0, sigma: 0, ms: this.klokke() - start };
-      return this.indre.velgHandling(state);
+      return tidligEget ?? this.indre.velgHandling(state);
     }
     this.tellere.vurdert++;
     if (par.n < this.verdener) this.tellere.avkortet++;
@@ -381,15 +453,14 @@ export class Sikkerorakel {
 
     if (par.sigma < this.sigma) {
       this.siste = { lag: "nett", n: par.n, sigma: par.sigma, ms: this.klokke() - start };
-      return this.indre.velgHandling(state);
+      return tidligEget ?? this.indre.velgHandling(state);
     }
 
-    const eget = this.indre.velgHandling(state);
-    if (
-      eget.type === "SPILL" &&
-      eget.kort.farge === par.beste.kort.farge &&
-      eget.kort.verdi === par.beste.kort.verdi
-    ) {
+    const eget = tidligEget ?? this.indre.velgHandling(state);
+    // Med `ekvivalens` er nettets kort ENIG når det ligger i søkets beste klasse.
+    const iBeste = (k: Kort): boolean =>
+      (par.beste.medlemmer ?? [par.beste.kort]).some((m) => m.farge === k.farge && m.verdi === k.verdi);
+    if (eget.type === "SPILL" && iBeste(eget.kort)) {
       this.tellere.enig++;
       this.siste = { lag: "enig", n: par.n, sigma: par.sigma, ms: this.klokke() - start };
       return eget;

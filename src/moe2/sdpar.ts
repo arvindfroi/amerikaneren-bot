@@ -134,6 +134,32 @@ export interface ParOpts {
    * motstandermodell i hver verden — parringen over verdener forutsetter det.
    */
   readonly motpartFor?: (sete: number) => Utspiller;
+  /**
+   * ============ FARTSKNOTTENE (17. sep, `D:/amb-grp/loop/fart.md`) =======================
+   *
+   * Alle tre er AV når feltet mangler, og da kjøres ikke én linje av dem: stien er bit for bit
+   * som før (fingeravtrykk over ≥ 120 stillinger, `examples/fart-avtrykk.ts`).
+   *
+   * KORTEKVIVALENS (`~ekv=1`, Kermit/αμ). To lovlige kort i samme farge uten et LEVENDE kort
+   * mellom seg er strategisk likeverdige når poengene er stikk: det som ligger mellom er enten
+   * spilt i et FULLFØRT stikk eller på vår egen hånd. Et kort på BORDET mellom dem teller som
+   * levende (det ene slår det, det andre ikke), og det etterlyste kortet står alltid alene (det
+   * avslører makkeren). Bare én representant per klasse spilles ut — den LAVESTE — og klassen
+   * følger med i `ParKandidat.medlemmer`, så porten kan se at nettets kort er «det samme».
+   */
+  readonly ekvivalens?: boolean;
+  /**
+   * KANDIDATBESKJÆRING (`~topp=<p>`): bare disse kortene vurderes (en delmengde av de lovlige,
+   * valgt av kalleren fra nettets prior). Færre enn to igjen = «ingen data», policyen står.
+   */
+  readonly kandidater?: readonly Kort[];
+  /**
+   * FLAT-STOPP (`~flat=<n0>`): er ALLE kandidatene nøyaktig like i hver av de første `n0`
+   * verdenene, stopper utspillingen der. Da er hver parvis differanse 0, σ = 0, og nettets kort
+   * står — det samme som full kjøring gir hvis resten også er flatt (79 % av stillingene med
+   * ≤ 7 kort er flate i fasiten, `seiersmaal.md`).
+   */
+  readonly flatStopp?: number;
 }
 
 export interface ParKandidat {
@@ -142,6 +168,50 @@ export interface ParKandidat {
   readonly snitt: number;
   /** Verdien i hver enkelt verden – grunnlaget for den parrede differansen. */
   readonly perVerden: readonly number[];
+  /** `ekvivalens`: kortene representanten står for (inkl. seg selv). Udefinert uten knotten. */
+  readonly medlemmer?: readonly Kort[];
+}
+
+/**
+ * EKVIVALENSKLASSENE blant `lovlige` for `spiller` (se `ParOpts.ekvivalens`). Hver klasse er
+ * sortert stigende, og klassene står i rekkefølgen til sin laveste i `lovlige`.
+ */
+export function kortklasser(state: GameState, lovlige: readonly Kort[]): Kort[][] {
+  const borte = new Set<number>();
+  for (const stikk of state.historikk) for (const kp of stikk.kort) borte.add(kortTilInt(kp.kort));
+  const etterlyst = state.etterlyst === null ? -1 : kortTilInt(state.etterlyst);
+  const ints = lovlige.map(kortTilInt);
+  const orden = ints.map((_, i) => i).sort((a, b) => ints[a]! - ints[b]!);
+  const klasseAv = new Array<number>(lovlige.length).fill(-1);
+  const klasser: number[][] = [];
+  for (let j = 0; j < orden.length; j++) {
+    const i = orden[j]!;
+    const c = ints[i]!;
+    const forrige = j > 0 ? orden[j - 1]! : -1;
+    let slåSammen = false;
+    if (forrige >= 0 && c !== etterlyst) {
+      const p = ints[forrige]!;
+      if (p !== etterlyst && Math.floor(p / 13) === Math.floor(c / 13)) {
+        slåSammen = true;
+        for (let m = p + 1; m < c; m++) {
+          if (!borte.has(m)) {
+            slåSammen = false;
+            break;
+          }
+        }
+      }
+    }
+    if (slåSammen) {
+      klasseAv[i] = klasseAv[forrige]!;
+      klasser[klasseAv[i]!]!.push(i);
+    } else {
+      klasseAv[i] = klasser.length;
+      klasser.push([i]);
+    }
+  }
+  // Rekkefølge: etter laveste medlems plass i `lovlige`, så representantene står som før.
+  klasser.sort((a, b) => Math.min(...a) - Math.min(...b));
+  return klasser.map((k) => k.map((i) => lovlige[i]!));
 }
 
 export interface ParResultat {
@@ -250,8 +320,24 @@ export function vurderPar(
   motpart: Utspiller,
   opts: ParOpts,
 ): ParResultat | null {
-  const lovlige = lovligeKort(state, spiller);
-  if (lovlige.length < 2) return null;
+  const alleLovlige = lovligeKort(state, spiller);
+  if (alleLovlige.length < 2) return null;
+  let lovlige: readonly Kort[] = alleLovlige;
+  if (opts.kandidater !== undefined) {
+    const valgt = opts.kandidater;
+    lovlige = alleLovlige.filter((k) => valgt.some((v) => v.farge === k.farge && v.verdi === k.verdi));
+    if (lovlige.length < 2) return null;
+  }
+  let klasser: Kort[][] | null = null;
+  if (opts.ekvivalens === true) {
+    klasser = kortklasser(state, lovlige);
+    // Representanten er klassens LAVESTE kort.
+    lovlige = klasser.map((k) => k[0]!);
+    if (lovlige.length < 2) {
+      // Alle lovlige kort er likeverdige: søket har ingenting å skille.
+      return null;
+    }
+  }
   if (opts.spillvekt === true && opts.trovekt !== undefined) {
     throw new Error("vurderPar: spillvekt og trovekt leser det samme beviset - velg én");
   }
@@ -292,6 +378,8 @@ export function vurderPar(
    */
   const verdier: number[][] = lovlige.map(() => []);
   let brukt = 0;
+  const flatStopp = opts.flatStopp;
+  let flatHittil = true;
   for (const hender of verdener) {
     if (opts.frist !== undefined && klokke() >= opts.frist) break;
     for (let i = 0; i < lovlige.length; i++) {
@@ -304,6 +392,18 @@ export function vurderPar(
       verdier[i]!.push(mål(slutt, spiller));
     }
     brukt++;
+    if (flatStopp !== undefined) {
+      if (flatHittil) {
+        const v0 = verdier[0]![brukt - 1]!;
+        for (let i = 1; i < lovlige.length; i++) {
+          if (verdier[i]![brukt - 1] !== v0) {
+            flatHittil = false;
+            break;
+          }
+        }
+      }
+      if (flatHittil && brukt >= flatStopp) break;
+    }
   }
   // Fristen rakk ikke én verden: «ingen data», og policyen skal stå.
   if (brukt === 0) return null;
@@ -311,7 +411,7 @@ export function vurderPar(
   const kandidater: ParKandidat[] = lovlige.map((kort, i) => {
     const perVerden = verdier[i]!;
     const snitt = perVerden.reduce((a, b) => a + b, 0) / perVerden.length;
-    return { kort, snitt, perVerden };
+    return klasser === null ? { kort, snitt, perVerden } : { kort, snitt, perVerden, medlemmer: klasser[i]! };
   });
 
   /**
