@@ -15,7 +15,7 @@ import { existsSync } from "node:fs";
 import { test } from "node:test";
 
 import { opprettSpill, utfør, type GameState } from "../src/index.ts";
-import { lagIndre } from "../src/moe2/agentspek.ts";
+import { ADAMS, lagIndre } from "../src/moe2/agentspek.ts";
 import { avtrykk, avtrykkstekst, spillAvtrykk, type Driverkrok } from "../web/ab-driver.ts";
 import { FARTSKNOTTER, HELBOT_FILER, helbotSpek, type HelbotSti } from "../web/helbotspek.ts";
 import { lagSøkekjerne, type FraWorker } from "../web/sokekjerne.ts";
@@ -76,7 +76,7 @@ test("en runde uten RUNDE_SLUTT gir ny bok (bokbrudd), ikke en feil", { skip: !H
   await krok.nyKamp();
   // Spill runde 0 ferdig UTEN å vise workeren rundeslutten, og be så om et trekk i runde 1.
   let s: GameState = opprettSpill({ antallSpillere: 4 }, 71_000_005);
-  const agent = lagIndre("vakt:abmp:e1:e1-modell/d7alle.bin");
+  const agent = lagIndre(ADAMS);
   for (let v = 0; v < 400 && s.fase !== "RUNDE_SLUTT"; v++) s = utfør(s, agent.velgHandling(s)).state;
   s = utfør(s, { type: "NESTE" }).state;
   const sete = s.iTur!;
