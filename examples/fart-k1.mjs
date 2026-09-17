@@ -6,7 +6,8 @@
  * Uten `--konfig`: S1-kjøringen (base mot S1, iter-8, regel «ikke verre»), rapport
  * D:/amb-grp/loop/fart-k1.md. Med `--konfig`:
  *   { dir, rapport, tittel, armer: {navn: spek}, ref, regel: "ikke-verre" | "forbedring",
- *     ventPå?: pid, ventPåFil?: fil, ventPåAlle?: [pid], rot?, gren?, nei?, forsjekk?: { args: [...], froe, ref, ut, arbeidere? } }
+ *     ventPå?: pid, ventPåFil?: fil, ventPåAlle?: [pid], rot?, gren?, nei?, motstander?, data?, etter?,
+ *     kampsettFil?, forsjekk?: { args: [...], froe, ref, ut, arbeidere? } }
  *
  * Hver arm: `examples/duplikat-menneske.ts` i 8 skarder over alle menneskekampene (alle fire seter
  * spilles av armen). Maks 3 prosesser samtidig, BelowNormal på driveren og alle barn.
@@ -48,6 +49,36 @@ const ROT = K.rot ?? "D:/amb-fart";
 const GREN = K.gren ?? "fart-2026-09-17";
 /** Dommen når ingen arm består «forbedring»-regelen. */
 const NEI = K.nei ?? "mer tenketid hjelper ikke målbart";
+/**
+ * ============ BORDET (18. sep, `D:/amb-grp/loop/k1-avstemming.md`) =========================
+ *
+ * UTEN `--motstander` sitter ARMEN i alle fire seter. Da endres motstanderne sammen med knotten, og en
+ * jevn styrkeendring kansellerer delvis: krysstesten målte −0,28 ± 0,54 med armen rundt hele bordet mot
+ * +1,20 ± 0,53 med v5 i de tre andre setene, på samme spek og samme runder (parret differanse 1,48 pp).
+ * Batteriet (løkkas K1) har alltid kjørt `--motstander <v5-kjeden> --data <logg> --etter 2026-08-10`, og en
+ * K1 som skal kunne sammenliknes med den MÅ kalle `duplikat-menneske.ts` likt. Feltene legges rett på
+ * kommandolinja; uten dem er kallet som før.
+ */
+const DUP = [
+  ...(K.motstander === undefined ? [] : ["--motstander", K.motstander]),
+  ...(K.data === undefined ? [] : ["--data", K.data]),
+  ...(K.etter === undefined ? [] : ["--etter", K.etter]),
+];
+/**
+ * KAMPSETTET er bare RAPPORT her: batteriets port går på «utvalg» og rapporterer «holdout», mens dommen
+ * under følger den registrerte regelen på ALLE kampene. De to settene skrives ved siden av, så tallene kan
+ * sammenliknes med batteriets.
+ */
+const KAMPSETT =
+  K.kampsettFil === undefined
+    ? null
+    : new Map(
+        readFileSync(K.kampsettFil, "utf8")
+          .split(/\r?\n/)
+          .map((l) => l.split("\t"))
+          .filter((d) => d.length >= 2 && !d[0].startsWith("#") && d[0].trim() !== "spill")
+          .map((d) => [d[0].trim(), d[1].trim()]),
+      );
 const DIR = K.dir;
 const RAPPORT = K.rapport;
 const STATUS = `${DIR}/status.log`;
@@ -112,7 +143,7 @@ function kjør(j) {
   }
   rmSync(fil(j), { force: true });
   return nodeKjør(
-    ["examples/duplikat-menneske.ts", "--spek", ARMER[j.arm], "--skard", `${j.s}/${SKARDER}`, "--ut", fil(j)],
+    ["examples/duplikat-menneske.ts", "--spek", ARMER[j.arm], ...DUP, "--skard", `${j.s}/${SKARDER}`, "--ut", fil(j)],
     `${j.arm} s${j.s}`,
     (sek) => {
       tider[j.arm] += sek;
@@ -247,7 +278,9 @@ async function main() {
 
   let t = `# ${K.tittel}\n\nFerdig ${new Date().toISOString()}. Gren \`${GREN}\` i \`${ROT}\`. Rådata: \`${DIR}\`.\n\n`;
   for (const [a, sp] of Object.entries(ARMER)) t += `- ${a}${a === REF ? " (referanse)" : ""}: \`${sp}\`\n`;
-  t += `\nDuplikat på menneskekampene, ${SKARDER} skarder per arm, alle fire seter = armen, BelowNormal. `;
+  t += `\nDuplikat på menneskekampene, ${SKARDER} skarder per arm, `;
+  t += DUP.length === 0 ? "alle fire seter = armen" : `bordet: \`${DUP.join(" ")}\` (armen i sete 0)`;
+  t += `, BelowNormal. `;
   t += `SE: klyngebootstrap over kamper (B = 20 000); klynget sandwich i parentes.\n\n`;
   t += `**Beslutningsregel (skrevet før måling):** ${REGELTEKST}.\n\n`;
   if (K.forsjekk !== undefined) t += `Forsjekk (knottriggen, skrevet før K1): \`${K.forsjekk.ut}\`.\n\n`;
@@ -280,6 +313,20 @@ async function main() {
     dommer.push({ a, ok, dP, z });
     t += `| ${a} | ${f(mot.m)} ± ${f(mot.se).slice(1)} | **${f(dP.m)} ± ${f(dP.se).slice(1)}** (${f(dP.seSandwich).slice(1)}) | ${f(z, 2)} | ${f(dR.m)} ± ${f(dR.se).slice(1)} | ${ulike} | ${tid} | ${dom} |\n`;
     logg(`DOM ${a}: ${dP.m.toFixed(4)} ± ${dP.se.toFixed(4)} z ${z.toFixed(2)} (n=${dP.N}, K=${dP.K}) → ${ok}`);
+  }
+  if (KAMPSETT !== null) {
+    t += `\n### Kampsett (rapport, ikke port): dommen over er på ALLE kampene\n\n| arm | utvalg | holdout |\n|---|---|---|\n`;
+    for (const a of Object.keys(ARMER)) {
+      if (a === REF) continue;
+      const m = kart[a];
+      const del = (sett) => {
+        const u = felles.filter((x) => KAMPSETT.get(refKart.get(x).spill) === sett);
+        if (u.length === 0) return "–";
+        const d = klynge(u.map((x) => ({ k: kamp(x), d: m.get(x).bP - refKart.get(x).bP })));
+        return `${f(d.m)} ± ${f(d.se).slice(1)} (${d.N} runder, ${d.K} kamper)`;
+      };
+      t += `| ${a} | ${del("utvalg")} | ${del("holdout")} |\n`;
+    }
   }
   t += `\nVeggtid gjelder bare skarder kjørt i denne prosessen, på en belastet maskin i BelowNormal.\n\n`;
   if (K.regel === "forbedring") {
