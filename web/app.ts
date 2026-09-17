@@ -295,9 +295,9 @@ type Bot = { velgHandling(s: GameState): Handling; nyKamp(): void };
  *
  * Returnerer `null` ved feil, som kallerne allerede håndterer.
  */
-async function hentB64(navn: string): Promise<string | null> {
+async function hentB64(navn: string, base: string = DATA_URL): Promise<string | null> {
   try {
-    const r = await fetch(DATA_URL + navn);
+    const r = await fetch(base + navn);
     if (!r.ok) return null;
     const t = (await r.text()).trim();
     // En HTML-side starter med «<». Ekte base64 gjør aldri det, og er dessuten
@@ -756,13 +756,16 @@ function armFerdig(): void {
 }
 
 /**
- * HELBOTENS FILER, hentet som de andre modellene (valens PROXY-tabell). `null` = minst én
+ * HELBOTENS FILER: `dist/` på Vercel først, valens PROXY-tabell som reserve. `null` = minst én
  * mangler; da spiller arm B med arm A-kjeden på hovedtråden, og `modeller.helbot` er `false`.
  */
 let helbotLaster: Promise<Record<string, string> | null> | null = null;
 function hentHelbot(): Promise<Record<string, string> | null> {
   helbotLaster ??= Promise.all(
-    (Object.entries(HELBOT_FILER) as [HelbotSti, string][]).map(async ([sti, navn]) => [sti, await hentB64(navn)] as const),
+    (Object.entries(HELBOT_FILER) as [HelbotSti, string][]).map(
+      // Som `worker.js`: samme opphav først (rulles ut i samme push som appen), valen som reserve.
+      async ([sti, navn]) => [sti, (await hentB64(navn, "dist/")) ?? (await hentB64(navn))] as const,
+    ),
   ).then((par) => {
     const mangler = par.filter(([, b]) => b === null).map(([sti]) => HELBOT_FILER[sti]);
     if (mangler.length > 0) {
