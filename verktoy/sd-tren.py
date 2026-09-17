@@ -739,6 +739,7 @@ def main() -> None:
     p.add_argument("--enhet", default="", choices=["", "cpu", "cuda"], help="tving enhet (standard: cuda om mulig)")
     p.add_argument("--ingenbuffer", action="store_true", help="ikke les eller skriv npz-bufferet")
     p.add_argument("--minrader", type=int, default=1000, help="faerre leste rader stopper kjoeringen")
+    p.add_argument("--epokemappe", default="", help="DESTILL (17. sep): skriv vektene etter HVER epoke til <mappe>/e<n>.bin, uavhengig av utvalget")
     args = p.parse_args()
 
     vekter_modus = bool(args.vekter)
@@ -1303,6 +1304,8 @@ def main() -> None:
             # GRATIS: holdouten ligger alt paa GPU, og fasene er delmengder av den. Utvalget
             # ROERES IKKE her; dette er maaling, ikke en ny port. Skulle porten flyttes inn i
             # utvalget, er det en egen avgjoerelse med sin egen felle.
+            if args.epokemappe:
+                skriv_vekter(os.path.join(args.epokemappe, f"e{epoke + 1}.bin"), modell)
             fase_naa = anger_per_fase(modell) if vekter_modus else {}
             rad = {
                 "type": "epoke",
