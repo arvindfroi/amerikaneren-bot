@@ -9,7 +9,7 @@
  *
  *   FØR    `start`-rader mot dagens bot før utrullingen: bot `Adams-v5` eller `Adams-v5.1`, UTEN
  *          `modeller.abVersjon`, tidligst `--foer-fra` (v5 kom 5. aug).
- *   ETTER  `start`-rader med `modeller.abVersjon === --versjon`, `modeller.ab === "B"` og uten
+ *   ETTER  `start`-rader med `modeller.abVersjon` i --versjon (kommaliste, v15 og v16), `modeller.ab === "B"` og uten
  *          `abTvunget`. Intention-to-treat: kamper der helbotfilene manglet (`abFaktisk: "A"`)
  *          telles i ETTER, og antallet skrives ut.
  *   (Kamper fra en eventuell randomisert periode, `ab1-…`, skrives ut per arm for seg.)
@@ -31,7 +31,8 @@ const arg = (n: string, s: string): string => {
   return i < 0 ? s : (process.argv[i + 1] ?? s);
 };
 const DATA = arg("--data", "D:/amb-grp/menneske/hendelser.jsonl");
-const VERSJON = arg("--versjon", "ab2-kunB-2026-09-17");
+/** Kommaliste. ETTER er unionen; hver versjon skrives også ut for seg (v15 base, v16 med S1). */
+const VERSJONER = new Set(arg("--versjon", "ab2-kunB-2026-09-17,ab3-kunB-fart-2026-09-17").split(","));
 const FØR_FRA = arg("--foer-fra", "2026-08-05");
 const FØR_BOTER = new Set(["Adams-v5", "Adams-v5.1"]);
 
@@ -59,6 +60,7 @@ const ny = (): Gruppe => ({ start: 0, ferdig: 0, vant: 0, trekk: 0, reserve: 0, 
 const grupper = new Map<string, Gruppe>();
 const gruppeFor = new Map<string, string>();
 const spillerFor = new Map<string, string>();
+const underFor = new Map<string, string>();
 
 for (const r of rader) {
   if (r.type !== "start") continue;
@@ -67,10 +69,17 @@ for (const r of rader) {
   if (m?.["abVersjon"] === undefined) {
     if (FØR_BOTER.has(botAv(r)) && r.tid.slice(0, 10) >= FØR_FRA) g = "FØR";
   } else if (m["abTvunget"] !== true) {
-    if (m["abVersjon"] === VERSJON && m["ab"] === "B") g = "ETTER";
+    if (VERSJONER.has(String(m["abVersjon"])) && m["ab"] === "B") g = "ETTER";
     else g = `${String(m["abVersjon"])}/${String(m["ab"])}`;
   }
   if (g === null) continue;
+  // Undergruppe per versjon (og fart), telles bare i start/ferdig/vant.
+  if (g === "ETTER") {
+    const u = `  ${String(m?.["abVersjon"])}${m?.["fart"] === true ? " (S1)" : ""}`;
+    if (!grupper.has(u)) grupper.set(u, ny());
+    grupper.get(u)!.start++;
+    underFor.set(r.spillId, u);
+  }
   if (!grupper.has(g)) grupper.set(g, ny());
   const x = grupper.get(g)!;
   x.start++;
@@ -88,6 +97,11 @@ for (const r of rader) {
     x.ferdig++;
     const vant = r.data["vinner"] === 0;
     if (vant) x.vant++;
+    const u = underFor.get(r.spillId);
+    if (u !== undefined) {
+      grupper.get(u)!.ferdig++;
+      if (vant) grupper.get(u)!.vant++;
+    }
     const sp = spillerFor.get(r.spillId);
     if (sp !== undefined) {
       const p = perSpiller.get(sp) ?? {};

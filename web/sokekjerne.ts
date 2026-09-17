@@ -119,6 +119,8 @@ export function lagSøkekjerne(
   let sik: Sikkerorakel | null = null;
   /** Arm B: én kjede per sete. Settes av `helbot-init` og nulles av `adams-init`. */
   let helbot: Map<number, Helbotsete> | null = null;
+  /** Nødbremsens frist for helboten, eller null. */
+  let helbotFrist: number | null = null;
   const bokvakt = new Bokvakt();
 
   return (m) => {
@@ -136,6 +138,7 @@ export function lagSøkekjerne(
         const kart = new Map<number, Helbotsete>();
         for (const sete of m.seter) kart.set(sete, byggHelbotsete(m.spek, m.fristMs));
         helbot = kart;
+        helbotFrist = m.fristMs;
         bokvakt.nyKamp();
         post({
           id: 0,
@@ -241,7 +244,14 @@ export function lagSøkekjerne(
         const handling = h.agent.velgHandling(m.state);
         const utfall = h.sik === null || før === null ? null : lesUtfall(før, h.sik.tellere);
         const siste = h.sik?.siste ?? null;
-        const nødbrems = h.sik !== null && før !== null && h.sik.tellere.avkortet > før.avkortet;
+        /**
+         * NØDBREMS = FRISTEN kuttet verdener. `avkortet` teller også flat-stoppet (`~flat=`, S1), som
+         * stopper tidlig fordi valget er avgjort — det er ingen brems. Fristen slår bare inn når
+         * søket har brukt hele budsjettet, så tiden skiller dem.
+         */
+        const nødbrems =
+          h.sik !== null && før !== null && helbotFrist !== null && siste !== null &&
+          h.sik.tellere.avkortet > før.avkortet && siste.ms >= helbotFrist;
         post({
           id: m.id,
           handling,

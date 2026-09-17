@@ -33,7 +33,7 @@ export const HELBOT_NETT = "loop-15";
  * Én konstant slår dem av og på. Se `D:\amb-grp\loop\fart-k1.md` for dommen.
  */
 export const FARTSKNOTTER = "~ekv=1~topp=0.1~flat=8";
-export const FART_PÅ: boolean = false;
+export const FART_PÅ: boolean = true;
 
 /**
  * Helbotspeken, ordrett som i løkka og `examples/fart-k1.mjs`. Stiene er nettleserens

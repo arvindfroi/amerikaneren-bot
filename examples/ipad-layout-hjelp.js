@@ -3,6 +3,11 @@ const vent = (ms) => new Promise((r) => setTimeout(r, ms));
 export function maal() {
   const hj = document.querySelector(".hjul"); const hr = hj.getBoundingClientRect();
   const kort = [...hj.querySelectorAll(".kort")];
+  // Ulovlige kort har `pointer-events: none` i et stikk der man må følge farge. Synligheten og
+  // trykkstripa skal måles for HVERT kort, så det slås av mens målingen tas.
+  const stil = document.createElement("style");
+  stil.textContent = ".hjul .kort { pointer-events: auto !important; }";
+  document.head.appendChild(stil);
   const res = kort.map((k) => {
     const r = k.getBoundingClientRect(); const op = +getComputedStyle(k).opacity; let px = 0;
     for (let x = Math.max(r.left, 0); x < Math.min(r.right, innerWidth); x += 2) {
@@ -10,6 +15,7 @@ export function maal() {
     }
     return { id: k.id.slice(5), l: Math.round(r.left), rr: Math.round(r.right), t: Math.round(r.top), b: Math.round(r.bottom), op: +op.toFixed(2), px };
   });
+  stil.remove();
   const helt = res.filter((x) => x.op > 0.95 && x.l >= 0 && x.rr <= innerWidth && x.t >= 0 && x.b <= innerHeight && x.px >= 44);
   return { vw: innerWidth, vh: innerHeight, scrollH: document.scrollingElement.scrollHeight, kanScrolle: document.scrollingElement.scrollHeight > innerHeight + 1 && getComputedStyle(document.body).overflowY !== "hidden",
     hjul: [hr.left, hr.right, hr.top, hr.bottom].map(Math.round), låst: !!document.getElementById("bla-venstre")?.disabled, kb: kort[0]?.offsetWidth, n: kort.length,
