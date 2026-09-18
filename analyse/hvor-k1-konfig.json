@@ -1,0 +1,21 @@
+{
+  "dir": "D:/amb-grp/loop/hvork1",
+  "merke": "hvork1",
+  "maksAndre": 20,
+  "rapport": "D:/amb-grp/loop/hvor-k1-resultat.md",
+  "tittel": "HVOR kom gevinsten fra? Nett-for-nett-ablasjon, iter-20-settet mot nett 15 (batteriets bord)",
+  "armer": {
+    "ny": "okt:vr:e1-modell/vrak-21.bin@e1-modell/etterlyst-21.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-21.bin~ekv=1~topp=0.1~flat=8:budq:e1-modell/budq-21.bin:vakt:abmp:e1:e1-modell/kort-21.bin",
+    "gml": "okt:vr:e1-modell/vrak-15.bin@e1-modell/etterlyst-15.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-15.bin~ekv=1~topp=0.1~flat=8:budq:e1-modell/budq-15.bin:vakt:abmp:e1:e1-modell/kort-15.bin",
+    "kort15": "okt:vr:e1-modell/vrak-21.bin@e1-modell/etterlyst-21.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-21.bin~ekv=1~topp=0.1~flat=8:budq:e1-modell/budq-21.bin:vakt:abmp:e1:e1-modell/kort-15.bin",
+    "tro15": "okt:vr:e1-modell/vrak-21.bin@e1-modell/etterlyst-21.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-15.bin~ekv=1~topp=0.1~flat=8:budq:e1-modell/budq-21.bin:vakt:abmp:e1:e1-modell/kort-21.bin",
+    "vrak15": "okt:vr:e1-modell/vrak-15.bin@e1-modell/etterlyst-21.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-21.bin~ekv=1~topp=0.1~flat=8:budq:e1-modell/budq-21.bin:vakt:abmp:e1:e1-modell/kort-21.bin",
+    "budq15": "okt:vr:e1-modell/vrak-21.bin@e1-modell/etterlyst-21.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-21.bin~ekv=1~topp=0.1~flat=8:budq:e1-modell/budq-15.bin:vakt:abmp:e1:e1-modell/kort-21.bin",
+    "etterlyst15": "okt:vr:e1-modell/vrak-21.bin@e1-modell/etterlyst-15.bin:telrd:eks:3Lt2000:profil:sik:alle:0.5:48k32e3LMD~mlbu=e1-modell/tro-21.bin~ekv=1~topp=0.1~flat=8:budq:e1-modell/budq-21.bin:vakt:abmp:e1:e1-modell/kort-21.bin"
+  },
+  "ref": "ny",
+  "regel": "ikke-verre",
+  "motstander": "vr:e1-modell/vrakrang.bin:telrd:budm:e1-modell/bud-menneske.json@-3.0:vakt:abmp:e1:e1-modell/d7alle.bin",
+  "etter": "2026-08-10",
+  "kampsett": "alle"
+}
