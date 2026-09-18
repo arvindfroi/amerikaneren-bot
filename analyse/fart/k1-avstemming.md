@@ -95,3 +95,19 @@ si at en knott er styrkenøytral. Jeg har ikke startet den omkjøringen, siden E
    maskinen over tre av mine kjerner.
 
 Rådata: `D:\amb-grp\loop\k1-avstem\` (v5-armen) og `D:\amb-grp\loop\budsjettk1\arm0-s*.jsonl` (egne kopier).
+
+---
+
+## OPPDATERING 18. sep: omkjøringen med batteriets bord er gjort
+
+`fart-k1-v5.md` / `fart-k1-v5-resultat.md`, loop-15, v5 i de tre andre setene, `--etter 2026-08-10`,
+port = kampsett utvalg (1 484 runder, 150 kamper), 32 skarder uten feil.
+
+- **S1 − menneske = +1,224 ± 0,234 pp** (base +1,288 ± 0,274). Batteriet ga +1,11 ± 0,27 for de samme nettene.
+  **Riggene er enige når bordet er likt — avstemmingen er fullført, og driveren har ingen feil i seg.**
+- **S1 − base = −0,064 ± 0,188 (z −0,34):** fartsknottene står, nå målt med full følsomhet.
+- **Tenketid:** arm1 +0,031 ± 0,150, arm2 −0,247 ± 0,229 på porten ⇒ «mer tenketid hjelper ikke målbart».
+  (arm1 er +0,21 ± 0,11 på alle kamper og +0,45 ± 0,17 på holdout; se forbeholdet i `fart-k1-v5.md` §3.)
+
+Tallet som skal brukes om «hvor mye bedre enn mennesker er boten bestemor spiller mot»: **+1,22 ± 0,23 pp per
+runde** (S1, loop-15, batteriets port), og **+0,72 ± 0,19** som det rettferdige tallet der rolle og bud er like.
