@@ -77,6 +77,31 @@ async function main() {
     `# ${K.tittel} — PÅGÅR\n\nStartet ${new Date().toISOString()} (pid ${process.pid}). Status: \`${STATUS}\`.\n`,
   );
   logg(`driver startet, pid ${process.pid}`);
+  /**
+   * TRENINGSKJEDEN HAR FØRSTEPRIORITET. Er maskinen full av andres node-jobber, ventes det heller enn
+   * å presse seg inn — BelowNormal alene holder ikke når 20 prosesser alt deler 24 kjerner.
+   */
+  if (K.maksAndre !== undefined) {
+    const { execSync } = await import("node:child_process");
+    const andre = () => {
+      try {
+        const ut = execSync(
+          'powershell -NoProfile -Command "(Get-CimInstance Win32_Process -Filter \\"Name=\'node.exe\'\\" | Where-Object { $_.CommandLine -notlike \'*wonderwhy*\' -and $_.CommandLine -notlike \'*fart-friskgiv*\' }).Count"',
+          { encoding: "utf8" },
+        );
+        return Number(ut.trim());
+      } catch {
+        return 0;
+      }
+    };
+    let n = andre();
+    if (n > K.maksAndre) logg(`venter: ${n} andre node-jobber (tak ${K.maksAndre})`);
+    while (n > K.maksAndre) {
+      await new Promise((ok) => setTimeout(ok, 300_000));
+      n = andre();
+    }
+    logg(`plass på maskinen (${n} andre jobber), starter skardene`);
+  }
   const koder = await Promise.all(Array.from({ length: SKARD }, (_, i) => kjør(i)));
   const rader = [];
   for (let i = 0; i < SKARD; i++) {
