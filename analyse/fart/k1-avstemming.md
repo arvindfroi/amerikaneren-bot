@@ -111,3 +111,9 @@ port = kampsett utvalg (1 484 runder, 150 kamper), 32 skarder uten feil.
 
 Tallet som skal brukes om «hvor mye bedre enn mennesker er boten bestemor spiller mot»: **+1,22 ± 0,23 pp per
 runde** (S1, loop-15, batteriets port), og **+0,72 ± 0,19** som det rettferdige tallet der rolle og bud er like.
+
+## Etterspill 18. sep: arm1 bekreftet på friske giv — liten, ekte, under terskelen
+`arm1-bekreft.md`: 12 000 parrede friske giv (frøbånd 1 777 000 000–1 777 011 999, disjunkt fra K1-korpuset),
+v5 i de tre andre setene. **arm1 − S1 = +0,135 ± 0,037 pp (z +3,63)**, tegntest z +3,12. Holdout-utslaget
+(+0,446 ± 0,165) var støy. Regelen (≥ +0,15) gir «ikke bekreftet», men effekten av 192 verdener er reell og
+liten — og den koster 3,85× regnetid.
