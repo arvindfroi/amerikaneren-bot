@@ -49,10 +49,13 @@ const RAPPORT = K.rapport;
 const STATUS = `${DIR}/status.log`;
 const ARMER = K.armer;
 const REF = K.ref;
+/** Terskelen i regelen; `terskel` i konfigen overstyrer standarden for regeltypen. */
+const TERSKEL = K.terskel ?? (K.regel === "forbedring" ? 0.15 : -0.15);
+const TT = `${TERSKEL >= 0 ? "+" : "−"}${Math.abs(TERSKEL).toFixed(2).replace(".", ",")}`;
 const REGELTEKST =
   K.regel === "forbedring"
-    ? "en arm tas i bruk hvis arm − ref ≥ +0,15 pp OG z > +1,96; ellers «mer tenketid hjelper ikke målbart»"
-    : "armen godkjennes hvis arm − ref ≥ −0,15 pp og ikke signifikant negativ (z > −1,96)";
+    ? `en arm tas i bruk hvis arm − ref ≥ ${TT} pp OG z > +1,96; ellers «ikke målbart bedre»`
+    : `armen godkjennes hvis arm − ref ≥ ${TT} pp og ikke signifikant negativ (z > −1,96)`;
 
 mkdirSync(DIR, { recursive: true });
 const logg = (s) => appendFileSync(STATUS, `${new Date().toISOString()} ${s}\n`);
@@ -284,7 +287,7 @@ async function main() {
     const dP = klynge(felles.map((k) => ({ k: kamp(k), d: m.get(k).bP - refKart.get(k).bP })));
     const dR = klynge(felles.map((k) => ({ k: kamp(k), d: m.get(k).bot - refKart.get(k).bot })));
     const z = dP.m / dP.se;
-    const ok = K.regel === "forbedring" ? dP.m >= 0.15 && z > 1.96 : dP.m >= -0.15 && z > -1.96;
+    const ok = K.regel === "forbedring" ? dP.m >= TERSKEL && z > 1.96 : dP.m >= TERSKEL && z > -1.96;
     const ulike = felles.filter((k) => m.get(k).bot !== refKart.get(k).bot).length;
     const dom = K.regel === "forbedring" ? (ok ? "**TAS I BRUK**" : "ikke målbart bedre") : ok ? "**GODKJENT**" : "**AVVIST**";
     dommer.push({ a, ok, dP, z });
