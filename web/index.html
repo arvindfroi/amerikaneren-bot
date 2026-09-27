@@ -1591,6 +1591,24 @@ border: 0;
   /* Låst hånd (alt får plass): pilene forsvinner, men spalten står igjen slik
      at vifta ikke bytter bredde i det siste kortet spilles. */
   .blapil[disabled] { opacity: 0; pointer-events: none; }
+  /* ============ LÅST HÅND TAR HELE RADEN (27. sep) =====================
+     BETATESTEREN: «bruk mer av plassen ute på sidene.»
+
+     Pilene har hver sin spalte i rutenettet over, og den spalten sto igjen SELV NÅR hånden var
+     låst og pilene usynlige — målt 129 px av 1180 på en iPad, altså to tomme felt ute ved kantene
+     akkurat der hun peker. `oppdaterHjul()` setter `.full` når hele hånden faktisk får plass. Da
+     er pilene pr. definisjon avslått (hel hånd medfører låst hjul), og de kan legges OVER kanten
+     i stedet for å ta bredde.
+
+     `--helluft` skrives fra `oppdaterHjul()` og er NØYAKTIG det samme tallet JS regner
+     trykkstripa med. Står det bare her, kan de to drive fra hverandre uten at noe blir rødt.
+     Spalten kommer på toppen av `#app`s egen ramme (`max(8px, env(safe-area-inset-*))`), så
+     kortene holder minst 18 px fra vinduskanten og er klar av iOS' hjørner og hakk. */
+  .handrad.full { grid-template-columns: minmax(0, 1fr); }
+  .handrad.full > .hjul { grid-column: 1; margin-inline: var(--helluft, 10px); }
+  .handrad.full > .blapil { position: absolute; top: 50%; transform: translateY(-50%); }
+  .handrad.full > .blapil.venstre { left: 0; }
+  .handrad.full > .blapil.hoyre { right: 0; }
 
   /* Kasteflaten: bordet svarer mens et kort dras opp mot det. */
   .bord.tarimot { outline: 3px dashed rgba(255,138,118,.55); outline-offset: -6px; border-radius: var(--rad-l); }
@@ -2429,7 +2447,7 @@ border: 0;
   "use strict";
   /* Bumpes sammen med `BUNDELVERSJON` i `web/app.ts`. Står de ulikt, sier
      siden fra i stedet for å vise en halvgammel utgave i stillhet. */
-  var VENTET = "v18-nett21-2026-09-27";
+  var VENTET = "v19-hand-2026-09-27";
   var BASE = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
 
   function varsle(tekst) {

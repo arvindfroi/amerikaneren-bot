@@ -61,7 +61,7 @@ const MENNESKE = 0;
  *
  * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
  */
-const BUNDELVERSJON = "v18-nett21-2026-09-27";
+const BUNDELVERSJON = "v19-hand-2026-09-27";
 (globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
@@ -723,7 +723,7 @@ const AB_PÅ: boolean = true;
  * `examples/ab-resultat.ts` teller dem alle som ETTER og hver for seg.
  */
 const AB_ANDEL_B = 1;
-const AB_VERSJON = "ab5-kunB-nett21-2026-09-27";
+const AB_VERSJON = "ab6-kunB-nett21-hand-2026-09-27";
 const AB_NØKKEL = "amerikaneren-ab";
 let arm: Arm = "A";
 let armInfo: { abArv?: string; abTvunget?: true } = {};
@@ -1366,6 +1366,9 @@ async function start(navn: string): Promise<void> {
         ? { helbot: helbotFiler, spek: HELBOT_SPEK, nett: HELBOT_NETT, fart: FART_PÅ, fristMs: HELBOT_FRIST_MS }
         : {}),
     },
+    // Layout-diagnostikk (27. sep): uten den kan vi ikke se betatesterens faktiske viewport.
+    // Bare tall og boolske verdier — ingen personopplysninger.
+    skjerm: skjermmål(),
     bundel: BUNDELVERSJON,
     søkverdener: arm === "B" ? 48 : SØKVERDENER,
     søksigma: SØKSIGMA,
@@ -2648,7 +2651,44 @@ function kortBredde(): number {
    * ni av tolv. Punkt 2 er en regel om hånden, ikke om skjermen, og den skal
    * ikke falle på nettopp den formfaktoren som pleier å bli glemt.
    */
-  return Math.round(Math.max(56, Math.min(112, h * 0.27 * 0.714, b * 0.25)));
+  return Math.round(Math.max(56, Math.min(KORT_MAKS, h * 0.27 * 0.714, b * 0.25)));
+}
+/** Taket fra runde 7 («kortene er så sykt store»). Gjelder alt som BLAR. */
+const KORT_MAKS = 112;
+/**
+ * ============ HEL HÅND FÅR STØRRE KORT (27. sep) =======================
+ *
+ * Fra betatesterens eget skjermbilde: iPad i landskap, Safari med både fane- og adresselinje,
+ * viewport ~1098×695. Hånden lå som en smal vifte nederst, og HELE den øvre halvdelen av bordet
+ * sto tom og blå. Kortene traff taket på 112 px mens høydeleddet tillot 134 — altså var det
+ * TAKET, ikke plassen, som holdt dem små.
+ *
+ * Taket løftes derfor til 132 px, men BARE når hele hånden vises. Begrunnelsen henger sammen med
+ * hvorfor 112 finnes: runde 7 klaget på kort som var store i en hånd man måtte BLA i, der store
+ * kort betyr færre kort i vinduet. En låst hånd har ikke det problemet — der er store kort bare
+ * lesbare kort, og en bestemor på iPad er nøyaktig den leseren dette er for.
+ *
+ * De to andre leddene står urørt, og det er de som gjør dette trygt: taket binder bare når
+ * høyden er over ~581 px og bredden over ~448 px. Er skjermen trang, binder høydeleddet som før
+ * og kortet blir ikke en piksel større enn det ble i går.
+ *
+ *     1098×695 (bestemor)   112 -> 132 px    trykkstripe 80 px
+ *     1180×820              112 -> 132 px    trykkstripe 91 px
+ *     1024×658 (krom)       112 -> 127 px    trykkstripe 73 px
+ *      891×572 (zoom+krom)  110 -> 110 px    høydeleddet binder, uendret
+ */
+const KORT_MAKS_HEL = 132;
+/**
+ * DEN BREDDEN KORTENE FAKTISK TEGNES MED. Skilt fra `kortBredde()` med vilje: `helHånd()` leser
+ * `kortBredde()` for lesbarhetsgulvet sitt, så hvis taket var kjent DER ville de to kalt
+ * hverandre i ring. Basen er derfor alltid det gamle taket, og `helHånd()` — som bare ser på
+ * vinduet og berøring, aldri på utfallet av layouten — låser opp det større.
+ */
+function kortBreddeVist(): number {
+  const b = window.innerWidth || 1024;
+  const h = window.innerHeight || 768;
+  const tak = helHånd() ? KORT_MAKS_HEL : KORT_MAKS;
+  return Math.round(Math.max(56, Math.min(tak, h * 0.27 * 0.714, b * 0.25)));
 }
 
 /**
@@ -2791,7 +2831,7 @@ function håndrad(): string {
     sistSpillTur = "";
   }
 
-  const kb = kortBredde();
+  const kb = kortBreddeVist();
   /**
    * ============ VIFTA MÅ STÅ RIKTIG ALLEREDE I FØRSTE BILDE ==============
    *
@@ -2837,7 +2877,7 @@ function håndrad(): string {
     `<button class="blapil ${retning}" id="bla-${retning}" aria-label="${merke}" disabled>
       <svg class="pil" viewBox="0 0 100 100" aria-hidden="true"><use href="#pilmerke"></use></svg>
     </button>`;
-  return `<div class="handrad">
+  return `<div class="handrad${hjulFull ? " full" : ""}">
     ${pil("venstre", "Bla til kortene til venstre")}
     <div class="hjul${passiv ? " passiv" : ""}" role="group" aria-label="Kortene dine"
          style="--kb:${kb}px;--senter:${hjulSenter.toFixed(3)};${hjulMål}">${kort}</div>
@@ -2906,20 +2946,84 @@ const MAKS_SYNLIG = 6.6;
  * liggende), stående nettbrett og PC/TV blar som før.
  *
  * Nettbrett = berøringsskjerm (`maxTouchPoints`, iPadOS melder 5 også i «skrivebordsmodus»)
- * med minst 1000×700 CSS-piksler liggende: 1024×768, 1133×744, 1180×820, 1194×834, 1366×1024.
- * `?helhand=1` tvinger unntaket (prøving i en nettleser uten berøring), `?helhand=0` slår det av.
+ * liggende. `?helhand=1` tvinger unntaket (prøving i en nettleser uten berøring), `?helhand=0`
+ * slår det av.
  *
- * TRYKKFLATEN er det som bestemmer om det holder: hvert kort må ha en synlig stripe på minst
- * `HEL_MIN_STRIPE` px. Blir steget smalere (et vindu som er for smalt for hånden), blar hjulet
- * som før i stedet for å stable kort man ikke kan treffe.
+ * ============ HVORFOR 1000×700 MÅTTE VEKK (27. sep) ====================
+ *
+ * Betatesteren så FORTSATT ikke hele hånden. Terskelen sto på «minst 1000×700 CSS-piksler», og
+ * den var skrevet fra iPadenes MASKINVAREMÅL — ikke fra den CSS-viewporten Safari faktisk gir.
+ * Målt med `examples/ipad-trangt.mjs` (Playwright, `hasTouch`, dpr 2):
+ *
+ *     iPad 9 1024×768    full skjerm         1024×768   hel hånd, 12 av 12
+ *     iPad 9 1024×768    + Safari-krom       1024×658   BLAR, 7 av 12    <- h < 700
+ *     iPad mini 1133×744 + Safari-krom       1133×634   BLAR, 7 av 12    <- h < 700
+ *     iPad Air 1080×810  «zoomet visning»     940×705   BLAR, 5 av 12    <- b < 1000
+ *
+ * Fane- og adresselinja spiser 100–140 px i landskap, og «zoomet visning» krymper ALLE
+ * CSS-pikslene til ~87 %. Begge leddene i terskelen ryker da på maskiner der hånden HAR plass:
+ * regnet etter fikk 891×572 — det trangeste tilfellet i tabellen — en trykkstripe godt over
+ * kravet. Terskelen avviste en skjerm som ikke var for liten; den var bare målt feil.
+ *
+ * ============ REGELEN ER NÅ BEHOVSSTYRT ================================
+ *
+ * To ledd, og ingen av dem er en skjermstørrelse:
+ *
+ *   LESBARHET  kortet må være minst `HEL_MIN_KORT` px bredt. `kortBredde()` er alt vi trenger:
+ *              den er selv utregnet av høyden OG bredden, så et vindu som er for lite til en
+ *              lesbar hel hånd faller ut her uten at noe tall om iPader står i koden. Gulvet er
+ *              det som holder LIGGENDE TELEFON på hjulet: 844×390 gir 75 px kort, 932×430 gir
+ *              83 px — begge under 96, altså blar de som før (punkt 2).
+ *   TRYKKFLATE hvert kort må få en synlig stripe på minst `HEL_MIN_STRIPE` px. Det avgjøres av
+ *              den FAKTISKE bredden håndraden fikk, i `oppdaterHjul()` — ikke her.
+ *
+ * `b > h` står igjen med vilje: stående nettbrett blar som før (§1b, eierens valg), og det er
+ * ikke et mål på plass, men på formfaktor.
  */
 const HEL_MIN_STRIPE = 44;
+/**
+ * LESBARHETSGULVET. 96 px er valgt fordi det er UNDER de 106–112 px enhver iPad-viewport i
+ * tabellen over gir, og OVER de 75–83 px en telefon i landskap gir. Mellomrommet er stort (23 px),
+ * så gulvet trenger ikke være presist — det skiller to formfaktorer, ikke to modeller.
+ */
+const HEL_MIN_KORT = 96;
+/**
+ * LUFTSPALTEN i hver side når hånden er låst. Skrives til `--helluft` i `oppdaterHjul()`, og
+ * CSS-en leser DEN — slik at tallet ikke kan drive fra hverandre mellom regnestykket her og
+ * margen der. Kommer på toppen av `#app`s egen ramme (`max(8px, env(safe-area-inset-*))`), så
+ * kortene holder minst 18 px fra vinduskanten og er klar av iOS' hjørner og hakk.
+ */
+const HEL_LUFT = 10;
+/**
+ * SISTE HÅNDMÅL — diagnostikk, ikke tilstand. Skrives av `oppdaterHjul()` og leses av
+ * `skjermmål()` for `start`-raden i loggen, siden vi ikke har betatesterens iPad. Bare tall.
+ */
+let sisteHåndmål: Record<string, number | boolean> | null = null;
+/**
+ * HVA REGELEN SÅ, OG HVA DEN BESTEMTE. Uten dette er «hun ser ikke hele hånden» umulig å måle:
+ * terskelen 1000×700 sto i tre måneder fordi ingen logg fortalte hvilken viewport hun hadde.
+ * Ingen personopplysninger — bare piksler, en punktteller og to boolske verdier.
+ */
+function skjermmål(): Record<string, unknown> {
+  return {
+    b: window.innerWidth,
+    h: window.innerHeight,
+    dpr: Math.round((window.devicePixelRatio || 1) * 100) / 100,
+    berøring: navigator.maxTouchPoints ?? 0,
+    liggende: window.innerWidth > window.innerHeight,
+    orientering: screen.orientation?.type ?? "",
+    kb: kortBredde(),
+    kbVist: kortBreddeVist(),
+    helRegel: helHånd(),
+    hand: sisteHåndmål,
+  };
+}
 function helHånd(): boolean {
   const tving = new URLSearchParams(location.search).get("helhand");
   if (tving === "0") return false;
   const b = window.innerWidth || 0;
   const h = window.innerHeight || 0;
-  const flate = b > h && b >= 1000 && h >= 700;
+  const flate = b > h && kortBredde() >= HEL_MIN_KORT;
   if (tving === "1") return flate;
   return flate && (navigator.maxTouchPoints ?? 0) > 0;
 }
@@ -3018,6 +3122,13 @@ let hjulSpenn = 0;
  * tegning med udefinerte mål, og vifta glir på plass i stedet for å stå der.
  */
 let hjulMål = "";
+/**
+ * OM HÅNDRADEN SKAL STÅ I «full»-modus ved neste tegning. Som `hjulMål` skrives den inn i HTML-en
+ * med én gang, slik at raden ikke rekker å stå ett bilde i feil bredde før `oppdaterHjul()` måler.
+ */
+let hjulFull = false;
+/** «hand»-diagnostikken sendes én gang per økt — se der den settes. */
+let håndLogget = false;
 
 function oppdaterHjul(): void {
   const hjul = rot.querySelector<HTMLElement>(".hjul");
@@ -3044,8 +3155,7 @@ function oppdaterHjul(): void {
    * Den kan derfor ikke mate sitt eget resultat tilbake. Rundet til heltall,
    * som er nøyaktig nok her: `--kb` settes i hele piksler fra `kortBredde()`.
    */
-  const kb = kort[0]!.offsetWidth || kortBredde();
-  const bredde = hjul.clientWidth || window.innerWidth;
+  const kb = kort[0]!.offsetWidth || kortBreddeVist();
   /**
    * DET YTTERSTE KORTET STÅR PÅ SKRÅ, og et skrått kort er BREDERE enn et
    * rett. Her sto `kb` alene, og resultatet var målbart galt: tolv kort ble
@@ -3082,13 +3192,63 @@ function oppdaterHjul(): void {
   const ytter = YTTERVINKEL * (0.55 + 0.45 * flathet);
   const ytterRad = (ytter * Math.PI) / 180;
   const fotavtrykk = kb * Math.cos(ytterRad) + (kb / 0.714) * Math.sin(ytterRad);
-  const ønsket = n > 1 ? (bredde - fotavtrykk) / (n - 1) : kb;
+  /**
+   * ============ HÅNDEN SKAL BRUKE SIDENE (27. sep) =====================
+   *
+   * BETATESTEREN: «bruk mer av plassen ute på sidene.» Hun har rett, og plassen lå der i to
+   * spalter man ikke kunne se: `.handrad` er et rutenett `auto minmax(0,1fr) auto` der bla-pilene
+   * tar ytterspaltene. Med LÅST hånd er pilene `opacity: 0` — men SPALTEN sto igjen, med vilje,
+   * slik at vifta ikke skulle skifte bredde i det siste kortet ble spilt. Målt på 1180×820:
+   * `hjul.clientWidth` 1051 av 1180. 129 px usynlig luft.
+   *
+   * Låst hånd legger nå pilene OVER kanten (`.handrad.full` i CSS-en) og gir vifta hele raden
+   * minus `HEL_LUFT` i hver side. Ingen bytter bredde av det: pilene er allerede usynlige og uten
+   * trykkflate når hånden er låst, og en låst hånd som mister kort blir bare mer låst.
+   *
+   * ============ INGEN LØKKE MELLOM BREDDEN OG VALGET ====================
+   *
+   * Her ligger fella, og den er den samme som `offsetWidth`-fella lenger opp: klassen endrer
+   * bredden, og bredden avgjør klassen. Den er brutt ved at KANDIDATEN regnes fra håndradens egen
+   * bredde minus luftspalten — et tall klassen ikke rører — og aldri fra `hjul.clientWidth`.
+   * Utfallet blir derfor det samme uansett hvilken klasse raden hadde da funksjonen begynte.
+   */
+  const håndrad = hjul.closest<HTMLElement>(".handrad");
+  document.documentElement.style.setProperty("--helluft", `${HEL_LUFT}px`);
+  const radBredde = (håndrad?.clientWidth ?? 0) || window.innerWidth;
+  const helRom = Math.max(0, radBredde - 2 * HEL_LUFT);
+  hjulFull = helHånd() && (n > 1 ? (helRom - fotavtrykk) / (n - 1) : kb) >= HEL_MIN_STRIPE;
+  håndrad?.classList.toggle("full", hjulFull);
+  const bredde = hjul.clientWidth || window.innerWidth;
+  /**
+   * ============ YTTERKORTET ER MINDRE, OG PLASSEN VAR REGNET FOR ET STORT ===
+   *
+   * `fotavtrykk` reserverer plass til et HELT kort på skrå. I en LÅST hånd er det for mye, og
+   * målbart: ytterkortet står pr. definisjon på `maksD`, der `scale` er nøyaktig `1 − TAPER`
+   * (se `--krymp` i CSS-en) — altså 82 % — og perspektivet trekker det i tillegg bakover. Målt på
+   * 1098×695 ble det 35 px ubrukt i HVER kant, oppå de to pilspaltene.
+   *
+   * REKKEFØLGEN ER POENGET: `hjulFull` over er avgjort med det STORE fotavtrykket, altså
+   * pessimistisk, og først etterpå brukes det virkelige. Et mindre fotavtrykk gir bare STØRRE
+   * steg, så en hånd som fikk plass med det forsiktige tallet får det også med dette — og
+   * avgjørelsen kan ikke snu av sin egen følge.
+   *
+   * Utenfor låst hånd står `fotavtrykk` urørt: der er ytterkortet i vinduet et annet kort for
+   * hvert steg hjulet glir, og marginen er nettopp det som hindrer at det klippes på langs.
+   */
+  const ytterKb = kb * (1 - TAPER);
+  const fotVist = hjulFull
+    ? ytterKb * Math.cos(ytterRad) + (ytterKb / 0.714) * Math.sin(ytterRad)
+    : fotavtrykk;
+  const ønsket = n > 1 ? (bredde - fotVist) / (n - 1) : kb;
   /**
    * GULVET SOM HOLDER VINDUET PÅ `MAKS_SYNLIG` KORT. Se konstanten for
    * hvorfor den finnes. Steget kan aldri bli SÅ tett at flere enn så mange
    * kort står i vinduet samtidig — heller ikke når skjermen har plass.
    */
-  const hel = helHånd() && ønsket >= HEL_MIN_STRIPE;
+  // `hjulFull` er allerede regnet på nøyaktig denne bredden; testen står igjen som vakt i
+  // tilfelle CSS-margen og `HEL_LUFT` noen gang skulle skille lag. Da blir det hjul, ikke
+  // kort man ikke kan treffe — og siden `hjulFull` ikke leser layouten, kan de to ikke svinge.
+  const hel = hjulFull && ønsket >= HEL_MIN_STRIPE;
   const gulv = hel ? kb * HJUL_MIN_STEG : Math.max(kb * HJUL_MIN_STEG, (bredde - fotavtrykk) / (MAKS_SYNLIG - 1));
   /**
    * TAKET VINNER OVER GULVET, og rekkefølgen er ikke likegyldig.
@@ -3105,7 +3265,7 @@ function oppdaterHjul(): void {
    * blas, som er hele poenget med punkt 2.
    */
   hjulSteg = Math.min(kb * HJUL_MAKS_STEG, Math.max(gulv, ønsket));
-  hjulSpenn = Math.max(0, (bredde - fotavtrykk) / (2 * hjulSteg));
+  hjulSpenn = Math.max(0, (bredde - fotVist) / (2 * hjulSteg));
   /**
    * LÅSEN GJELDER BARE EN HÅND SOM ER MINDRE ENN VINDUET. Er den større, skal
    * det blas — også på iPad, også midt i en innsamling. Uten `Math.min` her
@@ -3113,6 +3273,36 @@ function oppdaterHjul(): void {
    * nøyaktig de skjermene de ble meldt fra.
    */
   hjulLåst = hel ? (n - 1) / 2 <= hjulSpenn + 0.001 : n <= MAKS_SYNLIG && (n - 1) / 2 <= hjulSpenn + 0.001;
+  /**
+   * DIAGNOSTIKK TIL LOGGEN. Vi har ikke betatesterens iPad, og terskelen 1000×700 fikk stå i ti
+   * dager nettopp fordi ingen logg fortalte hvilken viewport hun hadde. Hele avgjørelsen skrives
+   * derfor ned her, der den faktisk tas — `skjermmål()` leser den til `start`-raden.
+   */
+  sisteHåndmål = {
+    b: window.innerWidth,
+    h: window.innerHeight,
+    n,
+    kb,
+    rad: Math.round(bredde),
+    steg: Math.round(hjulSteg),
+    stripe: Math.round(Math.min(hjulSteg, kb)),
+    // Låst hånd: nøyaktig antall synlige kort. Hjul: hvor mange kortPLASSER vinduet rommer,
+    // altså et OVERTALL — de ytterste plassene er tonet ut. Se `MAKS_SYNLIG`.
+    synlige: hjulLåst ? n : Math.min(n, Math.floor(2 * hjulSpenn + 1)),
+    hel,
+    laast: hjulLåst,
+    full: hjulFull,
+  };
+  /**
+   * ÉN «hand»-rad per økt. `start`-raden skrives FØR hånden er tegnet, så i en økt med bare én
+   * kamp ville `hand` stått som `null` — og da hadde vi fortsatt ikke visst hva regelen gjorde
+   * hos betatesteren, som er hele grunnen til at diagnostikken finnes. Rada sendes derfor én
+   * gang, i det hånden måles første gang. Bare tall.
+   */
+  if (!håndLogget) {
+    håndLogget = true;
+    logg("hand", { ...sisteHåndmål, dpr: Math.round((window.devicePixelRatio || 1) * 100) / 100, berøring: navigator.maxTouchPoints ?? 0 });
+  }
   /**
    * BØYEN REGNES BAKLENGS FRA HVOR MYE PLASS DEN FÅR LOV Å TA.
    *
@@ -3322,7 +3512,7 @@ function kastegrense(): number {
   // Kortet må dras opp forbi rundt en tredel av sin egen høyde. Målt i
   // kortets mål og ikke i piksler: 70 px er et lite napp på en PC og en
   // umulig strekning på en liggende telefon.
-  return Math.max(46, (kortBredde() / 0.714) * 0.34);
+  return Math.max(46, (kortBreddeVist() / 0.714) * 0.34);
 }
 
 /**
@@ -3985,7 +4175,7 @@ addEventListener("resize", () => {
   // Kortbredden er det ene tallet som ikke kan regnes ut i CSS, så det er
   // også det ene som krever en ny tegning. Endres den ikke, holder det å
   // måle hjulet på nytt — og da beholder knappen brukeren står på fokuset.
-  const nøkkel = String(kortBredde());
+  const nøkkel = String(kortBreddeVist());
   if (nøkkel === sistLayout) { oppdaterHjul(); return; }
   sistLayout = nøkkel;
   tegn();

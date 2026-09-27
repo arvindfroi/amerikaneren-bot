@@ -29,6 +29,13 @@ const SKJERMER = [
   { navn: "ipad-1024x768", w: 1024, h: 768, touch: true, hel: true },
   { navn: "ipad-1366x1024", w: 1366, h: 1024, touch: true, hel: true },
   { navn: "ipad-mini-1133x744", w: 1133, h: 744, touch: true, hel: true },
+  // 27. sep: de TRANGE formene, som er de betatesteren faktisk har. Safari-krom og «zoomet
+  // visning» gjør CSS-viewporten mye mindre enn maskinvaremålet, og den gamle terskelen
+  // (1000×700) falt nettopp her. `examples/ipad-trangt.mjs` har hele matrisen.
+  { navn: "bestemor-1098x695", w: 1098, h: 695, touch: true, hel: true },
+  { navn: "ipad-9-krom-1024x658", w: 1024, h: 658, touch: true, hel: true },
+  { navn: "ipad-mini-krom-1133x634", w: 1133, h: 634, touch: true, hel: true },
+  { navn: "ipad-zoom-krom-891x572", w: 891, h: 572, touch: true, hel: true },
   { navn: "ipad-staende-820x1180", w: 820, h: 1180, touch: true, hel: false },
   { navn: "telefon-390x844", w: 390, h: 844, touch: true, hel: false, mobil: true },
   { navn: "telefon-liggende-844x390", w: 844, h: 390, touch: true, hel: false, mobil: true },
