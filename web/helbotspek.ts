@@ -23,10 +23,22 @@ export const HELBOT_FILER = {
 export type HelbotSti = keyof typeof HELBOT_FILER;
 
 /**
- * Hvilke nett filene er. Loggføres i `start`-raden, så en senere nettbytte (samme filnavn,
- * ny pinne) kan skilles i basen. `D:\amb-grp\loop\nett\beste.txt` = «15 1.29 0.28».
+ * LØKKEGENERASJONEN filene er fra — ÉN kilde. `web/dist/max-*.b64` er base64 av
+ * `D:\amb-grp\loop\nett\beste\<navn>.bin` (= `nett\<navn>-<gen>.bin`), og node-referansen
+ * (`examples/ab-avtrykk.ts`, `test/ab-helbot.test.ts`) leser `e1-modell/<navn>-<gen>.bin`.
+ * Står tallet ett sted, kan et bygg med nye vekter ikke måles mot gamle nett i stillhet.
+ *
+ * v18 (27. sep): 21, opp fra 15. `D:\amb-grp\loop\nett\beste.txt` = «21 1.5 0.24»;
+ * K1-dommen i `D:\amb-grp\loop\nett21-app-resultat.md`: nett21 − nett15 = +0,089 ± 0,201 pp
+ * (z +0,44) på porten, +0,490 ± 0,212 på holdout, +1,312 ± 0,269 mot mennesket. GODKJENT.
  */
-export const HELBOT_NETT = "loop-15";
+export const HELBOT_GEN = "21";
+
+/**
+ * Hvilke nett filene er. Loggføres i `start`-raden, så en senere nettbytte (samme filnavn,
+ * ny pinne) kan skilles i basen.
+ */
+export const HELBOT_NETT = `loop-${HELBOT_GEN}`;
 
 /**
  * FARTSKNOTTENE (S1, `D:\amb-grp\loop\fart.md`): kortekvivalens, prior-topp og flat-stopp.

@@ -9,9 +9,11 @@
  *
  *   FØR    `start`-rader mot dagens bot før utrullingen: bot `Adams-v5` eller `Adams-v5.1`, UTEN
  *          `modeller.abVersjon`, tidligst `--foer-fra` (v5 kom 5. aug).
- *   ETTER  `start`-rader med `modeller.abVersjon` i --versjon (kommaliste, v15 og v16), `modeller.ab === "B"` og uten
+ *   ETTER  `start`-rader med `modeller.abVersjon` i --versjon (kommaliste, v15–v18), `modeller.ab === "B"` og uten
  *          `abTvunget`. Intention-to-treat: kamper der helbotfilene manglet (`abFaktisk: "A"`)
- *          telles i ETTER, og antallet skrives ut.
+ *          telles i ETTER, og antallet skrives ut. Hver versjon skrives OGSÅ ut for seg, med
+ *          S1, kortfristen og nettgenerasjonen i etiketten — det er der v17 (loop-15) skilles
+ *          fra v18 (loop-21), som ellers har samme knotter og samme frist.
  *   (Kamper fra en eventuell randomisert periode, `ab1-…`, skrives ut per arm for seg.)
  *
  * Ferdig = kampen har en `kamp`-rad; mennesket vant når `kamp.data.vinner === 0`.
@@ -31,8 +33,16 @@ const arg = (n: string, s: string): string => {
   return i < 0 ? s : (process.argv[i + 1] ?? s);
 };
 const DATA = arg("--data", "D:/amb-grp/menneske/hendelser.jsonl");
-/** Kommaliste. ETTER er unionen; hver versjon skrives også ut for seg (v15 base, v16 med S1). */
-const VERSJONER = new Set(arg("--versjon", "ab2-kunB-2026-09-17,ab3-kunB-fart-2026-09-17,ab4-kunB-fart-frist3s-2026-09-18").split(","));
+/**
+ * Kommaliste. ETTER er unionen; hver versjon skrives også ut for seg:
+ * ab2 = v15 (loop-15), ab3 = v16 (S1 på), ab4 = v17 (kortfrist 3 s), ab5 = v18 (loop-21).
+ */
+const VERSJONER = new Set(
+  arg(
+    "--versjon",
+    "ab2-kunB-2026-09-17,ab3-kunB-fart-2026-09-17,ab4-kunB-fart-frist3s-2026-09-18,ab5-kunB-nett21-2026-09-27",
+  ).split(","),
+);
 const FØR_FRA = arg("--foer-fra", "2026-08-05");
 const FØR_BOTER = new Set(["Adams-v5", "Adams-v5.1"]);
 
@@ -75,7 +85,9 @@ for (const r of rader) {
   if (g === null) continue;
   // Undergruppe per versjon (og fart), telles bare i start/ferdig/vant.
   if (g === "ETTER") {
-    const u = `  ${String(m?.["abVersjon"])}${m?.["fart"] === true ? " (S1)" : ""} frist ${String(m?.["fristMs"])}`;
+    const u =
+      `  ${String(m?.["abVersjon"])}${m?.["fart"] === true ? " (S1)" : ""}` +
+      ` frist ${String(m?.["fristMs"])} nett ${String(m?.["nett"] ?? "–")}`;
     if (!grupper.has(u)) grupper.set(u, ny());
     grupper.get(u)!.start++;
     underFor.set(r.spillId, u);

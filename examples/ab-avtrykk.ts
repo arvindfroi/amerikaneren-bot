@@ -24,7 +24,7 @@ import { pathToFileURL } from "node:url";
 import type { GameState, Handling } from "../src/motor.ts";
 import { lagIndre } from "../src/moe2/agentspek.ts";
 import { avtrykk, avtrykkstekst, spillAvtrykk, tidstabell, type Driverkrok } from "../web/ab-driver.ts";
-import { helbotSpek, type HelbotSti } from "../web/helbotspek.ts";
+import { HELBOT_GEN, helbotSpek, type HelbotSti } from "../web/helbotspek.ts";
 import type { FraWorker, TilWorker } from "../web/sokekjerne.ts";
 
 const arg = (n: string, s: string): string => {
@@ -40,7 +40,9 @@ const UT = arg("--ut", "");
 const ROT = resolve(arg("--rot", join(import.meta.dirname, "..")));
 /** RELATIV til arbeidsmappa: speken bruker «:» som skille, så «D:/…» går ikke. */
 const MODELL = arg("--modell", "e1-modell");
-const GEN = arg("--gen", "15");
+/** Løkkegenerasjonen. Standard = den bunten bruker (`HELBOT_GEN`), så referansen ikke kan
+ * måle gamle nett mot et nytt bygg. `--gen 15` sammenlikner med forrige utgave. */
+const GEN = arg("--gen", HELBOT_GEN);
 
 const diskSti = (s: HelbotSti): string =>
   `${MODELL}/${s.slice(4, -4)}-${GEN}.bin`;

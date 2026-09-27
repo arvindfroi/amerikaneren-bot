@@ -7,7 +7,7 @@
  *   3. Søkeklienten avviser en kvittering med for lav protokoll, og `stopp()` løser ventende trekk.
  *   4. Speken er den løkka måler, med og uten fartsknottene.
  *
- * Nettene er løkkas (`e1-modell/<navn>-15.bin`) og ligger ikke i git; uten dem hoppes 1–2 over.
+ * Nettene er løkkas (`e1-modell/<navn>-<HELBOT_GEN>.bin`) og ligger ikke i git; uten dem hoppes 1–2 over.
  * Fartsknottene er PÅ i prøven for å holde den kort; `examples/ab-avtrykk.ts` kjører begge.
  */
 import { strict as assert } from "node:assert";
@@ -17,11 +17,11 @@ import { test } from "node:test";
 import { opprettSpill, utfør, type GameState } from "../src/index.ts";
 import { ADAMS, lagIndre } from "../src/moe2/agentspek.ts";
 import { avtrykk, avtrykkstekst, spillAvtrykk, type Driverkrok } from "../web/ab-driver.ts";
-import { FARTSKNOTTER, HELBOT_FILER, helbotSpek, type HelbotSti } from "../web/helbotspek.ts";
+import { FARTSKNOTTER, HELBOT_FILER, HELBOT_GEN, helbotSpek, type HelbotSti } from "../web/helbotspek.ts";
 import { lagSøkekjerne, type FraWorker } from "../web/sokekjerne.ts";
 import { Søkeklient, type Arbeider } from "../web/sokeklient.ts";
 
-const sti = (s: HelbotSti): string => `e1-modell/${s.slice(4, -4)}-15.bin`;
+const sti = (s: HelbotSti): string => `e1-modell/${s.slice(4, -4)}-${HELBOT_GEN}.bin`;
 const HAR_NETT = (Object.keys(HELBOT_FILER) as HelbotSti[]).every((s) => existsSync(sti(s)));
 const SPEK = helbotSpek(true, sti);
 

@@ -43,6 +43,8 @@
 import { strict as assert } from "node:assert";
 import { execFileSync } from "node:child_process";
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROT = fileURLToPath(new URL("..", import.meta.url));
@@ -69,8 +71,14 @@ const PAR: readonly (readonly [string, string])[] = [
   ["web/sokekjerne.ts", "web/dist/worker.js"],
   // A/B-demoen (17. sep): arm B bor i workeren, konstantene deles med appen og benken.
   ["web/helbot.ts", "web/dist/worker.js"],
-  ["web/helbotspek.ts", "web/dist/worker.js"],
+  // `helbotspek.ts` står IKKE med workeren. Workeren får speken og filnavnene i
+  // `helbot-init`-meldingen fra appen og importerer aldri fila (se prøven under, som
+  // holder det sant). Paret sto her fra 17. sep og var feil: v17 endret `helbotspek.ts`
+  // (fristen 1,1 → 3 s) uten å endre `worker.js` med en byte — den kan ikke endres av
+  // noe som ikke er i den — og vakten sto rød fra da av. En vakt som roper ulv på hver
+  // commit blir slått av; derfor er paret borte, og grafen sjekkes i stedet.
   ["web/helbotspek.ts", "web/dist/app.js"],
+  ["web/helbotspek.ts", "web/dist/ab-benk.js"],
   ["web/nettleser/fs.ts", "web/dist/worker.js"],
   ["web/nettleser/path.ts", "web/dist/worker.js"],
   ["web/ab-benk.ts", "web/dist/ab-benk.js"],
@@ -101,3 +109,43 @@ for (const [kilde, bunt] of PAR) {
     );
   });
 }
+
+/**
+ * PARLISTA OVER påstår at `worker.js` ikke avhenger av `web/helbotspek.ts`. Blir det usant —
+ * importerer noen i workerkjeden fila en dag — må paret inn i `PAR` igjen, ellers er vakten
+ * blind for nettopp N1. Denne prøven er det som gjør fjerningen trygg: den leser importgrafen.
+ */
+const grafFra = (start: string): Set<string> => {
+  const sett = new Set<string>();
+  const kø = [start];
+  while (kø.length > 0) {
+    const fil = kø.pop()!;
+    if (sett.has(fil)) continue;
+    sett.add(fil);
+    let kode: string;
+    try {
+      kode = readFileSync(join(ROT, fil), "utf8");
+    } catch {
+      continue; // ikke en fil i repoet (node:*, pakker)
+    }
+    for (const m of kode.matchAll(/(?:import|export)[^;]*?from\s*"(\.[^"]+)"/g)) {
+      kø.push(relative(ROT, resolve(join(ROT, fil), "..", m[1]!)).split("\\").join("/"));
+    }
+  }
+  return sett;
+};
+
+test("workerens importgraf inneholder IKKE web/helbotspek.ts (derfor er paret ute av PAR)", () => {
+  const graf = grafFra("web/worker.ts");
+  assert.ok(graf.has("web/sokekjerne.ts"), `grafen ble ikke lest: ${graf.size} filer`);
+  assert.ok(graf.has("web/helbot.ts"), "fant ikke web/helbot.ts — leseren er for svak");
+  assert.ok(
+    !graf.has("web/helbotspek.ts"),
+    "workeren importerer nå web/helbotspek.ts. Legg paret [\"web/helbotspek.ts\", \"web/dist/worker.js\"] " +
+      "tilbake i PAR over, ellers kan en endring der bli committet uten ny worker.js.",
+  );
+});
+
+test("importleseren KAN finne fila — appens graf har web/helbotspek.ts", () => {
+  assert.ok(grafFra("web/app.ts").has("web/helbotspek.ts"), "leseren finner den ikke der den ER, og beviser ingenting");
+});

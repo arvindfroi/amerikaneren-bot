@@ -61,7 +61,7 @@ const MENNESKE = 0;
  *
  * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
  */
-const BUNDELVERSJON = "v17-frist3s-2026-09-18";
+const BUNDELVERSJON = "v18-nett21-2026-09-27";
 (globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
@@ -717,9 +717,13 @@ const AB_PÅ: boolean = true;
  * mot Adams-v5/v5.1 i basen fra før utrullingen. Arm A-kodeveien står som reserve (helbotfilene
  * mangler → hele arm A-kjeden spiller, logget `abFaktisk: "A"`) og som `?ab=A` til prøving.
  * Tilbake til randomisert: sett 0.5 og bump `AB_VERSJON`.
+ *
+ * `AB_VERSJON` bumpes hver gang boten endres, slik at kampene kan skilles i `hendelser`:
+ * ab2 = v15 (loop-15), ab3 = v16 (S1 på), ab4 = v17 (kortfrist 3 s), ab5 = v18 (loop-21).
+ * `examples/ab-resultat.ts` teller dem alle som ETTER og hver for seg.
  */
 const AB_ANDEL_B = 1;
-const AB_VERSJON = "ab4-kunB-fart-frist3s-2026-09-18";
+const AB_VERSJON = "ab5-kunB-nett21-2026-09-27";
 const AB_NØKKEL = "amerikaneren-ab";
 let arm: Arm = "A";
 let armInfo: { abArv?: string; abTvunget?: true } = {};
