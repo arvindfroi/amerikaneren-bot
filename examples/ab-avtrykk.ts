@@ -151,7 +151,12 @@ const res = {
   frø: FRØ,
   runder: RUNDER,
   antall: b.length,
-  avtrykk: avtrykk(tekst),
+  // MERKELAPPEN ER EN DEL AV AVTRYKKET (27. sep): to agenter målte samme uendrede kode med ulik
+  // `--fart` og fikk «383bd85b…» og «f5289d49…». Begge var riktige, men tallene så ut som et avvik
+  // i vektfilene og kostet tid. Et bart heksnummer sier ikke hva det gjelder; `S1:383bd85b…` mot
+  // `base:f5289d49…` kan ikke forveksles.
+  avtrykk: `${FART ? "S1" : "base"}:${avtrykk(tekst)}`,
+  avtrykkRått: avtrykk(tekst),
   sekunder: Math.round((performance.now() - t0) / 100) / 10,
   tider: tidstabell(b),
 };
