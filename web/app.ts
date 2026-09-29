@@ -61,7 +61,7 @@ const MENNESKE = 0;
  *
  * BUMPES VED HVER ENDRING i `web/`, sammen med `VENTET` i `index.html`.
  */
-const BUNDELVERSJON = "v19-hand-2026-09-27";
+const BUNDELVERSJON = "v20-storrekort-2026-09-29";
 (globalThis as unknown as Record<string, unknown>)["AMERIKANEREN_VERSJON"] = BUNDELVERSJON;
 
 // --- MesterAI-bro (kun når spillet serveres lokalt over HTTP) ---------------
@@ -719,11 +719,12 @@ const AB_PÅ: boolean = true;
  * Tilbake til randomisert: sett 0.5 og bump `AB_VERSJON`.
  *
  * `AB_VERSJON` bumpes hver gang boten endres, slik at kampene kan skilles i `hendelser`:
- * ab2 = v15 (loop-15), ab3 = v16 (S1 på), ab4 = v17 (kortfrist 3 s), ab5 = v18 (loop-21).
+ * ab2 = v15 (loop-15), ab3 = v16 (S1 på), ab4 = v17 (kortfrist 3 s), ab5 = v18 (loop-21),
+ * ab6 = v19 (hel hånd), ab7 = v20 (stikkraden). Bare layout siden ab5 — boten er bit-identisk.
  * `examples/ab-resultat.ts` teller dem alle som ETTER og hver for seg.
  */
 const AB_ANDEL_B = 1;
-const AB_VERSJON = "ab6-kunB-nett21-hand-2026-09-27";
+const AB_VERSJON = "ab7-kunB-nett21-stikkrad-2026-09-29";
 const AB_NØKKEL = "amerikaneren-ab";
 let arm: Arm = "A";
 let armInfo: { abArv?: string; abTvunget?: true } = {};
@@ -2484,7 +2485,7 @@ function bordet(): string {
     .map((s) => {
       const igjen = state.hender[s]?.length ?? 0;
       const tenker = s === tenkeSete;
-      return `<div class="motspiller" style="--vri:${VRI[s]}deg;--naer:${NAER[s]};--vend:${VEND[s]}">
+      return `<div class="motspiller" style="--vri:${VRI[s]}deg;--naer:${NAER[s]};--vend:${VEND[s]};--plass:${s}">
         <div class="hode">
           ${medaljong(s)}
           <div class="navn">${NAVN[s]}</div>
@@ -2500,6 +2501,22 @@ function bordet(): string {
       </div>`;
     })
     .join("");
+
+  /**
+   * ============ DIN EGEN SPALTE I STIKKRADEN (v20) =====================
+   *
+   * I stikkraden ligger de fire utspilte kortene på ÉN linje, og hver spalte
+   * står under den som la kortet. De tre motstanderne har fjeset sitt der;
+   * DU har ikke noe fjes på bordet — du sitter foran skjermen. Uten en
+   * etikett ville den fjerde spalta vært det eneste kortet på bordet ingen
+   * hadde satt navn på, og bestemor måtte gjettet at det er hennes eget.
+   *
+   * Cella står i `.motstandere`-rutenettet, ikke ved siden av det: da er det
+   * SAMME spaltemål som bærer både navnet og kortet, og de to kan ikke skli
+   * fra hverandre. Utenfor stikkraden er den `display: none` og koster
+   * ingenting — raden er da tre spalter som før.
+   */
+  const dusete = `<div class="dusete" style="--plass:0"><div class="navn">${NAVN[MENNESKE]}</div></div>`;
 
   /**
    * ============ BOBLA STO TO STEDER SAMTIDIG ===========================
@@ -2561,9 +2578,9 @@ function bordet(): string {
       : "";
   // `avgjort` skrur på tilbaketrekkingen av de tre som tapte stikket.
   return `<div class="bord${frystStikk !== null ? " avgjort" : ""}" aria-label="Bordet">
-    <div class="motstandere">${motstandere}</div>
+    <div class="motstandere">${dusete}${motstandere}</div>
     ${midt}
-    <div class="dinplass"><div class="kortplass">${kortplass(MENNESKE)}</div></div>
+    <div class="dinplass" style="--plass:0"><div class="kortplass">${kortplass(MENNESKE)}</div></div>
     ${forrige}
   </div>`;
 }
@@ -2679,6 +2696,41 @@ const KORT_MAKS = 112;
  */
 const KORT_MAKS_HEL = 132;
 /**
+ * ============ TAKET MÅ VÆRE EN ANDEL, IKKE ET PIKSELTALL (29. sep) ======
+ *
+ * FRA BETATESTERENS EGEN LOGG. v19-diagnostikken ga 18 `hand`-rader fra hennes iPad:
+ *
+ *     {"b":2160,"h":1391,"n":12,"kb":132,"rad":2124,"steg":124,"stripe":124,...}
+ *
+ * Alle feltene er CSS-px — de leses av `window.innerWidth` og av layouten selv — og de tre
+ * tallene henger nøyaktig sammen i DEN enheten:
+ *
+ *     rad  = b − 36        (2160 − 2×8 rammen − 2×10 `HEL_LUFT`)  = 2124   ✔
+ *     steg = kb × 0,94     (`HJUL_MAKS_STEG`, taket)              = 124    ✔
+ *
+ * Prøvd i nettleseren på 1080×695 med dpr 2: `hjul.clientWidth` = 1044, ikke 2124. Hadde
+ * loggen doblet tallene, måtte `rad` vært 2×1044 = 2088. Den er 2124. Loggen lyver altså
+ * ikke, og layouten blander ikke enheter: HENNES VIEWPORT ER VIRKELIG 2160 CSS-px BRED.
+ *
+ * Og det er hele forklaringen på «kortene er veldig små». Med 2160 CSS-px er
+ *
+ *     håndkortet   132 px =  6,1 % av bredden   (mot 12,2 % på 1080)
+ *     bordkortet    92 px =  4,3 % av bredden   (`.kort.liten` sitt tak, mot 8,4 %)
+ *
+ * altså nøyaktig HALV relativ størrelse. Skriftene merket det knapt — de er `vh`/`vw` — men
+ * kortene har absolutte tak, og et absolutt tak er det eneste i hele layouten som ikke vet
+ * hvor stor skjermen er. `steg = 124` sier det samme fra en annen kant: vifta står på det
+ * VIDESTE steget sitt og fyller likevel bare 1 488 av 2 124 px.
+ *
+ * Taket er derfor en ANDEL AV BREDDEN med det gamle tallet som gulv. 0,122 er valgt slik at
+ * 1 082 px gir nøyaktig 132 — altså er ingenting endret på en vanlig iPad-viewport, mens en
+ * side som tegnes i halv skala får kort i halv skala tilbake.
+ */
+const KORT_ANDEL_HEL = 0.122;
+function takHel(b: number): number {
+  return Math.max(KORT_MAKS_HEL, Math.round(b * KORT_ANDEL_HEL));
+}
+/**
  * DEN BREDDEN KORTENE FAKTISK TEGNES MED. Skilt fra `kortBredde()` med vilje: `helHånd()` leser
  * `kortBredde()` for lesbarhetsgulvet sitt, så hvis taket var kjent DER ville de to kalt
  * hverandre i ring. Basen er derfor alltid det gamle taket, og `helHånd()` — som bare ser på
@@ -2687,7 +2739,7 @@ const KORT_MAKS_HEL = 132;
 function kortBreddeVist(): number {
   const b = window.innerWidth || 1024;
   const h = window.innerHeight || 768;
-  const tak = helHånd() ? KORT_MAKS_HEL : KORT_MAKS;
+  const tak = helHånd() ? takHel(b) : KORT_MAKS;
   return Math.round(Math.max(56, Math.min(tak, h * 0.27 * 0.714, b * 0.25)));
 }
 
@@ -3005,17 +3057,46 @@ let sisteHåndmål: Record<string, number | boolean> | null = null;
  * Ingen personopplysninger — bare piksler, en punktteller og to boolske verdier.
  */
 function skjermmål(): Record<string, unknown> {
+  const vv = window.visualViewport;
+  const sb = screen.width || 0;
   return {
+    /**
+     * ALLE LENGDER I DENNE RADEN ER CSS-px. Ikke enhetspiksler, ikke skjermpiksler — feltet
+     * `enhet` står her for at det ikke skal måtte utledes på nytt neste gang. 29. sep gikk en
+     * halv dag på å avgjøre om `b: 2160` fra betatesterens iPad var CSS-px eller
+     * enhetspiksler; svaret lå i at `rad` = `b − 36` stemte på pikselen i CSS-px og bommet med
+     * 36 px hvis tallene var doblet. Den avgjørelsen skal ingen ta to ganger.
+     */
+    enhet: "css-px",
     b: window.innerWidth,
     h: window.innerHeight,
     dpr: Math.round((window.devicePixelRatio || 1) * 100) / 100,
     berøring: navigator.maxTouchPoints ?? 0,
     liggende: window.innerWidth > window.innerHeight,
     orientering: screen.orientation?.type ?? "",
+    /**
+     * ER SIDA ZOOMET? Tre uavhengige kilder, så vi slipper å gjette neste gang:
+     *   `skjermB/H`  `screen.width/height` — maskinens mål, også i CSS-px, men UAVHENGIG av
+     *                sidezoom i Safari. Er `b` dobbelt så stor som `skjermB`, tegnes sida i
+     *                halv skala, og hvert absolutt pikseltall i layouten blir halvparten så
+     *                stort som det ser ut på en umodifisert skjerm.
+     *   `vvB/H/skala` `visualViewport` — fanger klypezoom, som IKKE endrer `innerWidth`.
+     *   `sideSkala`  `b / skjermB`, avrundet. 1 = normalt, 2 = sida tegnes i halv skala.
+     */
+    skjermB: sb,
+    skjermH: screen.height || 0,
+    ytreB: window.outerWidth || 0,
+    ytreH: window.outerHeight || 0,
+    vvB: vv ? Math.round(vv.width) : 0,
+    vvH: vv ? Math.round(vv.height) : 0,
+    vvSkala: vv ? Math.round(vv.scale * 1000) / 1000 : 0,
+    sideSkala: sb > 0 ? Math.round((window.innerWidth / sb) * 100) / 100 : 0,
     kb: kortBredde(),
     kbVist: kortBreddeVist(),
+    kbTak: takHel(window.innerWidth),
     helRegel: helHånd(),
     hand: sisteHåndmål,
+    stikk: sisteStikkmål,
   };
 }
 function helHånd(): boolean {
@@ -3129,6 +3210,162 @@ let hjulMål = "";
 let hjulFull = false;
 /** «hand»-diagnostikken sendes én gang per økt — se der den settes. */
 let håndLogget = false;
+
+/**
+ * ======================================================================
+ *  STIKKRADEN: DE FIRE UTSPILTE KORTENE PÅ ÉN LINJE (v20, 29. sep)
+ * ======================================================================
+ *
+ * BETATESTEREN (bestemor, iPad liggende, viewport ~1098×695): «nå er kortene
+ * veldig små, ser nesten ikke kortene til lincoln». Hånden fikk hele bredden
+ * i v19; kortene PÅ BORDET fikk ingenting.
+ *
+ * ============ HVORFOR DE VAR SMÅ, MÅLT ================================
+ *
+ * Bordflaten er rad 2 i `#app` og fikk 338 px på hennes form. Den skulle
+ * romme TO kortrader over hverandre — motstandernes kort under fjesene, og
+ * ditt eget kort i en egen rad under midtfeltet:
+ *
+ *     fjes + navn + teller  ~ 90 px  (× 1,08 for det nærmeste setet)
+ *     nedskyving            ~ 48 px
+ *     motstandernes kort     111 px
+ *     «DIN TUR»              ~ 41 px
+ *     ditt eget kort         111 px + 30 px margin
+ *     ---------------------------------------------
+ *     sum                    413 px  mot 338 tilgjengelige
+ *
+ * Bordet var altså 75 px OVERFYLT, og siden rad 2 er `minmax(0, 1fr)` vokste
+ * det ikke — det RANT NEDOVER: `.dinplass` målt til 345–456 px mens
+ * håndraden begynner på 417. Ditt eget kort lå bokstavelig talt bak hånden.
+ * Det er også grunnen til at kortene sto på 79 px mot håndens 132 (0,60).
+ *
+ * ============ HVORFOR TO RADER ALDRI KAN BLI STORE ====================
+ *
+ * To kortrader koster `2 × 1,4 × kb` i høyde. Med 338 px, fjesene og
+ * «DIN TUR» trukket fra blir taket `kb ≤ 96 px` UANSETT hvor hardt man
+ * klemmer margene — regnet på nytt med hver eneste margin satt til null.
+ * Høyden er den knappe ressursen; bredden er det ikke: bordet er 936 px.
+ *
+ * ============ HVA SOM ER GJORT ========================================
+ *
+ * ÉN rad med fire kort, sentrert i bordet, i samme spaltemål som fjesene:
+ *
+ *     [ DU ]   [ FRANKLIN ]   [ LINCOLN ]   [ TRUMP ]     ← fjes/navn
+ *     [kort]   [   kort   ]   [  kort   ]   [ kort  ]     ← stikkraden
+ *
+ * `.motstandere` får en fjerde celle (`.dusete`, bare navnet) og fire like
+ * spalter, og kortplassene løftes ut av setene med `position: absolute` i
+ * nøyaktig de samme spaltesentrene. Da står hvert kort under den som la det
+ * — koblingen fjes→kort er den samme som før, bare på én linje.
+ *
+ * LØKKA ER BRUTT: `.bord` er rad 2 i `#app` og høyden er bestemt av
+ * topplinja og håndraden ALENE, aldri av sitt eget innhold. Kortstørrelsen
+ * kan derfor regnes ut av `.bord.clientHeight` uten at den kan endre
+ * forutsetningen sin. Fjesbåndet måles ETTER at klassen står, altså når
+ * kortene ALT er ute av flyten.
+ *
+ * KVANTISERT TIL 4 PX fordi fjesbåndet skifter et par piksler når «tenker
+ * …»-bobla bytter plass med korttelleren. Uten kvantiseringen ville de fire
+ * kortene endret størrelse midt i et stikk, og et bord som puster er verre
+ * enn et bord med to piksler feil.
+ */
+const STIKK_GAP = 16;
+/**
+ * Taket. Over dette leser fire kort på rad som en plakat, ikke som et bord — men som
+ * `takHel()` er det en ANDEL med et pikseltall som gulv, ellers krymper bordkortene til det
+ * halve på en viewport som tegnes i halv skala (se `KORT_ANDEL_HEL` for målingen).
+ * 0,155 gir 168 px ved 1 084 px bredde, altså uendret på en vanlig iPad.
+ */
+const STIKK_MAKS = 168;
+const STIKK_ANDEL = 0.155;
+/** Luft over stikkraden (mot fjesene) og under (mot «DIN TUR»). */
+const STIKK_LUFT = 8;
+/** Høyden «DIN TUR»-merket får under raden. Målt: 24–29 px pluss litt luft. */
+const STIKK_DINTUR = 28;
+/**
+ * BREDDEN «FORRIGE STIKK» EIER LANGS VENSTRE KANT. Ruta står `left: 0` og
+ * kommer og går mellom stikkene, så plassen reserveres ALLTID — ellers ville
+ * stikkraden flyttet seg sideveis hver gang ruta dukket opp. Målt bredde på
+ * bestemors form: 70 px (fire små kort på høykant med navn ved siden av);
+ * `max-width: 22%` er et tak den aldri når. 13 % med et tak på 120 px ligger
+ * over det målte på hver form i matrisen, og koster ikke stikkraden en
+ * piksel: det er HØYDEN som binder kortbredden, ikke bredden.
+ */
+const STIKK_FORRIGE = 0.13;
+const STIKK_FORRIGE_MAKS = 120;
+/** Siste mål av stikkraden — diagnostikk til `start`-raden, som `sisteHåndmål`. */
+let sisteStikkmål: Record<string, number | boolean> | null = null;
+
+function oppdaterStikkflate(): void {
+  const bord = rot.querySelector<HTMLElement>(".bord");
+  if (bord === null) return;
+  // Samme regel som hele hånden: liggende berøringsskjerm med lesbare kort.
+  // Står de to på hver sin regel, kan hånden låses uten at bordet følger med.
+  if (!helHånd()) {
+    bord.classList.remove("stikkrad");
+    return;
+  }
+  bord.classList.add("stikkrad");
+  const bh = bord.clientHeight;
+  const bb = bord.clientWidth;
+  if (bh <= 0 || bb <= 0) return;
+  const topp = bord.getBoundingClientRect().top;
+  let fjesNede = 0;
+  for (const h of bord.querySelectorAll<HTMLElement>(".motspiller .hode, .dusete")) {
+    fjesNede = Math.max(fjesNede, h.getBoundingClientRect().bottom - topp);
+  }
+  const reserve = Math.min(STIKK_FORRIGE_MAKS, Math.round(bb * STIKK_FORRIGE)) + STIKK_LUFT;
+  /**
+   * NEDRE GRENSE ER HÅNDEN, IKKE BORDETS EGEN KANT. Vifta løftes ut av
+   * håndraden (`translateY(-2vh)` på det lovlige kortet, `-3.4vh` under
+   * pekeren) og strekker seg opp i de nederste pikslene av bordflaten.
+   * Måler man mot `.bord`s kant, legger «DIN TUR» seg bak kortene i hånden —
+   * målt 1 av 5 prøvepunkter dekket i første forsøk.
+   *
+   * Ingen løkke: håndradens høyde og vifta er utregnet av `kortBreddeVist()`
+   * og hjulets egen bredde, og ingen av dem ser på stikkflaten. Kaller vi
+   * dette ETTER `oppdaterHjul()`, er tallet ferdig og fast.
+   */
+  const hjul = rot.querySelector<HTMLElement>(".hjul");
+  /**
+   * MÅLT PÅ RADEN, IKKE PÅ KORTENE. Kortene i vifta LØFTES: et lovlig kort står `-2vh` og et
+   * under pekeren `-3.4vh`. Måler man toppen av kortene, flytter grensa seg 14 px hver gang
+   * det blir din tur — og da ville de fire bordkortene byttet størrelse mellom stikkene.
+   * `.hjul` sin egen overkant er radens plass i rutenettet og rører seg ikke; løftet trekkes
+   * fra som en fast, kjent margin.
+   *
+   * 2vh OG IKKE 3,4vh: 2vh er det STÅENDE løftet på et lovlig kort. 3,4vh gjelder bare kortet
+   * under pekeren, og det er ett kort, i det øyeblikket en finger ligger på det — der kortet
+   * dessuten skal ligge øverst. Å reservere for det hele tiden kostet 8 px av bordkortene på
+   * den trangeste formen i matrisen, hver eneste tur.
+   */
+  const løft = 0.02 * (window.innerHeight || 0);
+  const håndOppe = hjul === null ? bh : hjul.getBoundingClientRect().top - topp - løft;
+  const bunn = Math.max(0, Math.min(bh, håndOppe));
+  const ledigH = bunn - fjesNede - STIKK_LUFT - STIKK_DINTUR;
+  const ledigB = bb - reserve - STIKK_LUFT;
+  /**
+   * 0,69 OG IKKE 0,714, OG DET ER MÅLT. Kortet er 2,5 : 3,5, men det står på
+   * skrå: `--vri` gir det en liten kastvinkel, og et rotert rektangel har en
+   * HØYERE omsluttende boks enn sin egen høyde. Målt i første forsøk, med
+   * full vri (17°): 187 px projisert av et kort med 168 px layouthøyde, og
+   * «DIN TUR» kom 13 px inn i kortet. Vrien er nå klemt til 35 % (maks ~6°),
+   * og 0,69 dekker resten med margin.
+   */
+  const tak = Math.max(STIKK_MAKS, Math.round(window.innerWidth * STIKK_ANDEL));
+  const rå = Math.min(tak, ledigH * 0.69, (ledigB - 3 * STIKK_GAP) / 4);
+  const kb = Math.max(56, Math.floor(rå / 4) * 4);
+  const radB = 4 * kb + 3 * STIKK_GAP;
+  const venstre = Math.round(reserve + Math.max(0, ledigB - radB) / 2);
+  const stikktopp = Math.round(fjesNede + STIKK_LUFT);
+  bord.style.setProperty("--stikkb", `${kb}px`);
+  bord.style.setProperty("--stikkgap", `${STIKK_GAP}px`);
+  bord.style.setProperty("--stikkvenstre", `${venstre}px`);
+  bord.style.setProperty("--stikktopp", `${stikktopp}px`);
+  // «DIN TUR» henger rett under raden, i den høyden regnestykket har holdt av.
+  bord.style.setProperty("--stikkmidt", `${Math.round(stikktopp + kb / 0.69 + 4)}px`);
+  sisteStikkmål = { bh, bb, fjesNede: Math.round(fjesNede), bunn: Math.round(bunn), kb, radB, venstre, håndKb: kortBreddeVist() };
+}
 
 function oppdaterHjul(): void {
   const hjul = rot.querySelector<HTMLElement>(".hjul");
@@ -3279,6 +3516,8 @@ function oppdaterHjul(): void {
    * derfor ned her, der den faktisk tas — `skjermmål()` leser den til `start`-raden.
    */
   sisteHåndmål = {
+    // CSS-px, som resten av diagnostikken — se `enhet` i `skjermmål()`.
+    enhetCss: true,
     b: window.innerWidth,
     h: window.innerHeight,
     n,
@@ -3289,6 +3528,10 @@ function oppdaterHjul(): void {
     // Låst hånd: nøyaktig antall synlige kort. Hjul: hvor mange kortPLASSER vinduet rommer,
     // altså et OVERTALL — de ytterste plassene er tonet ut. Se `MAKS_SYNLIG`.
     synlige: hjulLåst ? n : Math.min(n, Math.floor(2 * hjulSpenn + 1)),
+    // Hvor bred vifta FAKTISK ble av raden den fikk. Var dette feltet med 27. sep, hadde
+    // «kortene er veldig små» vært lest av loggen med én gang: 1 488 av 2 124 px.
+    vifte: Math.round((n - 1) * hjulSteg + kb),
+    tak: takHel(window.innerWidth),
     hel,
     laast: hjulLåst,
     full: hjulFull,
@@ -3986,6 +4229,10 @@ function tegn(): void {
   // MÅLES ETTER at DOM-en står. Hjulets steg avhenger av hvor bredt hjulet
   // faktisk ble, og det vet ingen før søyla og pilene har tatt sitt.
   oppdaterHjul();
+  // Og stikkraden etter DEN: `helHånd()` og `.bord.clientHeight` er begge
+  // uavhengige av hva hjulet måler, men rekkefølgen holder de to målingene i
+  // samme omgang, så bordet aldri står ett bilde med gamle kortmål.
+  oppdaterStikkflate();
   // Og sprellet når kontrakten avgjøres — også etter at DOM-en står, siden
   // det måles inn over søyla. Se `visGjennombrudd`.
   if (gjennombruddVenter !== "") {
@@ -4176,7 +4423,7 @@ addEventListener("resize", () => {
   // også det ene som krever en ny tegning. Endres den ikke, holder det å
   // måle hjulet på nytt — og da beholder knappen brukeren står på fokuset.
   const nøkkel = String(kortBreddeVist());
-  if (nøkkel === sistLayout) { oppdaterHjul(); return; }
+  if (nøkkel === sistLayout) { oppdaterHjul(); oppdaterStikkflate(); return; }
   sistLayout = nøkkel;
   tegn();
 });

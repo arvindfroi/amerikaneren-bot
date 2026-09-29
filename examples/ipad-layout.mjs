@@ -33,6 +33,11 @@ const SKJERMER = [
   // visning» gjør CSS-viewporten mye mindre enn maskinvaremålet, og den gamle terskelen
   // (1000×700) falt nettopp her. `examples/ipad-trangt.mjs` har hele matrisen.
   { navn: "bestemor-1098x695", w: 1098, h: 695, touch: true, hel: true },
+  // 29. sep: betatesterens EGEN viewport, lest av v19-loggens `hand`-rader. Den er 2160×1391
+  // CSS-px — se `KORT_ANDEL_HEL` i `web/app.ts` for hvorfor det ikke er enhetspiksler.
+  { navn: "bestemor-logg-2160x1391", w: 2160, h: 1391, touch: true, hel: true },
+  { navn: "bestemor-logg-2152x1452", w: 2152, h: 1452, touch: true, hel: true },
+  { navn: "bestemor-1080x695", w: 1080, h: 695, touch: true, hel: true },
   { navn: "ipad-9-krom-1024x658", w: 1024, h: 658, touch: true, hel: true },
   { navn: "ipad-mini-krom-1133x634", w: 1133, h: 634, touch: true, hel: true },
   { navn: "ipad-zoom-krom-891x572", w: 891, h: 572, touch: true, hel: true },

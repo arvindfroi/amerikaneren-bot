@@ -273,7 +273,10 @@
        den nesten hvite kanten. Ingen av dem har en grense man kan se. */
     background: var(--rom-fall);
     color: var(--tekst);
-    font: clamp(15px, 1.05vh + 0.7vw, 26px)/1.45 var(--sans);
+    /* Taket 26 px bandt først over ~2 000 px viewportbredde — altså nettopp på en side som
+       tegnes i halv skala, der navn og skilt trenger det motsatte. 36 px rører ingen vanlig
+       skjerm (1 366×1 024 gir 20,3 px, 1 280×800 gir 17,4). */
+    font: clamp(15px, 1.05vh + 0.7vw, 36px)/1.45 var(--sans);
     font-variant-numeric: tabular-nums;
     overflow: hidden;
     -webkit-text-size-adjust: 100%;
@@ -1023,7 +1026,7 @@
    * En tekstskygge er ikke et svar på det; den gjør bokstaven tykkere, ikke
    * flaten mørkere.
    */
-  .motspiller .navn {
+  .motspiller .navn, .dusete .navn {
     font-size: clamp(10px, .62em, 22px); font-weight: 800; letter-spacing: .09em;
     text-transform: uppercase; color: var(--paa); white-space: nowrap;
     background: var(--flate); border-radius: 999px; padding: .12em .7em .16em;
@@ -1086,7 +1089,7 @@
     /* SAMME MÅL SOM `.kort.liten`. Er de ulike, hopper raden i det øyeblikket
        kortet legges — og et bord som hopper hvert eneste stikk er verre enn
        et bord uten plassholder i det hele tatt. */
-    width: var(--tomb, clamp(46px, 4.8vw + 3.8vh, 92px));
+    width: var(--tomb, clamp(46px, 4.8vw + 3.8vh, max(92px, 8.4vw)));
     aspect-ratio: 2.5 / 3.5;
     border-radius: clamp(6px, .9vh, 12px);
 border: 0;
@@ -1133,6 +1136,120 @@ border: 0;
     white-space: nowrap; color: var(--tekst-3);
     transition: color .28s var(--myk), opacity .28s var(--myk);
   }
+  /* ====================================================================
+     STIKKRADEN: FIRE LIKE STORE KORT PÅ ÉN LINJE (v20, 29. sep)
+
+     BETATESTEREN: «nå er kortene veldig små, ser nesten ikke kortene til
+     lincoln». Målt på hennes form (1098×695): håndkortet 132 px, kortet på
+     bordet 79 px — 0,60 — og bordflaten 75 px OVERFYLT, så ditt eget kort
+     rant ned bak hånden.
+
+     Regnestykket står i `oppdaterStikkflate()` i `app.ts`. Kort: to
+     kortrader over hverandre kan ikke gi mer enn ~96 px kort på 338 px
+     bordhøyde, uansett marger. Én rad kan, for bredden er det ingen mangel
+     på. Fjesene får en fjerde spalte (`.dusete`, bare navnet ditt), og
+     kortplassene løftes ut av setene og inn i NØYAKTIG de samme
+     spaltesentrene — så hvert kort står fortsatt under den som la det.
+
+     ALT SOM ER 3D HER ER LOKALT. `transform-style: preserve-3d` og en
+     `transform` gjør elementet til containing block for absolutt plasserte
+     etterkommere — altså ville kortplassene festet seg til SETET i stedet
+     for til bordet, og arvet setets skalering (0,88–1,08), som er fire
+     ulike kortstørrelser på én linje. Derfor: setene flates ut, og både
+     fjesets sideblikk og kortets vipping bærer sin egen `perspective()` i
+     transform-lista. Dybden ser lik ut; den henger bare ikke lenger i en
+     kjede som eier plasseringen.
+     ==================================================================== */
+  .dusete { display: none; }
+  .bord.stikkrad {
+    --stikkb: 110px; --stikkgap: 16px; --stikkvenstre: 0px; --stikktopp: 50%;
+  }
+  .bord.stikkrad > .motstandere {
+    justify-self: start; align-self: start;
+    width: calc(4 * var(--stikkb) + 3 * var(--stikkgap));
+    margin-left: var(--stikkvenstre);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--stikkgap);
+    transform-style: flat;
+  }
+  /* Din egen spalte: bare navnet, satt ned på samme linje som de andre
+     navnene, slik at raden leses som fire spalter og ikke som tre pluss en
+     løsgjenger. */
+  .bord.stikkrad .dusete {
+    display: flex; align-self: stretch; align-items: flex-end; justify-content: center;
+  }
+  .bord.stikkrad .motspiller { transform: none; transform-style: flat; }
+  .bord.stikkrad .motspiller .hode {
+    transform:
+      translateY(calc(var(--naer, 0) * clamp(3px, 1.2vh, 14px)))
+      perspective(700px)
+      rotateY(calc(var(--vend, 0) * 1deg))
+      scale(calc(.92 + var(--naer, 0) * .14));
+    transform-origin: 50% 0%;
+  }
+  /* Korttelleren og «tenker …» bytter plass med hverandre og er ikke like
+     høye. Fjesbåndet er det stikkraden måler høyden sin fra, så de to får
+     samme minstehøyde — ellers puster de fire kortene et par piksler hver
+     gang en bot begynner å tenke. */
+  .bord.stikkrad .motspiller .igjen,
+  .bord.stikkrad .motspiller .tenker { min-height: 1.5em; align-items: center; }
+  /* FJESBÅNDET BETALER FOR KORTENE. Hver piksel båndet gir fra seg blir 1,4
+     px korthøyde, altså ~0,7 px kortbredde — og det er kortene bestemoren
+     leser, ikke hodene. Medaljongen er fortsatt 44–64 px bred og navnet
+     urørt; det er luften mellom dem som er strøket. */
+  .bord.stikkrad .motspiller { gap: 2px; }
+  .bord.stikkrad .motspiller .medaljong { --mstr: clamp(36px, 4.4vw, 88px); }
+  /* TRE LINJER BLE TO. Korttelleren sto på sin egen linje under navnet og
+     kostet 25 px av båndet — altså 17 px kortbredde, som er mer enn hele
+     telleren er verdt. Den står nå VED SIDEN AV navnet: samme opplysning,
+     én linje mindre. «tenker …»-bobla arver plassen, og de to har samme
+     minstehøyde så raden ikke puster når en bot begynner å tenke. */
+  .bord.stikkrad .motspiller .hode {
+    display: grid; grid-template-columns: auto auto;
+    justify-content: center; align-items: center; column-gap: 5px; row-gap: 1px;
+  }
+  .bord.stikkrad .motspiller .hode > .medaljong { grid-column: 1 / -1; justify-self: center; }
+  /* KORTPLASSENE UT AV SETENE OG NED I RADEN. `left` er spaltesenteret:
+     samme `--stikkvenstre`, `--stikkb` og `--stikkgap` som `.motstandere`
+     er bygget av, så navnet og kortet ikke kan skli fra hverandre. */
+  /* `grid-row: auto` ER IKKE PYNT. En absolutt plassert celle i et rutenett
+     får GRIDOMRÅDET sitt som containing block, ikke hele rutenettet — så
+     `.dinplass` (rad 3) og `.midtfelt` (rad 2) målte `top` fra hver sin rad
+     mens motstandernes kortplasser målte fra bordet. Målt: «DIN TUR» havnet
+     90 px for lavt, altså bak hånden. Uten radbindingen er alle fire kortene
+     i det samme koordinatsystemet. */
+  .bord.stikkrad > .dinplass,
+  .bord.stikkrad > .midtfelt { grid-row: auto; grid-column: auto; }
+  .bord.stikkrad .motspiller .kortplass,
+  .bord.stikkrad > .dinplass {
+    position: absolute; z-index: 1; margin: 0;
+    top: var(--stikktopp);
+    left: calc(var(--stikkvenstre) + var(--plass, 0) * (var(--stikkb) + var(--stikkgap)));
+    width: var(--stikkb);
+  }
+  /* VIPPINGEN HAR SIN EGEN NEDRE OMDREININGSAKSE. Med aksen i overkant
+     svinger UNDERKANTEN fram mot øyet og perspektivet gjør kortet HØYERE enn
+     boksen sin — målt 183 px projisert mot 174 px i layouten, og da tar
+     kortet plass regnestykket ikke vet om. Med aksen i underkanten faller
+     overkanten bakover i stedet: projeksjonen blir litt lavere enn boksen,
+     altså på den trygge siden, og det er dessuten den riktige veien for et
+     kort som ligger på et bord foran deg. */
+  .bord.stikkrad .motspiller .kortplass,
+  .bord.stikkrad > .dinplass .kortplass {
+    transform: perspective(1100px) rotateX(11deg) rotate(calc(var(--vri, -2deg) * .35));
+    transform-origin: 50% 100%;
+  }
+  .bord.stikkrad > .dinplass .kortplass { position: static; width: auto; }
+  .bord.stikkrad .kort.liten { --kb: var(--stikkb); }
+  .bord.stikkrad .tomplass { --tomb: var(--stikkb); }
+  /* «DIN TUR» legger seg under raden i stedet for i flyten mellom to rader
+     som ikke finnes lenger. Høyden den får er reservert i regnestykket
+     (`STIKK_DINTUR`), så den kan ikke havne oppå et kort. */
+  .bord.stikkrad > .midtfelt {
+    position: absolute; left: 0; right: 0; top: var(--stikkmidt, auto);
+    padding-top: 0; z-index: 2;
+  }
+
   /* MIDTFELTET LIGGER OPPUNDER KORTENE, ikke midt i den tomme bordflaten.
      Raden er `1fr` høy og feltet sto sentrert i den, altså midt i det store
      tomrommet mellom de utspilte kortene og din egen hånd — der skissen ikke
@@ -1273,7 +1390,7 @@ border: 0;
      tyngste snitt, og tegnet under er en tredel mindre. */
   .kort .hjorne {
     position: absolute; top: 3%; left: 6%; text-align: center;
-    font-weight: 900; font-size: clamp(15px, calc(.36 * var(--kb, 90px)), 46px);
+    font-weight: 900; font-size: clamp(15px, calc(.36 * var(--kb, 90px)), 62px);
     line-height: .92; letter-spacing: -.04em;
   }
   .kort .hjorne .sym { display: block; font-size: .7em; letter-spacing: 0; margin-top: -.02em; }
@@ -1298,7 +1415,12 @@ border: 0;
      like langt. Med 44 px mot en hånd på 98 så det utspilte kortet ut som et
      minikort i stedet for som det samme kortet lagt ned på bordet — målt
      forhold 0,45. Nå ligger det på 0,75–0,79 av håndkortet på hver skjerm. */
-  .kort.liten { --kb: clamp(46px, 4.8vw + 3.8vh, 92px); }
+  /* TAKET ER RELATIVT (29. sep). 92 px er 8,4 % av en 1 098 px viewport, men bare 4,3 % av
+     betatesterens 2 160 — se `KORT_ANDEL_HEL` i `app.ts` for målingen. `max(92px, 8.4vw)`
+     er derfor det SAMME tallet på enhver vanlig skjerm og halvparten større der sida tegnes
+     i halv skala. Gjelder stående, telefon og PC; i liggende på berøringsskjerm overstyrer
+     stikkraden dette med `--stikkb`. */
+  .kort.liten { --kb: clamp(46px, 4.8vw + 3.8vh, max(92px, 8.4vw)); }
   .forrige .kort { --kb: clamp(26px, 3.4vh, 44px); border-width: 1px; box-shadow: none; }
   .bordkort .kort[disabled], .forrige .kort[disabled], .rygg.kort { opacity: 1; filter: none; cursor: default; }
 
@@ -2121,8 +2243,8 @@ border: 0;
        i håndraden — målt 1 325 px² overlapp mot kortene på hånden, altså
        nøyaktig blokkeringen denne runden begynte med, i det ene formatet den
        ikke var meldt fra. 12vh gir 189 px og et gulv på 6 px. */
-    .kort.liten { --kb: clamp(34px, 11vh, 56px); }
-    .tomplass { --tomb: clamp(34px, 11vh, 56px); }
+    .kort.liten { --kb: clamp(34px, 11vh, max(56px, 6.6vw)); }
+    .tomplass { --tomb: clamp(34px, 11vh, max(56px, 6.6vw)); }
     .bordkort .hvem { font-size: .58em; }
     .dinplass { margin-bottom: clamp(3px, 1vh, 8px); }
     /* SETERADEN MÅ GI FRA SEG DE SISTE PIKSLENE. Målt: seteraden ble 142 px
@@ -2131,7 +2253,7 @@ border: 0;
        nedskyvingen av bordkortene er de tre stedene det finnes luft å hente
        uten å gjøre noe mindre lesbart. */
     .motspiller { gap: 0; }
-    .motspiller .navn { font-size: clamp(9px, .5em, 15px); padding: .1em .55em .12em; }
+    .motspiller .navn, .dusete .navn { font-size: clamp(9px, .5em, 15px); padding: .1em .55em .12em; }
     .motspiller .kortplass { margin-top: 0; }
 
     .midtfelt { padding-top: 0; gap: 3px; }
@@ -2447,7 +2569,7 @@ border: 0;
   "use strict";
   /* Bumpes sammen med `BUNDELVERSJON` i `web/app.ts`. Står de ulikt, sier
      siden fra i stedet for å vise en halvgammel utgave i stillhet. */
-  var VENTET = "v19-hand-2026-09-27";
+  var VENTET = "v20-storrekort-2026-09-29";
   var BASE = "https://arvindfroi--eb370dc886d311f1abd41607ee4eb77e.web.val.run/";
 
   function varsle(tekst) {
